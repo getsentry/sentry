@@ -2,24 +2,21 @@ import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
-import omit from 'lodash/omit';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconCheckmark, IconInfo} from 'app/icons';
+import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, Team} from 'app/types';
@@ -27,7 +24,6 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import TeamFilter, {getTeamParams} from '../rules/teamFilter';
 import {Incident} from '../types';
@@ -35,9 +31,6 @@ import {Incident} from '../types';
 import AlertHeader from './header';
 import Onboarding from './onboarding';
 import AlertListRow from './row';
-import {TableLayout} from './styles';
-
-const DEFAULT_QUERY_STATUS = 'open';
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
@@ -72,9 +65,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       query.status = status;
     }
 
-    if (organization.features.includes('team-alerts-ownership')) {
-      query.team = getTeamParams(query.team);
-    }
+    query.team = getTeamParams(query.team);
 
     if (organization.features.includes('alert-details-redesign')) {
       query.expand = ['original_alert_rule'];
@@ -92,16 +83,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       return [];
     }
 
-    // No default status w/ alert-history-filters
-    const hasAlertHistoryFilters = this.props.organization.features.includes(
-      'alert-history-filters'
-    );
-
-    return ['open', 'closed'].includes(status as string)
-      ? [status as string]
-      : hasAlertHistoryFilters
-      ? []
-      : [DEFAULT_QUERY_STATUS];
+    return ['open', 'closed'].includes(status) ? [status] : [];
   }
 
   /**
@@ -247,25 +229,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return <Onboarding actions={actions} />;
   }
 
-  tryRenderEmpty() {
-    const {incidentList} = this.state;
-
-    if (!incidentList || incidentList.length > 0) {
-      return null;
-    }
-
-    return (
-      <EmptyMessage
-        size="medium"
-        icon={<IconCheckmark isCircled size="48" />}
-        title={t('No incidents exist for the current query.')}
-        description={tct('Learn more about [link:Metric Alerts]', {
-          link: <ExternalLink href={DOCS_URL} />,
-        })}
-      />
-    );
-  }
-
   renderLoading() {
     return this.renderBody();
   }
@@ -289,47 +252,41 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return (
       <Fragment>
         {this.tryRenderOnboarding() ?? (
-          <Panel>
-            {!loading && (
-              <PanelHeader>
-                <TableLayout>
-                  <div>{t('Alert')}</div>
-                  <div>{t('Alert Rule')}</div>
-                  <div>{t('Project')}</div>
-                  <div>
-                    <Feature
-                      features={['team-alerts-ownership']}
-                      organization={organization}
-                    >
-                      {t('Team')}
-                    </Feature>
-                  </div>
-                </TableLayout>
-              </PanelHeader>
-            )}
-            {showLoadingIndicator ? (
-              <LoadingIndicator />
-            ) : (
-              this.tryRenderEmpty() ?? (
-                <PanelBody>
-                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                    {({initiallyLoaded, projects}) =>
-                      incidentList.map(incident => (
-                        <AlertListRow
-                          key={incident.id}
-                          projectsLoaded={initiallyLoaded}
-                          projects={projects as Project[]}
-                          incident={incident}
-                          orgId={orgId}
-                          organization={organization}
-                        />
-                      ))
-                    }
-                  </Projects>
-                </PanelBody>
-              )
-            )}
-          </Panel>
+          <PanelTable
+            isLoading={showLoadingIndicator}
+            isEmpty={incidentList?.length === 0}
+            emptyMessage={t('No incidents exist for the current query.')}
+            emptyAction={
+              <EmptyStateAction>
+                {tct('Learn more about [link:Metric Alerts]', {
+                  link: <ExternalLink href={DOCS_URL} />,
+                })}
+              </EmptyStateAction>
+            }
+            headers={[
+              t('Alert Rule'),
+              t('Triggered'),
+              t('Duration'),
+              t('Project'),
+              t('Alert ID'),
+              t('Team'),
+            ]}
+          >
+            <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+              {({initiallyLoaded, projects}) =>
+                incidentList.map(incident => (
+                  <AlertListRow
+                    key={incident.id}
+                    projectsLoaded={initiallyLoaded}
+                    projects={projects as Project[]}
+                    incident={incident}
+                    orgId={orgId}
+                    organization={organization}
+                  />
+                ))
+              }
+            </Projects>
+          </PanelTable>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
       </Fragment>
@@ -337,16 +294,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {params, organization, router, location} = this.props;
-    const {pathname, query} = location;
+    const {params, organization, router} = this.props;
     const {orgId} = params;
-
-    const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
-    const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
-    const status = this.getQueryStatus(location.query.status)[0] || DEFAULT_QUERY_STATUS;
-    const hasAlertHistoryFilters = organization.features.includes(
-      'alert-history-filters'
-    );
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
@@ -364,26 +313,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                       {t('This page only shows metric alerts.')}
                     </StyledAlert>
                   </Feature>
-                  {hasAlertHistoryFilters ? (
-                    this.renderFilterBar()
-                  ) : (
-                    <StyledButtonBar merged active={status}>
-                      <Button
-                        to={{pathname, query: openIncidentsQuery}}
-                        barId="open"
-                        size="small"
-                      >
-                        {t('Unresolved')}
-                      </Button>
-                      <Button
-                        to={{pathname, query: closedIncidentsQuery}}
-                        barId="closed"
-                        size="small"
-                      >
-                        {t('Resolved')}
-                      </Button>
-                    </StyledButtonBar>
-                  )}
+                  {this.renderFilterBar()}
                 </Fragment>
               )}
               {this.renderList()}
@@ -442,11 +372,6 @@ class IncidentsListContainer extends Component<Props> {
   }
 }
 
-const StyledButtonBar = styled(ButtonBar)`
-  width: 100px;
-  margin-bottom: ${space(1)};
-`;
-
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
 `;
@@ -463,6 +388,10 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -20px;
+`;
+
+const EmptyStateAction = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 export default withOrganization(withTeams(IncidentsListContainer));

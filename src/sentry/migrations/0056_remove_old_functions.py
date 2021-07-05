@@ -7,7 +7,6 @@ from django.db.models import Q
 
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-
 FIELDS_TO_CHANGE = {"orderby", "fields", "yAxis", "query"}
 FUNCTION_CHANGE = {
     "p75": "p75()",
@@ -123,5 +122,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(migrate_functions_in_queries, reverse_code=migrations.RunPython.noop),
+        migrations.RunPython(
+            migrate_functions_in_queries,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_discoversavedquery"]},
+        ),
     ]

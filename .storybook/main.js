@@ -9,9 +9,6 @@ module.exports = {
   core: {
     builder: 'webpack5',
   },
-  // Switch from react-docgen-typescript to react-docgen for speed
-  // See https://github.com/storybookjs/storybook/issues/12585
-  typescript: {reactDocgen: 'react-docgen'},
   addons: [
     {
       name: '@storybook/addon-essentials',

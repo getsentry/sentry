@@ -1,0 +1,129 @@
+{
+  "event_id": "a6a4a5a7b4dd4d6fb90441859bb5759a",
+  "project": 265601,
+  "release": "5.4",
+  "dist": null,
+  "platform": "cocoa",
+  "message": "Handled Exception",
+  "datetime": "2021-05-24T13:15:04+00:00",
+  "tags": [
+    ["customer-type", "enterprise"],
+    ["device", "iPhone12,1"],
+    ["device.family", "iOS"],
+    ["environment", "Production"],
+    ["language", "swift"],
+    ["level", "fatal"],
+    ["os", "iOS 14.3"],
+    ["os.name", "iOS"],
+    ["os.rooted", "no"],
+    ["release", "5.4"],
+    ["user", "email:cbve@yahoo.com"],
+    ["transaction", "sentry_cocoa.ViewController"]
+  ],
+  "_metrics": {"bytes.ingested.event": 2905, "bytes.stored.event": 3108},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1609976156.0,
+        "type": "debug",
+        "category": "started",
+        "level": "info",
+        "message": "Breadcrumb Tracking"
+      },
+      {
+        "timestamp": 1609976156.0,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {"screen": "sentry_cocoa.ViewController"}
+      },
+      {
+        "timestamp": 1609976156.0,
+        "type": "navigation",
+        "category": "app.lifecycle",
+        "level": "info",
+        "data": {"state": "foreground"}
+      },
+      {
+        "timestamp": 1609976157.0,
+        "type": "user",
+        "category": "touch",
+        "level": "info",
+        "message": "causeHandledException:",
+        "data": {
+          "view": "<UIButton: 0x7fa280c0b650; frame = (30 279; 354 50); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x6000020c5120>>"
+        }
+      },
+      {
+        "timestamp": 1609976157.0,
+        "type": "default",
+        "category": "default",
+        "level": "info",
+        "message": "User clicked the button - Handled Exception"
+      }
+    ]
+  },
+  "contexts": {
+    "My Context": {
+      "Plan": "team_plan",
+      "type": "My Context"
+    },
+    "app": {
+      "build_type": "simulator",
+      "app_identifier": "sentry.sentry-cocoa",
+      "app_name": "sentry-cocoa",
+      "app_version": "1.0",
+      "app_build": "1",
+      "app_id": "656C3528-ACB3-33D1-8745-3D129E5C3827",
+      "type": "app"
+    },
+    "device": {
+      "family": "iOS",
+      "model": "iPhone12,1",
+      "model_id": "simulator",
+      "arch": "x86",
+      "simulator": true,
+      "memory_size": 17179869184,
+      "free_memory": 330190848,
+      "usable_memory": 13186187264,
+      "storage_size": 499963174912,
+      "boot_time": "2021-01-04T17:42:01Z",
+      "timezone": "PST",
+      "type": "device"
+    },
+    "os": {
+      "name": "iOS",
+      "version": "14.3",
+      "build": "19H114",
+      "kernel_version": "Darwin Kernel Version 19.6.0: Tue Nov 10 00:10:30 PST 2020; root:xnu-6153.141.10~1/RELEASE_X86_64",
+      "rooted": false,
+      "type": "os"
+    }
+  },
+  "culprit": "sentry_cocoa.ViewController",
+  "environment": "Production",
+  "extra": {"currentViewController": "<sentry_cocoa.ViewController: 0x7fa280e0eed0>"},
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDRxY05qemJypZWRgaGlroGxrqHRBABbKAcD",
+    "id": "legacy:2019-03-12"
+  },
+  "hashes": ["e39d0682152872ec94128f98299c0466"],
+  "key_id": "500142",
+  "level": "fatal",
+  "logentry": {"formatted": "Handled Exception"},
+  "logger": "",
+  "metadata": {"title": "Handled Exception"},
+  "received": 1621862110.08338,
+  "sdk": {"name": "sentry.cocoa", "version": "5.1.10"},
+  "timestamp": 1621862104.0,
+  "title": "Handled Exception",
+  "type": "default",
+  "user": {
+    "email": "cbve@yahoo.com",
+    "ip_address": null,
+    "geo": {"country_code": "US", "city": "Danville", "region": "United States"}
+  },
+  "version": "7",
+  "location": null
+}

@@ -37,4 +37,10 @@ class Migration(migrations.Migration):
         ("sentry", "0018_discoversavedquery_version"),
     ]
 
-    operations = [migrations.RunPython(forwards, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(
+            forwards,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_discoversavedquery"]},
+        )
+    ]

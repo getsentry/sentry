@@ -70,4 +70,10 @@ class Migration(migrations.Migration):
         ("sentry", "0095_ruleactivity"),
     ]
 
-    operations = [migrations.RunPython(update_ui_components, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(
+            update_ui_components,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_appcomponent"]},
+        )
+    ]

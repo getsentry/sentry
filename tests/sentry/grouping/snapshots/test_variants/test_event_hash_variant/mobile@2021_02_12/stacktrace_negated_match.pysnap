@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:39.924824Z'
+created: '2021-06-30T16:44:00.586407Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "<entire stacktrace>"
+  tree_label: "log::__private_api_log | log_demo::main | std::rt::lang_start::{{closure}} | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | _main"
   component:
     app-depth-max*
       exception*
@@ -65,7 +65,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "<entire stacktrace>"
+  tree_label: "log::__private_api_log | log_demo::main | std::rt::lang_start::{{closure}} | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | _main"
   component:
     system*
       exception*

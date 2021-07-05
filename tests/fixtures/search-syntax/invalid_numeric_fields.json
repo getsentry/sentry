@@ -7,7 +7,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).",
+          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
           "expectedType": ["numeric", "numericIn"]
         },
         "key": {"type": "keySimple", "value": "project.id", "quoted": false},
@@ -25,7 +25,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).",
+          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
           "expectedType": ["numeric", "numericIn"]
         },
         "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
@@ -43,7 +43,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Invalid duration. Expected number followed by duration unit suffix.",
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
           "expectedType": ["duration"]
         },
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
