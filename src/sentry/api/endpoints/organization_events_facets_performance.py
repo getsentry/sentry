@@ -448,7 +448,10 @@ def query_facet_performance_key_histogram(
         referrer="api.organization-events-facets-performance-histogram",
         group_by=["tags_value", "tags_key"],
         limit_by=[num_buckets_per_key, "tags_value"],
-        extra_conditions=extra_conditions,
+        extra_conditions=[
+                                         ["tags_key", "IN", [tag_key],
+                                         ["tags_value", "IN", tag_values],
+         ],
         normalize_results=False,
     )
     return results
