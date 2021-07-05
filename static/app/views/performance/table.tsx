@@ -151,8 +151,11 @@ class Table extends React.Component<Props, State> {
       Actions.EXCLUDE,
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
-      Actions.EDIT_THRESHOLD,
     ];
+
+    if (organization.features.includes('project-transaction-threshold-override')) {
+      allowActions.push(Actions.EDIT_THRESHOLD);
+    }
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
