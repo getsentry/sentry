@@ -24,6 +24,7 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import TransactionThresholdModal, {
   modalCss,
+  TransactionThresholdMetric,
 } from './transactionSummary/transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
@@ -61,11 +62,17 @@ type Props = {
 type State = {
   widths: number[];
   keyedTransactions: number | null;
+  transaction: string | undefined;
+  transactionThreshold: number | undefined;
+  transactionThresholdMetric: TransactionThresholdMetric | undefined;
 };
 class Table extends React.Component<Props, State> {
   state: State = {
     widths: [],
     keyedTransactions: null,
+    transaction: undefined,
+    transactionThreshold: undefined,
+    transactionThresholdMetric: undefined,
   };
 
   componentDidMount() {
@@ -105,6 +112,13 @@ class Table extends React.Component<Props, State> {
               eventView={eventView}
               transactionThreshold={project_threshold[1]}
               transactionThresholdMetric={project_threshold[0]}
+              onApply={(threshold, metric) => {
+                this.setState({
+                  transaction: transactionName,
+                  transactionThreshold: threshold,
+                  transactionThresholdMetric: metric,
+                });
+              }}
             />
           ),
           {modalCss, backdrop: 'static'}
@@ -397,7 +411,8 @@ class Table extends React.Component<Props, State> {
   render() {
     const {eventView, organization, location, setError} = this.props;
 
-    const {widths} = this.state;
+    const {widths, transaction, transactionThreshold, transactionThresholdMetric} =
+      this.state;
     const columnOrder = eventView
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
@@ -429,6 +444,9 @@ class Table extends React.Component<Props, State> {
           location={location}
           setError={setError}
           referrer="api.performance.landing-table"
+          transactionName={transaction}
+          transactionThreshold={transactionThreshold}
+          transactionThresholdMetric={transactionThresholdMetric}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>
