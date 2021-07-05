@@ -259,7 +259,7 @@ def query_top_tags(
     limit: int,
     filter_query: Optional[str] = None,
     referrer: Optional[str] = None,
-) -> Optional[Dict]:
+) -> Optional[List[Any]]:
     """
     Fetch counts by tag value, finding the top tag values for a tag key by a limit.
     :return: Returns the row with the value, the aggregate and the count if the query was successful
