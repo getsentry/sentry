@@ -385,6 +385,7 @@ const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.background};
   height: 330px;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
