@@ -80,10 +80,7 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
           )}
         </TextBlock>
         <ButtonList>
-          <Button
-            external
-            href={`https://docs.sentry.io/platform-redirect/?next=/enriching-events/user-feedback/&platform=${this.state.project.platform}`}
-          >
+          <Button external href="https://docs.sentry.io/product/user-feedback/">
             {t('Read the docs')}
           </Button>
           <Button priority="primary" onClick={this.handleClick}>
