@@ -1494,6 +1494,90 @@ class EventManagerTest(TestCase):
             == 1
         )
 
+    def test_category_match_in_app(self):
+        from sentry.grouping.enhancer import Enhancements
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:foo category=bar
+            category:bar -app
+            """,
+        )
+
+        event = make_event(
+            platform="native",
+            exception={
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "foo",
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+        manager = EventManager(event)
+        manager.normalize()
+        manager.get_data()["grouping_config"] = {
+            "enhancements": enhancement.dumps(),
+            "id": "mobile:2021-02-12",
+        }
+        event1 = manager.save(1)
+        assert event1.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
+
+    def test_category_match_group(self):
+        from sentry.grouping.enhancer import Enhancements
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:foo category=foo_like
+            category:foo_like -group
+            """,
+        )
+
+        event = make_event(
+            platform="native",
+            exception={
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "foo",
+                                },
+                                {
+                                    "function": "bar",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+        manager = EventManager(event)
+        manager.normalize()
+
+        grouping_config = {
+            "enhancements": enhancement.dumps(),
+            "id": "mobile:2021-02-12",
+        }
+
+        manager.get_data()["grouping_config"] = grouping_config
+        event1 = manager.save(1)
+
+        event2 = Event(event1.project_id, event1.event_id, data=event1.data)
+
+        assert event1.get_hashes() == event2.get_hashes(grouping_config)
+
 
 class ReleaseIssueTest(TestCase):
     def setUp(self):
