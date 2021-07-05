@@ -116,11 +116,16 @@ class Table extends React.Component<Props, State> {
               transactionThreshold={project_threshold[1]}
               transactionThresholdMetric={project_threshold[0]}
               onApply={(threshold, metric) => {
-                this.setState({
-                  transaction: transactionName,
-                  transactionThreshold: threshold,
-                  transactionThresholdMetric: metric,
-                });
+                if (
+                  threshold !== project_threshold[1] ||
+                  metric !== project_threshold[0]
+                ) {
+                  this.setState({
+                    transaction: transactionName,
+                    transactionThreshold: threshold,
+                    transactionThresholdMetric: metric,
+                  });
+                }
               }}
             />
           ),
