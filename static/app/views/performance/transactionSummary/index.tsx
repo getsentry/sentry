@@ -294,16 +294,6 @@ class TransactionSummary extends Component<Props, State> {
     ]);
   }
 
-  handleChangeThreshold(threshold: number, metric: TransactionThresholdMetric) {
-    if (
-      threshold === this.state.transactionThreshold &&
-      metric === this.state.transactionThresholdMetric
-    ) {
-      return;
-    }
-    this.setState({transactionThreshold: threshold, transactionThresholdMetric: metric});
-  }
-
   render() {
     const {organization, projects, location} = this.props;
     const {
@@ -376,7 +366,10 @@ class TransactionSummary extends Component<Props, State> {
                         this.state.spanOperationBreakdownFilter
                       }
                       onChangeThreshold={(threshold, metric) =>
-                        this.handleChangeThreshold(threshold, metric)
+                        this.setState({
+                          transactionThreshold: threshold,
+                          transactionThresholdMetric: metric,
+                        })
                       }
                       transactionThreshold={transactionThreshold}
                       transactionThresholdMetric={transactionThresholdMetric}

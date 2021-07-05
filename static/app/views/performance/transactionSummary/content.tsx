@@ -182,6 +182,7 @@ class SummaryContent extends React.Component<Props, State> {
       error,
       totalValues,
       onChangeFilter,
+      onChangeThreshold,
       spanOperationBreakdownFilter,
       transactionThreshold,
       transactionThresholdMetric,
@@ -275,11 +276,7 @@ class SummaryContent extends React.Component<Props, State> {
           currentTab={Tab.TransactionSummary}
           hasWebVitals={hasWebVitals}
           handleIncompatibleQuery={this.handleIncompatibleQuery}
-          onChangeThreshold={(threshold, metric) => {
-            if (this.props.onChangeThreshold) {
-              this.props.onChangeThreshold(threshold, metric);
-            }
-          }}
+          onChangeThreshold={onChangeThreshold}
           transactionThreshold={transactionThreshold}
           transactionThresholdMetric={transactionThresholdMetric}
           loadingThreshold={loadingThreshold}

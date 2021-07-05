@@ -35,7 +35,7 @@ type Props = {
   api: Client;
   organization: Organization;
   transactionName: string;
-  onApply: (threshold, metric) => void;
+  onApply?: (threshold, metric) => void;
   projects: Project[];
   eventView: EventView;
   transactionThreshold: number | undefined;
@@ -66,7 +66,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
   handleApply = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {api, closeModal, organization, transactionName} = this.props;
+    const {api, closeModal, organization, transactionName, onApply} = this.props;
 
     const project = this.getProject();
     if (!defined(project)) {
@@ -90,7 +90,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       })
       .then(() => {
         closeModal();
-        this.props.onApply(this.state.threshold, this.state.metric);
+        if (onApply) {
+          onApply(this.state.threshold, this.state.metric);
+        }
       })
       .catch(err => {
         this.setState({
@@ -113,7 +115,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
   handleReset = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {api, closeModal, organization, transactionName} = this.props;
+    const {api, closeModal, organization, transactionName, onApply} = this.props;
 
     const project = this.getProject();
     if (!defined(project)) {
@@ -149,7 +151,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
               metric: data.metric,
             });
             closeModal();
-            this.props.onApply(this.state.threshold, this.state.metric);
+            if (onApply) {
+              onApply(this.state.threshold, this.state.metric);
+            }
           })
           .catch(err => {
             const errorMessage = err.responseJSON?.threshold ?? null;

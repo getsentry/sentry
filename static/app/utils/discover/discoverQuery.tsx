@@ -39,7 +39,7 @@ function shouldRefetchData(
 
 function DiscoverQuery(props: DiscoverQueryPropsWithThresholds) {
   return (
-    <GenericDiscoverQuery<TableData, {}>
+    <GenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>
       route="eventsv2"
       shouldRefetchData={shouldRefetchData}
       {...props}

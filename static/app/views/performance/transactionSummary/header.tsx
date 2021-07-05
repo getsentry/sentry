@@ -138,12 +138,6 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  handleUpdateThreshold(threshold: number, metric: TransactionThresholdMetric) {
-    if (this.props.onChangeThreshold) {
-      this.props.onChangeThreshold(threshold, metric);
-    }
-  }
-
   openModal() {
     const {
       organization,
@@ -151,6 +145,7 @@ class TransactionHeader extends React.Component<Props> {
       eventView,
       transactionThreshold,
       transactionThresholdMetric,
+      onChangeThreshold,
     } = this.props;
     openModal(
       modalProps => (
@@ -161,7 +156,7 @@ class TransactionHeader extends React.Component<Props> {
           eventView={eventView}
           transactionThreshold={transactionThreshold}
           transactionThresholdMetric={transactionThresholdMetric}
-          onApply={(threshold, metric) => this.handleUpdateThreshold(threshold, metric)}
+          onApply={onChangeThreshold}
         />
       ),
       {modalCss, backdrop: 'static'}
