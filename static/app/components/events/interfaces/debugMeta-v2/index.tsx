@@ -537,7 +537,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
           </TitleWrapper>
         }
         actions={
-          <SearchBarAction
+          <StyledSearchBarAction
             placeholder={t('Search images loaded')}
             onChange={value => this.handleChangeSearchTerm(value)}
             query={searchTerm}
@@ -624,4 +624,8 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
   max-height: ${p => p.height}px;
   overflow-y: auto !important;
   outline: none;
+`;
+
+const StyledSearchBarAction = styled(SearchBarAction)`
+  z-index: 1;
 `;

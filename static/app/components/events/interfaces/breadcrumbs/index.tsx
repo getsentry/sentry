@@ -380,7 +380,7 @@ class Breadcrumbs extends React.Component<Props, State> {
           </GuideAnchor>
         }
         actions={
-          <SearchBarAction
+          <StyledSearchBarAction
             placeholder={t('Search breadcrumbs')}
             onChange={this.handleSearch}
             query={searchTerm}
@@ -423,4 +423,8 @@ const StyledEventDataSection = styled(EventDataSection)`
 
 const StyledEmptyMessage = styled(EmptyMessage)`
   ${aroundContentStyle};
+`;
+
+const StyledSearchBarAction = styled(SearchBarAction)`
+  z-index: 2;
 `;

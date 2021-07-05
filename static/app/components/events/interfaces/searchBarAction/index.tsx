@@ -12,11 +12,12 @@ type Props = {
    * The filter must be the SearchBarFilter component
    */
   filter?: React.ReactElement;
+  className?: string;
 };
 
-function SearchBarAction({onChange, query, placeholder, filter}: Props) {
+function SearchBarAction({onChange, query, placeholder, filter, className}: Props) {
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       {filter}
       <StyledSearchBar
         onChange={onChange}
@@ -35,6 +36,7 @@ const Wrapper = styled('div')`
   grid-gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
+  position: relative;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
