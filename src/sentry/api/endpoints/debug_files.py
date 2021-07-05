@@ -177,7 +177,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         q &= file_format_q
 
-        queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
+        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
 
         return self.paginate(
             request=request,
@@ -206,7 +206,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if request.GET.get("id") and (request.access.has_scope("project:write")):
             with transaction.atomic():
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project=project)
+                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
                     .select_related("file")
                     .first()
                 )
@@ -332,7 +332,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
             dif = (
-                ProjectDebugFile.objects.filter(project=project, checksum=checksum)
+                ProjectDebugFile.objects.filter(project_id=project.id, checksum=checksum)
                 .select_related("file")
                 .order_by("-id")
                 .first()

@@ -657,7 +657,7 @@ class Factories:
         return ProjectDebugFile.objects.create(
             debug_id=debug_id,
             code_id=code_id,
-            project=project,
+            project_id=project.id,
             object_name=object_name,
             cpu_name=cpu_name or "x86_64",
             file=file,
