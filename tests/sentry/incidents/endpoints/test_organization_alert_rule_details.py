@@ -110,8 +110,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
 
         alert_rule.name = "what"
+        alert_rule.date_modified = resp.data["dateModified"]
         assert resp.data == serialize(alert_rule)
         assert resp.data["name"] == "what"
+        assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
 
     def test_sentry_app(self):
         self.create_member(
