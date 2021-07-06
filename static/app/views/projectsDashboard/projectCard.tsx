@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
@@ -148,7 +148,7 @@ class ProjectCard extends Component<Props> {
             </HeaderRow>
             <SummaryLinks>
               {stats ? (
-                <React.Fragment>
+                <Fragment>
                   <Link
                     data-test-id="project-errors"
                     to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
@@ -178,7 +178,7 @@ class ProjectCard extends Component<Props> {
                       </TransactionsLink>
                     </Fragment>
                   )}
-                </React.Fragment>
+                </Fragment>
               ) : (
                 <SummaryLinkPlaceholder />
               )}
