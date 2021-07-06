@@ -1,8 +1,15 @@
-import {Query} from 'history';
+import {Location, Query} from 'history';
+
+import {decodeScalar} from 'app/utils/queryString';
 
 export function generateTagsRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/tags/`;
 }
+
+export function decodeSelectedTagKey(location: Location): string | undefined {
+  return decodeScalar(location.query.tagKey);
+}
+
 export function tagsRouteWithQuery({
   orgSlug,
   transaction,
@@ -28,6 +35,7 @@ export function tagsRouteWithQuery({
       start: query.start,
       end: query.end,
       query: query.query,
+      tagKey: query.tagKey,
     },
   };
 }
