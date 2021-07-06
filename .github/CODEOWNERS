@@ -214,3 +214,11 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/models/user.py                    @getsentry/data
 
 ### End of Data ###
+
+
+### Enterprise ###
+
+/src/sentry/scim/                            @getsentry/enterprise
+/tests/sentry/api/test_scim.py               @getsentry/enterprise
+
+## End of Enterprise ###

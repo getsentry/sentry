@@ -125,7 +125,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   user-select: none;
 
   a,
-  div {
+  div,
+  span {
     line-height: 1.1;
     color: inherit;
     white-space: nowrap;

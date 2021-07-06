@@ -42,7 +42,7 @@
     "@types/marked": "^0.7.2",
     "@types/papaparse": "^5.2.5",
     "@types/pegjs": "^0.10.2",
-    "@types/react": "~17.0.11",
+    "@types/react": "~17.0.13",
     "@types/react-date-range": "^1.1.4",
     "@types/react-document-title": "^2.0.4",
     "@types/react-dom": "~17.0.8",
@@ -220,7 +220,8 @@
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "NODE_ENV=production yarn webpack --mode production",
     "build": "yarn build-production --output-path=public",
-    "validate-api-examples": "yarn install-api-docs && cd api-docs && yarn openapi-examples-validator ./openapi.json --no-additional-properties"
+    "validate-api-examples": "yarn install-api-docs && cd api-docs && yarn openapi-examples-validator ./openapi.json --no-additional-properties",
+    "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost"
   },
   "volta": {
     "node": "12.19.0",

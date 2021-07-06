@@ -5,6 +5,7 @@ import {
   fieldAlignment,
   generateAggregateFields,
   getAggregateAlias,
+  isAggregateEquation,
   isAggregateField,
   isMeasurement,
   measurementType,
@@ -136,6 +137,23 @@ describe('isAggregateField', function () {
     expect(isAggregateField('thing(')).toBe(false);
     expect(isAggregateField('unique_count(user)')).toBe(true);
     expect(isAggregateField('unique_count(foo.bar.is-Enterprise_42)')).toBe(true);
+  });
+});
+
+describe('isAggregateEquation', function () {
+  it('detects functions', function () {
+    expect(isAggregateEquation('equation|5 + count()')).toBe(true);
+    expect(
+      isAggregateEquation('equation|percentile(transaction.duration, 0.55) / count()')
+    ).toBe(true);
+    expect(isAggregateEquation('equation|(5 + 5) + (count() - 2)')).toBe(true);
+  });
+
+  it('detects lack of functions', function () {
+    expect(isAggregateEquation('equation|5 + 5')).toBe(false);
+    expect(isAggregateEquation('equation|(5 + 5)')).toBe(false);
+    expect(isAggregateEquation('equation|5 + (thing - other_thing)')).toBe(false);
+    expect(isAggregateEquation('equation|5+(thing-other_thing)')).toBe(false);
   });
 });
 
