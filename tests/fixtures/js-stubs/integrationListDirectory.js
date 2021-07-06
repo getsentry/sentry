@@ -15,7 +15,7 @@ export function ProviderList() {
 
           features: [],
           issue_url:
-            'https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
+            'https://github.com/getsentry/sentry/issues/new?template=bug.yml&title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
           noun: 'Installation',
           source_url:
             'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
@@ -39,8 +39,7 @@ export function BitbucketIntegrationConfig() {
     configData: {},
     configOrganization: [],
     domainName: 'bitbucket.org/%7Bfb715533-bbd7-4666-aa57-01dc93dd9cc0%7D',
-    icon:
-      'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FNN-0.png',
+    icon: 'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FNN-0.png',
     id: '4',
     name: '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}',
     provider: {
