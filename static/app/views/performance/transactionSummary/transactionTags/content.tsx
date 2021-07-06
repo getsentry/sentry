@@ -24,6 +24,7 @@ import TransactionHeader, {Tab} from '../header';
 import {getTransactionField} from '../tagExplorer';
 
 import TagsDisplay from './tagsDisplay';
+import {decodeSelectedTagKey} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -104,18 +105,41 @@ const InnerContent = (
 
   const tagOptions = getTagKeyOptions(tableData);
 
+  const decodedTagKey = decodeSelectedTagKey(location);
+
+  const allTags = [...tagOptions.suspectTags, ...tagOptions.otherTags];
+  const decodedTagFromOptions = decodedTagKey
+    ? allTags.find(tag => tag === decodedTagKey)
+    : undefined;
+
   const defaultTag = tagOptions.suspectTags.length
     ? tagOptions.suspectTags[0]
     : tagOptions.otherTags.length
     ? tagOptions.otherTags[0]
     : '';
-  const [tagSelected, changeTagSelected] = useState(defaultTag);
+
+  const initialTag = decodedTagFromOptions ?? defaultTag;
+
+  const [tagSelected, _changeTagSelected] = useState(initialTag);
+
+  const changeTagSelected = (tagKey: string) => {
+    const queryParams = getParams({
+      ...(location.query || {}),
+      tagKey,
+    });
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: queryParams,
+    });
+    _changeTagSelected(tagKey);
+  };
 
   useEffect(() => {
-    if (defaultTag && !tagSelected) {
-      changeTagSelected(defaultTag);
+    if (initialTag && !tagSelected) {
+      changeTagSelected(initialTag);
     }
-  }, [defaultTag]);
+  }, [initialTag]);
 
   const handleSearch = (query: string) => {
     const queryParams = getParams({
