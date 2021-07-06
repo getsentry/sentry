@@ -205,14 +205,14 @@ export class UsageChart extends React.Component<Props, State> {
     const {dataCategory} = this.props;
 
     if (dataCategory === DataCategory.ERRORS) {
-      return [COLOR_ERRORS, COLOR_DROPPED, COLOR_PROJECTED, COLOR_FILTERED];
+      return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
     if (dataCategory === DataCategory.ATTACHMENTS) {
-      return [COLOR_ATTACHMENTS, COLOR_DROPPED, COLOR_PROJECTED, COLOR_FILTERED];
+      return [COLOR_ATTACHMENTS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
-    return [COLOR_TRANSACTIONS, COLOR_DROPPED, COLOR_PROJECTED, COLOR_FILTERED];
+    return [COLOR_TRANSACTIONS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
   }
 
   get chartMetadata(): {
@@ -316,6 +316,13 @@ export class UsageChart extends React.Component<Props, State> {
         legendHoverLink: false,
       }),
       barSeries({
+        name: SeriesTypes.FILTERED,
+        data: chartData.filtered as any, // TODO(ts)
+        barMinHeight: 1,
+        stack: 'usage',
+        legendHoverLink: false,
+      }),
+      barSeries({
         name: SeriesTypes.DROPPED,
         data: chartData.dropped as any, // TODO(ts)
         stack: 'usage',
@@ -324,13 +331,6 @@ export class UsageChart extends React.Component<Props, State> {
       barSeries({
         name: SeriesTypes.PROJECTED,
         data: chartData.projected as any, // TODO(ts)
-        barMinHeight: 1,
-        stack: 'usage',
-        legendHoverLink: false,
-      }),
-      barSeries({
-        name: SeriesTypes.FILTERED,
-        data: chartData.filtered as any, // TODO(ts)
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
@@ -353,6 +353,12 @@ export class UsageChart extends React.Component<Props, State> {
       },
     ];
 
+    if (chartData.filtered && chartData.filtered.length > 0) {
+      legend.push({
+        name: SeriesTypes.FILTERED,
+      });
+    }
+
     if (chartData.dropped.length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
@@ -364,13 +370,6 @@ export class UsageChart extends React.Component<Props, State> {
         name: SeriesTypes.PROJECTED,
       });
     }
-
-    if (chartData.filtered && chartData.filtered.length > 0) {
-      legend.push({
-        name: SeriesTypes.FILTERED,
-      });
-    }
-
     return legend;
   }
 

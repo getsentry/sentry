@@ -293,13 +293,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
-          dropped: formatUsageWithUnits(
-            count[Outcome.DROPPED],
+          filtered: formatUsageWithUnits(
+            count[Outcome.FILTERED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
-          filtered: formatUsageWithUnits(
-            count[Outcome.FILTERED],
+          dropped: formatUsageWithUnits(
+            count[Outcome.DROPPED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
