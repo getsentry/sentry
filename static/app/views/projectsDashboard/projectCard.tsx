@@ -199,7 +199,7 @@ class ProjectCard extends Component<Props> {
             <ScoreCardWrapper>
               {!stats ? (
                 <Fragment>
-                  <ReleaseTitle>{'Crash Free Sessions'}</ReleaseTitle>
+                  <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
                   <FooterPlaceholder />
                 </Fragment>
               ) : hasHealthData ? (
@@ -224,7 +224,7 @@ class ProjectCard extends Component<Props> {
               )}
             </ScoreCardWrapper>
             <DeploysWrapper>
-              <ReleaseTitle>{'Latest Deploys'}</ReleaseTitle>
+              <ReleaseTitle>{t('Latest Deploys')}</ReleaseTitle>
               {stats ? <Deploys project={project} shorten /> : <FooterPlaceholder />}
             </DeploysWrapper>
           </FooterWrapper>
