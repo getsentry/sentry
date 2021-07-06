@@ -8,7 +8,7 @@ import {
   makeSaveSearchAction,
   makeSearchBuilderAction,
 } from 'app/components/smartSearchBar/actions';
-import {SearchItem} from 'app/components/smartSearchBar/types';
+import {ItemType, SearchItem} from 'app/components/smartSearchBar/types';
 import {t} from 'app/locale';
 import {Organization, SavedSearch, SavedSearchType, Tag} from 'app/types';
 import withApi from 'app/utils/withApi';
@@ -21,31 +21,31 @@ const SEARCH_ITEMS: SearchItem[] = [
     title: t('Tag'),
     desc: 'browser:"Chrome 34", has:browser',
     value: 'browser:',
-    type: 'default',
+    type: ItemType.DEFAULT,
   },
   {
     title: t('Status'),
     desc: 'is:resolved, unresolved, ignored, assigned, unassigned',
     value: 'is:',
-    type: 'default',
+    type: ItemType.DEFAULT,
   },
   {
     title: t('Time or Count'),
     desc: 'firstSeen, lastSeen, event.timestamp, timesSeen',
     value: '',
-    type: 'default',
+    type: ItemType.DEFAULT,
   },
   {
     title: t('Assigned'),
     desc: 'assigned, assigned_or_suggested:[me|[me, none]|user@example.com|#team-example]',
     value: '',
-    type: 'default',
+    type: ItemType.DEFAULT,
   },
   {
     title: t('Bookmarked By'),
     desc: 'bookmarks:[me|user@example.com]',
     value: 'bookmarks:',
-    type: 'default',
+    type: ItemType.DEFAULT,
   },
 ];
 
@@ -87,7 +87,7 @@ class IssueListSearchBar extends React.Component<Props, State> {
           ? resp.map(query => ({
               desc: query,
               value: query,
-              type: 'recent-search',
+              type: ItemType.RECENT_SEARCH,
             }))
           : [],
       ],

@@ -46,19 +46,19 @@ export function getQueryTerms(query: string, cursor: number) {
 }
 
 function getTitleForType(type: ItemType) {
-  if (type === 'tag-value') {
+  if (type === ItemType.TAG_VALUE) {
     return t('Tag Values');
   }
 
-  if (type === 'recent-search') {
+  if (type === ItemType.RECENT_SEARCH) {
     return t('Recent Searches');
   }
 
-  if (type === 'default') {
+  if (type === ItemType.DEFAULT) {
     return t('Common Search Terms');
   }
 
-  if (type === 'tag-operator') {
+  if (type === ItemType.TAG_OPERATOR) {
     return t('Operator Helpers');
   }
 
@@ -66,11 +66,11 @@ function getTitleForType(type: ItemType) {
 }
 
 function getIconForTypeAndTag(type: ItemType, tagName: string) {
-  if (type === 'recent-search') {
+  if (type === ItemType.RECENT_SEARCH) {
     return <IconClock size="xs" />;
   }
 
-  if (type === 'default') {
+  if (type === ItemType.DEFAULT) {
     return <IconStar size="xs" />;
   }
 
@@ -120,7 +120,7 @@ export function createSearchGroups(
 
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
-    type: type === 'invalid-tag' ? type : 'header',
+    type: type === ItemType.INVALID_TAG ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
     children: [...searchItems],
   };
@@ -175,37 +175,37 @@ export function filterSearchGroupsByIndex(items: SearchGroup[], index: number) {
 export function generateOperatorEntryMap(tag: string) {
   return {
     [TermOperator.Default]: {
-      type: 'tag-operator' as ItemType,
+      type: ItemType.TAG_OPERATOR,
       value: ':',
       desc: `${tag}:${t('[value] is equal to')}`,
     },
     [TermOperator.GreaterThanEqual]: {
-      type: 'tag-operator' as ItemType,
+      type: ItemType.TAG_OPERATOR,
       value: ':>=',
       desc: `${tag}:${t('>=[value] is greater than or equal to')}`,
     },
     [TermOperator.LessThanEqual]: {
-      type: 'tag-operator' as ItemType,
+      type: ItemType.TAG_OPERATOR,
       value: ':<=',
       desc: `${tag}:${t('<=[value] is less than or equal to')}`,
     },
     [TermOperator.GreaterThan]: {
-      type: 'tag-operator' as ItemType,
+      type: ItemType.TAG_OPERATOR,
       value: ':>',
       desc: `${tag}:${t('>[value] is greater than')}`,
     },
     [TermOperator.LessThan]: {
-      type: 'tag-operator' as ItemType,
+      type: ItemType.TAG_OPERATOR,
       value: ':<',
       desc: `${tag}:${t('<[value] is less than')}`,
     },
     [TermOperator.Equal]: {
-      type: 'tag-operator' as ItemType,
+      type: ItemType.TAG_OPERATOR,
       value: ':=',
       desc: `${tag}:${t('=[value] is equal to')}`,
     },
     [TermOperator.NotEqual]: {
-      type: 'tag-operator' as ItemType,
+      type: ItemType.TAG_OPERATOR,
       value: '!:',
       desc: `!${tag}:${t('[value] is not equal to')}`,
     },
