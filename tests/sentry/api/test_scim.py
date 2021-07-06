@@ -54,17 +54,7 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
 
-class SCIMMemberTests(APITestCase):
-    def setUp(self):
-        super().setUp()
-        auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
-        )
-        with self.feature({"organizations:sso-scim": True}):
-            auth_provider.enable_scim(self.user)
-            auth_provider.save()
-        self.login_as(user=self.user)
-
+class SCIMMemberTests(SCIMTestCase):
     def test_user_flow(self):
 
         # test OM to be created does not exist
@@ -93,7 +83,7 @@ class SCIMMemberTests(APITestCase):
         ).id
         correct_post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "id": org_member_id,
+            "id": str(org_member_id),
             "userName": "test.user@okta.local",
             # "name": {"givenName": "Test", "familyName": "User"},
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
@@ -131,7 +121,7 @@ class SCIMMemberTests(APITestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": org_member_id,
+                    "id": str(org_member_id),
                     "userName": "test.user@okta.local",
                     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -152,7 +142,7 @@ class SCIMMemberTests(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "id": org_member_id,
+            "id": str(org_member_id),
             "userName": "test.user@okta.local",
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
             "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -372,17 +362,7 @@ class SCIMUtilsTests(TestCase):
         assert fil == ["jos'h@sentry.io"]
 
 
-class SCIMGroupTests(APITestCase):
-    def setUp(self):
-        super().setUp()
-        auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
-        )
-        with self.feature({"organizations:sso-scim": True}):
-            auth_provider.enable_scim(self.user)
-            auth_provider.save()
-        self.login_as(user=self.user)
-
+class SCIMGroupTests(SCIMTestCase):
     def test_group_flow(self):
         member1 = self.create_member(user=self.create_user(), organization=self.organization)
         member2 = self.create_member(user=self.create_user(), organization=self.organization)
