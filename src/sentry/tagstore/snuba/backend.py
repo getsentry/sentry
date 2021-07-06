@@ -758,17 +758,17 @@ class SnubaTagStorage(TagStorage):
 
         if key == SEMVER_ALIAS:
             # If doing a search on semver, we want to hit postgres to query the releases
-            version = query if query else ""
+            query = query if query else ""
             organization_id = Project.objects.filter(id=projects[0]).values_list(
                 "organization_id", flat=True
             )[0]
 
-            if version and "@" not in version and re.search(r"[^\d.\*]", version):
+            if query and "@" not in query and re.search(r"[^\d.\*]", query):
                 include_package = True
                 # Handle searching just on package
                 packages = (
                     Release.objects.filter(
-                        organization_id=organization_id, package__startswith=version
+                        organization_id=organization_id, package__startswith=query
                     )
                     .values_list("package")
                     .distinct()
@@ -781,17 +781,17 @@ class SnubaTagStorage(TagStorage):
                     ),
                 ).annotate_prerelease_column()
             else:
-                include_package = not version or "@" in version
-                if not version:
-                    version = "*"
-                elif version[-1] not in SEMVER_WILDCARDS | {"@"}:
-                    if version[-1] != ".":
-                        version += "."
-                    version += "*"
+                include_package = not query or "@" in query
+                if not query:
+                    query = "*"
+                elif query[-1] not in SEMVER_WILDCARDS | {"@"}:
+                    if query[-1] != ".":
+                        query += "."
+                    query += "*"
 
                 versions = Release.objects.filter_by_semver(
                     organization_id,
-                    parse_semver(version, "="),
+                    parse_semver(query, "="),
                     project_ids=projects,
                 )
             if environments:
