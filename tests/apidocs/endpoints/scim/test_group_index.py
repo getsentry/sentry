@@ -5,7 +5,7 @@ from tests.apidocs.util import APIDocsTestCase
 from tests.sentry.api.test_scim import SCIMTestCase
 
 
-class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
+class SCIMTeamIndexDocs(APIDocsTestCase, SCIMTestCase):
     def setUp(self):
         super().setUp()
         self.member = self.create_member(user=self.create_user(), organization=self.organization)
