@@ -1642,6 +1642,8 @@ def is_duration_measurement(key):
         "measurements.fid",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
+        "measurements.app_start_cold",
+        "measurements.app_start_warm",
     ]
 
 

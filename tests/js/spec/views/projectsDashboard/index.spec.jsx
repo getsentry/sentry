@@ -269,7 +269,7 @@ describe('ProjectsDashboard', function () {
       expect(mock).not.toHaveBeenCalled();
 
       // Has 5 Loading Cards because 1 project has been loaded in store already
-      expect(wrapper.find('LoadingCard')).toHaveLength(5);
+      expect(wrapper.find('Placeholder')).toHaveLength(5);
 
       // Advance timers so that batched request fires
       jest.advanceTimersByTime(51);
@@ -288,7 +288,7 @@ describe('ProjectsDashboard', function () {
       await tick();
       await tick();
       wrapper.update();
-      expect(wrapper.find('LoadingCard')).toHaveLength(0);
+      expect(wrapper.find('Placeholder')).toHaveLength(0);
       expect(wrapper.find('Chart')).toHaveLength(6);
 
       // Resets store when it unmounts
