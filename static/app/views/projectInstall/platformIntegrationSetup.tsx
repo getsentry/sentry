@@ -78,7 +78,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
   handleFullDocsClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.view_full_docs', {}, organization);
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
   };
 
   redirectToNeutralDocs() {

@@ -36,7 +36,11 @@ const FirstEventIndicator = ({children, ...props}: Props) => (
             disabled={!firstIssue}
             priority="primary"
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.take_to_error', {}, props.organization)
+              trackAdvancedAnalyticsEvent(
+                'growth.onboarding_take_to_error',
+                {},
+                props.organization
+              )
             }
             to={`/organizations/${props.organization.slug}/issues/${
               firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''

@@ -103,7 +103,11 @@ class OnboardingPlatform extends Component<Props, State> {
     if (platform === null) {
       return;
     }
-    trackAdvancedAnalyticsEvent('growth.set_up_your_project', {platform}, null);
+    trackAdvancedAnalyticsEvent(
+      'growth.onboarding_set_up_your_project',
+      {platform},
+      null
+    );
 
     // Create their first project if they don't already have one. This is a
     // no-op if they already have a project.
@@ -140,6 +144,8 @@ class OnboardingPlatform extends Component<Props, State> {
             noAutoFilter
             platform={selectedPlatform}
             setPlatform={this.handleSetPlatform}
+            source="Onboarding"
+            organization={this.props.project?.organization}
           />
           <p>
             {tct(

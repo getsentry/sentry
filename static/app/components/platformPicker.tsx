@@ -14,7 +14,7 @@ import {IconClose, IconProject, IconSearch} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
-import {PlatformIntegration} from 'app/types';
+import {Organization, PlatformIntegration} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {analytics} from 'app/utils/analytics';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -38,6 +38,8 @@ type Props = {
   listProps?: React.ComponentProps<typeof PlatformList>;
   noAutoFilter?: boolean;
   defaultCategory?: Category;
+  organization: Organization | null | undefined;
+  source?: string | null;
 };
 
 type State = {
@@ -110,7 +112,7 @@ class PlatformPicker extends React.Component<Props, State> {
                 key={id}
                 onClick={(e: React.MouseEvent) => {
                   trackAdvancedAnalyticsEvent(
-                    'growth.platform_category',
+                    'growth.onboarding_platform_category',
                     {category},
                     null
                   );
@@ -147,7 +149,14 @@ class PlatformPicker extends React.Component<Props, State> {
                 e.stopPropagation();
               }}
               onClick={() => {
-                trackAdvancedAnalyticsEvent('growth.platform_pick', {platform}, null);
+                trackAdvancedAnalyticsEvent(
+                  'growth.onboarding_select_platform',
+                  {
+                    platformId: platform.id,
+                    source: this.props.source,
+                  },
+                  this.props.organization ?? null
+                );
                 setPlatform(platform.id as PlatformKey);
               }}
             />

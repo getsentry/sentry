@@ -1,5 +1,4 @@
 import {PlatformKey} from 'app/data/platformCategories';
-import {PlatformIntegration} from 'app/types';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -15,12 +14,13 @@ type PlatformParam = {
   platform: PlatformKey;
 };
 
-type PlatformPick = {
-  platform: PlatformIntegration;
-};
-
 type PlatformCategory = {
   category: string;
+};
+
+type PlatformPickerParam = {
+  platformId: string;
+  source: string | null | undefined;
 };
 
 // define the event key to payload mappings
@@ -36,13 +36,13 @@ export type GrowthEventParameters = {
   'growth.demo_click_request_demo': {};
   'growth.onboarding_im_ready': {};
   'growth.skip_onboarding': {};
-  'growth.set_up_your_project': PlatformParam;
-  'growth.platform_pick': PlatformPick;
-  'growth.platform_category': PlatformCategory;
-  'growth.start_onboarding': {};
-  'growth.take_to_error': {};
-  'growth.view_full_docs': {};
-  'growth.view_sample_event': {};
+  'growth.onboarding_set_up_your_project': PlatformParam;
+  'growth.onboarding_select_platform': PlatformPickerParam;
+  'growth.onboarding_platform_category': PlatformCategory;
+  'growth.onboarding_start_onboarding': {};
+  'growth.onboarding_take_to_error': {};
+  'growth.onboarding_view_full_docs': {};
+  'growth.onboarding_view_sample_event': {};
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -63,11 +63,11 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.demo_click_request_demo': 'Growth: Demo Click Request Demo',
   'growth.onboarding_im_ready': "Growth: Click I'm Ready",
   'growth.skip_onboarding': 'Growth: Click Skip Onboarding',
-  'growth.set_up_your_project': 'Growth: Click Set Up Your Project',
-  'growth.platform_pick': 'Growth: Choose Platform',
-  'growth.platform_category': 'Growth: Platform Category',
-  'growth.start_onboarding': 'Growth: Start Onboarding',
-  'growth.take_to_error': 'Growth: Take to Error',
-  'growth.view_full_docs': 'Growth: View Full Docs',
-  'growth.view_sample_event': 'Growth: View Sample Event',
+  'growth.onboarding_set_up_your_project': 'Growth: Click Set Up Your Project',
+  'growth.onboarding_select_platform': 'Growth: Choose Platform',
+  'growth.onboarding_platform_category': 'Growth: Platform Category',
+  'growth.onboarding_start_onboarding': 'Growth: Start Onboarding',
+  'growth.onboarding_take_to_error': 'Growth: Take to Error',
+  'growth.onboarding_view_full_docs': 'Growth: View Full Docs',
+  'growth.onboarding_view_sample_event': 'Growth: View Sample Event',
 };
