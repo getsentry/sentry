@@ -940,7 +940,7 @@ def histogram_query(
         conditions.append([key_alias, "IN", field_names])
 
     if extra_conditions:
-        conditions.append(extra_conditions)
+        conditions.extend(extra_conditions)
 
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
     histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
