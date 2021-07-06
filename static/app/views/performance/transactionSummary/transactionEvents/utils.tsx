@@ -12,7 +12,6 @@ export enum EventsDisplayFilterName {
   p95 = 'p95',
   p99 = 'p99',
   p100 = 'p100',
-  avg_transaction_duration = 'avg_transaction_duration',
 }
 
 export type EventsDisplayFilter = {
@@ -34,9 +33,9 @@ export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
   percentileValues?: EventsFilterPercentileValues
 ): EventsFilterOptions {
-  const {p99, p95, p75, p50, avg_transaction_duration} = percentileValues
+  const {p99, p95, p75, p50} = percentileValues
     ? percentileValues
-    : {p99: 0, p95: 0, p75: 0, p50: 0, avg_transaction_duration: 0};
+    : {p99: 0, p95: 0, p75: 0, p50: 0};
   return {
     [EventsDisplayFilterName.p50]: {
       name: EventsDisplayFilterName.p50,
@@ -77,17 +76,6 @@ export function getEventsFilterOptions(
     [EventsDisplayFilterName.p100]: {
       name: EventsDisplayFilterName.p100,
       label: t('p100'),
-    },
-    [EventsDisplayFilterName.avg_transaction_duration]: {
-      name: EventsDisplayFilterName.avg_transaction_duration,
-      query: avg_transaction_duration
-        ? [['transaction.duration', `<=${avg_transaction_duration.toFixed(0)}`]]
-        : undefined,
-      sort: {
-        kind: 'desc',
-        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
-      },
-      label: t('average'),
     },
   };
 }

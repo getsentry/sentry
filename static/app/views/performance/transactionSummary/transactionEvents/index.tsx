@@ -198,10 +198,6 @@ class TransactionEvents extends Component<Props, State> {
         kind: 'function',
         function: ['p50', '', undefined, undefined],
       },
-      {
-        kind: 'function',
-        function: ['avg', 'transaction.duration', undefined, undefined],
-      },
     ];
 
     return eventView.withColumns([...percentileColumns]);
