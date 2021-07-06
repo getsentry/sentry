@@ -308,6 +308,19 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'project_transaction_threshold_override',
+      requiredTargets: ['project_transaction_threshold_override'],
+      steps: [
+        {
+          title: t('Transaction Thresholds'),
+          target: 'project_transaction_threshold_override',
+          description: t(
+            'Not all transactions are made equal. Tune response time thresholds per transaction for Apdex and User Misery Scores.'
+          ),
+        },
+      ],
+    },
   ];
 }
 

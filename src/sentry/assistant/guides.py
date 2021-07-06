@@ -44,6 +44,10 @@ GUIDES = {
         "id": 19,
         "required_targets": ["project_transaction_threshold"],
     },
+    "project_transaction_threshold_override": {
+        "id": 20,
+        "required_targets": ["project_transaction_threshold_override"],
+    },
 }
 
 # demo mode has different guides
