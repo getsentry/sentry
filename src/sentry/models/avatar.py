@@ -1,7 +1,7 @@
 from io import BytesIO
 from uuid import uuid4
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.utils.encoding import force_bytes
 from PIL import Image
 
@@ -82,7 +82,7 @@ class AvatarBase(Model):
         from sentry.models import File
 
         if avatar:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(File)):
                 photo = File.objects.create(name=filename, type=cls.FILE_TYPE)
                 # XXX: Avatar may come in as a string instance in python2
                 # if it's not wrapped in BytesIO.
@@ -92,7 +92,7 @@ class AvatarBase(Model):
         else:
             photo = None
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(cls)):
             instance, created = cls.objects.get_or_create(**relation)
             file = instance.get_file()
             if file and photo:

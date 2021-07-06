@@ -10,7 +10,7 @@ from typing import IO, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
-from django.db import models, transaction
+from django.db import models, router, transaction
 
 from sentry import options
 from sentry.db.models import (
@@ -283,7 +283,8 @@ class _ArtifactIndexGuard:
     @contextmanager
     def writable_data(self, create: bool, initial_artifact_count=None):
         """Context manager for editable artifact index"""
-        with transaction.atomic():
+        assert router.db_for_write(ReleaseFile) == router.db_for_write(File)
+        with transaction.atomic(using=router.db_for_write(ReleaseFile)):
             created = False
             if create:
                 releasefile, created = self._get_or_create_releasefile(initial_artifact_count)

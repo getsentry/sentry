@@ -3,7 +3,7 @@ import posixpath
 import re
 
 import jsonschema
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
@@ -461,7 +461,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
         archive_name = request.GET.get("name")
 
         if archive_name:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(ReleaseFile)):
                 release = Release.objects.get(
                     organization_id=project.organization_id, projects=project, version=archive_name
                 )

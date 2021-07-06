@@ -2,7 +2,7 @@ import logging
 import re
 from typing import List, Optional, Tuple
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils.functional import cached_property
 from rest_framework.response import Response
@@ -144,7 +144,7 @@ class ReleaseFilesMixin:
         file.putfile(fileobj, logger=logger)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(ReleaseFile)):
                 releasefile = ReleaseFile.objects.create(
                     organization_id=release.organization_id,
                     release_id=release.id,

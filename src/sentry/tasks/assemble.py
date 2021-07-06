@@ -2,7 +2,7 @@ import hashlib
 import logging
 from os import path
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry import options
 from sentry.api.serializers import serialize
@@ -183,7 +183,7 @@ def _upsert_release_file(
         release_file = ReleaseFile.objects.get(**key_fields)
     except ReleaseFile.DoesNotExist:
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(ReleaseFile)):
                 release_file = ReleaseFile.objects.create(
                     file=file, **dict(key_fields, **additional_fields)
                 )

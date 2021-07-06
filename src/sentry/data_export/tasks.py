@@ -8,7 +8,7 @@ import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
 from celery.task import current
 from django.core.files.base import ContentFile
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
 from sentry.models import (
@@ -308,7 +308,8 @@ def merge_export_blobs(data_export_id, **kwargs):
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
-            with transaction.atomic():
+            assert router.db_for_write(File) == router.db_for_write(FileBlobIndex)
+            with transaction.atomic(using=router.db_for_write(File)):
                 file = File.objects.create(
                     name=data_export.file_name,
                     type="export.csv",

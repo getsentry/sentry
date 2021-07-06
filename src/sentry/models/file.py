@@ -420,7 +420,8 @@ class File(Model):
         contents.
         """
         tf = tempfile.NamedTemporaryFile()
-        with transaction.atomic():
+        assert router.db_for_write(FileBlob) == router.db_for_write(FileBlobIndex)
+        with transaction.atomic(using=router.db_for_write(FileBlob)):
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
 
             # Ensure blobs are in the order and duplication as provided

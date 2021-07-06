@@ -6,7 +6,7 @@ from time import time
 from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -615,12 +615,12 @@ class Release(Model):
                 else:
                     update_kwargs = {"release_id": to_release.id}
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(using=router.db_for_write(model)):
                         model.objects.filter(release_id=release.id).update(**update_kwargs)
                 except IntegrityError:
                     for item in model.objects.filter(release_id=release.id):
                         try:
-                            with transaction.atomic():
+                            with transaction.atomic(using=router.db_for_write(model)):
                                 model.objects.filter(id=item.id).update(**update_kwargs)
                         except IntegrityError:
                             item.delete()
