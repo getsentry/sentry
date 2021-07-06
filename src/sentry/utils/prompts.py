@@ -48,7 +48,7 @@ prompt_config = PromptsConfig(DEFAULT_PROMPTS)
 
 
 @request_cache
-def check_prompt_activities(organization_ids, features):
+def get_prompt_activities(organization_ids, features):
     return PromptsActivity.objects.filter(
         organization_id__in=organization_ids, feature__in=features
     )
