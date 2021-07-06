@@ -449,7 +449,7 @@ class Event:
         normalize_stacktraces_for_grouping(self.data, grouping_config)
 
         # We have modified event data, so any cached interfaces have to be reset:
-        vars(self).pop("interfaces", None)
+        self.__dict__.pop("interfaces", None)
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
