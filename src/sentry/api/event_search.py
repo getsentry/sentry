@@ -32,7 +32,10 @@ from sentry.utils.compat import filter, map
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
 from sentry.utils.validators import is_event_id
 
-WILDCARD_CHARS = re.compile(r"[\*]")
+# A wildcard is an asterisk prefixed by an even number of back slashes.
+# If there are an odd number of back slashes, then the back slash immediately
+# before the asterisk is actually escaping the asterisk.
+WILDCARD_CHARS = re.compile(r"(?<!\\)(\\\\)*\*")
 
 event_search_grammar = Grammar(
     r"""
@@ -194,6 +197,29 @@ def translate_wildcard(pat: str) -> str:
     return "^" + res + "$"
 
 
+def translate_escape_sequences(string: str) -> str:
+    """
+    A non-wildcard pattern can contain escape sequences that we need to handle.
+    - \\* because a single asterisk represents a wildcard, so it needs to be escaped
+    """
+
+    i, n = 0, len(string)
+    res = ""
+    while i < n:
+        c = string[i]
+        i = i + 1
+        if c == "\\" and i < n:
+            d = string[i]
+            if d == "*":
+                i += 1
+                res += d
+            else:
+                res += c
+        else:
+            res += c
+    return res
+
+
 def flatten(children):
     def _flatten(seq):
         # there is a list from search_term and one from free_text, so flatten them.
@@ -294,6 +320,8 @@ class SearchValue(NamedTuple):
     def value(self):
         if self.is_wildcard():
             return translate_wildcard(self.raw_value)
+        elif isinstance(self.raw_value, str):
+            return translate_escape_sequences(self.raw_value)
         return self.raw_value
 
     def is_wildcard(self) -> bool:

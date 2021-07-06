@@ -4394,3 +4394,32 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data["data"]) == 0
+
+    def test_filters_with_escaped_asterisk(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = r"/:a*/:b-:c(\d\.\e+)"
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["transaction", "transaction.duration"],
+            # make sure to escape the asterisk so it's not treated as a wildcard
+            "query": r'transaction:"/:a\*/:b-:c(\d\.\e+)"',
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+    def test_filters_with_back_slashes(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = r"a\b\c@d"
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["transaction", "transaction.duration"],
+            "query": r'transaction:"a\b\c@d"',
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
