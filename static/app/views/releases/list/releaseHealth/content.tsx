@@ -83,7 +83,9 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
-          {adoptionStages && <Column>{t('Adoption Stage')}</Column>}
+          {adoptionStages && (
+            <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
+          )}
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
@@ -173,7 +175,7 @@ const Content = ({
                   </AdoptionColumn>
 
                   {adoptionStages && (
-                    <Column>
+                    <AdoptionStageColumn>
                       {adoptionStages[project.slug] ? (
                         <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
                           {ADOPTION_STAGE_LABELS[adoptionStage].name}
@@ -181,7 +183,7 @@ const Content = ({
                       ) : (
                         <NotAvailable />
                       )}
-                    </Column>
+                    </AdoptionStageColumn>
                   )}
 
                   <CrashFreeRateColumn>
@@ -373,6 +375,16 @@ const AdoptionColumn = styled(Column)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
     /* Chart tooltips need overflow */
+    overflow: visible;
+  }
+`;
+
+const AdoptionStageColumn = styled(Column)`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    display: flex;
+
+    /* Need to show the edges of the tags */
     overflow: visible;
   }
 `;
