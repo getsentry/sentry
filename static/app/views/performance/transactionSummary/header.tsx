@@ -210,7 +210,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTagsTabClick}
               >
                 {t('Tags')}
-                <FeatureBadge type="alpha" noTooltip />
+                <FeatureBadge type="beta" noTooltip />
               </ListLink>
             </Feature>
             <Feature features={['organizations:performance-events-page']}>
