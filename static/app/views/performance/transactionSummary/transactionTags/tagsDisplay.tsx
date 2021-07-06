@@ -50,7 +50,14 @@ const TagsDisplay = (props: Props) => {
         sort="-frequency"
       >
         {({isLoading, tableData}) => {
-          return <TagsHeatMap {...props} tableData={tableData} isLoading={isLoading} />;
+          return (
+            <TagsHeatMap
+              {...props}
+              aggregateColumn={aggregateColumn}
+              tableData={tableData}
+              isLoading={isLoading}
+            />
+          );
         }}
       </TagKeyHistogramQuery>
       <SegmentExplorerQuery
@@ -64,7 +71,14 @@ const TagsDisplay = (props: Props) => {
         allTagKeys
       >
         {({isLoading, tableData}) => {
-          return <TagValueTable {...props} tableData={tableData} isLoading={isLoading} />;
+          return (
+            <TagValueTable
+              {...props}
+              aggregateColumn={aggregateColumn}
+              tableData={tableData}
+              isLoading={isLoading}
+            />
+          );
         }}
       </SegmentExplorerQuery>
     </React.Fragment>

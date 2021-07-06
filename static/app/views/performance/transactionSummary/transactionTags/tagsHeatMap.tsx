@@ -43,6 +43,7 @@ import {parseHistogramBucketInfo} from './utils';
 type Props = {
   eventView: EventView;
   location: Location;
+  aggregateColumn: string;
   organization: Organization;
   projects: Project[];
   transactionName: string;
@@ -96,6 +97,7 @@ const TagsHeatMap = (
     location,
     tagKey,
     transactionName,
+    aggregateColumn,
   } = props;
 
   const chartRef = useRef<ReactEchartsRef>(null);
@@ -265,6 +267,8 @@ const TagsHeatMap = (
               setChartElement(virtualRef);
 
               const newTransactionEventView = eventView.clone();
+
+              newTransactionEventView.fields = [{field: aggregateColumn}];
               const [_, tagValue] = bucket.value;
 
               if (histogramBucketInfo) {
@@ -277,7 +281,7 @@ const TagsHeatMap = (
                   currentBucketStart + histogramBucketInfo.bucketSize;
 
                 newTransactionEventView.additionalConditions.setTagValues(
-                  'transaction.duration',
+                  aggregateColumn,
                   [`>=${currentBucketStart}`, `<${currentBucketEnd}`]
                 );
               }
@@ -354,9 +358,7 @@ const TagsHeatMap = (
                                                   />
                                                   <SectionSubtext>
                                                     <PerformanceDuration
-                                                      milliseconds={
-                                                        row['transaction.duration']
-                                                      }
+                                                      milliseconds={row[aggregateColumn]}
                                                       abbreviation
                                                     />
                                                   </SectionSubtext>
