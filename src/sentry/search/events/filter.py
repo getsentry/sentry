@@ -1029,7 +1029,7 @@ class QueryFilter(QueryBase):
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
-                return Condition(Function("ifNull", [lhs]), Op(search_filter.operator), 1)
+                return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
         if search_filter.value.is_wildcard():
             condition = Condition(
