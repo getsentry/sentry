@@ -79,6 +79,12 @@ def _compute_tree_label(components: Iterable[GroupingComponent]):
 
     for frame in components:
         if frame.tree_label:
+            tree_label = dict(frame.tree_label)
+            if frame.is_sentinel_frame:
+                tree_label["is_sentinel"] = True
+            if frame.is_prefix_frame:
+                tree_label["is_prefix"] = True
+
             tree_label.append(frame.tree_label)
 
     # We assume all components are always sorted in the way frames appear in
