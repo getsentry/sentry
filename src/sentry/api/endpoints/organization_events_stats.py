@@ -1,17 +1,9 @@
 import sentry_sdk
-from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import eventstore
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.discover.utils import transform_aliases_and_query
-from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.fields import resolve_field_list
 from sentry.snuba import discover
-from sentry.utils import snuba
-from sentry.utils.dates import get_rollup_from_request
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
@@ -19,9 +11,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
             if not self.has_feature(organization, request):
+                # We used to return a "v1" result here, keeping tags to keep an eye on its use
                 span.set_data("using_v1_results", True)
                 sentry_sdk.set_tag("stats.using_v1", organization.slug)
-                return self.get_v1_results(request, organization)
+                return Response(status=404)
 
             top_events = 0
 
@@ -76,70 +69,3 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             ),
             status=200,
         )
-
-    def get_v1_results(self, request, organization):
-        try:
-            snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except InvalidSearchQuery as exc:
-            raise ParseError(detail=str(exc))
-        except NoProjects:
-            return Response({"data": []})
-
-        snuba_args = self.get_field(request, snuba_args)
-        rollup = get_rollup_from_request(
-            request,
-            snuba_args,
-            default_interval=None,
-            error=InvalidSearchQuery(
-                "Your interval and date range would create too many results. "
-                "Use a larger interval, or a smaller date range."
-            ),
-        )
-
-        result = transform_aliases_and_query(
-            aggregations=snuba_args.get("aggregations"),
-            conditions=snuba_args.get("conditions"),
-            filter_keys=snuba_args.get("filter_keys"),
-            start=snuba_args.get("start"),
-            end=snuba_args.get("end"),
-            orderby="time",
-            groupby=["time"],
-            rollup=rollup,
-            referrer="api.organization-events-stats",
-            limit=10000,
-        )
-        serializer = SnubaTSResultSerializer(organization, None, request.user)
-        return Response(
-            serializer.serialize(
-                snuba.SnubaTSResult(result, snuba_args["start"], snuba_args["end"], rollup)
-            ),
-            status=200,
-        )
-
-    def get_field(self, request, snuba_args):
-        y_axis = request.GET.get("yAxis", None)
-        # These aliases are used by v1 of events.
-        if not y_axis or y_axis == "event_count":
-            y_axis = "count()"
-        elif y_axis == "user_count":
-            y_axis = "count_unique(user)"
-
-        snuba_filter = eventstore.Filter(
-            {
-                "start": snuba_args.get("start"),
-                "end": snuba_args.get("end"),
-                "rollup": snuba_args.get("rollup"),
-            }
-        )
-        try:
-            resolved = resolve_field_list([y_axis], snuba_filter)
-        except InvalidSearchQuery as err:
-            raise ParseError(detail=str(err))
-        try:
-            aggregate = resolved["aggregations"][0]
-        except IndexError:
-            raise ParseError(detail="Invalid yAxis value requested.")
-        aggregate[2] = "count"
-        snuba_args["aggregations"] = [aggregate]
-
-        return snuba_args
