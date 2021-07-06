@@ -23,6 +23,7 @@ ALLOWED_EVENTS_V2_REFERRERS = {
     "api.performance.status-breakdown",
     "api.performance.vital-detail",
     "api.performance.durationpercentilechart",
+    "api.performance.tag-page",
     "api.trace-view.span-detail",
     "api.trace-view.errors-view",
     "api.trace-view.hover-card",

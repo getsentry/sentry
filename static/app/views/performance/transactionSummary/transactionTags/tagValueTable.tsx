@@ -100,6 +100,7 @@ const COLUMN_ORDER: TagColumn[] = [
 type Props = {
   location: Location;
   organization: Organization;
+  aggregateColumn: string;
   projects: Project[];
   transactionName: string;
   tagKey: string;
@@ -285,12 +286,18 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, tagKey, location, isLoading, tableData} = this.props;
+    const {eventView, tagKey, location, isLoading, tableData, aggregateColumn} =
+      this.props;
 
     const newColumns = [...COLUMN_ORDER].map(c => {
       const newColumn = {...c};
       if (c.key === 'tagValue') {
         newColumn.name = tagKey;
+      }
+      if (c.key === 'aggregate') {
+        if (aggregateColumn === 'measurements.lcp') {
+          newColumn.name = 'Avg LCP';
+        }
       }
       return newColumn;
     });

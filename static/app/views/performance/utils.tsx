@@ -7,6 +7,7 @@ import {GlobalSelection, OrganizationSummary, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {getDuration} from 'app/utils/formatters';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -178,4 +179,8 @@ export function PerformanceDuration(props: PerformanceDurationProps) {
       fixedDigits={normalizedSeconds > 1 ? 2 : 0}
     />
   );
+}
+
+export function getPerformanceDuration(milliseconds: number) {
+  return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
 }
