@@ -190,8 +190,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         ):
             return self.respond()
 
-        channel_id = data.get("channel", {}).get("id")
-        user_id = data.get("user", {}).get("id")
+        channel_id = slack_request.channel_id
+        user_id = slack_request.user_id
         response_url = data.get("response_url")
 
         logging_data["channel_id"] = channel_id

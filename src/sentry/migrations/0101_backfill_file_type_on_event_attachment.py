@@ -49,5 +49,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill_file_type, migrations.RunPython.noop),
+        migrations.RunPython(
+            backfill_file_type,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_eventattachment"]},
+        ),
     ]

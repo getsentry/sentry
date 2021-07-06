@@ -2,6 +2,7 @@ export type ItemType =
   | 'default'
   | 'tag-key'
   | 'tag-value'
+  | 'tag-operator'
   | 'first-release'
   | 'invalid-tag'
   | 'recent-search';

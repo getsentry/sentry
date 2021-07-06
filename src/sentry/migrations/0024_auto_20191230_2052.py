@@ -144,5 +144,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill_eventstream, reverse_code=migrations.RunPython.noop),
+        migrations.RunPython(
+            backfill_eventstream,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_event", "sentry_groupedmessage", "sentry_project"]},
+        ),
     ]

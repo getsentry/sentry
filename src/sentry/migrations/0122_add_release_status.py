@@ -35,6 +35,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_release" DROP COLUMN "status";
                     """,
+                    hints={"tables": ["sentry_release"]},
                 )
             ],
             state_operations=[],

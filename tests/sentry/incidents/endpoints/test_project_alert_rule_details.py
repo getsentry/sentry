@@ -147,6 +147,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
 
         self.alert_rule.name = "what"
+        self.alert_rule.snuba_query.refresh_from_db()
         assert resp.data == serialize(self.alert_rule)
         assert resp.data["name"] == "what"
 
@@ -416,6 +417,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, self.project.slug, alert_rule.id, **test_params
             )
 
+        alert_rule.snuba_query.refresh_from_db()
         assert resp.data == serialize(alert_rule, self.user)
         assert (
             resp.data["owner"] == self.user.actor.get_actor_identifier()

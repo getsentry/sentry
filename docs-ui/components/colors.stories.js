@@ -80,7 +80,7 @@ const Swatch = styled('div')`
   justify-content: center;
   background-color: ${p => p.color};
   color: ${p =>
-    p.color[1].match(/[0-8]{1}/) ? p.theme.backgroundSecondary : p.theme.gray500};
+    /[0-8]{1}/.test(p.color) ? p.theme.backgroundSecondary : p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
   height: 80px;
   text-align: center;

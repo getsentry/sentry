@@ -15,7 +15,14 @@ from symbolic.debuginfo import BcSymbolMap, UuidMapping
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    sane_repr,
+)
 from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
 from sentry.utils.zip import safe_extract_zip
@@ -43,9 +50,9 @@ class ProjectDebugFileManager(BaseManager):
         checksums = [x.lower() for x in checksums]
         missing = set(checksums)
 
-        found = ProjectDebugFile.objects.filter(checksum__in=checksums, project=project).values(
-            "checksum"
-        )
+        found = ProjectDebugFile.objects.filter(
+            checksum__in=checksums, project_id=project.id
+        ).values("checksum")
 
         for values in found:
             missing.discard(list(values.values())[0])
@@ -70,7 +77,7 @@ class ProjectDebugFileManager(BaseManager):
         features = frozenset(features) if features is not None else frozenset()
 
         difs = (
-            ProjectDebugFile.objects.filter(project=project, debug_id__in=debug_ids)
+            ProjectDebugFile.objects.filter(project_id=project.id, debug_id__in=debug_ids)
             .select_related("file")
             .order_by("-id")
         )
@@ -108,14 +115,14 @@ class ProjectDebugFile(Model):
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    project_id = BoundedBigIntegerField(null=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
 
     class Meta:
-        index_together = (("project", "debug_id"), ("project", "code_id"))
+        index_together = (("project_id", "debug_id"), ("project_id", "code_id"))
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"
 
@@ -171,7 +178,7 @@ def clean_redundant_difs(project, debug_id):
     identifier and the same or a superset of its features.
     """
     difs = (
-        ProjectDebugFile.objects.filter(project=project, debug_id=debug_id)
+        ProjectDebugFile.objects.filter(project_id=project.id, debug_id=debug_id)
         .select_related("file")
         .order_by("-id")
     )
@@ -248,7 +255,9 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     dif = (
         ProjectDebugFile.objects.select_related("file")
-        .filter(project=project, debug_id=meta.debug_id, checksum=checksum, data__isnull=False)
+        .filter(
+            project_id=project.id, debug_id=meta.debug_id, checksum=checksum, data__isnull=False
+        )
         .order_by("-id")
         .first()
     )
@@ -275,7 +284,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
         code_id=meta.code_id,
         cpu_name=meta.arch,
         object_name=object_name,
-        project=project,
+        project_id=project.id,
         data=meta.data,
     )
 

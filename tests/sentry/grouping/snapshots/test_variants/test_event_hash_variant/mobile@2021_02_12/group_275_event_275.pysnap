@@ -1,5 +1,5 @@
 ---
-created: '2021-06-23T18:06:09.237733Z'
+created: '2021-06-30T16:43:59.085474Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -59,7 +59,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "2c1bbd635b64d5adccdb64a620044075"
-  tree_label: "<entire stacktrace>"
+  tree_label: "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T> | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | _dispatch_client_callout | _dispatch_root_queue_drain | _dispatch_worker_thread2 | _pthread_wqthread | start_wqthread | _dispatch_root_queues_init_once"
   component:
     app-depth-max*
       exception*
@@ -171,7 +171,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "2c1bbd635b64d5adccdb64a620044075"
-  tree_label: "<entire stacktrace>"
+  tree_label: "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T> | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | _dispatch_client_callout | _dispatch_root_queue_drain | _dispatch_worker_thread2 | _pthread_wqthread | start_wqthread | _dispatch_root_queues_init_once"
   component:
     system*
       exception*

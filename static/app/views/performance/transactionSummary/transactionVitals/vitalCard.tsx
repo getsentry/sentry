@@ -5,6 +5,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
+import Button from 'app/components/button';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
@@ -19,12 +20,13 @@ import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatAbbreviatedNumber, formatFloat, getDuration} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
-import {HistogramData} from 'app/utils/performance/histogram/types';
+import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
 import {Vital} from 'app/utils/performance/vitals/types';
 import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {Theme} from 'app/utils/theme';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
 
 import {VitalBar} from '../../landing/vitalsCards';
 import {
@@ -54,6 +56,7 @@ type Props = {
   min?: number;
   max?: number;
   precision?: number;
+  dataFilter?: DataFilter;
 };
 
 type State = {
@@ -122,6 +125,18 @@ class VitalCard extends Component<Props, State> {
     });
   };
 
+  trackOpenAllEventsClicked = () => {
+    const {organization} = this.props;
+    const {vitalDetails: vital} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.open_all_events',
+      eventName: 'Performance Views: Open vitals in all events',
+      organization_id: organization.id,
+      vital: vital.slug,
+    });
+  };
+
   get summary() {
     const {summaryData} = this.props;
     return summaryData?.p75 ?? null;
@@ -147,8 +162,18 @@ class VitalCard extends Component<Props, State> {
   }
 
   renderSummary() {
-    const {vitalDetails: vital, eventView, organization, min, max} = this.props;
+    const {
+      vitalDetails: vital,
+      eventView,
+      organization,
+      min,
+      max,
+      dataFilter,
+    } = this.props;
     const {slug, name, description} = vital;
+    const hasPerformanceEventsPage = organization.features.includes(
+      'performance-events-page'
+    );
 
     const column = `measurements.${slug}`;
 
@@ -194,13 +219,32 @@ class VitalCard extends Component<Props, State> {
         </StatNumber>
         <Description>{description}</Description>
         <div>
-          <DiscoverButton
-            size="small"
-            to={newEventView.getResultsViewUrlTarget(organization.slug)}
-            onClick={this.trackOpenInDiscoverClicked}
-          >
-            {t('Open in Discover')}
-          </DiscoverButton>
+          {hasPerformanceEventsPage ? (
+            <Button
+              size="small"
+              to={newEventView
+                .withColumns([{kind: 'field', field: column}])
+                .withSorts([{kind: 'desc', field: column}])
+                .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+                  showTransactions:
+                    dataFilter === 'all'
+                      ? EventsDisplayFilterName.p100
+                      : EventsDisplayFilterName.p75,
+                  webVital: column as WebVital,
+                })}
+              onClick={this.trackOpenAllEventsClicked}
+            >
+              {t('Open All Events')}
+            </Button>
+          ) : (
+            <DiscoverButton
+              size="small"
+              to={newEventView.getResultsViewUrlTarget(organization.slug)}
+              onClick={this.trackOpenInDiscoverClicked}
+            >
+              {t('Open in Discover')}
+            </DiscoverButton>
+          )}
         </div>
       </CardSummary>
     );

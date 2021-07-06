@@ -44,6 +44,7 @@ type Props = {
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   theme: Theme;
   disablePrevious?: boolean;
+  query?: string;
 };
 
 type State = {
@@ -130,7 +131,7 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 
   queryParams({shouldFetchWithPrevious = false}) {
-    const {selection} = this.props;
+    const {selection, query} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
     const baseParams = {
@@ -139,6 +140,7 @@ class SessionsRequest extends React.Component<Props, State> {
       interval: getSeriesApiInterval(datetime),
       project: projects[0],
       environment,
+      query,
     };
 
     if (!shouldFetchWithPrevious) {

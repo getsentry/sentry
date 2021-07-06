@@ -203,7 +203,6 @@ class MessageIMEventTest(BaseEventTest):
             self.get_block_type_text("section", data)
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
-        assert self.get_block_type_text("actions", data) == "Sentry Docs"
 
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))

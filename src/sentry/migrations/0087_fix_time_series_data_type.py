@@ -25,6 +25,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            "ALTER TABLE sentry_timeseriessnapshot ALTER COLUMN values SET DATA TYPE float[] USING values::float[]"
+            "ALTER TABLE sentry_timeseriessnapshot ALTER COLUMN values SET DATA TYPE float[] USING values::float[]",
+            hints={"tables": ["sentry_timeseriessnapshot"]},
         )
     ]
