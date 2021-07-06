@@ -166,17 +166,15 @@ const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
 const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
   `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
-const getBoxShadow = (active: boolean) => ({
-  priority,
-  borderless,
-  disabled,
-}: StyledButtonProps) => {
-  if (disabled || borderless || priority === 'link') {
-    return 'box-shadow: none';
-  }
+const getBoxShadow =
+  (active: boolean) =>
+  ({priority, borderless, disabled}: StyledButtonProps) => {
+    if (disabled || borderless || priority === 'link') {
+      return 'box-shadow: none';
+    }
 
-  return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
-};
+    return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
+  };
 
 const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) => {
   const themeName = disabled ? 'disabled' : priority || 'default';

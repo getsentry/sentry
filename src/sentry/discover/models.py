@@ -8,7 +8,7 @@ MAX_TEAM_KEY_TRANSACTIONS = 100
 
 
 class DiscoverSavedQueryProject(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     discover_saved_query = FlexibleForeignKey("sentry.DiscoverSavedQuery")
@@ -24,7 +24,7 @@ class DiscoverSavedQuery(Model):
     A saved Discover query
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
@@ -62,7 +62,7 @@ class DiscoverSavedQuery(Model):
 
 
 class KeyTransaction(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
@@ -77,15 +77,14 @@ class KeyTransaction(Model):
 
 
 class TeamKeyTransaction(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    team = FlexibleForeignKey("sentry.Team")
+    project_team = FlexibleForeignKey("sentry.ProjectTeam", null=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_performanceteamkeytransaction"
-        unique_together = (("project", "team", "transaction"),)
+        unique_together = (("project_team", "transaction"),)

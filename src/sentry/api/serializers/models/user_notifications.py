@@ -12,7 +12,7 @@ from sentry.types.integrations import ExternalProviders
 
 
 def handle_legacy(notification_type: FineTuningAPIKey, users: Iterable) -> Iterable:
-    """ For EMAIL and REPORTS, check UserOptions. """
+    """For EMAIL and REPORTS, check UserOptions."""
     filter_args = {}
     if notification_type == FineTuningAPIKey.EMAIL:
         filter_args["project__isnull"] = False

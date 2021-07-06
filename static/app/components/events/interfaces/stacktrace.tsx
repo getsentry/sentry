@@ -10,6 +10,8 @@ import {Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
+import NoStackTraceMessage from './noStackTraceMessage';
+
 export function isStacktraceNewestFirst() {
   const user = ConfigStore.get('user');
   // user may not be authenticated
@@ -76,6 +78,8 @@ class StacktraceInterface extends React.Component<Props, State> {
     const {projectId, event, data, hideGuide, type} = this.props;
     const {stackView, newestFirst} = this.state;
 
+    const stackTraceNotFound = !(data.frames ?? []).length;
+
     return (
       <EventDataSection
         type={type}
@@ -84,27 +88,33 @@ class StacktraceInterface extends React.Component<Props, State> {
             title={t('Stack Trace')}
             hideGuide={hideGuide}
             newestFirst={newestFirst}
-            onChange={this.handleChangeNewestFirst}
+            onChange={!stackTraceNotFound ? this.handleChangeNewestFirst : undefined}
           />
         }
         actions={
-          <CrashActions
-            stackView={stackView}
-            platform={event.platform}
-            stacktrace={data}
-            onChange={this.handleChangeStackView}
-          />
+          !stackTraceNotFound && (
+            <CrashActions
+              stackView={stackView}
+              platform={event.platform}
+              stacktrace={data}
+              onChange={this.handleChangeStackView}
+            />
+          )
         }
         wrapTitle={false}
       >
-        <CrashContent
-          projectId={projectId}
-          event={event}
-          stackView={stackView}
-          newestFirst={newestFirst}
-          stacktrace={data}
-          stackType={STACK_TYPE.ORIGINAL}
-        />
+        {stackTraceNotFound ? (
+          <NoStackTraceMessage />
+        ) : (
+          <CrashContent
+            projectId={projectId}
+            event={event}
+            stackView={stackView}
+            newestFirst={newestFirst}
+            stacktrace={data}
+            stackType={STACK_TYPE.ORIGINAL}
+          />
+        )}
       </EventDataSection>
     );
   }

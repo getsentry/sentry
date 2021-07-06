@@ -1,8 +1,7 @@
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from sentry.api.bases import OrganizationPermission
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -12,16 +11,7 @@ class OrganizationRequestProjectCreationSerializer(CamelSnakeSerializer):
     target_user_email = serializers.EmailField(required=True)
 
 
-class OrganizationRequestProjectCreationPermission(OrganizationPermission):
-    # just requesting so any org perms are enough
-    scope_map = {
-        "POST": ["org:read", "org:write", "org:admin"],
-    }
-
-
-class OrganizationRequestProjectCreation(OrganizationEndpoint):
-    permission_classes = (OrganizationRequestProjectCreationPermission,)
-
+class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
     def post(self, request, organization):
         """
         Send an email requesting a project be created

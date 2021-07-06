@@ -113,7 +113,7 @@ class UrlVerificationEventTest(BaseEventTest):
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     @patch(
-        "sentry.integrations.slack.event_endpoint.match_link",
+        "sentry.integrations.slack.endpoints.event.match_link",
         # match_link will be called twice, for each our links. Resolve into
         # two unique links and one duplicate.
         side_effect=[
@@ -123,7 +123,7 @@ class LinkSharedEventTest(BaseEventTest):
         ],
     )
     @patch(
-        "sentry.integrations.slack.event_endpoint.link_handlers",
+        "sentry.integrations.slack.endpoints.event.link_handlers",
         {
             "mock_link": Handler(
                 matcher=re.compile(r"test"),
@@ -189,6 +189,20 @@ class MessageIMEventTest(BaseEventTest):
             == "Want to learn more about configuring alerts in Sentry? Check out our documentation."
         )
         assert self.get_block_type_text("actions", data) == "Sentry Docs"
+
+    @responses.activate
+    def test_user_message_im_notification_platform(self):
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        with self.feature("organizations:notification-platform"):
+            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
+        assert resp.status_code == 200, resp.content
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert (
+            self.get_block_type_text("section", data)
+            == "Here are the commands you can use. Commands not working? Re-install the app!"
+        )
 
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))

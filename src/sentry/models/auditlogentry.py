@@ -99,7 +99,7 @@ class AuditLogEntryEvent:
 
 
 class AuditLogEntry(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)
@@ -278,7 +278,7 @@ class AuditLogEntry(Model):
             return "created project {}".format(self.data["slug"])
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
             return "edited project settings " + (
-                " ".join([f" in {key} to {value}" for (key, value) in self.data.items()])
+                " ".join(f" in {key} to {value}" for (key, value) in self.data.items())
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project {}".format(self.data["slug"])

@@ -1,0 +1,30 @@
+[
+  {
+    "query": "!user.id:true",
+    "result": [
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "user.id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "true", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!user.id:1",
+    "result": [
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "user.id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "1", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

@@ -39,7 +39,7 @@ class ProjectAvatarTest(APITestCase):
         avatar = ProjectAvatar.objects.get(project=project)
         assert response.status_code == 200, response.content
         assert avatar.get_avatar_type_display() == "upload"
-        assert avatar.file
+        assert avatar.file_id
 
     def test_put_bad(self):
         project = self.project  # force creation

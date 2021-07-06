@@ -55,6 +55,42 @@ class EndpointTest(APITestCase):
 
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
 
+    def test_invalid_cors_without_auth(self):
+        request = HttpRequest()
+        request.method = "GET"
+        request.META["HTTP_ORIGIN"] = "http://example.com"
+
+        with self.settings(SENTRY_ALLOW_ORIGIN="https://sentry.io"):
+            response = _dummy_endpoint(request)
+            response.render()
+
+        assert response.status_code == 400, response.content
+
+    def test_valid_cors_without_auth(self):
+        request = HttpRequest()
+        request.method = "GET"
+        request.META["HTTP_ORIGIN"] = "http://example.com"
+
+        with self.settings(SENTRY_ALLOW_ORIGIN="*"):
+            response = _dummy_endpoint(request)
+            response.render()
+
+        assert response.status_code == 200, response.content
+        assert response["Access-Control-Allow-Origin"] == "http://example.com"
+
+    # XXX(dcramer): The default setting needs to allow requests to work or it will be a regression
+    def test_cors_not_configured_is_valid(self):
+        request = HttpRequest()
+        request.method = "GET"
+        request.META["HTTP_ORIGIN"] = "http://example.com"
+
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
+            response = _dummy_endpoint(request)
+            response.render()
+
+        assert response.status_code == 200, response.content
+        assert response["Access-Control-Allow-Origin"] == "http://example.com"
+
 
 class PaginateTest(APITestCase):
     def setUp(self):

@@ -52,6 +52,7 @@ describe('EventView.fromLocation()', function () {
         sort: ['title', '-count'],
         query: 'event.type:transaction',
         project: [123],
+        team: ['myteams', '1', '2'],
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
@@ -73,6 +74,7 @@ describe('EventView.fromLocation()', function () {
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1, 2],
       start: undefined,
       end: undefined,
       statsPeriod: '14d',
@@ -183,6 +185,7 @@ describe('EventView.fromSavedQuery()', function () {
       fields: ['count()', 'id'],
       query: 'event.type:transaction',
       projects: [123],
+      teams: ['myteams', 1],
       range: '14d',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
@@ -202,6 +205,7 @@ describe('EventView.fromSavedQuery()', function () {
       sorts: [{field: 'id', kind: 'desc'}],
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1],
       start: undefined,
       end: undefined,
       // statsPeriod has precedence
@@ -225,6 +229,7 @@ describe('EventView.fromSavedQuery()', function () {
       sorts: [{field: 'id', kind: 'desc'}],
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1],
       start: '2019-10-01T00:00:00.000',
       end: '2019-10-02T00:00:00.000',
       statsPeriod: undefined,
@@ -539,6 +544,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       query: {
         statsPeriod: '14d',
         project: ['123'],
+        team: ['myteams', '1', '2'],
         environment: ['staging'],
       },
     };
@@ -554,6 +560,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       sorts: [{field: 'id', kind: 'desc'}],
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1, 2],
       start: undefined,
       end: undefined,
       // statsPeriod has precedence
@@ -2548,6 +2555,45 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
   });
 });
 
+describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [{field: 'count()'}, {field: 'project.id'}],
+    sorts: generateSorts(['count']),
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+    display: 'previous',
+  };
+  const organization = TestStubs.Organization();
+  const showTransactions = 'p99';
+  const breakdown = 'http';
+  const webVital = 'measurements.lcp';
+
+  it('generates a URL', function () {
+    const view = new EventView(state);
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+      showTransactions,
+      breakdown,
+      webVital,
+    });
+    expect(result.pathname).toEqual(
+      '/organizations/org-slug/performance/summary/events/'
+    );
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.transaction).toEqual(state.name);
+    expect(result.query.showTransactions).toEqual(showTransactions);
+    expect(result.query.breakdown).toEqual(breakdown);
+    expect(result.query.webVital).toEqual(webVital);
+  });
+});
+
 describe('EventView.getGlobalSelection()', function () {
   it('return default global selection', function () {
     const eventView = new EventView({});
@@ -3114,6 +3160,77 @@ describe('isAPIPayloadSimilar', function () {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.withDeletedColumn(0, meta);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(false);
+    });
+
+    it('it is similar if column order changes', function () {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      state.fields.reverse();
+      const otherEventView = new EventView(state);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
+    it('it is similar if equation order relatively same', function () {
+      const equationField = {field: 'equation|failure_count() / count()'};
+      const otherEquationField = {field: 'equation|failure_count() / 2'};
+      state.fields = [
+        {field: 'project.id'},
+        {field: 'count()'},
+        equationField,
+        otherEquationField,
+      ];
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      state.fields = [
+        equationField,
+        {field: 'project.id'},
+        {field: 'count()'},
+        otherEquationField,
+      ];
+      const otherEventView = new EventView(state);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
+    it('it is not similar if equation order changes', function () {
+      const equationField = {field: 'equation|failure_count() / count()'};
+      const otherEquationField = {field: 'equation|failure_count() / 2'};
+      state.fields = [
+        {field: 'project.id'},
+        {field: 'count()'},
+        equationField,
+        otherEquationField,
+      ];
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      state.fields = [
+        {field: 'project.id'},
+        {field: 'count()'},
+        otherEquationField,
+        equationField,
+      ];
+      const otherEventView = new EventView(state);
       const otherLocation = {};
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 

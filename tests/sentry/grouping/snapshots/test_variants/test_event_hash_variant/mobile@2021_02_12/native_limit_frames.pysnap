@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:38.861575Z'
+created: '2021-06-30T16:44:01.229928Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "8f4c7709e4af98d3c47ce3519690e6d9"
-  tree_label: "<entire stacktrace>"
+  tree_label: "<lambda>::operator() | Scaleform::GFx::AS3::IMEManager::DispatchEvent | Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
     app-depth-max*
       exception*
@@ -41,7 +41,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "8f4c7709e4af98d3c47ce3519690e6d9"
-  tree_label: "<entire stacktrace>"
+  tree_label: "<lambda>::operator() | Scaleform::GFx::AS3::IMEManager::DispatchEvent | Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
     system*
       exception*

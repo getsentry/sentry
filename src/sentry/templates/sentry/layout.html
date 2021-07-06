@@ -40,16 +40,20 @@
   {% endblock %}
 
   {% script %}
+  <script>
+    // if the ads.js file loads below it will mark this variable as false
+    window.adblockSuspected = true;
+    // Initialize this so that we can queue up tasks when Sentry SPA is initialized
+    window.__onSentryInit = window.__onSentryInit || [];
+  </script>
+  {% endscript %}
+
+  {% script %}
     {% include "sentry/partial/preload-data.html" %}
   {% endscript %}
 
   {% block scripts %}
-  {% locale_js_include %}
-
   {% manifest_asset_url "sentry" "runtime.js" as asset_url %}
-  {% script src=asset_url %}{% endscript %}
-
-  {% manifest_asset_url "sentry" "vendor.js" as asset_url %}
   {% script src=asset_url %}{% endscript %}
 
   {% block scripts_main_entrypoint %}
@@ -61,13 +65,6 @@
   {% for asset_url in injected_assets %}
     {% script src=asset_url %}{% endscript %}
   {% endfor %}
-
-  {% script %}
-  <script>
-    // if the ads.js file loads below it will mark this variable as false
-    window.adblockSuspected = true;
-  </script>
-  {% endscript %}
 
   {% asset_url 'sentry' 'js/ads.js' as asset_url %}
   {% script src=asset_url %}{% endscript %}

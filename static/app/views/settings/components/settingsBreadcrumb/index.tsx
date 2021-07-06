@@ -1,7 +1,5 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import Link from 'app/components/links/link';
@@ -83,13 +81,28 @@ class SettingsBreadcrumb extends Component<Props> {
   }
 }
 
-export default createReactClass<Omit<Props, 'pathMap'>>({
-  displayName: 'ConnectedSettingsBreadcrumb',
-  mixins: [Reflux.connect(SettingsBreadcrumbStore, 'pathMap') as any],
+type ConnectedState = Pick<Props, 'pathMap'>;
+
+class ConnectedSettingsBreadcrumb extends Component<
+  Omit<Props, 'pathMap'>,
+  ConnectedState
+> {
+  state: ConnectedState = {pathMap: SettingsBreadcrumbStore.getPathMap()};
+
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
+  unsubscribe = SettingsBreadcrumbStore.listen(
+    (pathMap: ConnectedState['pathMap']) => this.setState({pathMap}),
+    undefined
+  );
+
   render() {
     return <SettingsBreadcrumb {...this.props} {...this.state} />;
-  },
-});
+  }
+}
+
+export default ConnectedSettingsBreadcrumb;
 
 const CrumbLink = styled(Link)`
   display: block;

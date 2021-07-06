@@ -19,7 +19,7 @@ registry: MutableMapping[ExternalProviders, Notifiable] = {}
 
 
 def notification_providers() -> Iterable[ExternalProviders]:
-    """ Get a set of providers that can call notify. """
+    """Get a set of providers that can call notify."""
     return registry.keys()
 
 
@@ -45,5 +45,5 @@ def notify(
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]] = None,
 ) -> None:
-    """ Send notifications to these users or team. """
+    """Send notifications to these users or team."""
     registry[provider](notification, recipients, shared_context, extra_context_by_user_id)

@@ -53,9 +53,6 @@ describe('GroupActivity', function () {
 
   it('renders a marked reviewed activity', function () {
     const wrapper = createWrapper({
-      organization: {
-        features: ['inbox'],
-      },
       activity: [
         {type: 'mark_reviewed', id: 'reviewed-1', data: {}, user: TestStubs.User()},
       ],

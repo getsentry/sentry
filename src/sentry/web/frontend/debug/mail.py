@@ -143,6 +143,20 @@ class MailPreview:
         )
 
 
+class MailPreviewAdapter(MailPreview):
+    """
+    This is an adapter for MailPreview that will take similar arguments to MessageBuilder
+    """
+
+    def __init__(self, **kwargs):
+        kwargs["text_template"] = kwargs["template"]
+        del kwargs["template"]
+        if "from_email" in kwargs:
+            del kwargs["from_email"]
+        del kwargs["type"]
+        super().__init__(**kwargs)
+
+
 class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
@@ -430,7 +444,7 @@ def report(request):
                 id=next(id_sequence),
                 project=p,
                 organization_id=p.organization_id,
-                version="".join([random.choice("0123456789abcdef") for _ in range(40)]),
+                version="".join(random.choice("0123456789abcdef") for _ in range(40)),
                 date_added=dt,
             )
 

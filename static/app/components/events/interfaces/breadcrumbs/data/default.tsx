@@ -18,7 +18,7 @@ type Props = {
 };
 
 const Default = ({breadcrumb, event, orgId, searchTerm}: Props) => (
-  <Summary kvData={breadcrumb.data} searchTerm={searchTerm}>
+  <Summary kvData={breadcrumb.data}>
     {breadcrumb?.message && (
       <AnnotatedText
         value={

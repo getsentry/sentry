@@ -4,46 +4,30 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import PanelTable from 'app/components/panels/panelTable';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView, {MetaType} from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {
-  Alignments,
-  fieldAlignment,
-  getAggregateAlias,
-  Sort,
-} from 'app/utils/discover/fields';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import {getDuration} from 'app/utils/formatters';
-import BaselineQuery, {
-  BaselineQueryResults,
-} from 'app/utils/performance/baseline/baselineQuery';
+import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {Sort} from 'app/utils/discover/fields';
+import BaselineQuery from 'app/utils/performance/baseline/baselineQuery';
 import {TrendsEventsDiscoverQuery} from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
-import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-import {GridCell, GridCellNumber} from 'app/views/performance/styles';
-import {spanOperationBreakdownSingleColumns} from 'app/views/performance/transactionSummary/filter';
-import {
-  TrendChangeType,
-  TrendsDataEvents,
-  TrendView,
-} from 'app/views/performance/trends/types';
-import {getTransactionComparisonUrl} from 'app/views/performance/utils';
+import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
+import {mapShowTransactionToPercentile} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+import {TransactionFilterOptions} from 'app/views/performance/transactionSummary/utils';
+import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
+
+import TransactionsTable from './transactionsTable';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
 
@@ -129,6 +113,10 @@ type Props = {
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   /**
+   * The callback for when Open All Events is clicked.
+   */
+  handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
+  /**
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
   forceLoading?: boolean;
@@ -137,6 +125,9 @@ type Props = {
    * for generating the Discover query.
    */
   generateDiscoverEventView?: () => EventView;
+  generatePerformanceTransactionEventsView?: () => EventView;
+  showTransactions?: TransactionFilterOptions;
+  breakdown?: SpanOperationBreakdownFilter;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -160,7 +151,7 @@ class TransactionsList extends React.Component<Props> {
     if (selected.query) {
       const query = tokenizeSearch(sortedEventView.query);
       selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
-      sortedEventView.query = stringifyQueryObject(query);
+      sortedEventView.query = query.formatString();
     }
 
     return sortedEventView;
@@ -174,13 +165,21 @@ class TransactionsList extends React.Component<Props> {
     return this.getEventView();
   }
 
+  generatePerformanceTransactionEventsView(): EventView {
+    const {generatePerformanceTransactionEventsView} = this.props;
+    return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
+  }
+
   renderHeader(): React.ReactNode {
     const {
       organization,
       selected,
       options,
       handleDropdownChange,
+      handleOpenAllEventsClick,
       handleOpenInDiscoverClick,
+      showTransactions,
+      breakdown,
     } = this.props;
 
     return (
@@ -212,20 +211,38 @@ class TransactionsList extends React.Component<Props> {
             ))}
           </DropdownControl>
         </div>
-        {!this.isTrend() && (
-          <GuideAnchor target="release_transactions_open_in_discover">
-            <DiscoverButton
-              onClick={handleOpenInDiscoverClick}
-              to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                organization.slug
-              )}
-              size="small"
-              data-test-id="discover-open"
-            >
-              {t('Open in Discover')}
-            </DiscoverButton>
-          </GuideAnchor>
-        )}
+        {!this.isTrend() &&
+          (handleOpenAllEventsClick ? (
+            <GuideAnchor target="release_transactions_open_in_transaction_events">
+              <Button
+                onClick={handleOpenAllEventsClick}
+                to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
+                  organization.slug,
+                  {
+                    showTransactions: mapShowTransactionToPercentile(showTransactions),
+                    breakdown,
+                  }
+                )}
+                size="small"
+                data-test-id="transaction-events-open"
+              >
+                {t('Open All Events')}
+              </Button>
+            </GuideAnchor>
+          ) : (
+            <GuideAnchor target="release_transactions_open_in_discover">
+              <DiscoverButton
+                onClick={handleOpenInDiscoverClick}
+                to={this.generateDiscoverEventView().getResultsViewUrlTarget(
+                  organization.slug
+                )}
+                size="small"
+                data-test-id="discover-open"
+              >
+                {t('Open in Discover')}
+              </DiscoverButton>
+            </GuideAnchor>
+          ))}
       </React.Fragment>
     );
   }
@@ -319,14 +336,8 @@ class TransactionsList extends React.Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {
-      trendView,
-      location,
-      selected,
-      organization,
-      cursorName,
-      generateLink,
-    } = this.props;
+    const {trendView, location, selected, organization, cursorName, generateLink} =
+      this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -334,7 +345,7 @@ class TransactionsList extends React.Component<Props> {
     if (selected.query) {
       const query = tokenizeSearch(sortedEventView.query);
       selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
-      sortedEventView.query = stringifyQueryObject(query);
+      sortedEventView.query = query.formatString();
     }
     const cursor = decodeScalar(location.query?.[cursorName]);
 
@@ -392,258 +403,6 @@ class TransactionsList extends React.Component<Props> {
   }
 }
 
-type TableProps = {
-  eventView: EventView;
-  organization: Organization;
-  location: Location;
-  isLoading: boolean;
-  tableData: TableData | TrendsDataEvents | null;
-  columnOrder: TableColumn<React.ReactText>[];
-  titles?: string[];
-  baselineTransactionName: string | null;
-  baselineData: BaselineQueryResults | null;
-  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
-  generateLink?: Record<
-    string,
-    (
-      organization: Organization,
-      tableRow: TableDataRow,
-      query: Query
-    ) => LocationDescriptor
-  >;
-  handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
-};
-
-class TransactionsTable extends React.PureComponent<TableProps> {
-  getTitles() {
-    const {eventView, titles} = this.props;
-    return titles ?? eventView.getFields();
-  }
-
-  renderHeader() {
-    const {tableData, columnOrder, baselineTransactionName} = this.props;
-
-    const tableMeta = tableData?.meta;
-    const generateSortLink = () => undefined;
-    const tableTitles = this.getTitles();
-
-    const headers = tableTitles.map((title, index) => {
-      const column = columnOrder[index];
-
-      const isIndividualSpanColumn = !!spanOperationBreakdownSingleColumns.find(
-        c => c === column.name
-      );
-      const align: Alignments = isIndividualSpanColumn
-        ? 'left'
-        : fieldAlignment(column.name, column.type, tableMeta);
-
-      if (column.key === 'span_ops_breakdown.relative') {
-        return (
-          <HeadCellContainer key={index}>
-            <GuideAnchor target="span_op_relative_breakdowns">
-              <SortLink
-                align={align}
-                title={title}
-                direction={undefined}
-                canSort={false}
-                generateSortLink={generateSortLink}
-              />
-            </GuideAnchor>
-          </HeadCellContainer>
-        );
-      }
-
-      return (
-        <HeadCellContainer key={index}>
-          <SortLink
-            align={align}
-            title={title}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={generateSortLink}
-          />
-        </HeadCellContainer>
-      );
-    });
-
-    if (baselineTransactionName) {
-      headers.push(
-        <HeadCellContainer key="baseline">
-          <SortLink
-            align="right"
-            title={t('Compared to Baseline')}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={generateSortLink}
-          />
-        </HeadCellContainer>
-      );
-    }
-
-    return headers;
-  }
-
-  renderRow(
-    row: TableDataRow,
-    rowIndex: number,
-    columnOrder: TableColumn<React.ReactText>[],
-    tableMeta: MetaType
-  ): React.ReactNode[] {
-    const {
-      eventView,
-      organization,
-      location,
-      generateLink,
-      baselineTransactionName,
-      baselineData,
-      handleBaselineClick,
-      handleCellAction,
-      titles,
-    } = this.props;
-    const fields = eventView.getFields();
-
-    if (titles && titles.length) {
-      // Slice to match length of given titles
-      columnOrder = columnOrder.slice(0, titles.length);
-    }
-
-    const resultsRow = columnOrder.map((column, index) => {
-      const field = String(column.key);
-      // TODO add a better abstraction for this in fieldRenderers.
-      const fieldName = getAggregateAlias(field);
-      const fieldType = tableMeta[fieldName];
-
-      const fieldRenderer = getFieldRenderer(field, tableMeta);
-      let rendered = fieldRenderer(row, {organization, location});
-
-      const target = generateLink?.[field]?.(organization, row, location.query);
-
-      if (target) {
-        rendered = (
-          <Link data-test-id={`view-${fields[index]}`} to={target}>
-            {rendered}
-          </Link>
-        );
-      }
-
-      const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
-      const key = `${rowIndex}:${column.key}:${index}`;
-      rendered = isNumeric ? (
-        <GridCellNumber>{rendered}</GridCellNumber>
-      ) : (
-        <GridCell>{rendered}</GridCell>
-      );
-
-      if (handleCellAction) {
-        rendered = (
-          <CellAction
-            column={column}
-            dataRow={row}
-            handleCellAction={handleCellAction(column)}
-          >
-            {rendered}
-          </CellAction>
-        );
-      }
-
-      return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
-    });
-
-    if (baselineTransactionName) {
-      if (baselineData) {
-        const currentTransactionDuration: number =
-          Number(row['transaction.duration']) || 0;
-        const duration = baselineData['transaction.duration'];
-
-        const delta = Math.abs(currentTransactionDuration - duration);
-
-        const relativeSpeed =
-          currentTransactionDuration < duration
-            ? t('faster')
-            : currentTransactionDuration > duration
-            ? t('slower')
-            : '';
-
-        const target = getTransactionComparisonUrl({
-          organization,
-          baselineEventSlug: generateEventSlug(baselineData),
-          regressionEventSlug: generateEventSlug(row),
-          transaction: baselineTransactionName,
-          query: location.query,
-        });
-
-        resultsRow.push(
-          <BodyCellContainer
-            data-test-id="baseline-cell"
-            key={`${rowIndex}-baseline`}
-            style={{textAlign: 'right'}}
-          >
-            <GridCell>
-              <Link to={target} onClick={handleBaselineClick}>
-                {`${getDuration(delta / 1000, delta < 1000 ? 0 : 2)} ${relativeSpeed}`}
-              </Link>
-            </GridCell>
-          </BodyCellContainer>
-        );
-      } else {
-        resultsRow.push(
-          <BodyCellContainer data-test-id="baseline-cell" key={`${rowIndex}-baseline`}>
-            {'\u2014'}
-          </BodyCellContainer>
-        );
-      }
-    }
-
-    return resultsRow;
-  }
-
-  renderResults() {
-    const {isLoading, tableData, columnOrder} = this.props;
-    let cells: React.ReactNode[] = [];
-
-    if (isLoading) {
-      return cells;
-    }
-    if (!tableData || !tableData.meta || !tableData.data) {
-      return cells;
-    }
-
-    tableData.data.forEach((row, i: number) => {
-      // Another check to appease tsc
-      if (!tableData.meta) {
-        return;
-      }
-      cells = cells.concat(this.renderRow(row, i, columnOrder, tableData.meta));
-    });
-    return cells;
-  }
-
-  render() {
-    const {isLoading, tableData} = this.props;
-
-    const hasResults =
-      tableData && tableData.data && tableData.meta && tableData.data.length > 0;
-
-    // Custom set the height so we don't have layout shift when results are loaded.
-    const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
-
-    return (
-      <PanelTable
-        isEmpty={!hasResults}
-        emptyMessage={t('No transactions found')}
-        headers={this.renderHeader()}
-        isLoading={isLoading}
-        disablePadding
-        loader={loader}
-      >
-        {this.renderResults()}
-      </PanelTable>
-    );
-  }
-}
-
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -652,15 +411,6 @@ const Header = styled('div')`
 
 const StyledDropdownButton = styled(DropdownButton)`
   min-width: 145px;
-`;
-
-const HeadCellContainer = styled('div')`
-  padding: ${space(2)};
-`;
-
-const BodyCellContainer = styled('div')`
-  padding: ${space(1)} ${space(2)};
-  ${overflowEllipsis};
 `;
 
 const StyledPagination = styled(Pagination)`

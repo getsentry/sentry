@@ -264,12 +264,7 @@ _ButtonBar.parameters = {
 };
 
 export const _NavigationButtonGroup = () => (
-  <NavigationButtonGroup
-    location={{}}
-    hasNext={false}
-    hasPrevious
-    urls={['#', '#', '#', '#']}
-  />
+  <NavigationButtonGroup hasNext={false} hasPrevious links={['#', '#', '#', '#']} />
 );
 _NavigationButtonGroup.storyName = 'NavigationButtonGroup';
 _NavigationButtonGroup.info = 'Navigation Buttons Group';

@@ -17,6 +17,7 @@ describe('ProjectAlertSettings', function () {
       method: 'GET',
       body: project,
     });
+
     Client.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',

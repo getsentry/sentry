@@ -1,6 +1,15 @@
+from typing import Any, Sequence
+
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.models import Organization
+
+
+def any_organization_has_feature(
+    feature: str, organizations: Sequence[Organization], **kwargs: Any
+) -> bool:
+    return any([features.has(feature, organization, **kwargs) for organization in organizations])
 
 
 def requires_feature(feature, any_org=None):
@@ -17,7 +26,7 @@ def requires_feature(feature, any_org=None):
     If any failure case, the API returns a 404.
 
     Example:
-        >>> @requires_feature('organizations:internal-catchall')
+        >>> @requires_feature('organizations:performance-view')
         >>> def get(self, request, organization):
         >>>     return Response()
     """
@@ -27,9 +36,8 @@ def requires_feature(feature, any_org=None):
             # The endpoint is accessible if any of the User's Orgs have the feature
             # flag enabled.
             if any_org:
-                if not any(
-                    features.has(feature, org, actor=request.user)
-                    for org in request.user.get_orgs()
+                if not any_organization_has_feature(
+                    feature, request.user.get_orgs(), actor=request.user
                 ):
                     return Response(status=404)
 

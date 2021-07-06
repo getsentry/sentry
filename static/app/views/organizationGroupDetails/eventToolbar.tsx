@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
+import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
 import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import Tooltip from 'app/components/tooltip';
@@ -13,7 +14,7 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -43,6 +44,7 @@ const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
 
 type Props = {
   organization: Organization;
+  project: Project;
   group: Group;
   event: Event;
   location: Location;
@@ -97,7 +99,7 @@ class GroupEventToolbar extends Component<Props> {
   render() {
     const evt = this.props.event;
 
-    const {group, organization, location} = this.props;
+    const {group, organization, location, project} = this.props;
     const groupId = group.id;
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
@@ -114,15 +116,15 @@ class GroupEventToolbar extends Component<Props> {
     return (
       <Wrapper>
         <StyledNavigationButtonGroup
-          location={location}
           hasPrevious={!!evt.previousEventID}
           hasNext={!!evt.nextEventID}
-          urls={[
-            `${baseEventsPath}oldest/`,
-            `${baseEventsPath}${evt.previousEventID}/`,
-            `${baseEventsPath}${evt.nextEventID}/`,
-            `${baseEventsPath}latest/`,
+          links={[
+            {pathname: `${baseEventsPath}oldest/`, query: location.query},
+            {pathname: `${baseEventsPath}${evt.previousEventID}/`, query: location.query},
+            {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
+            {pathname: `${baseEventsPath}latest/`, query: location.query},
           ]}
+          size="small"
         />
         <Heading>
           {t('Event')}{' '}
@@ -139,6 +141,11 @@ class GroupEventToolbar extends Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
+        <StyledGlobalAppStoreConnectUpdateAlert
+          project={project}
+          organization={organization}
+          isCompact
+        />
         <QuickTrace
           event={evt}
           group={group}
@@ -186,6 +193,11 @@ const StyledIconWarning = styled(IconWarning)`
 const StyledDateTime = styled(DateTime)`
   border-bottom: 1px dotted #dfe3ea;
   color: ${p => p.theme.subText};
+`;
+
+const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
+  margin-top: ${space(0.5)};
+  margin-bottom: ${space(1)};
 `;
 
 const LinkContainer = styled('span')`

@@ -294,8 +294,8 @@ describe('IssueListHeader', () => {
         savedSearchList={[
           {
             id: '789',
-            query: 'is:unresolved',
-            name: 'Unresolved Search',
+            query: 'is:unresolved TypeError',
+            name: 'Unresolved TypeError',
             isPinned: false,
             isGlobal: true,
           },
@@ -306,6 +306,6 @@ describe('IssueListHeader', () => {
     await tick();
 
     const item = wrapper.find('MenuItem a').first();
-    expect(item.text()).toContain('Unresolved Search');
+    expect(item.text()).toContain('Unresolved TypeError');
   });
 });

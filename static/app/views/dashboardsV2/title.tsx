@@ -21,7 +21,7 @@ function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
         <EditableText
           isDisabled={!isEditing}
           value={
-            organization.features.includes('dashboards-manage') &&
+            organization.features.includes('dashboards-edit') &&
             dashboard.id === 'default-overview'
               ? 'Default Dashboard'
               : dashboard.title

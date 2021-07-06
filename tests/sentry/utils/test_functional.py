@@ -19,7 +19,7 @@ class CompactTest(TestCase):
 
 class CachedTest(TestCase):
     def test_kwargs(self):
-        """ Order of kwargs should not matter """
+        """Order of kwargs should not matter"""
 
         def foo(**kwargs):
             foo.call_count += 1

@@ -20,6 +20,8 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  isAggregateEquation,
+  isEquation,
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
@@ -27,7 +29,7 @@ import {
 } from 'app/utils/discover/fields';
 import {getTitle} from 'app/utils/events';
 import localStorage from 'app/utils/localStorage';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -55,12 +57,18 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 export function decodeColumnOrder(
   fields: Readonly<Field[]>
 ): TableColumn<React.ReactText>[] {
+  let equations = 0;
   return fields.map((f: Field) => {
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
-    column.key = f.field;
-    column.name = f.field;
+    let columnName = f.field;
+    if (isEquation(f.field)) {
+      columnName = `equation[${equations}]`;
+      equations += 1;
+    }
+    column.key = columnName;
+    column.name = columnName;
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {
@@ -243,7 +251,9 @@ export function getExpandedResults(
       // if expanding the function failed
       column === null ||
       // the new column is already present
-      fieldSet.has(column.field)
+      fieldSet.has(column.field) ||
+      // Skip aggregate equations, their functions will already be added so we just want to remove it
+      isAggregateEquation(field.field)
     ) {
       return null;
     }
@@ -409,7 +419,7 @@ function generateExpandedConditions(
     parsedQuery.setTagValues(key, [value]);
   }
 
-  return stringifyQueryObject(parsedQuery);
+  return parsedQuery.formatString();
 }
 
 type FieldGeneratorOpts = {
@@ -437,6 +447,10 @@ export function generateFieldOptions({
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }
+  // Feature flagged by arithmetic for now
+  if (!organization.features.includes('discover-arithmetic')) {
+    functions = functions.filter(item => item !== 'count_if');
+  }
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
   // Index items by prefixed keys as custom tags can overlap both fields and
@@ -445,13 +459,13 @@ export function generateFieldOptions({
   functions.forEach(func => {
     const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
     const parameters = aggregations[func].parameters.map(param => {
-      const generator = aggregations[func].generateDefaultValue;
-      if (typeof generator === 'undefined') {
+      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      if (typeof overrides === 'undefined') {
         return param;
       }
       return {
         ...param,
-        defaultValue: generator({parameter: param, organization}),
+        ...overrides({parameter: param, organization}),
       };
     });
 
@@ -521,15 +535,6 @@ export function generateFieldOptions({
   }
 
   return fieldOptions;
-}
-
-const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
-
-export function isBannerHidden(): boolean {
-  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
-}
-export function setBannerHidden(value: boolean) {
-  localStorage.setItem(BANNER_DISMISSED_KEY, value ? 'true' : 'false');
 }
 
 const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';

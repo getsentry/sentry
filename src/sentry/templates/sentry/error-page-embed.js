@@ -1,5 +1,5 @@
-/*eslint no-var:0,strict:0,block-scoped-var:0*/
-/*global sentryEmbedCallback:false*/
+/* eslint no-var:0,strict:0,block-scoped-var:0 */
+/* global sentryEmbedCallback:false */
 (function (window, document, JSON) {
   'use strict';
   // TODO(dcramer): expose API for building a new error embed so things like

@@ -1,5 +1,15 @@
 from collections import defaultdict
-from typing import AbstractSet, Any, Iterable, Mapping, MutableMapping, Sequence, Set
+from typing import (
+    AbstractSet,
+    Any,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Optional,
+    Sequence,
+    Set,
+)
 
 from django.db.models import Count
 
@@ -19,8 +29,10 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
+from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.compat import zip
 from sentry.utils.json import JSONData
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
@@ -184,3 +196,56 @@ class TeamWithProjectsSerializer(TeamSerializer):
         d["projects"] = attrs["projects"]
         d["externalTeams"] = attrs["externalTeams"]
         return d
+
+
+def get_scim_teams_members(
+    team_list: Sequence[Team],
+) -> MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]]:
+    members = RangeQuerySetWrapper(
+        OrganizationMember.objects.filter(teams__in=team_list)
+        .select_related("user")
+        .prefetch_related("teams")
+        .distinct("id"),
+        limit=10000,
+    )
+    member_map: MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]] = defaultdict(list)
+    for member in members:
+        for team in member.teams.all():
+            member_map[team].append({"value": str(member.id), "display": member.get_email()})
+    return member_map
+
+
+class TeamSCIMSerializer(Serializer):  # type: ignore
+    def __init__(
+        self,
+        expand: Optional[Sequence[str]] = None,
+    ) -> None:
+        self.expand = expand or []
+
+    def get_attrs(
+        self, item_list: Sequence[Team], user: Any, **kwargs: Any
+    ) -> MutableMapping[Team, MutableMapping[str, Any]]:
+
+        # return the members key with a None value if we aren't expanding
+        # because some SCIM specs say to set it to null
+        result: MutableMapping[Team, MutableMapping[str, Any]] = {
+            team: {"members": None} for team in item_list
+        }
+
+        if "members" in self.expand:
+            member_map = get_scim_teams_members(item_list)
+            for team in item_list:
+                # if there are no members in the team, set to empty array
+                result[team]["members"] = member_map.get(team, [])
+        return result
+
+    def serialize(
+        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+        return {
+            "schemas": [SCIM_SCHEMA_GROUP],
+            "id": str(obj.id),
+            "displayName": obj.slug,
+            "members": attrs["members"],
+            "meta": {"resourceType": "Group"},
+        }

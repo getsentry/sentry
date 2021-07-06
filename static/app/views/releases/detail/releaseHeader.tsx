@@ -18,7 +18,7 @@ import {IconCopy, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseMeta, ReleaseProject} from 'app/types';
-import {formatAbbreviatedNumber, formatVersion} from 'app/utils/formatters';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
 
 import ReleaseActions from './releaseActions';
 
@@ -47,14 +47,14 @@ const ReleaseHeader = ({
   )}/`;
 
   const tabs = [
-    {title: t('Overview'), to: releasePath},
+    {title: t('Overview'), to: ''},
     {
       title: (
         <Fragment>
           {t('Commits')} <NavTabsBadge text={formatAbbreviatedNumber(commitCount)} />
         </Fragment>
       ),
-      to: `${releasePath}commits/`,
+      to: `commits/`,
     },
     {
       title: (
@@ -63,14 +63,26 @@ const ReleaseHeader = ({
           <NavTabsBadge text={formatAbbreviatedNumber(commitFilesChanged)} />
         </Fragment>
       ),
-      to: `${releasePath}files-changed/`,
+      to: `files-changed/`,
     },
   ];
 
-  const getCurrentTabUrl = (path: string) => ({
-    pathname: path,
+  const getTabUrl = (path: string) => ({
+    pathname: releasePath + path,
     query: pick(location.query, Object.values(URL_PARAM)),
   });
+
+  const getActiveTabTo = () => {
+    // We are not doing strict version check because there would be a tiny page shift when switching between releases with paginator
+    const activeTab = tabs
+      .filter(tab => tab.to.length) // remove home 'Overview' from consideration
+      .find(tab => location.pathname.endsWith(tab.to));
+    if (activeTab) {
+      return activeTab.to;
+    }
+
+    return tabs[0].to; // default to 'Overview'
+  };
 
   return (
     <Layout.Header>
@@ -82,7 +94,7 @@ const ReleaseHeader = ({
               label: t('Releases'),
               preserveGlobalSelection: true,
             },
-            {label: formatVersion(version)},
+            {label: t('Release Details')},
           ]}
         />
         <Layout.Title>
@@ -111,11 +123,12 @@ const ReleaseHeader = ({
 
       <Layout.HeaderActions>
         <ReleaseActions
-          orgSlug={organization.slug}
+          organization={organization}
           projectSlug={project.slug}
           release={release}
           releaseMeta={releaseMeta}
           refetchData={refetchData}
+          location={location}
         />
       </Layout.HeaderActions>
 
@@ -124,8 +137,8 @@ const ReleaseHeader = ({
           {tabs.map(tab => (
             <ListLink
               key={tab.to}
-              to={getCurrentTabUrl(tab.to)}
-              isActive={() => tab.to === location.pathname}
+              to={getTabUrl(tab.to)}
+              isActive={() => getActiveTabTo() === tab.to}
             >
               {tab.title}
             </ListLink>

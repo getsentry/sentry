@@ -26,7 +26,6 @@ GUIDES = {
     "alerts_write_owner": {"id": 11, "required_targets": ["alerts_write_owner"]},
     "assigned_or_suggested_guide": {"id": 12, "required_targets": ["assigned_or_suggested_query"]},
     "release_adoption": {"id": 13, "required_targets": ["release_adoption"]},
-    "user_misery": {"id": 14, "required_targets": ["user_misery"]},
     "stack_trace_preview": {"id": 15, "required_targets": ["issue_stream_title"]},
     "trace_view": {
         "id": 16,
@@ -39,6 +38,11 @@ GUIDES = {
             "span_op_relative_breakdowns",
             "tag_explorer",
         ],
+    },
+    "team_key_transactions": {"id": 18, "required_targets": ["team_key_transaction_header"]},
+    "project_transaction_threshold": {
+        "id": 19,
+        "required_targets": ["project_transaction_threshold"],
     },
 }
 

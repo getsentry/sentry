@@ -1,13 +1,13 @@
 import * as React from 'react';
 import pick from 'lodash/pick';
 
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {MetaType} from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'app/utils/discover/genericDiscoverQuery';
+import {PERFORMANCE_URL_PARAM} from 'app/utils/performance/constants';
 import withApi from 'app/utils/withApi';
 
 export type TableDataRow = {
@@ -49,7 +49,7 @@ function getRequestPayload(props: RequestProps) {
   const apiPayload = eventView?.getEventsAPIPayload(props.location);
   return {
     vital: vitals,
-    ...pick(apiPayload, ['query', ...Object.values(URL_PARAM)]),
+    ...pick(apiPayload, ['query', ...Object.values(PERFORMANCE_URL_PARAM)]),
   };
 }
 

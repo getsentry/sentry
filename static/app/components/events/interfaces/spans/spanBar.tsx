@@ -5,12 +5,14 @@ import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
 import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
+  EmbeddedTransactionBadge,
   ErrorBadge,
 } from 'app/components/performance/waterfall/rowDivider';
 import {
@@ -38,6 +40,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
@@ -53,7 +56,12 @@ import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
-import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import {
+  FetchEmbeddedChildrenState,
+  ParsedTraceType,
+  ProcessedSpanType,
+  TreeDepthType,
+} from './types';
 import {
   durationlessBrowserOps,
   getMeasurementBounds,
@@ -75,107 +83,13 @@ import {
 //   INTERSECTION_THRESHOLDS.push(i);
 // }
 const INTERSECTION_THRESHOLDS: Array<number> = [
-  0,
-  0.01,
-  0.02,
-  0.03,
-  0.04,
-  0.05,
-  0.06,
-  0.07,
-  0.08,
-  0.09,
-  0.1,
-  0.11,
-  0.12,
-  0.13,
-  0.14,
-  0.15,
-  0.16,
-  0.17,
-  0.18,
-  0.19,
-  0.2,
-  0.21,
-  0.22,
-  0.23,
-  0.24,
-  0.25,
-  0.26,
-  0.27,
-  0.28,
-  0.29,
-  0.3,
-  0.31,
-  0.32,
-  0.33,
-  0.34,
-  0.35,
-  0.36,
-  0.37,
-  0.38,
-  0.39,
-  0.4,
-  0.41,
-  0.42,
-  0.43,
-  0.44,
-  0.45,
-  0.46,
-  0.47,
-  0.48,
-  0.49,
-  0.5,
-  0.51,
-  0.52,
-  0.53,
-  0.54,
-  0.55,
-  0.56,
-  0.57,
-  0.58,
-  0.59,
-  0.6,
-  0.61,
-  0.62,
-  0.63,
-  0.64,
-  0.65,
-  0.66,
-  0.67,
-  0.68,
-  0.69,
-  0.7,
-  0.71,
-  0.72,
-  0.73,
-  0.74,
-  0.75,
-  0.76,
-  0.77,
-  0.78,
-  0.79,
-  0.8,
-  0.81,
-  0.82,
-  0.83,
-  0.84,
-  0.85,
-  0.86,
-  0.87,
-  0.88,
-  0.89,
-  0.9,
-  0.91,
-  0.92,
-  0.93,
-  0.94,
-  0.95,
-  0.96,
-  0.97,
-  0.98,
-  0.99,
-  1.0,
+  0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14,
+  0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29,
+  0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44,
+  0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59,
+  0.6, 0.61, 0.62, 0.63, 0.64, 0.65, 0.66, 0.67, 0.68, 0.69, 0.7, 0.71, 0.72, 0.73, 0.74,
+  0.75, 0.76, 0.77, 0.78, 0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89,
+  0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
 ];
 
 const MARGIN_LEFT = 0;
@@ -197,6 +111,11 @@ type SpanBarProps = {
   isRoot?: boolean;
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
+  showEmbeddedChildren: boolean;
+  toggleEmbeddedChildren:
+    | ((props: {orgSlug: string; eventSlug: string}) => void)
+    | undefined;
+  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
 };
 
 type SpanBarState = {
@@ -808,6 +727,37 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return errors?.length ? <ErrorBadge /> : null;
   }
 
+  renderEmbeddedTransactionsBadge(
+    transactions: QuickTraceEvent[] | null
+  ): React.ReactNode {
+    const {toggleEmbeddedChildren, organization} = this.props;
+
+    if (!organization.features.includes('unified-span-view')) {
+      return null;
+    }
+
+    if (transactions && transactions.length === 1) {
+      const transaction = transactions[0];
+      return (
+        <EmbeddedTransactionBadge
+          expanded={!!this.props.showEmbeddedChildren}
+          onClick={() => {
+            if (toggleEmbeddedChildren) {
+              toggleEmbeddedChildren({
+                orgSlug: organization.slug,
+                eventSlug: generateEventSlug({
+                  id: transaction.event_id,
+                  project: transaction.project_slug,
+                }),
+              });
+            }
+          }}
+        />
+      );
+    }
+    return null;
+  }
+
   renderWarningText({warningText}: {warningText?: string} = {}) {
     if (!warningText) {
       return null;
@@ -824,10 +774,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
     errors,
+    transactions,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     errors: TraceError[] | null;
+    transactions: QuickTraceEvent[] | null;
   }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
@@ -857,6 +809,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge(errors)}
+          {this.renderEmbeddedTransactionsBadge(transactions)}
         </DividerContainer>
         <RowCell
           data-type="span-row-cell"
@@ -917,6 +870,29 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
+  renderEmbeddedChildrenState() {
+    const {fetchEmbeddedChildrenState} = this.props;
+
+    switch (fetchEmbeddedChildrenState) {
+      case 'loading_embedded_transactions': {
+        return (
+          <MessageRow>
+            <span>{t('Loading embedded transaction')}</span>
+          </MessageRow>
+        );
+      }
+      case 'error_fetching_embedded_transactions': {
+        return (
+          <MessageRow>
+            <span>{t('Error loading embedded transaction')}</span>
+          </MessageRow>
+        );
+      }
+      default:
+        return null;
+    }
+  }
+
   render() {
     const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
@@ -925,39 +901,43 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <Row
-        ref={this.spanRowDOMRef}
-        visible={isSpanVisible}
-        showBorder={this.state.showDetail}
-        data-test-id="span-row"
-      >
-        <QuickTraceContext.Consumer>
-          {quickTrace => {
-            const errors = this.getRelatedErrors(quickTrace);
-            const transactions = this.getChildTransactions(quickTrace);
-            return (
-              <React.Fragment>
-                <ScrollbarManager.Consumer>
-                  {scrollbarManagerChildrenProps => (
-                    <DividerHandlerManager.Consumer>
-                      {(
-                        dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                      ) =>
-                        this.renderHeader({
-                          dividerHandlerChildrenProps,
-                          scrollbarManagerChildrenProps,
-                          errors,
-                        })
-                      }
-                    </DividerHandlerManager.Consumer>
-                  )}
-                </ScrollbarManager.Consumer>
-                {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
-              </React.Fragment>
-            );
-          }}
-        </QuickTraceContext.Consumer>
-      </Row>
+      <React.Fragment>
+        <Row
+          ref={this.spanRowDOMRef}
+          visible={isSpanVisible}
+          showBorder={this.state.showDetail}
+          data-test-id="span-row"
+        >
+          <QuickTraceContext.Consumer>
+            {quickTrace => {
+              const errors = this.getRelatedErrors(quickTrace);
+              const transactions = this.getChildTransactions(quickTrace);
+              return (
+                <React.Fragment>
+                  <ScrollbarManager.Consumer>
+                    {scrollbarManagerChildrenProps => (
+                      <DividerHandlerManager.Consumer>
+                        {(
+                          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                        ) =>
+                          this.renderHeader({
+                            dividerHandlerChildrenProps,
+                            scrollbarManagerChildrenProps,
+                            errors,
+                            transactions,
+                          })
+                        }
+                      </DividerHandlerManager.Consumer>
+                    )}
+                  </ScrollbarManager.Consumer>
+                  {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
+                </React.Fragment>
+              );
+            }}
+          </QuickTraceContext.Consumer>
+        </Row>
+        {this.renderEmbeddedChildrenState()}
+      </React.Fragment>
     );
   }
 }

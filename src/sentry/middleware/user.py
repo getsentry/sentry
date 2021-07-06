@@ -2,9 +2,10 @@ import inspect
 from datetime import timedelta
 
 from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
 
 
-class UserActiveMiddleware:
+class UserActiveMiddleware(MiddlewareMixin):
     disallowed_paths = (
         "sentry.web.frontend.generic.static_media",
         "sentry.web.frontend.organization_avatar",

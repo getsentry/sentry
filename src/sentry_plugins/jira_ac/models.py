@@ -1,14 +1,14 @@
 from time import time
 
-import jwt
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model
+from sentry.utils import jwt
 from sentry_plugins.jira_ac.utils import get_query_hash
 
 
 class JiraTenant(Model):
-    __core__ = False
+    __include_in_export__ = False
     organization = FlexibleForeignKey(
         "sentry.Organization", null=True, blank=True, related_name="jira_tenant_set"
     )

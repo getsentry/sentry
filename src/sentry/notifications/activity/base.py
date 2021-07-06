@@ -33,11 +33,11 @@ class ActivityNotification(BaseNotification, ABC):
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[User, int]]:
-        """ This is overridden by the activity subclasses. """
+        """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user)
 
     def get_base_context(self) -> MutableMapping[str, Any]:
-        """ The most basic context shared by every notification type. """
+        """The most basic context shared by every notification type."""
         activity = self.activity
 
         context = {
@@ -82,7 +82,7 @@ class ActivityNotification(BaseNotification, ABC):
     def get_user_context(
         self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        """ Get user-specific context. Do not call get_context() here. """
+        """Get user-specific context. Do not call get_context() here."""
         reason = extra_context.get("reason", 0)
         return {
             "reason": GroupSubscriptionReason.descriptions.get(

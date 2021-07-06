@@ -16,6 +16,7 @@ type Props = {
   docsLink?: string;
   docsOnClick?: () => void;
 };
+
 export default function FirstEventFooter({
   organization,
   project,

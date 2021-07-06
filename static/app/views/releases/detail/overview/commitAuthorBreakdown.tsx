@@ -28,6 +28,8 @@ type State = {
 } & AsyncComponent['state'];
 
 class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
+  shouldReload = true;
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectSlug, version} = this.props;
 
@@ -36,6 +38,12 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     )}/commits/`;
 
     return [['commits', commitsEndpoint]];
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.version !== this.props.version) {
+      this.remountComponent();
+    }
   }
 
   getDisplayPercent(authorCommitCount: number): string {

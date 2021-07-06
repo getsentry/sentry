@@ -30,31 +30,23 @@ export const SectionValue = styled('span')`
 `;
 
 export const InlineContainer = styled('div')`
-  display: flex;
+  display: grid;
   align-items: center;
-  margin-right: ${space(2)};
 
-  > h4 {
-    margin-right: ${space(1)};
-  }
-
-  &:last-child {
-    margin-right: 0;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: column;
+    grid-column-gap: ${space(1)};
   }
 `;
 
 export const ChartControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
   padding: ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    flex-direction: column;
-
-    > ${/* sc-selector */ InlineContainer} + ${/* sc-selector */ InlineContainer} {
-      margin-top: ${space(1)};
-    }
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
   }
 `;
 

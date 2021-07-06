@@ -34,6 +34,7 @@ export enum FieldValueKind {
   BREAKDOWN = 'breakdown',
   FIELD = 'field',
   FUNCTION = 'function',
+  EQUATION = 'equation',
 }
 
 export type FieldValueColumns =

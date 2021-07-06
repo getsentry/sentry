@@ -25,6 +25,10 @@ enum ErrorTypes {
   UNKNOWN = 'UNKNOWN',
 }
 
+type ChildFuncProps = {
+  project: Project;
+};
+
 type Props = {
   api: Client;
   /**
@@ -35,6 +39,7 @@ type Props = {
   projects: Project[];
   projectId: string;
   orgId: string;
+  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
 };
 
 type State = {
@@ -235,7 +240,11 @@ const ProjectContext = createReactClass<Props, State>({
     }
 
     if (!this.state.error) {
-      return this.props.children;
+      const {children} = this.props;
+
+      return typeof children === 'function'
+        ? children({project: this.state.project})
+        : children;
     }
 
     switch (this.state.errorType) {

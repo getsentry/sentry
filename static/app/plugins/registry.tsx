@@ -1,4 +1,4 @@
-/*eslint no-console:0*/
+/* eslint no-console:0 */
 import {DefaultIssuePlugin} from 'app/plugins/defaultIssuePlugin';
 import {DefaultPlugin} from 'app/plugins/defaultPlugin';
 import SessionStackPlugin from 'app/plugins/sessionstack';

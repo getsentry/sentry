@@ -37,7 +37,7 @@ class UserManager(BaseManager, DjangoUserManager):
         ).distinct()
 
     def get_from_group(self, group):
-        """ Get a queryset of all users in all teams in a given Group's project. """
+        """Get a queryset of all users in all teams in a given Group's project."""
         return self.filter(
             sentry_orgmember_set__teams__in=group.project.teams.all(),
             is_active=True,
@@ -64,7 +64,7 @@ class UserManager(BaseManager, DjangoUserManager):
 
 
 class User(BaseModel, AbstractBaseUser):
-    __core__ = True
+    __include_in_export__ = True
 
     id = BoundedAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)

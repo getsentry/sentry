@@ -3,6 +3,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -26,6 +27,7 @@ from sentry.models import (
     Repository,
     add_group_to_inbox,
 )
+from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
@@ -642,3 +644,251 @@ class SetRefsTest(SetRefsTestCase):
     def test_invalid_version(self):
         release = Release.objects.create(organization=self.org)
         assert not release.is_valid_version(None)
+
+    @staticmethod
+    def test_invalid_chars_in_version():
+        version = (
+            "\n> rfrontend@0.1.0 release:version\n> echo "
+            "'dev-19be1b7e-dirty'\n\ndev-19be1b7e-dirty"
+        )
+        assert not Release.is_valid_version(version)
+
+        version = "\t hello world"
+        assert not Release.is_valid_version(version)
+
+        version = "\f hello world again"
+        assert not Release.is_valid_version(version)
+
+        version = "/ helo"
+        assert not Release.is_valid_version(version)
+
+        version = "\r hello world again"
+        assert not Release.is_valid_version(version)
+
+        version = "\x0c dogs and rabbits"
+        assert not Release.is_valid_version(version)
+
+        version = "\\ hello world again"
+        assert not Release.is_valid_version(version)
+
+
+class SemverReleaseParseTestCase(TestCase):
+    def setUp(self):
+        self.org = self.create_organization()
+
+    def test_parse_release_into_semver_cols(self):
+        """
+        Test that ensures that release version is parsed into the semver cols on Release model
+        and that if build code can be parsed as a 64 bit integer then it is stored in build_number
+        """
+        version = "org.example.FooApp@1.0rc1+20200101100"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "20200101100"
+        assert release.build_number == 20200101100
+        assert release.package == "org.example.FooApp"
+
+    def test_parse_release_into_semver_cols_using_custom_get_or_create(self):
+        """
+        Test that ensures that release version is parsed into the semver cols on Release model
+        when using the custom `Release.get_or_create` method
+        """
+        version = "org.example.FooApp@1.0rc1+20200101100"
+        project = self.create_project(organization=self.org, name="foo")
+        release = Release.get_or_create(project=project, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "20200101100"
+        assert release.build_number == 20200101100
+        assert release.package == "org.example.FooApp"
+
+    def test_parse_release_into_semver_cols_with_non_int_build_code(self):
+        """
+        Test that ensures that if the build_code passed as part of the semver version cannot be
+        parsed as a 64 bit integer due to non int release then build number is left empty
+        """
+        version = "org.example.FooApp@1.0rc1+whatever"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "whatever"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
+    def test_parse_release_into_semver_cols_with_int_build_code_gt_64_int(self):
+        """
+        Test that ensures that if the build_code passed as part of the semver version cannot be
+        parsed as a 64 bit integer due to bigger than 64 bit integer then build number is left empty
+        """
+        version = "org.example.FooApp@1.0rc1+202001011005464576758979789794566455464746"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "202001011005464576758979789794566455464746"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
+    def test_parse_release_into_semver_cols_with_negative_build_code(self):
+        """
+        Test that ensures that if the build_code passed as part of the semver version can be
+        parsed as a 64 bit integer but has a negative sign then build number is left
+        empty
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
+    def test_parse_release_into_semver_cols_with_no_prerelease(self):
+        """
+        Test that ensures that prerelease is stores as an empty string if not included
+        in the version.
+        """
+        version = "org.example.FooApp@1.0+whatever"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == ""
+        assert release.build_code == "whatever"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
+    def test_parse_non_semver_should_not_fail(self):
+        """
+        Test that ensures nothing breaks when sending a non semver compatible release
+        """
+        version = "hello world"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.version == "hello world"
+
+    def test_parse_release_overflow_bigint(self):
+        """
+        Tests that we don't error if we have a version component that is larger than
+        a postgres bigint.
+        """
+        version = "org.example.FooApp@9223372036854775808.1.2.3-r1+12345"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.version == version
+        assert release.major is None
+        assert release.minor is None
+        assert release.patch is None
+        assert release.revision is None
+        assert release.prerelease is None
+        assert release.build_code is None
+        assert release.build_number is None
+        assert release.package is None
+
+
+class ReleaseFilterBySemverTest(TestCase):
+    def test_invalid_query(self):
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
+
+    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
+        organization_id = organization_id if organization_id else self.organization.id
+        project_ids = [p.id for p in projects] if projects else None
+        assert set(
+            Release.objects.filter_by_semver(
+                organization_id, parse_semver(version, operator), project_ids=project_ids
+            )
+        ) == set(expected_releases)
+
+    def test(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        self.run_test(">", "1.2.3", [release_2])
+        self.run_test(">=", "1.2.4", [release_2])
+        self.run_test("<", "1.2.4", [release])
+        self.run_test("<=", "1.2.3", [release])
+
+    def test_prerelease(self):
+        # Prerelease has weird sorting rules, where an empty string is higher priority
+        # than a non-empty string. Make sure this sorting works
+        release = self.create_release(version="test@1.2.3-alpha")
+        release_1 = self.create_release(version="test@1.2.3-beta")
+        release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test@1.2.4-alpha")
+        release_4 = self.create_release(version="test@1.2.4")
+        self.run_test(">=", "1.2.3", [release_2, release_3, release_4])
+        self.run_test(
+            ">=",
+            "1.2.3-beta",
+            [release_1, release_2, release_3, release_4],
+        )
+        self.run_test("<", "1.2.3", [release_1, release])
+
+    def test_granularity(self):
+        self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+        self.run_test(
+            ">",
+            "1",
+            [release_2, release_3, release_4, release_5],
+        )
+        self.run_test(">", "1.2", [release_3, release_4, release_5])
+        self.run_test(">", "1.2.3", [release_4, release_5])
+        self.run_test(">", "1.2.3.4", [release_5])
+        self.run_test(">", "2", [])
+
+    def test_wildcard(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+
+        self.run_test(
+            "=",
+            "1.X",
+            [release_1, release_2, release_3, release_4],
+        )
+        self.run_test("=", "1.2.*", [release_2, release_3, release_4])
+        self.run_test("=", "1.2.3.*", [release_3, release_4])
+        self.run_test("=", "1.2.3.4", [release_4])
+        self.run_test("=", "2.*", [release_5])
+
+    def test_package(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.3")
+        self.run_test(">=", "test@1.2.3", [release])
+        self.run_test(">=", "test2@1.2.3", [release_2])
+
+    def test_project(self):
+        project_2 = self.create_project()
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5", additional_projects=[project_2])
+        release_4 = self.create_release(version="test@1.2.6", project=project_2)
+        self.run_test(">=", "test@1.2.3", [release, release_2, release_3, release_4])
+        self.run_test(
+            ">=",
+            "test@1.2.3",
+            [release, release_2, release_3, release_4],
+            projects=[self.project, project_2],
+        )
+        self.run_test(">=", "test@1.2.3", [release, release_2, release_3], projects=[self.project])
+        self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])

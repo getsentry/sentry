@@ -14,6 +14,7 @@ import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {Series} from 'app/types/echarts';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
@@ -53,6 +54,17 @@ type Props = {
 };
 
 class ReleaseChartContainer extends Component<Props> {
+  componentDidMount() {
+    const {organization, yAxis, platform} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: `release_detail.display_chart`,
+      eventName: `Release Detail: Display Chart`,
+      organization_id: parseInt(organization.id, 10),
+      display: yAxis,
+      platform,
+    });
+  }
   /**
    * This returns an array with 3 colors, one for each of
    * 1. This Release

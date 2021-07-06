@@ -72,7 +72,7 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
 `;
 
 const Text = styled('div')`
-  margin-bottom: 5px;
+  margin-bottom: ${space(0.5)};
 
   &:last-child {
     margin-bottom: 0;

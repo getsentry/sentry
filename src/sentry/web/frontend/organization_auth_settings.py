@@ -59,7 +59,6 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     }
     if provider.can_use_scim(organization, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
-        # TODO: Make url dynamic when scim routes added
 
     form = AuthProviderSettingsForm(
         data=request.POST if request.POST.get("op") == "settings" else None, initial=initial

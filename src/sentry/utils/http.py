@@ -64,18 +64,19 @@ def is_same_domain(url1, url2):
 
 
 def get_origins(project=None):
-    if settings.SENTRY_ALLOW_ORIGIN == "*":
-        return frozenset(["*"])
-
-    if settings.SENTRY_ALLOW_ORIGIN:
-        result = settings.SENTRY_ALLOW_ORIGIN.split(" ")
+    if not project:
+        if settings.SENTRY_ALLOW_ORIGIN in ("*", None):
+            result = ["*"]
+        elif settings.SENTRY_ALLOW_ORIGIN:
+            result = settings.SENTRY_ALLOW_ORIGIN.split(" ")
+        else:
+            result = []
     else:
-        result = []
-
-    if project:
         optval = project.get_option("sentry:origins", ["*"])
         if optval:
-            result.extend(optval)
+            result = optval
+        else:
+            result = []
 
     # lowercase and strip the trailing slash from all origin values
     # filter out empty values

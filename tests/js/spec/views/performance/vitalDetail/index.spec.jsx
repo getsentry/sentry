@@ -154,6 +154,11 @@ describe('Performance > VitalDetail', function () {
         },
       }
     );
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/key-transactions-list/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -199,7 +204,7 @@ describe('Performance > VitalDetail', function () {
     wrapper.update();
 
     // Fill out the search box, and submit it.
-    const searchBar = wrapper.find('SearchBar input');
+    const searchBar = wrapper.find('SearchBar textarea');
     searchBar
       .simulate('change', {target: {value: 'user.email:uhoh*'}})
       .simulate('submit', {preventDefault() {}});

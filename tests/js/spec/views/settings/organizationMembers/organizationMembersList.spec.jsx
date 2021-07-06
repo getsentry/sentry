@@ -314,7 +314,7 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    wrapper.find('SearchWrapper form').simulate('submit');
+    wrapper.find('SearchWrapperWithFilter form').simulate('submit');
 
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });

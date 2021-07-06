@@ -237,6 +237,7 @@ describe('EventsV2 > Results', function () {
     search.simulate('change', {target: {value: 'geo:canada'}}).simulate('submit', {
       preventDefault() {},
     });
+    await tick();
 
     // cursor query string should be omitted from the query string
     expect(initialData.router.push).toHaveBeenCalledWith({
@@ -247,9 +248,10 @@ describe('EventsV2 > Results', function () {
         statsPeriod: '14d',
       },
     });
+    wrapper.unmount();
   });
 
-  it('renders a y-axis selector', function () {
+  it('renders a y-axis selector', async function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -278,10 +280,12 @@ describe('EventsV2 > Results', function () {
 
     // Click one of the options.
     selector.find('DropdownMenu MenuItem span').first().simulate('click');
+    await tick();
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart');
     expect(eventsRequest.props().yAxis).toEqual('count()');
+    wrapper.unmount();
   });
 
   it('renders a display selector', async function () {
@@ -321,14 +325,16 @@ describe('EventsV2 > Results', function () {
       .find('DropdownMenu MenuItem [data-test-id="option-default"]')
       .first()
       .simulate('click');
+    await tick();
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart').props();
     expect(eventsRequest.disableReleases).toEqual(false);
     expect(eventsRequest.disablePrevious).toEqual(true);
+    wrapper.unmount();
   });
 
-  it('excludes top5 options when plan does not include discover-query', function () {
+  it('excludes top5 options when plan does not include discover-query', async function () {
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
@@ -354,6 +360,7 @@ describe('EventsV2 > Results', function () {
 
     // Open the selector
     selector.find('StyledDropdownButton button').simulate('click');
+    await tick();
 
     // Make sure the top5 option isn't present
     const options = selector
@@ -362,6 +369,7 @@ describe('EventsV2 > Results', function () {
     expect(options).not.toContain('option-top5');
     expect(options).not.toContain('option-dailytop5');
     expect(options).toContain('option-default');
+    wrapper.unmount();
   });
 
   it('needs confirmation on long queries', async function () {
@@ -391,6 +399,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(true);
+    wrapper.unmount();
   });
 
   it('needs confirmation on long query with explicit projects', async function () {
@@ -426,6 +435,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(true);
+    wrapper.unmount();
   });
 
   it('does not need confirmation on short queries', async function () {
@@ -455,6 +465,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(false);
+    wrapper.unmount();
   });
 
   it('does not need confirmation with to few projects', async function () {
@@ -486,6 +497,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(false);
+    wrapper.unmount();
   });
 
   it('retrieves saved query', async function () {
@@ -525,6 +537,7 @@ describe('EventsV2 > Results', function () {
     expect(savedQuery.projects).toEqual([]);
     expect(savedQuery.range).toEqual('24h');
     expect(mockSaved).toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('creates event view from saved query', async function () {
@@ -558,6 +571,7 @@ describe('EventsV2 > Results', function () {
     expect(eventView.project).toEqual([]);
     expect(eventView.statsPeriod).toEqual('24h');
     expect(eventView.sorts).toEqual([{field: 'user.display', kind: 'desc'}]);
+    wrapper.unmount();
   });
 
   it('overrides saved query params with location query params', async function () {
@@ -598,6 +612,7 @@ describe('EventsV2 > Results', function () {
     expect(eventView.project).toEqual([2]);
     expect(eventView.statsPeriod).toEqual('7d');
     expect(eventView.environment).toEqual(['production']);
+    wrapper.unmount();
   });
 
   it('updates chart whenever yAxis parameter changes', async function () {
@@ -660,6 +675,7 @@ describe('EventsV2 > Results', function () {
         }),
       })
     );
+    wrapper.unmount();
   });
 
   it('updates chart whenever display parameter changes', async function () {
@@ -722,6 +738,7 @@ describe('EventsV2 > Results', function () {
         }),
       })
     );
+    wrapper.unmount();
   });
 
   it('updates chart whenever display and yAxis parameters change', async function () {
@@ -784,5 +801,6 @@ describe('EventsV2 > Results', function () {
         }),
       })
     );
+    wrapper.unmount();
   });
 });

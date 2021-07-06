@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import {GlobalSelection} from 'app/types';
@@ -20,25 +18,26 @@ type State = {
  * Higher order component that uses GlobalSelectionStore and provides the
  * active project
  */
-const withGlobalSelection = <P extends InjectedGlobalSelectionProps>(
+function withGlobalSelection<P extends InjectedGlobalSelectionProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<
+) {
+  class WithGlobalSelection extends React.Component<
     Omit<P, keyof InjectedGlobalSelectionProps> & Partial<InjectedGlobalSelectionProps>,
     State
-  >({
-    displayName: `withGlobalSelection(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(GlobalSelectionStore, 'onUpdate') as any],
+  > {
+    static displayName = `withGlobalSelection(${getDisplayName(WrappedComponent)})`;
 
-    getInitialState() {
-      return GlobalSelectionStore.get();
-    },
+    state = GlobalSelectionStore.get();
 
-    onUpdate(selection: State) {
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = GlobalSelectionStore.listen((selection: State) => {
       if (this.state !== selection) {
         this.setState(selection);
       }
-    },
+    }, undefined);
 
     render() {
       const {isReady, selection} = this.state;
@@ -50,7 +49,10 @@ const withGlobalSelection = <P extends InjectedGlobalSelectionProps>(
           {...(this.props as P)}
         />
       );
-    },
-  });
+    }
+  }
+
+  return WithGlobalSelection;
+}
 
 export default withGlobalSelection;

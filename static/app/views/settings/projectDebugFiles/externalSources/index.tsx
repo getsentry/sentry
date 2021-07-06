@@ -1,3 +1,6 @@
+import {InjectedRouter} from 'react-router/lib/Router';
+import {Location} from 'history';
+
 import {Client} from 'app/api';
 import {Item as ListItem} from 'app/components/dropdownAutoComplete/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -15,6 +18,8 @@ type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   symbolSources: ListItem[];
   builtinSymbolSources: string[];
+  router: InjectedRouter;
+  location: Location;
 };
 
 function ExternalSources({
@@ -24,6 +29,8 @@ function ExternalSources({
   builtinSymbolSources,
   builtinSymbolSourceOptions,
   projectSlug,
+  location,
+  router,
 }: Props) {
   return (
     <Panel>
@@ -31,6 +38,8 @@ function ExternalSources({
       <PanelBody>
         <SymbolSources
           api={api}
+          location={location}
+          router={router}
           organization={organization}
           symbolSources={symbolSources}
           projectSlug={projectSlug}

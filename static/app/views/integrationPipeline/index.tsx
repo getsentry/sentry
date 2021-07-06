@@ -1,5 +1,6 @@
-import 'focus-visible';
+async function integrationPipeline() {
+  const {init} = await import('./init');
+  init();
+}
 
-import {initializePipelineView} from 'app/bootstrap/initializePipelineView';
-
-initializePipelineView(window.__initialData);
+integrationPipeline();

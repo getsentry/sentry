@@ -51,6 +51,12 @@ repos:
       # We can't change this mock to unittest.mock until Python 3.8,
       # refer to the comment in this file.
       exclude: 'src/sentry/utils/compat/mock.py'
+    - id: lint-requirements
+      name: lint-requirements
+      entry: bin/lint-requirements
+      language: system
+      files: requirements-base.txt
+      pass_filenames: false
 
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class MailAdapter:
-    """ This class contains generic logic for notifying users via Email. """
+    """This class contains generic logic for notifying users via Email."""
 
     mail_option_key = "mail:subject_prefix"
 
@@ -144,7 +144,7 @@ class MailAdapter:
         return [user.id for user in users]
 
     def get_sendable_users(self, project):
-        """ @deprecated Do not change this function, it is being used in getsentry. """
+        """@deprecated Do not change this function, it is being used in getsentry."""
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
@@ -152,8 +152,13 @@ class MailAdapter:
         metrics.incr("mail_adapter.should_notify")
         # only notify if we have users to notify. We always want to notify if targeting
         # a member directly.
-        return target_type == ActionTargetType.MEMBER or self.get_sendable_user_objects(
-            group.project
+        return (
+            target_type
+            in [
+                ActionTargetType.MEMBER,
+                ActionTargetType.TEAM,
+            ]
+            or self.get_sendable_user_objects(group.project)
         )
 
     def add_unsubscribe_link(self, context, user_id, project, referrer):

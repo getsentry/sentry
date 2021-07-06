@@ -1,4 +1,4 @@
-import {Dataset} from 'app/views/settings/incidentRules/types';
+import {Dataset} from 'app/views/alerts/incidentRules/types';
 
 import {AlertType, WizardRuleTemplate} from './options';
 

@@ -41,7 +41,6 @@ class AcceptOrganizationInvite(Endpoint):
         data = {
             "orgSlug": organization.slug,
             "needsAuthentication": not helper.user_authenticated,
-            "needs2fa": helper.needs_2fa,
             "needsSso": auth_provider is not None,
             "requireSso": auth_provider is not None and not auth_provider.flags.allow_unlinked,
             # If they're already a member of the organization its likely
@@ -75,7 +74,9 @@ class AcceptOrganizationInvite(Endpoint):
             provider = auth_provider.get_provider()
             data["ssoProvider"] = provider.name
 
-        if helper.needs_2fa:
+        onboarding_steps = helper.get_onboarding_steps()
+        data.update(onboarding_steps)
+        if any(onboarding_steps.values()):
             add_invite_cookie(request, response, member_id, token)
 
         response.data = data

@@ -194,6 +194,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 
   &:hover {
     color: ${p => p.theme.textColor};

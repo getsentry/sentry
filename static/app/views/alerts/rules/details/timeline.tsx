@@ -13,7 +13,10 @@ import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {alertDetailsLink} from 'app/views/alerts/details';
 import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {
   ActivityType,
   Incident,
@@ -21,11 +24,10 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from 'app/views/alerts/types';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type IncidentProps = {
   api: Client;
-  orgId: string;
+  organization: Organization;
   incident: Incident;
   rule: IncidentRule;
 };
@@ -64,9 +66,8 @@ class TimelineIncident extends React.Component<IncidentProps> {
         (activity.value &&
           activity.value === `${IncidentStatus.OPENED}` &&
           activities.find(({type}) => type === IncidentActivityType.DETECTED));
-      const activityDuration = (nextActivity
-        ? moment(nextActivity.dateCreated)
-        : moment()
+      const activityDuration = (
+        nextActivity ? moment(nextActivity.dateCreated) : moment()
       ).diff(moment(activity.dateCreated), 'milliseconds');
 
       title = t('Alert status changed');
@@ -131,12 +132,16 @@ class TimelineIncident extends React.Component<IncidentProps> {
   }
 
   render() {
-    const {incident, orgId} = this.props;
+    const {incident, organization} = this.props;
+
     return (
       <IncidentSection key={incident.identifier}>
         <IncidentHeader>
           <Link
-            to={`/organizations/${orgId}/alerts/${incident.identifier}/?redirect=false`}
+            to={{
+              pathname: alertDetailsLink(organization, incident),
+              query: {alert: incident.identifier},
+            }}
           >
             {tct('Alert #[id]', {id: incident.identifier})}
           </Link>
@@ -165,7 +170,7 @@ class TimelineIncident extends React.Component<IncidentProps> {
 type Props = {
   api: Client;
   rule?: IncidentRule;
-  orgId: string;
+  organization: Organization;
   incidents?: Incident[];
 };
 
@@ -179,7 +184,7 @@ class Timeline extends React.Component<Props> {
   };
 
   render() {
-    const {api, incidents, orgId, rule} = this.props;
+    const {api, incidents, organization, rule} = this.props;
 
     return (
       <History>
@@ -191,7 +196,7 @@ class Timeline extends React.Component<Props> {
                   <TimelineIncident
                     key={incident.identifier}
                     api={api}
-                    orgId={orgId}
+                    organization={organization}
                     incident={incident}
                     rule={rule}
                   />

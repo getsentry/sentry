@@ -11,7 +11,7 @@ class Email(Model):
     UserEmail represents whether a given user account has access to that email.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     email = CIEmailField(_("email address"), unique=True, max_length=75)
     date_added = models.DateTimeField(default=timezone.now)

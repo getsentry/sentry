@@ -192,46 +192,33 @@ tags.sku_class:enterprise #enterprise`;
           apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
           apiMethod="PUT"
           saveOnBlur
-          initialData={{fallthrough: ownership.fallthrough}}
+          initialData={{
+            fallthrough: ownership.fallthrough,
+            autoAssignment: ownership.autoAssignment,
+          }}
           hideFooter
         >
           <JsonForm
             forms={[
               {
-                title: t('If ownership cannot be determined for an issue...'),
-                fields: [
-                  {
-                    name: 'fallthrough',
-                    type: 'boolean',
-                    label: t('All users with access to this project are issue owners'),
-                    help: t(
-                      'Issue owners will receive notifications for issues they are responsible for.'
-                    ),
-                    disabled,
-                  },
-                ],
-              },
-            ]}
-          />
-        </Form>
-
-        <Form
-          apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
-          apiMethod="PUT"
-          saveOnBlur
-          initialData={{autoAssignment: ownership.autoAssignment}}
-          hideFooter
-        >
-          <JsonForm
-            forms={[
-              {
-                title: t('If a new event matches any of the ownership rules...'),
+                title: t('Issue Owners'),
                 fields: [
                   {
                     name: 'autoAssignment',
                     type: 'boolean',
-                    label: t('The issue is assigned to the team or user'),
-                    help: t('Issue owners will be automatically assigned.'),
+                    label: t('Automatically assign issues'),
+                    help: t('Assign issues when a new event matches the rules above.'),
+                    disabled,
+                  },
+                  {
+                    name: 'fallthrough',
+                    type: 'boolean',
+                    label: t(
+                      'Send alert to project members if there’s no assigned owner'
+                    ),
+                    help: t(
+                      'Alerts will be sent to all users who have access to this project.'
+                    ),
                     disabled,
                   },
                 ],

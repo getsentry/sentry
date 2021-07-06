@@ -12,7 +12,7 @@ class TeamAvatarTest(TestCase):
         team = self.create_team()
         photo = File.objects.create(name="test.png", type="avatar.file")
         photo.putfile(BytesIO(b"test"))
-        avatar = TeamAvatar.objects.create(team=team, file=photo)
+        avatar = TeamAvatar.objects.create(team=team, file_id=photo.id)
         url = reverse("sentry-team-avatar-url", kwargs={"avatar_id": avatar.ident})
         response = self.client.get(url)
         assert response.status_code == 200

@@ -34,12 +34,12 @@ export function closeGuide(dismissed?: boolean) {
   GuideActions.closeGuide(dismissed);
 }
 
-export function dismissGuide(guide: string, step: number, orgId: string) {
+export function dismissGuide(guide: string, step: number, orgId: string | null) {
   recordDismiss(guide, step, orgId);
   closeGuide(true);
 }
 
-export function recordFinish(guide: string, orgId: string) {
+export function recordFinish(guide: string, orgId: string | null) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -63,7 +63,7 @@ export function recordFinish(guide: string, orgId: string) {
   trackAnalyticsEvent(data);
 }
 
-export function recordDismiss(guide: string, step: number, orgId: string) {
+export function recordDismiss(guide: string, step: number, orgId: string | null) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {

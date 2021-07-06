@@ -1,19 +1,12 @@
 from sentry import tagstore
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.plugins.bases import notify
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
 
 from .client import SlackApiClient
-
-LEVEL_TO_COLOR = {
-    "debug": "cfd3da",
-    "info": "2788ce",
-    "warning": "f18500",
-    "error": "f43f20",
-    "fatal": "d20f2a",
-}
 
 
 class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
@@ -131,7 +124,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         ]
 
     def color_for_event(self, event):
-        return "#" + LEVEL_TO_COLOR.get(event.get_tag("level"), "error")
+        return LEVEL_TO_COLOR.get(event.get_tag("level"), "error")
 
     def _get_tags(self, event):
         tag_list = event.tags

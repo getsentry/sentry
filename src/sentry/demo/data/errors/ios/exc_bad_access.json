@@ -1,0 +1,646 @@
+{
+  "event_id": "0d3fb5e2c6874b88b2f9c5236373ba8c",
+  "project": 265601,
+  "release": "5.4",
+  "dist": null,
+  "platform": "cocoa",
+  "message": "",
+  "datetime": "2021-05-24T13:15:04+00:00",
+  "tags": [
+    ["device", "iPad13,1"],
+    ["device.family", "iOS"],
+    ["environment", "debug"],
+    ["handled", "no"],
+    ["language", "swift"],
+    ["level", "fatal"],
+    ["mechanism", "mach"],
+    ["os", "iOS 14.5"],
+    ["os.name", "iOS"],
+    ["os.rooted", "no"],
+    ["release", "5.4"],
+    ["user", "id:1"],
+    ["transaction", "UIInputWindowController"]
+  ],
+  "_metrics": {"bytes.ingested.event": 13074, "bytes.stored.event": 26006},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1613049034.639,
+        "type": "debug",
+        "category": "started",
+        "level": "info",
+        "message": "Breadcrumb Tracking"
+      },
+      {
+        "timestamp": 1613049034.662,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {"screen": "iOS_Swift.ViewController"}
+      },
+      {
+        "timestamp": 1613049035.117,
+        "type": "navigation",
+        "category": "app.lifecycle",
+        "level": "info",
+        "data": {"state": "foreground"}
+      },
+      {
+        "timestamp": 1613049035.141,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {"screen": "UIInputWindowController"}
+      }
+    ]
+  },
+  "contexts": {
+    "app": {
+      "build_type": "debug",
+      "app_identifier": "io.sentry.sample.iOS-Swift",
+      "app_name": "iOS-Swift",
+      "app_version": "6.1.4",
+      "app_build": "1",
+      "app_id": "BC64A0E5-4908-3151-BFAF-190471C67C99",
+      "type": "app"
+    },
+    "device": {
+      "family": "iOS",
+      "model": "iPad13,1",
+      "model_id": "J307AP",
+      "memory_size": 4050960384,
+      "free_memory": 53477376,
+      "usable_memory": 3600678912,
+      "storage_size": 63983177728,
+      "boot_time": "2021-02-11T09:47:09Z",
+      "timezone": "CET",
+      "type": "device"
+    },
+    "os": {
+      "name": "iOS",
+      "version": "14.5",
+      "build": "18E5140k",
+      "kernel_version": "Darwin Kernel Version 20.4.0: Thu Jan 21 21:58:28 PST 2021; root:xnu-7195.100.296.112.2~2/RELEASE_ARM64_T8101",
+      "rooted": false,
+      "type": "os"
+    }
+  },
+  "culprit": "UIInputWindowController",
+  "environment": "debug",
+  "exception": {
+    "values": [
+      {
+        "type": "EXC_BAD_ACCESS",
+        "value": "crash > crash: > objectAtIndex: >\nAttempted to dereference null pointer.",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<redacted>",
+              "package": "libdyld.dylib",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19da6c000",
+              "instruction_addr": "0x19da6dcc4",
+              "symbol_addr": "0x19da6dcc0"
+            },
+            {
+              "function": "main",
+              "package": "iOS-Swift",
+              "in_app": true,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x104660000",
+              "instruction_addr": "0x10466b030",
+              "symbol_addr": "0x10466afdc"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a081b7dc",
+              "symbol_addr": "0x1a081b734"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a0815f6c",
+              "symbol_addr": "0x1a0815b3c"
+            },
+            {
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x1b58e0000",
+              "instruction_addr": "0x1b58e3734",
+              "symbol_addr": "0x1b58e3690"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb11d0",
+              "symbol_addr": "0x19ddb0f78"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb1a38",
+              "symbol_addr": "0x19ddb1704"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb7a58",
+              "symbol_addr": "0x19ddb794c"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb8754",
+              "symbol_addr": "0x19ddb8684"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb8858",
+              "symbol_addr": "0x19ddb883c"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a08bb08c",
+              "symbol_addr": "0x1a08bafec"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a08c3bc0",
+              "symbol_addr": "0x1a08c2270"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a08bf278",
+              "symbol_addr": "0x1a08beebc"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a0836070",
+              "symbol_addr": "0x1a0835dcc"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a085c890",
+              "symbol_addr": "0x1a085b948"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a085af6c",
+              "symbol_addr": "0x1a085ab98"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a01504d8",
+              "symbol_addr": "0x1a01502c0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a0151c5c",
+              "symbol_addr": "0x1a0151afc"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a015190c",
+              "symbol_addr": "0x1a015183c"
+            },
+            {
+              "function": "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2",
+              "package": "Sentry",
+              "in_app": true,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x1046a8000",
+              "instruction_addr": "0x1046e75d4",
+              "symbol_addr": "0x1046e719c"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a081ce4c",
+              "symbol_addr": "0x1a081cde8"
+            },
+            {
+              "function": "ViewController.crash",
+              "raw_function": "@objc ViewController.crash(Any)",
+              "symbol": "$s9iOS_Swift14ViewControllerC5crashyyypFTo",
+              "package": "iOS-Swift",
+              "in_app": true,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x104660000",
+              "instruction_addr": "0x1046699a4",
+              "symbol_addr": "0x104669958"
+            },
+            {
+              "function": "ViewController.crash",
+              "raw_function": "ViewController.crash(Any)",
+              "symbol": "$s9iOS_Swift14ViewControllerC5crashyyypF",
+              "package": "iOS-Swift",
+              "in_app": true,
+              "data": {"symbolicator_status": "unknown_image"},
+              "image_addr": "0x104660000",
+              "instruction_addr": "0x10466994c",
+              "symbol_addr": "0x104669918"
+            },
+            {
+              "function": "+[SentrySDK crash]",
+              "symbol": "+[SentrySDK crash]",
+              "package": "Sentry",
+              "in_app": false,
+              "data": {"orig_in_app": 1, "symbolicator_status": "unknown_image"},
+              "image_addr": "0x1046a8000",
+              "instruction_addr": "0x1046ee8cc",
+              "symbol_addr": "0x1046ee8b8"
+            }
+          ],
+          "registers": {
+            "cpsr": "0x40000000",
+            "fp": "0x16b79d0a0",
+            "lr": "0x10466994c",
+            "pc": "0x1046ee8cc",
+            "sp": "0x16b79d070",
+            "x0": "0x10473c6f0",
+            "x1": "0x10466d349",
+            "x10": "0x2802d2ff0",
+            "x11": "0x151451",
+            "x12": "0x7",
+            "x13": "0x0",
+            "x14": "0x18",
+            "x15": "0x1",
+            "x16": "0x10473c71a",
+            "x17": "0x1046ee8b8",
+            "x18": "0x0",
+            "x19": "0x2819d43c0",
+            "x2": "0x103",
+            "x20": "0x10700ab50",
+            "x21": "0x10466d3a0",
+            "x22": "0x10700ab50",
+            "x23": "0x10466d3a0",
+            "x24": "0x1fdc99a40",
+            "x25": "0x0",
+            "x26": "0x1ec105e9d",
+            "x27": "0x2819d43c0",
+            "x28": "0x1",
+            "x29": "0x16b79d0a0",
+            "x3": "0x1ad8c6338",
+            "x4": "0x62dc",
+            "x5": "0x2819d43c0",
+            "x6": "0x1fdc65bf0",
+            "x7": "0x403",
+            "x8": "0x0",
+            "x9": "0x103"
+          }
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "<redacted>",
+              "package": "libdyld.dylib",
+              "in_app": false,
+              "image_addr": "0x19da6c000",
+              "instruction_addr": "0x19da6dcc4",
+              "symbol_addr": "0x19da6dcc0"
+            },
+            {
+              "function": "main",
+              "package": "iOS-Swift",
+              "in_app": true,
+              "image_addr": "0x104660000",
+              "instruction_addr": "0x10466b030",
+              "symbol_addr": "0x10466afdc"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a081b7dc",
+              "symbol_addr": "0x1a081b734"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a0815f6c",
+              "symbol_addr": "0x1a0815b3c"
+            },
+            {
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices",
+              "in_app": false,
+              "image_addr": "0x1b58e0000",
+              "instruction_addr": "0x1b58e3734",
+              "symbol_addr": "0x1b58e3690"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb11d0",
+              "symbol_addr": "0x19ddb0f78"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb1a38",
+              "symbol_addr": "0x19ddb1704"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb7a58",
+              "symbol_addr": "0x19ddb794c"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb8754",
+              "symbol_addr": "0x19ddb8684"
+            },
+            {
+              "function": "<redacted>",
+              "package": "CoreFoundation",
+              "in_app": false,
+              "image_addr": "0x19dd15000",
+              "instruction_addr": "0x19ddb8858",
+              "symbol_addr": "0x19ddb883c"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a08bb08c",
+              "symbol_addr": "0x1a08bafec"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a08c3bc0",
+              "symbol_addr": "0x1a08c2270"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a08bf278",
+              "symbol_addr": "0x1a08beebc"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a0836070",
+              "symbol_addr": "0x1a0835dcc"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a085c890",
+              "symbol_addr": "0x1a085b948"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a085af6c",
+              "symbol_addr": "0x1a085ab98"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a01504d8",
+              "symbol_addr": "0x1a01502c0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a0151c5c",
+              "symbol_addr": "0x1a0151afc"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a015190c",
+              "symbol_addr": "0x1a015183c"
+            },
+            {
+              "function": "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2",
+              "package": "Sentry",
+              "in_app": true,
+              "image_addr": "0x1046a8000",
+              "instruction_addr": "0x1046e75d4",
+              "symbol_addr": "0x1046e719c"
+            },
+            {
+              "function": "<redacted>",
+              "package": "UIKitCore",
+              "in_app": false,
+              "image_addr": "0x19fc4f000",
+              "instruction_addr": "0x1a081ce4c",
+              "symbol_addr": "0x1a081cde8"
+            },
+            {
+              "function": "ViewController.crash",
+              "raw_function": "@objc ViewController.crash(Any)",
+              "symbol": "$s9iOS_Swift14ViewControllerC5crashyyypFTo",
+              "package": "iOS-Swift",
+              "in_app": true,
+              "image_addr": "0x104660000",
+              "instruction_addr": "0x1046699a4",
+              "symbol_addr": "0x104669958"
+            },
+            {
+              "function": "ViewController.crash",
+              "raw_function": "ViewController.crash(Any)",
+              "symbol": "$s9iOS_Swift14ViewControllerC5crashyyypF",
+              "package": "iOS-Swift",
+              "in_app": true,
+              "image_addr": "0x104660000",
+              "instruction_addr": "0x10466994c",
+              "symbol_addr": "0x104669918"
+            },
+            {
+              "function": "+[SentrySDK crash]",
+              "symbol": "+[SentrySDK crash]",
+              "package": "Sentry",
+              "in_app": false,
+              "data": {"orig_in_app": 1, "symbolicator_status": "unknown_image"},
+              "image_addr": "0x1046a8000",
+              "instruction_addr": "0x1046ee8cc",
+              "symbol_addr": "0x1046ee8b8"
+            }
+          ],
+          "registers": {
+            "cpsr": "0x40000000",
+            "fp": "0x16b79d0a0",
+            "lr": "0x10466994c",
+            "pc": "0x1046ee8cc",
+            "sp": "0x16b79d070",
+            "x0": "0x10473c6f0",
+            "x1": "0x10466d349",
+            "x10": "0x2802d2ff0",
+            "x11": "0x151451",
+            "x12": "0x7",
+            "x13": "0x0",
+            "x14": "0x18",
+            "x15": "0x1",
+            "x16": "0x10473c71a",
+            "x17": "0x1046ee8b8",
+            "x18": "0x0",
+            "x19": "0x2819d43c0",
+            "x2": "0x103",
+            "x20": "0x10700ab50",
+            "x21": "0x10466d3a0",
+            "x22": "0x10700ab50",
+            "x23": "0x10466d3a0",
+            "x24": "0x1fdc99a40",
+            "x25": "0x0",
+            "x26": "0x1ec105e9d",
+            "x27": "0x2819d43c0",
+            "x28": "0x1",
+            "x29": "0x16b79d0a0",
+            "x3": "0x1ad8c6338",
+            "x4": "0x62dc",
+            "x5": "0x2819d43c0",
+            "x6": "0x1fdc65bf0",
+            "x7": "0x403",
+            "x8": "0x0",
+            "x9": "0x103"
+          }
+        },
+        "thread_id": 0,
+        "mechanism": {
+          "type": "mach",
+          "handled": false,
+          "meta": {
+            "signal": {
+              "number": 10,
+              "code": 0,
+              "name": "SIGBUS",
+              "code_name": "BUS_NOOP"
+            },
+            "mach_exception": {
+              "exception": 1,
+              "code": 0,
+              "subcode": 8,
+              "name": "EXC_BAD_ACCESS"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "extra": {"currentViewController": "<iOS_Swift.ViewController: 0x10700ab50>"},
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDRxY05qemJypZWRgaGlroGxrqHRBABbKAcD",
+    "id": "legacy:2019-03-12"
+  },
+  "hashes": ["e0b6dff3ba05cfb15995dde63c382ddf"],
+  "key_id": "500142",
+  "level": "fatal",
+  "logger": "",
+  "metadata": {
+    "function": "ViewController.crash",
+    "type": "EXC_BAD_ACCESS",
+    "value": "crash > crash: > objectAtIndex: >\nAttempted to dereference null pointer."
+  },
+  "received": 1621862110.694288,
+  "sdk": {"name": "sentry.cocoa", "version": "6.1.4"},
+  "timestamp": 1621862104.0,
+  "title": "EXC_BAD_ACCESS: crash > crash: > objectAtIndex: >",
+  "type": "error",
+  "user": {
+    "id": "1",
+    "email": "ax4z@yahoo.com",
+    "ip_address": null,
+    "geo": {"country_code": "NL", "region": "Netherlands"}
+  },
+  "version": "7",
+  "location": null
+}

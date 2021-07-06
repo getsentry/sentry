@@ -290,6 +290,7 @@ class EventWidget extends AsyncView<Props, State> {
                     displayType={displayType}
                     fieldOptions={amendedFieldOptions}
                     fields={queries[0].fields}
+                    organization={organization}
                     onChange={fields => {
                       queries.forEach((query, queryIndex) => {
                         const clonedQuery = cloneDeep(query);

@@ -1,7 +1,4 @@
-minVersion: "0.14.0"
-github:
-  owner: getsentry
-  repo: sentry
+minVersion: "0.23.1"
 releaseBranchPrefix: releases
 changelog: CHANGES
 changelogPolicy: auto
@@ -10,9 +7,13 @@ statusProvider:
   config:
     contexts:
       - 'onpremise-builder (sentryio)'
+artifactProvider:
+  name: gcs
+  config:
+    bucket: sentryio-cloudbuild-opensource
+requireNames:
+  - /^sentry-.+-py3\d?-none-any.whl$/
 targets:
-  - name: github
-  - name: pypi
   - id: release
     name: docker
     source: us.gcr.io/sentryio/sentry
@@ -22,9 +23,5 @@ targets:
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
-artifactProvider:
-  name: gcs
-  config:
-    bucket: sentryio-cloudbuild-opensource
-requireNames:
-  - /^sentry-.+-py3\d?-none-any.whl$/
+  - name: pypi
+  - name: github

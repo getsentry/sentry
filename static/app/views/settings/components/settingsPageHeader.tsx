@@ -30,16 +30,8 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
   };
 
   render() {
-    const {
-      icon,
-      title,
-      subtitle,
-      action,
-      tabs,
-      noTitleStyles,
-      body,
-      ...props
-    } = this.props;
+    const {icon, title, subtitle, action, tabs, noTitleStyles, body, ...props} =
+      this.props;
 
     // If Header is narrow, use align-items to center <Action>.
     // Otherwise, use a fixed margin to prevent an odd alignment.

@@ -1,23 +1,20 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import Input from 'app/components/forms/input';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
-import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconArrow, IconCheckmark} from 'app/icons';
+import {IconArrow} from 'app/icons';
 import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -29,11 +26,10 @@ import AlertHeader from '../list/header';
 import {CombinedMetricIssueAlerts} from '../types';
 import {isIssueAlert} from '../utils';
 
-import Filter from './filter';
 import RuleListRow from './row';
+import TeamFilter, {getTeamParams} from './teamFilter';
 
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
-const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -55,9 +51,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       query.expand = ['latestIncident'];
     }
 
-    if (organization.features.includes('team-alerts-ownership')) {
-      query.team = this.getTeamQuery();
-    }
+    query.team = getTeamParams(query.team);
 
     if (organization.features.includes('alert-details-redesign') && !query.sort) {
       query.sort = ['incident_status', 'date_triggered'];
@@ -74,48 +68,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     ];
   }
 
-  getTeamQuery(): string[] {
-    const {
-      location: {query},
-    } = this.props;
-    if (query.team === undefined) {
-      return ALERT_LIST_QUERY_DEFAULT_TEAMS;
-    }
-
-    if (query.team === '') {
-      return [];
-    }
-
-    if (Array.isArray(query.team)) {
-      return query.team;
-    }
-
-    return [query.team];
-  }
-
-  tryRenderEmpty() {
-    const {ruleList} = this.state;
-    if (ruleList && ruleList.length > 0) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        <IconWrapper>
-          <IconCheckmark isCircled size="48" />
-        </IconWrapper>
-
-        <Title>{t('No alert rules exist for these projects.')}</Title>
-        <Description>
-          {tct('Learn more about [link:Alerts]', {
-            link: <ExternalLink href={DOCS_URL} />,
-          })}
-        </Description>
-      </Fragment>
-    );
-  }
-
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (_sectionId: string, activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
     const teams = [...activeFilters];
@@ -164,73 +117,15 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   renderFilterBar() {
     const {teams, location} = this.props;
-    const {teamFilterSearch} = this.state;
-    const selectedTeams = new Set(this.getTeamQuery());
-    const additionalOptions = [
-      {label: t('My Teams'), value: 'myteams'},
-      {label: t('Unassigned'), value: 'unassigned'},
-    ];
-    const optionValues = [
-      ...teams.map(({id}) => id),
-      ...additionalOptions.map(({value}) => value),
-    ];
-    const filteredTeams = teams.filter(({name}) =>
-      teamFilterSearch
-        ? name.toLowerCase().includes(teamFilterSearch.toLowerCase())
-        : true
-    );
+    const selectedTeams = new Set(getTeamParams(location.query.team));
+
     return (
       <FilterWrapper>
-        <Filter
-          header={
-            <StyledInput
-              autoFocus
-              placeholder={t('Filter by team name')}
-              onClick={event => {
-                event.stopPropagation();
-              }}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({teamFilterSearch: event.target.value});
-              }}
-              value={this.state.teamFilterSearch || ''}
-            />
-          }
-          headerLabel={t('Team')}
-          onFilterChange={this.handleChangeFilter}
-          filterList={optionValues}
-          selection={selectedTeams}
-        >
-          {({toggleFilter}) => (
-            <List>
-              {additionalOptions.map(({label, value}) => (
-                <ListItem
-                  key={value}
-                  isChecked={selectedTeams.has(value)}
-                  onClick={event => {
-                    event.stopPropagation();
-                    toggleFilter(value);
-                  }}
-                >
-                  <TeamName>{label}</TeamName>
-                  <CheckboxFancy isChecked={selectedTeams.has(value)} />
-                </ListItem>
-              ))}
-              {filteredTeams.map(({id, name}) => (
-                <ListItem
-                  key={id}
-                  isChecked={selectedTeams.has(id)}
-                  onClick={event => {
-                    event.stopPropagation();
-                    toggleFilter(id);
-                  }}
-                >
-                  <TeamName>{name}</TeamName>
-                  <CheckboxFancy isChecked={selectedTeams.has(id)} />
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </Filter>
+        <TeamFilter
+          teams={teams}
+          selectedTeams={selectedTeams}
+          handleChangeFilter={this.handleChangeFilter}
+        />
         <StyledSearchBar
           placeholder={t('Search by name')}
           query={location.query?.name}
@@ -261,7 +156,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       field: query.sort || 'date_added',
     };
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
-    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-details-redesign');
     const isAlertRuleSort =
       sort.field.includes('incident_status') || sort.field.includes('date_triggered');
@@ -270,10 +164,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
 
     const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
+
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
-          {hasAlertOwnership && this.renderFilterBar()}
+          {this.renderFilterBar()}
           <StyledPanelTable
             headers={[
               ...(hasAlertList
@@ -322,7 +217,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                     </StyledSortLink>,
                   ]),
               t('Project'),
-              ...(hasAlertOwnership ? [t('Team')] : []),
+              t('Team'),
               ...(hasAlertList ? [] : [t('Created By')]),
               // eslint-disable-next-line react/jsx-key
               <StyledSortLink
@@ -341,8 +236,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             ]}
             isLoading={loading}
             isEmpty={ruleList?.length === 0}
-            emptyMessage={this.tryRenderEmpty()}
-            showTeamCol={hasAlertOwnership}
+            emptyMessage={t('No alert rules found for the current query.')}
+            emptyAction={
+              <EmptyStateAction>
+                {tct('Learn more about [link:Alerts]', {
+                  link: <ExternalLink href={DOCS_URL} />,
+                })}
+              </EmptyStateAction>
+            }
             hasAlertList={hasAlertList}
           >
             <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
@@ -363,7 +264,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               }
             </Projects>
           </StyledPanelTable>
-
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
       </StyledLayoutBody>
@@ -433,11 +333,6 @@ const StyledSortLink = styled(Link)`
   }
 `;
 
-const TeamName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
-`;
-
 const FilterWrapper = styled('div')`
   display: flex;
   margin-bottom: ${space(1.5)};
@@ -448,81 +343,17 @@ const StyledSearchBar = styled(SearchBar)`
   margin-left: ${space(1.5)};
 `;
 
-const List = styled('ul')`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`;
-
-const StyledInput = styled(Input)`
-  border: none;
-  border-bottom: 1px solid ${p => p.theme.gray200};
-  border-radius: 0;
-`;
-
-const ListItem = styled('li')<{isChecked?: boolean}>`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  :hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-  ${CheckboxFancy} {
-    opacity: ${p => (p.isChecked ? 1 : 0.3)};
-  }
-
-  &:hover ${CheckboxFancy} {
-    opacity: 1;
-  }
-
-  &:hover span {
-    color: ${p => p.theme.blue300};
-    text-decoration: underline;
-  }
-`;
-
-const StyledPanelTable = styled(PanelTable)<{
-  showTeamCol: boolean;
-  hasAlertList: boolean;
-}>`
+const StyledPanelTable = styled(PanelTable)<{hasAlertList: boolean}>`
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     overflow: initial;
   }
 
-  ${PanelTableHeader} {
-    padding: ${space(2)};
-    line-height: normal;
-  }
-  font-size: ${p => p.theme.fontSizeMedium};
-  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} ${p =>
-      p.showTeamCol ? '1fr' : ''} auto;
-  margin-bottom: 0;
+  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} 1fr auto;
   white-space: nowrap;
-  ${p =>
-    p.emptyMessage &&
-    `svg:not([data-test-id='icon-check-mark']) {
-    display: none;`}
-  & > * {
-    padding: ${p => (p.hasAlertList ? `${space(2)} ${space(2)}` : space(2))};
-  }
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const IconWrapper = styled('span')`
-  color: ${p => p.theme.gray200};
-  display: block;
-`;
-
-const Title = styled('strong')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
-`;
-
-const Description = styled('span')`
+const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
-  display: block;
-  margin: 0;
 `;

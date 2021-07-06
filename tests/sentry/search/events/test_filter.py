@@ -1,13 +1,17 @@
 import datetime
 import re
 import unittest
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.models.release import SemverFilter
+from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_EMPTY_RELEASE
 from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
-from sentry.search.events.filter import get_filter
+from sentry.search.events.filter import _semver_filter_converter, get_filter, parse_semver
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import OPERATOR_TO_FUNCTION
@@ -203,11 +207,39 @@ class ParseBooleanSearchQueryTest(TestCase):
             ]
         ]
 
-    def test_grouping_without_boolean_terms(self):
+        result = get_filter("test (item1 OR item2)")
+        assert result.conditions == [
+            _om("test"),
+            [
+                _or(
+                    _m("item1"),
+                    _m("item2"),
+                ),
+                "=",
+                1,
+            ],
+        ]
+
+    def test_grouping_edge_cases(self):
+        result = get_filter("()")
+        assert result.conditions == [
+            _om("()"),
+        ]
+
+        result = get_filter("(test)")
+        assert result.conditions == [
+            _om("test"),
+        ]
+
+    def test_grouping_within_free_text(self):
         result = get_filter("undefined is not an object (evaluating 'function.name')")
         assert result.conditions == [
-            _om("undefined is not an object"),
-            _om("evaluating 'function.name'"),
+            _om("undefined is not an object (evaluating 'function.name')"),
+        ]
+        result = get_filter("combined (free text) AND (grouped)")
+        assert result.conditions == [
+            _om("combined (free text)"),
+            _om("grouped"),
         ]
 
     def test_malformed_groups(self):
@@ -579,19 +611,13 @@ class ParseBooleanSearchQueryTest(TestCase):
         ):
             get_filter("(OR a:b) AND c:d")
 
-    # TODO (evanh): The situation with the next two tests is not ideal, since we should
-    # be matching the entire query instead of splitting on the brackets. However it's
-    # very difficult to write a regex that can tell the difference between a ParenExpression
-    # and a arbitrary search with parens in it. Once we switch tokenizers we can have something
-    # that can correctly classify these expressions.
     def test_empty_parens_in_message_not_boolean_search(self):
         result = get_filter(
             "failure_rate():>0.003&& users:>10 event.type:transaction",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [
-            _om("failure_rate"),
-            _om(":>0.003&&"),
+            _om("failure_rate():>0.003&&"),
             [["ifNull", ["users", "''"]], "=", ">10"],
             ["event.type", "=", "transaction"],
         ]
@@ -602,8 +628,7 @@ class ParseBooleanSearchQueryTest(TestCase):
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [
-            _om("TypeError Anonymous function"),
-            _om("app/javascript/utils/transform-object-keys"),
+            _om("TypeError Anonymous function(app/javascript/utils/transform-object-keys)"),
         ]
 
     def test_or_does_not_match_organization(self):
@@ -1184,9 +1209,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
         result = get_filter("percentile    (transaction.duration, 0.75):>100")
         assert result.conditions == [
-            _om("percentile"),
-            _om("transaction.duration, 0.75"),
-            _om(":>100"),
+            _om("percentile    (transaction.duration, 0.75):>100"),
         ]
         assert result.having == []
 
@@ -1206,11 +1229,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_function_with_bad_arguments(self):
         result = get_filter("percentile(transaction.duration 0.75):>100")
         assert result.having == []
-        assert result.conditions == [
-            _om("percentile"),
-            _om("transaction.duration 0.75"),
-            _om(":>100"),
-        ]
+        assert result.conditions == [_om("percentile(transaction.duration 0.75):>100")]
 
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
@@ -1278,6 +1297,17 @@ class GetSnubaQueryArgsTest(TestCase):
 
         with self.assertRaises(InvalidSearchQuery):
             get_filter(f"transaction.duration:<{'9'*10}d")
+
+    def test_semver(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        _filter = get_filter(f"{SEMVER_ALIAS}:>=1.2.3", {"organization_id": self.organization.id})
+        assert _filter.conditions == [["release", "IN", [release.version, release_2.version]]]
+        assert _filter.filter_keys == {}
+
+        _filter = get_filter(f"{SEMVER_ALIAS}:>1.2.4-hi", {"organization_id": self.organization.id})
+        assert _filter.conditions == [["release", "IN", [release_2.version]]]
+        assert _filter.filter_keys == {}
 
 
 def with_type(type, argument):
@@ -1401,3 +1431,162 @@ class FunctionTest(unittest.TestCase):
         assert fn.is_accessible([]) is False
         assert fn.is_accessible(["other_fn"]) is False
         assert fn.is_accessible(["fn"]) is True
+
+
+class SemverFilterConverterTest(TestCase):
+    def test_invalid_params(self):
+        key = "semver"
+        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.3"))
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            _semver_filter_converter(filter, key, None)
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            _semver_filter_converter(filter, key, {"something": 1})
+
+    def test_invalid_query(self):
+        key = "semver"
+        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.hi"))
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
+
+    def run_test(
+        self, operator, version, expected_operator, expected_releases, organization_id=None
+    ):
+        organization_id = organization_id if organization_id else self.organization.id
+        key = "semver"
+        filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
+        assert _semver_filter_converter(filter, key, {"organization_id": organization_id}) == [
+            "release",
+            expected_operator,
+            expected_releases,
+        ]
+
+    def test_empty(self):
+        self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
+
+    def test(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        self.run_test(">", "1.2.3", "IN", [release_2.version])
+        self.run_test(">=", "1.2.4", "IN", [release_2.version])
+        self.run_test("<", "1.2.4", "IN", [release.version])
+        self.run_test("<=", "1.2.3", "IN", [release.version])
+        self.run_test("=", "1.2.4", "IN", [release_2.version])
+
+    def test_invert_query(self):
+        # Tests that flipping the query works and uses a NOT IN. Test all operators to
+        # make sure the inversion works correctly.
+        release = self.create_release(version="test@1.2.3")
+        self.create_release(version="test@1.2.4")
+        release_2 = self.create_release(version="test@1.2.5")
+
+        with patch("sentry.search.events.filter.SEMVER_MAX_SEARCH_RELEASES", 2):
+            self.run_test(">", "1.2.3", "NOT IN", [release.version])
+            self.run_test(">=", "1.2.4", "NOT IN", [release.version])
+            self.run_test("<", "1.2.5", "NOT IN", [release_2.version])
+            self.run_test("<=", "1.2.4", "NOT IN", [release_2.version])
+
+    def test_invert_fails(self):
+        # Tests that when we invert and still receive too many records that we return
+        # as many records we can using IN that are as close to the specified filter as
+        # possible.
+        self.create_release(version="test@1.2.1")
+        release_1 = self.create_release(version="test@1.2.2")
+        release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test@1.2.4")
+        self.create_release(version="test@1.2.5")
+
+        with patch("sentry.search.events.filter.SEMVER_MAX_SEARCH_RELEASES", 2):
+            self.run_test(">", "1.2.2", "IN", [release_2.version, release_3.version])
+            self.run_test(">=", "1.2.3", "IN", [release_2.version, release_3.version])
+            self.run_test("<", "1.2.4", "IN", [release_2.version, release_1.version])
+            self.run_test("<=", "1.2.3", "IN", [release_2.version, release_1.version])
+
+    def test_prerelease(self):
+        # Prerelease has weird sorting rules, where an empty string is higher priority
+        # than a non-empty string. Make sure this sorting works
+        release = self.create_release(version="test@1.2.3-alpha")
+        release_1 = self.create_release(version="test@1.2.3-beta")
+        release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test@1.2.4-alpha")
+        release_4 = self.create_release(version="test@1.2.4")
+        self.run_test(
+            ">=", "1.2.3", "IN", [release_2.version, release_3.version, release_4.version]
+        )
+        self.run_test(
+            ">=",
+            "1.2.3-beta",
+            "IN",
+            [release_1.version, release_2.version, release_3.version, release_4.version],
+        )
+        self.run_test("<", "1.2.3", "IN", [release_1.version, release.version])
+
+    def test_granularity(self):
+        self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+        self.run_test(
+            ">",
+            "1",
+            "IN",
+            [release_2.version, release_3.version, release_4.version, release_5.version],
+        )
+        self.run_test(">", "1.2", "IN", [release_3.version, release_4.version, release_5.version])
+        self.run_test(">", "1.2.3", "IN", [release_4.version, release_5.version])
+        self.run_test(">", "1.2.3.4", "IN", [release_5.version])
+        self.run_test(">", "2", "IN", [SEMVER_EMPTY_RELEASE])
+
+    def test_wildcard(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+
+        self.run_test(
+            "=",
+            "1.X",
+            "IN",
+            [release_1.version, release_2.version, release_3.version, release_4.version],
+        )
+        self.run_test("=", "1.2.*", "IN", [release_2.version, release_3.version, release_4.version])
+        self.run_test("=", "1.2.3.*", "IN", [release_3.version, release_4.version])
+        self.run_test("=", "1.2.3.4", "IN", [release_4.version])
+        self.run_test("=", "2.*", "IN", [release_5.version])
+
+    def test_multi_packagae(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test_2@1.2.3.0")
+        self.run_test("=", "test@1.*", "IN", [release_1.version, release_2.version])
+        self.run_test(">=", "test@1.0", "IN", [release_1.version, release_2.version])
+        self.run_test(">", "test_2@1.0", "IN", [release_3.version])
+
+
+class ParseSemverTest(unittest.TestCase):
+    def run_test(self, version: str, operator: str, expected: SemverFilter):
+        semver_filter = parse_semver(version, operator)
+        assert semver_filter == expected
+
+    def test_invalid(self):
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            parse_semver("1.hello", ">") is None
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            parse_semver("hello", ">") is None
+
+    def test_normal(self):
+        self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))
+        self.run_test("1.2", ">", SemverFilter("gt", [1, 2, 0, 0, 1, ""]))
+        self.run_test("1.2.3", ">", SemverFilter("gt", [1, 2, 3, 0, 1, ""]))
+        self.run_test("1.2.3.4", ">", SemverFilter("gt", [1, 2, 3, 4, 1, ""]))
+        self.run_test("1.2.3-hi", ">", SemverFilter("gt", [1, 2, 3, 0, 0, "hi"]))
+        self.run_test("1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"]))
+        self.run_test("sentry@1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"], "sentry"))
+
+    def test_wildcard(self):
+        self.run_test("1.*", "=", SemverFilter("exact", [1]))
+        self.run_test("1.2.*", "=", SemverFilter("exact", [1, 2]))
+        self.run_test("1.2.3.*", "=", SemverFilter("exact", [1, 2, 3]))
+        self.run_test("sentry@1.2.3.*", "=", SemverFilter("exact", [1, 2, 3], "sentry"))
+        self.run_test("1.X", "=", SemverFilter("exact", [1]))

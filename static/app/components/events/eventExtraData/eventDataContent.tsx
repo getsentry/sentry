@@ -4,8 +4,8 @@ import {defined} from 'app/utils';
 import getEventExtraDataKnownData from './getEventExtraDataKnownData';
 
 type Props = {
-  data?: {[key: string]: any};
   raw: boolean;
+  data?: Record<string, any>;
 };
 
 const EventDataContent = ({data, raw}: Props) => {

@@ -37,7 +37,7 @@ ProjectStatus = ObjectStatus
 
 
 class ProjectTeam(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project")
     team = FlexibleForeignKey("sentry.Team")
@@ -52,7 +52,7 @@ class ProjectTeam(Model):
 
 class ProjectManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all projects that a set of Users have access to. """
+        """Returns the QuerySet of all projects that a set of Users have access to."""
         from sentry.models import ProjectStatus
 
         return self.filter(
@@ -61,7 +61,7 @@ class ProjectManager(BaseManager):
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all organizations that a set of Teams have access to. """
+        """Returns the QuerySet of all organizations that a set of Teams have access to."""
         from sentry.models import ProjectStatus
 
         return self.filter(status=ProjectStatus.VISIBLE, teams__in=team_ids)
@@ -99,7 +99,7 @@ class Project(Model, PendingDeletionMixin):
     are the top level entry point for all data.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
@@ -200,21 +200,14 @@ class Project(Model, PendingDeletionMixin):
         return projectoptions.update_rev_for_option(self)
 
     @property
-    def callsign(self):
-        warnings.warn(
-            "Project.callsign is deprecated. Use Group.get_short_id() instead.", DeprecationWarning
-        )
-        return self.slug.upper()
-
-    @property
     def color(self):
         if self.forced_color is not None:
-            return "#%s" % self.forced_color
-        return get_hashed_color(self.callsign or self.slug)
+            return f"#{self.forced_color}"
+        return get_hashed_color(self.slug.upper())
 
     @property
     def member_set(self):
-        """ :returns a QuerySet of all Users that belong to this Project """
+        """:returns a QuerySet of all Users that belong to this Project"""
         from sentry.models import OrganizationMember
 
         return self.organization.member_set.filter(

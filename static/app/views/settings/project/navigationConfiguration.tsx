@@ -112,6 +112,12 @@ export default function getConfiguration({
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
         },
+        {
+          path: `${pathPrefix}/performance/`,
+          title: t('Performance'),
+          badge: () => 'beta',
+          show: () => !!organization?.features?.includes('project-transaction-threshold'),
+        },
       ],
     },
     {

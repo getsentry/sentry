@@ -4,7 +4,7 @@ import re
 
 import jsonschema
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
@@ -25,6 +25,7 @@ from sentry.models import (
     ReleaseFile,
     create_files_from_dif_zip,
 )
+from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -176,7 +177,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         q &= file_format_q
 
-        queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
+        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
 
         return self.paginate(
             request=request,
@@ -205,7 +206,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if request.GET.get("id") and (request.access.has_scope("project:write")):
             with transaction.atomic():
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project=project)
+                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
                     .select_related("file")
                     .first()
                 )
@@ -301,7 +302,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
-        except BaseException:
+        except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
         file_response = {}
@@ -331,7 +332,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
             dif = (
-                ProjectDebugFile.objects.filter(project=project, checksum=checksum)
+                ProjectDebugFile.objects.filter(project_id=project.id, checksum=checksum)
                 .select_related("file")
                 .order_by("-id")
                 .first()
@@ -428,14 +429,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            file_counts = (
-                Release.objects.filter(id__in=[r["id"] for r in results])
-                .annotate(count=Count("releasefile"))
-                .values("count", "id")
-            )
-            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            file_count_map = get_artifact_counts([r["id"] for r in results])
             return serialize(
-                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
+                [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
             )
 
         return self.paginate(

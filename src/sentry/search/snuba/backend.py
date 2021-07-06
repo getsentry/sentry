@@ -25,7 +25,7 @@ from sentry.models import (
     User,
 )
 from sentry.search.base import SearchBackend
-from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
@@ -65,13 +65,15 @@ def assigned_to_filter(actors, projects, field_filter="id"):
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
                     project_id__in=[p.id for p in projects],
-                    team_id__in=Team.objects.filter(
-                        id__in=OrganizationMemberTeam.objects.filter(
-                            organizationmember__in=OrganizationMember.objects.filter(
-                                user__in=users, organization_id=projects[0].organization_id
-                            ),
-                            is_active=True,
-                        ).values("team")
+                    team_id__in=list(
+                        Team.objects.filter(
+                            id__in=OrganizationMemberTeam.objects.filter(
+                                organizationmember__in=OrganizationMember.objects.filter(
+                                    user__in=users, organization_id=projects[0].organization_id
+                                ),
+                                is_active=True,
+                            ).values_list("team_id", flat=True)
+                        )
                     ),
                 ).values_list("group_id", flat=True)
             }
@@ -202,18 +204,20 @@ def assigned_or_suggested_filter(owners, projects, field_filter="id"):
 
     if User in types_to_owners:
         users = types_to_owners[User]
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember__in=OrganizationMember.objects.filter(
-                    user__in=users, organization_id=organization_id
-                ),
-                is_active=True,
-            ).values("team")
+        team_ids = list(
+            Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__in=OrganizationMember.objects.filter(
+                        user__in=users, organization_id=organization_id
+                    ),
+                    is_active=True,
+                ).values("team")
+            ).values_list("id", flat=True)
         )
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user__in=users) | Q(team__in=teams),
+                    Q(user__in=users) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
@@ -276,14 +280,12 @@ class ScalarCondition(Condition):
     instances
     """
 
-    OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
-
     def __init__(self, field, extra=None):
         self.field = field
         self.extra = extra
 
     def _get_operator(self, search_filter):
-        django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, "")
+        django_operator = OPERATOR_TO_DJANGO.get(search_filter.operator, "")
         if django_operator:
             django_operator = f"__{django_operator}"
         return django_operator

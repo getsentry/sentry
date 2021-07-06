@@ -26,5 +26,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL("""ALTER TABLE sentry_dashboardwidgetquery DROP COLUMN interval""")
+        migrations.RunSQL(
+            """ALTER TABLE sentry_dashboardwidgetquery DROP COLUMN interval""",
+            hints={"tables": ["sentry_dashboardwidgetquery"]},
+        )
     ]

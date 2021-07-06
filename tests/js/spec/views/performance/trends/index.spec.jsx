@@ -78,6 +78,7 @@ function initializeTrendsData(
 
 describe('Performance > Trends', function () {
   let trendsStatsMock;
+  let wrapper;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
@@ -169,6 +170,7 @@ describe('Performance > Trends', function () {
   });
 
   afterEach(function () {
+    wrapper.unmount();
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
@@ -177,7 +179,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -194,7 +196,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -208,7 +210,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -238,7 +240,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -267,7 +269,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -297,7 +299,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -327,7 +329,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -356,7 +358,7 @@ describe('Performance > Trends', function () {
   it('choosing a trend function changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -383,7 +385,7 @@ describe('Performance > Trends', function () {
   it('choosing a parameter changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -409,7 +411,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project(), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -474,7 +476,7 @@ describe('Performance > Trends', function () {
   it('Visiting trends with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData(undefined, {}, false);
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -500,7 +502,7 @@ describe('Performance > Trends', function () {
       false
     );
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );

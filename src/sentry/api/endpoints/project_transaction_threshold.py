@@ -5,12 +5,22 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
-from sentry.models.transaction_threshold import TRANSACTION_METRICS, ProjectTransactionThreshold
+from sentry.models.transaction_threshold import (
+    TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
+    TransactionMetric,
+)
+
+DEFAULT_THRESHOLD = {
+    "id": "",
+    "threshold": "300",
+    "metric": "duration",
+}
 
 
 class ProjectTransactionThresholdSerializer(serializers.Serializer):
-    threshold = serializers.IntegerField()
-    metric = serializers.CharField()
+    threshold = serializers.IntegerField(required=False)
+    metric = serializers.CharField(required=False)
 
     def validate_metric(self, metric):
         for key, value in TRANSACTION_METRICS.items():
@@ -44,7 +54,10 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                 organization=project.organization,
             )
         except ProjectTransactionThreshold.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                data={"projectId": str(project.id), **DEFAULT_THRESHOLD},
+                status=status.HTTP_200_OK,
+            )
 
         return Response(
             serialize(
@@ -66,15 +79,28 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
         data = serializer.validated_data
 
         with transaction.atomic():
-            project_threshold, created = ProjectTransactionThreshold.objects.update_or_create(
-                project=project,
-                organization=project.organization,
-                defaults={
-                    "threshold": data["threshold"],
-                    "metric": data["metric"],
-                    "edited_by": request.user,
-                },
-            )
+            try:
+                project_threshold = ProjectTransactionThreshold.objects.get(
+                    project=project,
+                    organization=project.organization,
+                )
+                project_threshold.threshold = data.get("threshold") or project_threshold.threshold
+                project_threshold.metric = data.get("metric") or project_threshold.metric
+                project_threshold.edited_by = request.user
+                project_threshold.save()
+
+                created = False
+
+            except ProjectTransactionThreshold.DoesNotExist:
+                project_threshold = ProjectTransactionThreshold.objects.create(
+                    project=project,
+                    organization=project.organization,
+                    threshold=data.get("threshold", 300),
+                    metric=data.get("metric", TransactionMetric.DURATION.value),
+                    edited_by=request.user,
+                )
+
+                created = True
 
         return Response(
             serialize(

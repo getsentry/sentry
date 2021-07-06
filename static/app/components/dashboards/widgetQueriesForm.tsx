@@ -151,6 +151,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           fieldOptions={fieldOptions}
           errors={this.getFirstQueryError('fields')}
           fields={queries[0].fields}
+          organization={organization}
           onChange={fields => {
             queries.forEach((widgetQuery, queryIndex) => {
               const newQuery = cloneDeep(widgetQuery);

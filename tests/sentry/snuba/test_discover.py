@@ -2,7 +2,14 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models import ProjectTransactionThreshold
+from sentry.models.transaction_threshold import (
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+)
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -18,8 +25,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
+        self.now = before_now()
+        self.one_min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
 
-        self.event_time = before_now(minutes=1)
+        self.event_time = self.one_min_ago
         self.event = self.store_event(
             data={
                 "message": "oh no",
@@ -35,20 +45,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_project_mapping(self):
         other_project = self.create_project(organization=self.organization)
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
             project_id=other_project.id,
         )
 
-        result = discover.query(
-            selected_columns=["project", "message"],
-            query="",
-            params={"project_id": [other_project.id]},
-            orderby="project",
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "message"],
+                query="",
+                params={
+                    "project_id": [other_project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project",
+            )
 
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["project"] == other_project.slug
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert data[0]["project"] == other_project.slug, query_fn
 
     def test_sorting_project_name(self):
         project_ids = []
@@ -56,19 +71,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
-        result = discover.query(
-            selected_columns=["project", "message"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="project",
-        )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "message"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32], query_fn
 
     def test_reverse_sorting_project_name(self):
         project_ids = []
@@ -76,19 +96,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
-        result = discover.query(
-            selected_columns=["project", "message"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="-project",
-        )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project"] for item in data] == ["z" * 32, "m" * 32, "a" * 32]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "message"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="-project",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project"] for item in data] == ["z" * 32, "m" * 32, "a" * 32], query_fn
 
     def test_using_project_and_project_name(self):
         project_ids = []
@@ -96,19 +121,28 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
-        result = discover.query(
-            selected_columns=["project.name", "message", "project"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="project.name",
-        )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project.name"] for item in data] == ["a" * 32, "m" * 32, "z" * 32]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project.name", "message", "project"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project.name",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project.name"] for item in data] == [
+                "a" * 32,
+                "m" * 32,
+                "z" * 32,
+            ], query_fn
 
     def test_missing_project(self):
         project_ids = []
@@ -116,22 +150,232 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
         # delete the last project so its missing
         other_project.delete()
 
-        result = discover.query(
-            selected_columns=["message", "project"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="project",
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["message", "project"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32], query_fn
+
+    def test_issue_short_id_mapping(self):
+        tests = [
+            ("issue", f"issue:{self.event.group.qualified_short_id}"),
+            ("issue", f"issue.id:{self.event.group_id}"),
+            ("issue.id", f"issue:{self.event.group.qualified_short_id}"),
+            ("issue.id", f"issue.id:{self.event.group_id}"),
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for column, query in tests:
+                result = query_fn(
+                    selected_columns=[column],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == 1, query_fn
+                # The query will translate `issue` into `issue.id`. Additional post processing
+                # is required to insert the `issue` column.
+                assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
+
+    def test_reverse_sorting_issue(self):
+        other_event = self.store_event(
+            data={
+                "message": "whoopsies",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
         )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32]
+
+        tests = [
+            # issue is not sortable
+            # "issue",
+            "issue.id",
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for column in tests:
+                for direction in ["", "-"]:
+                    result = query_fn(
+                        selected_columns=[column],
+                        query="",
+                        params={
+                            "organization_id": self.organization.id,
+                            "project_id": [self.project.id],
+                            "start": self.two_min_ago,
+                            "end": self.now,
+                        },
+                        orderby=f"{direction}{column}",
+                    )
+                    data = result["data"]
+                    assert len(data) == 2, query_fn
+                    expected = [self.event.group_id, other_event.group_id]
+                    if direction == "-":
+                        expected.reverse()
+                    assert [item["issue.id"] for item in data] == expected, query_fn
+
+    def test_timestamp_rounding_fields(self):
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = self.event_time.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
+
+    def test_timestamp_rounding_filters(self):
+        one_day_ago = before_now(days=1)
+        two_day_ago = before_now(days=2)
+        three_day_ago = before_now(days=3)
+
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(two_day_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": three_day_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
+
+    def test_user_display(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        # `user.display` should give `ip`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"ip_address": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert {item["user.display"] for item in data} == {
+                "bruce@example.com",
+                "brucew",
+                "127.0.0.1",
+            }
+
+    def test_user_display_filter(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="has:user.display user.display:bruce@example.com",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
@@ -253,6 +497,67 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["message"] == self.event.message
         assert "event_id" not in data[0]
 
+    def test_semver_condition(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_2 = self.store_event(
+            data={"release": release_2.version},
+            project_id=self.project.id,
+        ).event_id
+        release_3_e_1 = self.store_event(
+            data={"release": release_3.version},
+            project_id=self.project.id,
+        ).event_id
+        release_3_e_2 = self.store_event(
+            data={"release": release_3.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_ALIAS}:>1.2.3",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_ALIAS}:>=1.2.3",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_ALIAS}:<1.2.4",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+
     def test_latest_release_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],
@@ -288,11 +593,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "aaaaa", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "aaaaa", "timestamp": iso_format(self.one_min_ago)},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "bbbbb", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "bbbbb", "timestamp": iso_format(self.one_min_ago)},
             project_id=project3.id,
         )
 
@@ -311,19 +616,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=project2.id,
         )
 
@@ -901,6 +1206,61 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_apdex_new_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+                {"name": "apdex"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 300),
+                    "apdex": 0.15,
+                }
+            ],
+        }
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "apdex()",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=["transaction", "project_threshold_config"],
+            conditions=[],
+            aggregations=[
+                [
+                    "apdex(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),tupleElement(project_threshold_config,2))",
+                    None,
+                    "apdex",
+                ]
+            ],
+            selected_columns=[
+                "transaction",
+                [
+                    "tuple",
+                    ["'duration'", 300],
+                    "project_threshold_config",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_user_misery_alias(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "user_misery_300"}],
@@ -935,6 +1295,61 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_user_misery_new_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+                {"name": "user_misery"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 300),
+                    "user_misery": 0.15,
+                }
+            ],
+        }
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "user_misery()",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=["transaction", "project_threshold_config"],
+            conditions=[],
+            aggregations=[
+                [
+                    "ifNull(divide(plus(uniqIf(user,greater(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),multiply(tupleElement(project_threshold_config,2),4))),5.8875),plus(uniq(user),117.75)),0)",
+                    None,
+                    "user_misery",
+                ]
+            ],
+            selected_columns=[
+                "transaction",
+                [
+                    "tuple",
+                    ["'duration'", 300],
+                    "project_threshold_config",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_count_miserable_alias(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "count_miserable_user_300"}],
@@ -949,7 +1364,11 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["uniqIf", ["user", ["greater", ["duration", 1200.0]]], "count_miserable_user_300"]
+                [
+                    "uniqIf(user, greater(duration, 1200))",
+                    None,
+                    "count_miserable_user_300",
+                ],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
@@ -960,6 +1379,567 @@ class QueryTransformTest(TestCase):
             orderby=None,
             having=[],
             limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_count_miserable_allows_zero_threshold(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "count_miserable_user_0"}],
+            "data": [{"transaction": "api.do_things", "count_miserable_user_0": 15}],
+        }
+        discover.query(
+            selected_columns=["transaction", "count_miserable(user,0)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "uniqIf(user, greater(duration, 0))",
+                    None,
+                    "count_miserable_user_0",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_apdex_allows_zero_threshold(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "apdex_0"}],
+            "data": [{"transaction": "api.do_things", "apdex_0": 15}],
+        }
+        discover.query(
+            selected_columns=["transaction", "apdex(0)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "apdex(duration, 0)",
+                    None,
+                    "apdex_0",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_project_threshold_config_alias_no_configured_thresholds(
+        self, mock_query
+    ):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 300),
+                }
+            ],
+        }
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "tuple",
+                    ["'duration'", 300],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_threshold_config_selected_with_project_threshold_configured(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        ProjectTransactionThreshold.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                ],
+                                0,
+                            ],
+                        ],
+                        ["tuple", ["'duration'", 300]],
+                        [
+                            "arrayElement",
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_threshold_config_selected_with_txn_threshold_configured(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction/threshold",
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                                0,
+                            ],
+                        ],
+                        ["tuple", ["'duration'", 300]],
+                        [
+                            "arrayElement",
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_threshold_config_selected_with_project_and_txn_thresholds_configured(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction/threshold",
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        ProjectTransactionThreshold.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                                0,
+                            ],
+                        ],
+                        [
+                            "if",
+                            [
+                                [
+                                    "equals",
+                                    [
+                                        [
+                                            "indexOf",
+                                            [
+                                                ["array", [["toUInt64", [self.project.id]]]],
+                                                "project_id",
+                                            ],
+                                        ],
+                                        0,
+                                    ],
+                                ],
+                                ["tuple", ["'duration'", 300]],
+                                [
+                                    "arrayElement",
+                                    [
+                                        ["array", [["tuple", ["'duration'", 200]]]],
+                                        [
+                                            "indexOf",
+                                            [
+                                                ["array", [["toUInt64", [self.project.id]]]],
+                                                "project_id",
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        [
+                            "arrayElement",
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_count_miserable_new_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+                {"name": "count_miserable_user_project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                    "count_miserable_user": 15,
+                }
+            ],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "count_miserable(user)",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=["transaction", "project_threshold_config"],
+            conditions=[],
+            aggregations=[
+                [
+                    """
+                    uniqIf(user, greater(
+                        multiIf(
+                            equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                            if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                            duration
+                        ),
+                        multiply(tupleElement(project_threshold_config, 2), 4)
+                    ))
+                    """.replace(
+                        "\n", ""
+                    ).replace(
+                        " ", ""
+                    ),
+                    None,
+                    "count_miserable_user",
+                ]
+            ],
+            selected_columns=[
+                "transaction",
+                [
+                    "tuple",
+                    ["'duration'", 300],
+                    "project_threshold_config",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            limit=50,
+            dataset=Dataset.Discover,
             offset=None,
             referrer=None,
         )
@@ -2508,10 +3488,119 @@ class TimeseriesQueryTest(TimeseriesBase):
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
-        keys = []
+        keys = set()
         for row in result.data["data"]:
-            keys.extend(list(row.keys()))
-        assert "count" in keys
+            keys.update(list(row.keys()))
+        assert "count_unique_user" in keys
+        assert "time" in keys
+
+    def test_count_miserable(self):
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        project2 = self.create_project()
+        ProjectTransactionThreshold.objects.create(
+            project=project2,
+            organization=project2.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["count_miserable(user)"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id, project2.id],
+                "organization_id": self.organization.id,
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [1] == [
+            val["count_miserable_user"]
+            for val in result.data["data"]
+            if "count_miserable_user" in val
+        ]
+
+    def test_count_miserable_with_arithmetic(self):
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        project2 = self.create_project()
+        ProjectTransactionThreshold.objects.create(
+            project=project2,
+            organization=project2.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["equation|count_miserable(user) - 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id, project2.id],
+                "organization_id": self.organization.id,
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [1 - 100] == [
+            val["equation[0]"] for val in result.data["data"] if "equation[0]" in val
+        ]
+
+    def test_equation_function(self):
+        result = discover.timeseries_query(
+            selected_columns=["equation|count() / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [0.02] == [val["equation[0]"] for val in result.data["data"] if "equation[0]" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["equation|count_unique(user) / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        keys = set()
+        for row in result.data["data"]:
+            keys.update(list(row.keys()))
+        assert "equation[0]" in keys
         assert "time" in keys
 
     def test_zerofilling(self):
@@ -2603,7 +3692,7 @@ class TimeseriesQueryTest(TimeseriesBase):
 class TopEventsTimeseriesQueryTest(TimeseriesBase):
     @patch("sentry.snuba.discover.raw_query")
     def test_project_filter_adjusts_filter(self, mock_query):
-        """ While the function is called with 2 project_ids, we should limit it down to the 1 in top_events """
+        """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
         project2 = self.create_project(organization=self.organization)
         top_events = {
             "data": [
@@ -2943,3 +4032,239 @@ def test_zerofill():
 
     assert results[0]["time"] == 1546387200
     assert results[7]["time"] == 1546992000
+
+
+class ArithmeticTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+        self.params = {"project_id": [self.project.id]}
+        self.query = "event.type:transaction"
+
+    def test_simple(self):
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=["spans.http / transaction.duration"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["spans.http"] / result["transaction.duration"]
+
+    def test_multiple_equations(self):
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=[
+                "spans.http / transaction.duration",
+                "transaction.duration / spans.http",
+                "1500 + transaction.duration",
+            ],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["spans.http"] / result["transaction.duration"]
+        assert result["equation[1]"] == result["transaction.duration"] / result["spans.http"]
+        assert result["equation[2]"] == 1500 + result["transaction.duration"]
+
+    def test_invalid_field(self):
+        with self.assertRaises(ArithmeticValidationError):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.status",
+                ],
+                # while transaction_status is a uint8, there's no reason we should allow arith on it
+                equations=["spans.http / transaction.status"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_invalid_function(self):
+        with self.assertRaises(ArithmeticValidationError):
+            discover.query(
+                selected_columns=[
+                    "p50(transaction.duration)",
+                    "last_seen()",
+                ],
+                equations=["p50(transaction.duration) / last_seen()"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_unselected_field(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                ],
+                equations=["spans.http / transaction.duration"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_unselected_function(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "p50(transaction.duration)",
+                ],
+                equations=["p50(transaction.duration) / p100(transaction.duration)"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_orderby_equation(self):
+        for i in range(1, 3):
+            event_data = load_data("transaction")
+            # Half of duration so we don't get weird rounding differences when comparing the results
+            event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300 * i
+            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            self.store_event(data=event_data, project_id=self.project.id)
+        query_params = {
+            "selected_columns": [
+                "spans.http",
+                "transaction.duration",
+            ],
+            "equations": [
+                "spans.http / transaction.duration",
+                "transaction.duration / spans.http",
+                "1500 + transaction.duration",
+            ],
+            "orderby": ["equation[0]"],
+            "query": self.query,
+            "params": self.params,
+        }
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [0.1, 0.2, 0.5]
+
+        query_params["orderby"] = ["equation[1]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[1]"] for result in results["data"]] == [2, 5, 10]
+
+        query_params["orderby"] = ["-equation[0]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [0.5, 0.2, 0.1]
+
+    def test_orderby_nonexistent_equation(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.duration",
+                ],
+                orderby=["equation[1]"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_aggregate_equation(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+            ],
+            equations=["p50(transaction.duration) / 2"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["p50_transaction_duration"] / 2
+
+    def test_multiple_aggregate_equation(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+                "count()",
+            ],
+            equations=["p50(transaction.duration) + 2", "p50(transaction.duration) / count()"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["p50_transaction_duration"] + 2
+        assert result["equation[1]"] == result["p50_transaction_duration"] / result["count"]
+
+    def test_multiple_operators(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p100(transaction.duration)",
+                "count()",
+            ],
+            equations=[
+                "p50(transaction.duration) / p100(transaction.duration) * 100",
+                "100 + count() * 5 - 3 / 5",
+                "count() + count() / count() * count() - count()",
+            ],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert (
+            result["equation[0]"]
+            == result["p50_transaction_duration"] / result["p100_transaction_duration"] * 100
+        )
+        assert result["equation[1]"] == 100 + result["count"] * 5 - 3 / 5
+        assert (
+            result["equation[2]"]
+            == result["count"]
+            + result["count"] / result["count"] * result["count"]
+            - result["count"]
+        )
+
+    def test_nan_equation_results(self):
+        for i in range(1, 3):
+            event_data = load_data("transaction")
+            # Half of duration so we don't get weird rounding differences when comparing the results
+            event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 0
+            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            self.store_event(data=event_data, project_id=self.project.id)
+        query_params = {
+            "selected_columns": [
+                "spans.http",
+                "transaction.duration",
+            ],
+            "equations": [
+                "transaction.duration / spans.http",  # inf
+                "spans.http / spans.http",  # nan
+            ],
+            "orderby": ["equation[0]"],
+            "query": self.query,
+            "params": self.params,
+        }
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [2, None, None]
+
+        query_params["orderby"] = ["equation[1]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[1]"] for result in results["data"]] == [1, 0, 0]
+
+        query_params["orderby"] = ["-equation[0]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [None, None, 2]

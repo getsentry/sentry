@@ -246,17 +246,14 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   getGroupQuery(): Record<string, string | string[]> {
-    const {environments, organization} = this.props;
+    const {environments} = this.props;
 
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
+      expand: 'inbox',
+      collapse: 'release',
     };
-
-    if (organization?.features?.includes('inbox')) {
-      query.expand = 'inbox';
-    }
-    query.collapse = 'release';
 
     return query;
   }
@@ -370,12 +367,24 @@ class GroupDetails extends React.Component<Props, State> {
           locationWithProject.query.project === undefined &&
           locationWithProject.query._allp === undefined
         ) {
-          //We use _allp as a temporary measure to know they came from the issue list page with no project selected (all projects included in filter).
-          //If it is not defined, we add the locked project id to the URL (this is because if someone navigates directly to an issue on single-project priveleges, then goes back - they were getting assigned to the first project).
-          //If it is defined, we do not so that our back button will bring us to the issue list page with no project selected instead of the locked project.
+          // We use _allp as a temporary measure to know they came from the
+          // issue list page with no project selected (all projects included in
+          // filter).
+          //
+          // If it is not defined, we add the locked project id to the URL
+          // (this is because if someone navigates directly to an issue on
+          // single-project priveleges, then goes back - they were getting
+          // assigned to the first project).
+          //
+          // If it is defined, we do not so that our back button will bring us
+          // to the issue list page with no project selected instead of the
+          // locked project.
           locationWithProject.query.project = project.id;
         }
-        delete locationWithProject.query._allp; //We delete _allp from the URL to keep the hack a bit cleaner, but this is not an ideal solution and will ultimately be replaced with something smarter.
+        // We delete _allp from the URL to keep the hack a bit cleaner, but
+        // this is not an ideal solution and will ultimately be replaced with
+        // something smarter.
+        delete locationWithProject.query._allp;
         ReactRouter.browserHistory.replace(locationWithProject);
       }
 
@@ -525,7 +534,8 @@ class GroupDetails extends React.Component<Props, State> {
             fetchError ? (
               <LoadingError message={t('Error loading the specified project')} />
             ) : (
-              this.renderContent(projects[0], group!) // TODO(ts): Update renderContent function to deal with empty group
+              // TODO(ts): Update renderContent function to deal with empty group
+              this.renderContent(projects[0], group!)
             )
           ) : (
             <LoadingIndicator />

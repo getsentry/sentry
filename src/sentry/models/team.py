@@ -98,7 +98,7 @@ class Team(Model):
     A team represents a group of individuals which maintain ownership of projects.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = models.SlugField()
@@ -137,7 +137,7 @@ class Team(Model):
 
     @property
     def member_set(self):
-        """ :returns a QuerySet of all Users that belong to this Team """
+        """:returns a QuerySet of all Users that belong to this Team"""
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,

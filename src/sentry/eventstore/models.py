@@ -1,7 +1,9 @@
 import string
 from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import datetime
 from hashlib import md5
+from typing import Mapping, Optional, Sequence
 
 import pytz
 import sentry_sdk
@@ -27,6 +29,41 @@ EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
 
 def ref_func(x):
     return x.project_id or x.project.id
+
+
+TreeLabel = Sequence[str]
+
+
+@dataclass(frozen=True)
+class CalculatedHashes:
+    hashes: Sequence[str]
+    hierarchical_hashes: Sequence[str]
+    tree_labels: Sequence[TreeLabel]
+
+    def write_to_event(self, event_data):
+        event_data["hashes"] = self.hashes
+
+        if self.hierarchical_hashes:
+            event_data["hierarchical_hashes"] = self.hierarchical_hashes
+            event_data["hierarchical_tree_labels"] = self.tree_labels
+
+    @classmethod
+    def from_event(cls, event_data) -> Optional["CalculatedHashes"]:
+        hashes = event_data.get("hashes")
+        hierarchical_hashes = event_data.get("hierarchical_hashes") or []
+        tree_labels = event_data.get("hierarchical_tree_labels") or []
+        if hashes is not None:
+            return cls(
+                hashes=hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
+            )
+
+        return None
+
+    def tree_label_from_hash(self, hash: str) -> Optional[str]:
+        try:
+            return self.tree_labels[self.hierarchical_hashes.index(hash)]
+        except (IndexError, ValueError):
+            return None
 
 
 class Event:
@@ -130,11 +167,9 @@ class Event:
         # Nodestore implementation
         try:
             rv = sorted(
-                [
-                    (t, v)
-                    for t, v in get_path(self.data, "tags", filter=True) or ()
-                    if t is not None and v is not None
-                ]
+                (t, v)
+                for t, v in get_path(self.data, "tags", filter=True) or ()
+                if t is not None and v is not None
             )
             return rv
         except ValueError:
@@ -142,7 +177,7 @@ class Event:
             # vs ((tag, foo), (tag, bar))
             return []
 
-    def get_tag(self, key):
+    def get_tag(self, key: str) -> Optional[str]:
         for t, v in self.tags:
             if t == key:
                 return v
@@ -231,7 +266,7 @@ class Event:
         return None
 
     @property
-    def title(self):
+    def title(self) -> str:
         column = self.__get_column_name(Columns.TITLE)
         if column in self._snuba_data:
             return self._snuba_data[column]
@@ -309,7 +344,7 @@ class Event:
     def get_interface(self, name):
         return self.interfaces.get(name)
 
-    def get_event_metadata(self):
+    def get_event_metadata(self) -> Mapping[str, str]:
         """
         Return the metadata of this event.
 
@@ -326,7 +361,7 @@ class Event:
 
         return get_grouping_config_dict_for_event_data(self.data, self.project)
 
-    def get_hashes(self, force_config=None):
+    def get_hashes(self, force_config=None) -> CalculatedHashes:
         """
         Returns _all_ information that is necessary to group an event into
         issues. It returns two lists of hashes, `(flat_hashes,
@@ -360,20 +395,23 @@ class Event:
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a different config.
         if force_config is None:
-            hashes = self.data.get("hashes")
-            hierarchical_hashes = self.data.get("hierarchical_hashes") or []
-            if hashes is not None:
-                return hashes, hierarchical_hashes
+            rv = CalculatedHashes.from_event(self.data)
+            if rv is not None:
+                return rv
 
         # Create fresh hashes
         flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
-        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
-        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
+        flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
+        hierarchical_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
+            hierarchical_variants
+        )
 
-        return flat_hashes, hierarchical_hashes
+        return CalculatedHashes(
+            hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
+        )
 
     def get_sorted_grouping_variants(self, force_config=None):
-        """ Get grouping variants sorted into flat and hierarchical variants """
+        """Get grouping variants sorted into flat and hierarchical variants"""
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
@@ -381,8 +419,12 @@ class Event:
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(variants):
-        """ Create hashes from variants and filter out duplicates and None values """
+        """Create hashes from variants and filter out duplicates and None values"""
+
+        from sentry.grouping.variants import ComponentVariant
+
         filtered_hashes = []
+        tree_labels = []
         seen_hashes = set()
         for variant in variants:
             hash_ = variant.get_hash()
@@ -391,8 +433,23 @@ class Event:
 
             seen_hashes.add(hash_)
             filtered_hashes.append(hash_)
+            tree_labels.append(
+                variant.component.tree_label if isinstance(variant, ComponentVariant) else None
+            )
 
-        return filtered_hashes
+        return filtered_hashes, tree_labels
+
+    def normalize_stacktraces_for_grouping(self, grouping_config):
+        """Normalize stacktraces and clear memoized interfaces
+
+        See stand-alone function normalize_stacktraces_for_grouping
+        """
+        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+
+        normalize_stacktraces_for_grouping(self.data, grouping_config)
+
+        # We have modified event data, so any cached interfaces have to be reset:
+        self.__dict__.pop("interfaces", None)
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
@@ -405,7 +462,6 @@ class Event:
         in place.
         """
         from sentry.grouping.api import get_grouping_variants_for_event, load_grouping_config
-        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
         # Forcing configs has two separate modes.  One is where just the
         # config ID is given in which case it's merged with the stored or
@@ -429,7 +485,7 @@ class Event:
             with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
                 span.set_tag("project", self.project_id)
                 span.set_tag("event_id", self.event_id)
-                normalize_stacktraces_for_grouping(self.data, config)
+                self.normalize_stacktraces_for_grouping(config)
 
         with sentry_sdk.start_span(op="grouping.get_grouping_variants") as span:
             span.set_tag("project", self.project_id)
@@ -438,13 +494,13 @@ class Event:
             return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
-        flat_hashes, hierarchical_hashes = self.get_hashes()
+        hashes = self.get_hashes()
 
-        if hierarchical_hashes:
-            return hierarchical_hashes[0]
+        if hashes.hierarchical_hashes:
+            return hashes.hierarchical_hashes[0]
 
-        if flat_hashes:
-            return flat_hashes[0]
+        if hashes.hashes:
+            return hashes.hashes[0]
 
         return None
 

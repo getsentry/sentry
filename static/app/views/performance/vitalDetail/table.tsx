@@ -24,7 +24,7 @@ import VitalsDetailsTableQuery, {
   TableData,
   TableDataRow,
 } from 'app/utils/performance/vitals/vitalsDetailsTableQuery';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -118,7 +118,7 @@ class Table extends React.Component<Props, State> {
         query: {
           ...location.query,
           cursor: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -178,7 +178,7 @@ class Table extends React.Component<Props, State> {
       const summaryView = eventView.clone();
       const conditions = tokenizeSearch(summaryConditions);
       conditions.addTagValues('has', [`${vitalName}`]);
-      summaryView.query = stringifyQueryObject(conditions);
+      summaryView.query = conditions.formatString();
 
       const target = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
@@ -204,6 +204,10 @@ class Table extends React.Component<Props, State> {
     }
 
     if (field.startsWith('key_transaction')) {
+      return rendered;
+    }
+
+    if (field.startsWith('team_key_transaction')) {
       return rendered;
     }
 
@@ -272,24 +276,44 @@ class Table extends React.Component<Props, State> {
     const keyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
+    const teamKeyTransactionColumn = eventView
+      .getColumns()
+      .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
-      if (!keyTransactionColumn) {
-        return [];
+      if (keyTransactionColumn) {
+        if (isHeader) {
+          const star = (
+            <IconStar
+              key="keyTransaction"
+              color="yellow300"
+              isSolid
+              data-test-id="key-transaction-header"
+            />
+          );
+          return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
+        } else {
+          return [
+            this.renderBodyCell(tableData, keyTransactionColumn, dataRow, vitalName),
+          ];
+        }
+      } else if (teamKeyTransactionColumn) {
+        if (isHeader) {
+          const star = (
+            <IconStar
+              key="keyTransaction"
+              color="yellow300"
+              isSolid
+              data-test-id="key-transaction-header"
+            />
+          );
+          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
+        } else {
+          return [
+            this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow, vitalName),
+          ];
+        }
       }
-
-      if (isHeader) {
-        const star = (
-          <IconStar
-            key="keyTransaction"
-            color="yellow300"
-            isSolid
-            data-test-id="key-transaction-header"
-          />
-        );
-        return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
-      } else {
-        return [this.renderBodyCell(tableData, keyTransactionColumn, dataRow, vitalName)];
-      }
+      return [];
     };
   };
 
@@ -311,7 +335,7 @@ class Table extends React.Component<Props, State> {
   };
 
   getSortedEventView(vitalName: WebVital) {
-    const {eventView} = this.props;
+    const {eventView, organization} = this.props;
 
     const aggregateFieldPoor = getAggregateAlias(
       getVitalDetailTablePoorStatusFunction(vitalName)
@@ -328,7 +352,9 @@ class Table extends React.Component<Props, State> {
       ? []
       : [
           {
-            field: 'key_transaction',
+            field: organization.features.includes('team-key-transactions')
+              ? 'team_key_transaction'
+              : 'key_transaction',
             kind: 'desc',
           },
           {
@@ -354,7 +380,10 @@ class Table extends React.Component<Props, State> {
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
+      .filter(
+        (col: TableColumn<React.ReactText>) =>
+          col.name !== 'key_transaction' && col.name !== 'team_key_transaction'
+      )
       .slice(0, -1)
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

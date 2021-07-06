@@ -3,7 +3,7 @@ from copy import copy
 from datetime import datetime
 from uuid import uuid4
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
@@ -29,7 +29,11 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    Project,
+    ProjectTransactionThreshold,
+    UserEmail,
 )
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
 
@@ -37,6 +41,7 @@ ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
+ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -150,6 +155,7 @@ class OrganizationSerializer(serializers.Serializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+    requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -220,6 +226,13 @@ class OrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(ERR_SSO_ENABLED)
         return value
 
+    def validate_requireEmailVerification(self, value):
+        user = self.context["user"]
+        has_verified = UserEmail.get_primary_email(user).is_verified
+        if value and not has_verified:
+            raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
+        return value
+
     def validate_trustedRelays(self, value):
         from sentry import features
 
@@ -260,7 +273,7 @@ class OrganizationSerializer(serializers.Serializer):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
-                organization=self.context["organization"], file__isnull=False
+                organization=self.context["organization"], file_id__isnull=False
             ).exists()
             if not has_existing_file and not attrs.get("avatar"):
                 raise serializers.ValidationError(
@@ -320,6 +333,8 @@ class OrganizationSerializer(serializers.Serializer):
         return incoming
 
     def save(self):
+        from sentry import features
+
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -360,6 +375,11 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.early_adopter = self.initial_data["isEarlyAdopter"]
         if "require2FA" in self.initial_data:
             org.flags.require_2fa = self.initial_data["require2FA"]
+        if (
+            features.has("organizations:required-email-verification", org)
+            and "requireEmailVerification" in self.initial_data
+        ):
+            org.flags.require_email_verification = self.initial_data["requireEmailVerification"]
         if "name" in self.initial_data:
             org.name = self.initial_data["name"]
         if "slug" in self.initial_data:
@@ -399,8 +419,13 @@ class OrganizationSerializer(serializers.Serializer):
                 avatar=self.initial_data.get("avatar"),
                 filename=f"{org.slug}.png",
             )
-        if "require2FA" in self.initial_data and self.initial_data["require2FA"] is True:
+        if self.initial_data.get("require2FA") is True:
             org.handle_2fa_required(self.context["request"])
+        if (
+            features.has("organizations:required-email-verification", org)
+            and self.initial_data.get("requireEmailVerification") is True
+        ):
+            org.handle_email_verification_required(self.context["request"])
         return org, changed_data
 
 
@@ -458,6 +483,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
+        from sentry import features
+
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
@@ -493,6 +520,35 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=AuditLogEntryEvent.ORG_EDIT,
                     data=changed_data,
                 )
+
+                # Temporarily writing org-level apdex changes to ProjectTransactionThreshold
+                # for orgs who don't have the feature enabled so that when this
+                # feature is GA'ed it captures the orgs current apdex threshold.
+                if serializer.validated_data.get("apdexThreshold") is not None and not features.has(
+                    "organizations:project-transaction-threshold", organization
+                ):
+                    apdex_threshold = serializer.validated_data.get("apdexThreshold")
+
+                    with transaction.atomic():
+                        ProjectTransactionThreshold.objects.filter(
+                            organization_id=organization.id
+                        ).delete()
+
+                        project_ids = Project.objects.filter(
+                            organization_id=organization.id
+                        ).values_list("id", flat=True)
+
+                        ProjectTransactionThreshold.objects.bulk_create(
+                            [
+                                ProjectTransactionThreshold(
+                                    project_id=project_id,
+                                    organization_id=organization.id,
+                                    threshold=int(apdex_threshold),
+                                    metric=TransactionMetric.DURATION.value,
+                                )
+                                for project_id in project_ids
+                            ]
+                        )
 
             context = serialize(
                 organization,

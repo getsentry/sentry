@@ -84,5 +84,5 @@ class SystemToken:
 
 
 def is_system_auth(auth: Any) -> bool:
-    """ :returns True when Sentry itself is hitting the API. """
+    """:returns True when Sentry itself is hitting the API."""
     return isinstance(auth, SystemToken)

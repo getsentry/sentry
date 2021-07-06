@@ -1,232 +1,323 @@
-import * as React from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
+import compact from 'lodash/compact';
+import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {Client} from 'app/api';
-import AreaChart from 'app/components/charts/areaChart';
+import AsyncComponent from 'app/components/asyncComponent';
 import ChartZoom from 'app/components/charts/chartZoom';
-import {truncationFormatter} from 'app/components/charts/utils';
+import LineChart from 'app/components/charts/lineChart';
+import {
+  HeaderTitleLegend,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {
+  getDiffInMinutes,
+  ONE_WEEK,
+  truncationFormatter,
+} from 'app/components/charts/utils';
 import Count from 'app/components/count';
+import {
+  getParams,
+  parseStatsPeriod,
+  StatsPeriodType,
+} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {t, tct} from 'app/locale';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project, Release} from 'app/types';
-import {ReactEchartsRef} from 'app/types/echarts';
+import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
+import {percent} from 'app/utils';
+import {formatVersion} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
 import {DisplayOption} from 'app/views/releases/list/utils';
-import {ReleaseHealthRequestRenderProps} from 'app/views/releases/utils/releaseHealthRequest';
+import {
+  reduceTimeSeriesGroups,
+  sessionDisplayToField,
+} from 'app/views/releases/utils/releaseHealthRequest';
 
-type Props = WithRouterProps & {
+type Props = AsyncComponent['props'] & {
   api: Client;
   organization: Organization;
   selection: GlobalSelection;
-  releases: Release[];
-  project: Project;
-  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   activeDisplay: DisplayOption;
-  showPlaceholders: boolean;
+  location: Location;
+  router: ReactRouter.InjectedRouter;
 };
 
-type State = {
-  width: number;
-  height: number;
+type State = AsyncComponent['state'] & {
+  sessions: SessionApiResponse | null;
 };
 
-class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
-  state = {
-    width: -1,
-    height: -1,
-  };
+class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
+  shouldReload = true;
 
-  ref: null | ReactEchartsRef = null;
+  // TODO(release-adoption-chart): refactor duplication
+  getInterval() {
+    const {organization, location} = this.props;
 
-  /**
-   * Syncs component state with the chart's width/heights
-   */
-  updateDimensions = () => {
-    const chartRef = this.ref?.getEchartsInstance?.();
-    if (!chartRef) {
-      return;
+    const datetimeObj = {
+      start: location.query.start,
+      end: location.query.end,
+      period: location.query.statsPeriod,
+      utc: location.query.utc,
+    };
+
+    const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+    // use high fidelity intervals when available
+    // limit on backend is set to six hour
+    if (
+      organization.features.includes('minute-resolution-sessions') &&
+      diffInMinutes < 360
+    ) {
+      return '10m';
     }
 
-    const width = chartRef.getWidth();
-    const height = chartRef.getHeight();
-    if (width !== this.state.width || height !== this.state.height) {
-      this.setState({
-        width,
-        height,
-      });
+    if (diffInMinutes >= ONE_WEEK) {
+      return '1d';
+    } else {
+      return '1h';
     }
-  };
+  }
 
-  handleRef = (ref: ReactEchartsRef): void => {
-    if (ref && !this.ref) {
-      this.ref = ref;
-      this.updateDimensions();
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, location, activeDisplay} = this.props;
+
+    const hasSemverFeature = organization.features.includes('semver');
+
+    return [
+      [
+        'sessions',
+        `/organizations/${organization.slug}/sessions/`,
+        {
+          query: {
+            interval: this.getInterval(),
+            ...getParams(pick(location.query, Object.values(URL_PARAM))),
+            groupBy: ['release'],
+            field: [sessionDisplayToField(activeDisplay)],
+            query: location.query.query
+              ? hasSemverFeature
+                ? location.query.query
+                : `release:${location.query.query}`
+              : undefined,
+          },
+        },
+      ],
+    ];
+  }
+
+  getReleasesSeries() {
+    const {activeDisplay} = this.props;
+    const {sessions} = this.state;
+    const releases = sessions?.groups.map(group => group.by.release);
+
+    if (!releases) {
+      return null;
     }
 
-    if (!ref) {
-      this.ref = null;
-    }
+    const totalData = sessions?.groups?.reduce(
+      (acc, group) =>
+        reduceTimeSeriesGroups(acc, group, sessionDisplayToField(activeDisplay)),
+      [] as number[]
+    );
+
+    return releases.map(release => {
+      const releaseData = sessions?.groups.find(({by}) => by.release === release)?.series[
+        sessionDisplayToField(activeDisplay)
+      ];
+      return {
+        id: release as string,
+        seriesName: formatVersion(release as string),
+        data:
+          sessions?.intervals.map((interval, index) => ({
+            name: moment(interval).valueOf(),
+            value: percent(releaseData?.[index] ?? 0, totalData?.[index] ?? 0),
+          })) ?? [],
+      };
+    });
+  }
+
+  getTotal() {
+    const {activeDisplay} = this.props;
+    const {sessions} = this.state;
+
+    return (
+      sessions?.groups.reduce(
+        (acc, group) => acc + group.totals[sessionDisplayToField(activeDisplay)],
+        0
+      ) || 0
+    );
+  }
+
+  handleClick = (params: {seriesId: string}) => {
+    const {organization, router, selection, location} = this.props;
+
+    const project = selection.projects[0];
+
+    router.push({
+      pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+        params.seriesId
+      )}/`,
+      query: {project, environment: location.query.environment},
+    });
   };
 
   renderEmpty() {
     return (
       <Panel>
-        <ChartBody withPadding>
+        <PanelBody withPadding>
           <ChartHeader>
             <Placeholder height="24px" />
           </ChartHeader>
           <Placeholder height="200px" />
-        </ChartBody>
+        </PanelBody>
         <ChartFooter>
-          <Placeholder height="24px" />
+          <Placeholder height="34px" />
         </ChartFooter>
       </Panel>
     );
   }
 
   render() {
-    const {
-      showPlaceholders,
-      releases,
-      project,
-      activeDisplay,
-      router,
-      selection,
-      getHealthData,
-    } = this.props;
+    const {activeDisplay, router, selection} = this.props;
     const {start, end, period, utc} = selection.datetime;
+    const {loading, reloading, sessions} = this.state;
+    const releasesSeries = this.getReleasesSeries();
+    const totalCount = this.getTotal();
 
-    if (showPlaceholders) {
+    if ((loading && !reloading) || (reloading && totalCount === 0) || !sessions) {
       return this.renderEmpty();
     }
 
-    const get24hCountByProject = getHealthData.get24hCountByProject(
-      Number(project.id),
-      activeDisplay
-    );
+    if (!releasesSeries?.length) {
+      return null;
+    }
 
-    const releasesSeries = releases.map(release => {
-      const releaseVersion = release.version;
-
-      const timeSeries = getHealthData.getTimeSeries(
-        releaseVersion,
-        Number(project.id),
-        activeDisplay
-      );
-
-      const releaseData = timeSeries[0].data;
-      const totalData = timeSeries[1].data;
-
-      return {
-        data: releaseData.map((d, i) => ({
-          name: d.name,
-          value:
-            d.value > 0 && totalData[i].value > 0
-              ? (100 * d.value) / totalData[i].value
-              : 0,
-        })),
-        seriesName: releaseVersion,
-      };
-    });
+    const interval = this.getInterval();
+    const numDataPoints = releasesSeries[0].data.length;
 
     return (
       <Panel>
-        <ChartBody withPadding>
+        <PanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>
-              {activeDisplay === DisplayOption.USERS
-                ? t('Releases Adopted by Users')
-                : t('Releases Adopted by Sessions')}
-            </ChartTitle>
+            <ChartTitle>{t('Release Adoption')}</ChartTitle>
           </ChartHeader>
-          <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
-            {zoomRenderProps => (
-              <AreaChart
-                {...zoomRenderProps}
-                series={releasesSeries}
-                yAxis={{
-                  min: 0,
-                  max: 100,
-                  type: 'value',
-                  interval: 10,
-                  splitNumber: 10,
-                  data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
-                  axisLabel: {
-                    formatter: '{value}%',
-                  },
-                }}
-                tooltip={{
-                  formatter: seriesParams => {
-                    const series = Array.isArray(seriesParams)
-                      ? seriesParams
-                      : [seriesParams];
-                    const timestamp = series[0].data[0];
-                    const topSeries = series
-                      .sort((a, b) => b.data[1] - a.data[1])
-                      .slice(0, 3);
-                    const topSum = topSeries.reduce((acc, s) => acc + s.data[1], 0);
-                    if (series.length - topSeries.length > 0) {
-                      topSeries.push({
-                        seriesName: t('%s Others', series.length - topSeries.length),
-                        data: [timestamp, 100 - topSum],
-                        marker:
-                          '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;"></span>',
-                      });
-                    }
+          <TransitionChart loading={loading} reloading={reloading}>
+            <TransparentLoadingMask visible={reloading} />
+            <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
+              {zoomRenderProps => (
+                <LineChart
+                  {...zoomRenderProps}
+                  grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+                  series={releasesSeries}
+                  yAxis={{
+                    min: 0,
+                    max: 100,
+                    type: 'value',
+                    interval: 10,
+                    splitNumber: 10,
+                    data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+                    axisLabel: {
+                      formatter: '{value}%',
+                    },
+                  }}
+                  tooltip={{
+                    formatter: seriesParams => {
+                      const series = Array.isArray(seriesParams)
+                        ? seriesParams
+                        : [seriesParams];
+                      const timestamp = series[0].data[0];
+                      const [first, second, third, ...rest] = series
+                        .filter(s => s.data[1] > 0)
+                        .sort((a, b) => b.data[1] - a.data[1]);
 
-                    return [
-                      '<div class="tooltip-series">',
-                      topSeries
-                        .map(
-                          s =>
-                            `<div><span class="tooltip-label">${s.marker}<strong>${
-                              s.seriesName && truncationFormatter(s.seriesName, 12)
-                            }</strong></span>${s.data[1].toFixed(2)}%</div>`
-                        )
-                        .join(''),
-                      '</div>',
-                      `<div class="tooltip-date">${moment(timestamp).format(
-                        'MMM D, YYYY LT'
-                      )}</div>`,
-                      `<div class="tooltip-arrow"></div>`,
-                    ].join('');
-                  },
-                }}
-              />
-            )}
-          </ChartZoom>
-        </ChartBody>
-        {
-          <ChartFooter>
-            {tct('Total [display] [count]', {
-              display: activeDisplay === DisplayOption.USERS ? 'Users' : 'Sessions',
-              count: <Count value={get24hCountByProject ?? 0} />,
-            })}
-          </ChartFooter>
-        }
+                      const restSum = rest.reduce((acc, s) => acc + s.data[1], 0);
+
+                      const seriesToRender = compact([first, second, third]);
+
+                      if (rest.length) {
+                        seriesToRender.push({
+                          seriesName: tn('%s Other', '%s Others', rest.length),
+                          data: [timestamp, restSum],
+                          marker:
+                            '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;"></span>',
+                        });
+                      }
+
+                      if (!seriesToRender.length) {
+                        return '<div/>';
+                      }
+
+                      const periodObj = parseStatsPeriod(interval) || {
+                        periodLength: 'd',
+                        period: '1',
+                      };
+                      const intervalStart = moment(timestamp).format('MMM D LT');
+                      const intervalEnd = (
+                        series[0].dataIndex === numDataPoints - 1
+                          ? moment(sessions.end)
+                          : moment(timestamp).add(
+                              parseInt(periodObj.period, 10),
+                              periodObj.periodLength as StatsPeriodType
+                            )
+                      ).format('MMM D LT');
+
+                      return [
+                        '<div class="tooltip-series">',
+                        seriesToRender
+                          .map(
+                            s =>
+                              `<div><span class="tooltip-label">${s.marker}<strong>${
+                                s.seriesName && truncationFormatter(s.seriesName, 12)
+                              }</strong></span>${s.data[1].toFixed(2)}%</div>`
+                          )
+                          .join(''),
+                        '</div>',
+                        `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
+                        `<div class="tooltip-arrow"></div>`,
+                      ].join('');
+                    },
+                  }}
+                  onClick={this.handleClick}
+                />
+              )}
+            </ChartZoom>
+          </TransitionChart>
+        </PanelBody>
+        <ChartFooter>
+          <InlineContainer>
+            <SectionHeading>
+              {tct('Total [display]', {
+                display: activeDisplay === DisplayOption.USERS ? 'Users' : 'Sessions',
+              })}
+            </SectionHeading>
+            <SectionValue>
+              <Count value={totalCount || 0} />
+            </SectionValue>
+          </InlineContainer>
+        </ChartFooter>
       </Panel>
     );
   }
 }
 
-export default withApi(withRouter(ReleaseAdoptionChart));
+export default withApi(ReleaseAdoptionChart);
 
-const ChartHeader = styled('div')`
+const ChartHeader = styled(HeaderTitleLegend)`
   margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled('header')`
   display: flex;
   flex-direction: row;
-`;
-
-const ChartBody = styled(PanelBody)`
-  padding-bottom: 0;
 `;
 
 const ChartFooter = styled(PanelFooter)`

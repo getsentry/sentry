@@ -87,24 +87,24 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_no_integrations(self):
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            response = self.get_success_response(self.organization.slug)
 
-        assert resp.data == [build_action_response(self.email)]
+        assert response.data == [build_action_response(self.email)]
 
     def test_simple(self):
         integration = Integration.objects.create(external_id="1", provider="slack")
         integration.add_organization(self.organization)
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            response = self.get_success_response(self.organization.slug)
 
-        assert len(resp.data) == 2
-        assert build_action_response(self.email) in resp.data
+        assert len(response.data) == 2
+        assert build_action_response(self.email) in response.data
         assert (
             build_action_response(
                 self.slack, integration=integration, organization=self.organization
             )
-            in resp.data
+            in response.data
         )
 
     def test_duplicate_integrations(self):
@@ -116,57 +116,54 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         other_integration.add_organization(self.organization)
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            response = self.get_success_response(self.organization.slug)
 
-        assert len(resp.data) == 3
-        assert build_action_response(self.email) in resp.data
+        assert len(response.data) == 3
+        assert build_action_response(self.email) in response.data
         assert (
             build_action_response(
                 self.slack, integration=integration, organization=self.organization
             )
-            in resp.data
+            in response.data
         )
         assert (
             build_action_response(
                 self.slack, integration=other_integration, organization=self.organization
             )
-            in resp.data
+            in response.data
         )
 
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
-        resp = self.get_response(self.organization.slug)
-        assert resp.status_code == 404
+        self.get_error_response(self.organization.slug, status_code=404)
 
     def test_sentry_apps(self):
         sentry_app = self.install_new_sentry_app("foo")
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            response = self.get_success_response(self.organization.slug)
 
-        assert len(resp.data) == 2
-        assert build_action_response(self.email) in resp.data
-        assert build_action_response(self.sentry_app, sentry_app=sentry_app) in resp.data
+        assert len(response.data) == 2
+        assert build_action_response(self.email) in response.data
+        assert build_action_response(self.sentry_app, sentry_app=sentry_app) in response.data
 
-    def test_blocked_sentry_apps(self):
-        internal_sentry_app = self.install_new_sentry_app("internal")
-        # Should not show up in available actions.
-        self.install_new_sentry_app("published", published=True)
+    def test_published_sentry_apps(self):
+        # Should show up in available actions.
+        published_app = self.install_new_sentry_app("published", published=True)
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            response = self.get_success_response(self.organization.slug)
 
-        assert len(resp.data) == 2
-        assert build_action_response(self.email) in resp.data
-        assert build_action_response(self.sentry_app, sentry_app=internal_sentry_app) in resp.data
+        assert len(response.data) == 2
+        assert build_action_response(self.sentry_app, sentry_app=published_app) in response.data
 
     def test_no_ticket_actions(self):
         integration = Integration.objects.create(external_id="1", provider="jira")
         integration.add_organization(self.organization)
 
         with self.feature(["organizations:incidents", "organizations:integrations-ticket-rules"]):
-            resp = self.get_valid_response(self.organization.slug)
+            response = self.get_success_response(self.organization.slug)
 
         # There should be no ticket actions for Metric Alerts.
-        assert len(resp.data) == 1
-        assert build_action_response(self.email) in resp.data
+        assert len(response.data) == 1
+        assert build_action_response(self.email) in response.data

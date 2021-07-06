@@ -338,6 +338,7 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
         self,
         expected_projects,
         expected_envs=None,
+        expected_teams=None,
         expected_start=None,
         expected_end=None,
         env_names=None,
@@ -379,14 +380,14 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
         with self.assertRaises(NoProjects):
             self.run_test([])
         self.run_test(
-            [self.project_1, self.project_2],
+            expected_projects=[self.project_1, self.project_2],
             expected_start=timezone.now() - MAX_STATS_PERIOD,
             expected_end=timezone.now(),
             user=self.user,
             active_superuser=True,
         )
         self.run_test(
-            [self.project_1, self.project_2],
+            expected_projects=[self.project_1, self.project_2],
             expected_start=None,
             expected_end=None,
             user=self.user,

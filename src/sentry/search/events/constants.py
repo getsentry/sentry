@@ -4,6 +4,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
+PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
+TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
@@ -11,6 +13,9 @@ PROJECT_NAME_ALIAS = "project.name"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
+SEMVER_ALIAS = "sentry.semver"
+TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
+TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -43,6 +48,12 @@ ARRAY_FIELDS = {
     "stack.stack_level",
 }
 
+CONFIGURABLE_AGGREGATES = {
+    "apdex()": "apdex({threshold}) as apdex",
+    "user_misery()": "user_misery({threshold}) as user_misery",
+    "count_miserable(user)": "count_miserable(user,{threshold}) as count_miserable_user",
+}
+
 # Create the known set of fields from the issue properties
 # and the transactions and events dataset mapping definitions.
 SEARCH_MAP = {
@@ -52,6 +63,42 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
+    SEMVER_ALIAS: SEMVER_ALIAS,
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
+
+DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
+DEFAULT_PROJECT_THRESHOLD = 300
+
+# Allow list of fields that are compatible with the Snql Query Builder.
+# Once we reach a certain threshold of fields handled should turn this into a denylist
+# use public facing field/function names for this list
+SNQL_FIELD_ALLOWLIST = {
+    "environment",
+    "message",
+    "project",
+    "project.id",
+    "release",
+    USER_DISPLAY_ALIAS,
+    "user.email",
+    ISSUE_ALIAS,
+    ISSUE_ID_ALIAS,
+    TIMESTAMP_TO_HOUR_ALIAS,
+    TIMESTAMP_TO_DAY_ALIAS,
+}
+
+OPERATOR_NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    "<=": ">",
+    ">": "<=",
+    ">=": "<",
+    "IN": "NOT IN",
+}
+OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
+
+SEMVER_MAX_SEARCH_RELEASES = 1000
+SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"
+SEMVER_WILDCARDS = frozenset(["X", "*"])

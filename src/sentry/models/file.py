@@ -1,3 +1,4 @@
+import io
 import mmap
 import os
 import tempfile
@@ -104,7 +105,7 @@ def get_storage(config=None):
 
 
 class FileBlob(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -308,7 +309,7 @@ class FileBlob(Model):
 
 
 class File(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     name = models.TextField()
     type = models.CharField(max_length=64)
@@ -404,7 +405,6 @@ class File(Model):
 
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj, logger=logger)
-
             results.append(FileBlobIndex.objects.create(file=self, blob=blob, offset=offset))
             offset += blob.size
         self.size = offset
@@ -431,9 +431,10 @@ class File(Model):
             offset = 0
             for blob in file_blobs:
                 FileBlobIndex.objects.create(file=self, blob=blob, offset=offset)
-                for chunk in blob.getfile().chunks():
-                    new_checksum.update(chunk)
-                    tf.write(chunk)
+                with blob.getfile() as blobfile:
+                    for chunk in blobfile.chunks():
+                        new_checksum.update(chunk)
+                        tf.write(chunk)
                 offset += blob.size
 
             self.size = offset
@@ -463,7 +464,7 @@ class File(Model):
 
 
 class FileBlobIndex(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
     blob = FlexibleForeignKey("sentry.FileBlob", on_delete=models.PROTECT)
@@ -563,7 +564,7 @@ class ChunkedFileBlobIndexWrapper:
         self._curidx = None
         self.closed = True
 
-    def seek(self, pos):
+    def _seek(self, pos):
         if self.closed:
             raise ValueError("I/O operation on closed file")
 
@@ -585,6 +586,16 @@ class ChunkedFileBlobIndexWrapper:
         else:
             raise ValueError("Cannot seek to pos")
         self._curfile.seek(pos - self._curidx.offset)
+
+    def seek(self, pos, whence=io.SEEK_SET):
+        if whence == io.SEEK_SET:
+            return self._seek(pos)
+        if whence == io.SEEK_CUR:
+            return self._seek(self.tell() + pos)
+        if whence == io.SEEK_END:
+            return self._seek(self.size + pos)
+
+        raise ValueError(f"Invalid value for whence: {whence}")
 
     def tell(self):
         if self.closed:
@@ -627,7 +638,7 @@ class ChunkedFileBlobIndexWrapper:
 
 
 class FileBlobOwner(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     blob = FlexibleForeignKey("sentry.FileBlob")
     organization_id = BoundedBigIntegerField(db_index=True)

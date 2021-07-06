@@ -212,6 +212,20 @@ export function getFormFields(type: DebugFileSource) {
         commonFields.layoutCasing,
       ];
     default:
-      return null;
+      return undefined;
   }
+}
+
+export function getInitialData(sourceConfig?: Record<string, any>) {
+  if (!sourceConfig) {
+    return undefined;
+  }
+
+  if (sourceConfig.layout) {
+    const {layout, ...initialData} = sourceConfig;
+    const {casing, type} = layout;
+    return {...initialData, ['layout.casing']: casing, ['layout.type']: type};
+  }
+
+  return sourceConfig;
 }

@@ -93,6 +93,7 @@ const Context = ({
               {organization?.features.includes('integrations-stacktrace-link') &&
                 isActive &&
                 isExpanded &&
+                frame.inApp &&
                 frame.filename && (
                   <ErrorBoundary customComponent={null}>
                     <StacktraceLink

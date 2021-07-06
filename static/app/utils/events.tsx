@@ -1,15 +1,17 @@
-import {Group, GroupTombstone, Organization} from 'app/types';
+import {BaseGroup, EventMetadata, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {isNativePlatform} from 'app/utils/platform';
 
-function isTombstone(maybe: Group | Event | GroupTombstone): maybe is GroupTombstone {
+function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
   return !maybe.hasOwnProperty('type');
 }
 
 /**
  * Extract the display message from an event.
  */
-export function getMessage(event: Event | Group | GroupTombstone): string | undefined {
+export function getMessage(
+  event: Event | BaseGroup | GroupTombstone
+): string | undefined {
   if (isTombstone(event)) {
     return event.culprit || '';
   }
@@ -29,10 +31,29 @@ export function getMessage(event: Event | Group | GroupTombstone): string | unde
   }
 }
 
+function formatTreeLabel(treeLabel: string[]) {
+  return treeLabel.join(' | ');
+}
+
+function computeTitleWithTreeLabel(title: string | undefined, metadata: EventMetadata) {
+  const treeLabel = metadata.current_tree_label || metadata.finest_tree_label;
+  const formattedTreeLabel = treeLabel ? formatTreeLabel(treeLabel) : null;
+
+  if (!title) {
+    return formattedTreeLabel || metadata.function || '<unknown>';
+  }
+
+  if (formattedTreeLabel) {
+    title += ' | ' + formattedTreeLabel;
+  }
+
+  return title;
+}
+
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event | Group | GroupTombstone): string | null {
+export function getLocation(event: Event | BaseGroup | GroupTombstone): string | null {
   if (isTombstone(event)) {
     return null;
   }
@@ -47,7 +68,10 @@ type EventTitle = {
   subtitle: string;
 };
 
-export function getTitle(event: Event | Group, organization?: Organization): EventTitle {
+export function getTitle(
+  event: Event | BaseGroup,
+  organization?: Organization
+): EventTitle {
   const {metadata, type, culprit} = event;
   const result: EventTitle = {
     title: event.title,
@@ -56,11 +80,7 @@ export function getTitle(event: Event | Group, organization?: Organization): Eve
 
   if (type === 'error') {
     result.subtitle = culprit;
-    if (metadata.type) {
-      result.title = metadata.type;
-    } else {
-      result.title = metadata.function || '<unknown>';
-    }
+    result.title = computeTitleWithTreeLabel(metadata.type, metadata);
   } else if (type === 'csp') {
     result.title = metadata.directive || '';
     result.subtitle = metadata.uri || '';

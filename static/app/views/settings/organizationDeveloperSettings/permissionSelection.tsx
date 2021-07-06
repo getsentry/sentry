@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
-import PropTypes from 'prop-types';
 
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
 import {t} from 'app/locale';
 import {Permissions} from 'app/types/index';
+import FormContext from 'app/views/settings/components/forms/formContext';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 /**
@@ -89,13 +89,11 @@ type State = {
 };
 
 export default class PermissionSelection extends Component<Props, State> {
-  static contextTypes = {
-    form: PropTypes.object,
-  };
-
   state: State = {
     permissions: this.props.permissions,
   };
+
+  static contextType = FormContext;
 
   /**
    * Converts the "Permission" values held in `state` to a list of raw

@@ -18,7 +18,7 @@ const Exception = ({breadcrumb, searchTerm}: Props) => {
   const dataValue = data?.value;
 
   return (
-    <Summary kvData={omit(data, ['type', 'value'])} searchTerm={searchTerm}>
+    <Summary kvData={omit(data, ['type', 'value'])}>
       {data?.type && (
         <AnnotatedText
           value={

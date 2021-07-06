@@ -141,7 +141,7 @@ export function getPeriodAgo(
   period: moment.unitOfTime.DurationConstructor,
   unit: number
 ): moment.Moment {
-  return moment().local().subtract(period, unit);
+  return moment().local().subtract(unit, period);
 }
 
 // Get the start of the day (midnight) for a period ago

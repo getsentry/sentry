@@ -14,6 +14,7 @@ from sentry.api.validators import AllowedEmailField
 from sentry.app import locks
 from sentry.models import (
     AuditLogEntryEvent,
+    ExternalActor,
     InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -52,6 +53,10 @@ class MemberPermission(OrganizationPermission):
     }
 
 
+class MemberConflictValidationError(serializers.ValidationError):
+    pass
+
+
 class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
@@ -65,14 +70,14 @@ class OrganizationMemberSerializer(serializers.Serializer):
         )
 
         if queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
-            raise serializers.ValidationError("The user %s is already a member" % email)
+            raise MemberConflictValidationError("The user %s is already a member" % email)
 
         if not self.context.get("allow_existing_invite_request"):
             if queryset.filter(
                 Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
                 | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
             ).exists():
-                raise serializers.ValidationError(
+                raise MemberConflictValidationError(
                     "There is an existing invite request for %s" % email
                 )
         return email
@@ -148,6 +153,20 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         ).distinct()
                     else:
                         queryset = queryset.filter(user__authenticator__isnull=True)
+                elif key == "hasExternalUsers":
+                    hasExternalUsers = "true" in value
+                    if hasExternalUsers:
+                        queryset = queryset.filter(
+                            user__actor_id__in=ExternalActor.objects.filter(
+                                organization=organization
+                            ).values_list("actor_id")
+                        )
+                    else:
+                        queryset = queryset.exclude(
+                            user__actor_id__in=ExternalActor.objects.filter(
+                                organization=organization
+                            ).values_list("actor_id")
+                        )
 
                 elif key == "query":
                     value = " ".join(value)

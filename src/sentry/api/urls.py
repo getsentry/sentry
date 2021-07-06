@@ -1,10 +1,15 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.project_transaction_threshold_override import (
+    ProjectTransactionThresholdOverrideEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
     KeyTransactionEndpoint,
+    KeyTransactionListEndpoint,
+    LegacyKeyTransactionCountEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -45,6 +50,8 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
+from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -107,6 +114,8 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
+from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
+from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_beacon import InternalBeaconEndpoint
 from .endpoints.internal_environment import InternalEnvironmentEndpoint
@@ -414,6 +423,11 @@ GROUP_URLS = [
         GroupNotesDetailsEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/grouping/levels/$", GroupingLevelsEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/grouping/levels/(?P<id>[^\/]+)/new-issues/$",
+        GroupingLevelNewIssuesEndpoint.as_view(),
+    ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
@@ -788,6 +802,16 @@ urlpatterns = [
                     name="sentry-api-0-organization-key-transactions",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
+                    KeyTransactionListEndpoint.as_view(),
+                    name="sentry-api-0-organization-key-transactions-list",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/legacy-key-transactions-count/$",
+                    LegacyKeyTransactionCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-legacy-key-transactions-count",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
                     IsKeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-is-key-transactions",
@@ -796,6 +820,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/related-issues/$",
                     OrganizationEventsRelatedIssuesEndpoint.as_view(),
                     name="sentry-api-0-organization-related-issues",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/project-transaction-threshold-override/$",
+                    ProjectTransactionThresholdOverrideEndpoint.as_view(),
+                    name="sentry-api-0-organization-project-transaction-threshold-override",
                 ),
                 # Dashboards
                 url(
@@ -1205,7 +1234,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-release-files",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     OrganizationReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-file-details",
                 ),
@@ -1314,6 +1343,33 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
                     OrganizationRequestProjectCreation.as_view(),
                     name="sentry-api-0-organization-request-project-creation",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/scim/v2/",
+                    include(
+                        [
+                            url(
+                                r"^Users$",
+                                OrganizationSCIMMemberIndex.as_view(),
+                                name="sentry-api-0-organization-scim-member-index",
+                            ),
+                            url(
+                                r"^Users/(?P<member_id>\d+)$",
+                                OrganizationSCIMMemberDetails.as_view(),
+                                name="sentry-api-0-organization-scim-member-details",
+                            ),
+                            url(
+                                r"^Groups$",
+                                OrganizationSCIMTeamIndex.as_view(),
+                                name="sentry-api-0-organization-scim-team-index",
+                            ),
+                            url(
+                                r"^Groups/(?P<team_id>\d+)$",
+                                OrganizationSCIMTeamDetails.as_view(),
+                                name="sentry-api-0-organization-scim-team-details",
+                            ),
+                        ]
+                    ),
                 ),
             ]
         ),
@@ -1662,7 +1718,7 @@ urlpatterns = [
                     name="sentry-api-0-project-release-files",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     ProjectReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-release-file-details",
                 ),

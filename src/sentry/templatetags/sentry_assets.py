@@ -3,7 +3,6 @@ import re
 from django import template
 from django.conf import settings
 from django.template.base import token_kwargs
-from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.utils.assets import get_asset_url, get_manifest_url
@@ -37,33 +36,6 @@ def crossorigin():
         # They share the same domain prefix, so we don't need CORS
         return ""
     return ' crossorigin="anonymous"'
-
-
-@register.simple_tag(takes_context=True)
-def locale_js_include(context):
-    """
-    If the user has a non-English locale set, returns a <script> tag pointing
-    to the relevant locale JavaScript file
-    """
-    request = context["request"]
-
-    try:
-        lang_code = request.LANGUAGE_CODE
-    except AttributeError:
-        # it's possible that request at this point, LANGUAGE_CODE hasn't be bound
-        # to the Request object yet. This specifically happens when rendering our own
-        # 500 error page, resulting in yet another error trying to render our error.
-        return ""
-
-    if lang_code == "en" or lang_code not in settings.SUPPORTED_LANGUAGES:
-        return ""
-
-    nonce = ""
-    if hasattr(request, "csp_nonce"):
-        nonce = f' nonce="{request.csp_nonce}"'
-
-    href = get_manifest_url("sentry", "locale/" + lang_code + ".js")
-    return mark_safe(f'<script src="{href}"{crossorigin()}{nonce}></script>')
 
 
 @register.tag

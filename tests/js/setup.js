@@ -1,4 +1,4 @@
-/* global __dirname */
+import {configure} from '@testing-library/react';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
@@ -25,6 +25,13 @@ if (!SVGElement.prototype.getTotalLength) {
 }
 
 /**
+ * React Testing Library configuration to override the default test id attribute
+ *
+ * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ */
+configure({testIdAttribute: 'data-test-id'});
+
+/**
  * Enzyme configuration
  *
  * TODO(epurkhiser): We're using @wojtekmaj's react-17 enzyme adapter, until
@@ -45,8 +52,7 @@ MockDate.set(constantDate);
  * Load all files in `tests/js/fixtures/*` as a module.
  * These will then be added to the `TestStubs` global below
  */
-const fixturesPath = `${__dirname}/sentry-test/fixtures`;
-const fixtures = loadFixtures(fixturesPath);
+const fixtures = loadFixtures('js-stubs', {flatten: true});
 
 /**
  * Global testing configuration
@@ -61,7 +67,6 @@ ConfigStore.loadInitialData({
  */
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
-jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
@@ -131,7 +136,12 @@ jest.mock('@sentry/react', () => {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
-    startTransaction: () => ({finish: jest.fn(), setTag: jest.fn()}),
+    startTransaction: () => ({
+      finish: jest.fn(),
+      setTag: jest.fn(),
+      setData: jest.fn(),
+      setStatus: jest.fn(),
+    }),
   };
 });
 
@@ -220,3 +230,11 @@ window.TestStubs = {
   AllAuthenticators: () => Object.values(fixtures.Authenticators()).map(x => x()),
   ...fixtures,
 };
+
+// We now need to re-define `window.location`, otherwise we can't spyOn certain methods
+// as `window.location` is read-only
+Object.defineProperty(window, 'location', {
+  value: {...window.location, assign: jest.fn(), reload: jest.fn()},
+  configurable: true,
+  writable: true,
+});

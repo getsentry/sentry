@@ -46,7 +46,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         else:
             projects = self.get_projects(request, organization, project_ids=req_proj_ids)
             if not projects:
-                raise NoProjects
+                raise NoProjects("No projects available")
             return [p.id for p in projects]
 
     def _is_org_total_query(self, request, project_ids):

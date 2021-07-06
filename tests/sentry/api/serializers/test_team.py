@@ -1,5 +1,5 @@
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.models import InviteStatus
 from sentry.testutils import TestCase
 
@@ -185,4 +185,39 @@ class TeamWithProjectsSerializerTest(TestCase):
             "memberCount": 0,
             "dateCreated": team.date_added,
             "externalTeams": [],
+        }
+
+
+class TeamSCIMSerializerTest(TestCase):
+    def test_simple_with_members(self):
+        user = self.create_user(username="foo")
+        user2 = self.create_user(username="bar")
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization, members=[user, user2])
+        self.create_team(organization=organization, members=[user, user2])
+        # create a 2nd team to confirm we aren't duping data
+
+        result = serialize(team, user, TeamSCIMSerializer(expand=["members"]))
+        assert result == {
+            "displayName": team.slug,
+            "id": str(team.id),
+            "members": [
+                {"display": user.email, "value": str(team.member_set[0].id)},
+                {"display": user2.email, "value": str(team.member_set[1].id)},
+            ],
+            "meta": {"resourceType": "Group"},
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+        }
+
+    def test_excluded_members(self):
+        user = self.create_user(username="foo")
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization, members=[user])
+        result = serialize(team, user, TeamSCIMSerializer())
+        assert result == {
+            "displayName": team.slug,
+            "id": str(team.id),
+            "members": None,
+            "meta": {"resourceType": "Group"},
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
         }

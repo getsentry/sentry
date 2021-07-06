@@ -8,6 +8,6 @@ export function logException(ex: Error, context?: any): void {
 
     Sentry.captureException(ex);
   });
-  /*eslint no-console:0*/
+  /* eslint no-console:0 */
   window.console && console.error && console.error(ex);
 }

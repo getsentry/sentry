@@ -134,7 +134,7 @@ def record_first_event(project, event, **kwargs):
     try:
         user = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
-        logging.getLogger("sentry").warn(
+        logging.getLogger("sentry").warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
         )
@@ -253,7 +253,7 @@ def record_release_received(project, event, **kwargs):
         try:
             user = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
-            logging.getLogger("sentry").warn(
+            logging.getLogger("sentry").warning(
                 "Cannot record release recieved for organization (%s) due to missing owners",
                 project.organization_id,
             )
@@ -290,7 +290,7 @@ def record_user_context_received(project, event, **kwargs):
             try:
                 user = Organization.objects.get(id=project.organization_id).get_default_owner()
             except IndexError:
-                logging.getLogger("sentry").warn(
+                logging.getLogger("sentry").warning(
                     "Cannot record user context received for organization (%s) due to missing owners",
                     project.organization_id,
                 )
@@ -324,7 +324,7 @@ def record_sourcemaps_received(project, event, **kwargs):
         try:
             user = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
-            logging.getLogger("sentry").warn(
+            logging.getLogger("sentry").warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
                 project.organization_id,
             )
@@ -411,7 +411,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         try:
             default_user_id = project.organization.get_default_owner().id
         except IndexError:
-            logging.getLogger("sentry").warn(
+            logging.getLogger("sentry").warning(
                 "Cannot record issue tracker used for organization (%s) due to missing owners",
                 project.organization_id,
             )

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {IconFire} from 'app/icons';
+import {IconCollapse, IconExpand, IconFire} from 'app/icons';
 import space from 'app/styles/space';
+import {Color} from 'app/utils/theme';
 
 export const DividerContainer = styled('div')`
   position: relative;
@@ -48,14 +49,14 @@ export const DividerLineGhostContainer = styled('div')`
   height: 100%;
 `;
 
-const BadgeBorder = styled('div')`
+const BadgeBorder = styled('div')<{borderColor: Color}>`
   position: absolute;
   margin: ${space(0.25)};
   left: -11px;
   background: ${p => p.theme.background};
   width: ${space(3)};
   height: ${space(3)};
-  border: 1px solid ${p => p.theme.red300};
+  border: 1px solid ${p => p.theme[p.borderColor]};
   border-radius: 50%;
   z-index: ${p => p.theme.zIndex.traceView.dividerLine};
   display: flex;
@@ -65,8 +66,33 @@ const BadgeBorder = styled('div')`
 
 export function ErrorBadge() {
   return (
-    <BadgeBorder>
+    <BadgeBorder borderColor="red300">
       <IconFire color="red300" size="xs" />
+    </BadgeBorder>
+  );
+}
+
+export function EmbeddedTransactionBadge({
+  expanded,
+  onClick,
+}: {
+  expanded: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <BadgeBorder
+      borderColor="gray500"
+      onClick={event => {
+        event.stopPropagation();
+        event.preventDefault();
+        onClick();
+      }}
+    >
+      {expanded ? (
+        <IconCollapse color="gray500" size="xs" />
+      ) : (
+        <IconExpand color="gray500" size="xs" />
+      )}
     </BadgeBorder>
   );
 }

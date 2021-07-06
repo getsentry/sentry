@@ -2,6 +2,7 @@ import * as React from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
@@ -30,6 +31,7 @@ const defaultProps = {
   withPagination: true,
   useFilteredStats: true,
   useTintRow: true,
+  narrowGroups: false,
 };
 
 type Props = WithRouterProps & {
@@ -49,6 +51,7 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
+  queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -83,11 +86,16 @@ class GroupList extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    const ignoredQueryParams = ['end'];
+
     if (
       prevProps.orgId !== this.props.orgId ||
       prevProps.endpointPath !== this.props.endpointPath ||
       prevProps.query !== this.props.query ||
-      !isEqual(prevProps.queryParams, this.props.queryParams)
+      !isEqual(
+        omit(prevProps.queryParams, ignoredQueryParams),
+        omit(this.props.queryParams, ignoredQueryParams)
+      )
     ) {
       this.fetchData();
     }
@@ -104,6 +112,7 @@ class GroupList extends React.Component<Props, State> {
   fetchData = () => {
     GroupStore.loadInitialData([]);
     const {api, orgId} = this.props;
+    api.clear();
 
     this.setState({loading: true, error: false});
 
@@ -154,7 +163,7 @@ class GroupList extends React.Component<Props, State> {
   }
 
   handleCursorChange(
-    cursor: string,
+    cursor: string | undefined,
     path: string,
     query: Record<string, any>,
     pageDiff: number
@@ -163,19 +172,18 @@ class GroupList extends React.Component<Props, State> {
     let nextPage: number | undefined = isNaN(queryPageInt)
       ? pageDiff
       : queryPageInt + pageDiff;
-    let nextCursor: string | undefined = cursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
     // first page and user attempts to go backwards
     if (nextPage <= 0) {
-      nextCursor = undefined;
+      cursor = undefined;
       nextPage = undefined;
     }
 
     browserHistory.push({
       pathname: path,
-      query: {...query, cursor: nextCursor},
+      query: {...query, cursor, page: nextPage},
     });
   }
 
@@ -196,6 +204,8 @@ class GroupList extends React.Component<Props, State> {
       useTintRow,
       customStatsPeriod,
       queryParams,
+      queryFilterDescription,
+      narrowGroups,
     } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
@@ -230,7 +240,7 @@ class GroupList extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Panel>
-          <GroupListHeader withChart={!!withChart} />
+          <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
           <PanelBody>
             {groups.map(({id, project}) => {
               const members = memberList?.hasOwnProperty(project.slug)
@@ -248,6 +258,8 @@ class GroupList extends React.Component<Props, State> {
                   useTintRow={useTintRow}
                   customStatsPeriod={customStatsPeriod}
                   statsPeriod={statsPeriod}
+                  queryFilterDescription={queryFilterDescription}
+                  narrowGroups={narrowGroups}
                 />
               );
             })}

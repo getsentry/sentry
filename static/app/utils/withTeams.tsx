@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import TeamStore from 'app/stores/teamStore';
 import {Team} from 'app/types';
@@ -17,29 +15,32 @@ type State = {
 /**
  * Higher order component that uses TeamStore and provides a list of teams
  */
-const withTeams = <P extends InjectedTeamsProps>(
+function withTeams<P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<Omit<P, keyof InjectedTeamsProps>, State>({
-    displayName: `withTeams(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(TeamStore, 'onTeamUpdate') as any],
+) {
+  class WithTeams extends React.Component<Omit<P, keyof InjectedTeamsProps>, State> {
+    static displayName = `withTeams(${getDisplayName(WrappedComponent)})`;
 
-    getInitialState() {
-      return {
-        teams: TeamStore.getAll(),
-      };
-    },
+    state = {
+      teams: TeamStore.getAll(),
+    };
 
-    onTeamUpdate() {
-      this.setState({
-        teams: TeamStore.getAll(),
-      });
-    },
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = TeamStore.listen(
+      () => this.setState({teams: TeamStore.getAll()}),
+      undefined
+    );
+
     render() {
       return (
         <WrappedComponent {...(this.props as P)} teams={this.state.teams as Team[]} />
       );
-    },
-  });
+    }
+  }
+  return WithTeams;
+}
 
 export default withTeams;

@@ -15,7 +15,7 @@ from sentry.types.activity import CHOICES, ActivityType
 
 
 class Activity(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     # TODO(mgaeta): Replace all usages with ActivityTypes.
     ASSIGNED = ActivityType.ASSIGNED.value
@@ -55,6 +55,7 @@ class Activity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_activity"
+        index_together = (("project", "datetime"),)
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 

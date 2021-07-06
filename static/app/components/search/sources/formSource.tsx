@@ -1,7 +1,5 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {loadSearchMap} from 'app/actionCreators/formSearch';
 import FormSearchStore, {FormSearchField} from 'app/stores/formSearchStore';
@@ -23,7 +21,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   /**
    * List of form fields to search
    */
-  searchMap?: FormSearchField[];
+  searchMap?: null | FormSearchField[];
 };
 
 type State = {
@@ -89,20 +87,28 @@ class FormSource extends React.Component<Props, State> {
 type ContainerProps = Omit<Props, 'searchMap'>;
 type ContainerState = Pick<Props, 'searchMap'>;
 
-const FormSourceContainer = withRouter(
-  createReactClass<ContainerProps, ContainerState>({
-    displayName: 'FormSourceContainer',
-    mixins: [Reflux.connect(FormSearchStore, 'searchMap') as any],
+class FormSourceContainer extends React.Component<ContainerProps, ContainerState> {
+  state = {
+    searchMap: FormSearchStore.get(),
+  };
 
-    componentDidMount() {
-      // Loads form fields
-      loadSearchMap();
-    },
+  componentDidMount() {
+    // Loads form fields
+    loadSearchMap();
+  }
 
-    render() {
-      return <FormSource searchMap={this.state.searchMap} {...this.props} />;
-    },
-  })
-);
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
 
-export default FormSourceContainer;
+  unsubscribe = FormSearchStore.listen(
+    (searchMap: ContainerState['searchMap']) => this.setState({searchMap}),
+    undefined
+  );
+
+  render() {
+    return <FormSource searchMap={this.state.searchMap} {...this.props} />;
+  }
+}
+
+export default withRouter(FormSourceContainer);

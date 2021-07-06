@@ -79,7 +79,16 @@ export const initApiClientErrorHandling = () =>
 
     // 401s can also mean sudo is required or it's a request that is allowed to fail
     // Ignore if these are the cases
-    if (['sudo-required', 'ignore', '2fa-required'].includes(code)) {
+    if (
+      [
+        'sudo-required',
+        'ignore',
+        '2fa-required',
+        'app-connect-authentication-error',
+        'itunes-authentication-error',
+        'itunes-2fa-required',
+      ].includes(code)
+    ) {
       return;
     }
 

@@ -395,7 +395,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
+            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
     def create_issue(self, request, group, form_data, **kwargs):

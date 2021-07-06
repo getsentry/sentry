@@ -1,0 +1,376 @@
+{
+  "event_id": "f9630c574a824af19ab19ed4a118bb91",
+  "project": 261820,
+  "release": "5.4",
+  "dist": null,
+  "platform": "other",
+  "message": "",
+  "datetime": "2021-05-24T13:10:04+00:00",
+  "tags": [
+    ["activity", "MainActivity"],
+    ["device", "Pixel4"],
+    ["device.family", "Google"],
+    ["level", "error"],
+    ["os", "Android 10"],
+    ["os.name", "Android"],
+    ["os.rooted", "no"],
+    ["release", "5.4"],
+    ["user", "email:ck8z@yahoo.com"]
+  ],
+  "_metrics": {"bytes.ingested.event": 7111, "bytes.stored.event": 14759},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1611174788.256,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {"screen": "MainActivity", "state": "created"}
+      },
+      {
+        "timestamp": 1611174788.297,
+        "type": "default",
+        "level": "info",
+        "message": "Android activity was created",
+        "data": {"Activity Name": "MainActivity"}
+      },
+      {
+        "timestamp": 1611174788.3,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {"screen": "MainActivity", "state": "started"}
+      },
+      {
+        "timestamp": 1611174788.301,
+        "type": "session",
+        "category": "app.lifecycle",
+        "level": "info",
+        "data": {"state": "start"}
+      },
+      {
+        "timestamp": 1611174788.302,
+        "type": "navigation",
+        "category": "app.lifecycle",
+        "level": "info",
+        "data": {"state": "foreground"}
+      },
+      {
+        "timestamp": 1611174788.303,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {"screen": "MainActivity", "state": "resumed"}
+      },
+      {
+        "timestamp": 1611174789.197,
+        "type": "default",
+        "level": "info",
+        "message": "Button for ArrayIndexOutOfBoundsException clicked.."
+      }
+    ]
+  },
+  "contexts": {
+    "app": {
+      "app_identifier": "com.example.vu.android",
+      "app_name": "android",
+      "app_version": "1.7",
+      "app_build": "17",
+      "type": "app"
+    },
+    "device": {
+      "name": "Pixel 4",
+      "family": "Google",
+      "model": "Pixel 4",
+      "model_id": "QSR1.190920.001",
+      "arch": "x86",
+      "battery_level": 100.0,
+      "orientation": "portrait",
+      "manufacturer": "Google",
+      "brand": "Google",
+      "screen_resolution": "1794x1080",
+      "screen_density": 2.625,
+      "screen_dpi": 420,
+      "online": true,
+      "charging": false,
+      "low_memory": false,
+      "simulator": true,
+      "memory_size": 2091237376,
+      "free_memory": 1220096000,
+      "storage_size": 6240665600,
+      "free_storage": 4369440768,
+      "external_storage_size": 534761472,
+      "external_free_storage": 534677504,
+      "boot_time": "2021-01-19T02:39:57.965Z",
+      "timezone": "America/Bogota",
+      "archs": ["x86"],
+      "battery_temperature": 25,
+      "connection_type": "wifi",
+      "id": "83deac1abd53fd6e",
+      "language": "en_US",
+      "screen_height_pixels": 1794,
+      "screen_width_pixels": 1080,
+      "type": "device"
+    },
+    "os": {
+      "name": "Android",
+      "version": "10",
+      "build": "QSR1.190920.001",
+      "kernel_version": "4.14.112+",
+      "rooted": false,
+      "type": "os"
+    }
+  },
+  "culprit": "com.example.vu.android.MainActivity in lambda$onCreate$2",
+  "exception": {
+    "values": [
+      {
+        "type": "ArrayIndexOutOfBoundsException",
+        "value": "length=1; index=2",
+        "module": "java.lang",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit",
+              "filename": "ZygoteInit.java",
+              "abs_path": "ZygoteInit.java",
+              "lineno": 930,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+              "filename": "RuntimeInit.java",
+              "abs_path": "RuntimeInit.java",
+              "lineno": 492,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "module": "java.lang.reflect.Method",
+              "filename": "Method.java",
+              "abs_path": "Method.java",
+              "in_app": false
+            },
+            {
+              "function": "main",
+              "module": "android.app.ActivityThread",
+              "filename": "ActivityThread.java",
+              "abs_path": "ActivityThread.java",
+              "lineno": 7356,
+              "in_app": false
+            },
+            {
+              "function": "loop",
+              "module": "android.os.Looper",
+              "filename": "Looper.java",
+              "abs_path": "Looper.java",
+              "lineno": 214,
+              "in_app": false
+            },
+            {
+              "function": "dispatchMessage",
+              "module": "android.os.Handler",
+              "filename": "Handler.java",
+              "abs_path": "Handler.java",
+              "lineno": 100,
+              "in_app": false
+            },
+            {
+              "function": "handleCallback",
+              "module": "android.os.Handler",
+              "filename": "Handler.java",
+              "abs_path": "Handler.java",
+              "lineno": 883,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "module": "android.view.View$PerformClick",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 27336,
+              "in_app": false
+            },
+            {
+              "function": "access$3500",
+              "module": "android.view.View",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 801,
+              "in_app": false
+            },
+            {
+              "function": "performClickInternal",
+              "module": "android.view.View",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 7102,
+              "in_app": false
+            },
+            {
+              "function": "performClick",
+              "module": "android.view.View",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 7125,
+              "in_app": false
+            },
+            {
+              "function": "onClick",
+              "module": "com.example.vu.android.-$$Lambda$MainActivity$d5XxmEj26jhvM_Mj94qqJ6fBzeA",
+              "lineno": 0,
+              "in_app": true
+            },
+            {
+              "function": "lambda$onCreate$2",
+              "module": "com.example.vu.android.MainActivity",
+              "filename": "MainActivity.java",
+              "abs_path": "MainActivity.java",
+              "lineno": 66,
+              "in_app": true
+            }
+          ]
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit",
+              "filename": "ZygoteInit.java",
+              "abs_path": "ZygoteInit.java",
+              "lineno": 930,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+              "filename": "RuntimeInit.java",
+              "abs_path": "RuntimeInit.java",
+              "lineno": 492,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "module": "java.lang.reflect.Method",
+              "filename": "Method.java",
+              "abs_path": "Method.java",
+              "in_app": false
+            },
+            {
+              "function": "main",
+              "module": "android.app.ActivityThread",
+              "filename": "ActivityThread.java",
+              "abs_path": "ActivityThread.java",
+              "lineno": 7356,
+              "in_app": false
+            },
+            {
+              "function": "loop",
+              "module": "android.os.Looper",
+              "filename": "Looper.java",
+              "abs_path": "Looper.java",
+              "lineno": 214,
+              "in_app": false
+            },
+            {
+              "function": "dispatchMessage",
+              "module": "android.os.Handler",
+              "filename": "Handler.java",
+              "abs_path": "Handler.java",
+              "lineno": 100,
+              "in_app": false
+            },
+            {
+              "function": "handleCallback",
+              "module": "android.os.Handler",
+              "filename": "Handler.java",
+              "abs_path": "Handler.java",
+              "lineno": 883,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "module": "android.view.View$PerformClick",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 27336,
+              "in_app": false
+            },
+            {
+              "function": "access$3500",
+              "module": "android.view.View",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 801,
+              "in_app": false
+            },
+            {
+              "function": "performClickInternal",
+              "module": "android.view.View",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 7102,
+              "in_app": false
+            },
+            {
+              "function": "performClick",
+              "module": "android.view.View",
+              "filename": "View.java",
+              "abs_path": "View.java",
+              "lineno": 7125,
+              "in_app": false
+            },
+            {
+              "function": "onClick",
+              "module": "com.example.vu.android.d",
+              "lineno": 0,
+              "in_app": true
+            },
+            {
+              "function": "H",
+              "module": "com.example.vu.android.MainActivity",
+              "filename": "MainActivity.java",
+              "abs_path": "MainActivity.java",
+              "lineno": 2,
+              "in_app": true
+            }
+          ]
+        },
+        "thread_id": 2
+      }
+    ]
+  },
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDRxY05qemJypZWRgaGlroGxrqHRBABbKAcD",
+    "id": "legacy:2019-03-12"
+  },
+  "hashes": ["e15bf1bffbb1d3d998ef3523f797d2dd", "7c4753fa8dd0f586b854dfb5dd0004d8"],
+  "key_id": "496148",
+  "level": "error",
+  "location": "MainActivity.java",
+  "logger": "",
+  "metadata": {
+    "filename": "MainActivity.java",
+    "function": "lambda$onCreate$2",
+    "type": "ArrayIndexOutOfBoundsException",
+    "value": "length=1; index=2"
+  },
+  "received": 1621861806.332998,
+  "sdk": {
+    "name": "sentry.java.android",
+    "version": "3.1.0",
+    "packages": [
+      {"name": "maven:sentry", "version": "3.1.0"},
+      {"name": "maven:sentry-android-core", "version": "3.1.0"},
+      {"name": "maven:sentry-android-ndk", "version": "3.1.0"}
+    ]
+  },
+  "timestamp": 1621861804.0,
+  "title": "ArrayIndexOutOfBoundsException: length=1; index=2",
+  "type": "error",
+  "user": {"email": "ck8z@yahoo.com", "ip_address": null},
+  "version": "7"
+}

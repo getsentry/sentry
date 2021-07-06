@@ -11,6 +11,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -29,6 +30,21 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
+const ADOPTION_STAGE_LABELS = {
+  not_adopted: {
+    name: t('Low Adoption'),
+    type: 'warning',
+  },
+  adopted: {
+    name: t('High Adoption'),
+    type: 'success',
+  },
+  replaced: {
+    name: t('Replaced'),
+    type: 'default',
+  },
+};
+
 type Props = {
   projects: Array<ReleaseProject>;
   releaseVersion: Release['version'];
@@ -38,10 +54,12 @@ type Props = {
   showPlaceholders: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  adoptionStages?: Release['adoptionStages'];
 };
 
 const Content = ({
   projects,
+  adoptionStages,
   releaseVersion,
   location,
   organization,
@@ -50,10 +68,11 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
+  const hasAdoptionStages: boolean = adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
-        <Layout>
+        <Layout hasAdoptionStages={hasAdoptionStages}>
           <Column>{t('Project Name')}</Column>
           <AdoptionColumn>
             <GuideAnchor
@@ -64,6 +83,7 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
+          {adoptionStages && <Column>{t('Adoption Stage')}</Column>}
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
@@ -125,9 +145,11 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
+            const adoptionStage = adoptionStages && adoptionStages[project.slug].stage;
+
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
-                <Layout>
+                <Layout hasAdoptionStages={hasAdoptionStages}>
                   <Column>
                     <ProjectBadge project={project} avatarSize={16} />
                   </Column>
@@ -149,6 +171,18 @@ const Content = ({
                       <NotAvailable />
                     )}
                   </AdoptionColumn>
+
+                  {adoptionStages && (
+                    <Column>
+                      {adoptionStages[project.slug] ? (
+                        <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
+                          {ADOPTION_STAGE_LABELS[adoptionStage].name}
+                        </Tag>
+                      ) : (
+                        <NotAvailable />
+                      )}
+                    </Column>
+                  )}
 
                   <CrashFreeRateColumn>
                     {showPlaceholders ? (
@@ -274,23 +308,52 @@ const ProjectRow = styled(PanelItem)`
   }
 `;
 
-const Layout = styled('div')`
+const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
+  ${p =>
+    p.hasAdoptionStages
+      ? `
+      grid-template-columns: 1fr 1.4fr 0.5fr 0.6fr 0.7fr;
+    `
+      : `
+      grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
+    `}
+
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p =>
+      p.hasAdoptionStages
+        ? `
+      grid-template-columns: 1fr 1fr 0.5fr 1fr 0.5fr 0.5fr 0.5fr;
+    `
+        : `
+      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    `}
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
+    ${p =>
+      p.hasAdoptionStages
+        ? `
+      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 0.5fr 0.5fr 0.6fr;
+    `
+        : `
+      grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
+    `}
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p =>
+      p.hasAdoptionStages
+        ? `
+      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    `
+        : `
+      grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    `}
   }
 `;
 

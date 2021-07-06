@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import {LocationDescriptor} from 'history';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -6,55 +6,54 @@ import {IconNext, IconPrevious} from 'app/icons';
 import {t} from 'app/locale';
 
 type Props = {
-  location: Location;
   /**
-   * A set of pathName's that will be used in the buttons in the following order:
-   * [OldestURL, OlderURL, NewerURL, NewestURL]
+   * A set of LocationDescriptors that will be used in the buttons in the following order:
+   * [Oldest, Older, Newer, Newest]
    */
-  urls: [string, string, string, string];
+  links: [LocationDescriptor, LocationDescriptor, LocationDescriptor, LocationDescriptor];
   hasNext?: boolean;
   hasPrevious?: boolean;
   className?: string;
+  size?: React.ComponentProps<typeof Button>['size'];
+  onOldestClick?: () => void;
+  onOlderClick?: () => void;
+  onNewerClick?: () => void;
+  onNewestClick?: () => void;
 };
 
 const NavigationButtonGroup = ({
-  location,
-  urls,
+  links,
   hasNext = false,
   hasPrevious = false,
   className,
+  size,
+  onOldestClick,
+  onOlderClick,
+  onNewerClick,
+  onNewestClick,
 }: Props) => (
   <ButtonBar className={className} merged>
     <Button
-      size="small"
-      to={{pathname: urls[0], query: location.query}}
+      size={size}
+      to={links[0]}
       disabled={!hasPrevious}
       label={t('Oldest')}
       icon={<IconPrevious size="xs" />}
+      onClick={onOldestClick}
     />
-    <Button
-      size="small"
-      to={{
-        pathname: urls[1],
-        query: location.query,
-      }}
-      disabled={!hasPrevious}
-    >
+    <Button size={size} to={links[1]} disabled={!hasPrevious} onClick={onOlderClick}>
       {t('Older')}
     </Button>
-    <Button
-      size="small"
-      to={{pathname: urls[2], query: location.query}}
-      disabled={!hasNext}
-    >
+    <Button size={size} to={links[2]} disabled={!hasNext} onClick={onNewerClick}>
       {t('Newer')}
     </Button>
     <Button
-      size="small"
-      to={{pathname: urls[3], query: location.query}}
+      size={size}
+      to={links[3]}
       disabled={!hasNext}
       label={t('Newest')}
       icon={<IconNext size="xs" />}
+      onClick={onNewestClick}
     />
   </ButtonBar>
 );

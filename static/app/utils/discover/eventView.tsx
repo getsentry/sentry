@@ -14,14 +14,6 @@ import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
-import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
-import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-
-import {statsPeriodToDays} from '../dates';
-import {QueryResults, stringifyQueryObject, tokenizeSearch} from '../tokenizeSearch';
-
-import {getSortField} from './fieldRenderers';
 import {
   aggregateOutputType,
   Column,
@@ -29,10 +21,28 @@ import {
   Field,
   generateFieldAsString,
   getAggregateAlias,
+  getEquation,
+  isAggregateEquation,
   isAggregateField,
+  isEquation,
   isLegalYAxisType,
   Sort,
-} from './fields';
+  WebVital,
+} from 'app/utils/discover/fields';
+import {decodeList, decodeScalar} from 'app/utils/queryString';
+import {
+  FieldValueKind,
+  TableColumn,
+  TableColumnSort,
+} from 'app/views/eventsV2/table/types';
+import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
+import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+
+import {statsPeriodToDays} from '../dates';
+import {QueryResults, tokenizeSearch} from '../tokenizeSearch';
+
+import {getSortField} from './fieldRenderers';
 import {
   CHART_AXIS_OPTIONS,
   DISPLAY_MODE_FALLBACK_OPTIONS,
@@ -211,6 +221,21 @@ const decodeQuery = (location: Location): string => {
   return decodeScalar(queryParameter, '').trim();
 };
 
+const decodeTeam = (value: string): 'myteams' | number => {
+  if (value === 'myteams') {
+    return value;
+  }
+  return parseInt(value, 10);
+};
+
+const decodeTeams = (location: Location): ('myteams' | number)[] => {
+  if (!location.query || !location.query.team) {
+    return [];
+  }
+  const value = location.query.team;
+  return Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)];
+};
+
 const decodeProjects = (location: Location): number[] => {
   if (!location.query || !location.query.project) {
     return [];
@@ -237,6 +262,7 @@ class EventView {
   fields: Readonly<Field[]>;
   sorts: Readonly<Sort[]>;
   query: string;
+  team: Readonly<('myteams' | number)[]>;
   project: Readonly<number[]>;
   start: string | undefined;
   end: string | undefined;
@@ -255,6 +281,7 @@ class EventView {
     fields: Readonly<Field[]>;
     sorts: Readonly<Sort[]>;
     query: string;
+    team: Readonly<('myteams' | number)[]>;
     project: Readonly<number[]>;
     start: string | undefined;
     end: string | undefined;
@@ -269,12 +296,24 @@ class EventView {
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
+    const team = Array.isArray(props.team) ? props.team : [];
     const project = Array.isArray(props.project) ? props.project : [];
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
     // only include sort keys that are included in the fields
+    let equations = 0;
     const sortKeys = fields
-      .map(field => getSortKeyFromField(field, undefined))
+      .map(field => {
+        if (isEquation(field.field)) {
+          const sortKey = getSortKeyFromField(
+            {field: `equation[${equations}]`},
+            undefined
+          );
+          equations += 1;
+          return sortKey;
+        }
+        return getSortKeyFromField(field, undefined);
+      })
       .filter((sortKey): sortKey is string => !!sortKey);
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
@@ -287,6 +326,7 @@ class EventView {
     this.fields = fields;
     this.sorts = sorts;
     this.query = typeof props.query === 'string' ? props.query : '';
+    this.team = team;
     this.project = project;
     this.start = props.start;
     this.end = props.end;
@@ -309,6 +349,7 @@ class EventView {
       fields: decodeFields(location),
       sorts: decodeSorts(location),
       query: decodeQuery(location),
+      team: decodeTeams(location),
       project: decodeProjects(location),
       start: decodeScalar(start),
       end: decodeScalar(end),
@@ -374,6 +415,7 @@ class EventView {
       name: saved.name,
       fields,
       query: queryStringFromSavedQuery(saved),
+      team: saved.teams ?? [],
       project: saved.projects,
       start: decodeScalar(start),
       end: decodeScalar(end),
@@ -400,6 +442,7 @@ class EventView {
     let fields = decodeFields(location);
     const {start, end, statsPeriod} = getParams(location.query);
     const id = decodeScalar(location.query.id);
+    const teams = decodeTeams(location);
     const projects = decodeProjects(location);
     const sorts = decodeSorts(location);
     const environments = collectQueryStringByKey(location.query, 'environment');
@@ -423,6 +466,9 @@ class EventView {
         createdBy: saved.createdBy,
         expired: saved.expired,
         additionalConditions: new QueryResults([]),
+        // Always read team from location since they can be set by other parts
+        // of the UI
+        team: teams,
         // Always read project and environment from location since they can
         // be set by the GlobalSelectionHeaders.
         project: projects,
@@ -603,8 +649,16 @@ class EventView {
     return this.fields.map(field => field.field);
   }
 
+  getEquations(): string[] {
+    return this.fields
+      .filter(field => isEquation(field.field))
+      .map(field => getEquation(field.field));
+  }
+
   getAggregateFields(): Field[] {
-    return this.fields.filter(field => isAggregateField(field.field));
+    return this.fields.filter(
+      field => isAggregateField(field.field) || isAggregateEquation(field.field)
+    );
   }
 
   hasAggregateField() {
@@ -639,6 +693,7 @@ class EventView {
       fields: this.fields,
       sorts: this.sorts,
       query: this.query,
+      team: this.team,
       project: this.project,
       start: this.start,
       end: this.end,
@@ -666,7 +721,7 @@ class EventView {
     const fields: Field[] = columns
       .filter(
         col =>
-          (col.kind === 'field' && col.field) ||
+          ((col.kind === 'field' || col.kind === FieldValueKind.EQUATION) && col.field) ||
           (col.kind === 'function' && col.function[0])
       )
       .map(col => generateFieldAsString(col))
@@ -895,6 +950,12 @@ class EventView {
     return newEventView;
   }
 
+  withTeams(teams: ('myteams' | number)[]): EventView {
+    const newEventView = this.clone();
+    newEventView.team = teams;
+    return newEventView;
+  }
+
   getSorts(): TableColumnSort<React.ReactText>[] {
     return this.sorts.map(
       sort =>
@@ -941,7 +1002,16 @@ class EventView {
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
     const payload = this.getEventsAPIPayload(location);
 
-    const remove = ['id', 'name', 'per_page', 'sort', 'cursor', 'field', 'interval'];
+    const remove = [
+      'id',
+      'name',
+      'per_page',
+      'sort',
+      'cursor',
+      'field',
+      'equation',
+      'interval',
+    ];
     for (const key of remove) {
       delete payload[key];
     }
@@ -993,6 +1063,7 @@ class EventView {
         ? encodeSorts(this.sorts)
         : encodeSort(this.sorts[0]);
     const fields = this.getFields();
+    const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];
 
@@ -1001,6 +1072,7 @@ class EventView {
       omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
+        team,
         project,
         environment,
         field: [...new Set(fields)],
@@ -1009,6 +1081,10 @@ class EventView {
         query: this.getQueryWithAdditionalConditions(),
       }
     ) as EventQuery & LocationQuery;
+
+    if (eventQuery.team && !eventQuery.team.length) {
+      delete eventQuery.team;
+    }
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;
@@ -1034,6 +1110,38 @@ class EventView {
     return {
       pathname: `/organizations/${slug}/discover/results/`,
       query: cloneDeep(output as any),
+    };
+  }
+
+  getPerformanceTransactionEventsViewUrlTarget(
+    slug: string,
+    options: {
+      showTransactions?: EventsDisplayFilterName;
+      breakdown?: SpanOperationBreakdownFilter;
+      webVital?: WebVital;
+    }
+  ): {pathname: string; query: Query} {
+    const {showTransactions, breakdown, webVital} = options;
+    const output = {
+      sort: encodeSorts(this.sorts),
+      project: this.project,
+      query: this.query,
+      transaction: this.name,
+      showTransactions,
+      breakdown,
+      webVital,
+    };
+
+    for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      if (this[field] && this[field].length) {
+        output[field] = this[field];
+      }
+    }
+
+    const query = cloneDeep(output as any);
+    return {
+      pathname: `/organizations/${slug}/performance/summary/events/`,
+      query,
     };
   }
 
@@ -1085,8 +1193,15 @@ class EventView {
     return uniqBy(
       this.getAggregateFields()
         // Only include aggregates that make sense to be graphable (eg. not string or date)
-        .filter((field: Field) => isLegalYAxisType(aggregateOutputType(field.field)))
-        .map((field: Field) => ({label: field.field, value: field.field}))
+        .filter(
+          (field: Field) =>
+            isLegalYAxisType(aggregateOutputType(field.field)) ||
+            isAggregateEquation(field.field)
+        )
+        .map((field: Field) => ({
+          label: isEquation(field.field) ? getEquation(field.field) : field.field,
+          value: field.field,
+        }))
         .concat(CHART_AXIS_OPTIONS),
       'value'
     );
@@ -1180,9 +1295,29 @@ class EventView {
     Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
       conditions.addTagValues(tag, tagValues);
     });
-    return stringifyQueryObject(conditions);
+    return conditions.formatString();
   }
 }
+
+const isFieldsSimilar = (
+  currentValue: Array<string>,
+  otherValue: Array<string>
+): boolean => {
+  // For equation's their order matters because we alias them based on index
+  const currentEquations = currentValue.filter(isEquation);
+  const otherEquations = otherValue.filter(isEquation);
+
+  // Field orders don't matter, so using a set for comparison
+  const currentFields = new Set(currentValue.filter(value => !isEquation(value)));
+  const otherFields = new Set(otherValue.filter(value => !isEquation(value)));
+
+  if (!isEqual(currentEquations, otherEquations)) {
+    return false;
+  } else if (!isEqual(currentFields, otherFields)) {
+    return false;
+  }
+  return true;
+};
 
 export const isAPIPayloadSimilar = (
   current: EventQuery & LocationQuery,
@@ -1197,15 +1332,21 @@ export const isAPIPayloadSimilar = (
 
   for (const key of currentKeys) {
     const currentValue = current[key];
-    const currentTarget = Array.isArray(currentValue)
-      ? new Set(currentValue)
-      : currentValue;
-
     const otherValue = other[key];
-    const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+    if (key === 'field') {
+      if (!isFieldsSimilar(currentValue, otherValue)) {
+        return false;
+      }
+    } else {
+      const currentTarget = Array.isArray(currentValue)
+        ? new Set(currentValue)
+        : currentValue;
 
-    if (!isEqual(currentTarget, otherTarget)) {
-      return false;
+      const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+
+      if (!isEqual(currentTarget, otherTarget)) {
+        return false;
+      }
     }
   }
 

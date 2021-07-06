@@ -6,7 +6,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import DashboardsV2Container from 'app/views/dashboardsV2/';
 import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
@@ -18,7 +17,6 @@ describe('Dashboards > Detail', function () {
   describe('prebuilt dashboards', function () {
     let wrapper;
     let initialData;
-    const route = {};
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -54,11 +52,10 @@ describe('Dashboards > Detail', function () {
         method: 'DELETE',
       });
       wrapper = mountWithTheme(
-        <DashboardsV2Container
+        <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
-          route={route}
           location={location}
         />,
         initialData.routerContext
@@ -92,7 +89,7 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
       wrapper = mountWithTheme(
-        <DashboardsV2Container
+        <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -145,7 +142,7 @@ describe('Dashboards > Detail', function () {
       });
 
       wrapper = mountWithTheme(
-        <DashboardsV2Container
+        <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -168,7 +165,6 @@ describe('Dashboards > Detail', function () {
     let wrapper;
     let initialData;
     let widgets;
-    const route = {};
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -240,11 +236,10 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
       });
       wrapper = mountWithTheme(
-        <DashboardsV2Container
+        <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
-          route={route}
           location={initialData.router.location}
         />,
         initialData.routerContext
@@ -288,11 +283,10 @@ describe('Dashboards > Detail', function () {
 
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(
-        <DashboardsV2Container
+        <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
-          route={route}
           location={initialData.router.location}
         />,
         initialData.routerContext
@@ -321,29 +315,9 @@ describe('Dashboards > Detail', function () {
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('Breadcrumbs').exists()).toBe(false);
-
       const newOrg = initializeOrg({
         organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-            'dashboards-manage',
-          ],
+          features: ['global-views', 'dashboards-basic', 'discover-query'],
           projects: [TestStubs.Project()],
         }),
       });
@@ -356,6 +330,20 @@ describe('Dashboards > Detail', function () {
           location={newOrg.router.location}
         />,
         newOrg.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Breadcrumbs').exists()).toBe(false);
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
       );
       await tick();
       wrapper.update();

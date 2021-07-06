@@ -5,6 +5,7 @@ import Button from 'app/components/button';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {
   aggregateFunctionOutputType,
   explodeField,
@@ -36,6 +37,7 @@ type Props = {
   /**
    * Any errors that need to be rendered.
    */
+  organization: Organization;
   errors?: Record<string, any>;
   style?: React.CSSProperties;
 };
@@ -45,6 +47,7 @@ function WidgetQueryFields({
   errors,
   fields,
   fieldOptions,
+  organization,
   onChange,
   style,
 }: Props) {
@@ -91,6 +94,7 @@ function WidgetQueryFields({
           columns={fields.map(field => explodeField({field}))}
           onChange={handleColumnChange}
           fieldOptions={fieldOptions}
+          organization={organization}
         />
       </Field>
     );

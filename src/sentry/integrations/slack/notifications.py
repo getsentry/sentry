@@ -1,15 +1,16 @@
 import logging
-from typing import AbstractSet, Any, Mapping, Set, Tuple, Union
+from collections import defaultdict
+from typing import AbstractSet, Any, Mapping, Set, Union
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
-from sentry.models import ExternalActor, Organization, Team, User
+from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.notifications.rules import AlertRuleNotification
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.notifications")
@@ -22,38 +23,89 @@ def get_context(
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    """ Compose the various levels of context and add slack-specific fields. """
+    """Compose the various levels of context and add Slack-specific fields."""
     return {
         **shared_context,
         **notification.get_user_context(recipient, extra_context),
     }
 
 
-def get_integrations_by_recipient_id(
+def get_channel_and_integration_by_user(
+    user: User, organization: Organization
+) -> Mapping[str, Integration]:
+
+    identities = Identity.objects.filter(
+        idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+        user=user.id,
+    ).select_related("idp")
+
+    if not identities:
+        # The user may not have linked their identity so just move on
+        # since there are likely other users or teams in the list of
+        # recipients.
+        return {}
+
+    integrations = Integration.objects.filter(
+        provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+        organizations=organization,
+        external_id__in=[identity.idp.external_id for identity in identities],
+    )
+
+    channels_to_integration = {}
+    for identity in identities:
+        for integration in integrations:
+            if identity.idp.external_id == integration.external_id:
+                channels_to_integration[identity.external_id] = integration
+                break
+
+    return channels_to_integration
+
+
+def get_channel_and_integration_by_team(
+    team: Team, organization: Organization
+) -> Mapping[str, Integration]:
+    try:
+        external_actor = (
+            ExternalActor.objects.filter(
+                provider=ExternalProviders.SLACK.value,
+                actor_id=team.actor_id,
+                organization=organization,
+            )
+            .select_related("integration")
+            .get()
+        )
+    except ExternalActor.DoesNotExist:
+        return {}
+
+    return {external_actor.external_id: external_actor.integration}
+
+
+def get_channel_and_token_by_recipient(
     organization: Organization, recipients: AbstractSet[Union[User, Team]]
-) -> Mapping[Union[User, Team], ExternalActor]:
-    actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
+) -> Mapping[Union[User, Team], Mapping[str, str]]:
+    output = defaultdict(dict)
+    for recipient in recipients:
+        channels_to_integrations = (
+            get_channel_and_integration_by_user(recipient, organization)
+            if isinstance(recipient, User)
+            else get_channel_and_integration_by_team(recipient, organization)
+        )
+        for channel, integration in channels_to_integrations.items():
+            try:
+                token = integration.metadata["access_token"]
+            except AttributeError as e:
+                logger.info(
+                    "notification.fail.invalid_slack",
+                    extra={
+                        "error": str(e),
+                        "organization": organization,
+                        "recipient": recipient.id,
+                    },
+                )
+                continue
 
-    external_actors = ExternalActor.objects.filter(
-        provider=ExternalProviders.SLACK.value,
-        actor_id__in=[recipient.actor_id for recipient in recipients],
-        organization=organization,
-    ).select_related("integration")
-
-    return {
-        actor_mapping.get(external_actor.actor_id): external_actor
-        for external_actor in external_actors
-    }
-
-
-def get_channel_and_token(
-    external_actors_by_recipient: Mapping[Union[User, Team], ExternalActor],
-    recipient: Union[User, Team],
-) -> Tuple[str, str]:
-    external_actor = external_actors_by_recipient.get(recipient)
-    channel = external_actor.external_id
-    token = external_actor.integration.metadata["access_token"]
-    return channel, token
+            output[recipient][channel] = token
+    return output
 
 
 def get_key(notification: BaseNotification) -> str:
@@ -72,47 +124,44 @@ def send_notification_as_slack(
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Mapping[str, Any],
 ) -> None:
-    """ Send an "activity" or "alert rule" notification to a Slack user or team. """
-    external_actors_by_recipient = get_integrations_by_recipient_id(
-        notification.organization, recipients
-    )
+    """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
-    for recipient in recipients:
-        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
-        try:
-            channel, token = get_channel_and_token(external_actors_by_recipient, recipient)
-        except AttributeError as e:
+    data = get_channel_and_token_by_recipient(notification.organization, recipients)
+
+    for recipient, tokens_by_channel in data.items():
+        is_multiple = True if len([token for token in tokens_by_channel]) > 1 else False
+        if is_multiple:
             logger.info(
-                "notification.fail.invalid_slack",
+                "notification.multiple.slack_post",
                 extra={
-                    "error": str(e),
                     "notification": notification,
                     "recipient": recipient.id,
                 },
             )
-            continue
-
+        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
         context = get_context(notification, recipient, shared_context, extra_context)
         attachment = [build_notification_attachment(notification, context)]
-        payload = {
-            "token": token,
-            "channel": channel,
-            "link_names": 1,
-            "attachments": json.dumps(attachment),
-        }
-        try:
-            client.post("/chat.postMessage", data=payload, timeout=5)
-        except ApiError as e:
-            logger.info(
-                "notification.fail.slack_post",
-                extra={
-                    "error": str(e),
-                    "notification": notification,
-                    "recipient": recipient.id,
-                    "channel_id": channel,
-                },
-            )
-            continue
+        for channel, token in tokens_by_channel.items():
+            payload = {
+                "token": token,
+                "channel": channel,
+                "link_names": 1,
+                "attachments": json.dumps(attachment),
+            }
+            try:
+                client.post("/chat.postMessage", data=payload, timeout=5)
+            except ApiError as e:
+                logger.info(
+                    "notification.fail.slack_post",
+                    extra={
+                        "error": str(e),
+                        "notification": notification,
+                        "recipient": recipient.id,
+                        "channel_id": channel,
+                        "is_multiple": is_multiple,
+                    },
+                )
+                continue
 
     key = get_key(notification)
     metrics.incr(

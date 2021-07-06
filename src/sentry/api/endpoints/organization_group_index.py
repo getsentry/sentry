@@ -79,7 +79,7 @@ def inbox_search(
     # can be.
     earliest_date = now - timedelta(days=7)
     start_params = [date_from, earliest_date, get_search_filter(search_filters, "date", ">")]
-    start = max([_f for _f in start_params if _f])
+    start = max(_f for _f in start_params if _f)
     end = max([earliest_date, end])
 
     if start >= end:
@@ -226,7 +226,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
-        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         stats_period, stats_period_start, stats_period_end = calculate_stats_period(
@@ -243,7 +242,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period_end=stats_period_end,
             expand=expand,
             collapse=collapse,
-            has_inbox=has_inbox,
         )
 
         projects = self.get_projects(request, organization)
@@ -412,7 +410,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
         if len(projects) > 1 and not features.has(
             "organizations:global-views", organization, actor=request.user
         ):
@@ -429,7 +426,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         )
 
         return update_groups(
-            request, request.GET.getlist("id"), projects, organization.id, search_fn, has_inbox
+            request, request.GET.getlist("id"), projects, organization.id, search_fn
         )
 
     @track_slo_response("workflow")

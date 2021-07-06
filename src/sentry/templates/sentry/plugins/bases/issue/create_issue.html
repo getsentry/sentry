@@ -7,11 +7,13 @@
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
 
 {% block css %}
-  <link href="{% manifest_asset_url "sentry" "select2.css" %}" rel="stylesheet"/>
+  <link href="{% asset_url "sentry" "vendor/select2.css" %}" rel="stylesheet"/>
 {% endblock %}
 
 {% block scripts %}
   {{ block.super }}
+  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+  {% script src=jquery_url %}{% endscript %}
   {% asset_url "sentry" "vendor/select2.min.js" as asset_url %}
   {% script src=asset_url %}{% endscript %}
   {% asset_url "sentry" "vendor/tooltip.min.js" as asset_url %}

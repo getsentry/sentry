@@ -44,6 +44,7 @@ type Props = {
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   theme: Theme;
   disablePrevious?: boolean;
+  query?: string;
 };
 
 type State = {
@@ -80,13 +81,8 @@ class SessionsRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {
-      api,
-      selection,
-      onTotalValuesChange,
-      displayMode,
-      disablePrevious,
-    } = this.props;
+    const {api, selection, onTotalValuesChange, displayMode, disablePrevious} =
+      this.props;
     const shouldFetchWithPrevious =
       !disablePrevious && shouldFetchPreviousPeriod(selection.datetime);
 
@@ -135,7 +131,7 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 
   queryParams({shouldFetchWithPrevious = false}) {
-    const {selection} = this.props;
+    const {selection, query} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
     const baseParams = {
@@ -144,6 +140,7 @@ class SessionsRequest extends React.Component<Props, State> {
       interval: getSeriesApiInterval(datetime),
       project: projects[0],
       environment,
+      query,
     };
 
     if (!shouldFetchWithPrevious) {
@@ -296,13 +293,8 @@ class SessionsRequest extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {
-      timeseriesData,
-      reloading,
-      errored,
-      totalSessions,
-      previousTimeseriesData,
-    } = this.state;
+    const {timeseriesData, reloading, errored, totalSessions, previousTimeseriesData} =
+      this.state;
     const loading = timeseriesData === null;
 
     return children({

@@ -35,7 +35,7 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
 };
 
-//format of the ProjectStacktraceLinkEndpoint response
+// format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
   config?: RepositoryProjectPathConfigWithIntegration;
@@ -199,7 +199,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   renderLoading() {
-    //TODO: Add loading
+    // TODO: Add loading
     return null;
   }
 

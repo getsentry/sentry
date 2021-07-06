@@ -13,7 +13,7 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -147,7 +147,7 @@ function generateTagsEventView(
       version: 2,
       name: transactionName,
       fields: ['transaction.duration'],
-      query: stringifyQueryObject(conditions),
+      query: conditions.formatString(),
       projects: [],
     },
     location

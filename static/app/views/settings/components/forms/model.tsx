@@ -10,7 +10,7 @@ import {defined} from 'app/utils';
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
 
-export type FieldValue = string | number | boolean | undefined; //is undefined valid here?
+export type FieldValue = string | number | boolean | undefined; // is undefined valid here?
 
 export type FormOptions = {
   apiEndpoint?: string;
@@ -161,7 +161,7 @@ class FormModel {
    */
   @action
   setFieldDescriptor(id: string, props) {
-    //TODO(TS): add type to props
+    // TODO(TS): add type to props
     this.fieldDescriptor.set(id, props);
 
     // Set default value iff initialData for field is undefined
@@ -553,7 +553,7 @@ class FormModel {
         // 1) map of {[fieldName] => Array<ErrorMessages>}
         // 2) {'non_field_errors' => Array<ErrorMessages>}
         if (resp && resp.responseJSON) {
-          //non-field errors can be camelcase or snake case
+          // non-field errors can be camelcase or snake case
           const nonFieldErrors =
             resp.responseJSON.non_field_errors || resp.responseJSON.nonFieldErrors;
 
@@ -688,7 +688,7 @@ class FormModel {
 
     // Show resp msg from API endpoint if possible
     Object.keys(resp).forEach(id => {
-      //non-field errors can be camelcase or snake case
+      // non-field errors can be camelcase or snake case
       const nonFieldErrors = resp.non_field_errors || resp.nonFieldErrors;
       if (
         (id === 'non_field_errors' || id === 'nonFieldErrors') &&
@@ -729,7 +729,7 @@ class FormModel {
  * lot of functionality however.
  */
 export class MockModel {
-  //TODO(TS)
+  // TODO(TS)
   props: any;
 
   initialData: object;

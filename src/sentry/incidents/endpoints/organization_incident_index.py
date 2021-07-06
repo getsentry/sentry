@@ -1,3 +1,4 @@
+from dateutil.parser import parse as parse_date
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
@@ -17,6 +18,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.dates import ensure_aware
 
 from .utils import parse_team_params
 
@@ -63,11 +65,13 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_start = request.GET.get("start")
         if query_start is not None:
             # exclude incidents closed before the window
+            query_start = ensure_aware(parse_date(query_start))
             incidents = incidents.exclude(date_closed__lt=query_start)
 
         query_end = request.GET.get("end")
         if query_end is not None:
             # exclude incidents started after the window
+            query_end = ensure_aware(parse_date(query_end))
             incidents = incidents.exclude(date_started__gt=query_end)
 
         query_status = request.GET.get("status")

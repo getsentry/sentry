@@ -48,7 +48,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
     const {platform} = this.props.params;
 
-    //redirect if platform is not known.
+    // redirect if platform is not known.
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
@@ -112,7 +112,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
     }
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
-    //TODO: make dynamic when adding more integrations
+    // TODO: make dynamic when adding more integrations
     const docsLink = 'https://docs.sentry.io/product/integrations/aws-lambda/';
 
     return (

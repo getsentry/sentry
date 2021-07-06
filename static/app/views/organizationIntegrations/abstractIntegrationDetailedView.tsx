@@ -69,11 +69,11 @@ class AbstractIntegrationDetailedView<
     });
   }
 
-  /***
+  /**
    * Abstract methods defined below
    */
 
-  //The analytics type used in analytics which is snake case
+  // The analytics type used in analytics which is snake case
   get integrationType(): IntegrationType {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -90,11 +90,11 @@ class AbstractIntegrationDetailedView<
   }
 
   get alerts(): AlertType[] {
-    //default is no alerts
+    // default is no alerts
     return [];
   }
 
-  //Returns a list of the resources displayed at the bottom of the overview card
+  // Returns a list of the resources displayed at the bottom of the overview card
   get resourceLinks(): Array<{title: string; url: string}> {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -139,24 +139,24 @@ class AbstractIntegrationDetailedView<
     this.setState({tab: value});
   };
 
-  //Returns the string that is shown as the title of a tab
+  // Returns the string that is shown as the title of a tab
   getTabDisplay(tab: Tab): string {
-    //default is return the tab
+    // default is return the tab
     return tab;
   }
 
-  //Render the button at the top which is usually just an installation button
+  // Render the button at the top which is usually just an installation button
   renderTopButton(
-    _disabledFromFeatures: boolean, //from the feature gate
-    _userHasAccess: boolean //from user permissions
+    _disabledFromFeatures: boolean, // from the feature gate
+    _userHasAccess: boolean // from user permissions
   ): React.ReactElement {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
 
-  //Returns the permission descriptions, only use by Sentry Apps
+  // Returns the permission descriptions, only use by Sentry Apps
   renderPermissions(): React.ReactElement | null {
-    //default is don't render permissions
+    // default is don't render permissions
     return null;
   }
 
@@ -174,13 +174,13 @@ class AbstractIntegrationDetailedView<
     );
   }
 
-  //Returns the list of configurations for the integration
+  // Returns the list of configurations for the integration
   renderConfigurations() {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
 
-  /***
+  /**
    * Actually implemented methods below
    */
 
@@ -188,24 +188,24 @@ class AbstractIntegrationDetailedView<
     return this.props.params.integrationSlug;
   }
 
-  //Wrapper around trackIntegrationEvent that automatically provides many fields and the org
+  // Wrapper around trackIntegrationEvent that automatically provides many fields and the org
   trackIntegrationEvent = <T extends IntegrationAnalyticsKey>(
     eventKey: IntegrationAnalyticsKey,
     options?: Partial<IntegrationEventParameters[T]>
   ) => {
     options = options || {};
-    //If we use this intermediate type we get type checking on the things we care about
+    // If we use this intermediate type we get type checking on the things we care about
     const params = {
       view: 'integrations_directory_integration_detail',
       integration: this.integrationSlug,
       integration_type: this.integrationType,
-      already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here
+      already_installed: this.installationStatus !== 'Not Installed', // pending counts as installed here
       ...options,
     };
     trackIntegrationEvent(eventKey, params, this.props.organization);
   };
 
-  //Returns the props as needed by the hooks integrations:feature-gates
+  // Returns the props as needed by the hooks integrations:feature-gates
   get featureProps() {
     const {organization} = this.props;
     const featureData = this.featureData;
@@ -269,7 +269,7 @@ class AbstractIntegrationDetailedView<
     );
   }
 
-  //Returns the content shown in the top section of the integration detail
+  // Returns the content shown in the top section of the integration detail
   renderTopSection() {
     const tags = this.cleanTags();
 
@@ -296,9 +296,9 @@ class AbstractIntegrationDetailedView<
     );
   }
 
-  //Returns the tabs divider with the clickable tabs
+  // Returns the tabs divider with the clickable tabs
   renderTabs() {
-    //TODO: Convert to styled component
+    // TODO: Convert to styled component
     return (
       <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
         {this.tabs.map(tabName => (
@@ -314,7 +314,7 @@ class AbstractIntegrationDetailedView<
     );
   }
 
-  //Returns the information about the integration description and features
+  // Returns the information about the integration description and features
   renderInformationCard() {
     const {IntegrationDirectoryFeatureList} = getIntegrationFeatureGate();
 

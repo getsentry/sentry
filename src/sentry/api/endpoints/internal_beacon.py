@@ -18,7 +18,7 @@ class MetricsSerializer(serializers.Serializer):
         child=serializers.DictField(
             # This is intentionally a bit restrictive to limit the size of payloads (and abuse)
             # These metrics should not be sending complex payloads anyway
-            child=serializers.CharField(max_length=255),
+            child=serializers.CharField(max_length=1024),
             allow_empty=False,
         ),
         max_length=MAX_LENGTH,

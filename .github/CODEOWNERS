@@ -120,6 +120,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/organization_event_details.py         @getsentry/visibility
 /src/sentry/api/endpoints/organization_events.py                @getsentry/visibility
 /src/sentry/api/endpoints/organization_events_facets.py         @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/visibility
 /src/sentry/api/endpoints/organization_events_meta.py           @getsentry/visibility
 /src/sentry/api/endpoints/organization_events_stats.py          @getsentry/visibility
 /src/sentry/api/endpoints/organization_events_trace.py          @getsentry/visibility
@@ -213,3 +214,11 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/models/user.py                    @getsentry/data
 
 ### End of Data ###
+
+
+### Enterprise ###
+
+/src/sentry/scim/                            @getsentry/enterprise
+/tests/sentry/api/test_scim.py               @getsentry/enterprise
+
+## End of Enterprise ###

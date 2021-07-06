@@ -11,6 +11,9 @@ from sentry.models import (
     Activity,
     Deploy,
     ExternalActor,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
     Integration,
     NotificationSetting,
     Release,
@@ -93,13 +96,13 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
-        ExternalActor.objects.create(
-            actor=self.user.actor,
-            organization=self.organization,
-            integration=self.integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name="hellboy",
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )
         responses.add(
             method=responses.POST,
@@ -110,6 +113,115 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_multiple_identities(self, mock_func):
+        """
+        Test that we notify a user with multiple Identities in each place
+        """
+        integration2 = Integration.objects.create(
+            provider="slack",
+            name="Team B",
+            external_id="TXXXXXXX2",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration2.add_organization(self.organization, self.user)
+        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        identity2 = Identity.objects.create(
+            external_id="UXXXXXXX2",
+            idp=idp2,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        # create a second response
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        assert len(responses.calls) >= 2
+        data = parse_qs(responses.calls[0].request.body)
+        assert "channel" in data
+        channel = data["channel"][0]
+        assert channel == self.identity.external_id
+
+        data = parse_qs(responses.calls[1].request.body)
+        assert "channel" in data
+        channel = data["channel"][0]
+        assert channel == identity2.external_id
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_multiple_orgs(self, mock_func):
+        """
+        Test that if a user is in 2 orgs with Slack and has an Identity linked in each,
+        we're only going to notify them for the relevant org
+        """
+        org2 = self.create_organization(owner=self.user)
+        integration2 = Integration.objects.create(
+            provider="slack",
+            name="Team B",
+            external_id="TXXXXXXX2",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration2.add_organization(org2, self.user)
+        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        Identity.objects.create(
+            external_id="UXXXXXXX2",
+            idp=idp2,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        # create a second response that won't actually be used, but here to make sure it's not a false positive
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        assert len(responses.calls) == 1
+        data = parse_qs(responses.calls[0].request.body)
+        assert "channel" in data
+        channel = data["channel"][0]
+        assert channel == self.identity.external_id
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -416,13 +528,13 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         # sent once (to the team, and not to each individual user)
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        ExternalActor.objects.create(
-            actor=user2.actor,
-            organization=self.organization,
-            integration=self.integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name="goma",
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        self.identity = Identity.objects.create(
             external_id="UXXXXXXX2",
+            idp=self.idp,
+            user=user2,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -443,7 +555,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            project=self.project,
             team=self.team,
         )
 
@@ -484,18 +595,141 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_team_new_project(self, mock_func):
+        """Test that issue alerts are sent to a team in Slack when the team has added a new project"""
+
+        # add a second user to the team so we can be sure it's only
+        # sent once (to the team, and not to each individual user)
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        self.identity = Identity.objects.create(
+            external_id="UXXXXXXX2",
+            idp=self.idp,
+            user=user2,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user2,
+        )
+        # update the team's notification settings
+        ExternalActor.objects.create(
+            actor=self.team.actor,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="CXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            team=self.team,
+        )
+        # add a new project
+        project2 = self.create_project(
+            name="hellboy", organization=self.organization, teams=[self.team]
+        )
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=project2.id
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Team",
+            "targetIdentifier": str(self.team.id),
+        }
+        rule = Rule.objects.create(
+            project=project2,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
+
+        # check that only one was sent out - more would mean each user is being notified
+        # rather than the team
+        assert len(responses.calls) == 1
+
+        # check that the team got a notification
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["channel"] == ["CXXXXXXX2"]
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+        assert len(attachments) == 1
+        assert attachments[0]["title"] == "Hello world"
+        assert attachments[0]["text"] == ""
+        assert attachments[0]["footer"] == event.group.qualified_short_id
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_not_issue_alert_team_removed_project(self, mock_func):
+        """Test that issue alerts are not sent to a team in Slack when the team has removed the project the issue belongs to"""
+
+        # create the team's notification settings
+        ExternalActor.objects.create(
+            actor=self.team.actor,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="CXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            team=self.team,
+        )
+        # remove the project from the team
+        self.project.remove_team(self.team)
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Team",
+            "targetIdentifier": str(self.team.id),
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team_fallback(self, mock_func):
         """Test that issue alerts are sent to each member of a team in Slack."""
 
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        ExternalActor.objects.create(
-            actor=user2.actor,
-            organization=self.organization,
-            integration=self.integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name="goma",
+        self.identity = Identity.objects.create(
             external_id="UXXXXXXX2",
+            idp=self.idp,
+            user=user2,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,

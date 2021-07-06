@@ -310,7 +310,7 @@ class SAML2Provider(Provider):
             )
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
-        name = " ".join([_f for _f in name if _f])
+        name = " ".join(_f for _f in name if _f)
 
         return {
             "id": attributes[Attributes.IDENTIFIER],

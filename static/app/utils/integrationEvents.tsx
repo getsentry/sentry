@@ -1,6 +1,6 @@
 import {IntegrationType, PlatformType, SentryAppStatus} from 'app/types';
 
-//define the various event paylaods
+// define the various event paylaods
 type View = {
   view?:
     | 'external_install'
@@ -15,11 +15,11 @@ type View = {
 };
 
 type SingleIntegrationEventParams = {
-  integration: string; //the slug
+  integration: string; // the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
   plan?: string;
-  //include the status since people might do weird things testing unpublished integrations
+  // include the status since people might do weird things testing unpublished integrations
   integration_status?: SentryAppStatus;
   integration_tab?: 'configurations' | 'overview';
 } & View;
@@ -56,7 +56,7 @@ type IntegrationInstalltionInputValueChangeEventParams = {
   field_name: string;
 } & SingleIntegrationEventParams;
 
-//define the event key to payload mappings
+// define the event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
@@ -73,7 +73,7 @@ export type IntegrationEventParameters = {
   'integrations.resolve_now_clicked': SingleIntegrationEventParams;
   'integrations.request_install': SingleIntegrationEventParams;
   'integrations.code_mappings_viewed': SingleIntegrationEventParams;
-  'integrations.details_viewed': SingleIntegrationEventParams; //for an individual configuration
+  'integrations.details_viewed': SingleIntegrationEventParams; // for an individual configuration
   'integrations.index_viewed': MultipleIntegrationsEventParams;
   'integrations.directory_item_searched': IntegrationSearchEventParams;
   'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
@@ -94,7 +94,7 @@ export type IntegrationEventParameters = {
 
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
-//define the event key to event name mappings
+// define the event key to event name mappings
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',

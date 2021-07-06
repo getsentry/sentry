@@ -1,7 +1,5 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import SavedSearchesStore from 'app/stores/savedSearchesStore';
 import {SavedSearch} from 'app/types';
@@ -19,25 +17,31 @@ type State = {
 };
 
 /**
- * Currently wraps component with organization from context
+ * Wrap a component with saved issue search data from the store.
  */
-const withSavedSearches = <P extends InjectedSavedSearchesProps>(
+function withSavedSearches<P extends InjectedSavedSearchesProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<
+) {
+  class WithSavedSearches extends React.Component<
     Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>,
     State
-  >({
-    displayName: `withSavedSearches(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(SavedSearchesStore, 'onUpdate') as any],
+  > {
+    static displayName = `withSavedSearches(${getDisplayName(WrappedComponent)})`;
 
-    getInitialState() {
-      return SavedSearchesStore.get();
-    },
+    state = SavedSearchesStore.get();
 
-    onUpdate(newState) {
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = SavedSearchesStore.listen(
+      (searchesState: State) => this.onUpdate(searchesState),
+      undefined
+    );
+
+    onUpdate(newState: State) {
       this.setState(newState);
-    },
+    }
 
     render() {
       const {
@@ -76,6 +80,10 @@ const withSavedSearches = <P extends InjectedSavedSearchesProps>(
           savedSearch={savedSearchProp ?? savedSearch}
         />
       );
-    },
-  });
+    }
+  }
+
+  return WithSavedSearches;
+}
+
 export default withSavedSearches;

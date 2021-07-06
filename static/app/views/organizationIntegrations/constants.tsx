@@ -36,6 +36,7 @@ export const POPULARITY_WEIGHT: {
 
   // Sentry-apps
   amixr: 9,
+  calixa: 9,
   clickup: 9,
   clubhouse: 9,
   komodor: 9,
@@ -64,7 +65,7 @@ export const POPULARITY_WEIGHT: {
   'amazon-sqs': 2,
   splunk: 2,
 
-  //doc integrations
+  // doc integrations
   fullstory: 8,
   datadog: 8,
   netlify: 8,

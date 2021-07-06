@@ -36,7 +36,9 @@ export default function BackgroundSpace() {
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"
       viewBox="0 0 1160.08 280.01"
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMinYMin slice"
+      height="100%"
+      width="100%"
     >
       <defs>
         <linearGradient

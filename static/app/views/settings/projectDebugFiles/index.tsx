@@ -52,6 +52,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     const {organization, params, location} = this.props;
     const {builtinSymbolSources} = this.state || {};
     const {orgId, projectId} = params;
+    const {query} = location.query;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
@@ -59,7 +60,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         `/projects/${orgId}/${projectId}/files/dsyms/`,
         {
           query: {
-            query: location.query.query,
+            query,
             file_formats: [
               'breakpad',
               'macho',
@@ -162,14 +163,9 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
-    const {
-      loading,
-      showDetails,
-      builtinSymbolSources,
-      debugFiles,
-      debugFilesPageLinks,
-    } = this.state;
+    const {organization, project, router, location} = this.props;
+    const {loading, showDetails, builtinSymbolSources, debugFiles, debugFilesPageLinks} =
+      this.state;
     const {features} = organization;
 
     return (
@@ -189,6 +185,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             <PermissionAlert />
             <ExternalSources
               api={this.api}
+              location={location}
+              router={router}
               projectSlug={project.slug}
               organization={organization}
               symbolSources={

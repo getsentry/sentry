@@ -3,12 +3,14 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'app/actionCreators/globalSelection';
+import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
+import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
@@ -19,6 +21,7 @@ import TextOverflow from 'app/components/textOverflow';
 import {IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {defined} from 'app/utils';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -28,6 +31,7 @@ import AsyncView from 'app/views/asyncView';
 
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
+import ProjectFilters from './projectFilters';
 import ProjectIssues from './projectIssues';
 import ProjectLatestAlerts from './projectLatestAlerts';
 import ProjectLatestReleases from './projectLatestReleases';
@@ -80,7 +84,8 @@ class ProjectDetail extends AsyncView<Props, State> {
 
   async fetchSessionsExistence() {
     const {organization, location} = this.props;
-    const projectId = location.query.project;
+    const {project: projectId, query} = location.query;
+
     if (!projectId) {
       return;
     }
@@ -98,6 +103,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             field: 'sum(session)',
             statsPeriod: '90d',
             interval: '1d',
+            query,
           },
         }
       );
@@ -125,6 +131,31 @@ class ProjectDetail extends AsyncView<Props, State> {
         },
       });
     }
+  };
+
+  handleSearch = (query: string) => {
+    const {router, location} = this.props;
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query,
+      },
+    });
+  };
+
+  tagValueLoader = (key: string, search: string) => {
+    const {location, organization} = this.props;
+    const {project: projectId} = location.query;
+
+    return fetchTagValues(
+      this.api,
+      organization.slug,
+      key,
+      search,
+      projectId ? [projectId] : null,
+      location.query
+    );
   };
 
   syncProjectWithSlug() {
@@ -176,16 +207,11 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {
-      organization,
-      params,
-      location,
-      router,
-      loadingProjects,
-      selection,
-    } = this.props;
+    const {organization, params, location, router, loadingProjects, selection} =
+      this.props;
     const project = this.project;
     const {hasSessions} = this.state;
+    const {query} = location.query;
     const hasPerformance = organization.features.includes('performance-view');
     const hasTransactions = hasPerformance && project?.firstTransactionEvent;
     const isProjectStabilized = this.isProjectStabilized();
@@ -263,13 +289,28 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body>
               <StyledSdkUpdatesAlert />
+              <StyledGlobalAppStoreConnectUpdateAlert
+                project={project}
+                organization={organization}
+              />
               <Layout.Main>
+                <Feature features={['semver']} organization={organization}>
+                  <ProjectFiltersWrapper>
+                    <ProjectFilters
+                      query={query}
+                      onSearch={this.handleSearch}
+                      tagValueLoader={this.tagValueLoader}
+                    />
+                  </ProjectFiltersWrapper>
+                </Feature>
+
                 <ProjectScoreCards
                   organization={organization}
                   isProjectStabilized={isProjectStabilized}
                   selection={selection}
                   hasSessions={hasSessions}
                   hasTransactions={hasTransactions}
+                  query={query}
                 />
                 {isProjectStabilized && (
                   <Fragment>
@@ -285,12 +326,14 @@ class ProjectDetail extends AsyncView<Props, State> {
                         hasSessions={hasSessions}
                         hasTransactions={!!hasTransactions}
                         visibleCharts={visibleCharts}
+                        query={query}
                       />
                     ))}
                     <ProjectIssues
                       organization={organization}
                       location={location}
                       projectId={selection.projects[0]}
+                      query={query}
                       api={this.api}
                     />
                   </Fragment>
@@ -298,7 +341,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
-                <Feature features={['incidents']}>
+                <Feature features={['incidents']} organization={organization}>
                   <ProjectLatestAlerts
                     organization={organization}
                     projectSlug={params.projectId}
@@ -331,6 +374,10 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
+const ProjectFiltersWrapper = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-bottom: 0;
@@ -338,6 +385,16 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
 `;
 
 StyledSdkUpdatesAlert.defaultProps = {
+  Wrapper: p => <Layout.Main fullWidth {...p} />,
+};
+
+const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
   Wrapper: p => <Layout.Main fullWidth {...p} />,
 };
 

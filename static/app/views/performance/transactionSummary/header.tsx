@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -17,16 +18,22 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
+import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
+import TransactionThresholdModal, {
+  modalCss,
+  TransactionThresholdMetric,
+} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum Tab {
   TransactionSummary,
   RealUserMonitoring,
   Tags,
+  Events,
 }
 
 type Props = {
@@ -37,9 +44,13 @@ type Props = {
   transactionName: string;
   currentTab: Tab;
   hasWebVitals: boolean;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  transactionThreshold?: number;
+  transactionThresholdMetric?: TransactionThresholdMetric;
+  loadingThreshold?: boolean;
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -66,6 +77,15 @@ class TransactionHeader extends React.Component<Props> {
 
   trackTagsTabClick = () => {
     // TODO(k-fish): Add analytics for tags
+  };
+
+  trackEventsTabClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.events.events_tab_clicked',
+      eventName: 'Performance Views: Events tab clicked',
+      organization_id: organization.id,
+    });
   };
 
   handleIncompatibleQuery: React.ComponentProps<
@@ -118,14 +138,63 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  render() {
+  openModal() {
     const {
       organization,
-      location,
       transactionName,
-      currentTab,
-      hasWebVitals,
+      eventView,
+      transactionThreshold,
+      transactionThresholdMetric,
+      onChangeThreshold,
     } = this.props;
+    openModal(
+      modalProps => (
+        <TransactionThresholdModal
+          {...modalProps}
+          organization={organization}
+          transactionName={transactionName}
+          eventView={eventView}
+          transactionThreshold={transactionThreshold}
+          transactionThresholdMetric={transactionThresholdMetric}
+          onApply={onChangeThreshold}
+        />
+      ),
+      {modalCss, backdrop: 'static'}
+    );
+  }
+
+  renderSettingsButton() {
+    const {organization, loadingThreshold} = this.props;
+
+    return (
+      <Feature
+        organization={organization}
+        features={['project-transaction-threshold-override']}
+      >
+        {({hasFeature}) =>
+          hasFeature ? (
+            <Button
+              onClick={() => this.openModal()}
+              data-test-id="set-transaction-threshold"
+              icon={<IconSettings />}
+              disabled={loadingThreshold}
+              aria-label={t('Settings')}
+            />
+          ) : (
+            <Button
+              href={`/settings/${organization.slug}/performance/`}
+              icon={<IconSettings />}
+              aria-label={t('Settings')}
+            />
+          )
+        }
+      </Feature>
+    );
+  }
+
+  render() {
+    const {organization, location, transactionName, currentTab, hasWebVitals} =
+      this.props;
 
     const summaryTarget = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
@@ -142,6 +211,13 @@ class TransactionHeader extends React.Component<Props> {
     });
 
     const tagsTarget = tagsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
+    const eventsTarget = eventsRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transactionName,
       projectID: decodeScalar(location.query.project),
@@ -165,11 +241,7 @@ class TransactionHeader extends React.Component<Props> {
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
             {this.renderKeyTransactionButton()}
-            <Button
-              href={`/settings/${organization.slug}/performance/`}
-              icon={<IconSettings />}
-              aria-label="Settings"
-            />
+            {this.renderSettingsButton()}
           </ButtonBar>
         </Layout.HeaderActions>
         <React.Fragment>
@@ -196,6 +268,15 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTagsTabClick}
               >
                 {t('Tags')}
+              </ListLink>
+            </Feature>
+            <Feature features={['organizations:performance-events-page']}>
+              <ListLink
+                to={eventsTarget}
+                isActive={() => currentTab === Tab.Events}
+                onClick={this.trackEventsTabClick}
+              >
+                {t('All Events')}
               </ListLink>
             </Feature>
           </StyledNavTabs>

@@ -101,7 +101,7 @@ def dumps(value: JSONData, escape: bool = False, **kwargs) -> str:
     return _default_encoder.encode(value)
 
 
-def load(fp, **kwargs) -> str:
+def load(fp, **kwargs) -> JSONData:
     return loads(fp.read())
 
 

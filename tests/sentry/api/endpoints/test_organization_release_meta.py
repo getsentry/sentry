@@ -84,3 +84,32 @@ class ReleaseMetaTest(APITestCase):
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
         assert len(data["projects"]) == 2
+
+    def test_artifact_count(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        self.create_release_archive(release=release.version)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-meta",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+
+        data = json.loads(response.content)
+        assert data["releaseFileCount"] == 2

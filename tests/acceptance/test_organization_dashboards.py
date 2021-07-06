@@ -6,17 +6,16 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:dashboards-basic",
-    "organizations:dashboards-edit",
 ]
 
-MANAGE_DASHBOARDS = ["organizations:dashboards-manage"]
+EDIT_FEATURE = ["organizations:dashboards-edit"]
 
 
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         min_ago = iso_format(before_now(minutes=1))
-        self.default_path = f"/organizations/{self.organization.slug}/dashboards/"
+        self.default_path = f"/organizations/{self.organization.slug}/dashboard/default-overview/"
         self.store_event(
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,
@@ -34,14 +33,13 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.snapshot("dashboards - default overview")
 
     def test_view_dashboard_with_manager(self):
-        with self.feature(FEATURE_NAMES + MANAGE_DASHBOARDS):
-            path = f"/organizations/{self.organization.slug}/dashboard/default-overview/"
-            self.browser.get(path)
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.browser.get(self.default_path)
             self.wait_until_loaded()
-            self.browser.snapshot("dashboards - default overview manage CTA")
+            self.browser.snapshot("dashboards - default overview manager")
 
     def test_edit_dashboard(self):
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
 
@@ -50,7 +48,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.snapshot("dashboards - edit state")
 
     def test_add_widget(self):
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
 
@@ -64,7 +62,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.snapshot("dashboards - add widget")
 
     def test_edit_widget(self):
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
 
@@ -111,7 +109,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_dashboard_manager(self):
-        with self.feature(FEATURE_NAMES + MANAGE_DASHBOARDS):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
             self.browser.snapshot("dashboards - manage overview")

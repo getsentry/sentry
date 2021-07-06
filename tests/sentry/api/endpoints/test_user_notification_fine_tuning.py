@@ -16,7 +16,7 @@ class UserNotificationFineTuningTestBase(APITestCase):
         self.login_as(user=self.user)
 
     def test_invalid_notification_type(self):
-        """ This is run twice because of inheritance. """
+        """This is run twice because of inheritance."""
         self.get_valid_response("me", "invalid", status_code=404)
 
 
