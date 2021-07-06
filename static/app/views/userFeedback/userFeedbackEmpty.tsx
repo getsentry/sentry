@@ -102,7 +102,7 @@ class UserFeedbackEmpty extends Component<Props> {
                 eventName: 'User Feedback Docs Clicked',
               })
             }
-            href={`https://docs.sentry.io/platform-redirect/?next=/enriching-events/user-feedback/&platform=${this.selectedProjects[0]?.platform}`}
+            href="https://docs.sentry.io/product/user-feedback/"
           >
             {t('Read the docs')}
           </Button>
