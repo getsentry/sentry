@@ -20,6 +20,7 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  isAggregateEquation,
   isEquation,
   isMeasurement,
   isSpanOperationBreakdownField,
@@ -250,7 +251,9 @@ export function getExpandedResults(
       // if expanding the function failed
       column === null ||
       // the new column is already present
-      fieldSet.has(column.field)
+      fieldSet.has(column.field) ||
+      // Skip aggregate equations, their functions will already be added so we just want to remove it
+      isAggregateEquation(field.field)
     ) {
       return null;
     }

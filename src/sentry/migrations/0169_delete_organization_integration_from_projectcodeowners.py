@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_projectcodeowners" ADD COLUMN "organization_integration_id" bigint NULL;
                     """,
+                    hints={"tables": ["sentry_projectcodeowners"]},
                 )
             ],
             state_operations=[],

@@ -5,7 +5,6 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -25,14 +24,14 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, DateString, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
-import Timeline from 'app/views/alerts/rules/details/timeline';
 import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
   Trigger,
-} from 'app/views/settings/incidentRules/types';
-import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
+} from 'app/views/alerts/incidentRules/types';
+import {extractEventTypeFilterFromRule} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
+import Timeline from 'app/views/alerts/rules/details/timeline';
 
 import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
@@ -188,14 +187,12 @@ export default class DetailsBody extends React.Component<Props> {
         <SidebarGroup>
           <Heading>{t('Other Details')}</Heading>
           <KeyValueTable>
-            <Feature features={['organizations:team-alerts-ownership']}>
-              <KeyValueTableRow
-                keyName={t('Team')}
-                value={
-                  teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
-                }
-              />
-            </Feature>
+            <KeyValueTableRow
+              keyName={t('Team')}
+              value={
+                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+              }
+            />
 
             {rule.createdBy && (
               <KeyValueTableRow

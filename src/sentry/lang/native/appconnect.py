@@ -5,7 +5,6 @@ this.
 """
 
 import dataclasses
-import enum
 import io
 import logging
 import pathlib
@@ -220,13 +219,6 @@ class AppStoreConnectConfig:
         return all_sources
 
 
-@enum.unique
-class BuildKind(enum.Enum):
-    ALL = 1
-    PRE_RELEASE = 2
-    RELEASE = 3
-
-
 @dataclasses.dataclass(frozen=True)
 class BuildInfo:
     """Information about an App Store Connect build.
@@ -234,9 +226,6 @@ class BuildInfo:
     A build is identified by the tuple of (app_id, platform, version, build_number), though
     Apple mostly names these differently.
     """
-
-    # The kind of build, either PRE_RELEASE or RELEASE
-    kind: BuildKind
 
     # The app ID
     app_id: str
@@ -345,53 +334,21 @@ class AppConnectClient:
         """
         return ITunesClient(itunes_cookie=self._itunes_cookie, itunes_org=self._itunes_org)
 
-    def list_builds(self, kind: BuildKind = BuildKind.ALL) -> List[BuildInfo]:
-        """Returns the available builds, grouped by release.
-
-        :param kind: Whether to only query pre-releases or only releases or all.
-        :param bundle: The bundle ID, e.g. ``io.sentry.sample.iOS-Swift``.
-        """
-        if kind == BuildKind.PRE_RELEASE:
-            ret = appstore_connect.get_pre_release_version_info(
-                self._session, self._api_credentials, self._app_id
-            )
-            all_results = {"pre_releases": ret}
-        elif kind == BuildKind.RELEASE:
-            ret = appstore_connect.get_release_version_info(
-                self._session, self._api_credentials, self._app_id
-            )
-            all_results = {"releases": ret}
-        else:
-            all_results = appstore_connect.get_build_info(
-                self._session, self._api_credentials, self._app_id
-            )
+    def list_builds(self) -> List[BuildInfo]:
+        """Returns the available AppStore builds."""
 
         builds = []
-        for kind_name, results in all_results.items():
-            if kind_name == "pre_releases":
-                kind = BuildKind.PRE_RELEASE
-            else:
-                kind = BuildKind.RELEASE
-
-            for release in results:
-                for build in release["versions"]:
-                    build = BuildInfo(
-                        kind=kind,
-                        app_id=self._app_id,
-                        platform=release["platform"],
-                        version=release["short_version"],
-                        build_number=build["version"],
-                    )
-                    builds.append(build)
-
-        def _try_int(x: str) -> int:
-            try:
-                return int(x)
-            except ValueError:
-                return 0
-
-        # We sort the builds by their "build_number" (version), so that we fetch
-        # newer builds first.
-        builds.sort(key=lambda x: _try_int(x.build_number), reverse=True)
+        all_results = appstore_connect.get_build_info(
+            self._session, self._api_credentials, self._app_id
+        )
+        for build in all_results:
+            builds.append(
+                BuildInfo(
+                    app_id=self._app_id,
+                    platform=build["platform"],
+                    version=build["version"],
+                    build_number=build["build_number"],
+                )
+            )
 
         return builds

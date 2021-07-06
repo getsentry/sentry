@@ -141,7 +141,7 @@ function generateTagsEventView(
   }
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
       version: 2,
@@ -152,6 +152,10 @@ function generateTagsEventView(
     },
     location
   );
+
+  eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+  eventView.additionalConditions.setTagValues('transaction', [transactionName]);
+  return eventView;
 }
 
 export default withGlobalSelection(withProjects(withOrganization(TransactionTags)));

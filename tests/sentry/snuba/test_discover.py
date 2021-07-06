@@ -5,7 +5,10 @@ import pytest
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import ProjectTransactionThreshold
-from sentry.models.transaction_threshold import TransactionMetric
+from sentry.models.transaction_threshold import (
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+)
 from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
@@ -298,6 +301,81 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert [item["timestamp.to_day"] for item in data] == [
                 f"{iso_format(day)}+00:00"
             ], query_fn
+
+    def test_user_display(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        # `user.display` should give `ip`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"ip_address": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert {item["user.display"] for item in data} == {
+                "bruce@example.com",
+                "brucew",
+                "127.0.0.1",
+            }
+
+    def test_user_display_filter(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="has:user.display user.display:bruce@example.com",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
@@ -1436,7 +1514,7 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_project_threshold_config_alias(self, mock_query):
+    def test_threshold_config_selected_with_project_threshold_configured(self, mock_query):
         mock_query.return_value = {
             "meta": [
                 {"name": "transaction"},
@@ -1496,6 +1574,280 @@ class QueryTransformTest(TestCase):
                                 [
                                     "indexOf",
                                     [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_threshold_config_selected_with_txn_threshold_configured(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction/threshold",
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                                0,
+                            ],
+                        ],
+                        ["tuple", ["'duration'", 300]],
+                        [
+                            "arrayElement",
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_threshold_config_selected_with_project_and_txn_thresholds_configured(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction/threshold",
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        ProjectTransactionThreshold.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                                0,
+                            ],
+                        ],
+                        [
+                            "if",
+                            [
+                                [
+                                    "equals",
+                                    [
+                                        [
+                                            "indexOf",
+                                            [
+                                                ["array", [["toUInt64", [self.project.id]]]],
+                                                "project_id",
+                                            ],
+                                        ],
+                                        0,
+                                    ],
+                                ],
+                                ["tuple", ["'duration'", 300]],
+                                [
+                                    "arrayElement",
+                                    [
+                                        ["array", [["tuple", ["'duration'", 200]]]],
+                                        [
+                                            "indexOf",
+                                            [
+                                                ["array", [["toUInt64", [self.project.id]]]],
+                                                "project_id",
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        [
+                            "arrayElement",
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
                                 ],
                             ],
                         ],

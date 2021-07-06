@@ -1,11 +1,11 @@
 ---
-created: '2021-06-23T18:06:09.995148Z'
+created: '2021-06-30T16:44:01.690590Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "65b492dd57da1268ca7868e104b2067d"
-  tree_label: "doFrame | doTraversal | onLayout"
+  tree_label: "onLayout | doTraversal | doFrame"
   component:
     app-depth-1*
       exception*
@@ -47,7 +47,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "81103d430ba24ccad51cdbf81de2297a"
-  tree_label: "<entire stacktrace>"
+  tree_label: "getChildAt | getUnfilteredChildAt | offsetPositionRecordsForInsert | offsetPositionsForAdd | consumeUpdatesInOnePass | processAdapterUpdatesAndSetAnimationFlags | dispatchLayoutStep1 | dispatchLayout | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | performLayout | performTraversals | doTraversal | run | run | doCallbacks | doFrame | run | handleCallback | dispatchMessage | loop | main | invoke | invoke | run | main"
   component:
     app-depth-max*
       exception*
@@ -831,7 +831,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "81103d430ba24ccad51cdbf81de2297a"
-  tree_label: "<entire stacktrace>"
+  tree_label: "getChildAt | getUnfilteredChildAt | offsetPositionRecordsForInsert | offsetPositionsForAdd | consumeUpdatesInOnePass | processAdapterUpdatesAndSetAnimationFlags | dispatchLayoutStep1 | dispatchLayout | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | setChildFrame | layoutVertical | onLayout | layout | layout | layoutChildren | onLayout | layout | layout | performLayout | performTraversals | doTraversal | run | run | doCallbacks | doFrame | run | handleCallback | dispatchMessage | loop | main | invoke | invoke | run | main"
   component:
     system*
       exception*

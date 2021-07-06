@@ -78,6 +78,7 @@ type State = {
 
 class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
+  shouldRenderBadRequests = true;
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
@@ -300,7 +301,7 @@ class ReleasesList extends AsyncView<Props, State> {
       organization.slug,
       key,
       search,
-      [projectId],
+      projectId ? [projectId] : null,
       location.query
     );
   };
@@ -317,6 +318,10 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderLoading() {
+    return this.renderBody();
+  }
+
+  renderError() {
     return this.renderBody();
   }
 
@@ -510,7 +515,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {releases, reloading} = this.state;
+    const {releases, reloading, error} = this.state;
 
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
@@ -571,7 +576,9 @@ class ReleasesList extends AsyncView<Props, State> {
               activeStatus === StatusOption.ARCHIVED &&
               !!releases?.length && <ReleaseArchivedNotice multi />}
 
-            {this.renderInnerBody(activeDisplay)}
+            {error
+              ? super.renderError(new Error('Unable to load all required endpoints'))
+              : this.renderInnerBody(activeDisplay)}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>

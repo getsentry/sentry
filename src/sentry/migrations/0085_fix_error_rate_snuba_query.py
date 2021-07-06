@@ -35,5 +35,9 @@ class Migration(migrations.Migration):
     dependencies = [("sentry", "0084_exported_data_blobs")]
 
     operations = [
-        migrations.RunPython(fix_error_rate_snuba_queries, reverse_code=migrations.RunPython.noop)
+        migrations.RunPython(
+            fix_error_rate_snuba_queries,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_snubaquery"]},
+        )
     ]

@@ -71,7 +71,6 @@ from sentry.reprocessing2 import (
     save_unprocessed_event,
 )
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -707,15 +706,15 @@ def _materialize_metadata_many(jobs):
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         job["event_metadata"] = dict(event_metadata)
-        data.update(materialize_metadata(data, event_type, event_metadata))
 
         # In save_aggregate we store current_tree_label for the group metadata,
         # and finest_tree_label for the event's own title.
 
         finest_tree_label = get_path(data, "hierarchical_tree_labels", -1)
         if finest_tree_label is not None:
-            job["data"]["metadata"]["finest_tree_label"] = finest_tree_label
+            event_metadata["finest_tree_label"] = finest_tree_label
 
+        data.update(materialize_metadata(data, event_type, event_metadata))
         job["culprit"] = data["culprit"]
 
 
@@ -1630,9 +1629,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-            normalize_stacktraces_for_grouping(
-                event.data.data, load_grouping_config(grouping_config)
-            )
+            event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the

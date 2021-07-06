@@ -1,28 +1,28 @@
 ---
-created: '2021-06-23T18:06:10.071705Z'
+created: '2021-06-30T16:44:01.946666Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "54990400a84ec9035d4608470ba05b48"
+  hash: "df30c081c8ab27eecf8395e0a0ab0e5d"
   tree_label: "abort | amdradeonx5000gldriver | glTexSubImage2D"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
-            function*
-              "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "amdradeonx5000gldriver"
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glTexSubImage2D"
             package (ignored because function takes precedence)
               "libgl.dylib"
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+            package* (used as fallback because function name is not available)
+              "amdradeonx5000gldriver"
+          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -30,7 +30,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "0a16eff3ac6acb7f1b7926d65019e155"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | amdradeonx5000gldriver | gpusSubmitDataBuffers | amdradeonx5000gldriver | gleTextureImagePut | glTexSubImage2D_Exec | glTexSubImage2D | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | -[NSRunLoop(NSRunLoop) runMode:beforeDate:] | code | code | code | code | code | code | code | code | code | code | code | code | code | start"
   component:
     app-depth-max*
       exception*
@@ -219,7 +219,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "0a16eff3ac6acb7f1b7926d65019e155"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | amdradeonx5000gldriver | gpusSubmitDataBuffers | amdradeonx5000gldriver | gleTextureImagePut | glTexSubImage2D_Exec | glTexSubImage2D | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | -[NSRunLoop(NSRunLoop) runMode:beforeDate:] | code | code | code | code | code | code | code | code | code | code | code | code | code | start"
   component:
     system*
       exception*
