@@ -21,7 +21,7 @@ class UpdateUserReportTest(TestCase):
         )
 
         with self.tasks():
-            update_user_reports()
+            update_user_reports(max_events=2)
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
         report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
