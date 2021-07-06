@@ -142,7 +142,7 @@ export type ChartStats = {
   accepted: NonNullable<EChartOption.SeriesBar['data']>;
   dropped: NonNullable<EChartOption.SeriesBar['data']>;
   projected: NonNullable<EChartOption.SeriesBar['data']>;
-  filtered: NonNullable<EChartOption.SeriesBar['data']>;
+  filtered?: NonNullable<EChartOption.SeriesBar['data']>;
 };
 
 export class UsageChart extends React.Component<Props, State> {
@@ -365,7 +365,7 @@ export class UsageChart extends React.Component<Props, State> {
       });
     }
 
-    if (chartData.filtered.length > 0) {
+    if (chartData.filtered && chartData.filtered.length > 0) {
       legend.push({
         name: SeriesTypes.FILTERED,
       });
