@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
@@ -77,7 +78,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
     }
   };
 
-  addFile = async (ignoreMissing: boolean) => {
+  addFile = async () => {
     const {organization, project, codeMappings} = this.props;
     const {codeownerFile, codeMappingId} = this.state;
 
@@ -85,14 +86,11 @@ class AddCodeOwnerModal extends Component<Props, State> {
       const postData: {
         codeMappingId: string | null;
         raw: string;
-        ignoreMissing?: boolean;
       } = {
         codeMappingId,
         raw: codeownerFile.raw,
       };
-      if (ignoreMissing) {
-        postData.ignoreMissing = true;
-      }
+
       try {
         const data = await this.props.api.requestPromise(
           `/projects/${organization.slug}/${project.slug}/codeowners/`,
@@ -105,8 +103,19 @@ class AddCodeOwnerModal extends Component<Props, State> {
           mapping => mapping.id === codeMappingId?.toString()
         );
         this.handleAddedFile({...data, codeMapping});
-      } catch (_err) {
-        this.setState({error: true, errorJSON: _err.responseJSON, isLoading: false});
+      } catch (err) {
+        if (err.responseJSON.raw) {
+          this.setState({error: true, errorJSON: err.responseJSON, isLoading: false});
+        } else {
+          addErrorMessage(
+            t(
+              Object.entries(err.responseJSON)
+                .map(([_, value]) => value)
+                .flat()
+                .join(' ')
+            )
+          );
+        }
       }
     }
   };
@@ -252,25 +261,14 @@ class AddCodeOwnerModal extends Component<Props, State> {
           )}
         </Body>
         <Footer>
-          {error && errorJSON ? (
-            <Button
-              disabled={codeownerFile ? false : true}
-              label={t('Add and Skip Missing Associations')}
-              priority="primary"
-              onClick={() => this.addFile(true)}
-            >
-              {t('Add and Skip Missing Associations')}
-            </Button>
-          ) : (
-            <Button
-              disabled={codeownerFile ? false : true}
-              label={t('Add File')}
-              priority="primary"
-              onClick={() => this.addFile(false)}
-            >
-              {t('Add File')}
-            </Button>
-          )}
+          <Button
+            disabled={codeownerFile ? false : true}
+            label={t('Add File')}
+            priority="primary"
+            onClick={this.addFile}
+          >
+            {t('Add File')}
+          </Button>
         </Footer>
       </Fragment>
     );

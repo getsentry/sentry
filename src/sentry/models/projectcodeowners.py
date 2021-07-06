@@ -53,3 +53,55 @@ class ProjectCodeOwners(DefaultFieldsModel):
                 codeowners = False
             cache.set(cache_key, codeowners, READ_CACHE_DURATION)
         return codeowners or None
+
+    @classmethod
+    def validate_codeowners_associations(self, attrs, project):
+        from sentry.api.endpoints.project_codeowners import validate_association
+        from sentry.models import ExternalActor, UserEmail, actor_type_to_string
+        from sentry.ownership.grammar import parse_code_owners
+
+        # Get list of team/user names from CODEOWNERS file
+        team_names, usernames, emails = parse_code_owners(getattr(attrs, "raw", ""))
+
+        # Check if there exists Sentry users with the emails listed in CODEOWNERS
+        user_emails = UserEmail.objects.filter(
+            email__in=emails,
+            user__sentry_orgmember_set__organization=project.organization,
+        )
+
+        # Check if the usernames/teamnames have an association
+        external_actors = ExternalActor.objects.filter(
+            external_name__in=usernames + team_names,
+            organization=project.organization,
+        )
+
+        # Convert CODEOWNERS into IssueOwner syntax
+        users_dict = {}
+        teams_dict = {}
+        teams_without_access = []
+        for external_actor in external_actors:
+            type = actor_type_to_string(external_actor.actor.type)
+            if type == "user":
+                user = external_actor.actor.resolve()
+                users_dict[external_actor.external_name] = user.email
+            elif type == "team":
+                team = external_actor.actor.resolve()
+                # make sure the sentry team has access to the project
+                # tied to the codeowner
+                if project in team.get_projects():
+                    teams_dict[external_actor.external_name] = f"#{team.slug}"
+                else:
+                    teams_without_access.append(f"#{team.slug}")
+
+        emails_dict = {email: email for email in emails}
+        associations = {**users_dict, **teams_dict, **emails_dict}
+
+        errors = {
+            "missing_user_emails": validate_association(emails, user_emails, "emails"),
+            "missing_external_users": validate_association(usernames, external_actors, "usernames"),
+            "missing_external_teams": validate_association(
+                team_names, external_actors, "team names"
+            ),
+            "teams_without_access": teams_without_access,
+        }
+        return associations, errors

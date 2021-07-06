@@ -52,4 +52,9 @@ class ProjectCodeOwnersSerializer(Serializer):
         if "ownershipSyntax" in self.expand:
             data["ownershipSyntax"] = convert_schema_to_rules_text(obj.schema)
 
+        if "errors" in self.expand:
+            # _, errors = validate_codeowners_associations(obj, obj.project)
+            _, errors = ProjectCodeOwners.validate_codeowners_associations(obj, obj.project)
+            data["errors"] = errors
+
         return data

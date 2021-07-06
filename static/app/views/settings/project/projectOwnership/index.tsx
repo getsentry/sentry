@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 
 import {openEditOwnershipRules, openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -121,6 +123,84 @@ tags.sku_class:enterprise #enterprise`;
     this.setState({codeowners: newCodeowners});
   };
 
+  renderCodeOwnerErrors = () => {
+    const {project, organization} = this.props;
+    const {codeowners} = this.state;
+
+    const errMessageComponent = (message, values, link, linkValue) => (
+      <Fragment>
+        <ErrorMessageContainer>
+          <span>{message}</span>
+          <b>{values.join(', ')}</b>
+        </ErrorMessageContainer>
+        <ErrorCtaContainer>
+          <ExternalLink href={link}>{linkValue}</ExternalLink>
+        </ErrorCtaContainer>
+      </Fragment>
+    );
+
+    return (codeowners || [])
+      .filter(({errors}) => Object.values(errors).flat().length)
+      .map(({id, codeMapping, errors}) => {
+        const errMessage = (type, values) => {
+          switch (type) {
+            case 'missing_external_teams':
+              return errMessageComponent(
+                `The following teams do not have an association in the organization: ${organization.slug}`,
+                values,
+                `/settings/${organization.slug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`,
+                'Configure Team Mappings'
+              );
+
+            case 'missing_external_users':
+              return errMessageComponent(
+                `The following usernames do not have an association in the organization: ${organization.slug}`,
+                values,
+                `/settings/${organization.slug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=userMappings`,
+                'Configure User Mappings'
+              );
+
+            case 'missing_user_emails':
+              return errMessageComponent(
+                `The following emails do not have an Sentry user in the organization: ${organization.slug}`,
+                values,
+                `/settings/${organization.slug}/members/`,
+                'Invite Users'
+              );
+
+            case 'teams_without_access':
+              return values.map(value =>
+                errMessageComponent(
+                  `The following team do not have access to the project: ${project.slug}`,
+                  [value],
+                  `/settings/${organization.slug}/teams/${value.slice(1)}/projects/`,
+                  `Configure ${value} Team Permissions`
+                )
+              );
+            default:
+              return null;
+          }
+        };
+        return (
+          <Alert
+            key={id}
+            type="error"
+            icon={<IconWarning size="md" />}
+            expand={Object.entries(errors)
+              .filter(([_, values]) => values.length)
+              .map(([type, values]) => (
+                <ErrorContainer key={`${id}-${type}`}>
+                  {errMessage(type, values)}
+                </ErrorContainer>
+              ))}
+          >
+            {`There were ${
+              Object.values(errors).flat().length
+            } ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
+          </Alert>
+        );
+      });
+  };
   renderBody() {
     const {project, organization} = this.props;
     const {ownership, codeowners} = this.state;
@@ -156,6 +236,7 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <PermissionAlert />
+        {this.renderCodeOwnerErrors()}
         <RulesPanel
           data-test-id="issueowners-panel"
           type="issueowners"
@@ -235,4 +316,23 @@ export default ProjectOwnership;
 
 const CodeOwnerButton = styled(Button)`
   margin-left: ${space(1)};
+`;
+
+const ErrorContainer = styled('div')`
+  display: grid;
+  grid-template-areas: 'message cta';
+  grid-template-columns: 2fr 1fr;
+  gap: ${space(2)};
+  padding: ${space(1.5)} 0;
+`;
+
+const ErrorMessageContainer = styled('div')`
+  grid-area: message;
+  display: grid;
+  gap: ${space(1.5)};
+`;
+
+const ErrorCtaContainer = styled('div')`
+  grid-area: cta;
+  justify-self: flex-end;
 `;
