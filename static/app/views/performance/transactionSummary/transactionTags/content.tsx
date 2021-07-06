@@ -136,10 +136,10 @@ const InnerContent = (
   };
 
   useEffect(() => {
-    if (initialTag && !tagSelected) {
+    if (!decodedTagFromOptions) {
       changeTagSelected(initialTag);
     }
-  }, [initialTag]);
+  }, [decodedTagFromOptions]);
 
   const handleSearch = (query: string) => {
     const queryParams = getParams({
