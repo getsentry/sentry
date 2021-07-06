@@ -205,7 +205,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
                     project_codeowners,
                     request.user,
                     serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(
-                        expand=["ownershipSyntax"]
+                        expand=["ownershipSyntax", "errors"]
                     ),
                 ),
                 status=status.HTTP_201_CREATED,

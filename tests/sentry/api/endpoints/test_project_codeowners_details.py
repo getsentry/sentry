@@ -80,11 +80,14 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                "The following usernames do not have an association in Sentry: @AnotherUser.\nThe following team names do not have an association in Sentry: @getsentry/frontend, @getsentry/docs."
-            ]
+        assert response.status_code == 200
+        assert response.data["id"] == str(self.codeowners.id)
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["errors"] == {
+            "missing_external_teams": ["@getsentry/frontend", "@getsentry/docs"],
+            "missing_external_users": ["@AnotherUser"],
+            "missing_user_emails": [],
+            "teams_without_access": [],
         }
 
     def test_invalid_code_mapping_id_update(self):
