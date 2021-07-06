@@ -41,6 +41,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
@@ -756,6 +757,20 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             expanded={showEmbeddedChildren}
             onClick={() => {
               if (toggleEmbeddedChildren) {
+                if (showEmbeddedChildren) {
+                  trackAnalyticsEvent({
+                    eventKey: 'span_view.embedded_child.hide',
+                    eventName: 'Span View: Hide Embedded Transaction',
+                    organization_id: parseInt(organization.id, 10),
+                  });
+                } else {
+                  trackAnalyticsEvent({
+                    eventKey: 'span_view.embedded_child.show',
+                    eventName: 'Span View: Show Embedded Transaction',
+                    organization_id: parseInt(organization.id, 10),
+                  });
+                }
+
                 toggleEmbeddedChildren({
                   orgSlug: organization.slug,
                   eventSlug: generateEventSlug({
