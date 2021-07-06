@@ -312,39 +312,18 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   display: grid;
-  ${p =>
-    p.hasAdoptionStages
-      ? `
-      grid-template-columns: 1fr 1.4fr 0.5fr 0.6fr 0.7fr;
-    `
-      : `
-      grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
-    `}
+  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    ${p =>
-      p.hasAdoptionStages
-        ? `
-      grid-template-columns: 1fr 1fr 0.5fr 1fr 0.5fr 0.5fr 0.5fr;
-    `
-        : `
-      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-    `}
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    ${p =>
-      p.hasAdoptionStages
-        ? `
-      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 0.5fr 0.5fr 0.6fr;
-    `
-        : `
-      grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
-    `}
+    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
