@@ -129,7 +129,7 @@ function Grouping({api, groupId, location, organization, router}: Props) {
 
     router.replace({
       pathname: location.pathname,
-      query: {...location.query, level: activeGroupingLevel},
+      query: {...location.query, cursor: undefined, level: activeGroupingLevel},
     });
   }
 
