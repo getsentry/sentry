@@ -169,8 +169,7 @@ def load_data(
     # Generate a timestamp in the present.
     if timestamp is None:
         timestamp = before_now(minutes=1)
-    else:
-        timestamp = timestamp.replace(tzinfo=pytz.utc)
+    timestamp = timestamp.replace(tzinfo=pytz.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))
 
     if data.get("type") == "transaction":
