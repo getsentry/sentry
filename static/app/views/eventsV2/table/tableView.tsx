@@ -205,9 +205,9 @@ class TableView extends React.Component<TableViewProps> {
       ? eventView.getEquations()[getEquationAliasIndex(column.name)]
       : column.name;
     const title = (
-      <Tooltip title={titleText}>
+      <StyledTooltip title={titleText}>
         <Truncate value={titleText} maxLength={60} expandable={false} />
-      </Tooltip>
+      </StyledTooltip>
     );
 
     return (
@@ -504,6 +504,10 @@ class TableView extends React.Component<TableViewProps> {
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: initial;
 `;
 
 const StyledLink = styled(Link)`
