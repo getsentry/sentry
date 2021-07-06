@@ -1010,7 +1010,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user)",
             ],
             "query": "event.type:transaction",
-            project: project_ids,
+            "project": project_ids,
         }
 
         response = self.do_request(
@@ -1063,7 +1063,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user)",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1165,7 +1165,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "apdex()",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1237,7 +1237,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "user_misery()",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1313,7 +1313,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             ],
             "query": "event.type:transaction",
             "orderby": "transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         response = self.do_request(
