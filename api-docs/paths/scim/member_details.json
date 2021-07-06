@@ -37,7 +37,7 @@
                                 "schemas": [
                                     "urn:ietf:params:scim:schemas:core:2.0:User"
                                 ],
-                                "id": 102,
+                                "id": "102",
                                 "userName": "test.user@okta.local",
                                 "emails": [
                                     {
