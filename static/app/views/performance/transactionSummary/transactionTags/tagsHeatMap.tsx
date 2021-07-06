@@ -33,9 +33,11 @@ import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {TableData as TagTableData} from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'app/utils/performance/segmentExplorer/tagTransactionsQuery';
+import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 
 import {getPerformanceDuration, PerformanceDuration} from '../../utils';
+import {eventsRouteWithQuery} from '../transactionEvents/utils';
 import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo} from './utils';
@@ -102,8 +104,10 @@ const TagsHeatMap = (
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
+  const [transactionEventView, setTransactionEventView] = useState<
+    EventView | undefined
+  >();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  const [transactionEventView, setTransactionEventView] = useState<EventView>(eventView);
 
   if (!tableData || !tableData.data || !tableData.data.length) {
     return null;
@@ -318,60 +322,90 @@ const TagsHeatMap = (
                               alignMenu="right"
                               blendCorner={false}
                             >
-                              <TagTransactionsQuery
-                                query={transactionEventView.getQueryWithAdditionalConditions()}
-                                location={location}
-                                eventView={transactionEventView}
-                                orgSlug={organization.slug}
-                                limit={3}
-                                referrer="api.performance.tag-page"
-                              >
-                                {({
-                                  isLoading: isTransactionsLoading,
-                                  tableData: transactionTableData,
-                                }) => {
-                                  return (
-                                    <React.Fragment>
-                                      {isTransactionsLoading ? (
-                                        <LoadingContainer>
-                                          <LoadingIndicator size={40} hideMessage />
-                                        </LoadingContainer>
-                                      ) : (
-                                        <div>
-                                          {!transactionTableData.data.length ? (
-                                            <Placeholder />
-                                          ) : null}
-                                          {transactionTableData.data.map(row => {
-                                            const target = generateTransactionLink(
-                                              transactionName
-                                            )(organization, row, location.query);
-                                            return (
+                              {transactionEventView ? (
+                                <TagTransactionsQuery
+                                  query={transactionEventView.getQueryWithAdditionalConditions()}
+                                  location={location}
+                                  eventView={transactionEventView}
+                                  orgSlug={organization.slug}
+                                  limit={4}
+                                  referrer="api.performance.tag-page"
+                                >
+                                  {({
+                                    isLoading: isTransactionsLoading,
+                                    tableData: transactionTableData,
+                                  }) => {
+                                    const moreEventsTarget = isTransactionsLoading
+                                      ? null
+                                      : eventsRouteWithQuery({
+                                          orgSlug: organization.slug,
+                                          transaction: transactionName,
+                                          projectID: decodeScalar(location.query.project),
+                                          query: {
+                                            ...transactionEventView.generateQueryStringObject(),
+                                            query:
+                                              transactionEventView.getQueryWithAdditionalConditions(),
+                                          },
+                                        });
+                                    return (
+                                      <React.Fragment>
+                                        {isTransactionsLoading ? (
+                                          <LoadingContainer>
+                                            <LoadingIndicator size={40} hideMessage />
+                                          </LoadingContainer>
+                                        ) : (
+                                          <div>
+                                            {!transactionTableData.data.length ? (
+                                              <Placeholder />
+                                            ) : null}
+                                            {[...transactionTableData.data]
+                                              .slice(0, 3)
+                                              .map(row => {
+                                                const target = generateTransactionLink(
+                                                  transactionName
+                                                )(organization, row, location.query);
+
+                                                return (
+                                                  <DropdownItem
+                                                    width="small"
+                                                    key={row.id}
+                                                    to={target}
+                                                  >
+                                                    <DropdownItemContainer>
+                                                      <Truncate
+                                                        value={row.id}
+                                                        maxLength={12}
+                                                      />
+                                                      <SectionSubtext>
+                                                        <PerformanceDuration
+                                                          milliseconds={
+                                                            row[aggregateColumn]
+                                                          }
+                                                          abbreviation
+                                                        />
+                                                      </SectionSubtext>
+                                                    </DropdownItemContainer>
+                                                  </DropdownItem>
+                                                );
+                                              })}
+                                            {moreEventsTarget &&
+                                            transactionTableData.data.length > 3 ? (
                                               <DropdownItem
                                                 width="small"
-                                                key={row.id}
-                                                to={target}
+                                                to={moreEventsTarget}
                                               >
                                                 <DropdownItemContainer>
-                                                  <Truncate
-                                                    value={row.id}
-                                                    maxLength={12}
-                                                  />
-                                                  <SectionSubtext>
-                                                    <PerformanceDuration
-                                                      milliseconds={row[aggregateColumn]}
-                                                      abbreviation
-                                                    />
-                                                  </SectionSubtext>
+                                                  {t('View all events')}
                                                 </DropdownItemContainer>
                                               </DropdownItem>
-                                            );
-                                          })}
-                                        </div>
-                                      )}
-                                    </React.Fragment>
-                                  );
-                                }}
-                              </TagTransactionsQuery>
+                                            ) : null}
+                                          </div>
+                                        )}
+                                      </React.Fragment>
+                                    );
+                                  }}
+                                </TagTransactionsQuery>
+                              ) : null}
                             </StyledDropdownContent>
                           </StyledDropdownContainer>
                         )}
