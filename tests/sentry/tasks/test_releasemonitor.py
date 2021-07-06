@@ -261,7 +261,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         self.bulk_store_sessions(
             [
                 self.session_dict(i, self.project1.id, self.release2.version, self.environment.name)
-                for i in range(11)
+                for i in range(20)
             ]
         )
         now = timezone.now()
