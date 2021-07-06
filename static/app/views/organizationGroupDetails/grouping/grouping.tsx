@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -25,8 +26,9 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 type Props = {
   organization: Organization;
   groupId: Group['id'];
-  location: Location;
+  location: Location<{level?: number; cursor?: string}>;
   api: Client;
+  router: InjectedRouter;
 };
 
 type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
@@ -40,11 +42,12 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization}: Props) {
+function Grouping({api, groupId, location, organization, router}: Props) {
+  const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
     useState(false);
-  const [error, setError] = useState<undefined | Error>(undefined);
+  const [error, setError] = useState<undefined | Error | string>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(
     undefined
@@ -64,8 +67,12 @@ function Grouping({api, groupId, location, organization}: Props) {
   }, [groupingLevels]);
 
   useEffect(() => {
+    updateUrlWithNewLevel();
+  }, [activeGroupingLevel]);
+
+  useEffect(() => {
     fetchGroupingLevelDetails();
-  }, [activeGroupingLevel, location.query]);
+  }, [activeGroupingLevel, cursor]);
 
   const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
@@ -74,7 +81,6 @@ function Grouping({api, groupId, location, organization}: Props) {
   async function fetchGroupingLevels() {
     setIsLoading(true);
     setError(undefined);
-
     try {
       const response = await api.requestPromise(`/issues/${groupId}/grouping/levels/`);
       setIsLoading(false);
@@ -116,8 +122,33 @@ function Grouping({api, groupId, location, organization}: Props) {
     }
   }
 
+  function updateUrlWithNewLevel() {
+    if (!defined(activeGroupingLevel) || level === activeGroupingLevel) {
+      return;
+    }
+
+    router.replace({
+      pathname: location.pathname,
+      query: {...location.query, level: activeGroupingLevel},
+    });
+  }
+
   function setSecondGrouping() {
     if (!groupingLevels.length) {
+      return;
+    }
+
+    if (defined(level)) {
+      if (!defined(groupingLevels[level])) {
+        setError(t('The level you were looking for was not found.'));
+        return;
+      }
+
+      if (level === activeGroupingLevel) {
+        return;
+      }
+
+      setActiveGroupingLevel(level);
       return;
     }
 
