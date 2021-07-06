@@ -74,7 +74,6 @@ describe('Performance > TransactionSummary', function () {
               p95: 7273.6,
               p75: 3639.5,
               p50: 755.5,
-              avg_transaction_duration: 2122.1,
             },
           ],
           meta: {
@@ -83,7 +82,6 @@ describe('Performance > TransactionSummary', function () {
             p95: 'duration',
             p75: 'duration',
             p50: 'duration',
-            avg_transaction_duration: 'duration',
           },
         },
       },
