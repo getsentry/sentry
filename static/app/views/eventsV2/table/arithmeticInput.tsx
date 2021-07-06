@@ -127,19 +127,6 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     this.setState({dropdownVisible: false});
   };
 
-  makeActive(selection: number) {
-    const {options} = this.props;
-    const {partialTerm} = this.state;
-    const newOptionGroups = makeOptions(options, partialTerm);
-
-    // This is modifying the `active` value of the references so make sure to
-    // return `newOptionGroups` at the end.
-    const flattenedOptions = newOptionGroups.map(group => group.options).flat();
-    flattenedOptions[selection].active = true;
-
-    return newOptionGroups;
-  }
-
   getSelection(selection: number): DropdownOption | null {
     const {dropdownOptionGroups} = this.state;
 
@@ -158,30 +145,33 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const {key} = event;
 
-    const {activeSelection, dropdownOptionGroups} = this.state;
+    const {options} = this.props;
+    const {activeSelection, partialTerm} = this.state;
     const startedSelection = activeSelection >= 0;
 
     // handle arrow navigation
     if (key === 'ArrowDown' || key === 'ArrowUp') {
       event.preventDefault();
 
-      const totalOptions = dropdownOptionGroups
-        .map(({options}) => options.length)
-        .reduce((a, b) => a + b, 0);
+      const newOptionGroups = makeOptions(options, partialTerm);
+      const flattenedOptions = newOptionGroups.map(group => group.options).flat();
 
       let newSelection;
       if (!startedSelection) {
-        newSelection = key === 'ArrowUp' ? totalOptions - 1 : 0;
+        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       } else {
         newSelection =
           key === 'ArrowUp'
-            ? (activeSelection - 1 + totalOptions) % totalOptions
-            : (activeSelection + 1) % totalOptions;
+            ? (activeSelection - 1 + flattenedOptions.length) % flattenedOptions.length
+            : (activeSelection + 1) % flattenedOptions.length;
       }
+      // This is modifying the `active` value of the references so make sure to
+      // use `newOptionGroups` at the end.
+      flattenedOptions[newSelection].active = true;
 
       this.setState({
         activeSelection: newSelection,
-        dropdownOptionGroups: this.makeActive(newSelection),
+        dropdownOptionGroups: newOptionGroups,
       });
       return;
     }
