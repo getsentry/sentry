@@ -11,6 +11,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -28,6 +29,21 @@ import {DisplayOption} from '../utils';
 
 import Header from './header';
 import ProjectLink from './projectLink';
+
+const ADOPTION_STAGE_LABELS = {
+  not_adopted: {
+    name: t('Low Adoption'),
+    type: 'warning',
+  },
+  adopted: {
+    name: t('High Adoption'),
+    type: 'success',
+  },
+  replaced: {
+    name: t('Replaced'),
+    type: 'default',
+  },
+};
 
 type Props = {
   projects: Array<ReleaseProject>;
@@ -52,11 +68,6 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
-  const adoption_map = {
-    not_adopted: 'Not Adopted',
-    adopted: 'Adopted',
-    replaced: 'Replaced',
-  };
   const hasAdoptionStages: boolean = adoptionStages !== undefined;
   return (
     <Fragment>
@@ -72,7 +83,7 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
-          {adoptionStages && <Column>{t('Status')}</Column>}
+          {adoptionStages && <Column>{t('Adoption Stage')}</Column>}
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
@@ -134,6 +145,8 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
+            const adoptionStage = adoptionStages && adoptionStages[project.slug].stage;
+
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
                 <Layout hasAdoptionStages={hasAdoptionStages}>
@@ -162,7 +175,9 @@ const Content = ({
                   {adoptionStages && (
                     <Column>
                       {adoptionStages[project.slug] ? (
-                        adoption_map[adoptionStages[project.slug].stage]
+                        <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
+                          {ADOPTION_STAGE_LABELS[adoptionStage].name}
+                        </Tag>
                       ) : (
                         <NotAvailable />
                       )}
