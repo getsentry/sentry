@@ -625,7 +625,12 @@ export enum WebVital {
   RequestTime = 'measurements.ttfb.requesttime',
 }
 
-const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+export enum MobileVital {
+  AppStartCold = 'measurements.app_start_cold',
+  AppStartWarm = 'measurements.app_start_warm',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.FP]: 'duration',
   [WebVital.FCP]: 'duration',
   [WebVital.LCP]: 'duration',
@@ -633,6 +638,8 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.CLS]: 'number',
   [WebVital.TTFB]: 'duration',
   [WebVital.RequestTime]: 'duration',
+  [MobileVital.AppStartCold]: 'duration',
+  [MobileVital.AppStartWarm]: 'duration',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
