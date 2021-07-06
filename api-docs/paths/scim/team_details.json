@@ -147,7 +147,7 @@
         "tags": [
             "SCIM"
         ],
-        "description": "Delete a team with a SCIM Group GET Request.",
+        "description": "Delete a team with a SCIM Group DELETE Request.",
         "operationId": "Delete an Individual Team",
         "parameters": [
             {
@@ -162,7 +162,7 @@
                 "name": "team_id",
                 "in": "path",
                 "required": true,
-                "description": "The id of the team you'd like to query.",
+                "description": "The id of the team you'd like to delete.",
                 "schema": {
                     "type": "integer"
                 }
@@ -179,7 +179,7 @@
         "security": [
             {
                 "auth_token": [
-                    "team: read"
+                    "team: admin"
                 ]
             }
         ]
