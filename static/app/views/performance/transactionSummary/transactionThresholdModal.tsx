@@ -102,7 +102,8 @@ class TransactionThresholdModal extends React.Component<Props, State> {
         this.setState({
           error: err,
         });
-        const errorMessage = err.responseJSON?.threshold ?? null;
+        const errorMessage =
+          err.responseJSON?.threshold ?? err.responseJSON?.non_field_errors ?? null;
         addErrorMessage(errorMessage);
       });
   };
