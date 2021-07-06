@@ -31,3 +31,18 @@ export function tagsRouteWithQuery({
     },
   };
 }
+
+// TODO(k-fish): Improve meta of backend response to return these directly
+export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) {
+  const field = Object.keys(row).find(f => f.includes('histogram'));
+  if (!field) {
+    return undefined;
+  }
+  const parts = field.split('_');
+  return {
+    histogramField: field,
+    bucketSize: parseInt(parts[parts.length - 3], 10),
+    offset: parseInt(parts[parts.length - 2], 10),
+    multiplier: parseInt(parts[parts.length - 1], 10),
+  };
+}
