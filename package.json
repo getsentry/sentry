@@ -71,7 +71,7 @@
     "css-loader": "^5.2.6",
     "css-minimizer-webpack-plugin": "^3.0.2",
     "diff": "5.0.0",
-    "dompurify": "^2.2.9",
+    "dompurify": "^2.3.0",
     "downsample": "1.4.0",
     "echarts": "4.7.0",
     "echarts-for-react": "2.0.16",
