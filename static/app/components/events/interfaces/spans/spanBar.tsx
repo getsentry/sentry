@@ -4,6 +4,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
+import FeatureBadge from 'app/components/featureBadge';
 import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
 import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
@@ -730,7 +731,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderEmbeddedTransactionsBadge(
     transactions: QuickTraceEvent[] | null
   ): React.ReactNode {
-    const {toggleEmbeddedChildren, organization} = this.props;
+    const {toggleEmbeddedChildren, organization, showEmbeddedChildren} = this.props;
 
     if (!organization.features.includes('unified-span-view')) {
       return null;
@@ -739,20 +740,33 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (transactions && transactions.length === 1) {
       const transaction = transactions[0];
       return (
-        <EmbeddedTransactionBadge
-          expanded={!!this.props.showEmbeddedChildren}
-          onClick={() => {
-            if (toggleEmbeddedChildren) {
-              toggleEmbeddedChildren({
-                orgSlug: organization.slug,
-                eventSlug: generateEventSlug({
-                  id: transaction.event_id,
-                  project: transaction.project_slug,
-                }),
-              });
-            }
-          }}
-        />
+        <Tooltip
+          title={
+            <span>
+              {showEmbeddedChildren
+                ? t('Hide embedded transaction')
+                : t('Show embedded transaction')}
+              <FeatureBadge type="alpha" noTooltip />
+            </span>
+          }
+          position="top"
+          containerDisplayMode="block"
+        >
+          <EmbeddedTransactionBadge
+            expanded={showEmbeddedChildren}
+            onClick={() => {
+              if (toggleEmbeddedChildren) {
+                toggleEmbeddedChildren({
+                  orgSlug: organization.slug,
+                  eventSlug: generateEventSlug({
+                    id: transaction.event_id,
+                    project: transaction.project_slug,
+                  }),
+                });
+              }
+            }}
+          />
+        </Tooltip>
       );
     }
     return null;
