@@ -1110,7 +1110,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     this.setState(searchGroups);
   };
 
-  updateQuery = (newQuery: string, cursorPosition?: number) => {
+  updateQuery = (newQuery: string, cursorPosition?: number) =>
     this.setState(makeQueryState(newQuery), () => {
       // setting a new input value will lose focus; restore it
       if (this.searchInput.current) {
@@ -1124,7 +1124,6 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.updateAutoCompleteItems();
       this.props.onChange?.(newQuery, new MouseEvent('click') as any);
     });
-  };
 
   onAutoCompleteFromAst = (replaceText: string, item: SearchItem) => {
     const cursor = this.getCursorPosition();
