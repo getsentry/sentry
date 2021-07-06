@@ -1,6 +1,5 @@
 import logging
 from datetime import timedelta
-from math import ceil
 from typing import Any, Dict
 
 from django.utils import timezone
@@ -8,6 +7,7 @@ from django.utils import timezone
 from sentry import eventstore
 from sentry.models import UserReport
 from sentry.tasks.base import instrumented_task
+from sentry.utils.iterators import chunked
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,8 @@ def update_user_reports(**kwargs: Any) -> None:
     for project_id, reports in project_map.items():
         event_ids = [r.event_id for r in reports]
         report_by_event = {r.event_id: r for r in reports}
-        # Batch these calls to avoid max query size errors
-        chunks = ceil(len(event_ids) / MAX_EVENTS)
         events = []
-        for i in range(chunks):
-            event_id_chunk = event_ids[i * MAX_EVENTS : (i + 1) * MAX_EVENTS]
+        for event_id_chunk in chunked(event_ids, MAX_EVENTS):
             snuba_filter = eventstore.Filter(
                 project_ids=[project_id],
                 event_ids=event_id_chunk,
