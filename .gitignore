@@ -32,6 +32,7 @@ node_modules
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
 /config/chartcuterie/config.js*
+/config/*.pem
 /tests/apidocs/openapi-derefed.json
 tests/fixtures/integrations/*/data/**
 /wheelhouse
