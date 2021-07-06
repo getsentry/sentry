@@ -43,6 +43,10 @@ const ADOPTION_STAGE_LABELS = {
     name: t('Replaced'),
     type: 'default',
   },
+  latest: {
+    name: t('Latest'),
+    type: 'highlight',
+  },
 };
 
 type Props = {
@@ -145,6 +149,10 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
+            const adoptionStage =
+              adoptionStages &&
+              (isTopRelease ? 'latest' : adoptionStages[project.slug].stage);
+
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
                 <Layout hasAdoptionStages={hasAdoptionStages}>
@@ -173,21 +181,9 @@ const Content = ({
                   {adoptionStages && (
                     <Column>
                       {adoptionStages[project.slug] ? (
-                        isTopRelease ? (
-                          <Tag type="highlight">{t('Latest')}</Tag>
-                        ) : (
-                          <Tag
-                            type={
-                              ADOPTION_STAGE_LABELS[adoptionStages[project.slug].stage]
-                                .type
-                            }
-                          >
-                            {
-                              ADOPTION_STAGE_LABELS[adoptionStages[project.slug].stage]
-                                .name
-                            }
-                          </Tag>
-                        )
+                        <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
+                          {ADOPTION_STAGE_LABELS[adoptionStage].name}
+                        </Tag>
                       ) : (
                         <NotAvailable />
                       )}
