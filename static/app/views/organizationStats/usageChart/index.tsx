@@ -34,6 +34,7 @@ const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
   .string();
 const COLOR_DROPPED = commonTheme.red300;
 const COLOR_PROJECTED = commonTheme.gray100;
+const COLOR_FILTERED = commonTheme.pink100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
@@ -75,6 +76,7 @@ export enum SeriesTypes {
   ACCEPTED = 'Accepted',
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',
+  FILTERED = 'Filtered',
 }
 
 type DefaultProps = {
@@ -140,6 +142,7 @@ export type ChartStats = {
   accepted: NonNullable<EChartOption.SeriesBar['data']>;
   dropped: NonNullable<EChartOption.SeriesBar['data']>;
   projected: NonNullable<EChartOption.SeriesBar['data']>;
+  filtered: NonNullable<EChartOption.SeriesBar['data']>;
 };
 
 export class UsageChart extends React.Component<Props, State> {
@@ -151,6 +154,7 @@ export class UsageChart extends React.Component<Props, State> {
         accepted: [],
         dropped: [],
         projected: [],
+        filtered: [],
       };
       const isCumulative = transform === ChartDataTransform.CUMULATIVE;
 
@@ -201,14 +205,14 @@ export class UsageChart extends React.Component<Props, State> {
     const {dataCategory} = this.props;
 
     if (dataCategory === DataCategory.ERRORS) {
-      return [COLOR_ERRORS, COLOR_DROPPED, COLOR_PROJECTED];
+      return [COLOR_ERRORS, COLOR_DROPPED, COLOR_PROJECTED, COLOR_FILTERED];
     }
 
     if (dataCategory === DataCategory.ATTACHMENTS) {
-      return [COLOR_ATTACHMENTS, COLOR_DROPPED, COLOR_PROJECTED];
+      return [COLOR_ATTACHMENTS, COLOR_DROPPED, COLOR_PROJECTED, COLOR_FILTERED];
     }
 
-    return [COLOR_TRANSACTIONS, COLOR_DROPPED, COLOR_PROJECTED];
+    return [COLOR_TRANSACTIONS, COLOR_DROPPED, COLOR_PROJECTED, COLOR_FILTERED];
   }
 
   get chartMetadata(): {
@@ -324,6 +328,13 @@ export class UsageChart extends React.Component<Props, State> {
         stack: 'usage',
         legendHoverLink: false,
       }),
+      barSeries({
+        name: SeriesTypes.FILTERED,
+        data: chartData.filtered as any, // TODO(ts)
+        barMinHeight: 1,
+        stack: 'usage',
+        legendHoverLink: false,
+      }),
     ];
 
     // Additional series passed by parent component
@@ -351,6 +362,12 @@ export class UsageChart extends React.Component<Props, State> {
     if (chartData.projected.length > 0) {
       legend.push({
         name: SeriesTypes.PROJECTED,
+      });
+    }
+
+    if (chartData.filtered.length > 0) {
+      legend.push({
+        name: SeriesTypes.FILTERED,
       });
     }
 
