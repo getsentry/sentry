@@ -1,3 +1,4 @@
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
 import {Panel} from 'app/components/panels';
@@ -19,7 +20,7 @@ type Error = {
 };
 
 type Props = {
-  error: Error;
+  error: Error | string;
   groupId: Group['id'];
   onRetry: () => void;
 };
@@ -50,6 +51,10 @@ function ErrorMessage({error, groupId, onRetry}: Props) {
       default:
         return undefined;
     }
+  }
+
+  if (typeof error === 'string') {
+    return <Alert type="warning">{error}</Alert>;
   }
 
   if (error.status === 403 && error.responseJSON?.detail) {
