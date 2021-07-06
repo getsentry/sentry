@@ -237,6 +237,9 @@ class Frame(Interface):
         if self.data and "symbolicator_status" in self.data:
             data["symbolicatorStatus"] = self.data["symbolicator_status"]
 
+        if self.datapath:
+            data["datapath"] = self.datapath
+
         return data
 
     def get_meta_context(self, meta, is_public=False, platform=None):
