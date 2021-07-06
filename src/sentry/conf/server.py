@@ -63,7 +63,6 @@ def env(key, default="", type=None):
 env._cache = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
-
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV

@@ -1308,6 +1308,9 @@ class GetSnubaQueryArgsTest(TestCase):
         _filter = get_filter(f"{SEMVER_ALIAS}:>1.2.4-hi", {"organization_id": self.organization.id})
         assert _filter.conditions == [["release", "IN", [release_2.version]]]
         assert _filter.filter_keys == {}
+    
+    def test_release_stage(self):
+        assert False==True
 
 
 def with_type(type, argument):

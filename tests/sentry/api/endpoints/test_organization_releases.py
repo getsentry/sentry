@@ -27,7 +27,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
@@ -271,6 +271,9 @@ class OrganizationReleaseListTest(APITestCase):
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
         assert [r["version"] for r in response.data] == []
+    
+    def test_release_stage_filter(self):
+        assert False==True
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)

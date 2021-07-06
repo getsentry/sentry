@@ -7,7 +7,7 @@ from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Q, Sum, Value, When
+from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -24,6 +24,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
@@ -111,6 +112,7 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(models.QuerySet):
+    
     def annotate_prerelease_column(self):
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -162,6 +164,52 @@ class ReleaseQuerySet(models.QuerySet):
             ).filter(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
+    def filter_by_stage(self, organization_id: int, search_filter) -> models.QuerySet:
+        print("Filtering releases by stage",search_filter)
+        from sentry.models import ReleaseProjectEnvironment
+        release_filter = Q(organization_id=organization_id)
+        value: str = search_filter.value.value
+        operator: str = search_filter.operator
+        filters = {
+            "adopted":Q(
+                adopted__isnull=False,
+                unadopted__isnull=True
+            ),
+            "replaced": Q(
+                adopted__isnull=False,
+                unadopted__isnull=False
+            ),
+            "not_adopted":Q(
+                adopted__isnull=True,
+                unadopted__isnull=True    
+            )
+        }
+        if isinstance(value, list):
+            for stage in value:
+                if stage not in filters.keys():
+                    raise InvalidSearchQuery(f"Unsupported release.stage value.")
+        else:
+            if value not in filters.keys():
+                raise InvalidSearchQuery(f"Unsupported release.stage value.")
+
+        rpes = ReleaseProjectEnvironment.objects.filter(
+            release__organization_id=organization_id,
+        ).select_related("release")
+        query = Q()
+        if operator == "IN":
+            for stage in value:
+                query |= filters[stage]
+        elif operator == "NOT IN":
+            for stage in value:
+                query &= ~filters[stage]
+        elif operator == "=":
+            query = filters[value]
+        elif operator == "!=":
+            query = ~filters[value]
+
+        release_ids = rpes.filter(query).values_list("release_id", flat=True)
+        qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))        
+        return qs
 
 class ReleaseModelManager(models.Manager):
     def get_queryset(self):
@@ -177,6 +225,11 @@ class ReleaseModelManager(models.Manager):
         self, organization_id: int, semver_filter: SemverFilter
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter)
+
+    def filter_by_stage(
+        self, organization_id: int, search_filter
+    ) -> models.QuerySet:
+        return self.get_queryset().filter_by_stage(organization_id, search_filter)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):

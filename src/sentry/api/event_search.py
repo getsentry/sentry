@@ -13,6 +13,7 @@ from parsimonious.nodes import Node
 from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
     OPERATOR_NEGATION_MAP,
+    RELEASE_STAGE_ALIAS,
     SEARCH_MAP,
     SEMVER_ALIAS,
     TAG_KEY_RE,
@@ -945,7 +946,7 @@ class SearchVisitor(NodeVisitor):
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
     percentage_keys={"percentage"},
-    text_operator_keys={SEMVER_ALIAS},
+    text_operator_keys={SEMVER_ALIAS, RELEASE_STAGE_ALIAS},
     numeric_keys={
         "project_id",
         "project.id",

@@ -49,7 +49,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
@@ -755,6 +755,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # We don't need to filter by the semver query again here since we're
         # filtering to specific groups. Saves us making a second query to
         # postgres for no reason
+        RELEASE_STAGE_ALIAS,
         SEMVER_ALIAS,
     }
 

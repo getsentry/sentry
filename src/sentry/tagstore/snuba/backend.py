@@ -11,6 +11,7 @@ from sentry.api.utils import default_start_end_dates
 from sentry.models import Project, Release, ReleaseProjectEnvironment
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
+    RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_WILDCARDS,
     USER_DISPLAY_ALIAS,
@@ -789,6 +790,9 @@ class SnubaTagStorage(TagStorage):
             return SequencePaginator(
                 [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(versions)]
             )
+
+        if key == RELEASE_STAGE_ALIAS:
+            raise Exception("Gotta code stuff")
 
         conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes

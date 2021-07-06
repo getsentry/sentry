@@ -19,6 +19,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
 )
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Activity,
     Project,
@@ -27,7 +28,7 @@ from sentry.models import (
     ReleaseProject,
     ReleaseStatus,
 )
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS
 from sentry.search.events.filter import parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
@@ -221,6 +222,20 @@ class OrganizationReleasesEndpoint(
                         parse_semver(search_filter.value.raw_value, search_filter.operator),
                     )
 
+                if search_filter.key.name == RELEASE_STAGE_ALIAS:
+                    print("operator:",search_filter.operator)
+                    print("value:", search_filter.value.value)
+                    try:
+                        queryset = queryset.filter_by_stage(
+                            organization.id,
+                            search_filter,
+                        )
+                    except InvalidSearchQuery as e:
+                        return Response(
+                            {"detail": str(e)},
+                            status=400,
+                        )
+
         select_extra = {}
 
         queryset = queryset.distinct()
@@ -267,9 +282,10 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
-        with_adoption_stages = with_adoption_stages and features.has(
-            "organizations:release-adoption-stage", organization, actor=request.user
-        )
+        # with_adoption_stages = with_adoption_stages and features.has(
+            # "organizations:release-adoption-stage", organization, actor=request.user
+        # )
+        with_adoption_stages = True
 
         return self.paginate(
             request=request,

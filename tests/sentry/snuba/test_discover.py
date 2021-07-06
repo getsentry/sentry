@@ -480,6 +480,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
 
+    def test_release_stage_condition(self):
+        assert False==True
+
     def test_latest_release_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],

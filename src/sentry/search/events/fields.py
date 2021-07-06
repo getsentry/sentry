@@ -299,6 +299,8 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
+
+# TODO: I think I have to support the release stage alias here maybe?
 FIELD_ALIASES = {
     field.name: field
     for field in [

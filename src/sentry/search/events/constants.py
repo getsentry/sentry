@@ -13,6 +13,7 @@ PROJECT_NAME_ALIAS = "project.name"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
+RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "sentry.semver"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
@@ -64,6 +65,7 @@ SEARCH_MAP = {
     "last_seen": "last_seen",
     "times_seen": "times_seen",
     SEMVER_ALIAS: SEMVER_ALIAS,
+    RELEASE_STAGE_ALIAS: RELEASE_STAGE_ALIAS,
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])

@@ -814,6 +814,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             release_1_e_2,
         }
 
+    def test_release_stage(self):
+        assert False==True
+
     def test_aliased_fields(self):
         project = self.create_project()
         event1 = self.store_event(

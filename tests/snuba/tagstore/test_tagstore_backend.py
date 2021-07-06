@@ -683,6 +683,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
             == {}
         )
+    
+    def test_release_stage(self):
+        assert False==True
 
 
 class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):

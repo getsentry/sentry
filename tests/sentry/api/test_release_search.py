@@ -25,3 +25,6 @@ class ParseSearchQueryTest(TestCase):
                 key=SearchKey(name=RELEASE_FREE_TEXT_KEY), operator="=", value=SearchValue("1.2.*")
             ),
         ]
+
+    def test_release_stage(self):
+        assert False==True
