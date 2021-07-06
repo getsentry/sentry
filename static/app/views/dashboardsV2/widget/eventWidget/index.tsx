@@ -279,7 +279,7 @@ class EventWidget extends AsyncView<Props, State> {
                 errors={widgetErrors?.queries}
               />
             </BuildStep>
-            <Measurements>
+            <Measurements organization={organization}>
               {({measurements}) => {
                 const measurementKeys = Object.values(measurements).map(({key}) => key);
                 const amendedFieldOptions = fieldOptions(measurementKeys);
