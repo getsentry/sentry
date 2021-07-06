@@ -39,7 +39,7 @@ function openContextMenu(wrapper, cellIndex) {
   return wrapper.find('CellAction').at(cellIndex).find('Menu');
 }
 
-describe('Performance > Content', function () {
+describe('Performance > Table', function () {
   const project1 = TestStubs.Project();
   const project2 = TestStubs.Project();
   const projects = [project1, project2];
