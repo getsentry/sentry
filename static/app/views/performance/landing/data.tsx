@@ -35,3 +35,17 @@ export const BACKEND_COLUMN_TITLES = [
   'users',
   'user misery',
 ];
+
+export const MOBILE_COLUMN_TITLES = [
+  'transaction',
+  'project',
+  'operation',
+  'tpm',
+  'p50 cold start',
+  'p95 cold start',
+  'p50 warm start',
+  'p95 warm start',
+  'failure_rate',
+  'users',
+  'user misery',
+];
