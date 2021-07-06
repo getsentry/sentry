@@ -8,7 +8,79 @@ import {
   isAggregateField,
   isMeasurement,
   measurementType,
+  parseFunction,
 } from 'app/utils/discover/fields';
+
+describe('parseFunction', function () {
+  it('returns null on non aggregate fields', function () {
+    expect(parseFunction('field')).toEqual(null);
+    expect(parseFunction('under_field')).toEqual(null);
+    expect(parseFunction('foo.bar.is-Enterprise_42')).toEqual(null);
+  });
+
+  it('handles 0 arg functions', function () {
+    expect(parseFunction('count()')).toEqual({
+      name: 'count',
+      arguments: [],
+    });
+    expect(parseFunction('count_unique()')).toEqual({
+      name: 'count_unique',
+      arguments: [],
+    });
+  });
+
+  it('handles 1 arg functions', function () {
+    expect(parseFunction('count(id)')).toEqual({
+      name: 'count',
+      arguments: ['id'],
+    });
+    expect(parseFunction('count_unique(user)')).toEqual({
+      name: 'count_unique',
+      arguments: ['user'],
+    });
+    expect(parseFunction('count_unique(issue.id)')).toEqual({
+      name: 'count_unique',
+      arguments: ['issue.id'],
+    });
+    expect(parseFunction('count(foo.bar.is-Enterprise_42)')).toEqual({
+      name: 'count',
+      arguments: ['foo.bar.is-Enterprise_42'],
+    });
+  });
+
+  it('handles 2 arg functions', function () {
+    expect(parseFunction('percentile(transaction.duration,0.81)')).toEqual({
+      name: 'percentile',
+      arguments: ['transaction.duration', '0.81'],
+    });
+    expect(parseFunction('percentile(transaction.duration,  0.11)')).toEqual({
+      name: 'percentile',
+      arguments: ['transaction.duration', '0.11'],
+    });
+  });
+
+  it('handles 3 arg functions', function () {
+    expect(parseFunction('count_if(transaction.duration,greater,0.81)')).toEqual({
+      name: 'count_if',
+      arguments: ['transaction.duration', 'greater', '0.81'],
+    });
+    expect(parseFunction('count_if(some_tag,greater,"0.81,123,152,()")')).toEqual({
+      name: 'count_if',
+      arguments: ['some_tag', 'greater', '"0.81,123,152,()"'],
+    });
+    expect(parseFunction('function(foo, bar, baz)')).toEqual({
+      name: 'function',
+      arguments: ['foo', 'bar', 'baz'],
+    });
+  });
+
+  it('handles 4 arg functions', function () {
+    expect(parseFunction('to_other(release,"0.81,123,152,()",others,current)')).toEqual({
+      name: 'to_other',
+      arguments: ['release', '"0.81,123,152,()"', 'others', 'current'],
+    });
+  });
+});
 
 describe('getAggregateAlias', function () {
   it('no-ops simple fields', function () {
@@ -108,7 +180,7 @@ describe('explodeField', function () {
     // has aggregation
     expect(explodeField({field: 'count(foobar)', width: 123})).toEqual({
       kind: 'function',
-      function: ['count', 'foobar', undefined],
+      function: ['count', 'foobar', undefined, undefined],
     });
 
     // custom tag
@@ -120,7 +192,7 @@ describe('explodeField', function () {
     // custom tag with aggregation
     expect(explodeField({field: 'count(foo.bar.is-Enterprise_42)', width: 123})).toEqual({
       kind: 'function',
-      function: ['count', 'foo.bar.is-Enterprise_42', undefined],
+      function: ['count', 'foo.bar.is-Enterprise_42', undefined, undefined],
     });
   });
 });

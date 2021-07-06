@@ -44,8 +44,8 @@ const TagsDisplay = (props: Props) => {
         orgSlug={organization.slug}
         location={location}
         aggregateColumn={aggregateColumn}
-        limit={HISTOGRAM_BUCKET_LIMIT}
         tagKeyLimit={HISTOGRAM_TAG_KEY_LIMIT}
+        numBucketsPerKey={HISTOGRAM_BUCKET_LIMIT}
         tagKey={tagKey}
         sort="-frequency"
       >

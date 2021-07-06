@@ -70,7 +70,9 @@ class AssembleDifTest(BaseAssembleTest):
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.OK
 
-        dif = ProjectDebugFile.objects.filter(project=self.project, checksum=total_checksum).get()
+        dif = ProjectDebugFile.objects.filter(
+            project_id=self.project.id, checksum=total_checksum
+        ).get()
 
         assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
 
@@ -172,7 +174,9 @@ class AssembleDifTest(BaseAssembleTest):
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.OK
 
-        dif = ProjectDebugFile.objects.filter(project=self.project, checksum=total_checksum).get()
+        dif = ProjectDebugFile.objects.filter(
+            project_id=self.project.id, checksum=total_checksum
+        ).get()
 
         assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"
@@ -187,11 +191,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
-        for has_release_archives in (True, False):
+        for min_files in (10, 1):
             with self.options(
                 {
-                    "processing.save-release-archives": has_release_archives,
-                    "processing.release-archive-min-files": 1,
+                    "processing.release-archive-min-files": min_files,
                 }
             ):
 
@@ -214,13 +217,15 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 assert status == ChunkFileState.OK
                 assert details is None
 
-                if has_release_archives:
+                if min_files == 1:
+                    # An archive was saved
                     index = read_artifact_index(self.release, dist=None)
                     archive_ident = index["files"]["~/index.js"]["archive_ident"]
                     releasefile = ReleaseFile.objects.get(release=self.release, ident=archive_ident)
                     # Artifact is the same as original bundle
                     assert releasefile.file.size == len(bundle_file)
                 else:
+                    # Individual files were saved
                     release_file = ReleaseFile.objects.get(
                         organization=self.organization,
                         release=self.release,

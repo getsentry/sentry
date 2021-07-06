@@ -1,3 +1,4 @@
+import {configure} from '@testing-library/react';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
@@ -22,6 +23,13 @@ import 'core-js/features/object/from-entries';
 if (!SVGElement.prototype.getTotalLength) {
   SVGElement.prototype.getTotalLength = () => 1;
 }
+
+/**
+ * React Testing Library configuration to override the default test id attribute
+ *
+ * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ */
+configure({testIdAttribute: 'data-test-id'});
 
 /**
  * Enzyme configuration
@@ -128,7 +136,12 @@ jest.mock('@sentry/react', () => {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
-    startTransaction: () => ({finish: jest.fn(), setTag: jest.fn()}),
+    startTransaction: () => ({
+      finish: jest.fn(),
+      setTag: jest.fn(),
+      setData: jest.fn(),
+      setStatus: jest.fn(),
+    }),
   };
 });
 

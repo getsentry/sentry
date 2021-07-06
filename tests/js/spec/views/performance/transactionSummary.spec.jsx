@@ -8,9 +8,10 @@ import TransactionSummary from 'app/views/performance/transactionSummary';
 
 function initializeData({features: additionalFeatures = [], query = {}} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
+  const project = TestStubs.Project();
   const organization = TestStubs.Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [project],
     apdexThreshold: 400,
   });
   const initialData = initializeOrg({
@@ -19,7 +20,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
       location: {
         query: {
           transaction: '/performance',
-          project: 1,
+          project: 2,
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -32,6 +33,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -53,7 +55,7 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/?limit=5&project=2&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -139,7 +141,7 @@ describe('Performance > TransactionSummary', function () {
               id: 'deadbeef',
               'user.display': 'uhoh@example.com',
               'transaction.duration': 400,
-              'project.id': 1,
+              'project.id': 2,
               timestamp: '2020-05-21T15:31:18+00:00',
             },
           ],
@@ -288,6 +290,78 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(1);
   });
 
+  it('fetches transaction threshdold', async function () {
+    const initialData = initializeData({
+      features: ['project-transaction-threshold-override'],
+    });
+    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {
+        threshold: '800',
+        metric: 'lcp',
+      },
+    });
+
+    const getProjectThresholdMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      method: 'GET',
+      body: {
+        threshold: '200',
+        metric: 'duration',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+    expect(getProjectThresholdMock).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('fetches project transaction threshdold', async function () {
+    const initialData = initializeData({
+      features: ['project-transaction-threshold-override'],
+    });
+    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      statusCode: 404,
+    });
+
+    const getProjectThresholdMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      method: 'GET',
+      body: {
+        threshold: '200',
+        metric: 'duration',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+    expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
+  });
+
   it('triggers a navigation on search', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
@@ -311,7 +385,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 1,
+        project: 2,
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
         transactionCursor: '1:0:0',
@@ -370,7 +444,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 1,
+        project: 2,
         showTransactions: 'slow',
         transactionCursor: undefined,
       },
@@ -400,7 +474,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 1,
+        project: 2,
         transactionCursor: '2:0:0',
       },
     });
@@ -408,7 +482,7 @@ describe('Performance > TransactionSummary', function () {
 
   it('forwards conditions to related issues', async function () {
     const issueGet = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
       body: [],
     });
 
@@ -429,7 +503,7 @@ describe('Performance > TransactionSummary', function () {
   it('does not forward event type to related issues', async function () {
     const issueGet = MockApiClient.addMockResponse(
       {
-        url: '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
         body: [],
       },
       {

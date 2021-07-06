@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -11,8 +12,7 @@ import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import {BaseGroup, Group, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -26,14 +26,15 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 type Props = {
   organization: Organization;
   groupId: Group['id'];
-  location: Location;
+  location: Location<{level?: number; cursor?: string}>;
   api: Client;
+  router: InjectedRouter;
 };
 
-type GroupingLevelDetails = {
+type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
   eventCount: number;
   hash: string;
-  latestEvent: Event;
+  latestEvent: BaseGroup['latestEvent'];
 };
 
 type GroupingLevel = {
@@ -41,11 +42,12 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization}: Props) {
+function Grouping({api, groupId, location, organization, router}: Props) {
+  const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
     useState(false);
-  const [error, setError] = useState<undefined | Error>(undefined);
+  const [error, setError] = useState<undefined | Error | string>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(
     undefined
@@ -65,8 +67,12 @@ function Grouping({api, groupId, location, organization}: Props) {
   }, [groupingLevels]);
 
   useEffect(() => {
+    updateUrlWithNewLevel();
+  }, [activeGroupingLevel]);
+
+  useEffect(() => {
     fetchGroupingLevelDetails();
-  }, [activeGroupingLevel, location.query]);
+  }, [activeGroupingLevel, cursor]);
 
   const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
@@ -75,7 +81,6 @@ function Grouping({api, groupId, location, organization}: Props) {
   async function fetchGroupingLevels() {
     setIsLoading(true);
     setError(undefined);
-
     try {
       const response = await api.requestPromise(`/issues/${groupId}/grouping/levels/`);
       setIsLoading(false);
@@ -117,8 +122,33 @@ function Grouping({api, groupId, location, organization}: Props) {
     }
   }
 
+  function updateUrlWithNewLevel() {
+    if (!defined(activeGroupingLevel) || level === activeGroupingLevel) {
+      return;
+    }
+
+    router.replace({
+      pathname: location.pathname,
+      query: {...location.query, cursor: undefined, level: activeGroupingLevel},
+    });
+  }
+
   function setSecondGrouping() {
     if (!groupingLevels.length) {
+      return;
+    }
+
+    if (defined(level)) {
+      if (!defined(groupingLevels[level])) {
+        setError(t('The level you were looking for was not found.'));
+        return;
+      }
+
+      if (level === activeGroupingLevel) {
+        return;
+      }
+
+      setActiveGroupingLevel(level);
       return;
     }
 
@@ -170,14 +200,23 @@ function Grouping({api, groupId, location, organization}: Props) {
             isReloading={isGroupingLevelDetailsLoading}
             headers={['', t('Events')]}
           >
-            {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
-              <NewIssue
-                key={hash}
-                sampleEvent={latestEvent}
-                eventCount={eventCount}
-                organization={organization}
-              />
-            ))}
+            {activeGroupingLevelDetails.map(
+              ({hash, title, metadata, latestEvent, eventCount}) => {
+                // XXX(markus): Ugly hack to make NewIssue show the right things.
+                return (
+                  <NewIssue
+                    key={hash}
+                    sampleEvent={{
+                      ...latestEvent,
+                      metadata: metadata || latestEvent.metadata,
+                      title: title || latestEvent.title,
+                    }}
+                    eventCount={eventCount}
+                    organization={organization}
+                  />
+                );
+              }
+            )}
           </StyledPanelTable>
           <StyledPagination
             pageLinks={pagination}

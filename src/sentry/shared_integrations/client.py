@@ -170,6 +170,16 @@ class BaseApiClient(TrackResponseMixin):
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
+        #                  Don't want to make the change until I completely understand
+        #                  urllib3 machinery + how we override it, possibly do this
+        #                  along with urllib3 upgrade.
+        pass
+
     def get_cache_prefix(self):
         return f"{self.integration_type}.{self.name}.client:"
 
@@ -209,7 +219,7 @@ class BaseApiClient(TrackResponseMixin):
         full_url = self.build_url(path)
 
         metrics.incr(
-            "%s.http_request" % self.datadog_prefix,
+            f"{self.datadog_prefix}.http_request",
             sample_rate=1.0,
             tags={self.integration_type: self.name},
         )

@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:28.672278Z'
+created: '2021-06-30T16:44:01.137819Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "8cd9c779e1522f718e9270004d2029ed"
-  tree_label: "log_demo::main | ... | sentry::integrations::log::Logger::log"
+  tree_label: "sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main"
   component:
     app-depth-2*
       exception*
@@ -47,7 +47,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "833d4f5b442ef5432a634e68338ee495"
-  tree_label: "std::panicking::try::do_call | ... | sentry::hub::Hub::with_active"
+  tree_label: "sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::panicking::try::do_call"
   component:
     app-depth-3*
       exception*
@@ -82,7 +82,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "05b386226c903021d3797c9800e3ef5d"
-  tree_label: "___rust_maybe_catch_panic | ... | sentry::hub::Hub::with"
+  tree_label: "sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic"
   component:
     app-depth-4*
       exception*
@@ -125,7 +125,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "5c76070b3447d5bdd0f418005d190395"
-  tree_label: "std::rt::lang_start | ... | sentry::hub::Hub::with_active::{{closure}}"
+  tree_label: "sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start"
   component:
     app-depth-5*
       exception*
@@ -178,7 +178,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a12f03cf6be0c16305a3c6c5c69538e8"
-  tree_label: "<entire stacktrace>"
+  tree_label: "something | sentry | sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::rt::lang_start::{{closure}} | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | std::rt::lang_start | _main"
   component:
     app-depth-max*
       exception*
@@ -254,7 +254,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "a12f03cf6be0c16305a3c6c5c69538e8"
-  tree_label: "<entire stacktrace>"
+  tree_label: "something | sentry | sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::rt::lang_start::{{closure}} | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | std::rt::lang_start | _main"
   component:
     system*
       exception*

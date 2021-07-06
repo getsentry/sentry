@@ -50,10 +50,10 @@ def test_emit(record, out, handler, logger):
 @mock.patch("sentry.logging.handlers.metrics")
 def test_log_to_metric(metrics):
     logger = logging.getLogger("django.request")
-    logger.warn("CSRF problem")
+    logger.warning("CSRF problem")
     metrics.incr.assert_called_once_with("django.request.csrf_problem", skip_internal=False)
 
     metrics.reset_mock()
 
-    logger.warn("Some other problem we don't care about")
+    logger.warning("Some other problem we don't care about")
     assert metrics.incr.call_count == 0

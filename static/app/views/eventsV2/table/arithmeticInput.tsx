@@ -1,7 +1,8 @@
-import {createRef, HTMLProps, PureComponent} from 'react';
+import {createRef, Fragment, HTMLProps, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Column, generateFieldAsString, getColumnType} from 'app/utils/discover/fields';
@@ -9,23 +10,15 @@ import Input from 'app/views/settings/components/forms/controls/input';
 
 const NONE_SELECTED = -1;
 
-function filterOptions(options: Column[], partialTerm: string | null) {
-  return options
-    .filter(({kind}) => kind !== 'equation')
-    .filter(option => {
-      const columnType = getColumnType(option);
-      return (
-        columnType === 'number' || columnType === 'integer' || columnType === 'duration'
-      );
-    })
-    .map(option => ({
-      value: generateFieldAsString(option),
-    }))
-    .filter(({value}) => (partialTerm ? value.includes(partialTerm) : true));
-}
-
 type DropdownOption = {
+  kind: 'field' | 'operator';
+  active: boolean;
   value: string;
+};
+
+type DropdownOptionGroup = {
+  title: string;
+  options: DropdownOption[];
 };
 
 type DefaultProps = {
@@ -43,7 +36,7 @@ type State = {
   partialTerm: string | null;
   rawOptions: Column[];
   dropdownVisible: boolean;
-  dropdownOptions: DropdownOption[];
+  dropdownOptionGroups: DropdownOptionGroup[];
   activeSelection: number;
 };
 
@@ -59,7 +52,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       return {
         ...state,
         rawOptions: props.options,
-        dropdownOptions: filterOptions(props.options, state.partialTerm),
+        dropdownOptionGroups: makeOptions(props.options, state.partialTerm),
         activeSelection: NONE_SELECTED,
       };
     }
@@ -72,7 +65,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     partialTerm: null,
     rawOptions: this.props.options,
     dropdownVisible: false,
-    dropdownOptions: filterOptions(this.props.options, null),
+    dropdownOptionGroups: makeOptions(this.props.options, null),
     activeSelection: NONE_SELECTED,
   };
 
@@ -134,28 +127,52 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     this.setState({dropdownVisible: false});
   };
 
+  getSelection(selection: number): DropdownOption | null {
+    const {dropdownOptionGroups} = this.state;
+
+    for (const group of dropdownOptionGroups) {
+      if (selection >= group.options.length) {
+        selection -= group.options.length;
+        continue;
+      }
+
+      return group.options[selection];
+    }
+
+    return null;
+  }
+
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const {key} = event;
 
-    const {activeSelection, dropdownOptions} = this.state;
+    const {options} = this.props;
+    const {activeSelection, partialTerm} = this.state;
     const startedSelection = activeSelection >= 0;
 
     // handle arrow navigation
     if (key === 'ArrowDown' || key === 'ArrowUp') {
       event.preventDefault();
 
-      const totalOptions = dropdownOptions.length;
+      const newOptionGroups = makeOptions(options, partialTerm);
+      const flattenedOptions = newOptionGroups.map(group => group.options).flat();
 
       let newSelection;
       if (!startedSelection) {
-        newSelection = key === 'ArrowUp' ? totalOptions - 1 : 0;
+        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       } else {
         newSelection =
           key === 'ArrowUp'
-            ? (activeSelection - 1 + totalOptions) % totalOptions
-            : (activeSelection + 1) % totalOptions;
+            ? (activeSelection - 1 + flattenedOptions.length) % flattenedOptions.length
+            : (activeSelection + 1) % flattenedOptions.length;
       }
-      this.setState({activeSelection: newSelection});
+      // This is modifying the `active` value of the references so make sure to
+      // use `newOptionGroups` at the end.
+      flattenedOptions[newSelection].active = true;
+
+      this.setState({
+        activeSelection: newSelection,
+        dropdownOptionGroups: newOptionGroups,
+      });
       return;
     }
 
@@ -163,7 +180,10 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     if (startedSelection && (key === 'Tab' || key === 'Enter')) {
       event.preventDefault();
 
-      this.handleSelect(dropdownOptions[activeSelection]);
+      const selection = this.getSelection(activeSelection);
+      if (selection) {
+        this.handleSelect(selection);
+      }
       return;
     }
 
@@ -209,22 +229,6 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     );
   };
 
-  filterOptions(predicate: (option: DropdownOption) => boolean = () => true) {
-    const {options} = this.props;
-    return options
-      .filter(({kind}) => kind !== 'equation')
-      .filter(option => {
-        const columnType = getColumnType(option);
-        return (
-          columnType === 'number' || columnType === 'integer' || columnType === 'duration'
-        );
-      })
-      .map(option => ({
-        value: generateFieldAsString(option),
-      }))
-      .filter(predicate);
-  }
-
   updateAutocompleteOptions() {
     const {options} = this.props;
 
@@ -232,14 +236,14 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     const partialTerm = term || null;
 
     this.setState({
-      dropdownOptions: filterOptions(options, partialTerm),
+      dropdownOptionGroups: makeOptions(options, partialTerm),
       partialTerm,
     });
   }
 
   render() {
     const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
-    const {dropdownVisible, dropdownOptions, activeSelection} = this.state;
+    const {dropdownVisible, dropdownOptionGroups} = this.state;
     return (
       <Container isOpen={dropdownVisible}>
         <StyledInput
@@ -256,8 +260,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         />
         <TermDropdown
           isOpen={dropdownVisible}
-          options={dropdownOptions}
-          activeSelection={activeSelection}
+          optionGroups={dropdownOptionGroups}
           handleSelect={this.handleSelect}
         />
       </Container>
@@ -296,39 +299,92 @@ const StyledInput = styled(Input)`
 
 type TermDropdownProps = {
   isOpen: boolean;
-  options: DropdownOption[];
-  activeSelection: number;
+  optionGroups: DropdownOptionGroup[];
   handleSelect: (option: DropdownOption) => void;
 };
 
-function TermDropdown({
-  isOpen,
-  options,
-  activeSelection,
-  handleSelect,
-}: TermDropdownProps) {
+function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
   return (
     <DropdownContainer isOpen={isOpen}>
       <DropdownItemsList>
-        {options.map((option, i) => {
-          const active = i === activeSelection;
+        {optionGroups.map(group => {
+          const {title, options} = group;
           return (
-            <DropdownListItem
-              key={option.value}
-              className={active ? 'active' : undefined}
-              onClick={() => handleSelect(option)}
-              // prevent the blur event on the input from firing
-              onMouseDown={event => event.preventDefault()}
-              // scroll into view if it is the active element
-              ref={element => active && element?.scrollIntoView?.({block: 'nearest'})}
-            >
-              <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
-            </DropdownListItem>
+            <Fragment key={title}>
+              <ListItem>
+                <DropdownTitle>{title}</DropdownTitle>
+              </ListItem>
+              {options.map(option => {
+                return (
+                  <DropdownListItem
+                    key={option.value}
+                    className={option.active ? 'active' : undefined}
+                    onClick={() => handleSelect(option)}
+                    // prevent the blur event on the input from firing
+                    onMouseDown={event => event.preventDefault()}
+                    // scroll into view if it is the active element
+                    ref={element =>
+                      option.active && element?.scrollIntoView?.({block: 'nearest'})
+                    }
+                  >
+                    <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
+                  </DropdownListItem>
+                );
+              })}
+              {options.length === 0 && <Info>{t('No items found')}</Info>}
+            </Fragment>
           );
         })}
       </DropdownItemsList>
     </DropdownContainer>
   );
+}
+
+function makeFieldOptions(
+  columns: Column[],
+  partialTerm: string | null
+): DropdownOptionGroup {
+  const options = columns
+    .filter(({kind}) => kind !== 'equation')
+    .filter(option => {
+      const columnType = getColumnType(option);
+      return (
+        columnType === 'number' || columnType === 'integer' || columnType === 'duration'
+      );
+    })
+    .map(option => ({
+      kind: 'field' as const,
+      active: false,
+      value: generateFieldAsString(option),
+    }))
+    .filter(({value}) => (partialTerm ? value.includes(partialTerm) : true));
+
+  return {
+    title: 'Fields',
+    options,
+  };
+}
+
+function makeOperatorOptions(partialTerm: string | null): DropdownOptionGroup {
+  const options = ['+', '-', '*', '/']
+    .filter(operator => (partialTerm ? operator.includes(partialTerm) : true))
+    .map(operator => ({
+      kind: 'operator' as const,
+      active: false,
+      value: operator,
+    }));
+
+  return {
+    title: 'Operators',
+    options,
+  };
+}
+
+function makeOptions(
+  columns: Column[],
+  partialTerm: string | null
+): DropdownOptionGroup[] {
+  return [makeFieldOptions(columns, partialTerm), makeOperatorOptions(partialTerm)];
 }
 
 const DropdownContainer = styled('div')<{isOpen: boolean}>`
@@ -359,6 +415,23 @@ const ListItem = styled('li')`
   }
 `;
 
+const DropdownTitle = styled('header')`
+  display: flex;
+  align-items: center;
+
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.gray300};
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  margin: 0;
+  padding: ${space(1)} ${space(2)};
+
+  & > svg {
+    margin-right: ${space(1)};
+  }
+`;
+
 const DropdownListItem = styled(ListItem)`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
@@ -378,4 +451,15 @@ const DropdownItemTitleWrapper = styled('div')`
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
   ${overflowEllipsis};
+`;
+
+const Info = styled('div')`
+  display: flex;
+  padding: ${space(1)} ${space(2)};
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.gray300};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
 `;

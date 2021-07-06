@@ -568,7 +568,7 @@ const spanOperationRelativeBreakdownRenderer = (
 
   let otherPercentage = 1;
   let orderedSpanOpsBreakdownFields;
-  const sortingOnField = eventView?.sorts?.[0].field;
+  const sortingOnField = eventView?.sorts?.[0]?.field;
   if (sortingOnField && SPAN_OP_BREAKDOWN_FIELDS.includes(sortingOnField)) {
     orderedSpanOpsBreakdownFields = [
       sortingOnField,

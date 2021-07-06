@@ -10,7 +10,7 @@ class GroupSeen(Model):
     Track when a group is last seen by a user.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group")

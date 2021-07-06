@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import codesworth from 'sentry-images/spot/codesworth.png';
+import codesworth from 'sentry-images/spot/codesworth.svg';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';

@@ -31,7 +31,7 @@ const labels = {
   new: t('new'),
 };
 
-const FeaturedBadge = ({
+const FeatureBadge = ({
   type,
   variant = 'badge',
   title,
@@ -55,7 +55,7 @@ const StyledTag = styled(Tag)`
   padding: 3px ${space(0.75)};
 `;
 
-const StyledFeatureBadge = styled(withTheme(FeaturedBadge))`
+const StyledFeatureBadge = styled(withTheme(FeatureBadge))`
   display: inline-flex;
   align-items: center;
   margin-left: ${space(0.75)};

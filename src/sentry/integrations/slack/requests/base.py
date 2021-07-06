@@ -1,5 +1,6 @@
 from typing import Any, Mapping, MutableMapping, Optional
 
+from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
@@ -35,7 +36,7 @@ class SlackRequest:
 
     def __init__(self, request: Request) -> None:
         self.request = request
-        self.integration: Optional[Any] = None
+        self.integration: Optional[Integration] = None
         self._data: MutableMapping[str, Any] = {}
         self._log_request()
 
@@ -57,12 +58,33 @@ class SlackRequest:
         raise NotImplementedError
 
     @property
+    def channel_id(self) -> Optional[Any]:
+        """
+        Provide a normalized interface to ``channel_id``, which Action and Event
+        requests provide in different places.
+        """
+        return self.data.get("channel_id") or self.data.get("channel", {}).get("id")
+
+    @property
+    def response_url(self) -> Optional[Any]:
+        """Provide an interface to ``response_url`` for convenience."""
+        return self.data.get("response_url")
+
+    @property
     def team_id(self) -> Any:
         """
         Provide a normalized interface to ``team_id``, which Action and Event
         requests provide in different places.
         """
         return self.data.get("team_id") or self.data.get("team", {}).get("id")
+
+    @property
+    def user_id(self) -> Optional[Any]:
+        """
+        Provide a normalized interface to ``user_id``, which Action and Event
+        requests provide in different places.
+        """
+        return self.data.get("user_id") or self.data.get("user", {}).get("id")
 
     @property
     def data(self) -> Mapping[str, Any]:
@@ -90,7 +112,7 @@ class SlackRequest:
         try:
             self._data = self.request.data
         except (ValueError, TypeError):
-            raise SlackRequestError(status=400)
+            raise SlackRequestError(status=status_.HTTP_400_BAD_REQUEST)
 
     def _authorize(self) -> None:
         # XXX(meredith): Signing secrets are the preferred way
@@ -107,7 +129,7 @@ class SlackRequest:
 
         # unfortunately, we can't know which auth was supposed to succeed
         self._error("slack.action.auth")
-        raise SlackRequestError(status=401)
+        raise SlackRequestError(status=status_.HTTP_401_UNAUTHORIZED)
 
     def _check_signing_secret(self, signing_secret: str) -> bool:
         signature = self.request.META.get("HTTP_X_SLACK_SIGNATURE")
@@ -125,7 +147,7 @@ class SlackRequest:
             self.integration = Integration.objects.get(provider="slack", external_id=self.team_id)
         except Integration.DoesNotExist:
             self._error("slack.action.invalid-team-id")
-            raise SlackRequestError(status=403)
+            raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
 
     def _log_request(self) -> None:
         self._info("slack.request")

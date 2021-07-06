@@ -44,4 +44,10 @@ class Migration(migrations.Migration):
         )
     ]
 
-    operations = [migrations.RunPython(fix_content_types, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(
+            fix_content_types,
+            migrations.RunPython.noop,
+            hints={"tables": ["django_content_type"]},
+        )
+    ]

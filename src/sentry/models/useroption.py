@@ -145,7 +145,7 @@ class UserOption(Model):
         - unused
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey("sentry.Project", null=True)

@@ -1,7 +1,7 @@
 import {NewQuery, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {Dataset, IncidentRule} from 'app/views/settings/incidentRules/types';
+import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 /**
  * Gets the URL for a discover view of the rule with the following default
  * parameters:
@@ -17,11 +17,13 @@ export function getIncidentRuleDiscoverUrl(opts: {
   orgSlug: string;
   projects: Project[];
   rule?: IncidentRule;
+  eventType?: string;
   start?: string;
   end?: string;
   extraQueryParams?: Partial<NewQuery>;
 }) {
-  const {orgSlug, projects, rule, start, end, extraQueryParams} = opts;
+  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams} = opts;
+  const eventTypeTagFilter = eventType && rule?.query ? eventType : '';
 
   if (!projects || !projects.length || !rule || (!start && !end)) {
     return '';
@@ -34,7 +36,7 @@ export function getIncidentRuleDiscoverUrl(opts: {
     name: (rule && rule.name) || '',
     orderby: `-${getAggregateAlias(rule.aggregate)}`,
     yAxis: rule.aggregate,
-    query: rule?.query ?? '',
+    query: (eventTypeTagFilter || rule?.query || eventType) ?? '',
     projects: projects
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),

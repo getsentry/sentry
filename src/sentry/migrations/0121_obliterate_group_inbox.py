@@ -55,4 +55,10 @@ class Migration(migrations.Migration):
         ("sentry", "0120_commit_author_charfield"),
     ]
 
-    operations = [migrations.RunPython(obliterate_group_inbox, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(
+            obliterate_group_inbox,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_groupinbox"]},
+        )
+    ]

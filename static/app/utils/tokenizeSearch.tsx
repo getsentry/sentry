@@ -402,7 +402,10 @@ function formatQuery(query: string) {
  * the literal.
  */
 function escapeTagValue(value: string) {
+  // TODO(txiao): The types here are definitely wrong.
+  // Need to dig deeper to see where exactly it's wrong.
+  //
   // astericks (*) is used for wildcard searches
   // back slaches (\) is used to escape other characters
-  return value.replace(/([\*\\])/g, '\\$1');
+  return typeof value === 'string' ? value.replace(/([\*\\])/g, '\\$1') : value;
 }

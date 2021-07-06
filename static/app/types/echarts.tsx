@@ -21,6 +21,7 @@ export type Series = {
   lineStyle?: EChartOption.LineStyle;
   stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack
   z?: number; // https://echarts.apache.org/en/option.html#series-line.z
+  markLine?: EChartOption.SeriesLine['markLine'];
 };
 
 export type ReactEchartsRef = ReactEchartsCore & {

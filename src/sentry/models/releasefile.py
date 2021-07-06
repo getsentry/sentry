@@ -52,7 +52,7 @@ class ReleaseFile(Model):
     The ident of the file should be sha1(name) or
     sha1(name '\x00\x00' dist.name) and must be unique per release.
     """
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     # DEPRECATED
@@ -253,14 +253,18 @@ class _ArtifactIndexGuard:
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
-    def readable_data(self) -> Optional[dict]:
+    def readable_data(self, use_cache: bool) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
         try:
             releasefile = self._releasefile_qs()[0]
         except IndexError:
             return None
         else:
-            with releasefile.file.getfile() as fp:
+            if use_cache:
+                fp = ReleaseFile.cache.getfile(releasefile)
+            else:
+                fp = releasefile.file.getfile()
+            with fp:
                 return json.load(fp)
 
     @contextmanager
@@ -340,11 +344,11 @@ class _ArtifactIndexGuard:
 
 
 def read_artifact_index(
-    release: Release, dist: Optional[Distribution], **filter_args
+    release: Release, dist: Optional[Distribution], use_cache: bool = False, **filter_args
 ) -> Optional[dict]:
     """Get index data"""
     guard = _ArtifactIndexGuard(release, dist, **filter_args)
-    return guard.readable_data()
+    return guard.readable_data(use_cache)
 
 
 def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
