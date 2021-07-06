@@ -10,6 +10,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Input from 'app/components/forms/input';
 import * as Layout from 'app/components/layouts/thirds';
 import Link from 'app/components/links/link';
+import {t} from 'app/locale';
 import {
   GlobalSelection,
   Group,
@@ -33,10 +34,14 @@ type Props = {
 const timePeriods = range(-1, -24 * 7, -1);
 const defaultValue = '0.1';
 
+type GroupWithPercent = {
+  group: Group;
+  percent: number;
+};
+
 function SessionPercent({params, api, selection, organization}: Props) {
   const [threshold, setThreshold] = useState(defaultValue);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [statsArr, setStats] = useState<Array<Record<string, number>>>([]);
+  const [statsArr, setStats] = useState<GroupWithPercent[][]>([]);
 
   const requestParams = {
     expand: 'sessions',
@@ -47,27 +52,6 @@ function SessionPercent({params, api, selection, organization}: Props) {
   };
 
   const fetchData = async () => {
-    const issuesQuery = {...requestParams, limit: 25, statsPeriod: '7d'};
-    let results: Group[];
-    try {
-      results = await api.requestPromise(`/organizations/${params.orgId}/issues/`, {
-        method: 'GET',
-        data: qs.stringify(issuesQuery),
-      });
-    } catch {
-      results = [];
-    }
-
-    const groupIds = results.map(group => group.id);
-    if (groupIds.length === 0) {
-      setStats([]);
-      setGroups([]);
-      return;
-    }
-
-    setGroups(results);
-
-    const statsResults: GroupStats[][] = [];
     for (let idx = 0; idx < timePeriods.length; idx++) {
       const period = timePeriods[idx];
       const start = getUtcDateString(
@@ -79,6 +63,25 @@ function SessionPercent({params, api, selection, organization}: Props) {
           .toDate()
       );
 
+      const issuesQuery = {...requestParams, limit: 5, start, end};
+      let results: Group[];
+      try {
+        results = await api.requestPromise(`/organizations/${params.orgId}/issues/`, {
+          method: 'GET',
+          data: qs.stringify(issuesQuery),
+        });
+      } catch {
+        results = [];
+      }
+
+      const groupIds = results.map(group => group.id);
+      if (groupIds.length === 0) {
+        setStats(prevState => {
+          return [...prevState, []];
+        });
+        continue;
+      }
+
       const query = {
         ...requestParams,
         start,
@@ -87,28 +90,28 @@ function SessionPercent({params, api, selection, organization}: Props) {
       };
 
       try {
-        const stats = await api.requestPromise(
+        const groupStats: GroupStats[] = await api.requestPromise(
           `/organizations/${params.orgId}/issues-stats/`,
           {
             method: 'GET',
             data: qs.stringify(query),
           }
         );
-        statsResults.push(stats);
-
-        const statsMap = statsResults.map(issueStats => {
-          const issueStatsMap = issueStats.reduce((acc, {id, sessionCount, count}) => {
-            if (Number(count) !== 0) {
-              acc[id] = sessionCount ? (Number(count) / Number(sessionCount)) * 100 : 100;
-            }
-            return acc;
-          }, {});
-          return issueStatsMap;
+        const newData = groupStats.map(stats => {
+          return {
+            group: results.find(grp => grp.id === stats.id)!,
+            percent: stats.sessionCount
+              ? (Number(stats.count) / Number(stats.sessionCount)) * 100
+              : 100,
+          };
         });
-
-        setStats(statsMap);
+        setStats(prevState => {
+          return [...prevState, newData];
+        });
       } catch {
-        // pass
+        setStats(prevState => {
+          return [...prevState, []];
+        });
       }
     }
   };
@@ -162,25 +165,22 @@ function SessionPercent({params, api, selection, organization}: Props) {
         <Layout.Main fullWidth>
           {timePeriods.map((period, idx) => {
             const stats = statsArr[idx];
-
-            if (!stats) {
-              return null;
-            }
+            const isLoading = stats === undefined;
 
             return (
               <Fragment key={idx}>
                 <h4>{period} hours</h4>
                 <ul>
-                  {groups
-                    .filter(
-                      group => stats[group.id] && stats[group.id] > parseFloat(threshold)
-                    )
-                    .map(group => (
-                      <li key={group.id}>
-                        {stats[group.id].toLocaleString()}% -{' '}
-                        <Link to={getDiscoverUrl(group, period)}>{group.title}</Link>
-                      </li>
-                    ))}
+                  {isLoading && t('Loading...')}
+                  {!isLoading &&
+                    stats
+                      .filter(({percent}) => percent > parseFloat(threshold))
+                      .map(({group, percent}) => (
+                        <li key={group.id}>
+                          {percent.toLocaleString()}% -{' '}
+                          <Link to={getDiscoverUrl(group, period)}>{group.title}</Link>
+                        </li>
+                      ))}
                 </ul>
               </Fragment>
             );
