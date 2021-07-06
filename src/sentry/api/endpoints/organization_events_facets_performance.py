@@ -197,9 +197,9 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
 
 def query_tag_data(
     params: Mapping[str, str],
+    referrer: str,
     filter_query: Optional[str] = None,
     aggregate_column: Optional[str] = None,
-    referrer: Optional[str] = None,
 ) -> Optional[Dict]:
     """
     Fetch general data about all the transactions with this transaction name to feed into the facet query
@@ -249,8 +249,8 @@ def query_top_tags(
     params: Mapping[str, str],
     tag_key: str,
     limit: int,
+    referrer: str,
     filter_query: Optional[str] = None,
-    referrer: Optional[str] = None,
 ) -> Optional[List[Any]]:
     """
     Fetch counts by tag value, finding the top tag values for a tag key by a limit.
@@ -301,10 +301,10 @@ def query_top_tags(
 def query_facet_performance(
     params: Mapping[str, str],
     tag_data: Mapping[str, Any],
+    referrer: str,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
     orderby: Optional[str] = None,
-    referrer: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     all_tag_keys: Optional[bool] = None,
