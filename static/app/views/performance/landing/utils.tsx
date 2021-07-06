@@ -53,9 +53,9 @@ export const LANDING_DISPLAYS = [
   {
     label: 'Mobile',
     field: LandingDisplayField.MOBILE,
-    isEnabled: (organization: Organization) =>
+    isShown: (organization: Organization) =>
       organization.features.includes('performance-mobile-vitals'),
-    beta: true,
+    alpha: true,
   },
 ];
 

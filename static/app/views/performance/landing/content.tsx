@@ -282,8 +282,8 @@ class LandingContent extends Component<Props, State> {
             label={currentLandingDisplay.label}
           >
             {LANDING_DISPLAYS.filter(
-              ({isEnabled}) => !isEnabled || isEnabled(organization)
-            ).map(({beta, label, field}) => (
+              ({isShown}) => !isShown || isShown(organization)
+            ).map(({alpha, label, field}) => (
               <DropdownItem
                 key={field}
                 onSelect={this.handleLandingDisplayChange}
@@ -292,7 +292,7 @@ class LandingContent extends Component<Props, State> {
                 isActive={field === currentLandingDisplay.field}
               >
                 {label}
-                {beta && <FeatureBadge type="beta" noTooltip />}
+                {alpha && <FeatureBadge type="alpha" noTooltip />}
               </DropdownItem>
             ))}
           </DropdownControl>
