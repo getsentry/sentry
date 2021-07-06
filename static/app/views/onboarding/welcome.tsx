@@ -94,7 +94,7 @@ class OnboardingWelcome extends Component<Props> {
                     priority="link"
                     onClick={() =>
                       trackAdvancedAnalyticsEvent(
-                        'growth.skip_onboarding',
+                        'growth.onboarding_skip_onboarding',
                         {},
                         organization
                       )
