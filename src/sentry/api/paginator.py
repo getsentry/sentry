@@ -62,11 +62,15 @@ class BasePaginator:
             if self.key in queryset.query.order_by:
                 if not asc:
                     index = queryset.query.order_by.index(self.key)
-                    queryset.query.order_by[index] = "-%s" % (queryset.query.order_by[index])
+                    new_order_by = list(queryset.query.order_by)
+                    new_order_by[index] = f"-{queryset.query.order_by[index]}"
+                    queryset.query.order_by = tuple(new_order_by)
             elif ("-%s" % self.key) in queryset.query.order_by:
                 if asc:
-                    index = queryset.query.order_by.index("-%s" % (self.key))
-                    queryset.query.order_by[index] = queryset.query.order_by[index][1:]
+                    index = queryset.query.order_by.index(f"-{self.key}")
+                    new_order_by = list(queryset.query.order_by)
+                    new_order_by[index] = queryset.query.order_by[index][1:]
+                    queryset.query.order_b = tuple(new_order_by)
             else:
                 if asc:
                     queryset = queryset.order_by(self.key)
