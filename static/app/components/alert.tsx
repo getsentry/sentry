@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import React, {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -85,11 +85,11 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme
 const StyledTextBlock = styled('span')`
   line-height: 1.5;
   position: relative;
+  margin-right: auto;
 `;
 
 const MessageContainer = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(${space(4)}, 1fr) 30fr 1fr;
+  display: flex;
   width: 100%;
 `;
 
@@ -132,13 +132,11 @@ const Alert = styled(
         <MessageContainer>
           {icon && <IconWrapper>{icon}</IconWrapper>}
           <StyledTextBlock>{children}</StyledTextBlock>
-          {showExpand &&
-            (expandIcon || (
-              <ExpandIcon
-                onClick={() => handleOnExpandIconClick(!isExpanded)}
-                isExpanded={isExpanded}
-              />
-            ))}
+          {showExpand && (
+            <div onClick={() => handleOnExpandIconClick(!isExpanded)}>
+              {expandIcon || <ExpandIcon isExpanded={isExpanded} />}
+            </div>
+          )}
         </MessageContainer>
         {showExpandItems && (
           <ExpandContainer>

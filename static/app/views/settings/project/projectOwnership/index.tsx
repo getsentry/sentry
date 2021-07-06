@@ -335,4 +335,6 @@ const ErrorMessageContainer = styled('div')`
 const ErrorCtaContainer = styled('div')`
   grid-area: cta;
   justify-self: flex-end;
+  text-align: right;
+  line-height: 1.5;
 `;
