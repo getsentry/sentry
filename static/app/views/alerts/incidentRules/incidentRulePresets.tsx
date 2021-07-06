@@ -26,6 +26,7 @@ type PresetCtaOpts = {
   orgSlug: string;
   projects: Project[];
   rule?: IncidentRule;
+  eventType?: string;
   start?: string;
   end?: string;
 };
@@ -252,6 +253,7 @@ export function makeDefaultCta({
   orgSlug,
   projects,
   rule,
+  eventType,
   start,
   end,
 }: PresetCtaOpts): PresetCta {
@@ -272,6 +274,7 @@ export function makeDefaultCta({
       orgSlug,
       projects,
       rule,
+      eventType,
       start,
       end,
       extraQueryParams,
