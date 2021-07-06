@@ -11,10 +11,6 @@ import space from 'app/styles/space';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
-export type RenderProps = {
-  toggleFilter: (filter: string) => void;
-};
-
 type DropdownSection = {
   id: string;
   label: string;

@@ -1,6 +1,6 @@
 import {IssueConfigField} from 'app/types/index';
 
-export type IssueAlertRuleFormField =
+type IssueAlertRuleFormField =
   | {
       type: 'choice';
       choices?: [string, string][];

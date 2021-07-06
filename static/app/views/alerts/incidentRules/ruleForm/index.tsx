@@ -754,5 +754,4 @@ const AlertInfo = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-export {RuleFormContainer};
 export default RuleFormContainer;

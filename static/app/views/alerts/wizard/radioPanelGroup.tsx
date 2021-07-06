@@ -52,7 +52,7 @@ const Container = styled('div')`
   grid-auto-columns: auto;
 `;
 
-export const RadioLineItem = styled('label')<{
+const RadioLineItem = styled('label')<{
   index: number;
 }>`
   display: grid;
