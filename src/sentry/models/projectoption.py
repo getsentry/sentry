@@ -78,7 +78,7 @@ class ProjectOption(Model):
     their key. e.g. key='myplugin:optname'
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)

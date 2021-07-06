@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:28.359619Z'
+created: '2021-06-30T16:44:01.142059Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "4c9aea199e5ed84c00a6d4d1bb7576c2"
-  tree_label: "actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log"
+  tree_label: "sentry::integrations::log::Logger::log | log::__private_api_log | actix_web::pipeline::ProcessResponse<T>::poll_io"
   component:
     app-depth-2*
       exception*
@@ -53,7 +53,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "cb20e13a0ac481e2d961ddb5ec5b737c"
-  tree_label: "actix_web::pipeline::Pipeline<T>::poll_io | ... | sentry::hub::Hub::with_active"
+  tree_label: "sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | actix_web::pipeline::ProcessResponse<T>::poll_io | actix_web::pipeline::Pipeline<T>::poll_io"
   component:
     app-depth-3*
       exception*
@@ -94,7 +94,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "46035a02eac7b0ace4d4f740e8075d7f"
-  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::parse | ... | sentry::hub::Hub::with"
+  tree_label: "sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | actix_web::pipeline::ProcessResponse<T>::poll_io | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::parse"
   component:
     app-depth-4*
       exception*
@@ -147,7 +147,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "5e293439c562dbd9e43df32419d45b6a"
-  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::poll_io | ... | std::thread::local::LocalKey<T>::with"
+  tree_label: "std::thread::local::LocalKey<T>::with | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | actix_web::pipeline::ProcessResponse<T>::poll_io | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::server::h1::Http1Dispatcher<T>::poll_io"
   component:
     app-depth-5*
       exception*
@@ -210,7 +210,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "3b6eaff1ca55deef09b01def1b407956"
-  tree_label: "<entire stacktrace>"
+  tree_label: "sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | actix_web::pipeline::ProcessResponse<T>::poll_io | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::server::h1::Http1Dispatcher<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::poll_handler | actix_web::server::h1::Http1Dispatcher<T>::poll | actix_web::server::channel::HttpChannel<T>::poll | actix_web::server::channel::HttpChannel<T>::poll | actix_net::service::map_err::MapErrFuture<T>::poll | actix_net::service::and_then::AndThenFuture<T>::poll | actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll | futures::future::either::Either<T>::poll | futures::future::either::Either<T>::poll | futures::future::chain::Chain<T>::poll | futures::future::then::Then<T>::poll | alloc::boxed::Box<T>::poll | futures::task_impl::Spawn<T>::poll_future_notify::{{closure}} | futures::task_impl::Spawn<T>::enter::{{closure}} | futures::task_impl::std::set | futures::task_impl::Spawn<T>::enter | futures::task_impl::Spawn<T>::poll_fn_notify | futures::task_impl::Spawn<T>::poll_future_notify | tokio_current_thread::scheduler::Scheduled<T>::tick | tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}} | tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}} | tokio_current_thread::CurrentRunner::set_spawn | tokio_current_thread::Borrow<T>::enter::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_current_thread::Borrow<T>::enter | tokio_current_thread::scheduler::Scheduler<T>::tick | tokio_current_thread::Entered<T>::tick | tokio_current_thread::Entered<T>::block_on | tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}} | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}} | tokio_executor::global::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_executor::global::with_default | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}} | tokio_timer::timer::handle::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_timer::timer::handle::with_default | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}} | tokio_timer::clock::clock::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_timer::clock::clock::with_default | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}} | tokio_reactor::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_reactor::with_default | tokio::runtime::current_thread::runtime::Runtime::enter | tokio::runtime::current_thread::runtime::Runtime::block_on | actix::arbiter::Arbiter::new_with_builder::{{closure}} | std::sys_common::backtrace::__rust_begin_short_backtrace | std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}} | std::panic::AssertUnwindSafe<T>::call_once | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::panicking::try | std::panic::catch_unwind | std::thread::Builder::spawn_unchecked::{{closure}} | alloc::boxed::FnBox<T>::call_box | std::sys::unix::thread::Thread::new::thread_start | __pthread_body | __pthread_start"
   component:
     app-depth-max*
       exception*
@@ -663,7 +663,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "3b6eaff1ca55deef09b01def1b407956"
-  tree_label: "<entire stacktrace>"
+  tree_label: "sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | actix_web::pipeline::ProcessResponse<T>::poll_io | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::server::h1::Http1Dispatcher<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::poll_handler | actix_web::server::h1::Http1Dispatcher<T>::poll | actix_web::server::channel::HttpChannel<T>::poll | actix_web::server::channel::HttpChannel<T>::poll | actix_net::service::map_err::MapErrFuture<T>::poll | actix_net::service::and_then::AndThenFuture<T>::poll | actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll | futures::future::either::Either<T>::poll | futures::future::either::Either<T>::poll | futures::future::chain::Chain<T>::poll | futures::future::then::Then<T>::poll | alloc::boxed::Box<T>::poll | futures::task_impl::Spawn<T>::poll_future_notify::{{closure}} | futures::task_impl::Spawn<T>::enter::{{closure}} | futures::task_impl::std::set | futures::task_impl::Spawn<T>::enter | futures::task_impl::Spawn<T>::poll_fn_notify | futures::task_impl::Spawn<T>::poll_future_notify | tokio_current_thread::scheduler::Scheduled<T>::tick | tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}} | tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}} | tokio_current_thread::CurrentRunner::set_spawn | tokio_current_thread::Borrow<T>::enter::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_current_thread::Borrow<T>::enter | tokio_current_thread::scheduler::Scheduler<T>::tick | tokio_current_thread::Entered<T>::tick | tokio_current_thread::Entered<T>::block_on | tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}} | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}} | tokio_executor::global::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_executor::global::with_default | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}} | tokio_timer::timer::handle::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_timer::timer::handle::with_default | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}} | tokio_timer::clock::clock::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_timer::clock::clock::with_default | tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}} | tokio_reactor::with_default::{{closure}} | std::thread::local::LocalKey<T>::try_with | std::thread::local::LocalKey<T>::with | tokio_reactor::with_default | tokio::runtime::current_thread::runtime::Runtime::enter | tokio::runtime::current_thread::runtime::Runtime::block_on | actix::arbiter::Arbiter::new_with_builder::{{closure}} | std::sys_common::backtrace::__rust_begin_short_backtrace | std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}} | std::panic::AssertUnwindSafe<T>::call_once | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::panicking::try | std::panic::catch_unwind | std::thread::Builder::spawn_unchecked::{{closure}} | alloc::boxed::FnBox<T>::call_box | std::sys::unix::thread::Thread::new::thread_start | __pthread_body | __pthread_start"
   component:
     system*
       exception*

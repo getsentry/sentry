@@ -60,7 +60,7 @@ export type DeviceData = {
   online?: boolean;
   screen_density?: number;
   screen_dpi?: number;
-  screen_height_pixels?: string;
+  screen_height_pixels?: number;
   screen_resolution?: string;
   screen_width_pixels?: number;
   memory_size?: number;

@@ -1,4 +1,4 @@
-import {BaseGroup, GroupTombstone, Organization} from 'app/types';
+import {BaseGroup, EventMetadata, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {isNativePlatform} from 'app/utils/platform';
 
@@ -31,6 +31,25 @@ export function getMessage(
   }
 }
 
+function formatTreeLabel(treeLabel: string[]) {
+  return treeLabel.join(' | ');
+}
+
+function computeTitleWithTreeLabel(title: string | undefined, metadata: EventMetadata) {
+  const treeLabel = metadata.current_tree_label || metadata.finest_tree_label;
+  const formattedTreeLabel = treeLabel ? formatTreeLabel(treeLabel) : null;
+
+  if (!title) {
+    return formattedTreeLabel || metadata.function || '<unknown>';
+  }
+
+  if (formattedTreeLabel) {
+    title += ' | ' + formattedTreeLabel;
+  }
+
+  return title;
+}
+
 /**
  * Get the location from an event.
  */
@@ -61,11 +80,7 @@ export function getTitle(
 
   if (type === 'error') {
     result.subtitle = culprit;
-    if (metadata.type) {
-      result.title = metadata.type;
-    } else {
-      result.title = metadata.function || '<unknown>';
-    }
+    result.title = computeTitleWithTreeLabel(metadata.type, metadata);
   } else if (type === 'csp') {
     result.title = metadata.directive || '';
     result.subtitle = metadata.uri || '';

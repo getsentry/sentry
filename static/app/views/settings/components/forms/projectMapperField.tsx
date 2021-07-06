@@ -35,7 +35,7 @@ type State = {
   selectedMappedValue: MappedValue | null;
 };
 
-//Get the icon
+// Get the icon
 const getIcon = (iconType: string) => {
   switch (iconType) {
     case 'vercel':
@@ -82,7 +82,7 @@ export class RenderField extends Component<RenderProps, State> {
       mappedDropdownItems.map(item => [item.value, item])
     );
 
-    //build sets of values used so we don't let the user select them twice
+    // build sets of values used so we don't let the user select them twice
     const projectIdsUsed = new Set(existingValues.map(tuple => tuple[0]));
     const mappedValuesUsed = new Set(existingValues.map(tuple => tuple[1]));
 
@@ -103,12 +103,12 @@ export class RenderField extends Component<RenderProps, State> {
     };
 
     const handleAdd = () => {
-      //add the new value to the list of existing values
+      // add the new value to the list of existing values
       const projectMappings = [
         ...existingValues,
         [selectedSentryProjectId, selectedMappedValue],
       ];
-      //trigger events so we save the value and show the check mark
+      // trigger events so we save the value and show the check mark
       onChange?.(projectMappings, []);
       onBlur?.(projectMappings, []);
       this.setState({selectedSentryProjectId: null, selectedMappedValue: null});
@@ -116,7 +116,7 @@ export class RenderField extends Component<RenderProps, State> {
 
     const handleDelete = (index: number) => {
       const projectMappings = removeAtArrayIndex(existingValues, index);
-      //trigger events so we save the value and show the check mark
+      // trigger events so we save the value and show the check mark
       onChange?.(projectMappings, []);
       onBlur?.(projectMappings, []);
     };
@@ -168,7 +168,7 @@ export class RenderField extends Component<RenderProps, State> {
     };
 
     const customValueContainer = containerProps => {
-      //if no value set, we want to return the default component that is rendered
+      // if no value set, we want to return the default component that is rendered
       const project = sentryProjectsById[selectedSentryProjectId || ''];
       if (!project) {
         return <components.ValueContainer {...containerProps} />;
@@ -188,7 +188,7 @@ export class RenderField extends Component<RenderProps, State> {
 
     const customOptionProject = projectProps => {
       const project = sentryProjectsById[projectProps.value];
-      //Should never happen for a dropdown item
+      // Should never happen for a dropdown item
       if (!project) {
         return null;
       }
@@ -206,7 +206,7 @@ export class RenderField extends Component<RenderProps, State> {
     };
 
     const customMappedValueContainer = containerProps => {
-      //if no value set, we want to return the default component that is rendered
+      // if no value set, we want to return the default component that is rendered
       const mappedValue = mappedItemsByValue[selectedMappedValue || ''];
       if (!mappedValue) {
         return <components.ValueContainer {...containerProps} />;

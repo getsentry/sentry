@@ -1,10 +1,11 @@
 from django.conf.urls import url
 
-from .action_endpoint import SlackActionEndpoint
-from .command_endpoint import SlackCommandsEndpoint
-from .event_endpoint import SlackEventEndpoint
-from .link_identity import SlackLinkIdentityView
-from .unlink_identity import SlackUnlinkIdentityView
+from .endpoints.action import SlackActionEndpoint
+from .endpoints.command import SlackCommandsEndpoint
+from .endpoints.event import SlackEventEndpoint
+from .views.link_identity import SlackLinkIdentityView
+from .views.link_team import SlackLinkTeamView
+from .views.unlink_identity import SlackUnlinkIdentityView
 
 urlpatterns = [
     url(r"^action/$", SlackActionEndpoint.as_view()),
@@ -19,5 +20,10 @@ urlpatterns = [
         r"^unlink-identity/(?P<signed_params>[^\/]+)/$",
         SlackUnlinkIdentityView.as_view(),
         name="sentry-integration-slack-unlink-identity",
+    ),
+    url(
+        r"^link-team/(?P<signed_params>[^\/]+)/$",
+        SlackLinkTeamView.as_view(),
+        name="sentry-integration-slack-link-team",
     ),
 ]

@@ -10,6 +10,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.utils import metrics
+from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 UNSAFE_FILES = (
@@ -50,6 +51,13 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-project-stats": 0.1,  # lower rate because of high TPM
+    # debug files
+    "sentry-api-0-assemble-dif-files": 0.1,
+    # scim
+    "sentry-api-0-organization-scim-member-index": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
@@ -60,6 +68,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.store.symbolicate_event_from_reprocessing": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.assemble.assemble_dif": 0.1,
 }
 
 
@@ -273,6 +282,7 @@ def configure_sdk():
     sentry_sdk.init(
         transport=MultiplexingTransport(),
         integrations=[
+            DjangoAtomicIntegration(),
             DjangoIntegration(),
             CeleryIntegration(),
             LoggingIntegration(event_level=None),

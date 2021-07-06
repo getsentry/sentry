@@ -75,8 +75,8 @@ function TeamFilter({
     label: name,
     value: id,
     filtered: teamFilterSearch
-      ? name.toLowerCase().includes(teamFilterSearch.toLowerCase())
-      : true,
+      ? !name.toLowerCase().includes(teamFilterSearch.toLowerCase())
+      : false,
     checked: selectedTeams.has(id),
   }));
 

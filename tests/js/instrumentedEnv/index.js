@@ -43,6 +43,10 @@ class SentryEnvironment extends JsDomEnvironment {
       op: 'jest test suite',
       description: this.testPath,
       name: this.testPath,
+      tags: {
+        branch: process.env.GITHUB_REF,
+        commit: process.env.GITHUB_SHA,
+      },
     });
 
     Sentry.configureScope(scope => scope.setSpan(this.transaction));

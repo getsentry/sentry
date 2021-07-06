@@ -164,13 +164,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, project, router, location} = this.props;
-    const {
-      loading,
-      showDetails,
-      builtinSymbolSources,
-      debugFiles,
-      debugFilesPageLinks,
-    } = this.state;
+    const {loading, showDetails, builtinSymbolSources, debugFiles, debugFilesPageLinks} =
+      this.state;
     const {features} = organization;
 
     return (

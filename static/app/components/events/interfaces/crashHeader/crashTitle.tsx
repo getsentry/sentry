@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 type Props = {
   title: string;
   newestFirst: boolean;
-  onChange: ({newestFirst}: {newestFirst: boolean}) => void;
+  onChange?: ({newestFirst}: {newestFirst: boolean}) => void;
   beforeTitle?: React.ReactNode;
   hideGuide?: boolean;
 };
@@ -33,15 +33,17 @@ const CrashTitle = ({
         <GuideAnchor target="exception" disabled={hideGuide} position="bottom">
           {title}
         </GuideAnchor>
-        <Tooltip title={t('Toggle stack trace order')}>
-          <small>
-            (
-            <span onClick={handleToggleOrder}>
-              {newestFirst ? t('most recent call first') : t('most recent call last')}
-            </span>
-            )
-          </small>
-        </Tooltip>
+        {onChange && (
+          <Tooltip title={t('Toggle stack trace order')}>
+            <small>
+              (
+              <span onClick={handleToggleOrder}>
+                {newestFirst ? t('most recent call first') : t('most recent call last')}
+              </span>
+              )
+            </small>
+          </Tooltip>
+        )}
       </StyledH3>
     </Wrapper>
   );

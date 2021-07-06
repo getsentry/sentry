@@ -61,39 +61,39 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   handleResetConfiguration = (projectId: string) => {
-    //make a copy of our project list
+    // make a copy of our project list
     const projectList = this.plugin.projectList.slice();
-    //find the index of the project
+    // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
-    //should match but quit if it doesn't
+    // should match but quit if it doesn't
     if (index < 0) {
       return;
     }
-    //remove from array
+    // remove from array
     projectList.splice(index, 1);
-    //update state
+    // update state
     this.setState({
       plugins: [{...this.state.plugins[0], projectList}],
     });
   };
 
   handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
-    //make a copy of our project list
+    // make a copy of our project list
     const projectList = this.plugin.projectList.slice();
-    //find the index of the project
+    // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
-    //should match but quit if it doesn't
+    // should match but quit if it doesn't
     if (index < 0) {
       return;
     }
 
-    //update item in array
+    // update item in array
     projectList[index] = {
       ...projectList[index],
       enabled: enable,
     };
 
-    //update state
+    // update state
     this.setState({
       plugins: [{...this.state.plugins[0], projectList}],
     });
@@ -121,7 +121,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   };
 
   getTabDisplay(tab: Tab) {
-    //we want to show project configurations to make it more clear
+    // we want to show project configurations to make it more clear
     if (tab === 'configurations') {
       return 'project configurations';
     }

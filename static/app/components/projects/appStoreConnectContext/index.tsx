@@ -20,15 +20,12 @@ type ProviderProps = {
 
 const Provider = withApi(({api, children, project, organization}: ProviderProps) => {
   const [projectDetails, setProjectDetails] = useState<undefined | Project>();
-  const [
-    appStoreConnectValidationData,
-    setAppStoreConnectValidationData,
-  ] = useState<AppStoreConnectContextProps>(undefined);
+  const [appStoreConnectValidationData, setAppStoreConnectValidationData] =
+    useState<AppStoreConnectContextProps>(undefined);
 
   const orgSlug = organization.slug;
-  const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
-    'app-store-connect'
-  );
+  const hasAppConnectStoreFeatureFlag =
+    !!organization.features?.includes('app-store-connect');
 
   useEffect(() => {
     fetchProjectDetails();

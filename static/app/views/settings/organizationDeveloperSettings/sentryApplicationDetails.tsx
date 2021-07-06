@@ -93,12 +93,12 @@ class SentryAppFormModel extends FormModel {
     const formErrors = omit(responseJSON, ['scopes']);
     if (responseJSON.scopes) {
       responseJSON.scopes.forEach((message: string) => {
-        //find the scope from the error message of a specific format
+        // find the scope from the error message of a specific format
         const matches = message.match(/Requested permission of (\w+:\w+)/);
         if (matches) {
           const scope = matches[1];
           const resource = getResourceFromScope(scope as Scope);
-          //should always match but technically resource can be undefined
+          // should always match but technically resource can be undefined
           if (resource) {
             formErrors[`${resource}--permission`] = [message];
           }
@@ -273,7 +273,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
   onFieldChange = (name: string, value: FieldValue): void => {
     if (name === 'webhookUrl' && !value && this.isInternal) {
-      //if no webhook, then set isAlertable to false
+      // if no webhook, then set isAlertable to false
       this.form.setValue('isAlertable', false);
     }
   };
@@ -289,10 +289,10 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
     let verifyInstall: boolean;
     if (this.isInternal) {
-      //force verifyInstall to false for all internal apps
+      // force verifyInstall to false for all internal apps
       verifyInstall = false;
     } else {
-      //use the existing value for verifyInstall if the app exists, otherwise default to true
+      // use the existing value for verifyInstall if the app exists, otherwise default to true
       verifyInstall = app ? app.verifyInstall : true;
     }
 
@@ -310,7 +310,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
             schema: {},
             scopes: [],
             ...app,
-            verifyInstall, //need to overwrite the value in app for internal if it is true
+            verifyInstall, // need to overwrite the value in app for internal if it is true
           }}
           model={this.form}
           onSubmitSuccess={this.handleSubmitSuccess}

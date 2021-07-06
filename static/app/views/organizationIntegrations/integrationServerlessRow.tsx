@@ -60,18 +60,18 @@ class IntegrationServerlessRow extends Component<Props, State> {
     try {
       addLoadingMessage();
       this.setState({submitting: true});
-      //optimistically update enable state
+      // optimistically update enable state
       this.props.onUpdateFunction({enabled: !this.enabled});
       this.recordAction(action);
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
-      //update remaining after response
+      // update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      //restore original on failure
+      // restore original on failure
       this.props.onUpdateFunction(serverlessFunction);
       addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
@@ -93,11 +93,11 @@ class IntegrationServerlessRow extends Component<Props, State> {
         method: 'POST',
         data,
       });
-      //update remaining after response
+      // update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      //restore original on failure
+      // restore original on failure
       this.props.onUpdateFunction(serverlessFunction);
       addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
@@ -117,7 +117,7 @@ class IntegrationServerlessRow extends Component<Props, State> {
   render() {
     const {serverlessFunction} = this.props;
     const {version} = serverlessFunction;
-    //during optimistic update, we might be enabled without a version
+    // during optimistic update, we might be enabled without a version
     const versionText =
       this.enabled && version > 0 ? <Fragment>&nbsp;|&nbsp;v{version}</Fragment> : null;
     return (

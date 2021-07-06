@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject, Query} from 'history';
 
+import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
@@ -24,7 +25,7 @@ import SegmentExplorerQuery, {
   TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -34,6 +35,7 @@ import {
   PROJECT_PERFORMANCE_TYPE,
 } from '../utils';
 
+import {tagsRouteWithQuery} from './transactionTags/utils';
 import {SpanOperationBreakdownFilter} from './filter';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
@@ -281,7 +283,7 @@ class _TagExplorer extends React.Component<Props> {
 
     conditions.addTagValues(tagKey, [tagValue]);
 
-    const query = stringifyQueryObject(conditions);
+    const query = conditions.formatString();
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -316,7 +318,7 @@ class _TagExplorer extends React.Component<Props> {
         query: {
           ...location.query,
           [TAGS_CURSOR_NAME]: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -328,10 +330,25 @@ class _TagExplorer extends React.Component<Props> {
     dataRow: TableDataRow
   ): React.ReactNode => {
     const value = dataRow[column.key];
-    const {location} = parentProps;
+    const {location, organization, transactionName} = parentProps;
 
     if (column.key === 'key') {
-      return dataRow.tags_key;
+      const target = tagsRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        projectID: decodeScalar(location.query.project),
+        query: {...location.query, tagKey: dataRow.tags_key},
+      });
+      return (
+        <Feature features={['performance-tag-page']} organization={organization}>
+          {({hasFeature}) => {
+            if (hasFeature) {
+              return <Link to={target}>{dataRow.tags_key}</Link>;
+            }
+            return dataRow.tags_key;
+          }}
+        </Feature>
+      );
     }
 
     const allowActions = [Actions.ADD, Actions.EXCLUDE];
@@ -345,14 +362,27 @@ class _TagExplorer extends React.Component<Props> {
           handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
-          <Link
-            to=""
-            onClick={() =>
-              this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
-            }
-          >
-            <TagValue row={dataRow} />
-          </Link>
+          <Feature features={['performance-tag-page']} organization={organization}>
+            {({hasFeature}) => {
+              if (hasFeature) {
+                return <div className="truncate">{dataRow.tags_value}</div>;
+              }
+              return (
+                <Link
+                  to=""
+                  onClick={() =>
+                    this.handleTagValueClick(
+                      location,
+                      dataRow.tags_key,
+                      dataRow.tags_value
+                    )
+                  }
+                >
+                  <TagValue row={dataRow} />
+                </Link>
+              );
+            }}
+          </Feature>
         </CellAction>
       );
     }

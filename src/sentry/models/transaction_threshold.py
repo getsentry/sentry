@@ -8,18 +8,16 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
 class TransactionMetric(Enum):
     DURATION = 1
     LCP = 2
-    FCP = 3
 
 
 TRANSACTION_METRICS = {
     TransactionMetric.DURATION.value: "duration",
     TransactionMetric.LCP.value: "lcp",
-    TransactionMetric.FCP.value: "fcp",
 }
 
 
 class ProjectTransactionThresholdOverride(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
@@ -38,7 +36,7 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
 
 
 class ProjectTransactionThreshold(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project", unique=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")

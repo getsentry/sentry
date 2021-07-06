@@ -11,12 +11,8 @@ import {t} from 'app/locale';
 import {DateString, Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
+import {IncidentRule, TimePeriod, TimeWindow} from 'app/views/alerts/incidentRules/types';
 import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
-import {
-  IncidentRule,
-  TimePeriod,
-  TimeWindow,
-} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
@@ -144,12 +140,9 @@ class AlertRuleDetails extends Component<Props, State> {
       const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
         this.setState({rule})
       );
-      const incidentsPromise = fetchIncidentsForRule(
-        orgId,
-        ruleId,
-        start,
-        end
-      ).then(incidents => this.setState({incidents}));
+      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
+        incidents => this.setState({incidents})
+      );
       await Promise.all([rulePromise, incidentsPromise]);
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {

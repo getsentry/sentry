@@ -1,6 +1,6 @@
 import responses
 
-from sentry.integrations.slack.unlink_identity import build_unlinking_url
+from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -35,7 +35,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
 
     @responses.activate
-    @patch("sentry.integrations.slack.link_identity.unsign")
+    @patch("sentry.integrations.slack.views.link_identity.unsign")
     def test_basic_flow(self, unsign):
 
         Identity.objects.create(

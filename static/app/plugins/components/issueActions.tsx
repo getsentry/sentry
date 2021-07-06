@@ -158,7 +158,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     const pluginSlug = this.props.plugin.slug;
     const url = `/issues/${groupId}/plugins/${pluginSlug}/options/`;
 
-    //find the fields that this field is dependent on
+    // find the fields that this field is dependent on
     const dependentFormValues = Object.fromEntries(
       field.depends.map(fieldKey => [fieldKey, formData[fieldKey]])
     );
@@ -184,11 +184,11 @@ class IssueActions extends PluginComponentBase<Props, State> {
       return;
     }
 
-    //find the location of the field in our list and replace it
+    // find the location of the field in our list and replace it
     const indexOfField = fieldList.findIndex(({name}) => name === field.name);
     field = {...field, choices};
 
-    //make a copy of the array to avoid mutation
+    // make a copy of the array to avoid mutation
     fieldList = fieldList.slice();
     fieldList[indexOfField] = field;
 
@@ -207,7 +207,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
   getInputProps(field: Field) {
     const props: {isLoading?: boolean; readonly?: boolean} = {};
 
-    //special logic for fields that have dependencies
+    // special logic for fields that have dependencies
     if (field.depends && field.depends.length > 0) {
       switch (this.state.dependentFieldState[field.name]) {
         case FormState.LOADING:
@@ -251,7 +251,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
   onLoadSuccess() {
     super.onLoadSuccess();
 
-    //dependent fields need to be set to disabled upon loading
+    // dependent fields need to be set to disabled upon loading
     const fieldList = this.getFieldList();
     fieldList.forEach(field => {
       if (field.depends && field.depends.length > 0) {
@@ -342,7 +342,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
   changeField(action: ActionType, name: string, value: any) {
     const formDataKey = this.getFormDataKey(action);
 
-    //copy so we don't mutate
+    // copy so we don't mutate
     const formData = {...this.state[formDataKey]};
     const fieldList = this.getFieldList();
 
@@ -350,7 +350,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
 
     let callback = () => {};
 
-    //only works with one impacted field
+    // only works with one impacted field
     const impactedField = fieldList.find(({depends}) => {
       if (!depends || !depends.length) {
         return false;
@@ -360,11 +360,11 @@ class IssueActions extends PluginComponentBase<Props, State> {
     });
 
     if (impactedField) {
-      //if every dependent field is set, then search
+      // if every dependent field is set, then search
       if (!impactedField.depends?.some(dependentField => !formData[dependentField])) {
         callback = () => this.loadOptionsForDependentField(impactedField);
       } else {
-        //otherwise reset the options
+        // otherwise reset the options
         callback = () => this.resetOptionsOfDependentField(impactedField);
       }
     }

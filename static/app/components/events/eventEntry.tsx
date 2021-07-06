@@ -72,9 +72,8 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
-      const hasImagesLoadedV2Feature = !!organization.features?.includes(
-        'images-loaded-v2'
-      );
+      const hasImagesLoadedV2Feature =
+        !!organization.features?.includes('images-loaded-v2');
 
       if (hasImagesLoadedV2Feature) {
         return (
@@ -106,7 +105,7 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
       );
     default:
       // this should not happen
-      /*eslint no-console:0*/
+      /* eslint no-console:0 */
       window.console &&
         console.error &&
         console.error('Unregistered interface: ' + (entry as any).type);

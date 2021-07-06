@@ -26,7 +26,7 @@ import {
   generateTraceTarget,
 } from 'app/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconAnchor, IconChevron, IconWarning} from 'app/icons';
+import {IconAnchor, IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -42,6 +42,8 @@ import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {getTraceDateTimeRange, isGapSpan, isOrphanSpan, scrollToSpan} from './utils';
+
+const DEFAULT_ERRORS_VISIBLE = 5;
 
 const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
@@ -227,6 +229,10 @@ class SpanDetail extends React.Component<Props, State> {
       return null;
     }
 
+    const visibleErrors = errorsOpened
+      ? relatedErrors
+      : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
+
     return (
       <Alert system type="error" icon={<IconWarning size="md" />}>
         <ErrorMessageTitle>
@@ -235,24 +241,24 @@ class SpanDetail extends React.Component<Props, State> {
             '%s error events occurred in this transaction.',
             relatedErrors.length
           )}
-          <Toggle priority="link" onClick={this.toggleErrors}>
-            <IconChevron direction={errorsOpened ? 'up' : 'down'} />
-          </Toggle>
         </ErrorMessageTitle>
-        {errorsOpened && (
-          <ErrorMessageContent>
-            {relatedErrors.map(error => (
-              <React.Fragment key={error.event_id}>
-                <ErrorDot level={error.level} />
-                <ErrorLevel>{error.level}</ErrorLevel>
-                <ErrorTitle>
-                  <Link to={generateIssueEventTarget(error, organization)}>
-                    {error.title}
-                  </Link>
-                </ErrorTitle>
-              </React.Fragment>
-            ))}
-          </ErrorMessageContent>
+        <ErrorMessageContent>
+          {visibleErrors.map(error => (
+            <React.Fragment key={error.event_id}>
+              <ErrorDot level={error.level} />
+              <ErrorLevel>{error.level}</ErrorLevel>
+              <ErrorTitle>
+                <Link to={generateIssueEventTarget(error, organization)}>
+                  {error.title}
+                </Link>
+              </ErrorTitle>
+            </React.Fragment>
+          ))}
+        </ErrorMessageContent>
+        {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
+          <ErrorToggle size="xsmall" onClick={this.toggleErrors}>
+            {errorsOpened ? t('Show less') : t('Show more')}
+          </ErrorToggle>
         )}
       </Alert>
     );
@@ -465,12 +471,8 @@ const TextTr = ({children}) => (
   </tr>
 );
 
-const Toggle = styled(Button)`
-  font-weight: bold;
-  color: ${p => p.theme.subText};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
+const ErrorToggle = styled(Button)`
+  margin-top: ${space(0.75)};
 `;
 
 const SpanIdTitle = styled('a')`

@@ -12,8 +12,8 @@ from sentry.utils import snuba
 
 class NoEvents(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
-    message = "This issue has no events."
     code = "no_events"
+    message = "This issue has no events."
 
 
 class MergedIssues(SentryAPIException):

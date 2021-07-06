@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import click
 
@@ -88,19 +89,14 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     if __installed:
         return
 
-    import warnings
-
     # Make sure that our warnings are always displayed.
     warnings.filterwarnings("default", "", Warning, r"^sentry")
 
-    # This should be kept in-sync with sentry.utils.pytest.sentry,
-    # and pytest warningfilters in pyproject.toml.
-    # See pyproject.toml for explanations.
-    from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
+    from django.utils.deprecation import RemovedInDjango21Warning
 
-    warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
+    # While we're on Django 1.9, we only care about RemovedInDjango20Warning.
+    # TODO(joshuarli): Remove this after RemovedInDjango21Warnings are fixed in testing.
     warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
-    warnings.filterwarnings(action="ignore", category=DeprecationWarning)
 
     # Add in additional mimetypes that are useful for our static files
     # which aren't common in default system registries

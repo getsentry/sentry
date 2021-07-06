@@ -110,5 +110,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill_semver, migrations.RunPython.noop),
+        migrations.RunPython(
+            backfill_semver,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_release"]},
+        ),
     ]

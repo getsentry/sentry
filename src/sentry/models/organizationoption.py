@@ -77,7 +77,7 @@ class OrganizationOption(Model):
     value: { updated: datetime }
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization")
     key = models.CharField(max_length=64)

@@ -18,7 +18,7 @@ import {IconCopy, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseMeta, ReleaseProject} from 'app/types';
-import {formatAbbreviatedNumber, formatVersion} from 'app/utils/formatters';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
 
 import ReleaseActions from './releaseActions';
 
@@ -94,7 +94,7 @@ const ReleaseHeader = ({
               label: t('Releases'),
               preserveGlobalSelection: true,
             },
-            {label: formatVersion(version)},
+            {label: t('Release Details')},
           ]}
         />
         <Layout.Title>

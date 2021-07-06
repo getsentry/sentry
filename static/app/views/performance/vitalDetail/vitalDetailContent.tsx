@@ -22,7 +22,7 @@ import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
@@ -56,7 +56,7 @@ function getSummaryConditions(query: string) {
   const parsed = tokenizeSearch(query);
   parsed.query = [];
 
-  return stringifyQueryObject(parsed);
+  return parsed.formatString();
 }
 
 class VitalDetailContent extends React.Component<Props, State> {

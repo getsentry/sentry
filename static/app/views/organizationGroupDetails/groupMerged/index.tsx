@@ -75,15 +75,8 @@ class GroupMergedView extends Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
   getEndpoint() {
-    const {params, organization, location} = this.props;
+    const {params, location} = this.props;
     const {groupId} = params;
-
-    const hasGroupingTreeFeature = organization?.features?.includes('grouping-tree-ui');
-
-    if (hasGroupingTreeFeature) {
-      // TODO(markus): limits
-      return `/issues/${groupId}/hashes/split/`;
-    }
 
     const queryParams = {
       ...location.query,
@@ -110,15 +103,6 @@ class GroupMergedView extends Component<Props, State> {
       loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
       errorMessage: t('Unable to queue events for unmerging.'),
-    });
-  };
-
-  handleSplit = () => {
-    GroupingActions.split({
-      groupId: this.props.params.groupId,
-      loadingMessage: t('Splitting fingerprints\u2026'),
-      successMessage: t('Fingerprints successfully queued for splitting.'),
-      errorMessage: t('Unable to queue fingerprints for splitting.'),
     });
   };
 
@@ -152,7 +136,6 @@ class GroupMergedView extends Component<Props, State> {
             pageLinks={mergedLinks}
             groupId={groupId}
             onUnmerge={this.handleUnmerge}
-            onSplit={this.handleSplit}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />
         )}

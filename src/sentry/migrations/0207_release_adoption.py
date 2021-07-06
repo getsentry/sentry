@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_release_project" DROP COLUMN "adopted";
                     """,
+                    hints={"tables": ["sentry_release_project"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -46,6 +47,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_release_project" DROP COLUMN "unadopted";
                     """,
+                    hints={"tables": ["sentry_release_project"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -54,6 +56,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_releaseprojectenvironment" DROP COLUMN "adopted";
                     """,
+                    hints={"tables": ["sentry_releaseprojectenvironment"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -62,30 +65,35 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_releaseprojectenvironment" DROP COLUMN "unadopted";
                     """,
+                    hints={"tables": ["sentry_releaseprojectenvironment"]},
                 ),
                 migrations.RunSQL(
                     """
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_proj_id_adopted_4ce765fa" ON "sentry_release_project" ("project_id", "adopted");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_adopted_4ce765fa",
+                    hints={"tables": ["sentry_release_project"]},
                 ),
                 migrations.RunSQL(
                     """
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_proj_id_unadopted_8h5g84ee" ON "sentry_release_project" ("project_id", "unadopted");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_unadopted_8h5g84ee",
+                    hints={"tables": ["sentry_release_project"]},
                 ),
                 migrations.RunSQL(
                     """
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3" ON "sentry_releaseprojectenvironment" ("project_id", "adopted", "environment_id");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3",
+                    hints={"tables": ["sentry_releaseprojectenvironment"]},
                 ),
                 migrations.RunSQL(
                     """
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted", "environment_id");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m",
+                    hints={"tables": ["sentry_releaseprojectenvironment"]},
                 ),
             ],
             state_operations=[

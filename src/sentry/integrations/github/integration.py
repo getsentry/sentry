@@ -63,7 +63,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitHub%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=GitHub%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github",
     aspects={},
 )
@@ -199,16 +199,16 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return [GitHubInstallationRedirect()]
 
     def get_installation_info(self, installation_id):
-        session = http.build_session()
         headers = {
             # TODO(jess): remove this whenever it's out of preview
             "Accept": "application/vnd.github.machine-man-preview+json",
         }
         headers.update(jwt.authorization_header(get_jwt()))
-        resp = session.get(
-            "https://api.github.com/app/installations/%s" % installation_id, headers=headers
-        )
-        resp.raise_for_status()
+        with http.build_session() as session:
+            resp = session.get(
+                f"https://api.github.com/app/installations/{installation_id}", headers=headers
+            )
+            resp.raise_for_status()
         installation_resp = resp.json()
 
         return installation_resp

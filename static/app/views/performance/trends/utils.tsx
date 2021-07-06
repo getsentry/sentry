@@ -169,7 +169,7 @@ export function generateTrendFunctionAsString(
 ): string {
   return generateFieldAsString({
     kind: 'function',
-    function: [trendFunction as AggregationKey, trendParameter, undefined],
+    function: [trendFunction as AggregationKey, trendParameter, undefined, undefined],
   });
 }
 

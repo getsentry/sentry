@@ -24,7 +24,7 @@ export default class SentryApplicationRow extends PureComponent<Props> {
   }
 
   hideStatus() {
-    //no publishing for internal apps so hide the status on the developer settings page
+    // no publishing for internal apps so hide the status on the developer settings page
     return this.isInternal;
   }
 

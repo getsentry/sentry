@@ -105,8 +105,8 @@ declare global {
      */
     adblockSuspected?: boolean;
 
-    //typing currently used for demo add on
-    //TODO: improve typing
+    // typing currently used for demo add on
+    // TODO: improve typing
     SentryApp?: {
       HookStore: any;
       ConfigStore: any;
@@ -383,6 +383,8 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
+  current_tree_label?: string[];
+  finest_tree_label?: string[];
 };
 
 export type EventAttachment = {
@@ -406,7 +408,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-type UpdateSdkSuggestion = {
+export type UpdateSdkSuggestion = {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
@@ -453,9 +455,9 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
+  ip_address: string;
   avatarUrl?: string;
   avatar?: Avatar;
-  ip_address: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
@@ -1189,10 +1191,11 @@ export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
   provider: BaseIntegrationProvider | null;
 };
 
-export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
-  integrationId: string;
-  provider: BaseIntegrationProvider;
-};
+export type RepositoryProjectPathConfigWithIntegration =
+  BaseRepositoryProjectPathConfig & {
+    integrationId: string;
+    provider: BaseIntegrationProvider;
+  };
 
 export type PullRequest = {
   id: string;
@@ -1289,11 +1292,11 @@ export type SentryApp = {
   schema: {
     elements?: SentryAppSchemaElement[];
   };
-  //possible null params
+  // possible null params
   webhookUrl: string | null;
   redirectUrl: string | null;
   overview: string | null;
-  //optional params below
+  // optional params below
   datePublished?: string;
   clientId?: string;
   clientSecret?: string;
@@ -1395,7 +1398,7 @@ export type Permissions = {
   Team: PermissionValue;
 };
 
-//See src/sentry/api/serializers/models/apitoken.py for the differences based on application
+// See src/sentry/api/serializers/models/apitoken.py for the differences based on application
 type BaseApiToken = {
   id: string;
   scopes: Scope[];
@@ -1404,7 +1407,7 @@ type BaseApiToken = {
   state: string;
 };
 
-//We include the token for API tokens used for internal apps
+// We include the token for API tokens used for internal apps
 export type InternalAppApiToken = BaseApiToken & {
   application: null;
   token: string;
@@ -1466,6 +1469,14 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
+  adoptionStages?: Record<
+    'string',
+    {
+      stage: string | null;
+      adopted: string | null;
+      unadopted: string | null;
+    }
+  >;
 };
 
 type BaseRelease = {
@@ -1571,6 +1582,7 @@ export type SentryAppComponent = {
   sentryApp: {
     uuid: string;
     slug:
+      | 'calixa'
       | 'clickup'
       | 'clubhouse'
       | 'komodor'
@@ -1748,7 +1760,7 @@ export type Tag = {
   maxSuggestedValues?: number;
 };
 
-export type TagCollection = {[key: string]: Tag};
+export type TagCollection = Record<string, Tag>;
 
 export type TagValue = {
   count: number;
@@ -1989,7 +2001,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames?: Frame[];
+  frames: Frame[] | null;
 };
 
 export type ExceptionType = {
@@ -2007,7 +2019,7 @@ export type Identity = {
   providerLabel: string;
 };
 
-//taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
+// taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 
 export type InternetProtocol = {
@@ -2070,6 +2082,8 @@ export type SeriesApi = {
 };
 
 export type SessionApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
   query: string;
   intervals: string[];
   groups: {
@@ -2078,6 +2092,18 @@ export type SessionApiResponse = SeriesApi & {
     series: Record<string, number[]>;
   }[];
 };
+
+export enum SessionField {
+  SESSIONS = 'sum(session)',
+  USERS = 'count_unique(user)',
+}
+
+export enum ReleaseComparisonChartType {
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  SESSION_COUNT = 'sessionCount',
+  USER_COUNT = 'userCount',
+}
 
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',

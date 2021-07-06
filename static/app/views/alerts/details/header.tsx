@@ -21,7 +21,7 @@ import space from 'app/styles/space';
 import {use24Hours} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
-import {Dataset} from 'app/views/settings/incidentRules/types';
+import {Dataset} from 'app/views/alerts/incidentRules/types';
 
 import Status from '../status';
 import {Incident, IncidentStats} from '../types';
@@ -68,13 +68,8 @@ export default class DetailsHeader extends React.Component<Props> {
   }
 
   render() {
-    const {
-      hasIncidentDetailsError,
-      incident,
-      params,
-      stats,
-      onSubscriptionChange,
-    } = this.props;
+    const {hasIncidentDetailsError, incident, params, stats, onSubscriptionChange} =
+      this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
     // ex - Wed, May 27, 2020 11:09 AM
     const dateFormat = use24Hours() ? 'ddd, MMM D, YYYY HH:mm' : 'llll';

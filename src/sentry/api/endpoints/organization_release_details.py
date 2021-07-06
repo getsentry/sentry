@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -354,6 +355,7 @@ class OrganizationReleaseDetailsEndpoint(
         current_project_meta = {}
         project_id = request.GET.get("project")
         with_health = request.GET.get("health") == "1"
+        with_adoption_stages = request.GET.get("adoptionStages") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
         sort = request.GET.get("sort") or "date"
@@ -419,11 +421,16 @@ class OrganizationReleaseDetailsEndpoint(
             except InvalidSortException:
                 return Response({"detail": "invalid sort"}, status=400)
 
+        with_adoption_stages = with_adoption_stages and features.has(
+            "organizations:release-adoption-stage", organization, actor=request.user
+        )
+
         return Response(
             serialize(
                 release,
                 request.user,
                 with_health_data=with_health,
+                with_adoption_stages=with_adoption_stages,
                 summary_stats_period=summary_stats_period,
                 health_stats_period=health_stats_period,
                 current_project_meta=current_project_meta,

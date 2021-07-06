@@ -222,7 +222,7 @@ class StacktraceContent extends React.Component<Props, State> {
             onAddressToggle={this.handleToggleAddresses}
             image={image}
             maxLengthOfRelativeAddress={maxLengthOfAllRelativeAddresses}
-            registers={{}} //TODO: Fix registers
+            registers={{}} // TODO: Fix registers
             isFrameAfterLastNonApp={isFrameAfterLastNonApp}
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}

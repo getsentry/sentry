@@ -27,7 +27,7 @@ type Props = WithRouterProps<RouteParams, {}> & {
   /**
    * Callback invoked with the updated config value.
    */
-  onSave: (config: Record<string, any>) => void;
+  onSave: (data: Record<string, any>) => Promise<void>;
   /**
    * Type of this source.
    */
@@ -38,7 +38,7 @@ type Props = WithRouterProps<RouteParams, {}> & {
    * The sourceConfig. May be empty to create a new one.
    */
   sourceConfig?: Record<string, any>;
-} & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'>;
+} & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal'>;
 
 function DebugFileCustomRepository({
   Header,
@@ -50,9 +50,19 @@ function DebugFileCustomRepository({
   params: {orgId, projectId: projectSlug},
   location,
   appStoreConnectContext,
+  closeModal,
 }: Props) {
   function handleSave(data: Record<string, any>) {
-    onSave({...data, type: sourceType});
+    onSave({...data, type: sourceType}).then(() => {
+      closeModal();
+
+      if (
+        sourceType === 'appStoreConnect' &&
+        appStoreConnectContext?.updateAlertMessage
+      ) {
+        window.location.reload();
+      }
+    });
   }
 
   if (sourceType === 'appStoreConnect') {

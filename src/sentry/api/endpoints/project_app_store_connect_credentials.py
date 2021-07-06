@@ -50,13 +50,12 @@ To create and manage these credentials, several API endpoints exist:
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
 import datetime
-from typing import Optional
+import logging
 from uuid import uuid4
 
-import dateutil.parser
-import jsonschema
 import requests
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -66,23 +65,14 @@ from sentry.api.exceptions import (
     ItunesAuthenticationError,
     ItunesTwoFactorAuthenticationRequired,
 )
-from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
-from sentry.models import Project
-from sentry.utils import json
+from sentry.lang.native import appconnect
+from sentry.models import AuditLogEntryEvent, Project
+from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
-# The property name of the project option which contains the encryption key.
-#
-# This key is what is used to encrypt the secrets before storing them in the project
-# options.  Specifically the ``sessionContext``, ``itunesPassword`` and
-# ``appconnectPrivateKey`` are currently encrypted using this key.
-CREDENTIALS_KEY_NAME = "sentry:appleconnect_key"
-
-
-# The key in the project options under which all symbol sources are stored.
-SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
+logger = logging.getLogger(__name__)
 
 
 # The name of the feature flag which enables the App Store Connect symbol source.
@@ -92,28 +82,7 @@ APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
 
 
-def get_app_store_config(
-    project: Project, credentials_id: Optional[str]
-) -> Optional[json.JSONData]:
-    """Returns the appStoreConnect symbol source config for a project."""
-    sources_config = project.get_option(SYMBOL_SOURCES_PROP_NAME)
-
-    if credentials_id is None:
-        return None
-    try:
-        sources = json.loads(sources_config)
-        for source in sources:
-            if (
-                source.get("type") == "appStoreConnect"
-                and source.get("id") == credentials_id.lower()
-            ):
-                return source
-        return None
-    except BaseException as e:
-        raise ValueError("bad sources") from e
-
-
-class AppStoreConnectCredentialsSerializer(serializers.Serializer):
+class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectAppsEndpoint."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -124,7 +93,7 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
     appconnectPrivateKey = serializers.CharField(max_length=512, required=True)
 
 
-class AppStoreConnectAppsEndpoint(ProjectEndpoint):
+class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -164,7 +133,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -188,13 +157,15 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
         if apps is None:
             raise AppConnectAuthenticationError()
 
-        apps = [{"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps]
-        result = {"apps": apps}
+        all_apps = [
+            {"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps
+        ]
+        result = {"apps": all_apps}
 
         return Response(result, status=200)
 
 
-class CreateSessionContextSerializer(serializers.Serializer):
+class CreateSessionContextSerializer(serializers.Serializer):  # type: ignore
     auth_key = serializers.CharField(min_length=1, required=True)
     session_id = serializers.CharField(min_length=1, required=True)
     scnt = serializers.CharField(min_length=1, required=True)
@@ -203,7 +174,7 @@ class CreateSessionContextSerializer(serializers.Serializer):
     itunes_created = serializers.DateTimeField(required=True)
 
 
-class AppStoreCreateCredentialsSerializer(serializers.Serializer):
+class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectCreateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -215,14 +186,15 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=True)
     itunesPassword = serializers.CharField(max_length=512, min_length=1, required=True)
     appName = serializers.CharField(max_length=512, min_length=1, required=True)
-    appId = serializers.CharField(max_length=512, min_length=1, required=True)
+    appId = serializers.CharField(min_length=1, required=True)
+    bundleId = serializers.CharField(min_length=1, required=True)
     # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
     orgId = serializers.IntegerField(required=True)
     orgName = serializers.CharField(max_length=100, required=True)
     sessionContext = CreateSessionContextSerializer(required=True)
 
 
-class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
+class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -246,7 +218,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -267,16 +239,27 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
         config["itunesSession"] = session_context.get("itunes_session")
         config["itunesPersonId"] = session_context.get("itunes_person_id")
 
-        # We need to have a serialised datetime, but django-rest-framework de-serialised it
-        # into the class.  So, serialize it back.
-        clone = config.copy()
-        clone["itunesCreated"] = config["itunesCreated"].isoformat()
-        jsonschema.validate(clone, APP_STORE_CONNECT_SCHEMA)
+        validated_config = appconnect.AppStoreConnectConfig.from_json(config)
+        new_sources = validated_config.update_project_symbol_source(project)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+        )
+
+        dsym_download.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "config_id": validated_config.id,
+            }
+        )
 
         return Response(config, status=200)
 
 
-class UpdateSessionContextSerializer(serializers.Serializer):
+class UpdateSessionContextSerializer(serializers.Serializer):  # type: ignore
     auth_key = serializers.CharField(min_length=1, required=True)
     session_id = serializers.CharField(min_length=1, required=True)
     scnt = serializers.CharField(min_length=1, required=True)
@@ -285,7 +268,7 @@ class UpdateSessionContextSerializer(serializers.Serializer):
     itunes_created = serializers.DateTimeField(required=True)
 
 
-class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
+class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -297,14 +280,15 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
     itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
     appName = serializers.CharField(max_length=512, min_length=1, required=False)
-    appId = serializers.CharField(max_length=512, min_length=1, required=False)
+    appId = serializers.CharField(min_length=1, required=False)
+    bundleId = serializers.CharField(min_length=1, required=False)
     sessionContext = UpdateSessionContextSerializer(required=False)
     # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
     orgId = serializers.IntegerField(required=False)
     orgName = serializers.CharField(max_length=100, required=False)
 
 
-class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -319,7 +303,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project, credentials_id):
+    def post(self, request: Request, project: Project, credentials_id: str) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -330,8 +314,11 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         # get the existing credentials
-        symbol_source_config = get_app_store_config(project, credentials_id)
-        if symbol_source_config is None:
+        try:
+            symbol_source_config = appconnect.AppStoreConnectConfig.from_project_config(
+                project, credentials_id
+            )
+        except KeyError:
             return Response(status=404)
 
         # get the new credentials
@@ -343,21 +330,29 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
             data["itunesSession"] = session_context.get("itunes_session")
             data["itunesPersonId"] = session_context.get("itunes_person_id")
 
-        symbol_source_config.update(data)
+        new_data = symbol_source_config.to_json()
+        new_data.update(data)
+        symbol_source_config = appconnect.AppStoreConnectConfig.from_json(new_data)
+        new_sources = symbol_source_config.update_project_symbol_source(project)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+        )
 
-        # We need to have a serialised datetime, but django-rest-framework de-serialised it
-        # into the class.  So, serialize it back.
-        if isinstance(symbol_source_config["itunesCreated"], datetime.datetime):
-            clone = symbol_source_config.copy()
-            clone["itunesCreated"] = symbol_source_config["itunesCreated"].isoformat()
-        else:
-            clone = data
-        jsonschema.validate(clone, APP_STORE_CONNECT_SCHEMA)
+        dsym_download.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "config_id": symbol_source_config.id,
+            }
+        )
 
-        return Response(symbol_source_config, status=200)
+        return Response(symbol_source_config.to_json(), status=200)
 
 
-class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
+class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
     """Validates both API credentials and if the stored ITunes session is still active.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
@@ -379,34 +374,31 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def get(self, request, project, credentials_id):
+    def get(self, request: Request, project: Project, credentials_id: str) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
-        symbol_source_cfg = get_app_store_config(project, credentials_id)
-        if symbol_source_cfg is None:
+        try:
+            symbol_source_cfg = appconnect.AppStoreConnectConfig.from_project_config(
+                project, credentials_id
+            )
+        except KeyError:
             return Response(status=404)
 
-        if symbol_source_cfg.get("itunesCreated") is not None:
-            expiration_date = (
-                dateutil.parser.isoparse(symbol_source_cfg.get("itunesCreated"))
-                + ITUNES_TOKEN_VALIDITY
-            )
-        else:
-            expiration_date = None
+        expiration_date = symbol_source_cfg.itunesCreated + ITUNES_TOKEN_VALIDITY
 
         credentials = appstore_connect.AppConnectCredentials(
-            key_id=symbol_source_cfg.get("appconnectKey"),
-            key=symbol_source_cfg.get("appconnectPrivateKey"),
-            issuer_id=symbol_source_cfg.get("appconnectIssuer"),
+            key_id=symbol_source_cfg.appconnectKey,
+            key=symbol_source_cfg.appconnectPrivateKey,
+            issuer_id=symbol_source_cfg.appconnectIssuer,
         )
 
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
 
-        itunes_connect.load_session_cookie(session, symbol_source_cfg.get("itunesSession"))
+        itunes_connect.load_session_cookie(session, symbol_source_cfg.itunesSession)
         itunes_session_info = itunes_connect.get_session_info(session)
 
         return Response(
@@ -419,7 +411,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
         )
 
 
-class AppStoreConnectStartAuthSerializer(serializers.Serializer):
+class AppStoreConnectStartAuthSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectStartAuthEndpoint."""
 
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
@@ -427,7 +419,7 @@ class AppStoreConnectStartAuthSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 
-class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
+class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
     """Starts iTunes login sequence.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/start/``
@@ -466,7 +458,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -481,12 +473,15 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         credentials_id = serializer.validated_data.get("id")
 
         if credentials_id is not None:
-            symbol_source_config = get_app_store_config(project, credentials_id)
-            if symbol_source_config is None:
+            try:
+                symbol_source_config = appconnect.AppStoreConnectConfig.from_project_config(
+                    project, credentials_id
+                )
+            except KeyError:
                 return Response("No credentials found.", status=400)
 
-            user_name = symbol_source_config.get("itunesUser")
-            password = symbol_source_config.get("itunesPassword")
+            user_name = symbol_source_config.itunesUser
+            password = symbol_source_config.itunesPassword
 
         if user_name is None:
             return Response("No user name provided.", status=400)
@@ -496,8 +491,6 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         session = requests.session()
 
         auth_key = itunes_connect.get_auth_service_key(session)
-        if auth_key is None:
-            return Response("Could not contact itunes store.", status=500)
 
         init_login_result = itunes_connect.initiate_login(
             session, service_key=auth_key, account_name=user_name, password=password
@@ -517,19 +510,19 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         )
 
 
-class RequestSmsSessionContextSerializer(serializers.Serializer):
+class RequestSmsSessionContextSerializer(serializers.Serializer):  # type: ignore
     auth_key = serializers.CharField(min_length=1, required=True)
     session_id = serializers.CharField(min_length=1, required=True)
     scnt = serializers.CharField(min_length=1, required=True)
 
 
-class AppStoreConnectRequestSmsSerializer(serializers.Serializer):
+class AppStoreConnectRequestSmsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectRequestSmsEndpoint`."""
 
     sessionContext = RequestSmsSessionContextSerializer(required=True)
 
 
-class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
+class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):  # type: ignore
     """Switches an iTunes login to using SMS for 2FA.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``
@@ -551,7 +544,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -580,7 +573,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
             phone_id=phone_info.id,
             push_mode=phone_info.push_mode,
         )
-        if init_phone_login is None:
+        if not init_phone_login:
             return Response("Phone 2fa failed", status=500)
 
         # success, return the new session context (add phone_id and push mode to the session context)
@@ -589,7 +582,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
         return Response({"sessionContext": data}, status=200)
 
 
-class TwoFactorAuthSessionContextSerializer(serializers.Serializer):
+class TwoFactorAuthSessionContextSerializer(serializers.Serializer):  # type: ignore
     auth_key = serializers.CharField(min_length=1, required=True)
     session_id = serializers.CharField(min_length=1, required=True)
     scnt = serializers.CharField(min_length=1, required=True)
@@ -597,7 +590,7 @@ class TwoFactorAuthSessionContextSerializer(serializers.Serializer):
     push_mode = serializers.CharField(min_length=1, required=False)
 
 
-class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):
+class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnect2FactorAuthEndpoint."""
 
     sessionContext = TwoFactorAuthSessionContextSerializer(required=True)
@@ -605,7 +598,7 @@ class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):
     useSms = serializers.BooleanField(required=True)
 
 
-class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
+class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):  # type: ignore
     """Completes the 2FA iTunes login, returning a valid session.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``
@@ -650,7 +643,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -701,7 +694,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
                 "session_id": headers.session_id,
                 "scnt": headers.scnt,
                 "itunes_session": itunes_session,
-                "itunes_person_id": prs_id,  # TODO(flub): This is seemingly unused?
+                "itunes_person_id": prs_id,
                 "itunes_created": datetime.datetime.utcnow(),
             }
             return Response(

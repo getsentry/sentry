@@ -1,30 +1,30 @@
 ---
-created: '2021-05-05T18:04:39.560386Z'
+created: '2021-06-30T16:44:00.961274Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "345122a1d95a95b106bdda3c8d0b19c8"
-  tree_label: "abort | gldCreateDevice | glDeleteTextures_Exec [driver/gl/throw]"
+  hash: "c20e97250c9dbf61615dff51c4bcc286"
+  tree_label: "abort | gldCreateDevice | glDeleteTextures_Exec"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
-            function*
-              "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            function*
-              "gldCreateDevice"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glDeleteTextures_Exec"
             package (ignored because function takes precedence)
               "glengine"
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+            function*
+              "gldCreateDevice"
+            package (ignored because function takes precedence)
+              "geforcegldriver"
+          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -32,7 +32,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "9c336f632f6764c0f082a6a66edbf22d"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | __abort | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gldCreateDevice | gpusSubmitDataBuffers | gldUpdateDispatch | gldUpdateDispatch | gleUnbindTextureObject | gleUnbindDeleteHashNamesAndObjects | glDeleteTextures_Exec | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::`anonymous namespace'::thread_proxy | _pthread_start | thread_start | boost::thread::start_thread_noexcept"
   component:
     app-depth-max*
       exception*
@@ -152,7 +152,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "9c336f632f6764c0f082a6a66edbf22d"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | __abort | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gldCreateDevice | gpusSubmitDataBuffers | gldUpdateDispatch | gldUpdateDispatch | gleUnbindTextureObject | gleUnbindDeleteHashNamesAndObjects | glDeleteTextures_Exec | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::`anonymous namespace'::thread_proxy | _pthread_start | thread_start | boost::thread::start_thread_noexcept"
   component:
     system*
       exception*

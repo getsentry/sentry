@@ -15,11 +15,11 @@ class TeamworkClient:
         if not params:
             params = {}
 
-        session = http.build_session()
-        resp = getattr(session, method.lower())(
-            url, auth=(self._token, ""), params=params, json=data, timeout=self._timeout
-        )
-        resp.raise_for_status()
+        with http.build_session() as session:
+            resp = getattr(session, method.lower())(
+                url, auth=(self._token, ""), params=params, json=data, timeout=self._timeout
+            )
+            resp.raise_for_status()
         return json.loads(resp.content)
 
     def list_projects(self):

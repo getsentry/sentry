@@ -155,26 +155,25 @@ class TransactionDetail extends Component<Props, State> {
     );
   }
 
-  scrollBarIntoView = (transactionId: string) => (
-    e: React.MouseEvent<HTMLAnchorElement>
-  ) => {
-    // do not use the default anchor behaviour
-    // because it will be hidden behind the minimap
-    e.preventDefault();
+  scrollBarIntoView =
+    (transactionId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // do not use the default anchor behaviour
+      // because it will be hidden behind the minimap
+      e.preventDefault();
 
-    const hash = `#txn-${transactionId}`;
+      const hash = `#txn-${transactionId}`;
 
-    this.props.scrollToHash(hash);
+      this.props.scrollToHash(hash);
 
-    // TODO(txiao): This is causing a rerender of the whole page,
-    // which can be slow.
-    //
-    // make sure to update the location
-    browserHistory.push({
-      ...this.props.location,
-      hash,
-    });
-  };
+      // TODO(txiao): This is causing a rerender of the whole page,
+      // which can be slow.
+      //
+      // make sure to update the location
+      browserHistory.push({
+        ...this.props.location,
+        hash,
+      });
+    };
 
   renderTransactionDetail() {
     const {location, organization, transaction} = this.props;

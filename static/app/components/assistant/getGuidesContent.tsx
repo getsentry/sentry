@@ -198,19 +198,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'user_misery',
-      requiredTargets: ['user_misery'],
-      steps: [
-        {
-          title: t('User Misery'),
-          target: 'user_misery',
-          description: t(
-            `Make users less miserable. Our User Misery Index now combines unique miserable users both by number and percentage. Plus, you can sort User Misery to identify your site’s most frustrating transactions.`
-          ),
-        },
-      ],
-    },
-    {
       guide: 'stack_trace_preview',
       requiredTargets: ['issue_stream_title'],
       dateThreshold: new Date(2021, 2, 15),
@@ -308,6 +295,19 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'project_transaction_threshold',
+      requiredTargets: ['project_transaction_threshold'],
+      steps: [
+        {
+          title: t('Project Thresholds'),
+          target: 'project_transaction_threshold',
+          description: t(
+            'Gauge performance using different metrics for each project. Set response time thresholds, per project, for the Apdex and User Misery Scores in each project’s Performance settings.'
+          ),
+        },
+      ],
+    },
   ];
 }
 
@@ -316,7 +316,7 @@ function getDemoModeGuides(): GuidesContent {
     {
       guide: 'sidebar',
       requiredTargets: ['projects', 'issues'],
-      priority: 1, //lower number means higher priority
+      priority: 1, // lower number means higher priority
       markOthersAsSeen: true,
       steps: [
         {

@@ -194,8 +194,8 @@ export class Provider extends React.Component<Props, State> {
       return;
     }
 
-    const visibleWidth = this.props.interactiveLayerRef.current!.getBoundingClientRect()
-      .width;
+    const visibleWidth =
+      this.props.interactiveLayerRef.current!.getBoundingClientRect().width;
 
     // This is the width of the content not visible.
     const maxScrollDistance = maxContentWidth - visibleWidth;
@@ -324,7 +324,8 @@ export class Provider extends React.Component<Props, State> {
 
     const virtualScrollbarDOM = this.virtualScrollbar.current;
 
-    const interactiveLayerRect = this.props.interactiveLayerRef.current!.getBoundingClientRect();
+    const interactiveLayerRect =
+      this.props.interactiveLayerRef.current!.getBoundingClientRect();
 
     const virtualScrollBarRect = rectOfContent(virtualScrollbarDOM);
 

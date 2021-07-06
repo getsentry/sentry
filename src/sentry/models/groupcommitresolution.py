@@ -9,7 +9,7 @@ class GroupCommitResolution(Model):
     When a Group is referenced via a commit, its association is stored here.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     group_id = BoundedBigIntegerField()
     commit_id = BoundedBigIntegerField(db_index=True)

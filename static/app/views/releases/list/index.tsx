@@ -4,6 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -15,9 +16,10 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
+import SmartSearchBar from 'app/components/smartSearchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {releaseHealth} from 'app/data/platformCategories';
+import {desktop, mobile, releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -25,10 +27,13 @@ import space from 'app/styles/space';
 import {
   GlobalSelection,
   Organization,
+  Project,
   Release,
   ReleaseStatus,
   SessionApiResponse,
+  Tag,
 } from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -46,6 +51,17 @@ import ReleaseListStatusOptions from './releaseListStatusOptions';
 import ReleasePromo from './releasePromo';
 import {DisplayOption, SortOption, StatusOption} from './utils';
 
+const supportedTags = {
+  'sentry.semver': {
+    key: 'sentry.semver',
+    name: 'sentry.semver',
+  },
+  release: {
+    key: 'release',
+    name: 'release',
+  },
+};
+
 type RouteParams = {
   orgId: string;
 };
@@ -62,6 +78,7 @@ type State = {
 
 class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
+  shouldRenderBadRequests = true;
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
@@ -78,6 +95,7 @@ class ReleasesList extends AsyncView<Props, State> {
       summaryStatsPeriod: statsPeriod,
       per_page: 20,
       flatten: activeSort === SortOption.DATE ? 0 : 1,
+      adoptionStages: 1,
       status:
         activeStatus === StatusOption.ARCHIVED
           ? ReleaseStatus.Archived
@@ -85,7 +103,12 @@ class ReleasesList extends AsyncView<Props, State> {
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['releases', `/organizations/${organization.slug}/releases/`, {query}],
+      [
+        'releases',
+        `/organizations/${organization.slug}/releases/`,
+        {query},
+        {disableEntireQuery: true},
+      ],
     ];
 
     return endpoints;
@@ -136,6 +159,8 @@ class ReleasesList extends AsyncView<Props, State> {
         return SortOption.SESSIONS;
       case SortOption.USERS_24_HOURS:
         return SortOption.USERS_24_HOURS;
+      case SortOption.SESSIONS_24_HOURS:
+        return SortOption.SESSIONS_24_HOURS;
       case SortOption.BUILD:
         return SortOption.BUILD;
       case SortOption.SEMVER:
@@ -167,6 +192,14 @@ class ReleasesList extends AsyncView<Props, State> {
       default:
         return StatusOption.ACTIVE;
     }
+  }
+
+  getSelectedProject(): Project | undefined {
+    const {selection, organization} = this.props;
+
+    const selectedProjectId =
+      selection.projects && selection.projects.length === 1 && selection.projects[0];
+    return organization.projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
   async fetchSessionsExistence() {
@@ -221,9 +254,19 @@ class ReleasesList extends AsyncView<Props, State> {
   handleDisplay = (display: string) => {
     const {location, router} = this.props;
 
+    let sort = location.query.sort;
+    if (sort === SortOption.USERS_24_HOURS && display === DisplayOption.SESSIONS)
+      sort = SortOption.SESSIONS_24_HOURS;
+    else if (sort === SortOption.SESSIONS_24_HOURS && display === DisplayOption.USERS)
+      sort = SortOption.USERS_24_HOURS;
+    else if (sort === SortOption.CRASH_FREE_USERS && display === DisplayOption.SESSIONS)
+      sort = SortOption.CRASH_FREE_SESSIONS;
+    else if (sort === SortOption.CRASH_FREE_SESSIONS && display === DisplayOption.USERS)
+      sort = SortOption.CRASH_FREE_USERS;
+
     router.push({
       ...location,
-      query: {...location.query, cursor: undefined, display},
+      query: {...location.query, cursor: undefined, display, sort},
     });
   };
 
@@ -236,6 +279,38 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
+  trackAddReleaseHealth = () => {
+    const {organization, selection} = this.props;
+
+    if (organization.id && selection.projects[0]) {
+      trackAnalyticsEvent({
+        eventKey: `releases_list.click_add_release_health`,
+        eventName: `Releases List: Click Add Release Health`,
+        organization_id: parseInt(organization.id, 10),
+        project_id: selection.projects[0],
+      });
+    }
+  };
+
+  tagValueLoader = (key: string, search: string) => {
+    const {location, organization} = this.props;
+    const {project: projectId} = location.query;
+
+    return fetchTagValues(
+      this.api,
+      organization.slug,
+      key,
+      search,
+      projectId ? [projectId] : null,
+      location.query
+    );
+  };
+
+  getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
+    const values = await this.tagValueLoader(tag.key, currentQuery);
+    return values.map(({value}) => value);
+  };
+
   shouldShowLoadingIndicator() {
     const {loading, releases, reloading} = this.state;
 
@@ -243,6 +318,10 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderLoading() {
+    return this.renderBody();
+  }
+
+  renderError() {
     return this.renderBody();
   }
 
@@ -265,6 +344,16 @@ class ReleasesList extends AsyncView<Props, State> {
       return (
         <EmptyStateWarning small>
           {t('There are no releases with active user data (users in the last 24 hours).')}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (activeSort === SortOption.SESSIONS_24_HOURS) {
+      return (
+        <EmptyStateWarning small>
+          {t(
+            'There are no releases with active session data (sessions in the last 24 hours).'
+          )}
         </EmptyStateWarning>
       );
     }
@@ -306,48 +395,45 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderHealthCta() {
-    const {selection, organization} = this.props;
+    const {organization} = this.props;
     const {hasSessions, releases} = this.state;
 
-    const selectedProjectId =
-      selection.projects && selection.projects.length === 1 && selection.projects[0];
-    const selectedProject = organization.projects?.find(
-      p => p.id === `${selectedProjectId}`
-    );
+    const selectedProject = this.getSelectedProject();
 
     if (!selectedProject || hasSessions !== false || !releases?.length) {
       return null;
     }
 
     return (
-      <Feature features={['organizations:release-adoption-chart']}>
-        <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
-          {({projects, initiallyLoaded, fetchError}) => {
-            const project = projects && projects.length === 1 && projects[0];
-            const projectCanHaveReleases =
-              project && project.platform && releaseHealth.includes(project.platform);
+      <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
+        {({projects, initiallyLoaded, fetchError}) => {
+          const project = projects && projects.length === 1 && projects[0];
+          const projectCanHaveReleases =
+            project && project.platform && releaseHealth.includes(project.platform);
 
-            if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
-              return null;
-            }
+          if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
+            return null;
+          }
 
-            return (
-              <Alert type="info" icon={<IconInfo size="md" />}>
-                <AlertText>
-                  <div>
-                    {t(
-                      'Setup Release Health for this project to view user adoption, usage of the application, percentage of crashes, and session data.'
-                    )}
-                  </div>
-                  <ExternalLink href="https://docs.sentry.io/product/releases/health/">
-                    {t('Learn more')}
-                  </ExternalLink>
-                </AlertText>
-              </Alert>
-            );
-          }}
-        </Projects>
-      </Feature>
+          return (
+            <Alert type="info" icon={<IconInfo size="md" />}>
+              <AlertText>
+                <div>
+                  {t(
+                    'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
+                  )}
+                </div>
+                <ExternalLink
+                  href="https://docs.sentry.io/product/releases/health/setup/"
+                  onClick={this.trackAddReleaseHealth}
+                >
+                  {t('Add Release Health')}
+                </ExternalLink>
+              </AlertText>
+            </Alert>
+          );
+        }}
+      </Projects>
     );
   }
 
@@ -377,9 +463,23 @@ class ReleasesList extends AsyncView<Props, State> {
           const singleProjectSelected =
             selection.projects?.length === 1 &&
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
+          const selectedProject = this.getSelectedProject();
+          const isMobileProject =
+            selectedProject &&
+            selectedProject.platform &&
+            (
+              [
+                ...mobile,
+                ...desktop,
+                'java-android',
+                'cocoa-objc',
+                'cocoa-swift',
+              ] as string[]
+            ).includes(selectedProject.platform as string);
+
           return (
             <Fragment>
-              {singleProjectSelected && hasSessions && (
+              {singleProjectSelected && hasSessions && isMobileProject && (
                 <Feature features={['organizations:release-adoption-chart']}>
                   <ReleaseAdoptionChart
                     organization={organization}
@@ -415,11 +515,13 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {releases, reloading} = this.state;
+    const {releases, reloading, error} = this.state;
 
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
     const activeDisplay = this.getDisplay();
+
+    const hasSemver = organization.features.includes('semver');
 
     return (
       <GlobalSelectionHeader
@@ -437,17 +539,30 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <SortAndFilterWrapper>
-              <SearchBar
-                placeholder={t('Search')}
-                onSearch={this.handleSearch}
-                query={this.getQuery()}
-              />
+              {hasSemver ? (
+                <SmartSearchBar
+                  query={this.getQuery()}
+                  placeholder={t('Search by release version')}
+                  maxSearchItems={5}
+                  hasRecentSearches={false}
+                  supportedTags={supportedTags}
+                  onSearch={this.handleSearch}
+                  onGetTagValues={this.getTagValues}
+                />
+              ) : (
+                <SearchBar
+                  placeholder={t('Search')}
+                  onSearch={this.handleSearch}
+                  query={this.getQuery()}
+                />
+              )}
               <ReleaseListStatusOptions
                 selected={activeStatus}
                 onSelect={this.handleStatus}
               />
               <ReleaseListSortOptions
                 selected={activeSort}
+                selectedDisplay={activeDisplay}
                 onSelect={this.handleSortBy}
                 organization={organization}
               />
@@ -461,7 +576,9 @@ class ReleasesList extends AsyncView<Props, State> {
               activeStatus === StatusOption.ARCHIVED &&
               !!releases?.length && <ReleaseArchivedNotice multi />}
 
-            {this.renderInnerBody(activeDisplay)}
+            {error
+              ? super.renderError(new Error('Unable to load all required endpoints'))
+              : this.renderInnerBody(activeDisplay)}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>

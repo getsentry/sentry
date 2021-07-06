@@ -1,0 +1,93 @@
+{
+  "event_id": "d6a806a9361146a6bb936e12aaf60183",
+  "project": 5428561,
+  "release": "2.5.2",
+  "dist": "2.5.2.0",
+  "platform": "cocoa",
+  "message": "",
+  "datetime": "2021-06-21T06:21:39.599000Z",
+  "tags": [
+    ["device", "iPhone13,2"],
+    ["device.family", "iOS"],
+    ["environment", "production"],
+    ["event.origin", "ios"],
+    ["handled", "no"],
+    ["level", "fatal"],
+    ["mechanism", "out_of_memory"],
+    ["os", "iOS 14.4"],
+    ["os.name", "iOS"],
+    ["os.rooted", "no"],
+    ["dist", "2.5.2.0"],
+    ["release", "2.5.2"],
+    ["user", "id:A581BE46-B38D-4ED5-9462-E606432F8BA5"]
+  ],
+  "_metrics": {"bytes.ingested.event": 1231, "bytes.stored.event": 2392},
+  "contexts": {
+    "app": {
+      "build_type": "simulator",
+      "app_identifier": "io.sentry.sample",
+      "app_name": "sample",
+      "app_version": "2.0",
+      "app_build": "1",
+      "app_id": "73846E0B-C75B-3EB5-9F9A-6A5F59B74FC5",
+      "type": "app"
+    },
+    "device": {
+      "family": "iOS",
+      "model": "iPhone13,2",
+      "model_id": "simulator",
+      "arch": "x86",
+      "simulator": true,
+      "memory_size": 34359738368,
+      "usable_memory": 30291288064,
+      "storage_size": 249999998976,
+      "boot_time": "2021-06-04T10:09:33Z",
+      "timezone": "GMT+7",
+      "type": "device"
+    },
+    "os": {
+      "name": "iOS",
+      "version": "14.4",
+      "build": "20E5224a",
+      "kernel_version": "Darwin Kernel Version 20.4.0: Thu Mar 25 07:05:22 PDT 2021; root:xnu-7195.101.1~26/RELEASE_X86_64",
+      "rooted": false,
+      "type": "os"
+    }
+  },
+  "culprit": "",
+  "environment": "production",
+  "exception": {
+    "values": [
+      {
+        "type": "OutOfMemory",
+        "value": "The OS most likely terminated your app because it overused RAM.",
+        "mechanism": {"type": "out_of_memory", "handled": false}
+      }
+    ]
+  },
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["b0aed2e3fbe64f5fb23a49eccce4fabd"],
+  "key_id": "1336853",
+  "level": "fatal",
+  "logger": "",
+  "metadata": {
+    "type": "OutOfMemory",
+    "value": "The OS most likely terminated your app because it overused RAM."
+  },
+  "received": 1624256500.124263,
+  "sdk": {"name": "sentry.cocoa", "version": "7.0.0"},
+  "timestamp": 1624256499.599,
+  "title": "OutOfMemory: The OS most likely terminated your app because it overused RAM.",
+  "type": "error",
+  "user": {
+    "id": "A581BE46-B38D-4ED5-9462-E606432F8BA5",
+    "ip_address": "171.96.190.178",
+    "geo": {"country_code": "TH", "city": "Bangkok", "region": "Thailand"}
+  },
+  "version": "7",
+  "location": null
+}

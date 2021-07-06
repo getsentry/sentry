@@ -16,6 +16,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {
   ActivityType,
   Incident,
@@ -23,7 +24,6 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from 'app/views/alerts/types';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type IncidentProps = {
   api: Client;
@@ -66,9 +66,8 @@ class TimelineIncident extends React.Component<IncidentProps> {
         (activity.value &&
           activity.value === `${IncidentStatus.OPENED}` &&
           activities.find(({type}) => type === IncidentActivityType.DETECTED));
-      const activityDuration = (nextActivity
-        ? moment(nextActivity.dateCreated)
-        : moment()
+      const activityDuration = (
+        nextActivity ? moment(nextActivity.dateCreated) : moment()
       ).diff(moment(activity.dateCreated), 'milliseconds');
 
       title = t('Alert status changed');

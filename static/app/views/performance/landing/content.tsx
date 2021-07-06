@@ -6,6 +6,7 @@ import {Location} from 'history';
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
+import FeatureBadge from 'app/components/featureBadge';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
@@ -14,8 +15,9 @@ import {Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withTeams from 'app/utils/withTeams';
 
 import Charts from '../charts/index';
@@ -23,6 +25,7 @@ import {
   getBackendAxisOptions,
   getFrontendAxisOptions,
   getFrontendOtherAxisOptions,
+  getMobileAxisOptions,
 } from '../data';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
@@ -32,6 +35,7 @@ import {
   BACKEND_COLUMN_TITLES,
   FRONTEND_OTHER_COLUMN_TITLES,
   FRONTEND_PAGELOAD_COLUMN_TITLES,
+  MOBILE_COLUMN_TITLES,
 } from './data';
 import {
   getCurrentLandingDisplay,
@@ -60,7 +64,7 @@ class LandingContent extends Component<Props, State> {
     const parsed = tokenizeSearch(query);
     parsed.query = [];
 
-    return stringifyQueryObject(parsed);
+    return parsed.formatString();
   }
 
   handleLandingDisplayChange = (field: string) => {
@@ -93,7 +97,7 @@ class LandingContent extends Component<Props, State> {
       pathname: location.pathname,
       query: {
         ...newQuery,
-        query: stringifyQueryObject(searchConditions),
+        query: searchConditions.formatString(),
         landingDisplay: field,
       },
     });
@@ -109,6 +113,8 @@ class LandingContent extends Component<Props, State> {
         return this.renderLandingFrontend(false);
       case LandingDisplayField.BACKEND:
         return this.renderLandingBackend();
+      case LandingDisplayField.MOBILE:
+        return this.renderLandingMobile();
       default:
         throw new Error(`Unknown display: ${display}`);
     }
@@ -193,6 +199,37 @@ class LandingContent extends Component<Props, State> {
     );
   };
 
+  renderLandingMobile = () => {
+    const {organization, location, projects, eventView, setError} = this.props;
+
+    const axisOptions = getMobileAxisOptions(organization);
+    const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
+
+    const columnTitles = MOBILE_COLUMN_TITLES;
+
+    return (
+      <Fragment>
+        <DoubleAxisDisplay
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          axisOptions={axisOptions}
+          leftAxis={leftAxis}
+          rightAxis={rightAxis}
+        />
+        <Table
+          eventView={eventView}
+          projects={projects}
+          organization={organization}
+          location={location}
+          setError={setError}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
+          columnTitles={columnTitles}
+        />
+      </Fragment>
+    );
+  };
+
   renderLandingAll = () => {
     const {organization, location, router, projects, eventView, setError} = this.props;
 
@@ -221,7 +258,9 @@ class LandingContent extends Component<Props, State> {
 
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
     const filterString = getTransactionSearchQuery(location, eventView.query);
-    const userTeams = teams.filter(({isMember}) => isMember);
+
+    const isSuperuser = isActiveSuperuser();
+    const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
     return (
       <Fragment>
@@ -242,7 +281,9 @@ class LandingContent extends Component<Props, State> {
             buttonProps={{prefix: t('Display')}}
             label={currentLandingDisplay.label}
           >
-            {LANDING_DISPLAYS.map(({label, field}) => (
+            {LANDING_DISPLAYS.filter(
+              ({isShown}) => !isShown || isShown(organization)
+            ).map(({alpha, label, field}) => (
               <DropdownItem
                 key={field}
                 onSelect={this.handleLandingDisplayChange}
@@ -251,6 +292,7 @@ class LandingContent extends Component<Props, State> {
                 isActive={field === currentLandingDisplay.field}
               >
                 {label}
+                {alpha && <FeatureBadge type="alpha" noTooltip />}
               </DropdownItem>
             ))}
           </DropdownControl>

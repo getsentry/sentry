@@ -20,7 +20,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 type Props = {
-  target?: string; //Shouldn't target be mandatory?
+  target?: string; // Shouldn't target be mandatory?
   position?: React.ComponentProps<typeof Hovercard>['position'];
   offset?: string;
   to?: {

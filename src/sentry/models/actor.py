@@ -29,7 +29,7 @@ def actor_type_to_string(type: int) -> Optional[str]:
 
 
 class Actor(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     type = models.PositiveSmallIntegerField(
         choices=(

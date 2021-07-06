@@ -1,5 +1,8 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.project_transaction_threshold_override import (
+    ProjectTransactionThresholdOverrideEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
@@ -47,7 +50,8 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
-from sentry.scim.endpoints.users import OrganizationSCIMUserDetails, OrganizationSCIMUserIndex
+from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
+from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -817,6 +821,11 @@ urlpatterns = [
                     OrganizationEventsRelatedIssuesEndpoint.as_view(),
                     name="sentry-api-0-organization-related-issues",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/project-transaction-threshold-override/$",
+                    ProjectTransactionThresholdOverrideEndpoint.as_view(),
+                    name="sentry-api-0-organization-project-transaction-threshold-override",
+                ),
                 # Dashboards
                 url(
                     r"^(?P<organization_slug>[^\/]+)/dashboards/$",
@@ -1225,7 +1234,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-release-files",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     OrganizationReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-file-details",
                 ),
@@ -1341,13 +1350,23 @@ urlpatterns = [
                         [
                             url(
                                 r"^Users$",
-                                OrganizationSCIMUserIndex.as_view(),
-                                name="sentry-scim-organization-members-index",
+                                OrganizationSCIMMemberIndex.as_view(),
+                                name="sentry-api-0-organization-scim-member-index",
                             ),
                             url(
                                 r"^Users/(?P<member_id>\d+)$",
-                                OrganizationSCIMUserDetails.as_view(),
-                                name="sentry-scim-organization-members-details",
+                                OrganizationSCIMMemberDetails.as_view(),
+                                name="sentry-api-0-organization-scim-member-details",
+                            ),
+                            url(
+                                r"^Groups$",
+                                OrganizationSCIMTeamIndex.as_view(),
+                                name="sentry-api-0-organization-scim-team-index",
+                            ),
+                            url(
+                                r"^Groups/(?P<team_id>\d+)$",
+                                OrganizationSCIMTeamDetails.as_view(),
+                                name="sentry-api-0-organization-scim-team-details",
                             ),
                         ]
                     ),
@@ -1699,7 +1718,7 @@ urlpatterns = [
                     name="sentry-api-0-project-release-files",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     ProjectReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-release-file-details",
                 ),

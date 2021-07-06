@@ -1,12 +1,11 @@
+from typing import Iterable
+
 from sentry.grouping.component import GroupingComponent
-from sentry.utils.safe import get_path
 
 MAX_LAYERS = 5
 
 
 def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarchy):
-    main_variant.update(tree_label="<entire stacktrace>")
-
     frames_iter = list(zip(frames, components))
     if not inverted_hierarchy:
         # frames are sorted in a way where the crashing frame is at the end of
@@ -24,17 +23,14 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         key = f"app-depth-{depth}"
         assert key not in all_variants
 
-        tree_categories = set()
-
         for frame, component in frames_iter:
             if component.contributes and component.is_sentinel_frame:
                 break
         else:
             break
 
-        layer = list(prev_variant.values)
-        layer.append(component)
-        tree_categories.add(get_path(frame, "data", "category") or None)
+        add_to_layer = [component]
+
         prev_component = component
 
         if prev_component.is_prefix_frame:
@@ -42,8 +38,7 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
                 if not component.contributes:
                     continue
 
-                layer.append(component)
-                tree_categories.add(get_path(frame, "data", "category") or None)
+                add_to_layer.append(component)
                 prev_component = component
 
                 if not component.is_prefix_frame:
@@ -51,38 +46,46 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
             else:
                 break
 
-        tree_label = _compute_tree_label(prev_variant, layer)
-        tree_categories.discard(None)
-        if tree_categories:
-            tree_label = f"{tree_label} [{'/'.join(sorted(tree_categories))}]"
+        # For consistency, we always want to preserve the sort order of the
+        # event frames, no matter what order we're going through.
+
+        if not inverted_hierarchy:
+            layer = add_to_layer
+            layer.reverse()
+            layer.extend(prev_variant.values)
+
+        else:
+            layer = list(prev_variant.values)
+            layer.extend(add_to_layer)
+
+        tree_label = _compute_tree_label(layer)
 
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace", values=layer, tree_label=tree_label
         )
 
     if not all_variants:
-        all_variants.update(
-            _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
-        )
+        all_variants = _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
 
     all_variants["app-depth-max"] = main_variant
+
+    main_variant.update(tree_label=_compute_tree_label(main_variant.values))
 
     return all_variants
 
 
-def _compute_tree_label(prev_variant, components):
+def _compute_tree_label(components: Iterable[GroupingComponent]):
     tree_label = []
-    prev_i = 0
 
     for frame in components:
-        if prev_i < len(prev_variant.values) and frame is prev_variant.values[prev_i]:
-            if not tree_label or tree_label[-1] != "...":
-                tree_label.append("...")
-            prev_i += 1
-        elif frame.tree_label:
+        if frame.tree_label:
             tree_label.append(frame.tree_label)
 
-    return " | ".join(tree_label)
+    # We assume all components are always sorted in the way frames appear in
+    # the event (threadbase -> crashing frame). Then we want to show the
+    # crashing frame/culprit at the front.
+    tree_label.reverse()
+    return tree_label
 
 
 def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
@@ -123,7 +126,7 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
         if len(prev_variant.values) == len(frames):
             break
 
-        tree_label = _compute_tree_label(prev_variant, frames)
+        tree_label = _compute_tree_label(frames)
 
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace",

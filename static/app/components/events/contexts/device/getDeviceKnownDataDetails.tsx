@@ -8,9 +8,8 @@ import {defined} from 'app/utils';
 
 import {getFullLanguageDescription, getRelativeTimeFromEventDateCreated} from '../utils';
 
-import formatMemory from './formatMemory';
-import formatStorage from './formatStorage';
 import {DeviceData, DeviceKnownDataType} from './types';
+import {formatMemory, formatStorage} from './utils';
 
 type Output = {
   subject: string;
@@ -88,12 +87,8 @@ function getDeviceKnownDataDetails(
             : undefined,
       };
     case DeviceKnownDataType.STORAGE:
-      const {
-        storage_size,
-        free_storage,
-        external_storage_size,
-        external_free_storage,
-      } = data;
+      const {storage_size, free_storage, external_storage_size, external_free_storage} =
+        data;
       return {
         subject: t('Capacity'),
         value:

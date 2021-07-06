@@ -41,14 +41,8 @@ class DraggableList extends Component<Props, State> {
 
   render() {
     const {activeId} = this.state;
-    const {
-      items,
-      onUpdateItems,
-      renderItem,
-      disabled,
-      wrapperStyle,
-      innerWrapperStyle,
-    } = this.props;
+    const {items, onUpdateItems, renderItem, disabled, wrapperStyle, innerWrapperStyle} =
+      this.props;
 
     const getIndex = items.indexOf.bind(items);
     const activeIndex = activeId ? getIndex(activeId) : -1;

@@ -24,7 +24,7 @@ import VitalsDetailsTableQuery, {
   TableData,
   TableDataRow,
 } from 'app/utils/performance/vitals/vitalsDetailsTableQuery';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -118,7 +118,7 @@ class Table extends React.Component<Props, State> {
         query: {
           ...location.query,
           cursor: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -178,7 +178,7 @@ class Table extends React.Component<Props, State> {
       const summaryView = eventView.clone();
       const conditions = tokenizeSearch(summaryConditions);
       conditions.addTagValues('has', [`${vitalName}`]);
-      summaryView.query = stringifyQueryObject(conditions);
+      summaryView.query = conditions.formatString();
 
       const target = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,

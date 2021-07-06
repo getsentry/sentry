@@ -1,54 +1,40 @@
 import {useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import PaginationCaption from 'app/components/pagination/paginationCaption';
+import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
+import {BaseGroup, Group, Organization} from 'app/types';
+import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
+import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
+
+type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   organization: Organization;
-  project: Project;
   groupId: Group['id'];
-  location: Location;
+  location: Location<{level?: number; cursor?: string}>;
   api: Client;
+  router: InjectedRouter;
 };
 
-type ErrorCode = 'not_hierarchical' | 'no_events' | 'merged_issues' | 'missing_feature';
-
-type Error = {
-  status: number;
-  responseJSON?: {
-    detail: {
-      code: ErrorCode;
-      extra: Record<string, any>;
-      message: string;
-    };
-  };
-};
-
-type GroupingLevelDetails = {
+type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
   eventCount: number;
   hash: string;
-  latestEvent: Event;
+  latestEvent: BaseGroup['latestEvent'];
 };
 
 type GroupingLevel = {
@@ -56,12 +42,12 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location}: Props) {
+function Grouping({api, groupId, location, organization, router}: Props) {
+  const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
-  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
-    false
-  );
-  const [error, setError] = useState<undefined | Error>(undefined);
+  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
+    useState(false);
+  const [error, setError] = useState<undefined | Error | string>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(
     undefined
@@ -77,21 +63,24 @@ function Grouping({api, groupId, location}: Props) {
   }, []);
 
   useEffect(() => {
-    setCurrentGrouping();
+    setSecondGrouping();
   }, [groupingLevels]);
 
   useEffect(() => {
-    fetchGroupingLevelDetails();
-  }, [activeGroupingLevel, location.query]);
+    updateUrlWithNewLevel();
+  }, [activeGroupingLevel]);
 
-  const handleSetActiveGroupingLevel = debounce((groupingLevelId: string) => {
+  useEffect(() => {
+    fetchGroupingLevelDetails();
+  }, [activeGroupingLevel, cursor]);
+
+  const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
   }, DEFAULT_DEBOUNCE_DURATION);
 
   async function fetchGroupingLevels() {
     setIsLoading(true);
     setError(undefined);
-
     try {
       const response = await api.requestPromise(`/issues/${groupId}/grouping/levels/`);
       setIsLoading(false);
@@ -103,7 +92,7 @@ function Grouping({api, groupId, location}: Props) {
   }
 
   async function fetchGroupingLevelDetails() {
-    if (!groupingLevels.length) {
+    if (!groupingLevels.length || !defined(activeGroupingLevel)) {
       return;
     }
 
@@ -133,12 +122,42 @@ function Grouping({api, groupId, location}: Props) {
     }
   }
 
-  function setCurrentGrouping() {
-    const currentGrouping = groupingLevels.find(groupingLevel => groupingLevel.isCurrent);
-    if (!currentGrouping) {
+  function updateUrlWithNewLevel() {
+    if (!defined(activeGroupingLevel) || level === activeGroupingLevel) {
       return;
     }
-    setActiveGroupingLevel(Number(currentGrouping.id));
+
+    router.replace({
+      pathname: location.pathname,
+      query: {...location.query, cursor: undefined, level: activeGroupingLevel},
+    });
+  }
+
+  function setSecondGrouping() {
+    if (!groupingLevels.length) {
+      return;
+    }
+
+    if (defined(level)) {
+      if (!defined(groupingLevels[level])) {
+        setError(t('The level you were looking for was not found.'));
+        return;
+      }
+
+      if (level === activeGroupingLevel) {
+        return;
+      }
+
+      setActiveGroupingLevel(level);
+      return;
+    }
+
+    if (groupingLevels.length > 1) {
+      setActiveGroupingLevel(Number(groupingLevels[1].id));
+      return;
+    }
+
+    setActiveGroupingLevel(Number(groupingLevels[0].id));
   }
 
   if (isLoading) {
@@ -146,99 +165,77 @@ function Grouping({api, groupId, location}: Props) {
   }
 
   if (error) {
-    if (error.status === 403 && error.responseJSON?.detail) {
-      const {message, code} = error.responseJSON.detail;
-      return (
-        <Wrapper>
-          <EmptyMessage
-            size="large"
-            icon={<IconFlag size="xl" />}
-            action={
-              code === 'merged_issues' ? (
-                <Button
-                  to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
-                >
-                  {t('Unmerge issue')}
-                </Button>
-              ) : undefined
-            }
-          >
-            {message}
-          </EmptyMessage>
-        </Wrapper>
-      );
-    }
-
-    return (
-      <LoadingError
-        message={t('Unable to load grouping levels, please try again later')}
-        onRetry={fetchGroupingLevels}
-      />
-    );
+    return <ErrorMessage onRetry={fetchGroupingLevels} groupId={groupId} error={error} />;
   }
 
-  if (!groupingLevels.length) {
-    return (
-      <EmptyStateWarning withIcon={false}>
-        {t('No grouping levels have been found.')}
-      </EmptyStateWarning>
-    );
+  if (!activeGroupingLevelDetails.length) {
+    return <LoadingIndicator />;
   }
 
   const links = parseLinkHeader(pagination);
   const hasMore = links.previous?.results || links.next?.results;
+  const paginationCurrentQuantity = activeGroupingLevelDetails.length;
 
   return (
     <Wrapper>
       <Description>
         {t(
-          'Sometimes you might want to split up issues by additional frames or other criteria. Select a granularity level below and see how many new issues will be created in the process.'
+          'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
         )}
       </Description>
-      <div>
-        <StyledList symbol="colored-numeric">
-          <StyledListItem>
-            {t('Select level')}
-            <StyledRangeSlider
-              name="grouping-level"
-              allowedValues={groupingLevels.map(groupingLevel =>
-                Number(groupingLevel.id)
-              )}
-              formatLabel={value => {
-                return value === 0 ? t('Automatically grouped') : t('Level %s', value);
-              }}
-              value={activeGroupingLevel ?? 0}
-              onChange={handleSetActiveGroupingLevel}
-            />
-          </StyledListItem>
-          <StyledListItem>
-            <div>
-              {t('What happens to this issue')}
-              <WhatHappensDescription>
-                {tct(
-                  `This issue will be deleted and [quantity] new issues will be created.`,
-                  {
-                    quantity: hasMore
-                      ? `${activeGroupingLevelDetails.length}+`
-                      : activeGroupingLevelDetails.length,
-                  }
-                )}
-              </WhatHappensDescription>
-            </div>
-            <NewIssues>
-              {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
-                <NewIssue
-                  key={hash}
-                  sampleEvent={latestEvent}
-                  eventCount={eventCount}
-                  isReloading={isGroupingLevelDetailsLoading}
-                />
-              ))}
-            </NewIssues>
-          </StyledListItem>
-        </StyledList>
-        <Pagination pageLinks={pagination} />
-      </div>
+      <Content>
+        <SliderWrapper>
+          {t('Fewer issues')}
+          <StyledRangeSlider
+            name="grouping-level"
+            allowedValues={groupingLevels.map(groupingLevel => Number(groupingLevel.id))}
+            value={activeGroupingLevel ?? 0}
+            onChange={handleSetActiveGroupingLevel}
+            showLabel={false}
+          />
+          {t('More issues')}
+        </SliderWrapper>
+        <div>
+          <StyledPanelTable
+            isReloading={isGroupingLevelDetailsLoading}
+            headers={['', t('Events')]}
+          >
+            {activeGroupingLevelDetails.map(
+              ({hash, title, metadata, latestEvent, eventCount}) => {
+                // XXX(markus): Ugly hack to make NewIssue show the right things.
+                return (
+                  <NewIssue
+                    key={hash}
+                    sampleEvent={{
+                      ...latestEvent,
+                      metadata: metadata || latestEvent.metadata,
+                      title: title || latestEvent.title,
+                    }}
+                    eventCount={eventCount}
+                    organization={organization}
+                  />
+                );
+              }
+            )}
+          </StyledPanelTable>
+          <StyledPagination
+            pageLinks={pagination}
+            caption={
+              <PaginationCaption
+                caption={tct('Showing [current] of [total] [result]', {
+                  result: hasMore
+                    ? t('results')
+                    : tn('result', 'results', paginationCurrentQuantity),
+                  current: paginationCurrentQuantity,
+                  total: hasMore
+                    ? `${paginationCurrentQuantity}+`
+                    : paginationCurrentQuantity,
+                })}
+              />
+            }
+          />
+        </div>
+      </Content>
     </Wrapper>
   );
 }
@@ -249,46 +246,84 @@ const Wrapper = styled('div')`
   flex: 1;
   display: grid;
   align-content: flex-start;
-  background: ${p => p.theme.background};
-  grid-gap: ${space(2)};
   margin: -${space(3)} -${space(4)};
   padding: ${space(3)} ${space(4)};
 `;
 
 const Description = styled('p')`
-  margin-bottom: ${space(0.5)};
+  && {
+    margin-bottom: ${space(2)};
+  }
 `;
 
-const StyledListItem = styled(ListItem)`
+const Content = styled('div')`
+  display: grid;
+  grid-gap: ${space(3)};
+`;
+
+const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
+  grid-template-columns: 1fr minmax(60px, auto);
+  ${p =>
+    p.isReloading &&
+    `
+      opacity: 0.5;
+      pointer-events: none;
+    `}
+
+  > * {
+    padding: ${space(1.5)} ${space(2)};
+    :nth-child(-n + 2) {
+      padding: ${space(2)};
+    }
+    :nth-child(2n) {
+      display: flex;
+      text-align: right;
+      justify-content: flex-end;
+    }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr minmax(80px, auto);
+  }
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+`;
+
+const SliderWrapper = styled('div')`
   display: grid;
   grid-gap: ${space(1.5)};
+  grid-template-columns: max-content max-content;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  padding-bottom: ${space(2)};
+
+  @media (min-width: 700px) {
+    grid-template-columns: max-content minmax(270px, auto) max-content;
+    align-items: center;
+    justify-content: flex-start;
+    padding-bottom: 0;
+  }
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  max-width: 300px;
-`;
-
-const StyledList = styled(List)`
-  display: grid;
-  grid-gap: ${space(2)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const NewIssues = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  input {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-`;
+  position: absolute;
+  bottom: 0;
+  left: ${space(1.5)};
+  right: ${space(1.5)};
 
-const WhatHappensDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
+  @media (min-width: 700px) {
+    position: static;
+    left: auto;
+    right: auto;
+  }
 `;

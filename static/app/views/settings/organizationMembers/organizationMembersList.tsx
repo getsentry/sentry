@@ -259,4 +259,5 @@ const StyledMembersFilter = styled(MembersFilter)`
     border-bottom-color: ${p => p.theme.border};
   }
 `;
+
 export default withOrganization(OrganizationMembersList);

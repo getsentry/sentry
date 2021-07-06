@@ -72,6 +72,7 @@ class VitalsPanel extends Component<Props> {
               min={min}
               max={max}
               precision={precision}
+              dataFilter={dataFilter}
             />
           );
         }}

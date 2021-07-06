@@ -123,7 +123,7 @@ class ScheduleType:
 
 
 class Monitor(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     guid = UUIDField(unique=True, auto_add=True)
     organization_id = BoundedPositiveIntegerField(db_index=True)

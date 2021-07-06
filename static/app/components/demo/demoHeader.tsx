@@ -16,10 +16,12 @@ type Preferences = typeof PreferencesStore.prefs;
 export default function DemoHeader() {
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const saasOrgSlug = getCookie('saas_org_slug');
+  const email = localStorage.getItem('email');
+  const queryParameter = email ? `?email=${email}` : '';
   const getStartedText = saasOrgSlug ? t('Upgrade Now') : t('Sign Up for Free');
   const getStartedUrl = saasOrgSlug
     ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
-    : 'https://sentry.io/signup/';
+    : `https://sentry.io/signup/${queryParameter}`;
 
   const [collapsed, setCollapsed] = useState(PreferencesStore.prefs.collapsed);
 
@@ -79,7 +81,7 @@ export default function DemoHeader() {
   );
 }
 
-//Note many of the colors don't come from the theme as they come from the marketing site
+// Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')<{collapsed: boolean}>`
   padding-right: ${space(3)};
   background-color: ${p => p.theme.white};
@@ -117,7 +119,7 @@ const BaseButton = styled(Button)`
   text-transform: uppercase;
 `;
 
-//Note many of the colors don't come from the theme as they come from the marketing site
+// Note many of the colors don't come from the theme as they come from the marketing site
 const GetStarted = styled(BaseButton)`
   border-color: transparent;
   box-shadow: 0 2px 0 rgb(54 45 89 / 10%);

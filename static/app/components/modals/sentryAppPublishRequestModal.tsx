@@ -33,7 +33,7 @@ const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
       }
     }
     if (highestChoice) {
-      //we can remove the read part of "Read & Write"
+      // we can remove the read part of "Read & Write"
       const label = highestChoice.label.replace('Read & Write', 'Write');
       permissions.push(`${permObj.resource} ${label}`);
     }
@@ -44,9 +44,9 @@ const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
 class PublishRequestFormModel extends FormModel {
   getTransformedData() {
     const data = this.getData();
-    //map object to list of questions
+    // map object to list of questions
     const questionnaire = Array.from(this.fieldDescriptor.values()).map(field =>
-      //we read the meta for the question that has a react node for the label
+      // we read the meta for the question that has a react node for the label
       ({
         question: field.meta || field.label,
         answer: data[field.name],
@@ -85,7 +85,7 @@ export default class SentryAppPublishRequestModal extends Component<Props> {
       </Fragment>
     );
 
-    //No translations since we need to be able to read this email :)
+    // No translations since we need to be able to read this email :)
     const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
       {
         type: 'textarea',
@@ -116,7 +116,7 @@ export default class SentryAppPublishRequestModal extends Component<Props> {
       },
     ];
 
-    //Only add the permissions question if there are perms to add
+    // Only add the permissions question if there are perms to add
     if (permissions.length > 0) {
       baseFields.push({
         type: 'textarea',

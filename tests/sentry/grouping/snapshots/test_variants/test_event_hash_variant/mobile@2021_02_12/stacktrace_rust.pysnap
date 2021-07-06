@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:24.431517Z'
+created: '2021-06-30T16:44:00.405936Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "a6b93019b02cf028eda2609bd65d9fad"
-  tree_label: "std::panicking::try::do_call | ... | log::__private_api_log"
+  tree_label: "log::__private_api_log | log_demo::main | std::panicking::try::do_call"
   component:
     app-depth-2*
       exception*
@@ -49,7 +49,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "4eb99802a070500823c05725287f0b24"
-  tree_label: "___rust_maybe_catch_panic | ..."
+  tree_label: "log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic"
   component:
     app-depth-3*
       exception*
@@ -79,7 +79,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "4a4627b56f14924321050658c1b863ec"
-  tree_label: "std::rt::lang_start_internal | ..."
+  tree_label: "log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal"
   component:
     app-depth-4*
       exception*
@@ -114,7 +114,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "cb57cfc73cc622c2ac1386c9ea531fb9"
-  tree_label: "_main | ..."
+  tree_label: "log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | _main"
   component:
     app-depth-5*
       exception*
@@ -152,7 +152,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "cb57cfc73cc622c2ac1386c9ea531fb9"
-  tree_label: "<entire stacktrace>"
+  tree_label: "log::__private_api_log | log_demo::main | std::rt::lang_start::{{closure}} | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | _main"
   component:
     app-depth-max*
       exception*
@@ -195,7 +195,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "cb57cfc73cc622c2ac1386c9ea531fb9"
-  tree_label: "<entire stacktrace>"
+  tree_label: "log::__private_api_log | log_demo::main | std::rt::lang_start::{{closure}} | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | _main"
   component:
     system*
       exception*

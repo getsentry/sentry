@@ -113,7 +113,7 @@ class UrlVerificationEventTest(BaseEventTest):
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     @patch(
-        "sentry.integrations.slack.event_endpoint.match_link",
+        "sentry.integrations.slack.endpoints.event.match_link",
         # match_link will be called twice, for each our links. Resolve into
         # two unique links and one duplicate.
         side_effect=[
@@ -123,7 +123,7 @@ class LinkSharedEventTest(BaseEventTest):
         ],
     )
     @patch(
-        "sentry.integrations.slack.event_endpoint.link_handlers",
+        "sentry.integrations.slack.endpoints.event.link_handlers",
         {
             "mock_link": Handler(
                 matcher=re.compile(r"test"),
@@ -203,7 +203,6 @@ class MessageIMEventTest(BaseEventTest):
             self.get_block_type_text("section", data)
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
-        assert self.get_block_type_text("actions", data) == "Sentry Docs"
 
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))

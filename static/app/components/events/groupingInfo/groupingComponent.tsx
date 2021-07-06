@@ -66,21 +66,21 @@ export const GroupingValue = styled('code')<{valueType: string}>`
   font-size: ${p => p.theme.fontSizeSmall};
   padding: 0 ${space(0.25)};
   background: rgba(112, 163, 214, 0.1);
-  color: #4e3fb4;
+  color: ${p => p.theme.textColor};
 
   ${({valueType}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     `
     font-weight: bold;
-    color: #2c58a8;
+    color: ${p => p.theme.textColor};
   `}
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
-  color: ${p => (p.isContributing ? null : p.theme.gray200)};
+  color: ${p => (p.isContributing ? null : p.theme.textColor)};
 
   ${GroupingValue}, button {
-    opacity: ${p => (p.isContributing ? 1 : 0.6)};
+    opacity: 1;
   }
 `;
 

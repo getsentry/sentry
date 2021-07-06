@@ -3,3 +3,4 @@ black==21.5b1
 sentry-flake8==1.0.0
 pyupgrade==2.18.3
 isort==5.8.0
+requirements-parser>=0.2.0

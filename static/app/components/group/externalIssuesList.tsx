@@ -129,19 +129,17 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       integration => integration.status === 'active'
     );
 
-    const activeIntegrationsByProvider: Map<
-      string,
-      GroupIntegration[]
-    > = activeIntegrations.reduce((acc, curr) => {
-      const items = acc.get(curr.provider.key);
+    const activeIntegrationsByProvider: Map<string, GroupIntegration[]> =
+      activeIntegrations.reduce((acc, curr) => {
+        const items = acc.get(curr.provider.key);
 
-      if (!!items) {
-        acc.set(curr.provider.key, [...items, curr]);
-      } else {
-        acc.set(curr.provider.key, [curr]);
-      }
-      return acc;
-    }, new Map());
+        if (!!items) {
+          acc.set(curr.provider.key, [...items, curr]);
+        } else {
+          acc.set(curr.provider.key, [curr]);
+        }
+        return acc;
+      }, new Map());
 
     return activeIntegrations.length
       ? [...activeIntegrationsByProvider.entries()].map(([provider, configurations]) => (
@@ -167,7 +165,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       const installation = sentryAppInstallations.find(
         i => i.app.uuid === sentryApp.uuid
       );
-      //should always find a match but TS complains if we don't handle this case
+      // should always find a match but TS complains if we don't handle this case
       if (!installation) {
         return null;
       }

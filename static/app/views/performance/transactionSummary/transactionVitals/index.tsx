@@ -15,7 +15,7 @@ import EventView from 'app/utils/discover/eventView';
 import {isAggregateField, WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -169,7 +169,7 @@ function generateRumEventView(
           vital => `count_at_least(${vital}, ${WEB_VITAL_DETAILS[vital].poorThreshold})`
         ),
       ],
-      query: stringifyQueryObject(conditions),
+      query: conditions.formatString(),
       projects: [],
     },
     location

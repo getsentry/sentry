@@ -132,7 +132,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 
   > * {
     margin-bottom: ${space(0.5)};

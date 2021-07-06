@@ -1,4 +1,5 @@
 import functools
+import re
 from collections import Iterable, OrderedDict, defaultdict
 
 from dateutil.parser import parse as parse_datetime
@@ -7,9 +8,21 @@ from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.utils import default_start_end_dates
-from sentry.models import Project, ReleaseProjectEnvironment
-from sentry.search.events.constants import PROJECT_ALIAS, USER_DISPLAY_ALIAS
+from sentry.models import (
+    Project,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+)
+from sentry.search.events.constants import (
+    PROJECT_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_WILDCARDS,
+    USER_DISPLAY_ALIAS,
+)
 from sentry.search.events.fields import FIELD_ALIASES
+from sentry.search.events.filter import parse_semver
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
@@ -741,6 +754,56 @@ class SnubaTagStorage(TagStorage):
                         ),
                     ),
                 ]
+            )
+
+        if key == SEMVER_ALIAS:
+            # If doing a search on semver, we want to hit postgres to query the releases
+            version = query
+            organization_id = Project.objects.filter(id=projects[0]).values_list(
+                "organization_id", flat=True
+            )[0]
+
+            if version and "@" not in version and re.search(r"[^\d.\*]", version):
+                # Handle searching just on package
+                packages = (
+                    Release.objects.filter(
+                        organization_id=organization_id, package__startswith=version
+                    )
+                    .values_list("package")
+                    .distinct()
+                )
+                versions = Release.objects.filter(
+                    organization_id=organization_id,
+                    package__in=packages,
+                    id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                        "release_id", flat=True
+                    ),
+                ).annotate_prerelease_column()
+            else:
+                if not version:
+                    version = "*"
+                elif version[-1] not in SEMVER_WILDCARDS | {"@"}:
+                    if version[-1] != ".":
+                        version += "."
+                    version += "*"
+
+                versions = Release.objects.filter_by_semver(
+                    organization_id,
+                    parse_semver(version, "="),
+                    project_ids=projects,
+                )
+            if environments:
+                versions = versions.filter(
+                    id__in=ReleaseEnvironment.objects.filter(
+                        environment_id__in=environments
+                    ).values_list("release_id", flat=True)
+                )
+
+            versions = versions.order_by(*Release.SEMVER_COLS, "package").values_list(
+                "version", flat=True
+            )[:1000]
+            return SequencePaginator(
+                [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(versions)]
             )
 
         conditions = []

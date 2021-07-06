@@ -87,7 +87,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Azure%20DevOps%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Azure%20DevOps%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vsts",
     aspects={},
 )
@@ -440,15 +440,15 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     @classmethod
     def get_base_url(cls, access_token, account_id):
-        session = http.build_session()
         url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
-        response = session.get(
-            url,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": "Bearer %s" % access_token,
-            },
-        )
+        with http.build_session() as session:
+            response = session.get(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {access_token}",
+                },
+            )
         if response.status_code == 200:
             return response.json()["locationUrl"]
         return None
@@ -508,17 +508,15 @@ class AccountConfigView(PipelineView):
         return None
 
     def get_accounts(self, access_token, user_id):
-        session = http.build_session()
-        url = (
-            "https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1" % user_id
-        )
-        response = session.get(
-            url,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": "Bearer %s" % access_token,
-            },
-        )
+        url = f"https://app.vssps.visualstudio.com/_apis/accounts?ownerId={user_id}&api-version=4.1"
+        with http.build_session() as session:
+            response = session.get(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {access_token}",
+                },
+            )
         if response.status_code == 200:
             return response.json()
         return None

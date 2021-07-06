@@ -1,5 +1,5 @@
 ---
-created: '2021-05-21T13:05:27.726107Z'
+created: '2021-06-14T21:14:00.494403Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -9,4 +9,4 @@ span_ops:
   - db
   - browser
   - resource
-  type: span_operations
+  type: spanOperations

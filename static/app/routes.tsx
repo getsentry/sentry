@@ -878,7 +878,7 @@ function routes() {
         {/* A route tree for lightweight organizational detail views. We place
       this above the heavyweight organization detail views because there
       exist some redirects from deprecated routes which should not take
-      precedence over these lightweight routes*/}
+      precedence over these lightweight routes */}
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
           <Route
             path="/organizations/:orgId/projects/"
@@ -1134,6 +1134,17 @@ function routes() {
                   isEventRoute: true,
                 }}
               />
+              <Route
+                path="grouping/"
+                componentPromise={() =>
+                  import('app/views/organizationGroupDetails/grouping')
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.GROUPING,
+                  isEventRoute: true,
+                }}
+              />
             </Route>
           </Route>
 
@@ -1170,7 +1181,7 @@ function routes() {
                 <Route
                   path=":ruleId/"
                   name="Edit Alert Rule"
-                  componentPromise={() => import('app/views/settings/projectAlerts/edit')}
+                  componentPromise={() => import('app/views/alerts/edit')}
                   component={errorHandler(LazyLoad)}
                 />
               </Route>
@@ -1189,7 +1200,7 @@ function routes() {
                 <Route
                   path=":ruleId/"
                   name="Edit Alert Rule"
-                  componentPromise={() => import('app/views/settings/projectAlerts/edit')}
+                  componentPromise={() => import('app/views/alerts/edit')}
                   component={errorHandler(LazyLoad)}
                 />
               </Route>
@@ -1216,7 +1227,7 @@ function routes() {
                 path="new/"
                 name="New Alert Rule"
                 component={errorHandler(LazyLoad)}
-                componentPromise={() => import('app/views/settings/projectAlerts/create')}
+                componentPromise={() => import('app/views/alerts/create')}
               />
               <Route
                 path="wizard/"

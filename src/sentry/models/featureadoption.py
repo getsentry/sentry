@@ -197,7 +197,7 @@ class FeatureAdoptionManager(BaseManager):
 
 
 class FeatureAdoption(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     feature_id = models.PositiveIntegerField(choices=[(f.id, str(f.name)) for f in manager.all()])

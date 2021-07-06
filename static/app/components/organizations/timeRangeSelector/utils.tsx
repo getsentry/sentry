@@ -50,8 +50,12 @@ export function parseStatsPeriod(
  * @param relative Relative stats period
  * @return either one of the default "Last x days" string, "Other" if period is valid on the backend, or "Invalid period" otherwise
  */
-export function getRelativeSummary(relative: string): string {
-  const defaultRelativePeriodString = DEFAULT_RELATIVE_PERIODS[relative];
+export function getRelativeSummary(
+  relative: string,
+  relativeOptions?: Record<string, React.ReactNode>
+): string {
+  const defaultRelativePeriodString =
+    relativeOptions?.[relative] ?? DEFAULT_RELATIVE_PERIODS[relative];
 
   if (!defaultRelativePeriodString) {
     try {

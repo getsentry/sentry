@@ -71,6 +71,7 @@ const validHookNames = new Set<HookName>([
   'sidebar:bottom-items',
   'sidebar:help-menu',
   'sidebar:item-label',
+  'sidebar:item-override',
   'sidebar:organization-dropdown-menu',
   'sidebar:organization-dropdown-menu-bottom',
 ]);

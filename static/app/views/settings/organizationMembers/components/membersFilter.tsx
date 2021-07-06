@@ -6,7 +6,7 @@ import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 type Props = {
   className?: string;
@@ -56,7 +56,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
 
     const newSearch = search.copy();
     newSearch.setTagValues('role', [...roleList]);
-    onChange(stringifyQueryObject(newSearch));
+    onChange(newSearch.formatString());
   };
 
   const handleBoolFilter = (key: keyof Filters) => (value: boolean | null) => {
@@ -66,7 +66,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
       newQueryObject.setTagValues(key, [Boolean(value).toString()]);
     }
 
-    onChange(stringifyQueryObject(newQueryObject));
+    onChange(newQueryObject.formatString());
   };
 
   return (

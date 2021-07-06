@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
+import {openModal} from 'app/actionCreators/modal';
 import {fetchLegacyKeyTransactionsCount} from 'app/actionCreators/performance';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
@@ -17,10 +18,14 @@ import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discove
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
+import TransactionThresholdModal, {
+  modalCss,
+  TransactionThresholdMetric,
+} from './transactionSummary/transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 
@@ -57,11 +62,17 @@ type Props = {
 type State = {
   widths: number[];
   keyedTransactions: number | null;
+  transaction: string | undefined;
+  transactionThreshold: number | undefined;
+  transactionThresholdMetric: TransactionThresholdMetric | undefined;
 };
 class Table extends React.Component<Props, State> {
   state: State = {
     widths: [],
     keyedTransactions: null,
+    transaction: undefined,
+    transactionThreshold: undefined,
+    transactionThresholdMetric: undefined,
   };
 
   componentDidMount() {
@@ -78,9 +89,9 @@ class Table extends React.Component<Props, State> {
     }
   }
 
-  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+  handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization} = this.props;
+      const {eventView, location, organization, projects} = this.props;
 
       trackAnalyticsEvent({
         eventKey: 'performance_views.overview.cellaction',
@@ -88,6 +99,40 @@ class Table extends React.Component<Props, State> {
         organization_id: parseInt(organization.id, 10),
         action,
       });
+
+      if (action === Actions.EDIT_THRESHOLD) {
+        const project_threshold = dataRow.project_threshold_config;
+        const transactionName = dataRow.transaction as string;
+        const projectID = getProjectID(dataRow, projects);
+
+        openModal(
+          modalProps => (
+            <TransactionThresholdModal
+              {...modalProps}
+              organization={organization}
+              transactionName={transactionName}
+              eventView={eventView}
+              project={projectID}
+              transactionThreshold={project_threshold[1]}
+              transactionThresholdMetric={project_threshold[0]}
+              onApply={(threshold, metric) => {
+                if (
+                  threshold !== project_threshold[1] ||
+                  metric !== project_threshold[0]
+                ) {
+                  this.setState({
+                    transaction: transactionName,
+                    transactionThreshold: threshold,
+                    transactionThresholdMetric: metric,
+                  });
+                }
+              }}
+            />
+          ),
+          {modalCss, backdrop: 'static'}
+        );
+        return;
+      }
 
       const searchConditions = tokenizeSearch(eventView.query);
 
@@ -101,7 +146,7 @@ class Table extends React.Component<Props, State> {
         query: {
           ...location.query,
           cursor: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -130,6 +175,10 @@ class Table extends React.Component<Props, State> {
       Actions.SHOW_LESS_THAN,
     ];
 
+    if (organization.features.includes('project-transaction-threshold-override')) {
+      allowActions.push(Actions.EDIT_THRESHOLD);
+    }
+
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
@@ -150,7 +199,7 @@ class Table extends React.Component<Props, State> {
         <CellAction
           column={column}
           dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
+          handleCellAction={this.handleCellAction(column, dataRow)}
           allowActions={allowActions}
         >
           <Link to={target} onClick={this.handleSummaryClick}>
@@ -182,7 +231,7 @@ class Table extends React.Component<Props, State> {
           <CellAction
             column={column}
             dataRow={dataRow}
-            handleCellAction={this.handleCellAction(column)}
+            handleCellAction={this.handleCellAction(column, dataRow)}
             allowActions={allowActions}
           >
             {rendered}
@@ -195,7 +244,7 @@ class Table extends React.Component<Props, State> {
       <CellAction
         column={column}
         dataRow={dataRow}
-        handleCellAction={this.handleCellAction(column)}
+        handleCellAction={this.handleCellAction(column, dataRow)}
         allowActions={allowActions}
       >
         {rendered}
@@ -226,7 +275,7 @@ class Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    const {eventView, location} = this.props;
+    const {eventView, location, organization} = this.props;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
@@ -262,7 +311,11 @@ class Table extends React.Component<Props, State> {
     );
     if (field.field.startsWith('user_misery')) {
       return (
-        <GuideAnchor target="user_misery" position="top">
+        <GuideAnchor
+          target="project_transaction_threshold"
+          position="top"
+          disabled={!organization.features.includes('project-transaction-threshold')}
+        >
           {sortLink}
         </GuideAnchor>
       );
@@ -366,7 +419,8 @@ class Table extends React.Component<Props, State> {
   render() {
     const {eventView, organization, location, setError} = this.props;
 
-    const {widths} = this.state;
+    const {widths, transaction, transactionThreshold, transactionThresholdMetric} =
+      this.state;
     const columnOrder = eventView
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
@@ -398,6 +452,9 @@ class Table extends React.Component<Props, State> {
           location={location}
           setError={setError}
           referrer="api.performance.landing-table"
+          transactionName={transaction}
+          transactionThreshold={transactionThreshold}
+          transactionThresholdMetric={transactionThresholdMetric}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

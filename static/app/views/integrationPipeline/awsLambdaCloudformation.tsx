@@ -84,7 +84,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     // generate the cloudformation URL using the params we get from the server
     // and the external id we generate
     const {baseCloudformationUrl, templateUrl, stackName} = this.props;
-    //always us the generated AWS External ID in local storage
+    // always us the generated AWS External ID in local storage
     const awsExternalId = getAwsExternalId();
     const query = qs.stringify({
       templateURL: templateUrl,
@@ -101,7 +101,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   handleSubmit = (e: React.MouseEvent) => {
     this.setState({submitting: true});
     e.preventDefault();
-    //use the external ID from the form on on the submission
+    // use the external ID from the form on on the submission
     const {accountNumber, region, awsExternalId} = this.state;
     const data = {
       accountNumber,
@@ -168,7 +168,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
   }
 
-  //debounce so we don't send a request on every input change
+  // debounce so we don't send a request on every input change
   debouncedTrackValueChanged = debounce((fieldName: string) => {
     trackIntegrationEvent(
       'integrations.installation_input_value_changed',

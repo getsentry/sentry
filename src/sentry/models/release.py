@@ -1,11 +1,13 @@
 import itertools
 import logging
 import re
+from dataclasses import dataclass
 from time import time
+from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, When
+from django.db.models import Case, F, Func, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -50,7 +52,7 @@ class ReleaseCommitError(Exception):
 
 
 class ReleaseProject(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
@@ -101,6 +103,13 @@ class ReleaseStatus:
             raise ValueError(repr(value))
 
 
+@dataclass
+class SemverFilter:
+    operator: str
+    version_parts: Sequence[Union[int, str]]
+    package: Optional[str] = None
+
+
 class ReleaseQuerySet(models.QuerySet):
     def annotate_prerelease_column(self):
         """
@@ -120,6 +129,47 @@ class ReleaseQuerySet(models.QuerySet):
         """
         return self.filter(major__isnull=False)
 
+    def filter_by_semver(
+        self,
+        organization_id: int,
+        semver_filter: SemverFilter,
+        project_ids: Sequence[int] = None,
+    ) -> models.QuerySet:
+        """
+        Filters released based on a based `SemverFilter` instance.
+        `SemverFilter.version_parts` can contain up to 6 components, which should map
+        to the columns defined in `Release.SEMVER_COLS`. If fewer components are
+        included, then we will exclude later columns from the filter.
+        `SemverFilter.package` is optional, and if included we will filter the `package`
+        column using the provided value.
+        `SemverFilter.operator` should be a Django field filter.
+
+        Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
+        """
+        qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
+        if semver_filter.package:
+            qs = qs.filter(package=semver_filter.package)
+        if project_ids:
+            qs = qs.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
+                    "release_id", flat=True
+                )
+            )
+
+        if semver_filter.version_parts:
+            filter_func = Func(
+                *[
+                    Value(part) if isinstance(part, str) else part
+                    for part in semver_filter.version_parts
+                ],
+                function="ROW",
+            )
+            cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
+            qs = qs.annotate(
+                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+            ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+        return qs
+
 
 class ReleaseModelManager(models.Manager):
     def get_queryset(self):
@@ -130,6 +180,11 @@ class ReleaseModelManager(models.Manager):
 
     def filter_to_semver(self):
         return self.get_queryset().filter_to_semver()
+
+    def filter_by_semver(
+        self, organization_id: int, semver_filter: SemverFilter, project_ids: Sequence[int] = None
+    ) -> models.QuerySet:
+        return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
@@ -212,7 +267,7 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
@@ -295,7 +350,7 @@ class Release(Model):
 
     __repr__ = sane_repr("organization_id", "version")
 
-    SEMVER_SORT_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+    SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
     def __eq__(self, other):
         """Make sure that specialized releases are only comparable to the same
@@ -861,3 +916,24 @@ class Release(Model):
             releasefile.file.delete()
             releasefile.delete()
         self.delete()
+
+    def count_artifacts(self):
+        """Sum the artifact_counts of all release files.
+
+        An artifact count of NULL is interpreted as 1.
+        """
+        counts = get_artifact_counts([self.id])
+        return counts.get(self.id, 0)
+
+
+def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
+    """Get artifact count grouped by IDs"""
+    from sentry.models.releasefile import ReleaseFile
+
+    qs = (
+        ReleaseFile.objects.filter(release_id__in=release_ids)
+        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+        .values_list("release_id", "count")
+    )
+    qs.query.group_by = ["release_id"]
+    return dict(qs)

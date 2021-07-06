@@ -68,8 +68,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   get repos() {
-    //endpoint doesn't support loading only the repos for this integration
-    //but most people only have one source code repo so this should be fine
+    // endpoint doesn't support loading only the repos for this integration
+    // but most people only have one source code repo so this should be fine
     return this.state.repos.filter(repo => repo.integrationId === this.integrationId);
   }
 

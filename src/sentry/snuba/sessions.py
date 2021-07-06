@@ -176,6 +176,11 @@ def get_project_releases_by_stability(
     filter_keys = {"project_id": project_ids}
     rv = []
 
+    # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+    having_dict = {}
+    if scope in ["users", "crash_free_users"]:
+        having_dict["having"] = [["users", ">", 0]]
+
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release"],
@@ -185,6 +190,7 @@ def get_project_releases_by_stability(
         offset=offset,
         limit=limit,
         conditions=conditions,
+        **having_dict,
         filter_keys=filter_keys,
         referrer="sessions.stability-sort",
     )["data"]:
@@ -601,6 +607,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
     correspond to when the first session occurred and when the last session occurred respectively
     """
+
+    def iso_format_snuba_datetime(date):
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
+
     release_sessions_time_bounds = {
         "sessions_lower_bound": None,
         "sessions_upper_bound": None,
@@ -635,9 +645,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
+
             release_sessions_time_bounds = {
-                "sessions_lower_bound": rv["first_session_started"],
-                "sessions_upper_bound": rv["last_session_started"],
+                "sessions_lower_bound": iso_format_snuba_datetime(rv["first_session_started"]),
+                "sessions_upper_bound": iso_format_snuba_datetime(rv["last_session_started"]),
             }
     return release_sessions_time_bounds
 

@@ -977,7 +977,6 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     expect(eventView.getEventsAPIPayload({})).toEqual({
       field: ['id'],
-      equation: [],
       per_page: 50,
       sort: '-id',
       query: 'event.type:csp',
@@ -1060,7 +1059,6 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
-      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1095,7 +1093,6 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
-      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1119,7 +1116,6 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
-      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1152,7 +1148,6 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
-      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1175,7 +1170,6 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
-      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1204,7 +1198,6 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       field: ['title', 'count()'],
-      equation: [],
       sort: '-count',
       query: 'event.type:csp',
       start: '2019-10-01T00:00:00.000',
@@ -1226,7 +1219,6 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     const output = {
       field: ['title', 'count()'],
-      equation: [],
       sort: '-count',
       query: 'event.type:csp',
       per_page: 50,
@@ -2560,6 +2552,45 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
     expect(result.query.project).toEqual(state.project);
     expect(result.query.environment).toEqual(state.environment);
+  });
+});
+
+describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [{field: 'count()'}, {field: 'project.id'}],
+    sorts: generateSorts(['count']),
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+    display: 'previous',
+  };
+  const organization = TestStubs.Organization();
+  const showTransactions = 'p99';
+  const breakdown = 'http';
+  const webVital = 'measurements.lcp';
+
+  it('generates a URL', function () {
+    const view = new EventView(state);
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+      showTransactions,
+      breakdown,
+      webVital,
+    });
+    expect(result.pathname).toEqual(
+      '/organizations/org-slug/performance/summary/events/'
+    );
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.transaction).toEqual(state.name);
+    expect(result.query.showTransactions).toEqual(showTransactions);
+    expect(result.query.breakdown).toEqual(breakdown);
+    expect(result.query.webVital).toEqual(webVital);
   });
 });
 

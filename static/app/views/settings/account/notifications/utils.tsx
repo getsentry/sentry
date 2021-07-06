@@ -270,22 +270,22 @@ export const getStateToPutForProvider = (
   if (Object.keys(notificationSettings).length) {
     updatedNotificationSettings = {
       [notificationType]: Object.fromEntries(
-        Object.entries(
-          notificationSettings[notificationType]
-        ).map(([scopeType, scopeTypeData]) => [
-          scopeType,
-          Object.fromEntries(
-            Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
-              scopeId,
-              backfillMissingProvidersWithFallback(
-                scopeIdData,
-                providerList,
-                fallbackValue,
-                scopeType
-              ),
-            ])
-          ),
-        ])
+        Object.entries(notificationSettings[notificationType]).map(
+          ([scopeType, scopeTypeData]) => [
+            scopeType,
+            Object.fromEntries(
+              Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
+                scopeId,
+                backfillMissingProvidersWithFallback(
+                  scopeIdData,
+                  providerList,
+                  fallbackValue,
+                  scopeType
+                ),
+              ])
+            ),
+          ]
+        )
       ),
     };
   } else {
@@ -330,14 +330,13 @@ export const getStateToPutForDefault = (
   };
 
   if (newValue === 'never') {
-    updatedNotificationSettings[notificationType][
-      getParentKey(notificationType)
-    ] = Object.fromEntries(
-      parentIds.map(parentId => [
-        parentId,
-        Object.fromEntries(providerList.map(provider => [provider, 'default'])),
-      ])
-    );
+    updatedNotificationSettings[notificationType][getParentKey(notificationType)] =
+      Object.fromEntries(
+        parentIds.map(parentId => [
+          parentId,
+          Object.fromEntries(providerList.map(provider => [provider, 'default'])),
+        ])
+      );
   }
 
   return updatedNotificationSettings;

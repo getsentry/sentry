@@ -15,8 +15,7 @@ const formGroups: JsonFormObject[] = [
         // additional data/props that is related to rendering of form field rather than data
         label: 'Show Sentry Branding',
         placeholder: 'e.g. secondary@example.com',
-        help:
-          'Show "powered by Sentry within the feedback dialog. We appreciate you helping get the word out about Sentry! <3',
+        help: 'Show "powered by Sentry within the feedback dialog. We appreciate you helping get the word out about Sentry! <3',
         getData: data => ({options: data}),
       },
     ],

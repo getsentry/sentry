@@ -544,6 +544,74 @@ class ResolveFieldListTest(unittest.TestCase):
 
         assert "stddev(): expected 1 argument(s)" in str(err)
 
+    def test_cov_function(self):
+        fields = [
+            "cov(transaction.duration, measurements.fcp)",
+            "cov(transaction.duration, spans.browser)",
+            "cov(transaction.duration, transaction.duration)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "covarSamp",
+                ["transaction.duration", "measurements.fcp"],
+                "cov_transaction_duration_measurements_fcp",
+            ],
+            [
+                "covarSamp",
+                ["transaction.duration", "spans.browser"],
+                "cov_transaction_duration_spans_browser",
+            ],
+            [
+                "covarSamp",
+                ["transaction.duration", "transaction.duration"],
+                "cov_transaction_duration_transaction_duration",
+            ],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["cov(user.display, timestamp)"]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+        assert (
+            "cov(user.display, timestamp): column1 argument invalid: user.display is not a numeric column"
+            in str(err)
+        )
+
+    def test_corr_function(self):
+        fields = [
+            "corr(transaction.duration, measurements.fcp)",
+            "corr(transaction.duration, spans.browser)",
+            "corr(transaction.duration, transaction.duration)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "corr",
+                ["transaction.duration", "measurements.fcp"],
+                "corr_transaction_duration_measurements_fcp",
+            ],
+            [
+                "corr",
+                ["transaction.duration", "spans.browser"],
+                "corr_transaction_duration_spans_browser",
+            ],
+            [
+                "corr",
+                ["transaction.duration", "transaction.duration"],
+                "corr_transaction_duration_transaction_duration",
+            ],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["corr(user.display, timestamp)"]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+        assert (
+            "corr(user.display, timestamp): column1 argument invalid: user.display is not a numeric column"
+            in str(err)
+        )
+
     def test_tpm_function_alias(self):
         """TPM should be functionally identical to EPM except in name"""
         fields = ["tpm()"]
@@ -1398,3 +1466,86 @@ class ResolveFieldListTest(unittest.TestCase):
             )
 
         assert "and 3 more" in str(error)
+
+    def test_count_if_field_with_duration(self):
+        fields = ["count_if(transaction.duration, less, 10)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "less",
+                        ["transaction.duration", 10],
+                    ],
+                ],
+                "count_if_transaction_duration_less_10",
+            ],
+        ]
+        fields = ["count_if(spans.http, lessOrEquals, 100)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "lessOrEquals",
+                        ["spans.http", 100],
+                    ],
+                ],
+                "count_if_spans_http_lessOrEquals_100",
+            ],
+        ]
+
+    def test_count_if_field_with_tag(self):
+        fields = ["count_if(http.status_code, equals, 200)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "equals",
+                        ["http.status_code", "'200'"],
+                    ],
+                ],
+                "count_if_http_status_code_equals_200",
+            ],
+        ]
+
+        fields = ["count_if(http.status_code, notEquals, 400)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "notEquals",
+                        ["http.status_code", "'400'"],
+                    ],
+                ],
+                "count_if_http_status_code_notEquals_400",
+            ],
+        ]
+
+    def test_invalid_count_if_fields(self):
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.duration, equals, sentry)"], eventstore.Filter()
+            )
+        assert (
+            str(query_error.exception)
+            == "'sentry' is not a valid value to compare with transaction.duration"
+        )
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
+        assert str(query_error.exception) == "project is not supported by count_if"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(["count_if(stack.function, equals, test)"], eventstore.Filter())
+        assert str(query_error.exception) == "stack.function is not supported by count_if"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(["count_if(http.status_code, greater, test)"], eventstore.Filter())
+        assert str(query_error.exception) == "greater is not compatible with http.status_code"

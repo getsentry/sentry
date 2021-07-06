@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP DEFAULT;
                     """,
+                    hints={"tables": ["sentry_externalactor"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -47,6 +48,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP NOT NULL;
                     """,
+                    hints={"tables": ["sentry_externalactor"]},
                 ),
             ],
             state_operations=[

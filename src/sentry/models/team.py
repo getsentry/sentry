@@ -98,7 +98,7 @@ class Team(Model):
     A team represents a group of individuals which maintain ownership of projects.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = models.SlugField()

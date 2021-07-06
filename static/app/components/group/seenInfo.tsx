@@ -43,15 +43,8 @@ class SeenInfo extends React.Component<Props> {
   }
 
   render() {
-    const {
-      date,
-      dateGlobal,
-      environment,
-      release,
-      organization,
-      projectSlug,
-      projectId,
-    } = this.props;
+    const {date, dateGlobal, environment, release, organization, projectSlug, projectId} =
+      this.props;
 
     return (
       <HovercardWrapper>

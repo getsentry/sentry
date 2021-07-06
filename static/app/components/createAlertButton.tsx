@@ -20,11 +20,11 @@ import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
-import {getQueryDatasource} from 'app/views/alerts/utils';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'app/views/settings/incidentRules/constants';
+} from 'app/views/alerts/incidentRules/constants';
+import {getQueryDatasource} from 'app/views/alerts/utils';
 
 /**
  * Discover query supports more features than alert rules
@@ -65,12 +65,8 @@ function IncompatibleQueryAlert({
   orgId,
   onClose,
 }: AlertProps) {
-  const {
-    hasProjectError,
-    hasEnvironmentError,
-    hasEventTypeError,
-    hasYAxisError,
-  } = incompatibleQuery;
+  const {hasProjectError, hasEnvironmentError, hasEventTypeError, hasYAxisError} =
+    incompatibleQuery;
 
   const totalErrors = Object.values(incompatibleQuery).filter(val => val === true).length;
 

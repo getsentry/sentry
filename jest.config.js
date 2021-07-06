@@ -1,4 +1,4 @@
-/*eslint-env node*/
+/* eslint-env node */
 const path = require('path'); // eslint-disable-line
 
 let testMatch;
@@ -41,6 +41,7 @@ module.exports = {
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
+    '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
     'integration-docs-platforms':
@@ -53,7 +54,10 @@ module.exports = {
     '<rootDir>/tests/js/setup.js',
     'jest-canvas-mock',
   ],
-  setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.ts'],
+  setupFilesAfterEnv: [
+    '<rootDir>/tests/js/setupFramework.ts',
+    '@testing-library/jest-dom/extend-expect',
+  ],
   testMatch: testMatch || ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 

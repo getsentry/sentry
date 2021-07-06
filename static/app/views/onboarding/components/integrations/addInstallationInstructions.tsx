@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 
-//TODO: Make dyanmic for other platforms/integrations
+// TODO: Make dyanmic for other platforms/integrations
 export default function AddInstallationInstructions() {
   return (
     <Fragment>

@@ -21,7 +21,7 @@ import {
   TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -100,6 +100,7 @@ const COLUMN_ORDER: TagColumn[] = [
 type Props = {
   location: Location;
   organization: Organization;
+  aggregateColumn: string;
   projects: Project[];
   transactionName: string;
   tagKey: string;
@@ -170,7 +171,7 @@ export class TagValueTable extends Component<Props, State> {
 
     conditions.addTagValues(tagKey, [tagValue]);
 
-    const query = stringifyQueryObject(conditions);
+    const query = conditions.formatString();
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -199,7 +200,7 @@ export class TagValueTable extends Component<Props, State> {
         query: {
           ...location.query,
           [TAGS_CURSOR_NAME]: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -285,12 +286,18 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, tagKey, location, isLoading, tableData} = this.props;
+    const {eventView, tagKey, location, isLoading, tableData, aggregateColumn} =
+      this.props;
 
     const newColumns = [...COLUMN_ORDER].map(c => {
       const newColumn = {...c};
       if (c.key === 'tagValue') {
         newColumn.name = tagKey;
+      }
+      if (c.key === 'aggregate') {
+        if (aggregateColumn === 'measurements.lcp') {
+          newColumn.name = 'Avg LCP';
+        }
       }
       return newColumn;
     });

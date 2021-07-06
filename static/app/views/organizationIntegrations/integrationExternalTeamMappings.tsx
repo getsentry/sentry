@@ -57,7 +57,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
       addSuccessMessage(t('Deletion successful'));
       this.fetchData();
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };
@@ -74,7 +74,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
       acc.push(
         ...externalTeams
           .filter(externalTeam => externalTeam.provider === integration.provider.key)
-          .map(externalTeam => ({...externalTeam, sentryName: team.name}))
+          .map(externalTeam => ({...externalTeam, sentryName: team.slug}))
       );
       return acc;
     }, [] as ExternalActorMapping[]);
@@ -82,7 +82,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   }
 
   sentryNamesMapper(teams: Team[]) {
-    return teams.map(({id, name}) => ({id, name}));
+    return teams.map(({id, slug}) => ({id, name: slug}));
   }
 
   handleSubmit = (
@@ -116,7 +116,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
 
       model.saveForm();
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };

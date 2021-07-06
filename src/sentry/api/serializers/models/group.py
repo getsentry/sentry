@@ -78,17 +78,12 @@ class GroupSerializerBase(Serializer):
         self,
         collapse=None,
         expand=None,
-        has_inbox=False,
     ):
         self.collapse = collapse
         self.expand = expand
-        self.has_inbox = has_inbox
 
     def _expand(self, key):
         if self.expand is None:
-            return False
-
-        if key == "inbox" and not self.has_inbox:
             return False
 
         return key in self.expand
@@ -314,7 +309,7 @@ class GroupSerializerBase(Serializer):
             return {}
         if len(organization_id_list) > 1:
             # this should never happen but if it does we should know about it
-            logger.warn(
+            logger.warning(
                 "Found multiple organizations for groups: %s, with orgs: %s"
                 % ([item.id for item in item_list], organization_id_list)
             )
@@ -771,13 +766,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         search_filters=None,
         collapse=None,
         expand=None,
-        has_inbox=False,
     ):
-        super().__init__(
-            collapse=collapse,
-            expand=expand,
-            has_inbox=has_inbox,
-        )
+        super().__init__(collapse=collapse, expand=expand)
         from sentry.search.snuba.executors import get_search_filter
 
         self.environment_ids = environment_ids
@@ -889,7 +879,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         search_filters=None,
         collapse=None,
         expand=None,
-        has_inbox=False,
     ):
         super().__init__(
             environment_ids,
@@ -898,7 +887,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             search_filters,
             collapse=collapse,
             expand=expand,
-            has_inbox=has_inbox,
         )
 
         if stats_period is not None:

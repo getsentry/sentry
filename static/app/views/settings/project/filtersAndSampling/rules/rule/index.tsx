@@ -58,14 +58,8 @@ class Rule extends Component<Props, State> {
   };
 
   render() {
-    const {
-      rule,
-      onEditRule,
-      onDeleteRule,
-      disabled,
-      listeners,
-      grabAttributes,
-    } = this.props;
+    const {rule, onEditRule, onDeleteRule, disabled, listeners, grabAttributes} =
+      this.props;
 
     const {type, condition, sampleRate} = rule;
     const {isMenuActionsOpen} = this.state;

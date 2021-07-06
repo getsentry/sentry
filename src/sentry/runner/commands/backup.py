@@ -60,8 +60,8 @@ def sort_dependencies():
             # Now add a dependency for any FK relation with a model that
             # defines a natural key
             for field in model._meta.fields:
-                if hasattr(field.rel, "to"):
-                    rel_model = field.rel.to
+                if hasattr(field.remote_field, "model"):
+                    rel_model = field.remote_field.model
                     if rel_model != model:
                         deps.append(rel_model)
 
@@ -69,7 +69,7 @@ def sort_dependencies():
             # that defines a natural key.  M2M relations with explicit through
             # models don't count as dependencies.
             for field in model._meta.many_to_many:
-                rel_model = field.rel.to
+                rel_model = field.remote_field.model
                 if rel_model != model:
                     deps.append(rel_model)
             model_dependencies.append((model, deps))
@@ -135,7 +135,7 @@ def export(dest, silent, indent, exclude):
         # Collate the objects to be serialized.
         for model in sort_dependencies():
             if (
-                not getattr(model, "__core__", True)
+                not getattr(model, "__include_in_export__", True)
                 or model.__name__.lower() in exclude
                 or model._meta.proxy
             ):

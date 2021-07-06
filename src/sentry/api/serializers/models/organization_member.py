@@ -11,7 +11,7 @@ from sentry.models import (
     TeamStatus,
     User,
 )
-from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER  # type: ignore
+from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER
 from sentry.utils.json import JSONData
 
 

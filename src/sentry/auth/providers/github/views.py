@@ -29,44 +29,43 @@ class FetchUser(AuthView):
         super().__init__(*args, **kwargs)
 
     def handle(self, request, helper):
-        client = GitHubClient(helper.fetch_state("data")["access_token"])
+        with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
+            if self.org is not None:
+                if not client.is_org_member(self.org["id"]):
+                    return helper.error(ERR_NO_ORG_ACCESS)
 
-        if self.org is not None:
-            if not client.is_org_member(self.org["id"]):
-                return helper.error(ERR_NO_ORG_ACCESS)
+            user = client.get_user()
 
-        user = client.get_user()
-
-        if not user.get("email"):
-            emails = client.get_user_emails()
-            email = [
-                e["email"]
-                for e in emails
-                if ((not REQUIRE_VERIFIED_EMAIL) | e["verified"]) and e["primary"]
-            ]
-            if len(email) == 0:
-                if REQUIRE_VERIFIED_EMAIL:
-                    msg = ERR_NO_VERIFIED_PRIMARY_EMAIL
+            if not user.get("email"):
+                emails = client.get_user_emails()
+                email = [
+                    e["email"]
+                    for e in emails
+                    if ((not REQUIRE_VERIFIED_EMAIL) or e["verified"]) and e["primary"]
+                ]
+                if len(email) == 0:
+                    if REQUIRE_VERIFIED_EMAIL:
+                        msg = ERR_NO_VERIFIED_PRIMARY_EMAIL
+                    else:
+                        msg = ERR_NO_PRIMARY_EMAIL
+                    return helper.error(msg)
+                elif len(email) > 1:
+                    if REQUIRE_VERIFIED_EMAIL:
+                        msg = ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL
+                    else:
+                        msg = ERR_NO_SINGLE_PRIMARY_EMAIL
+                    return helper.error(msg)
                 else:
-                    msg = ERR_NO_PRIMARY_EMAIL
-                return helper.error(msg)
-            elif len(email) > 1:
-                if REQUIRE_VERIFIED_EMAIL:
-                    msg = ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL
-                else:
-                    msg = ERR_NO_SINGLE_PRIMARY_EMAIL
-                return helper.error(msg)
-            else:
-                user["email"] = email[0]
+                    user["email"] = email[0]
 
-        # A user hasn't set their name in their Github profile so it isn't
-        # populated in the response
-        if not user.get("name"):
-            user["name"] = _get_name_from_email(user["email"])
+            # A user hasn't set their name in their Github profile so it isn't
+            # populated in the response
+            if not user.get("name"):
+                user["name"] = _get_name_from_email(user["email"])
 
-        helper.bind_state("user", user)
+            helper.bind_state("user", user)
 
-        return helper.next_step()
+            return helper.next_step()
 
 
 class ConfirmEmailForm(forms.Form):
@@ -115,8 +114,8 @@ class SelectOrganization(AuthView):
         super().__init__(*args, **kwargs)
 
     def handle(self, request, helper):
-        client = GitHubClient(helper.fetch_state("data")["access_token"])
-        org_list = client.get_org_list()
+        with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
+            org_list = client.get_org_list()
 
         form = SelectOrganizationForm(org_list, request.POST or None)
         if form.is_valid():

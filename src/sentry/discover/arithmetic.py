@@ -6,6 +6,8 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.fields import get_function_alias
 
+# prefix on fields so we know they're equations
+EQUATION_PREFIX = "equation|"
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
 
@@ -60,6 +62,9 @@ class Operation:
     def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
         """Convert this tree of Operations to the equivalent snuba json"""
         lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
+        # TODO(snql): This is a hack so the json syntax doesn't turn lhs into a function
+        if isinstance(lhs, str):
+            lhs = ["toFloat64", [lhs]]
         rhs = self.rhs.to_snuba_json() if isinstance(self.rhs, Operation) else self.rhs
         result = [self.operator, [lhs, rhs]]
         if alias:
@@ -68,6 +73,17 @@ class Operation:
 
     def __repr__(self) -> str:
         return repr([self.operator, self.lhs, self.rhs])
+
+
+def flatten(remaining):
+    """Take all the remaining terms and reduce them to a single tree"""
+    term = remaining.pop(0)
+    while remaining:
+        next_term = remaining.pop(0)
+        if next_term.lhs is None:
+            next_term.lhs = term
+        term = next_term
+    return term
 
 
 arithmetic_grammar = Grammar(
@@ -83,13 +99,15 @@ mul_div              = mul_div_operator primary
 
 add_sub_operator     = spaces (plus / minus) spaces
 mul_div_operator     = spaces (multiply / divide) spaces
-primary              = spaces (numeric_value / function_value / field_value) spaces
+primary              = spaces (parens / numeric_value / function_value / field_value) spaces
+
+parens               = open_paren term closed_paren
 
 # Operator names should match what's in clickhouse
 plus                 = "+"
 minus                = "-"
 multiply             = "*"
-divide               = "/"
+divide               = ~r"[/÷]"
 
 # Minor differences in parsing means that these cannot be shared with
 # api/event_search. Arithmetic can support something like duration-duration as
@@ -134,6 +152,7 @@ class ArithmeticVisitor(NodeVisitor):
     }
     function_allowlist = {
         "count",
+        "count_if",
         "count_unique",
         "failure_count",
         "min",
@@ -161,16 +180,6 @@ class ArithmeticVisitor(NodeVisitor):
         self.fields: set[str] = set()
         self.functions: set[str] = set()
 
-    def flatten(self, remaining):
-        """Take all the remaining terms and reduce them to a single tree"""
-        term = remaining.pop(0)
-        while remaining:
-            next_term = remaining.pop(0)
-            if next_term.lhs is None:
-                next_term.lhs = term
-            term = next_term
-        return term
-
     def visit_term(self, _, children):
         maybe_factor, remaining_adds = children
         maybe_factor = maybe_factor[0]
@@ -178,7 +187,7 @@ class ArithmeticVisitor(NodeVisitor):
         if isinstance(remaining_adds, list):
             # Update the operation with lhs and continue
             remaining_adds[0].lhs = maybe_factor
-            return self.flatten(remaining_adds)
+            return flatten(remaining_adds)
         else:
             # if remaining is a node lhs contains a factor so just return that
             return maybe_factor
@@ -186,7 +195,7 @@ class ArithmeticVisitor(NodeVisitor):
     def visit_factor(self, _, children):
         primary, remaining_muls = children
         remaining_muls[0].lhs = primary
-        return self.flatten(remaining_muls)
+        return flatten(remaining_muls)
 
     def visited_operator(self):
         """We visited an operator, increment the count and error if we exceed max"""
@@ -218,6 +227,12 @@ class ArithmeticVisitor(NodeVisitor):
         # Return the 0th element since this is a (numeric/function/field)
         self.terms += 1
         return self.strip_spaces(children)[0]
+
+    def visit_parens(self, _, children):
+        # Strip brackets
+        _, term, _ = children
+
+        return term
 
     @staticmethod
     def parse_operator(operator):
@@ -273,22 +288,60 @@ def parse_arithmetic(
     return result, list(visitor.fields), list(visitor.functions)
 
 
-def resolve_equation_list(equations: List[str], selected_columns: List[str]) -> List[JsonQueryType]:
-    """Given a list of equation strings, resolve them to their equivalent snuba json query formats"""
+def resolve_equation_list(
+    equations: List[str],
+    selected_columns: List[str],
+    aggregates_only: Optional[bool] = False,
+    auto_add: Optional[bool] = False,
+) -> Tuple[List[JsonQueryType], List[str]]:
+    """Given a list of equation strings, resolve them to their equivalent snuba json query formats
+    :param equations: list of equations strings that haven't been parsed yet
+    :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
+    :param aggregates_only: Optional parameter whether we need to enforce equations don't include fields
+        intended for use with event-stats where fields aren't compatible since they change grouping
+    :param: auto_add: Optional parameter that will take any fields in the equation that's missing in the
+        selected_columns and return a new list with them added
+    """
     resolved_equations = []
+    resolved_columns = selected_columns[:]
     for index, equation in enumerate(equations):
-        # only supporting 1 operation for now
-        parsed_equation, fields, functions = parse_arithmetic(equation, max_operators=1)
+        parsed_equation, fields, functions = parse_arithmetic(equation)
+
+        if aggregates_only and len(functions) == 0:
+            raise InvalidSearchQuery("Only equations on aggregate functions are supported")
+
         for field in fields:
             if field not in selected_columns:
-                raise InvalidSearchQuery(f"{field} used in an equation but is not a selected field")
+                if auto_add:
+                    resolved_columns.append(field)
+                else:
+                    raise InvalidSearchQuery(
+                        f"{field} used in an equation but is not a selected field"
+                    )
         for function in functions:
             if function not in selected_columns:
-                raise InvalidSearchQuery(
-                    f"{function} used in an equation but is not a selected function"
-                )
+                if auto_add:
+                    resolved_columns.append(function)
+                else:
+                    raise InvalidSearchQuery(
+                        f"{function} used in an equation but is not a selected function"
+                    )
+
         # We just jam everything into resolved_equations because the json format can't take arithmetic in the aggregates
         # field, but can do the aliases in the selected_columns field
         # TODO(snql): we can do better
         resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
-    return resolved_equations
+    return resolved_equations, resolved_columns
+
+
+def is_equation(field: str) -> bool:
+    """check if a public alias is an equation, which start with the equation prefix
+    eg. `equation|5 + 5`
+    """
+    return field.startswith(EQUATION_PREFIX)
+
+
+def strip_equation(field: str) -> str:
+    """remove the equation prefix from a public field alias"""
+    assert is_equation(field), f"{field} does not start with {EQUATION_PREFIX}"
+    return field[len(EQUATION_PREFIX) :]
