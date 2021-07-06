@@ -149,6 +149,6 @@ describe('ProjectCard', function () {
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('LoadingCard')).toHaveLength(1);
+    expect(wrapper.find('Placeholder')).toHaveLength(1);
   });
 });
