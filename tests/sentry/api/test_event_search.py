@@ -406,7 +406,7 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\*b"))
         ]
         search_filter = search_filter[0]
-        # the slashes should be removed in the final value
+        # the slash should be removed in the final value
         assert search_filter.value.value == "a*b"
 
         # the first and last asterisks arent escaped with a preceding backslash, so they're
@@ -417,3 +417,59 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
         ]
         search_filter = search_filter[0]
         assert search_filter.value.value == r"^.*\*.*$"
+
+    @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
+    def test_escaping_backslashes(self):
+        search_filter = parse_search_query(r"title:a\\b")
+        assert search_filter == [
+            SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\b"))
+        ]
+        search_filter = search_filter[0]
+        # the extra slash should be removed in the final value
+        assert search_filter.value.value == r"a\b"
+
+    @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
+    def test_trailing_escaping_backslashes(self):
+        search_filter = parse_search_query(r"title:a\\")
+        assert search_filter == [
+            SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\"))
+        ]
+        search_filter = search_filter[0]
+        # the extra slash should be removed in the final value
+        assert search_filter.value.value == "a\\"
+
+    def test_escaping_quotes(self):
+        search_filter = parse_search_query(r"title:a\"b")
+        assert search_filter == [
+            SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r'a"b'))
+        ]
+        search_filter = search_filter[0]
+        # the slash should be removed in the final value
+        assert search_filter.value.value == 'a"b'
+
+
+@pytest.mark.parametrize(
+    "raw,result",
+    [
+        (r"", r""),
+        (r"foo", r"foo"),
+        (r"foo*bar", r"^foo.*bar$"),
+        (r"foo\*bar", r"foo*bar"),
+        (r"foo\\*bar", r"^foo\\.*bar$"),
+        (r"foo\\\*bar", r"foo\\*bar"),
+        (r"foo*", r"^foo.*$"),
+        (r"foo\*", r"foo*"),
+        (r"foo\\*", r"^foo\\.*$"),
+        (r"foo\\\*", r"foo\\*"),
+        (r"*bar", r"^.*bar$"),
+        (r"\*bar", r"*bar"),
+        (r"\\*bar", r"^\\.*bar$"),
+        (r"\\\*bar", r"\\*bar"),
+        (r"*\**", r"^.*\*.*$"),
+        (r"\*a\*b\*c\*", r"*a*b*c*"),
+        (r"\*\*\*aaa\*\*\*", r"***aaa***"),
+    ],
+)
+def test_search_value(raw, result):
+    search_value = SearchValue(raw)
+    assert search_value.value == result
