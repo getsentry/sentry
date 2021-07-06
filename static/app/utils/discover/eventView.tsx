@@ -304,7 +304,7 @@ class EventView {
     let equations = 0;
     const sortKeys = fields
       .map(field => {
-        if (isEquation(field.field)) {
+        if (field.field && isEquation(field.field)) {
           const sortKey = getSortKeyFromField(
             {field: `equation[${equations}]`},
             undefined
