@@ -83,6 +83,10 @@ class SessionsChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
+      // do not show adoption markers in the legend
+      data: [...series, ...previousSeries]
+        .filter(s => !s.markLine)
+        .map(s => s.seriesName),
     };
 
     return (

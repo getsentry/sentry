@@ -58,7 +58,7 @@ class DeleteProjectTest(TestCase):
             code_id="codeid",
             cpu_name="cpu",
             object_name="object",
-            project=project,
+            project_id=project.id,
         )
         file_attachment = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(

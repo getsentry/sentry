@@ -99,7 +99,7 @@ describe('OrganizationRuleList', () => {
     expect(rulesMock).toHaveBeenCalledTimes(0);
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No alert rules exist for these projects');
+    expect(wrapper.text()).toContain('No alert rules found for the current query');
   });
 
   it('sorts by date created', async () => {
