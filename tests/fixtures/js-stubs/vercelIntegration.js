@@ -21,7 +21,7 @@ export const VercelProvider = () => ({
     author: 'The Sentry Team',
     noun: 'Installation',
     issue_url:
-      'https://github.com/getsentry/sentry/issues/new?title=Vercel%20Integration:%20&labels=Component%3A%20Integrations',
+      'https://github.com/getsentry/sentry/issues/new?template=bug.yml&title=Vercel%20Integration:%20&labels=Component%3A%20Integrations',
     source_url:
       'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel',
     aspects: {},
