@@ -260,7 +260,7 @@ const Search = (props: Props) => {
       />
       <LatencyDropdown>
         <DropdownControl
-          buttonProps={{prefix: t('Display')}}
+          buttonProps={{prefix: t('Percentile')}}
           label={eventsFilterOptions[eventsDisplayFilterName].label}
         >
           {Object.entries(eventsFilterOptions).map(([name, filter]) => {
