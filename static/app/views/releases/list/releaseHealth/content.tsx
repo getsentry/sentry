@@ -43,10 +43,6 @@ const ADOPTION_STAGE_LABELS = {
     name: t('Replaced'),
     type: 'default',
   },
-  latest: {
-    name: t('Latest'),
-    type: 'highlight',
-  },
 };
 
 type Props = {
@@ -149,9 +145,7 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
-            const adoptionStage =
-              adoptionStages &&
-              (isTopRelease ? 'latest' : adoptionStages[project.slug].stage);
+            const adoptionStage = adoptionStages && adoptionStages[project.slug].stage;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
