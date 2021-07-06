@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import {Popper} from 'react-popper';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {truncate} from '@sentry/utils';
 import classNames from 'classnames';
 import {EChartOption} from 'echarts';
 import {Location} from 'history';
@@ -148,6 +149,9 @@ const TagsHeatMap = (
       data: Array.from(columnNames),
       splitArea: {
         show: true,
+      },
+      axisLabel: {
+        formatter: (value: string) => truncate(value, 50),
       },
     } as any, // TODO(k-fish): Expand typing to allow data option
     xAxis: {
