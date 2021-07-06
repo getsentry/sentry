@@ -12,7 +12,6 @@ from sentry.models import Release, ReleaseProjectEnvironment
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 
-REQUIRED_ADOPTION_PERCENT = 0.1
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
 
@@ -153,7 +152,7 @@ def process_projects_with_sessions(org_id, project_ids):
             for environment in totals[project_id]:
                 total_releases = len(totals[project_id][environment]["releases"])
                 for release in totals[project_id][environment]["releases"]:
-                    threshold = 1 / total_releases
+                    threshold = 0.1 / total_releases
                     if (
                         totals[project_id][environment]["releases"][release]
                         / totals[project_id][environment]["total_sessions"]
