@@ -15,6 +15,7 @@ import {t, tct} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 import {PlatformIntegration} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {analytics} from 'app/utils/analytics';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -108,7 +109,11 @@ class PlatformPicker extends React.Component<Props, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  analytics('platformpicker.select_tab', {category: id});
+                  trackAdvancedAnalyticsEvent(
+                    'growth.platform_category',
+                    {category},
+                    null
+                  );
                   this.setState({category: id, filter: ''});
                   e.preventDefault();
                 }}
@@ -142,7 +147,7 @@ class PlatformPicker extends React.Component<Props, State> {
                 e.stopPropagation();
               }}
               onClick={() => {
-                analytics('platformpicker.select_platform', {platform: platform.id});
+                trackAdvancedAnalyticsEvent('growth.platform_pick', {platform}, null);
                 setPlatform(platform.id as PlatformKey);
               }}
             />

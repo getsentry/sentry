@@ -12,6 +12,7 @@ import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import FirstEventFooter from 'app/views/onboarding/components/firstEventFooter';
@@ -74,6 +75,11 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
       ['project', `/projects/${organization.slug}/${params.projectId}/`],
     ];
   }
+
+  handleFullDocsClick = () => {
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('growth.view_full_docs', {}, organization);
+  };
 
   redirectToNeutralDocs() {
     const {orgId, projectId} = this.props.params;
@@ -159,6 +165,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
                 project={project}
                 organization={organization}
                 docsLink={docsLink}
+                docsOnClick={this.handleFullDocsClick}
               />
             </Fragment>
           )}

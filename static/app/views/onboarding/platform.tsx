@@ -11,6 +11,7 @@ import PlatformPicker from 'app/components/platformPicker';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
 import {Team} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
 
@@ -56,7 +57,7 @@ class OnboardingPlatform extends Component<Props, State> {
     return this.props.project || this.state.firstProjectCreated;
   }
 
-  get contineButtonLabel() {
+  get continueButtonLabel() {
     if (this.state.progressing) {
       return t('Creating Project...');
     }
@@ -102,6 +103,7 @@ class OnboardingPlatform extends Component<Props, State> {
     if (platform === null) {
       return;
     }
+    trackAdvancedAnalyticsEvent('growth.set_up_your_project', {platform}, null);
 
     // Create their first project if they don't already have one. This is a
     // no-op if they already have a project.
@@ -165,7 +167,7 @@ class OnboardingPlatform extends Component<Props, State> {
               disabled={continueDisabled}
               onClick={this.handleContinue}
             >
-              {this.contineButtonLabel}
+              {this.continueButtonLabel}
             </Button>
           )}
         </motion.div>

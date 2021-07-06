@@ -7,16 +7,13 @@ import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import testableTransition from 'app/utils/testableTransition';
 import withOrganization from 'app/utils/withOrganization';
 
 import FallingError from './components/fallingError';
 import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
-
-const recordAnalyticsOnboardingSkipped = ({organization}: {organization: Organization}) =>
-  analytics('onboarding_v2.skipped', {org_id: organization.id});
 
 type Props = StepProps & {
   organization: Organization;
@@ -47,11 +44,11 @@ class OnboardingWelcome extends Component<Props> {
     // icons). Keep things smooth by prefetching them. Preload a bit late to
     // avoid jank on welcome animations.
     setTimeout(preloadIcons, 1500);
+    trackAdvancedAnalyticsEvent('growth.start_onboarding', {}, this.props.organization);
   }
 
   render() {
     const {organization, onComplete, active} = this.props;
-    const skipOnboarding = () => recordAnalyticsOnboardingSkipped({organization});
 
     return (
       <FallingError
@@ -74,6 +71,11 @@ class OnboardingWelcome extends Component<Props> {
                 onClick={() => {
                   triggerFall();
                   onComplete({});
+                  trackAdvancedAnalyticsEvent(
+                    'growth.onboarding_im_ready',
+                    {},
+                    organization
+                  );
                 }}
               >
                 {t("I'm Ready")}
@@ -83,7 +85,19 @@ class OnboardingWelcome extends Component<Props> {
             <SecondaryAction {...fadeAway}>
               {tct('[flavorText][br][exitLink:Skip onboarding].', {
                 br: <br />,
-                exitLink: <Button priority="link" onClick={skipOnboarding} href="/" />,
+                exitLink: (
+                  <Button
+                    priority="link"
+                    onClick={() =>
+                      trackAdvancedAnalyticsEvent(
+                        'growth.skip_onboarding',
+                        {},
+                        organization
+                      )
+                    }
+                    href="/"
+                  />
+                ),
                 flavorText:
                   fallCount > 0
                     ? easterEggText[fallCount - 1]
