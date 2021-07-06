@@ -1010,7 +1010,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user)",
             ],
             "query": "event.type:transaction",
-            project: project_ids,
+            "project": project_ids,
         }
 
         response = self.do_request(
@@ -1063,7 +1063,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user)",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1165,7 +1165,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "apdex()",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1237,7 +1237,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "user_misery()",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1275,7 +1275,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert abs(data[0]["user_misery"] - 0.06586) < 0.0001
         assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
 
-    @pytest.mark.xfail(reason="failing when run as part of the full test suite")
     def test_user_misery_alias_field_with_transaction_threshold(self):
         project = self.create_project()
 
@@ -1314,7 +1313,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             ],
             "query": "event.type:transaction",
             "orderby": "transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         response = self.do_request(
@@ -1401,7 +1400,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project2 = self.create_project()
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+        )
         data["transaction"] = "/count_miserable/horribilis/project2"
         data["user"] = {"email": "project2@example.com"}
         self.store_event(data, project_id=project2.id)
@@ -1413,7 +1415,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             ],
             "query": "event.type:transaction",
             "orderby": "transaction",
-            project: [project.id, project2.id],
+            "project": [project.id, project2.id],
         }
 
         response = self.do_request(
