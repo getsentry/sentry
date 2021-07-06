@@ -33,6 +33,7 @@ class Migration(migrations.Migration):
                     ALTER TABLE "sentry_alertrule" ADD COLUMN "threshold_type" int NULL;
 
                     """,
+                    hints={"tables": ["sentry_alertrule"]},
                 )
             ],
             state_operations=[],

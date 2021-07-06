@@ -102,7 +102,7 @@ class DifAssembleEndpoint(APITestCase):
             checksum=file1.checksum,
             object_name="baz.dSYM",
             cpu_name="x86_64",
-            project=self.project,
+            project_id=self.project.id,
             debug_id="df449af8-0dcd-4320-9943-ec192134d593",
             code_id="DF449AF80DCD43209943EC192134D593",
         )

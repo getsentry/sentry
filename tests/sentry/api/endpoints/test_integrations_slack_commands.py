@@ -57,14 +57,15 @@ class SlackCommandsTest(APITestCase, TestCase):
     method = "post"
 
     def send_slack_message(self, command: str, **kwargs: Any) -> Mapping[str, str]:
-        response = self.get_slack_response(
-            {
-                "text": command,
-                "team_id": self.external_id,
-                "user_id": "UXXXXXXX1",
-                **kwargs,
-            }
-        )
+        with self.feature("organizations:notification-platform"):
+            response = self.get_slack_response(
+                {
+                    "text": command,
+                    "team_id": self.external_id,
+                    "user_id": "UXXXXXXX1",
+                    **kwargs,
+                }
+            )
         return json.loads(str(response.content.decode("utf-8")))
 
     def find_identity(self) -> Optional[Identity]:
@@ -288,14 +289,15 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
 
     def test_link_team_from_dm(self):
         """Test that if a user types /sentry link team from a DM instead of a channel, we reply with an error message."""
-        response = self.get_slack_response(
-            {
-                "text": "link team",
-                "team_id": self.external_id,
-                "user_id": "UXXXXXXX2",
-                "channel_name": "directmessage",
-            }
-        )
+        with self.feature("organizations:notification-platform"):
+            response = self.get_slack_response(
+                {
+                    "text": "link team",
+                    "team_id": self.external_id,
+                    "user_id": "UXXXXXXX2",
+                    "channel_name": "directmessage",
+                }
+            )
         data = json.loads(str(response.content.decode("utf-8")))
         assert LINK_FROM_CHANNEL_MESSAGE in data["text"]
 

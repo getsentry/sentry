@@ -208,7 +208,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
       <Panel>
         <PanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>{t('Releases Adopted')}</ChartTitle>
+            <ChartTitle>{t('Release Adoption')}</ChartTitle>
           </ChartHeader>
           <TransitionChart loading={loading} reloading={reloading}>
             <TransparentLoadingMask visible={reloading} />
