@@ -109,6 +109,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
         priority="primary"
         size="small"
         onClick={() => openInviteMembersModal({source: 'members_settings'})}
+        data-test-id="email-invite"
         icon={<IconMail />}
       >
         {t('Invite Members')}
