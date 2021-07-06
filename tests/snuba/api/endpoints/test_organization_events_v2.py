@@ -1005,12 +1005,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=project_ids[0])
 
         query = {
-            "field": [
-                "transaction",
-                "count_miserable(user)",
-            ],
+            "field": ["transaction", "count_miserable(user)",],
             "query": "event.type:transaction",
-            project: project_ids,
+            "project": project_ids,
         }
 
         response = self.do_request(
@@ -1058,12 +1055,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=project.id)
 
         query = {
-            "field": [
-                "transaction",
-                "count_miserable(user)",
-            ],
+            "field": ["transaction", "count_miserable(user)",],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1160,12 +1154,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=project.id)
 
         query = {
-            "field": [
-                "transaction",
-                "apdex()",
-            ],
+            "field": ["transaction", "apdex()",],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1232,12 +1223,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=project.id)
 
         query = {
-            "field": [
-                "transaction",
-                "user_misery()",
-            ],
+            "field": ["transaction", "user_misery()",],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1307,13 +1295,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 )
 
         query = {
-            "field": [
-                "transaction",
-                "user_misery()",
-            ],
+            "field": ["transaction", "user_misery()",],
             "query": "event.type:transaction",
             "orderby": "transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         response = self.do_request(
@@ -1400,23 +1385,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project2 = self.create_project()
 
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
-        )
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/count_miserable/horribilis/project2"
         data["user"] = {"email": "project2@example.com"}
         self.store_event(data, project_id=project2.id)
 
         query = {
-            "field": [
-                "transaction",
-                "user_misery()",
-            ],
+            "field": ["transaction", "user_misery()",],
             "query": "event.type:transaction",
             "orderby": "transaction",
-            project: [project.id, project2.id],
+            "project": [project.id, project2.id],
         }
 
         response = self.do_request(
@@ -3162,8 +3140,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         if expected_negative_events is not None:
             params["query"] = f"!{query}"
             response = self.do_request(
-                params,
-                {"organizations:discover-basic": True, "organizations:global-views": True},
+                params, {"organizations:discover-basic": True, "organizations:global-views": True},
             )
             assert response.status_code == 200, response.content
             assert [row["id"] for row in response.data["data"]] == [
@@ -4143,10 +4120,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
                 organization=self.organization,
-                project_team=ProjectTeam.objects.get(
-                    project=self.project,
-                    team=team,
-                ),
+                project_team=ProjectTeam.objects.get(project=self.project, team=team,),
                 transaction=transaction,
             )
 
@@ -4288,10 +4262,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(
             query,
-            {
-                "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
-            },
+            {"organizations:discover-basic": True, "organizations:discover-arithmetic": True,},
         )
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
@@ -4308,10 +4279,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(
             query,
-            {
-                "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
-            },
+            {"organizations:discover-basic": True, "organizations:discover-arithmetic": True,},
         )
 
         assert response.status_code == 400
@@ -4325,10 +4293,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(
             query,
-            {
-                "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
-            },
+            {"organizations:discover-basic": True, "organizations:discover-arithmetic": True,},
         )
 
         assert response.status_code == 400
@@ -4373,9 +4338,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=self.project.id)
 
         query = {
-            "field": [
-                "count_if(transaction.duration, less, 150)",
-            ],
+            "field": ["count_if(transaction.duration, less, 150)",],
             "query": "count_if(transaction.duration, less, 150):>2",
             "project": [self.project.id],
         }
@@ -4386,9 +4349,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
 
         query = {
-            "field": [
-                "count_if(transaction.duration, less, 150)",
-            ],
+            "field": ["count_if(transaction.duration, less, 150)",],
             "query": "count_if(transaction.duration, less, 150):<2",
             "project": [self.project.id],
         }
