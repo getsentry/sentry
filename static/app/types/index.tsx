@@ -1469,7 +1469,14 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
-  adoptionStages?: {};
+  adoptionStages?: Record<
+    'string',
+    {
+      stage: string | null;
+      adopted: string | null;
+      unadopted: string | null;
+    }
+  >;
 };
 
 type BaseRelease = {

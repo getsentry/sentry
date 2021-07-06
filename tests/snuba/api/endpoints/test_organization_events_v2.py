@@ -6,7 +6,10 @@ from pytz import utc
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
-from sentry.models.transaction_threshold import TransactionMetric
+from sentry.models.transaction_threshold import (
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+)
 from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -1007,7 +1010,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user)",
             ],
             "query": "event.type:transaction",
-            project: project_ids,
+            "project": project_ids,
         }
 
         response = self.do_request(
@@ -1060,7 +1063,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user)",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1162,7 +1165,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "apdex()",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1199,7 +1202,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["apdex"] == 1.0
 
-    def test_user_misery_new_alias_field(self):
+    def test_user_misery_alias_field_with_project_threshold(self):
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
@@ -1234,7 +1237,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "user_misery()",
             ],
             "query": "event.type:transaction",
-            project: [project.id],
+            "project": [project.id],
         }
 
         # Cannot access it without feature enabled
@@ -1271,6 +1274,200 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert abs(data[0]["user_misery"] - 0.06586) < 0.0001
         assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
+
+    def test_user_misery_alias_field_with_transaction_threshold(self):
+        project = self.create_project()
+
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),
+            ("two", 3000),
+            ("three", 400),
+            ("four", 4000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+            if idx % 2:
+                ProjectTransactionThresholdOverride.objects.create(
+                    transaction=f"/count_miserable/horribilis/{idx}",
+                    project=project,
+                    organization=project.organization,
+                    threshold=100 * idx,
+                    metric=TransactionMetric.DURATION.value,
+                )
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "orderby": "transaction",
+            "project": [project.id],
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        expected = [
+            ("/count_miserable/horribilis/0", ["duration", 300], 0.049578),
+            ("/count_miserable/horribilis/1", ["duration", 100], 0.049578),
+            ("/count_miserable/horribilis/2", ["duration", 300], 0.058),
+            ("/count_miserable/horribilis/3", ["duration", 300], 0.058),
+            ("/count_miserable/horribilis/4", ["duration", 300], 0.049578),
+            ("/count_miserable/horribilis/5", ["duration", 500], 0.058),
+        ]
+
+        assert len(response.data["data"]) == 6
+        data = response.data["data"]
+        for i, record in enumerate(expected):
+            name, threshold_config, misery = record
+            assert data[i]["transaction"] == name
+            assert data[i]["project_threshold_config"] == threshold_config
+            assert abs(data[i]["user_misery"] - misery) < 0.0001
+
+        query["query"] = "event.type:transaction user_misery():>0.050"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert abs(data[0]["user_misery"] - 0.058) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.058) < 0.0001
+        assert abs(data[2]["user_misery"] - 0.058) < 0.0001
+
+    def test_user_misery_alias_field_with_transaction_threshold_and_project_threshold(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),
+            ("two", 3000),
+            ("three", 400),
+            ("four", 4000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+            if idx % 2:
+                ProjectTransactionThresholdOverride.objects.create(
+                    transaction=f"/count_miserable/horribilis/{idx}",
+                    project=project,
+                    organization=project.organization,
+                    threshold=100 * idx,
+                    metric=TransactionMetric.DURATION.value,
+                )
+
+        project2 = self.create_project()
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+        )
+        data["transaction"] = "/count_miserable/horribilis/project2"
+        data["user"] = {"email": "project2@example.com"}
+        self.store_event(data, project_id=project2.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "orderby": "transaction",
+            "project": [project.id, project2.id],
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:global-views": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        expected = [
+            (
+                "/count_miserable/horribilis/0",
+                ["duration", 100],
+                0.049578,
+            ),  # Uses project threshold
+            ("/count_miserable/horribilis/1", ["duration", 100], 0.049578),  # Uses txn threshold
+            ("/count_miserable/horribilis/2", ["duration", 100], 0.058),  # Uses project threshold
+            ("/count_miserable/horribilis/3", ["duration", 300], 0.058),  # Uses txn threshold
+            (
+                "/count_miserable/horribilis/4",
+                ["duration", 100],
+                0.049578,
+            ),  # Uses project threshold
+            ("/count_miserable/horribilis/5", ["duration", 500], 0.058),  # Uses txn threshold
+            ("/count_miserable/horribilis/project2", ["duration", 300], 0.058),  # Uses fallback
+        ]
+
+        assert len(response.data["data"]) == 7
+        data = response.data["data"]
+        for i, record in enumerate(expected):
+            name, threshold_config, misery = record
+            assert data[i]["transaction"] == name
+            assert data[i]["project_threshold_config"] == threshold_config
+            assert abs(data[i]["user_misery"] - misery) < 0.0001
+
+        query["query"] = "event.type:transaction user_misery():>0.050"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+                "organizations:global-views": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 4
 
     def test_aggregation(self):
         project = self.create_project()

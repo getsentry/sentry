@@ -1260,7 +1260,7 @@ class DataPopulation:
             release_num = int(version.split(".")[-1])
             threshold = rate_by_release_num[release_num]
             outcome = random.random()
-            if outcome <= threshold:
+            if outcome > threshold:
                 if error_file:
                     local_event = copy.deepcopy(error)
                     local_event.update(
@@ -1333,8 +1333,8 @@ class DataPopulation:
             exited = random.choices([1, 2, 3, 4], k=1, weights=[10, 5, 3, 1])[0]
             outcome = random.random()
 
-            if outcome <= threshold:
-                crashed = int(random.uniform(1, 11))
+            if outcome > threshold:
+                crashed = int(random.uniform(1, 10))
             else:
                 crashed = 0
             current = {

@@ -15,7 +15,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-function GroupingContainer({organization, params, location}: Props) {
+function GroupingContainer({organization, params, location, router}: Props) {
   return (
     <Feature
       features={['grouping-tree-ui']}
@@ -30,6 +30,7 @@ function GroupingContainer({organization, params, location}: Props) {
         location={location}
         groupId={params.groupId}
         organization={organization}
+        router={router}
       />
     </Feature>
   );

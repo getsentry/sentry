@@ -29,9 +29,33 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name="group",
-            unique_together={("project", "id"), ("project", "short_id")},
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_id_515aaa7e_uniq" ON "sentry_groupedmessage" ("project_id", "id");
+                    """,
+                    reverse_sql="""
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_groupedmessage_project_id_id_515aaa7e_uniq;
+                    """,
+                    hints={"tables": ["sentry_groupedmessage"]},
+                ),
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_groupedmessage" ADD CONSTRAINT "sentry_groupedmessage_project_id_id_515aaa7e_uniq" UNIQUE USING INDEX "sentry_groupedmessage_project_id_id_515aaa7e_uniq";
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_groupedmessage" DROP CONSTRAINT IF EXISTS "sentry_groupedmessage_project_id_id_515aaa7e_uniq";
+                    """,
+                    hints={"tables": ["sentry_groupedmessage"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name="group",
+                    unique_together={("project", "id"), ("project", "short_id")},
+                ),
+            ],
         ),
         migrations.RunSQL(
             sql="""

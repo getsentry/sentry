@@ -9,6 +9,7 @@ import {
 } from 'app/utils/discover/fields';
 
 import grammar from './grammar.pegjs';
+import {getKeyName} from './utils';
 
 type TextFn = () => string;
 type LocationFn = () => LocationRange;
@@ -104,6 +105,17 @@ const allOperators = [
   TermOperator.NotEqual,
 ] as const;
 
+const basicOperators = [TermOperator.Default, TermOperator.NotEqual] as const;
+
+/**
+ * Map of certain filter types to other filter types with applicable operators
+ * e.g. SpecificDate can use the operators from Date to become a Date filter.
+ */
+export const interchangeableFilterOperators = {
+  [FilterType.SpecificDate]: [FilterType.Date],
+  [FilterType.Date]: [FilterType.SpecificDate],
+};
+
 const textKeys = [Token.KeySimple, Token.KeyExplicitTag] as const;
 
 const numberUnits = {
@@ -123,7 +135,7 @@ const numberUnits = {
 export const filterTypeConfig = {
   [FilterType.Text]: {
     validKeys: textKeys,
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.ValueText],
     canNegate: true,
   },
@@ -171,7 +183,7 @@ export const filterTypeConfig = {
   },
   [FilterType.Boolean]: {
     validKeys: [Token.KeySimple],
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.ValueBoolean],
     canNegate: true,
   },
@@ -207,13 +219,13 @@ export const filterTypeConfig = {
   },
   [FilterType.Has]: {
     validKeys: [Token.KeySimple],
-    validOps: [],
+    validOps: basicOperators,
     validValues: [],
     canNegate: true,
   },
   [FilterType.Is]: {
     validKeys: [Token.KeySimple],
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.ValueText],
     canNegate: true,
   },
@@ -281,26 +293,6 @@ type TextFilter = FilterMap[FilterType.Text];
  */
 type FilterResult = FilterMap[FilterType];
 
-/**
- * Utility to get the string name of any type of key.
- */
-const getKeyName = (
-  key: ReturnType<
-    TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
-  >
-) => {
-  switch (key.type) {
-    case Token.KeySimple:
-      return key.value;
-    case Token.KeyExplicitTag:
-      return key.key.value;
-    case Token.KeyAggregate:
-      return key.name.value;
-    default:
-      return '';
-  }
-};
-
 type TokenConverterOpts = {
   text: TextFn;
   location: LocationFn;
@@ -310,7 +302,7 @@ type TokenConverterOpts = {
 /**
  * Used to construct token results via the token grammar
  */
-class TokenConverter {
+export class TokenConverter {
   text: TextFn;
   location: LocationFn;
   config: SearchConfig;
@@ -741,6 +733,7 @@ const defaultConfig: SearchConfig = {
     'first_seen',
     'last_seen',
     'time',
+    'event.timestamp',
     'timestamp',
     'timestamp.to_hour',
     'timestamp.to_day',
