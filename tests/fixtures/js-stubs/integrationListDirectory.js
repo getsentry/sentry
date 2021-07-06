@@ -15,7 +15,7 @@ export function ProviderList() {
 
           features: [],
           issue_url:
-            'https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
+            'https://github.com/getsentry/sentry/issues/new?template=bug.yml&title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
           noun: 'Installation',
           source_url:
             'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
