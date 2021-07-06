@@ -39,6 +39,7 @@ import {isSummaryViewFrontendPageLoad} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
+  decodeFilterFromLocation,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
@@ -153,6 +154,15 @@ class SummaryContent extends React.Component<Props, State> {
     browserHistory.push(target);
   };
 
+  handleAllEventsViewClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_in_transaction_events',
+      eventName: 'Performance Views: View in All Events from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   handleDiscoverViewClick = () => {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -171,6 +181,31 @@ class SummaryContent extends React.Component<Props, State> {
     });
   };
 
+  generateEventView(
+    transactionsListEventView: EventView,
+    transactionsListTitles: string[]
+  ) {
+    const {location, totalValues, spanOperationBreakdownFilter} = this.props;
+    const {selected} = getTransactionsListSort(location, {
+      p95: totalValues?.p95 ?? 0,
+      spanOperationBreakdownFilter,
+    });
+    const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
+
+    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+      const fields = [
+        // Remove the extra field columns
+        ...sortedEventView.fields.slice(0, transactionsListTitles.length),
+      ];
+
+      // omit "Operation Duration" column
+      sortedEventView.fields = fields.filter(({field}) => {
+        return !isRelativeSpanOperationBreakdownField(field);
+      });
+    }
+    return sortedEventView;
+  }
+
   render() {
     let {eventView} = this.props;
     const {
@@ -188,6 +223,10 @@ class SummaryContent extends React.Component<Props, State> {
       transactionThresholdMetric,
       loadingThreshold,
     } = this.props;
+    const hasPerformanceEventsPage = organization.features.includes(
+      'performance-events-page'
+    );
+
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
@@ -265,6 +304,24 @@ class SummaryContent extends React.Component<Props, State> {
       transactionsListEventView.fields = fields;
     }
 
+    const openAllEventsProps = {
+      generatePerformanceTransactionEventsView: () => {
+        const performanceTransactionEventsView = this.generateEventView(
+          transactionsListEventView,
+          transactionsListTitles
+        );
+        performanceTransactionEventsView.query = query;
+        return performanceTransactionEventsView;
+      },
+      handleOpenAllEventsClick: this.handleAllEventsViewClick,
+    };
+
+    const openInDiscoverProps = {
+      generateDiscoverEventView: () =>
+        this.generateEventView(transactionsListEventView, transactionsListTitles),
+      handleOpenInDiscoverClick: this.handleDiscoverViewClick,
+    };
+
     return (
       <React.Fragment>
         <TransactionHeader
@@ -313,28 +370,14 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
-              generateDiscoverEventView={() => {
-                const {selected} = getTransactionsListSort(location, {
-                  p95: totalValues?.p95 ?? 0,
-                  spanOperationBreakdownFilter,
-                });
-                const sortedEventView = transactionsListEventView.withSorts([
-                  selected.sort,
-                ]);
-
-                if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-                  const fields = [
-                    // Remove the extra field columns
-                    ...sortedEventView.fields.slice(0, transactionsListTitles.length),
-                  ];
-
-                  // omit "Operation Duration" column
-                  sortedEventView.fields = fields.filter(({field}) => {
-                    return !isRelativeSpanOperationBreakdownField(field);
-                  });
-                }
-                return sortedEventView;
-              }}
+              {...(hasPerformanceEventsPage ? openAllEventsProps : openInDiscoverProps)}
+              showTransactions={
+                decodeScalar(
+                  location.query.showTransactions,
+                  TransactionFilterOptions.SLOW
+                ) as TransactionFilterOptions
+              }
+              breakdown={decodeFilterFromLocation(location)}
               titles={transactionsListTitles}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
@@ -344,7 +387,6 @@ class SummaryContent extends React.Component<Props, State> {
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
               handleCellAction={this.handleCellAction}
-              handleOpenInDiscoverClick={this.handleDiscoverViewClick}
               {...getTransactionsListSort(location, {
                 p95: totalValues?.p95 ?? 0,
                 spanOperationBreakdownFilter,
