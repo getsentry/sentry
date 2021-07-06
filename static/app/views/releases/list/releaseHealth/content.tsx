@@ -43,10 +43,6 @@ const ADOPTION_STAGE_LABELS = {
     name: t('Replaced'),
     type: 'default',
   },
-  latest: {
-    name: t('Latest'),
-    type: 'highlight',
-  },
 };
 
 type Props = {
