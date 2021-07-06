@@ -267,8 +267,6 @@ def query_top_tags(
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
-        conditions = []
-        conditions.append(["tags_key", "IN", [tag_key]])
 
         # Get the average and count to use to filter the next request to facets
         tag_data = discover.query(
@@ -276,10 +274,10 @@ def query_top_tags(
                 "count()",
                 "array_join(tags.value) as tags_value",
             ],
-            conditions=conditions,
             query=filter_query,
             params=params,
             orderby=["-count"],
+            conditions=[["tags_key", "IN", [tag_key]]],
             functions_acl=["array_join"],
             referrer=f"{referrer}.top_tags",
             limit=limit,
@@ -418,10 +416,6 @@ def query_facet_performance_key_histogram(
     precision = 0
 
     tag_values = [x["tags_value"] for x in top_tags]
-
-    extra_conditions = []
-    extra_conditions.append(["tags_key", "IN", [tag_key]])
-    extra_conditions.append(["tags_value", "IN", tag_values])
 
     num_buckets = num_buckets_per_key * limit
 
