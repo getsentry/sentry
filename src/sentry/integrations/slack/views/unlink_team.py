@@ -4,7 +4,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.models import ExternalActor, Integration, NotificationSetting, Team
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -97,14 +96,7 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             )
 
         external_team.delete()
-
-        # Turn off notifications for all of a team's projects.
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            team=team,
-        )
+        NotificationSetting.objects.remove_for_team(team, ExternalProviders.SLACK)
 
         return send_confirmation(
             integration,

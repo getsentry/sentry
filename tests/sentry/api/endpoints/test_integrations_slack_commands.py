@@ -31,7 +31,7 @@ from sentry.models import (
     Integration,
     NotificationSetting,
 )
-from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
+from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -523,8 +523,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
         team_settings = NotificationSetting.objects.filter(
             scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
         )
-        assert len(team_settings) == 1
-        assert team_settings[0].value == NotificationSettingOptionValues.NEVER.value
+        assert len(team_settings) == 0
 
     def test_unlink_no_team(self):
         """Test for when a user attempts to remove a link between a Slack channel and a Sentry team that does not exist"""

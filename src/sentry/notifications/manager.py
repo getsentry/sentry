@@ -171,10 +171,13 @@ class NotificationsManager(BaseManager):  # type: ignore
         self._filter(target_ids=[user.actor_id], type=type).delete()
 
     def remove_for_team(
-        self, team: "Team", type: Optional[NotificationSettingTypes] = None
+        self,
+        team: "Team",
+        provider: ExternalProviders,
+        type: Optional[NotificationSettingTypes] = None,
     ) -> None:
         """Bulk delete all Notification Settings for a TEAM, optionally by type."""
-        self._filter(target_ids=[team.actor_id], type=type).delete()
+        self._filter(target_ids=[team.actor_id], provider=provider, type=type).delete()
 
     def remove_for_project(
         self, project: "Project", type: Optional[NotificationSettingTypes] = None
