@@ -115,6 +115,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         basePath,
         {
           query: {
+            adoptionStages: 1,
             ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
               defaultStatsPeriod,
             }),
