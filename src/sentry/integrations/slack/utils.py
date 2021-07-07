@@ -8,14 +8,7 @@ from django.http import Http404, HttpResponse
 from rest_framework.request import Request
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    Organization,
-    OrganizationMember,
-)
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Organization
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
@@ -308,22 +301,6 @@ def get_identities_by_user(idp, users):
         status=IdentityStatus.VALID,
     )
     return {identity.user: identity for identity in identity_models}
-
-
-def get_org_member_by_slack_id(request, integration, organization, slack_id):
-    try:
-        idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
-    except IdentityProvider.DoesNotExist:
-        logger.error("slack.action.invalid-team-id", extra={"slack_id": integration.external_id})
-        return render_error_page(request, body_text="HTTP 403: Invalid team ID")
-
-    try:
-        identity = Identity.objects.select_related("user").get(idp=idp, external_id=slack_id)
-    except Identity.DoesNotExist:
-        logger.error("slack.action.missing-identity", extra={"slack_id": integration.external_id})
-        return render_error_page(request, body_text="HTTP 403: User identity does not exist")
-
-    return OrganizationMember.objects.get(user=identity.user, organization=organization)
 
 
 def is_valid_role(org_member, team, organization):

@@ -4,14 +4,22 @@ from django import forms
 from django.http import HttpResponse
 from rest_framework.request import Request
 
-from sentry.models import ExternalActor, Integration, NotificationSetting, Team
+from sentry.models import (
+    ExternalActor,
+    Identity,
+    IdentityProvider,
+    Integration,
+    NotificationSetting,
+    OrganizationMember,
+    Team,
+)
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 
-from ..utils import get_org_member_by_slack_id, is_valid_role, render_error_page, send_confirmation
+from ..utils import is_valid_role, logger, render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
@@ -85,9 +93,25 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         except Team.DoesNotExist:
             return render_error_page(request, body_text="HTTP 404: Team does not exist")
 
-        org_member = get_org_member_by_slack_id(
-            request, integration, organization, params["slack_id"]
-        )
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
+        except IdentityProvider.DoesNotExist:
+            logger.error(
+                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
+            )
+            return render_error_page(request, body_text="HTTP 403: Invalid team ID")
+
+        try:
+            identity = Identity.objects.select_related("user").get(
+                idp=idp, external_id=params["slack_id"]
+            )
+        except Identity.DoesNotExist:
+            logger.error(
+                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
+            )
+            return render_error_page(request, body_text="HTTP 403: User identity does not exist")
+
+        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
 
         if not is_valid_role(org_member, team, organization):
             return send_confirmation(
