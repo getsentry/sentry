@@ -56,7 +56,7 @@ const IssueListDisplayOptions = ({
   };
 
   return (
-    <DropdownControl
+    <StyledDropdownControl
       buttonProps={{prefix: t('Display')}}
       buttonTooltipTitle={
         display === IssueDisplayOptions.SESSIONS
@@ -71,12 +71,20 @@ const IssueListDisplayOptions = ({
         {getMenuItem(IssueDisplayOptions.EVENTS)}
         {getMenuItem(IssueDisplayOptions.SESSIONS)}
       </React.Fragment>
-    </DropdownControl>
+    </StyledDropdownControl>
   );
 };
 
 const StyledTooltip = styled(Tooltip)`
   width: 100%;
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  z-index: 3;
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    order: 1;
+  }
 `;
 
 export default IssueListDisplayOptions;

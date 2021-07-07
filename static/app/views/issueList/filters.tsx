@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ButtonBar from 'app/components/buttonBar';
-import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
 
@@ -55,10 +53,11 @@ class IssueListFilters extends React.Component<Props> {
       tags,
     } = this.props;
     const isAssignedQuery = /\bassigned:/.test(query);
+    const hasIssuePercent = organization.features.includes('issue-percent-display');
 
     return (
-      <PageHeader>
-        <SearchContainer>
+      <SearchContainer hasIssuePercent={hasIssuePercent}>
+        <SearchSelectorContainer>
           <ClassNames>
             {({css}) => (
               <GuideAnchor
@@ -83,29 +82,34 @@ class IssueListFilters extends React.Component<Props> {
               </GuideAnchor>
             )}
           </ClassNames>
-          <ButtonBar gap={1}>
-            <Feature features={['issue-percent-display']} organization={organization}>
-              <IssueListDisplayOptions
-                onDisplayChange={onDisplayChange}
-                display={display}
-                hasSessions={hasSessions}
-                hasMultipleProjectsSelected={selectedProjects.length !== 1}
-              />
-            </Feature>
-            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          </ButtonBar>
-        </SearchContainer>
-      </PageHeader>
+        </SearchSelectorContainer>
+
+        <Feature features={['issue-percent-display']} organization={organization}>
+          <IssueListDisplayOptions
+            onDisplayChange={onDisplayChange}
+            display={display}
+            hasSessions={hasSessions}
+            hasMultipleProjectsSelected={selectedProjects.length !== 1}
+          />
+        </Feature>
+        <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+      </SearchContainer>
     );
   }
 }
 
-const SearchContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1)};
-  align-items: start;
+const SearchContainer = styled('div')<{hasIssuePercent?: boolean}>`
+  display: inline-grid;
+  grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
   width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr ${p =>
+        p.hasIssuePercent ? `repeat(2, auto)` : `repeat(1, auto)`};
+  }
 `;
+
+const SearchSelectorContainer = styled('div')``;
 
 export default IssueListFilters;
