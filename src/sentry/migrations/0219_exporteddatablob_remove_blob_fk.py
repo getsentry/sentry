@@ -34,6 +34,15 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[],
             state_operations=[
+                migrations.RemoveField(
+                    model_name="exporteddata",
+                    name="file",
+                ),
+                migrations.AddField(
+                    model_name="exporteddata",
+                    name="file_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
                 migrations.AddField(
                     model_name="exporteddatablob",
                     name="blob_id",
