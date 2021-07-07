@@ -16,10 +16,11 @@ DEFAULT_THRESHOLD = {
     "threshold": "300",
     "metric": "duration",
 }
+MAX_VALUE = 2147483647
 
 
 class ProjectTransactionThresholdSerializer(serializers.Serializer):
-    threshold = serializers.IntegerField(required=False)
+    threshold = serializers.IntegerField(required=False, max_value=MAX_VALUE)
     metric = serializers.CharField(required=False)
 
     def validate_metric(self, metric):
