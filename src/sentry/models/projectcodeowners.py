@@ -61,7 +61,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
         from sentry.ownership.grammar import parse_code_owners
 
         # Get list of team/user names from CODEOWNERS file
-        team_names, usernames, emails = parse_code_owners(getattr(attrs, "raw", ""))
+        team_names, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
         user_emails = UserEmail.objects.filter(
@@ -93,7 +93,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
                 else:
                     teams_without_access.append(f"#{team.slug}")
 
-        emails_dict = {email: email for email in emails}
+        emails_dict = {item.email: item.email for item in user_emails}
         associations = {**users_dict, **teams_dict, **emails_dict}
 
         errors = {

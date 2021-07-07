@@ -13,7 +13,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.integration = Integration.objects.create(
             provider="github", name="GitHub", external_id="github:1"
         )
-        self.integration.add_organization(self.organization, self.user)
+        self.oi = self.integration.add_organization(self.organization, self.user)
 
         self.team = self.create_team(
             organization=self.organization, slug="tiger-team", members=[self.user]
@@ -22,7 +22,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.project = self.project = self.create_project(
             organization=self.organization, teams=[self.team], slug="bengal"
         )
-        self.code_mapping = self.create_code_mapping(project=self.project)
+        self.code_mapping = self.create_code_mapping(
+            project=self.project,
+            organization_integration=self.oi,
+        )
         self.external_user = self.create_external_user(
             external_name="@NisanthanNanthakumar", integration=self.integration
         )
@@ -36,14 +39,14 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "codeMappingId": self.code_mapping.id,
         }
 
-    def _create_codeowner_with_integration(self):
+    def _create_codeowner_without_integration(self):
         self.integration = Integration.objects.create(
             provider="github",
             name="getsentry",
             external_id="1234",
             metadata={"domain_name": "github.com/getsentry"},
         )
-        self.oi = self.integration.add_organization(self.organization, self.user)
+        self.integration.add_organization(self.organization, self.user)
         self.repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -51,14 +54,13 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             integration_id=self.integration.id,
             url="https://github.com/getsentry/sentry",
         )
-        self.code_mapping_with_integration = self.create_code_mapping(
+        self.code_mapping_without_integration = self.create_code_mapping(
             project=self.project,
             repo=self.repo,
-            organization_integration=self.oi,
             stack_root="webpack://",
         )
         self.code_owner = self.create_codeowners(
-            self.project, self.code_mapping_with_integration, raw="*.js @tiger-team"
+            self.project, self.code_mapping_without_integration, raw="*.js @tiger-team"
         )
 
     def test_no_codeowners(self):
@@ -73,6 +75,18 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp.data == {"detail": "You do not have permission to perform this action."}
 
     def test_codeowners_without_integrations(self):
+        self._create_codeowner_without_integration()
+        with self.feature({"organizations:integrations-codeowners": True}):
+            resp = self.client.get(self.url)
+        assert resp.status_code == 200
+        resp_data = resp.data[0]
+        assert resp_data["raw"] == self.code_owner.raw
+        assert resp_data["dateCreated"] == self.code_owner.date_added
+        assert resp_data["dateUpdated"] == self.code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping_without_integration.id)
+        assert resp_data["provider"] == "unknown"
+
+    def test_codeowners_with_integration(self):
         code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
@@ -82,32 +96,20 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["dateCreated"] == code_owner.date_added
         assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
-        assert resp_data["provider"] == "unknown"
-
-    def test_codeowners_with_integration(self):
-        self._create_codeowner_with_integration()
-        with self.feature({"organizations:integrations-codeowners": True}):
-            resp = self.client.get(self.url)
-        assert resp.status_code == 200
-        resp_data = resp.data[0]
-        assert resp_data["raw"] == self.code_owner.raw
-        assert resp_data["dateCreated"] == self.code_owner.date_added
-        assert resp_data["dateUpdated"] == self.code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
         assert resp_data["provider"] == self.integration.provider
 
     def test_get_expanded_codeowners_with_integration(self):
-        self._create_codeowner_with_integration()
+        code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(f"{self.url}?expand=codeMapping")
         assert resp.status_code == 200
         resp_data = resp.data[0]
-        assert resp_data["raw"] == self.code_owner.raw
-        assert resp_data["dateCreated"] == self.code_owner.date_added
-        assert resp_data["dateUpdated"] == self.code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
+        assert resp_data["raw"] == code_owner.raw
+        assert resp_data["dateCreated"] == code_owner.date_added
+        assert resp_data["dateUpdated"] == code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
-        assert resp_data["codeMapping"]["id"] == str(self.code_mapping_with_integration.id)
+        assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
 
     def test_basic_post(self):
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -117,7 +119,14 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert {
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem",
             "codeMappingId": str(self.code_mapping.id),
-            "provider": "unknown",
+            "provider": "github",
+            "ownershipSyntax": "path:docs/* admin@sentry.io #tiger-team\n",
+            "errors": {
+                "missing_external_teams": [],
+                "missing_external_users": [],
+                "missing_user_emails": [],
+                "teams_without_access": [],
+            },
         }.items() <= response.data.items()
 
     def test_empty_codeowners_text(self):
@@ -131,50 +140,91 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.data["raw"] = "docs/*"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {"raw": ["Parse error: 'ownership' (line 1, column 1)"]}
+        assert response.status_code == 201
+        assert {
+            "codeMappingId": str(self.code_mapping.id),
+            "errors": {
+                "missing_external_teams": [],
+                "missing_external_users": [],
+                "missing_user_emails": [],
+                "teams_without_access": [],
+            },
+            "ownershipSyntax": "",
+            "provider": "github",
+            "raw": "docs/*",
+        }.items() <= response.data.items()
 
     def test_cannot_find_external_user_name_association(self):
-        self.data["raw"] = "docs/*  @MeredithAnya "
+        self.data["raw"] = "docs/*  @MeredithAnya"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": ["The following usernames do not have an association in Sentry: @MeredithAnya."]
-        }
+        assert response.status_code == 201
+        assert {
+            "codeMappingId": str(self.code_mapping.id),
+            "errors": {
+                "missing_external_teams": [],
+                "missing_external_users": ["@MeredithAnya"],
+                "missing_user_emails": [],
+                "teams_without_access": [],
+            },
+            "ownershipSyntax": "",
+            "provider": "github",
+            "raw": "docs/*  @MeredithAnya",
+        }.items() <= response.data.items()
 
     def test_cannot_find_sentry_user_with_email(self):
         self.data["raw"] = "docs/*  someuser@sentry.io"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                "The following emails do not have an association in Sentry: someuser@sentry.io."
-            ]
-        }
+        assert response.status_code == 201
+        assert {
+            "codeMappingId": str(self.code_mapping.id),
+            "errors": {
+                "missing_external_teams": [],
+                "missing_external_users": [],
+                "missing_user_emails": ["someuser@sentry.io"],
+                "teams_without_access": [],
+            },
+            "ownershipSyntax": "",
+            "provider": "github",
+            "raw": "docs/*  someuser@sentry.io",
+        }.items() <= response.data.items()
 
     def test_cannot_find_external_team_name_association(self):
         self.data["raw"] = "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                "The following team names do not have an association in Sentry: @getsentry/frontend."
-            ]
-        }
+        assert response.status_code == 201
+        assert {
+            "codeMappingId": str(self.code_mapping.id),
+            "errors": {
+                "missing_external_teams": ["@getsentry/frontend"],
+                "missing_external_users": [],
+                "missing_user_emails": [],
+                "teams_without_access": [],
+            },
+            "ownershipSyntax": "",
+            "provider": "github",
+            "raw": "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend",
+        }.items() <= response.data.items()
 
     def test_cannot_find__multiple_external_name_association(self):
         self.data["raw"] = "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                "The following usernames do not have an association in Sentry: @AnotherUser.\nThe following team names do not have an association in Sentry: @getsentry/frontend, @getsentry/docs."
-            ]
-        }
+        assert response.status_code == 201
+        assert {
+            "raw": "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs",
+            "codeMappingId": str(self.code_mapping.id),
+            "provider": "github",
+            "ownershipSyntax": "",
+            "errors": {
+                "missing_external_teams": ["@getsentry/frontend", "@getsentry/docs"],
+                "missing_external_users": ["@AnotherUser"],
+                "missing_user_emails": [],
+                "teams_without_access": [],
+            },
+        }.items() <= response.data.items()
 
     def test_missing_code_mapping_id(self):
         self.data.pop("codeMappingId")
@@ -265,9 +315,17 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                f"The following emails do not have an association in Sentry: {self.user2.email}."
-            ]
-        }
+        assert response.status_code == 201
+        assert response.data["id"]
+        assert {
+            "codeMappingId": str(self.code_mapping.id),
+            "errors": {
+                "missing_external_teams": [],
+                "missing_external_users": [],
+                "missing_user_emails": [self.user2.email],
+                "teams_without_access": [],
+            },
+            "ownershipSyntax": "path:docs/* admin@sentry.io\n",
+            "provider": "github",
+            "raw": "docs/*    @NisanthanNanthakumar   user2@sentry.io",
+        }.items() <= response.data.items()
