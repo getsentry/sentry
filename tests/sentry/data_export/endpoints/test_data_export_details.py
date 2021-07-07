@@ -81,7 +81,7 @@ class DataExportDetailsTest(APITestCase):
             name="test.csv", type="export.csv", headers={"Content-Type": "text/csv"}
         )
         file.putfile(BytesIO(contents))
-        self.data_export.update(file=file)
+        self.data_export.update(file_id=file.id)
         with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["checksum"] == sha1(contents).hexdigest()
