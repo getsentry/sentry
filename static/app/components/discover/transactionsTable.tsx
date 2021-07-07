@@ -7,8 +7,7 @@ import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PanelTable from 'app/components/panels/panelTable';
-import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -77,13 +76,13 @@ class TransactionsTable extends React.PureComponent<Props> {
                   title === t('operation duration') ? (
                     <React.Fragment>
                       {title}
-                      <Tooltip
+                      <StyledIconQuestion
+                        size="xs"
+                        position="top"
                         title={t(
-                          'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
+                          `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
                         )}
-                      >
-                        <StyledIconQuestion size="xs" color="gray400" />
-                      </Tooltip>
+                      />
                     </React.Fragment>
                   ) : (
                     title
@@ -296,9 +295,9 @@ const BodyCellContainer = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledIconQuestion = styled(IconQuestion)`
+const StyledIconQuestion = styled(QuestionTooltip)`
   position: relative;
-  top: 2px;
+  top: 1px;
   left: 4px;
 `;
 
