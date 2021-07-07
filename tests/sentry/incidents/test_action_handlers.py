@@ -130,8 +130,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert set(handler.get_targets()) == {
-            (self.user.id, new_user),
-            (new_user.id, new_user),
+            (self.user.id, new_email),
+            (new_user.id, new_email),
         }
 
 
