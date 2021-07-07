@@ -49,6 +49,16 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 data=audit_data,
             )
 
+    def _should_delete_member(self, operation):
+        if operation["op"].lower() == "replace":
+            if isinstance(operation["value"], dict) and operation["value"]["active"] is False:
+                # how okta sets active to false
+                return True
+            elif operation["path"] == "active" and operation["value"] is False:
+                # how lumos and other idps set active to false
+                return True
+        return False
+
     def get(self, request, organization, member):
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context)
@@ -59,9 +69,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
         for operation in operations:
             # we only support setting active to False which deletes the orgmember
-            if operation["value"]["active"] is False:
+            if self._should_delete_member(operation):
                 self._delete_member(request, organization, member)
                 return Response(status=204)
+
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context)
 
