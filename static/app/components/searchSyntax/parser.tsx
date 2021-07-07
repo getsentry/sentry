@@ -706,7 +706,11 @@ export type SearchConfig = {
 };
 
 const defaultConfig: SearchConfig = {
-  textOperatorKeys: new Set(['sentry.semver']),
+  textOperatorKeys: new Set([
+    'sentry.semver',
+    'sentry.semver.build',
+    'sentry.semver.package',
+  ]),
   durationKeys: new Set(['transaction.duration']),
   percentageKeys: new Set(['percentage']),
   numericKeys: new Set([

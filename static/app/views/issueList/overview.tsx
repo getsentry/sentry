@@ -1036,6 +1036,14 @@ class IssueListOverview extends React.Component<Props, State> {
         key: 'sentry.semver',
         name: 'sentry.semver',
       };
+      tags['sentry.semver.build'] = {
+        key: 'sentry.semver.build',
+        name: 'sentry.semver.build',
+      };
+      tags['sentry.semver.package'] = {
+        key: 'sentry.semver.package',
+        name: 'sentry.semver.package',
+      };
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());

@@ -9,6 +9,14 @@ const supportedTags = {
     key: 'sentry.semver',
     name: 'sentry.semver',
   },
+  'sentry.semver.build': {
+    key: 'sentry.semver.build',
+    name: 'sentry.semver.build',
+  },
+  'sentry.semver.package': {
+    key: 'sentry.semver.package',
+    name: 'sentry.semver.package',
+  },
   release: {
     key: 'release',
     name: 'release',
