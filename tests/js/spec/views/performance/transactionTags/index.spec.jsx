@@ -44,6 +44,10 @@ describe('Performance > Transaction Tags', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/is-key-transactions/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets-performance/',
       body: {
         meta: {
@@ -121,5 +125,31 @@ describe('Performance > Transaction Tags', function () {
 
     // It shows a table
     expect(wrapper.find('GridEditable')).toHaveLength(1);
+  });
+
+  it('Default tagKey is set when loading the page without one', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionTags
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    // Table is loaded.
+    expect(wrapper.find('GridEditable')).toHaveLength(1);
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: {
+        project: 1,
+        statsPeriod: '14d',
+        tagKey: 'hardwareConcurrency',
+        transaction: 'Test Transaction',
+      },
+    });
   });
 });
