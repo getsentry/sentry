@@ -53,6 +53,9 @@ type emailVerificationModalOptions = {
 
 type inviteMembersModalOptions = {
   onClose?: () => void;
+  initialData?: {
+    emails: Set<string> | undefined;
+  }[];
   source?: string;
 };
 
