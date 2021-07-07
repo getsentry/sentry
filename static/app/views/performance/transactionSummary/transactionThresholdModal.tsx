@@ -10,7 +10,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import StyledFeatureBadge from 'app/components/featureBadge';
+import FeatureBadge from 'app/components/featureBadge';
 import SelectControl from 'app/components/forms/selectControl';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -237,7 +237,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       <React.Fragment>
         <Header closeButton>
           <h4>
-            {t('Transaction Settings')} <StyledFeatureBadge type="alpha" />
+            {t('Transaction Settings')} <FeatureBadge type="alpha" />
           </h4>
         </Header>
         <Body>
