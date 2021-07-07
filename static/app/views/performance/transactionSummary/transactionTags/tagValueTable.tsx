@@ -319,25 +319,34 @@ export class TagValueTable extends Component<Props, State> {
     });
 
     return (
-      <GridEditable
-        isLoading={isLoading}
-        data={tableData && tableData.data ? tableData.data : []}
-        columnOrder={newColumns}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell: this.renderHeadCellWithMeta(
-            eventView,
-            tableData ? tableData.meta : {},
-            newColumns
-          ) as any,
-          renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-          onResizeColumn: this.handleResizeColumn as any,
-        }}
-        location={location}
-      />
+      <StyledPanelTable>
+        <GridEditable
+          isLoading={isLoading}
+          data={tableData && tableData.data ? tableData.data : []}
+          columnOrder={newColumns}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: this.renderHeadCellWithMeta(
+              eventView,
+              tableData ? tableData.meta : {},
+              newColumns
+            ) as any,
+            renderBodyCell: this.renderBodyCellWithData(this.props) as any,
+            onResizeColumn: this.handleResizeColumn as any,
+          }}
+          location={location}
+        />
+      </StyledPanelTable>
     );
   }
 }
+
+const StyledPanelTable = styled('div')`
+  > div {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+`;
 
 const AlignRight = styled('div')`
   text-align: right;
