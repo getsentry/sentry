@@ -74,6 +74,7 @@ const defaultProps = {
   useFilteredStats: false,
   useTintRow: true,
   display: DEFAULT_DISPLAY,
+  narrowGroups: false,
 };
 
 type Props = {
@@ -89,6 +90,7 @@ type Props = {
   customStatsPeriod?: TimePeriodType;
   display?: IssueDisplayOptions;
   // TODO(ts): higher order functions break defaultprops export types
+  queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -359,6 +361,8 @@ class StreamGroup extends React.Component<Props, State> {
       useTintRow,
       customStatsPeriod,
       display,
+      queryFilterDescription,
+      narrowGroups,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -380,8 +384,6 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
 
-    const unresolved = data.status === 'unresolved' ? true : false;
-
     const showSessions = display === IssueDisplayOptions.SESSIONS;
     // calculate a percentage count based on session data if the user has selected sessions display
     const primaryPercent =
@@ -399,7 +401,7 @@ class StreamGroup extends React.Component<Props, State> {
         data-test-id="group"
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
-        unresolved={unresolved}
+        unresolved={data.status === 'unresolved'}
         actionTaken={actionTaken}
         useTintRow={useTintRow ?? true}
       >
@@ -426,7 +428,9 @@ class StreamGroup extends React.Component<Props, State> {
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (
-          <ChartWrapper className="hidden-xs hidden-sm">
+          <ChartWrapper
+            className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}
+          >
             {!data.filtered?.stats && !data.stats ? (
               <Placeholder height="24px" />
             ) : (
@@ -484,7 +488,8 @@ class StreamGroup extends React.Component<Props, State> {
                                 <React.Fragment>
                                   <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                     <MenuItemText>
-                                      {t('Matching search filters')}
+                                      {queryFilterDescription ??
+                                        t('Matching search filters')}
                                     </MenuItemText>
                                     {primaryPercent ? (
                                       <MenuItemPercent>{primaryPercent}</MenuItemPercent>
@@ -556,7 +561,8 @@ class StreamGroup extends React.Component<Props, State> {
                               <React.Fragment>
                                 <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                   <MenuItemText>
-                                    {t('Matching search filters')}
+                                    {queryFilterDescription ??
+                                      t('Matching search filters')}
                                   </MenuItemText>
                                   <MenuItemCount value={data.filtered.userCount} />
                                 </StyledMenuItem>

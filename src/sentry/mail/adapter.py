@@ -152,8 +152,13 @@ class MailAdapter:
         metrics.incr("mail_adapter.should_notify")
         # only notify if we have users to notify. We always want to notify if targeting
         # a member directly.
-        return target_type == ActionTargetType.MEMBER or self.get_sendable_user_objects(
-            group.project
+        return (
+            target_type
+            in [
+                ActionTargetType.MEMBER,
+                ActionTargetType.TEAM,
+            ]
+            or self.get_sendable_user_objects(group.project)
         )
 
     def add_unsubscribe_link(self, context, user_id, project, referrer):

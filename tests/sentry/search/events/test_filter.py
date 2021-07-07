@@ -840,12 +840,10 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
-            [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^\\*@example\\.com$'"]], "=", 1],
+            ["release", "=", "3.1.*"],
+            ["user.email", "=", "*@example.com"],
         ]
-        assert get_filter("release:\\\\\\*").conditions == [
-            [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
-        ]
+        assert get_filter("release:\\\\\\*").conditions == [["release", "=", "\\\\*"]]
         assert get_filter("release:\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]

@@ -4,29 +4,54 @@ import styled from '@emotion/styled';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {UpdateSdkSuggestion} from 'app/types';
 import {Event} from 'app/types/event';
 
 type Props = {
   sdk: Event['sdk'];
   suggestion: NonNullable<Event['sdkUpdates']>[0];
   shortStyle?: boolean;
+  capitalized?: boolean;
 };
 
-function getSdkUpdateSuggestion({sdk, suggestion, shortStyle = false}: Props) {
+function getSdkUpdateSuggestion({
+  sdk,
+  suggestion,
+  shortStyle = false,
+  capitalized = false,
+}: Props) {
+  function getUpdateSdkContent(newSdkVersion: UpdateSdkSuggestion['newSdkVersion']) {
+    if (capitalized) {
+      return sdk
+        ? shortStyle
+          ? tct('Update to @v[new-sdk-version]', {
+              ['new-sdk-version']: newSdkVersion,
+            })
+          : tct('Update your SDK from @v[sdk-version] to @v[new-sdk-version]', {
+              ['sdk-version']: sdk.version,
+              ['new-sdk-version']: newSdkVersion,
+            })
+        : t('Update your SDK version');
+    }
+
+    return sdk
+      ? shortStyle
+        ? tct('update to @v[new-sdk-version]', {
+            ['new-sdk-version']: newSdkVersion,
+          })
+        : tct('update your SDK from @v[sdk-version] to @v[new-sdk-version]', {
+            ['sdk-version']: sdk.version,
+            ['new-sdk-version']: newSdkVersion,
+          })
+      : t('update your SDK version');
+  }
+
   const getTitleData = () => {
     switch (suggestion.type) {
       case 'updateSdk':
         return {
           href: suggestion?.sdkUrl,
-          content: sdk
-            ? shortStyle
-              ? t('update to version %s', suggestion.newSdkVersion)
-              : t(
-                  'update your SDK from version %s to version %s',
-                  sdk.version,
-                  suggestion.newSdkVersion
-                )
-            : t('update your SDK version'),
+          content: getUpdateSdkContent(suggestion.newSdkVersion),
         };
       case 'changeSdk':
         return {

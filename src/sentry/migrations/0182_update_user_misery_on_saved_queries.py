@@ -56,6 +56,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            update_user_misery_column_on_saved_queries, reverse_code=migrations.RunPython.noop
+            update_user_misery_column_on_saved_queries,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_discoversavedquery"]},
         )
     ]

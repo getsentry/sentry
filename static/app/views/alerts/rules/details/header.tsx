@@ -10,7 +10,7 @@ import {IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 
 import {isIssueAlert} from '../../utils';
 

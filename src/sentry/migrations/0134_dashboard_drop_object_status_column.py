@@ -35,6 +35,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                         ALTER TABLE "sentry_dashboard" ADD COLUMN "status" int NOT NULL;
                         """,
+                    hints={"tables": ["sentry_dashboard"]},
                 )
             ],
             state_operations=[],

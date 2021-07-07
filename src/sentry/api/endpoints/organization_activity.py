@@ -12,11 +12,13 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
         # showing the same entry twice.
         queryset = (
             Activity.objects.filter(
-                project__in=Project.objects.filter(
-                    organization=organization,
-                    teams__in=OrganizationMemberTeam.objects.filter(
-                        organizationmember=member
-                    ).values("team"),
+                project__in=list(
+                    Project.objects.filter(
+                        organization=organization,
+                        teams__in=OrganizationMemberTeam.objects.filter(
+                            organizationmember=member
+                        ).values("team"),
+                    ).values_list("id", flat=True)
                 )
             )
             .exclude(type=Activity.UNMERGE_SOURCE)

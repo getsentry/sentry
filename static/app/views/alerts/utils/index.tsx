@@ -5,15 +5,14 @@ import {IssueAlertRule} from 'app/types/alerts';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {ALERT_RULE_PRESET_AGGREGATES} from 'app/views/settings/incidentRules/incidentRulePresets';
-import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
+import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
 import {
   Dataset,
   Datasource,
   EventTypes,
   IncidentRule,
   SavedIncidentRule,
-} from 'app/views/settings/incidentRules/types';
+} from 'app/views/alerts/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 
@@ -109,15 +108,6 @@ export function getIncidentMetricPreset(incident: Incident) {
   const dataset = alertRule?.dataset ?? Dataset.ERRORS;
 
   return PRESET_AGGREGATES.find(
-    p => p.validDataset.includes(dataset) && p.match.test(aggregate)
-  );
-}
-
-export function getIncidentRuleMetricPreset(rule?: IncidentRule) {
-  const aggregate = rule?.aggregate ?? '';
-  const dataset = rule?.dataset ?? Dataset.ERRORS;
-
-  return ALERT_RULE_PRESET_AGGREGATES.find(
     p => p.validDataset.includes(dataset) && p.match.test(aggregate)
   );
 }

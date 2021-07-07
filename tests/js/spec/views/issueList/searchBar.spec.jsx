@@ -257,7 +257,8 @@ describe('IssueListSearchBar', function () {
         organization,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(2);
+
+      expect(searchBar.find('ActionButton[data-test-id="pin-icon"]')).toHaveLength(1);
     });
 
     it('pins a search from the searchbar', function () {
@@ -269,7 +270,7 @@ describe('IssueListSearchBar', function () {
         organization,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      searchBar.find('button[aria-label="Pin this search"]').simulate('click');
+      searchBar.find('ActionButton[data-test-id="pin-icon"]').simulate('click');
 
       expect(pinSearch).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -290,10 +291,11 @@ describe('IssueListSearchBar', function () {
         tagValueLoader: () => Promise.resolve([]),
         supportedTags,
         organization,
-        pinnedSearch: {id: '1', query: 'url:"fu"'},
+        savedSearch: {id: '1', isPinned: true, query: 'url:"fu"'},
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      searchBar.find('button[aria-label="Unpin this search"]').simulate('click');
+
+      searchBar.find('ActionButton[aria-label="Unpin this search"]').simulate('click');
 
       expect(unpinSearch).toHaveBeenLastCalledWith(
         expect.anything(),

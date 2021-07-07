@@ -10,7 +10,7 @@ from sentry.search.events.types import ParamsType, SelectType
 from sentry.utils.snuba import Dataset
 
 
-class QueryBuilder(QueryFields, QueryFilter):
+class QueryBuilder(QueryFilter, QueryFields):
     """Builds a snql query"""
 
     def __init__(

@@ -41,6 +41,14 @@ type ParameterDescription =
       value: FieldValue | null;
       options: FieldValueOption[];
       required: boolean;
+    }
+  | {
+      kind: 'dropdown';
+      value: string;
+      options: SelectValue<string>[];
+      dataType: string;
+      required: boolean;
+      placeholder?: string;
     };
 
 type Props = {
@@ -107,7 +115,7 @@ class QueryField extends React.Component<Props> {
         if (current.kind === 'field') {
           fieldValue = {
             kind: 'function',
-            function: [value.meta.name as AggregationKey, '', undefined],
+            function: [value.meta.name as AggregationKey, '', undefined, undefined],
           };
         } else if (current.kind === 'function') {
           fieldValue = {
@@ -116,6 +124,7 @@ class QueryField extends React.Component<Props> {
               value.meta.name as AggregationKey,
               current.function[1],
               current.function[2],
+              current.function[3],
             ],
           };
         }
@@ -147,14 +156,14 @@ class QueryField extends React.Component<Props> {
             fieldValue.function[i + 1] = param.defaultValue || '';
             fieldValue.function[i + 2] = undefined;
           }
-        } else if (param.kind === 'value') {
+        } else {
           fieldValue.function[i + 1] = param.defaultValue || '';
         }
       });
 
       if (fieldValue.kind === 'function') {
         if (value.meta.parameters.length === 0) {
-          fieldValue.function = [fieldValue.function[0], '', undefined];
+          fieldValue.function = [fieldValue.function[0], '', undefined, undefined];
         } else if (value.meta.parameters.length === 1) {
           fieldValue.function[2] = undefined;
         }
@@ -180,20 +189,24 @@ class QueryField extends React.Component<Props> {
     this.triggerChange(newColumn);
   };
 
-  handleScalarParameterChange = (value: string) => {
-    const newColumn = cloneDeep(this.props.fieldValue);
-    if (newColumn.kind === 'function') {
-      newColumn.function[1] = value;
-    }
-    this.triggerChange(newColumn);
+  handleDropdownParameterChange = (index: number) => {
+    return (value: SelectValue<string>) => {
+      const newColumn = cloneDeep(this.props.fieldValue);
+      if (newColumn.kind === 'function') {
+        newColumn.function[index] = value.value;
+      }
+      this.triggerChange(newColumn);
+    };
   };
 
-  handleRefinementChange = (value: string) => {
-    const newColumn = cloneDeep(this.props.fieldValue);
-    if (newColumn.kind === 'function') {
-      newColumn.function[2] = value;
-    }
-    this.triggerChange(newColumn);
+  handleScalarParameterChange = (index: number) => {
+    return (value: string) => {
+      const newColumn = cloneDeep(this.props.fieldValue);
+      if (newColumn.kind === 'function') {
+        newColumn.function[index] = value;
+      }
+      this.triggerChange(newColumn);
+    };
   };
 
   triggerChange(fieldValue: QueryFieldValue) {
@@ -291,6 +304,17 @@ class QueryField extends React.Component<Props> {
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
             };
+          } else if (param.kind === 'dropdown') {
+            return {
+              kind: 'dropdown',
+              options: param.options,
+              dataType: param.dataType,
+              required: param.required,
+              value:
+                (fieldValue.kind === 'function' && fieldValue.function[index + 1]) ||
+                param.defaultValue ||
+                '',
+            };
           }
 
           return {
@@ -353,13 +377,10 @@ class QueryField extends React.Component<Props> {
         );
       }
       if (descriptor.kind === 'value') {
-        const handler =
-          index === 0 ? this.handleScalarParameterChange : this.handleRefinementChange;
-
         const inputProps = {
           required: descriptor.required,
           value: descriptor.value,
-          onUpdate: handler,
+          onUpdate: this.handleScalarParameterChange(index + 1),
           placeholder: descriptor.placeholder,
           disabled,
         };
@@ -396,6 +417,20 @@ class QueryField extends React.Component<Props> {
               />
             );
         }
+      }
+      if (descriptor.kind === 'dropdown') {
+        return (
+          <SelectControl
+            name="dropdown"
+            placeholder={t('Select value')}
+            options={descriptor.options}
+            value={descriptor.value}
+            required={descriptor.required}
+            onChange={this.handleDropdownParameterChange(index + 1)}
+            inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
+            disabled={disabled}
+          />
+        );
       }
       throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
     });
@@ -502,7 +537,7 @@ class QueryField extends React.Component<Props> {
 
     if (fieldValue.kind === FieldValueKind.EQUATION) {
       return (
-        <Container className={className} gridColumns={1}>
+        <Container className={className} gridColumns={1} tripleLayout={false}>
           <ArithmeticInput
             name="arithmetic"
             key="parameter:text"
@@ -516,10 +551,14 @@ class QueryField extends React.Component<Props> {
       );
     }
 
+    // if there's more than 2 parameters, set gridColumns to 2 so they go onto the next line instead
+    const containerColumns =
+      parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
     return (
       <Container
         className={className}
-        gridColumns={gridColumns ? gridColumns : parameters.length + 1}
+        gridColumns={containerColumns}
+        tripleLayout={gridColumns === 3 && parameters.length > 2}
       >
         {!hidePrimarySelector && (
           <SelectControl
@@ -558,9 +597,12 @@ function validateColumnTypes(
   return columnTypes.includes(input.meta.dataType);
 }
 
-const Container = styled('div')<{gridColumns: number}>`
+const Container = styled('div')<{gridColumns: number; tripleLayout: boolean}>`
   display: grid;
-  grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
+  ${p =>
+    p.tripleLayout
+      ? `grid-template-columns: 1fr 2fr;`
+      : `grid-template-columns: repeat(${p.gridColumns}, 1fr);`}
   grid-column-gap: ${space(1)};
   align-items: center;
 

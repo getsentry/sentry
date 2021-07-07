@@ -1,7 +1,7 @@
 import {defined} from 'app/utils';
 
 type Props = {
-  count?: number;
+  count?: number | null;
   max?: number;
   hideIfEmpty?: boolean;
   hideParens?: boolean;

@@ -30,6 +30,7 @@ export enum LandingDisplayField {
   FRONTEND_PAGELOAD = 'frontend_pageload',
   FRONTEND_OTHER = 'frontend_other',
   BACKEND = 'backend',
+  MOBILE = 'mobile',
 }
 
 export const LANDING_DISPLAYS = [
@@ -48,6 +49,13 @@ export const LANDING_DISPLAYS = [
   {
     label: 'Backend',
     field: LandingDisplayField.BACKEND,
+  },
+  {
+    label: 'Mobile',
+    field: LandingDisplayField.MOBILE,
+    isShown: (organization: Organization) =>
+      organization.features.includes('performance-mobile-vitals'),
+    alpha: true,
   },
 ];
 
@@ -84,21 +92,24 @@ export function getBackendFunction(
 ): Column {
   switch (functionName) {
     case 'p75':
-      return {kind: 'function', function: ['p75', 'transaction.duration', undefined]};
+      return {
+        kind: 'function',
+        function: ['p75', 'transaction.duration', undefined, undefined],
+      };
     case 'tpm':
-      return {kind: 'function', function: ['tpm', '', undefined]};
+      return {kind: 'function', function: ['tpm', '', undefined, undefined]};
     case 'failure_rate':
-      return {kind: 'function', function: ['failure_rate', '', undefined]};
+      return {kind: 'function', function: ['failure_rate', '', undefined, undefined]};
     case 'apdex':
       if (organization.features.includes('project-transaction-threshold')) {
         return {
           kind: 'function',
-          function: ['apdex' as AggregationKey, '', undefined],
+          function: ['apdex' as AggregationKey, '', undefined, undefined],
         };
       }
       return {
         kind: 'function',
-        function: ['apdex', `${organization.apdexThreshold}`, undefined],
+        function: ['apdex', `${organization.apdexThreshold}`, undefined, undefined],
       };
     default:
       throw new Error(`Unsupported backend function: ${functionName}`);
