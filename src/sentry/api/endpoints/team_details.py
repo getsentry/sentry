@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 
@@ -40,9 +41,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
         :pparam string organization_slug: the slug of the organization the
                                           team belongs to.
         :pparam string team_slug: the slug of the team to get.
+        :qparam bool full: if this is set to true then the team object will
+            include projects and external_teams. Set to 1 to enable.
         :auth: required
         """
-        context = serialize(team, request.user)
+        full = request.GET.get("full", False)
+        serializer = TeamWithProjectsSerializer() if full else TeamSerializer()
+
+        context = serialize(team, request.user, serializer)
         context["organization"] = serialize(team.organization, request.user)
 
         return Response(context)
