@@ -295,17 +295,17 @@ const generateBadgeTheme = (alias: Aliases) => ({
     color: alias.badgeText,
   },
   alpha: {
-    background: colors.orange400,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
     indicatorColor: colors.orange400,
     color: alias.badgeText,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
+    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
     indicatorColor: colors.purple300,
     color: alias.badgeText,
   },
   new: {
-    background: colors.green300,
+    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
     indicatorColor: colors.green300,
     color: alias.badgeText,
   },
