@@ -270,7 +270,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         attachment = get_attachment()
 
-        assert attachment["title"] == f"{self.name} unassigned {self.short_id}"
+        assert (
+            attachment["title"]
+            == f"{self.name} unassigned <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}>"
+        )
         assert attachment["text"] == f"{self.name} unassigned {self.short_id}"
         assert (
             attachment["footer"]
@@ -296,8 +299,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             notification.send()
 
         attachment = get_attachment()
-
-        assert attachment["title"] == f"{self.name} marked {self.short_id} as resolved"
+        assert (
+            attachment["title"]
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as resolved"
+        )
         assert attachment["text"] == f"{self.name} marked {self.short_id} as resolved"
         assert (
             attachment["footer"]
@@ -324,7 +329,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         attachment = get_attachment()
 
-        assert attachment["title"] == f"{self.name} marked {self.short_id} as a regression"
+        assert (
+            attachment["title"]
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as a regression"
+        )
         assert attachment["text"] == f"{self.name} marked {self.short_id} as a regression"
         assert (
             attachment["footer"]
@@ -408,7 +416,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         release_name = notification.activity.data["version"]
         assert (
             attachment["title"]
-            == f"{self.name} marked {self.short_id} as resolved in {release_name}"
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as resolved in {release_name}"
         )
         assert (
             attachment["text"]
@@ -439,7 +447,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         attachment = get_attachment()
 
-        assert attachment["title"] == f"{self.name} commented on {self.group.qualified_short_id}"
+        assert (
+            attachment["title"]
+            == f"{self.name} commented on <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack|{self.short_id}>"
+        )
         assert attachment["text"] == notification.activity.data["text"]
         assert (
             attachment["footer"]

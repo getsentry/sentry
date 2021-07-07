@@ -101,7 +101,9 @@ class ActivityNotification(BaseNotification, ABC):
     def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
 
-    def description_as_text(self, description: str, params: Mapping[str, Any]) -> str:
+    def description_as_text(
+        self, description: str, params: Mapping[str, Any], url: Optional[bool] = False
+    ) -> str:
         user = self.activity.user
         if user:
             name = user.name or user.email
@@ -109,6 +111,9 @@ class ActivityNotification(BaseNotification, ABC):
             name = "Sentry"
 
         issue_name = self.group.qualified_short_id or "an issue"
+        if url and self.group.qualified_short_id:
+            group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
+            issue_name = f"<{group_url}|{self.group.qualified_short_id}>"
 
         context = {"author": name, "an issue": issue_name}
         context.update(params)
@@ -139,7 +144,7 @@ class ActivityNotification(BaseNotification, ABC):
 
     def get_notification_title(self) -> str:
         description, params, _ = self.get_description()
-        return self.description_as_text(description, params)
+        return self.description_as_text(description, params, True)
 
     def get_reference(self) -> Any:
         return self.activity
