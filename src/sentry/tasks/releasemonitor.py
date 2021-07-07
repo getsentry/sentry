@@ -82,10 +82,19 @@ def monitor_release_adoption(**kwargs):
 def process_projects_with_sessions(org_id, project_ids):
     # Takes a single org id and a list of project ids
 
-    # 2. For each org result from #1, get counts of releases across all envs + projects for the last 6 hours
+    with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core"):
+        totals = sum_sessions_and_releases(org_id, project_ids)
+
+        adopted_ids = adopt_releases(org_id, totals)
+
+        cleanup_adopted_releases(project_ids, adopted_ids)
+
+
+def sum_sessions_and_releases(org_id, project_ids):
+    # Takes a single org id and a list of project ids
+    # returns counts of releases and sessions across all environments and passed project_ids for the last 6 hours
     start_time = time.time()
     offset = 0
-    adopted_ids = []
     totals = defaultdict(dict)
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.loop"):
         while (time.time() - start_time) < MAX_SECONDS:
@@ -127,15 +136,11 @@ def process_projects_with_sessions(org_id, project_ids):
                 more_results = count >= CHUNK_SIZE
                 offset += count
                 for row in data:
-                    totals[row["project_id"]].setdefault(
+                    row_totals = totals[row["project_id"]].setdefault(
                         row["environment"], {"total_sessions": 0, "releases": defaultdict(int)}
                     )
-                    totals[row["project_id"]][row["environment"]]["total_sessions"] += row[
-                        "sessions"
-                    ]
-                    totals[row["project_id"]][row["environment"]]["releases"][
-                        row["release"]
-                    ] += row["sessions"]
+                    row_totals["total_sessions"] += row["sessions"]
+                    row_totals["releases"][row["release"]] += row["sessions"]
 
             if not more_results:
                 break
@@ -144,18 +149,24 @@ def process_projects_with_sessions(org_id, project_ids):
                 "process_projects_with_sessions.loop_timeout",
                 extra={"org_id": org_id, "project_ids": project_ids},
             )
-    # 3. Using the sums from the previous step, calculate adoption status
+
+    return totals
+
+
+def adopt_releases(org_id, totals):
+    # Using the totals calculated in sum_sessions_and_releases, mark any releases as adopted if they reach a threshold.
+    adopted_ids = []
     with metrics.timer(
         "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates"
     ):
-        for project_id in totals:
-            for environment in totals[project_id]:
-                total_releases = len(totals[project_id][environment]["releases"])
-                for release in totals[project_id][environment]["releases"]:
+        for project_id, project_totals in totals.items():
+            for environment, environment_totals in project_totals.items():
+                total_releases = len(environment_totals["releases"])
+                for release in environment_totals["releases"]:
                     threshold = 0.1 / total_releases
                     if (
-                        totals[project_id][environment]["releases"][release]
-                        / totals[project_id][environment]["total_sessions"]
+                        environment_totals["releases"][release]
+                        / environment_totals["total_sessions"]
                         >= threshold
                     ):
                         try:
@@ -176,9 +187,13 @@ def process_projects_with_sessions(org_id, project_ids):
                             )
                             capture_exception(exc)
 
-    # 4. Cleanup - releases that are marked as adopted that didn’t get any results in #2 need to be marked as unadopted
+    return adopted_ids
+
+
+def cleanup_adopted_releases(project_ids, adopted_ids):
+    # Cleanup; adopted releases need to be marked as unadopted if they are not in `adopted_ids`
     with metrics.timer(
-        "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.cleaup"
+        "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.cleanup"
     ):
         ReleaseProjectEnvironment.objects.filter(
             project_id__in=project_ids, unadopted__isnull=True
