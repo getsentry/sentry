@@ -17,8 +17,10 @@ from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
     SCIM_400_INVALID_FILTER,
+    SCIM_400_INVALID_PATCH,
     SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
     SCIM_409_USER_EXISTS,
+    MemberPatchOps,
 )
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
 
@@ -50,7 +52,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             )
 
     def _should_delete_member(self, operation):
-        if operation["op"].lower() == "replace":
+        if operation["op"].lower() == MemberPatchOps.REPLACE:
             if isinstance(operation["value"], dict) and operation["value"]["active"] is False:
                 # how okta sets active to false
                 return True
@@ -72,6 +74,8 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             if self._should_delete_member(operation):
                 self._delete_member(request, organization, member)
                 return Response(status=204)
+            else:
+                return Response(SCIM_400_INVALID_PATCH, status=400)
 
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context)

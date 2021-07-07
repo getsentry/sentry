@@ -221,6 +221,21 @@ class SCIMMemberTests(APITestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
+    def test_patch_bad_schema(self):
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.patch(
+            url, {"Operations": [{"op": "replace", "path": "blahblahbbalh", "value": False}]}
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid Patch Operation. See documentation for what is supported",
+        }
+
     def test_member_detail_patch_too_many_ops(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
         url = reverse(
