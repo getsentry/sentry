@@ -492,10 +492,19 @@ if (
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
+  // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
+  const certPath = path.join(__dirname, 'config');
+  const https = !fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? true
+    : {
+        key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
+        cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
+      };
+
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
-    https: true,
+    https,
     publicPath: '/_assets/',
     proxy: [
       {

@@ -393,7 +393,10 @@ class SummaryContent extends React.Component<Props, State> {
               })}
               forceLoading={isLoading}
             />
-            <Feature features={['performance-tag-explorer']}>
+            <Feature
+              requireAll={false}
+              features={['performance-tag-explorer', 'performance-tag-page']}
+            >
               <TagExplorer
                 eventView={eventView}
                 organization={organization}
