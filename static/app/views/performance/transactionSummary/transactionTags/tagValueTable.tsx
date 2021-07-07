@@ -250,7 +250,8 @@ export class TagValueTable extends Component<Props, State> {
           }
         >
           <LinkContainer>
-            <IconAdd isCircled /> {t('Add to filter')}
+            <IconAdd isCircled />
+            {t('Add to filter')}
           </LinkContainer>
         </Link>
       );
@@ -319,11 +320,11 @@ export class TagValueTable extends Component<Props, State> {
   }
 }
 const LinkContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(0.5)};
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
-  grid-gap: ${space(1)};
-  width: 100px;
 `;
 
 export default TagValueTable;
