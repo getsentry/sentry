@@ -1130,7 +1130,7 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
                 timestamp=timestamp,
-                start_timestamp=timestamp - timedelta(duration),
+                start_timestamp=timestamp - timedelta(seconds=duration),
             )
             update_context(local_event, trace, platform=ios_project.platform)
             self.fix_transaction_event(local_event, old_span_id)
