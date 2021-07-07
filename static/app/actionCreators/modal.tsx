@@ -51,6 +51,11 @@ type emailVerificationModalOptions = {
   actionMessage?: string;
 };
 
+type inviteMembersModalOptions = {
+  onClose?: () => void;
+  source?: string;
+};
+
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
   const mod = await import('app/components/modals/sudoModal');
   const {default: Modal} = mod;
@@ -217,11 +222,14 @@ export async function openDebugFileSourceModal({
   });
 }
 
-export async function openInviteMembersModal(options = {}) {
+export async function openInviteMembersModal({
+  onClose,
+  ...args
+}: inviteMembersModalOptions = {}) {
   const mod = await import('app/components/modals/inviteMembersModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
