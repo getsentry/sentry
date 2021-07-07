@@ -340,6 +340,7 @@ def _team_key_transaction_filter_converter(
 def _flip_field_sort(field: str):
     return field[1:] if field.startswith("-") else f"-{field}"
 
+
 def _release_stage_filter_converter(
     search_filter: SearchFilter,
     name: str,
@@ -367,7 +368,7 @@ def _release_stage_filter_converter(
         .order_by("date_added")[:SEMVER_MAX_SEARCH_RELEASES]
     )
     versions = list(qs)
-    print("versions:",versions)
+    print("versions:", versions)
     final_operator = "IN"
     # if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
     #     # We want to limit how many versions we pass through to Snuba. If we've hit
@@ -394,6 +395,7 @@ def _release_stage_filter_converter(
         versions = [SEMVER_EMPTY_RELEASE]
     print("weeee", final_operator, versions)
     return ["release", final_operator, versions]
+
 
 def _semver_filter_converter(
     search_filter: SearchFilter,
@@ -1017,8 +1019,8 @@ def format_search_filter(term, params):
         converted_filter = convert_search_filter_to_snuba_query(term, params=params)
         if converted_filter:
             conditions.append(converted_filter)
-    print("conditions:",conditions)
-    print("projects_to_filter:",projects_to_filter)
+    print("conditions:", conditions)
+    print("projects_to_filter:", projects_to_filter)
     return conditions, projects_to_filter, group_ids
 
 
@@ -1141,7 +1143,7 @@ class QueryFilter(QueryBase):
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
-                return Condition(Function("ifNull", [lhs]), Op(search_filter.operator), 1)
+                return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
         if search_filter.value.is_wildcard():
             condition = Condition(

@@ -1,5 +1,5 @@
 ---
-created: '2021-05-17T08:41:28.731631Z'
+created: '2021-06-30T16:44:00.779321Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
-  tree_label: "<entire stacktrace>"
+  tree_label: "libc++abi.dylib | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | libsystem_pthread.dylib | libsystem_pthread.dylib | libsystem_pthread.dylib | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -83,7 +83,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
-  tree_label: "<entire stacktrace>"
+  tree_label: "libc++abi.dylib | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | libsystem_pthread.dylib | libsystem_pthread.dylib | libsystem_pthread.dylib | stripped_application_code"
   component:
     system*
       exception*

@@ -1,23 +1,23 @@
 ---
-created: '2021-06-23T18:06:08.946164Z'
+created: '2021-06-30T16:44:00.302554Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "af9d758f026c55155ef957140783a1b0"
+  hash: "2d19dfc08a0a1656533e4dc4cc4c7b40"
   tree_label: "raise | stripped_application_code"
   component:
     app-depth-1*
       exception*
         stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "raise"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame*
-            function*
-              "stripped_application_code"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
-  tree_label: "<entire stacktrace>"
+  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | _purecall | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | UserCallWinProcCheckWow | DispatchMessageWorker | stripped_application_code | std::_Func_class<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::basic_string<T>::_Reallocate_for | std::basic_string<T>::assign | std::basic_string<T>::assign | std::basic_string<T>::{ctor} | wWinMain | invoke_main | stripped_application_code | BaseThreadInitThunk | RtlUserThreadStart"
   component:
     app-depth-max*
       exception*
@@ -186,7 +186,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
-  tree_label: "<entire stacktrace>"
+  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | _purecall | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | UserCallWinProcCheckWow | DispatchMessageWorker | stripped_application_code | std::_Func_class<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::basic_string<T>::_Reallocate_for | std::basic_string<T>::assign | std::basic_string<T>::assign | std::basic_string<T>::{ctor} | wWinMain | invoke_main | stripped_application_code | BaseThreadInitThunk | RtlUserThreadStart"
   component:
     system*
       exception*

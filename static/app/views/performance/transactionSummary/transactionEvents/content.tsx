@@ -7,24 +7,29 @@ import omit from 'lodash/omit';
 
 import Alert from 'app/components/alert';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
+import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 
 import EventsTable from './eventsTable';
+import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 type Props = {
   location: Location;
@@ -32,6 +37,13 @@ type Props = {
   transactionName: string;
   organization: Organization;
   projects: Project[];
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  eventsDisplayFilterName: EventsDisplayFilterName;
+  onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
+  percentileValues?: Record<EventsDisplayFilterName, number>;
+  isLoading: boolean;
+  webVital?: WebVital;
 };
 
 type State = {
@@ -98,16 +110,9 @@ class EventsPageContent extends React.Component<Props, State> {
   };
 
   render() {
-    const {eventView, location, organization, projects, transactionName} = this.props;
+    const {eventView, location, organization, projects, transactionName, isLoading} =
+      this.props;
     const {incompatibleAlertNotice} = this.state;
-    const transactionsListTitles = [
-      t('event id'),
-      t('user'),
-      t('operation duration'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
-    ];
 
     return (
       <Fragment>
@@ -131,17 +136,11 @@ class EventsPageContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <Search {...this.props} />
-            <StyledTable>
-              <EventsTable
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                setError={this.setError}
-                columnTitles={transactionsListTitles}
-                transactionName={transactionName}
-              />
-            </StyledTable>
+            {isLoading ? (
+              <LoadingIndicator />
+            ) : (
+              <Body {...this.props} setError={this.setError} />
+            )}
           </Layout.Main>
         </Layout.Body>
       </Fragment>
@@ -149,8 +148,79 @@ class EventsPageContent extends React.Component<Props, State> {
   }
 }
 
+class Body extends React.Component<
+  Props & {setError: (error: string | undefined) => void},
+  State
+> {
+  render() {
+    let {eventView} = this.props;
+    const {
+      location,
+      organization,
+      transactionName,
+      spanOperationBreakdownFilter,
+      eventsDisplayFilterName,
+      onChangeEventsDisplayFilter,
+      setError,
+      webVital,
+    } = this.props;
+    const transactionsListTitles = [
+      t('event id'),
+      t('user'),
+      t('operation duration'),
+      t('total duration'),
+      t('trace id'),
+      t('timestamp'),
+    ];
+
+    if (webVital) {
+      transactionsListTitles.splice(3, 0, t(webVital));
+    }
+
+    const spanOperationBreakdownConditions = filterToSearchConditions(
+      spanOperationBreakdownFilter,
+      location
+    );
+
+    if (spanOperationBreakdownConditions) {
+      eventView = eventView.clone();
+      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+      transactionsListTitles.splice(2, 1, t(`${spanOperationBreakdownFilter} duration`));
+    }
+
+    return (
+      <React.Fragment>
+        <Search
+          {...this.props}
+          onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
+          eventsDisplayFilterName={eventsDisplayFilterName}
+        />
+        <StyledTable>
+          <EventsTable
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            setError={setError}
+            columnTitles={transactionsListTitles}
+            transactionName={transactionName}
+          />
+        </StyledTable>
+      </React.Fragment>
+    );
+  }
+}
+
 const Search = (props: Props) => {
-  const {eventView, location, organization} = props;
+  const {
+    eventView,
+    location,
+    organization,
+    spanOperationBreakdownFilter,
+    onChangeSpanOperationBreakdownFilter,
+    eventsDisplayFilterName,
+    onChangeEventsDisplayFilter,
+    percentileValues,
+  } = props;
 
   const handleSearch = (query: string) => {
     const queryParams = getParams({
@@ -168,16 +238,55 @@ const Search = (props: Props) => {
   };
 
   const query = decodeScalar(location.query.query, '');
+
+  const eventsFilterOptions = getEventsFilterOptions(
+    spanOperationBreakdownFilter,
+    percentileValues
+  );
+
   return (
-    <StyledSearchBar
-      organization={organization}
-      projectIds={eventView.project}
-      query={query}
-      fields={eventView.fields}
-      onSearch={handleSearch}
-    />
+    <SearchWrapper>
+      <Filter
+        organization={organization}
+        currentFilter={spanOperationBreakdownFilter}
+        onChangeFilter={onChangeSpanOperationBreakdownFilter}
+      />
+      <StyledSearchBar
+        organization={organization}
+        projectIds={eventView.project}
+        query={query}
+        fields={eventView.fields}
+        onSearch={handleSearch}
+      />
+      <LatencyDropdown>
+        <DropdownControl
+          buttonProps={{prefix: t('Display')}}
+          label={eventsFilterOptions[eventsDisplayFilterName].label}
+        >
+          {Object.entries(eventsFilterOptions).map(([name, filter]) => {
+            return (
+              <DropdownItem
+                key={name}
+                onSelect={onChangeEventsDisplayFilter}
+                eventKey={name}
+                data-test-id={name}
+                isActive={eventsDisplayFilterName === name}
+              >
+                {filter.label}
+              </DropdownItem>
+            );
+          })}
+        </DropdownControl>
+      </LatencyDropdown>
+    </SearchWrapper>
   );
 };
+
+const SearchWrapper = styled('div')`
+  display: flex;
+  width: 100%;
+  margin-bottom: ${space(3)};
+`;
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
@@ -190,13 +299,17 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledTable = styled('div')`
   flex-grow: 1;
-  padding-top: ${space(2)};
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-bottom: 0;
   }
+`;
+
+const LatencyDropdown = styled('div')`
+  margin-left: ${space(1)};
+  flex-grow: 0;
 `;
 
 StyledSdkUpdatesAlert.defaultProps = {

@@ -180,7 +180,7 @@ describe('explodeField', function () {
     // has aggregation
     expect(explodeField({field: 'count(foobar)', width: 123})).toEqual({
       kind: 'function',
-      function: ['count', 'foobar', undefined],
+      function: ['count', 'foobar', undefined, undefined],
     });
 
     // custom tag
@@ -192,7 +192,7 @@ describe('explodeField', function () {
     // custom tag with aggregation
     expect(explodeField({field: 'count(foo.bar.is-Enterprise_42)', width: 123})).toEqual({
       kind: 'function',
-      function: ['count', 'foo.bar.is-Enterprise_42', undefined],
+      function: ['count', 'foo.bar.is-Enterprise_42', undefined, undefined],
     });
   });
 });

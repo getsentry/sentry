@@ -161,28 +161,23 @@
     .context-item-icon {
       position: absolute;
       left: 0;
-      top: 0;
-      width: 48px;
-      height: 48px;
+      width: 36px;
+      height: 36px;
       background-repeat: no-repeat;
-      background-position: center;
+      background-position: center 2px;
       background-image: url(~sentry-logos/logo-unknown.svg);
-      background-size: 48px 48px;
+      background-size: 30px 32px; // magic number here because some logos are slightly cut off when at 32 x 32
     }
 
     &:first-child {
       border: 0;
     }
 
-    h3,
-    p {
-      margin: 0 0 4px;
-    }
-
     h3 {
       .truncate;
       font-size: 16px;
       line-height: 1.2;
+      margin-bottom: 0;
     }
 
     p {
@@ -280,13 +275,12 @@
     &.watchos {
       .context-item-icon {
         background-image: url(~sentry-logos/logo-apple.svg);
-        top: -2px;
+        background-position: center 0;
       }
     }
 
     &.android .context-item-icon {
       background-image: url(~sentry-logos/logo-android.svg);
-      top: -1px;
     }
 
     &.windows .context-item-icon {
@@ -362,6 +356,10 @@
 
     &.google .context-item-icon {
       background-image: url(~sentry-logos/logo-google.svg);
+    }
+
+    &.ruby .context-item-icon {
+      background-image: url(~sentry-logos/logo-ruby.svg);
     }
   }
 }
@@ -1407,12 +1405,7 @@ ul.crumbs {
     flex-direction: column;
     margin-top: 0;
     padding: 0;
-
-    .context-item {
-      .context-item-icon {
-        top: 9px;
-      }
-    }
+    margin-bottom: 20px;
   }
 
   .context {

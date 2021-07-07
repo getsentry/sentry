@@ -1201,7 +1201,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert [int(r["id"]) for r in response.json()] == []
 
     def test_release_stage(self):
-        assert False==True
+        assert False == True
 
     def test_aggregate_stats_regression_test(self):
         self.store_event(

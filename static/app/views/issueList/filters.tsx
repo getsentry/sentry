@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ButtonBar from 'app/components/buttonBar';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
@@ -58,42 +59,41 @@ class IssueListFilters extends React.Component<Props> {
     return (
       <PageHeader>
         <SearchContainer>
-          <SearchSelectorContainer>
-            <ClassNames>
-              {({css}) => (
-                <GuideAnchor
-                  target="assigned_or_suggested_query"
-                  disabled={!isAssignedQuery}
-                  containerClassName={css`
-                    width: 100%;
-                  `}
-                >
-                  <IssueListSearchBar
-                    organization={organization}
-                    query={query || ''}
-                    sort={sort}
-                    onSearch={onSearch}
-                    disabled={isSearchDisabled}
-                    excludeEnvironment
-                    supportedTags={tags}
-                    tagValueLoader={tagValueLoader}
-                    savedSearch={savedSearch}
-                    onSidebarToggle={onSidebarToggle}
-                  />
-                </GuideAnchor>
-              )}
-            </ClassNames>
-          </SearchSelectorContainer>
-
-          <Feature features={['issue-percent-display']} organization={organization}>
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasSessions={hasSessions}
-              hasMultipleProjectsSelected={selectedProjects.length !== 1}
-            />
-          </Feature>
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          <ClassNames>
+            {({css}) => (
+              <GuideAnchor
+                target="assigned_or_suggested_query"
+                disabled={!isAssignedQuery}
+                containerClassName={css`
+                  width: 100%;
+                `}
+              >
+                <IssueListSearchBar
+                  organization={organization}
+                  query={query || ''}
+                  sort={sort}
+                  onSearch={onSearch}
+                  disabled={isSearchDisabled}
+                  excludeEnvironment
+                  supportedTags={tags}
+                  tagValueLoader={tagValueLoader}
+                  savedSearch={savedSearch}
+                  onSidebarToggle={onSidebarToggle}
+                />
+              </GuideAnchor>
+            )}
+          </ClassNames>
+          <ButtonBar gap={1}>
+            <Feature features={['issue-percent-display']} organization={organization}>
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasSessions={hasSessions}
+                hasMultipleProjectsSelected={selectedProjects.length !== 1}
+              />
+            </Feature>
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </ButtonBar>
         </SearchContainer>
       </PageHeader>
     );
@@ -101,15 +101,11 @@ class IssueListFilters extends React.Component<Props> {
 }
 
 const SearchContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-gap: ${space(1)};
+  align-items: start;
   width: 100%;
-  align-items: flex-start;
-`;
-
-const SearchSelectorContainer = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  margin-right: ${space(1)};
 `;
 
 export default IssueListFilters;

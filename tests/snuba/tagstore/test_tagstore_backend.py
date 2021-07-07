@@ -683,9 +683,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
             == {}
         )
-    
+
     def test_release_stage(self):
-        assert False==True
+        assert False == True
 
 
 class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
@@ -693,11 +693,13 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
         super().setUp()
         self.ts = SnubaTagStorage()
 
-    def run_test(self, query, expected_releases, enviroment=None):
+    def run_test(self, query, expected_releases, environment=None, project=None):
+        if project is None:
+            project = self.project
         assert list(
             self.ts.get_tag_value_paginator(
-                self.project.id,
-                enviroment.id if enviroment else enviroment,
+                project.id,
+                environment.id if environment else None,
                 SEMVER_ALIAS,
                 query=query,
             ).get_result(10)
@@ -714,7 +716,8 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
 
     def test_semver(self):
         env_2 = self.create_environment()
-        release_1 = self.create_release(version="test@1.0.0.0")
+        project_2 = self.create_project()
+        release_1 = self.create_release(version="test@1.0.0.0", additional_projects=[project_2])
         release_2 = self.create_release(version="test@1.2.0.0", environments=[self.environment])
         release_3 = self.create_release(version="test@1.2.3.0", environments=[env_2])
         release_4 = self.create_release(version="test@1.2.3.4", environments=[env_2])
@@ -722,7 +725,7 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
             version="test2@2.0.0.0", environments=[self.environment, env_2]
         )
         release_6 = self.create_release(version="z_test@1.0.0.0")
-        release_7 = self.create_release(version="z_test@2.0.0.0")
+        release_7 = self.create_release(version="z_test@2.0.0.0", additional_projects=[project_2])
 
         self.run_test(
             "", [release_1, release_6, release_2, release_3, release_4, release_5, release_7]
@@ -732,6 +735,7 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
         self.run_test("1", [release_1, release_6, release_2, release_3, release_4])
         self.run_test("1.", [release_1, release_6, release_2, release_3, release_4])
         self.run_test("1.*", [release_1, release_6, release_2, release_3, release_4])
+        self.run_test("1.*", [release_1], project=project_2)
 
         self.run_test("1.2", [release_2, release_3, release_4])
 
@@ -742,8 +746,10 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
 
         # Test packages handling
         self.run_test("test", [release_1, release_2, release_3, release_4, release_5])
+        self.run_test("test", [release_1], project=project_2)
         self.run_test("test2", [release_5])
         self.run_test("z", [release_6, release_7])
+        self.run_test("z", [release_7], project=project_2)
 
         self.run_test("test@", [release_1, release_2, release_3, release_4])
         self.run_test("test@*", [release_1, release_2, release_3, release_4])

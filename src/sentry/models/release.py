@@ -112,7 +112,6 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(models.QuerySet):
-    
     def annotate_prerelease_column(self):
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -132,7 +131,10 @@ class ReleaseQuerySet(models.QuerySet):
         return self.filter(major__isnull=False)
 
     def filter_by_semver(
-        self, organization_id: int, semver_filter: SemverFilter
+        self,
+        organization_id: int,
+        semver_filter: SemverFilter,
+        project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
         """
         Filters released based on a based `SemverFilter` instance.
@@ -145,11 +147,16 @@ class ReleaseQuerySet(models.QuerySet):
 
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
-        release_filter = Q(organization_id=organization_id)
+        qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
         if semver_filter.package:
-            release_filter &= Q(package=semver_filter.package)
+            qs = qs.filter(package=semver_filter.package)
+        if project_ids:
+            qs = qs.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
+                    "release_id", flat=True
+                )
+            )
 
-        qs = self.filter(release_filter).annotate_prerelease_column()
         if semver_filter.version_parts:
             filter_func = Func(
                 *[
@@ -165,24 +172,16 @@ class ReleaseQuerySet(models.QuerySet):
         return qs
 
     def filter_by_stage(self, organization_id: int, search_filter) -> models.QuerySet:
-        print("Filtering releases by stage",search_filter)
+        print("Filtering releases by stage", search_filter)
         from sentry.models import ReleaseProjectEnvironment
+
         release_filter = Q(organization_id=organization_id)
         value: str = search_filter.value.value
         operator: str = search_filter.operator
         filters = {
-            "adopted":Q(
-                adopted__isnull=False,
-                unadopted__isnull=True
-            ),
-            "replaced": Q(
-                adopted__isnull=False,
-                unadopted__isnull=False
-            ),
-            "not_adopted":Q(
-                adopted__isnull=True,
-                unadopted__isnull=True    
-            )
+            "adopted": Q(adopted__isnull=False, unadopted__isnull=True),
+            "replaced": Q(adopted__isnull=False, unadopted__isnull=False),
+            "not_adopted": Q(adopted__isnull=True, unadopted__isnull=True),
         }
         if isinstance(value, list):
             for stage in value:
@@ -208,8 +207,9 @@ class ReleaseQuerySet(models.QuerySet):
             query = ~filters[value]
 
         release_ids = rpes.filter(query).values_list("release_id", flat=True)
-        qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))        
+        qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
+
 
 class ReleaseModelManager(models.Manager):
     def get_queryset(self):
@@ -222,13 +222,11 @@ class ReleaseModelManager(models.Manager):
         return self.get_queryset().filter_to_semver()
 
     def filter_by_semver(
-        self, organization_id: int, semver_filter: SemverFilter
+        self, organization_id: int, semver_filter: SemverFilter, project_ids: Sequence[int] = None
     ) -> models.QuerySet:
-        return self.get_queryset().filter_by_semver(organization_id, semver_filter)
+        return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
-    def filter_by_stage(
-        self, organization_id: int, search_filter
-    ) -> models.QuerySet:
+    def filter_by_stage(self, organization_id: int, search_filter) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(organization_id, search_filter)
 
     @staticmethod

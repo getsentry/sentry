@@ -1,23 +1,23 @@
 ---
-created: '2021-06-23T18:06:09.071026Z'
+created: '2021-06-30T16:44:00.770925Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "05526eb3e37b799f775acd2a31b13dd1"
+  hash: "b7de92d39e823772baa9a88863c07cab"
   tree_label: "dlopen | stripped_application_code"
   component:
     app-depth-1*
       exception*
         stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
             package (ignored because function takes precedence)
               "libdyld.dylib"
-          frame*
-            function*
-              "stripped_application_code"
         type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / 0x00000032"
         value (ignored because stacktrace takes precedence)
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "3da34e8c72dbcd4a490ac36eb7130638"
-  tree_label: "<entire stacktrace>"
+  tree_label: "ImageLoaderMachOCompressed::rebase | ImageLoader::recursiveRebase | ImageLoader::link | dyld::link | dlopen_internal | dlopen | _CFBundleDlfcnLoadBundle | _CFBundleLoadExecutableAndReturnError | CFBundleGetFunctionPointerForName | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start | start"
   component:
     app-depth-max*
       exception*
@@ -187,7 +187,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "3da34e8c72dbcd4a490ac36eb7130638"
-  tree_label: "<entire stacktrace>"
+  tree_label: "ImageLoaderMachOCompressed::rebase | ImageLoader::recursiveRebase | ImageLoader::link | dyld::link | dlopen_internal | dlopen | _CFBundleDlfcnLoadBundle | _CFBundleLoadExecutableAndReturnError | CFBundleGetFunctionPointerForName | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start | start"
   component:
     system*
       exception*

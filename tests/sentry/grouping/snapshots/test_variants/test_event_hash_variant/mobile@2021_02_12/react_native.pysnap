@@ -1,5 +1,5 @@
 ---
-created: '2021-06-23T18:06:11.210312Z'
+created: '2021-06-30T16:44:00.160397Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -195,7 +195,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "ecd413627f0d90a5a25cb28d1ba9c39f"
-  tree_label: "<entire stacktrace>"
+  tree_label: "[native code] forEach"
   component:
     app-depth-max*
       exception*
@@ -399,7 +399,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "ecd413627f0d90a5a25cb28d1ba9c39f"
-  tree_label: "<entire stacktrace>"
+  tree_label: "[native code] forEach"
   component:
     system*
       exception*

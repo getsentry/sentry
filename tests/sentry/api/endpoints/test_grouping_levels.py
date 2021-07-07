@@ -23,14 +23,14 @@ def store_stacktrace(default_project, factories):
 
     timestamp = time.time() - 3600
 
-    def inner(functions):
+    def inner(functions, interface="exception", type="error", extra_event_data=None):
         nonlocal timestamp
 
         timestamp += 1
 
         event = {
             "timestamp": timestamp,
-            "exception": {
+            interface: {
                 "values": [
                     {
                         "type": "ZeroDivisionError",
@@ -38,6 +38,8 @@ def store_stacktrace(default_project, factories):
                     }
                 ]
             },
+            "type": type,
+            **(extra_event_data or {}),
         }
 
         return factories.store_event(data=event, project_id=default_project.id)
@@ -74,22 +76,35 @@ def _render_all_previews(client):
 
 
 @pytest.mark.django_db
-@pytest.mark.snuba
-@pytest.mark.skip(reason="flaky test")
-def test_error_conditions(client, default_project, reset_snuba, factories):
+def test_error_missing_feature(client, default_project):
     group = Group.objects.create(project=default_project)
-    grouphash = GroupHash.objects.create(
-        project=default_project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
-    )
 
     with Feature({"organizations:grouping-tree-ui": False}):
         response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
         assert response.status_code == 403
         assert response.data["detail"]["code"] == "missing_feature"
 
+
+@pytest.mark.django_db
+def test_error_no_events(client, default_project):
+    group = Group.objects.create(project=default_project)
+
     response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
     assert response.status_code == 403
     assert response.data["detail"]["code"] == "no_events"
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_error_not_hierarchical(client, default_project, reset_snuba, factories):
+    group = Group.objects.create(project=default_project)
+    grouphash = GroupHash.objects.create(
+        project=default_project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
+    )
+
+    # we cannot run one of the other test_error testcases here because it would
+    # populate Snuba caches. Then we would not be able to observe our write, at
+    # least not within the same second we wrote.
 
     factories.store_event(
         data={"message": "hello world", "checksum": grouphash.hash}, project_id=default_project.id
@@ -112,10 +127,10 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
     ]
 
     assert [e.title for e in events] == [
-        "bam | baz2 | bar2 | foo",
-        "baz | bar | foo",
-        "baz2 | bar2 | foo",
-        "bar3 | foo",
+        "ZeroDivisionError | foo | bar2 | baz2 | bam",
+        "ZeroDivisionError | foo | bar | baz",
+        "ZeroDivisionError | foo | bar2 | baz2",
+        "ZeroDivisionError | foo | bar3",
     ]
 
     assert len({e.group_id for e in events}) == 1
@@ -124,22 +139,22 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
     assert (
         _render_all_previews(group)
         == """\
-group: foo
+group: ZeroDivisionError | foo
 level 0*
-bab925683e73afdb4dc4047397a7b36b: foo (4)
+bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (4)
 level 1
-64686dcd59e0cf97f34113e9d360541a: bar3 | foo (1)
-c8ef2dd3dedeed29b4b74b9c579eea1a: bar2 | foo (2)
-aa1c4037371150958f9ea22adb110bbc: bar | foo (1)
+64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
+c8ef2dd3dedeed29b4b74b9c579eea1a: ZeroDivisionError | foo | bar2 (2)
+aa1c4037371150958f9ea22adb110bbc: ZeroDivisionError | foo | bar (1)
 level 2
-64686dcd59e0cf97f34113e9d360541a: bar3 | foo (1)
-8c0bbfebc194c7aa3e77e95436fd61e5: baz2 | bar2 | foo (2)
-b8d08a573c62ca8c84de14c12c0e19fe: baz | bar | foo (1)
+64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
+8c0bbfebc194c7aa3e77e95436fd61e5: ZeroDivisionError | foo | bar2 | baz2 (2)
+b8d08a573c62ca8c84de14c12c0e19fe: ZeroDivisionError | foo | bar | baz (1)
 level 3
-64686dcd59e0cf97f34113e9d360541a: bar3 | foo (1)
-8c0bbfebc194c7aa3e77e95436fd61e5: baz2 | bar2 | foo (1)
-b8d08a573c62ca8c84de14c12c0e19fe: baz | bar | foo (1)
-b0505d7461a2e36c4a8235bb6c310a3b: bam | baz2 | bar2 | foo (1)\
+64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
+8c0bbfebc194c7aa3e77e95436fd61e5: ZeroDivisionError | foo | bar2 | baz2 (1)
+b8d08a573c62ca8c84de14c12c0e19fe: ZeroDivisionError | foo | bar | baz (1)
+b0505d7461a2e36c4a8235bb6c310a3b: ZeroDivisionError | foo | bar2 | baz2 | bam (1)\
 """
     )
 
@@ -172,37 +187,51 @@ def test_upwards(default_project, store_stacktrace, reset_snuba, _render_all_pre
     assert (
         _render_all_previews(events[0].group)
         == """\
-group: baz | bar2 | foo
+group: ZeroDivisionError | foo | bar2 | baz
 level 0
-bab925683e73afdb4dc4047397a7b36b: foo (3)
+bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (3)
 level 1
-c8ef2dd3dedeed29b4b74b9c579eea1a: bar2 | foo (1)
+c8ef2dd3dedeed29b4b74b9c579eea1a: ZeroDivisionError | foo | bar2 (1)
 level 2*
-7411b56aa6591edbdba71898d3a9f01c: baz | bar2 | foo (1)\
+7411b56aa6591edbdba71898d3a9f01c: ZeroDivisionError | foo | bar2 | baz (1)\
 """
     )
     assert (
         _render_all_previews(events[1].group)
         == """\
-group: baz | bar | foo
+group: ZeroDivisionError | foo | bar | baz
 level 0
-bab925683e73afdb4dc4047397a7b36b: foo (3)
+bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (3)
 level 1
-aa1c4037371150958f9ea22adb110bbc: bar | foo (2)
+aa1c4037371150958f9ea22adb110bbc: ZeroDivisionError | foo | bar (2)
 level 2*
-b8d08a573c62ca8c84de14c12c0e19fe: baz | bar | foo (1)\
+b8d08a573c62ca8c84de14c12c0e19fe: ZeroDivisionError | foo | bar | baz (1)\
 """
     )
 
     assert (
         _render_all_previews(events[2].group)
         == """\
-group: bam | bar | foo
+group: ZeroDivisionError | foo | bar | bam
 level 0
-bab925683e73afdb4dc4047397a7b36b: foo (3)
+bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (3)
 level 1
-aa1c4037371150958f9ea22adb110bbc: bar | foo (2)
+aa1c4037371150958f9ea22adb110bbc: ZeroDivisionError | foo | bar (2)
 level 2*
-97df6b60ec530c65ab227585143a087a: bam | bar | foo (1)\
+97df6b60ec530c65ab227585143a087a: ZeroDivisionError | foo | bar | bam (1)\
 """
     )
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_default_events(default_project, store_stacktrace, reset_snuba, _render_all_previews):
+    # Would like to add tree labels to default event titles as well,
+    # But leave as is for now.
+    event = store_stacktrace(["bar", "foo"], interface="threads", type="default")
+    assert event.title == "<unlabeled event>"
+
+    event = store_stacktrace(
+        ["bar", "foo"], interface="threads", type="default", extra_event_data={"message": "hello"}
+    )
+    assert event.title == "hello"

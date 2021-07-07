@@ -82,6 +82,7 @@ SNQL_FIELD_ALLOWLIST = {
     "project",
     "project.id",
     "release",
+    USER_DISPLAY_ALIAS,
     "user.email",
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,

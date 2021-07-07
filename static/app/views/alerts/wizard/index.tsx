@@ -17,7 +17,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import {Dataset} from 'app/views/settings/incidentRules/types';
+import {Dataset} from 'app/views/alerts/incidentRules/types';
 
 import {
   AlertType,

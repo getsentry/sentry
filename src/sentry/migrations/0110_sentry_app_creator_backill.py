@@ -56,5 +56,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill_sentry_app_creator, reverse_code=migrations.RunPython.noop),
+        migrations.RunPython(
+            backfill_sentry_app_creator,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_auditlogentry"]},
+        ),
     ]

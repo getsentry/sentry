@@ -6,6 +6,7 @@ import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
+import calixa from 'sentry-logos/logo-calixa.svg';
 import campfire from 'sentry-logos/logo-campfire.svg';
 import clickup from 'sentry-logos/logo-clickup.svg';
 import clubhouse from 'sentry-logos/logo-clubhouse.svg';
@@ -71,6 +72,7 @@ export const ICON_PATHS = {
   bitbucket,
   bitbucket_pipelines: bitbucket,
   bitbucket_server: bitbucketserver,
+  calixa,
   campfire,
   clickup,
   clubhouse,

@@ -252,16 +252,7 @@ let appConfig = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              // This needs to be `false` because of platformicons package
-              esModule: false,
-              name: '[folder]/[name].[contenthash:6].[ext]',
-            },
-          },
-        ],
+        type: 'asset',
       },
     ],
     noParse: [
@@ -332,6 +323,7 @@ let appConfig = {
                 compilerOptions: {incremental: true},
               },
             },
+            logger: {devServer: false},
           }),
         ]
       : []),
@@ -394,6 +386,7 @@ let appConfig = {
     filename: '[name].[contenthash].js',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
+    assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
     chunkIds: 'named',

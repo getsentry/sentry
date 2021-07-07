@@ -1,22 +1,34 @@
 from django.db import IntegrityError
-from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry.models import Identity, IdentityStatus
+from sentry.models import Identity, IdentityStatus, Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign, unsign
+from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 from ..client import SlackClient
 from ..utils import get_identity, logger
+from . import build_linking_url as base_build_linking_url
+from . import never_cache
+
+SUCCESS_LINKED_MESSAGE = (
+    "Your Slack identity has been linked to your Sentry account. You're good to go!"
+)
 
 
-def build_linking_url(integration, organization, slack_id, channel_id, response_url):
-    signed_params = sign(
+def build_linking_url(
+    integration: Integration,
+    organization: Organization,
+    slack_id: str,
+    channel_id: str,
+    response_url: str,
+) -> str:
+    return base_build_linking_url(
+        "sentry-integration-slack-link-identity",
         integration_id=integration.id,
         organization_id=organization.id,
         slack_id=slack_id,
@@ -24,15 +36,11 @@ def build_linking_url(integration, organization, slack_id, channel_id, response_
         response_url=response_url,
     )
 
-    return absolute_uri(
-        reverse("sentry-integration-slack-link-identity", kwargs={"signed_params": signed_params})
-    )
 
-
-class SlackLinkIdentityView(BaseView):
+class SlackLinkIdentityView(BaseView):  # type: ignore
     @transaction_start("SlackLinkIdentityView")
     @never_cache
-    def handle(self, request, signed_params):
+    def handle(self, request: Request, signed_params: str) -> Response:
         params = unsign(signed_params)
 
         organization, integration, idp = get_identity(
@@ -64,7 +72,7 @@ class SlackLinkIdentityView(BaseView):
         payload = {
             "replace_original": False,
             "response_type": "ephemeral",
-            "text": "Your Slack identity has been linked to your Sentry account. You're good to go!",
+            "text": SUCCESS_LINKED_MESSAGE,
         }
 
         client = SlackClient()

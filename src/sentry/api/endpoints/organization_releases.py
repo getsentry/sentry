@@ -67,6 +67,33 @@ def add_date_filter_to_queryset(queryset, filter_params):
     return queryset
 
 
+def _filter_releases_by_query(queryset, organization, query):
+    search_filters = parse_search_query(query)
+    for search_filter in search_filters:
+        if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
+            query_q = Q(version__icontains=query)
+            suffix_match = _release_suffix.match(query)
+            if suffix_match is not None:
+                query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+
+            queryset = queryset.filter(query_q)
+
+        if search_filter.key.name == SEMVER_ALIAS:
+            queryset = queryset.filter_by_semver(
+                organization.id,
+                parse_semver(search_filter.value.raw_value, search_filter.operator),
+            )
+
+        if search_filter.key.name == RELEASE_STAGE_ALIAS:
+            print("operator:",search_filter.operator)
+            print("value:", search_filter.value.value)
+            queryset = queryset.filter_by_stage(
+                organization.id,
+                search_filter,
+            )
+    return queryset
+
+
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     projects = ListField()
     headCommits = ListField(
@@ -205,36 +232,13 @@ class OrganizationReleasesEndpoint(
         queryset = add_environment_to_queryset(queryset, filter_params)
 
         if query:
-            search_filters = parse_search_query(query)
-            # TODO: Handle semver here as well
-            for search_filter in search_filters:
-                if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
-                    query_q = Q(version__icontains=query)
-                    suffix_match = _release_suffix.match(query)
-                    if suffix_match is not None:
-                        query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
-
-                    queryset = queryset.filter(query_q)
-
-                if search_filter.key.name == SEMVER_ALIAS:
-                    queryset = queryset.filter_by_semver(
-                        organization.id,
-                        parse_semver(search_filter.value.raw_value, search_filter.operator),
-                    )
-
-                if search_filter.key.name == RELEASE_STAGE_ALIAS:
-                    print("operator:",search_filter.operator)
-                    print("value:", search_filter.value.value)
-                    try:
-                        queryset = queryset.filter_by_stage(
-                            organization.id,
-                            search_filter,
-                        )
-                    except InvalidSearchQuery as e:
-                        return Response(
-                            {"detail": str(e)},
-                            status=400,
-                        )
+            try:
+                queryset = _filter_releases_by_query(queryset, organization, query)
+            except InvalidSearchQuery as e:
+                return Response(
+                    {"detail": str(e)},
+                    status=400,
+                )
 
         select_extra = {}
 
@@ -473,6 +477,8 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
 
         :pparam string organization_slug: the organization short name
         """
+        query = request.GET.get("query")
+
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
@@ -492,6 +498,8 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
 
         queryset = add_date_filter_to_queryset(queryset, filter_params)
         queryset = add_environment_to_queryset(queryset, filter_params)
+        if query:
+            queryset = _filter_releases_by_query(queryset, organization, query)
 
         return self.paginate(
             request=request,

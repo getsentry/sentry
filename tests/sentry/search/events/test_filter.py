@@ -1310,7 +1310,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
     
     def test_release_stage(self):
-        assert False==True
+        assert False == True
 
 
 def with_type(type, argument):

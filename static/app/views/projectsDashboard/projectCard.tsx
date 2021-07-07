@@ -6,6 +6,7 @@ import {loadStatsForProject} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import ScoreCard, {
@@ -134,86 +135,100 @@ class ProjectCard extends Component<Props> {
 
     return (
       <div data-test-id={slug}>
-        {stats ? (
-          <StyledProjectCard>
-            <CardHeader>
-              <HeaderRow>
-                <StyledIdBadge
-                  project={project}
-                  avatarSize={18}
-                  hideOverflow
-                  disableLink={!hasProjectAccess}
-                />
-                <BookmarkStar organization={organization} project={project} />
-              </HeaderRow>
-              <SummaryLinks>
-                <Link
-                  data-test-id="project-errors"
-                  to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
-                >
-                  {t('errors: %s', formatAbbreviatedNumber(totalErrors))}
-                </Link>
-                {this.hasPerformance && (
-                  <Fragment>
-                    <em>|</em>
-                    <TransactionsLink
-                      data-test-id="project-transactions"
-                      to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
-                    >
-                      {t('transactions: %s', formatAbbreviatedNumber(totalTransactions))}
-                      {zeroTransactions && (
-                        <QuestionTooltip
-                          title={t(
-                            'Click here to learn more about performance monitoring'
-                          )}
-                          position="top"
-                          size="xs"
-                        />
-                      )}
-                    </TransactionsLink>
-                  </Fragment>
-                )}
-              </SummaryLinks>
-            </CardHeader>
-            <ChartContainer>
+        <StyledProjectCard>
+          <CardHeader>
+            <HeaderRow>
+              <StyledIdBadge
+                project={project}
+                avatarSize={18}
+                hideOverflow
+                disableLink={!hasProjectAccess}
+              />
+              <BookmarkStar organization={organization} project={project} />
+            </HeaderRow>
+            <SummaryLinks>
+              {stats ? (
+                <Fragment>
+                  <Link
+                    data-test-id="project-errors"
+                    to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
+                  >
+                    {t('errors: %s', formatAbbreviatedNumber(totalErrors))}
+                  </Link>
+                  {this.hasPerformance && (
+                    <Fragment>
+                      <em>|</em>
+                      <TransactionsLink
+                        data-test-id="project-transactions"
+                        to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
+                      >
+                        {t(
+                          'transactions: %s',
+                          formatAbbreviatedNumber(totalTransactions)
+                        )}
+                        {zeroTransactions && (
+                          <QuestionTooltip
+                            title={t(
+                              'Click here to learn more about performance monitoring'
+                            )}
+                            position="top"
+                            size="xs"
+                          />
+                        )}
+                      </TransactionsLink>
+                    </Fragment>
+                  )}
+                </Fragment>
+              ) : (
+                <SummaryLinkPlaceholder />
+              )}
+            </SummaryLinks>
+          </CardHeader>
+          <ChartContainer>
+            {stats ? (
               <Chart
                 firstEvent={hasFirstEvent}
                 stats={stats}
                 transactionStats={transactionStats}
               />
-            </ChartContainer>
-            <FooterWrapper>
-              <ScoreCardWrapper>
-                {hasHealthData ? (
-                  <ScoreCard
-                    title={t('Crash Free Sessions')}
-                    score={
-                      defined(currentCrashFreeRate)
-                        ? displayCrashFreePercent(currentCrashFreeRate)
-                        : '\u2014'
-                    }
-                    trend={this.renderTrend()}
-                    trendStatus={
-                      this.crashFreeTrend
-                        ? this.crashFreeTrend > 0
-                          ? 'good'
-                          : 'bad'
-                        : undefined
-                    }
-                  />
-                ) : (
-                  this.renderMissingFeatureCard()
-                )}
-              </ScoreCardWrapper>
-              <DeploysWrapper>
-                <ReleaseTitle>{'Latest Deploys'}</ReleaseTitle>
-                <Deploys project={project} shorten />
-              </DeploysWrapper>
-            </FooterWrapper>
-          </StyledProjectCard>
-        ) : (
-          <LoadingCard />
-        )}
+            ) : (
+              <Placeholder height="150px" />
+            )}
+          </ChartContainer>
+          <FooterWrapper>
+            <ScoreCardWrapper>
+              {!stats ? (
+                <Fragment>
+                  <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
+                  <FooterPlaceholder />
+                </Fragment>
+              ) : hasHealthData ? (
+                <ScoreCard
+                  title={t('Crash Free Sessions')}
+                  score={
+                    defined(currentCrashFreeRate)
+                      ? displayCrashFreePercent(currentCrashFreeRate)
+                      : '\u2014'
+                  }
+                  trend={this.renderTrend()}
+                  trendStatus={
+                    this.crashFreeTrend
+                      ? this.crashFreeTrend > 0
+                        ? 'good'
+                        : 'bad'
+                      : undefined
+                  }
+                />
+              ) : (
+                this.renderMissingFeatureCard()
+              )}
+            </ScoreCardWrapper>
+            <DeploysWrapper>
+              <ReleaseTitle>{t('Latest Deploys')}</ReleaseTitle>
+              {stats ? <Deploys project={project} shorten /> : <FooterPlaceholder />}
+            </DeploysWrapper>
+          </FooterWrapper>
+        </StyledProjectCard>
       </div>
     );
   }
@@ -381,12 +396,6 @@ const ReleaseTitle = styled('span')`
   font-weight: 600;
 `;
 
-const LoadingCard = styled('div')`
-  border: 1px solid transparent;
-  background-color: ${p => p.theme.backgroundSecondary};
-  height: 334px;
-`;
-
 const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
@@ -432,6 +441,19 @@ const NotAvailable = styled('div')`
   grid-template-columns: auto auto;
   grid-gap: ${space(0.5)};
   align-items: center;
+`;
+
+const SummaryLinkPlaceholder = styled(Placeholder)`
+  height: 15px;
+  width: 180px;
+  margin-top: ${space(0.75)};
+  margin-bottom: ${space(0.5)};
+`;
+
+const FooterPlaceholder = styled(Placeholder)`
+  height: 40px;
+  width: auto;
+  margin-right: ${space(2)};
 `;
 
 export {ProjectCard};
