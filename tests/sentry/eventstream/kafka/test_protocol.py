@@ -9,16 +9,17 @@ from sentry.eventstream.kafka.protocol import (
     UnexpectedOperation,
     get_task_kwargs_for_message,
 )
+from sentry.testutils.helpers import override_options
 from sentry.utils import json
 
 
-@pytest.mark.django_db
+@override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_invalid_payload():
     with pytest.raises(InvalidPayload):
         get_task_kwargs_for_message('{"format": "invalid"}')
 
 
-@pytest.mark.django_db
+@override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_invalid_version():
     with pytest.raises(InvalidVersion):
         get_task_kwargs_for_message(json.dumps([0, "insert", {}]))
@@ -61,19 +62,19 @@ def test_get_task_kwargs_for_message_version_1():
     assert not kwargs, f"unexpected values remaining: {kwargs!r}"
 
 
-@pytest.mark.django_db
+@override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_version_1_skip_consume():
     assert (
         get_task_kwargs_for_message(json.dumps([1, "insert", {}, {"skip_consume": True}])) is None
     )
 
 
-@pytest.mark.django_db
+@override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_version_1_unsupported_operation():
     assert get_task_kwargs_for_message(json.dumps([1, "delete", {}])) is None
 
 
-@pytest.mark.django_db
+@override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_version_1_unexpected_operation():
     with pytest.raises(UnexpectedOperation):
         get_task_kwargs_for_message(json.dumps([1, "invalid", {}, {}]))
