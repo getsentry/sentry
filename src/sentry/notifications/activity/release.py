@@ -29,6 +29,7 @@ class ReleaseActivityNotification(ActivityNotification):
         self.user_ids: Set[int] = set()
         self.deploy = get_deploy(activity)
         self.release = get_release(activity, self.organization)
+
         if not self.release:
             self.repos: Iterable[Mapping[str, Any]] = set()
             self.projects: Set[Project] = set()
