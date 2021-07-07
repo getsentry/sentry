@@ -19,9 +19,12 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.notifications.base import BaseNotification
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
+
+from .utils import build_notification_footer
 
 
 def format_actor_option(actor: Union[User, Team]) -> Mapping[str, str]:
@@ -131,26 +134,18 @@ def build_action_text(group: Group, identity: Identity, action: Mapping[str, Any
     )
 
 
-def build_rule_url(rule: Any, group: Group, project: Project, issue_alert: bool) -> Any:
+def build_rule_url(rule: Any, group: Group, project: Project) -> Any:
     org_slug = group.organization.slug
     project_slug = project.slug
-    if issue_alert:
-        return absolute_uri(rule[1])
     rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
 
 
-def build_footer(
-    group: Group, issue_alert: bool, project: Project, rules: Optional[Sequence[Rule]] = None
-) -> str:
+def build_footer(group: Group, project: Project, rules: Optional[Sequence[Rule]] = None) -> str:
     footer = f"{group.qualified_short_id}"
-
     if rules:
-        rule_url = build_rule_url(rules[0], group, project, issue_alert)
-        if issue_alert:
-            footer += f" via <{rule_url}|{rules[0][0]}>"
-        else:
-            footer += f" via <{rule_url}|{rules[0].label}>"
+        rule_url = build_rule_url(rules[0], group, project)
+        footer += f" via <{rule_url}|{rules[0].label}>"
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"
@@ -293,6 +288,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         rules: Optional[List[Rule]] = None,
         link_to_event: bool = False,
         issue_alert: bool = False,
+        notification: Optional[BaseNotification] = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -303,6 +299,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.rules = rules
         self.link_to_event = link_to_event
         self.issue_alert = issue_alert
+        self.notification = notification
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
@@ -313,7 +310,11 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         event_for_tags = self.event or self.group.get_latest_event()
         color = get_color(event_for_tags)
         fields = build_tag_fields(event_for_tags, self.tags)
-        footer = build_footer(self.group, self.issue_alert, project, self.rules)
+        footer = (
+            build_notification_footer(self.notification)
+            if self.notification
+            else build_footer(self.group, project, self.rules)
+        )
         obj = self.event if self.event is not None else self.group
 
         if not self.issue_alert:
@@ -322,7 +323,6 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             )
         else:
             payload_actions = []
-
         return self._build(
             actions=payload_actions,
             callback_id=json.dumps({"issue": self.group.id}),

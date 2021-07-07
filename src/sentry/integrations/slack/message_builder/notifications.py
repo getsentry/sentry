@@ -1,48 +1,62 @@
-import re
 from typing import Any, Mapping
 from urllib.parse import urljoin
 
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
-from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.models import Project
-from sentry.notifications.activity import ReleaseActivityNotification
-from sentry.notifications.activity.base import ActivityNotification
+from sentry.integrations.slack.message_builder.issues import (
+    SlackIssuesMessageBuilder,
+    build_rule_url,
+)
+from sentry.notifications.activity import (
+    AssignedActivityNotification,
+    RegressionActivityNotification,
+    ResolvedActivityNotification,
+    ResolvedInReleaseActivityNotification,
+    UnassignedActivityNotification,
+)
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.rules import AlertRuleNotification
 from sentry.utils.http import absolute_uri
 
+from .utils import build_notification_footer, get_referrer_qstring
 
-def get_referrer_qstring(notification: BaseNotification) -> str:
-    return "?referrer=" + re.sub("Notification$", "Slack", notification.__class__.__name__)
-
-
-def get_settings_url(notification: BaseNotification) -> str:
-    if isinstance(notification, ReleaseActivityNotification):
-        fine_tuning = "deploy/"
-    elif isinstance(notification, ActivityNotification):
-        fine_tuning = "workflow/"
-    elif isinstance(notification, AlertRuleNotification):
-        fine_tuning = "alerts/"
-    else:
-        fine_tuning = ""
-
-    url_str = f"/settings/account/notifications/{fine_tuning}"
-    return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+ISSUE_UNFURL = (
+    AlertRuleNotification,
+    AssignedActivityNotification,
+    RegressionActivityNotification,
+    ResolvedActivityNotification,
+    ResolvedInReleaseActivityNotification,
+    UnassignedActivityNotification,
+)
 
 
 def get_group_url(notification: BaseNotification) -> str:
     return str(urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification)))
 
 
-def build_notification_footer(notification: BaseNotification) -> str:
-    settings_url = get_settings_url(notification)
-    if isinstance(notification, ReleaseActivityNotification):
-        # temp while I figure out what to put here for deploys
-        return f"<{settings_url}|Notification Settings>"
+def build_notification_title(notification: BaseNotification) -> Any:
+    if isinstance(notification, AlertRuleNotification):
+        """New alert from {project} in {environment} via {alert rule}"""
+        project = notification.group.project
+        project_url = f"/organizations/{project.organization.slug}/issues/?project={project.id}/"
+        project_link = absolute_uri(project_url)
+        title_str = f"New alert from <{project_link}|{project.slug}>"
+        env = notification.event.get_environment().name
+        if env:
+            title_str += f" in {env}"
 
-    project = Project.objects.get_from_cache(id=notification.group.project_id)
-    return f"{project.slug} | <{settings_url}|Notification Settings>"
+        if notification.rules:
+            rule_url = build_rule_url(
+                notification.rules[0], notification.group, notification.group.project
+            )
+            title_str += f" via <{rule_url}|{notification.rules[0].label}>"
+
+            if len(notification.rules) > 1:
+                title_str += f" (+{len(notification.rules) - 1} other)"
+
+        return title_str
+
+    return notification.get_notification_title()
 
 
 class SlackNotificationsMessageBuilder(SlackMessageBuilder):
@@ -52,19 +66,20 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.context = context
 
     def build(self) -> SlackBody:
-        if isinstance(self.notification, AlertRuleNotification):
+        if isinstance(self.notification, ISSUE_UNFURL):
             return SlackIssuesMessageBuilder(
-                self.notification.group,
-                self.notification.event,
-                self.context["tags"],
-                self.notification.rules,
+                group=self.notification.group,
+                event=self.notification.event if hasattr(self.notification, "event") else None,
+                tags=self.context.get("tags", None),
+                rules=self.notification.rules if hasattr(self.notification, "rules") else None,
                 issue_alert=True,
+                notification=self.notification,
             ).build()
 
         return self._build(
-            footer=build_notification_footer(self.notification),
+            # title=self.notification.get_notification_title(),
             text=self.context["text_description"],
-            title=self.notification.get_notification_title(),
+            footer=build_notification_footer(self.notification),
         )
 
 

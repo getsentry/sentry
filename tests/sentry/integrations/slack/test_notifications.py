@@ -54,11 +54,12 @@ def send_notification(*args):
 def get_attachment():
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[0].request.body)
+    assert "text" in data
     assert "attachments" in data
     attachments = json.loads(data["attachments"][0])
 
     assert len(attachments) == 1
-    return attachments[0]
+    return attachments[0], data["text"][0]
 
 
 class SlackActivityNotificationTest(ActivityTestCase, TestCase):
@@ -241,10 +242,13 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
-        assert attachment["title"] == f"{self.name} assigned {self.short_id} to {self.name}"
-        assert attachment["text"] == f"{self.name} assigned {self.short_id} to {self.name}"
+        assert (
+            text
+            == f"{self.name} assigned <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> to {self.name}"
+        )
+        assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlack|Notification Settings>"
@@ -268,13 +272,12 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
-
+        attachment, text = get_attachment()
         assert (
-            attachment["title"]
+            text
             == f"{self.name} unassigned <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}>"
         )
-        assert attachment["text"] == f"{self.name} unassigned {self.short_id}"
+        assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=UnassignedActivitySlack|Notification Settings>"
@@ -298,12 +301,11 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
         assert (
-            attachment["title"]
+            text
             == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as resolved"
         )
-        assert attachment["text"] == f"{self.name} marked {self.short_id} as resolved"
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedActivitySlack|Notification Settings>"
@@ -327,13 +329,12 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
         assert (
-            attachment["title"]
+            text
             == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as a regression"
         )
-        assert attachment["text"] == f"{self.name} marked {self.short_id} as a regression"
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=RegressionActivitySlack|Notification Settings>"
@@ -382,9 +383,9 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
-        assert attachment["title"] == f"Processing Issues on {self.project.slug}"
+        assert text == f"Processing Issues on {self.project.slug}"
         assert (
             attachment["text"]
             == f"Some events failed to process in your project {self.project.slug}"
@@ -412,16 +413,13 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
         release_name = notification.activity.data["version"]
         assert (
-            attachment["title"]
+            text
             == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as resolved in {release_name}"
         )
-        assert (
-            attachment["text"]
-            == f"{self.name} marked {self.short_id} as resolved in {release_name}"
-        )
+        # TODO(ceo) assert on the issue data
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlack|Notification Settings>"
@@ -445,10 +443,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
         assert (
-            attachment["title"]
+            text
             == f"{self.name} commented on <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack|{self.short_id}>"
         )
         assert attachment["text"] == notification.activity.data["text"]
@@ -485,10 +483,8 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
-        assert (
-            attachment["title"] == f"Version {release.version} deployed to {self.environment.name}"
-        )
+        attachment, text = get_attachment()
+        assert text == f"Version {release.version} deployed to {self.environment.name}"
         assert (
             attachment["text"]
             == f"Version {release.version} was deployed to {self.environment.name}"
@@ -527,11 +523,14 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         with self.tasks():
             notification.send()
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
         assert attachment["title"] == "Hello world"
         assert attachment["text"] == ""
-        assert attachment["footer"] == event.group.qualified_short_id
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+        )
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -605,7 +604,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
         assert attachments[0]["text"] == ""
-        assert attachments[0]["footer"] == event.group.qualified_short_id
+        assert (
+            attachments[0]["footer"]
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+        )
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -683,7 +685,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
         assert attachments[0]["text"] == ""
-        assert attachments[0]["footer"] == event.group.qualified_short_id
+        assert (
+            attachments[0]["footer"]
+            == f"{project2.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+        )
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -783,7 +788,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
         assert attachments[0]["text"] == ""
-        assert attachments[0]["footer"] == event.group.qualified_short_id
+        assert (
+            attachments[0]["footer"]
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+        )
 
         # check that user2 got a notification as well
         data2 = parse_qs(responses.calls[1].request.body)
@@ -793,7 +801,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
         assert attachments[0]["text"] == ""
-        assert attachments[0]["footer"] == event.group.qualified_short_id
+        assert (
+            attachments[0]["footer"]
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+        )
 
     @pytest.mark.skip(reason="will be needed soon but not yet")
     @responses.activate
@@ -815,7 +826,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         assert digests.call_count == 0
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
         assert attachment["title"] == "Hello world"
         assert attachment["text"] == ""

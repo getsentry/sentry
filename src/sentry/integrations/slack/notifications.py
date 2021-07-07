@@ -3,7 +3,10 @@ from collections import defaultdict
 from typing import AbstractSet, Any, Mapping, Set, Union
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
-from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
+from sentry.integrations.slack.message_builder.notifications import (
+    build_notification_attachment,
+    build_notification_title,
+)
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.base import BaseNotification
@@ -141,11 +144,15 @@ def send_notification_as_slack(
         extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
         context = get_context(notification, recipient, shared_context, extra_context)
         attachment = [build_notification_attachment(notification, context)]
+        text = build_notification_title(notification)
         for channel, token in tokens_by_channel.items():
             payload = {
                 "token": token,
                 "channel": channel,
                 "link_names": 1,
+                "unfurl_links": False,
+                "unfurl_media": False,
+                "text": text,
                 "attachments": json.dumps(attachment),
             }
             try:

@@ -56,9 +56,3 @@ class AssignedActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "assigned_activity_email"
-
-    def get_notification_title(self) -> str:
-        # {user/team} assigned {issue_id} to {user/team} {reason}
-        # TODO(ceo): Add reason(?)
-        description, params, _ = self.get_description()
-        return self.description_as_text(description, params)

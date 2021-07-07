@@ -38,7 +38,6 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
 
         if title:
             kwargs["title"] = title
-
         return {
             "text": text,
             "mrkdwn_in": ["text"],
