@@ -81,8 +81,12 @@ class PlatformPicker extends React.Component<Props, State> {
   logSearch = debounce(() => {
     if (this.state.filter) {
       trackAdvancedAnalyticsEvent(
-        'growth.onboarding_platform_search',
-        {search: this.state.filter.toLowerCase(), numResults: this.platformList.length},
+        'growth.platformpicker_search',
+        {
+          search: this.state.filter.toLowerCase(),
+          numResults: this.platformList.length,
+          source: this.props.source,
+        },
         this.props.organization ?? null
       );
     }
@@ -112,8 +116,8 @@ class PlatformPicker extends React.Component<Props, State> {
                 key={id}
                 onClick={(e: React.MouseEvent) => {
                   trackAdvancedAnalyticsEvent(
-                    'growth.onboarding_platform_category',
-                    {category: id},
+                    'growth.platformpicker_category',
+                    {category: id, source: this.props.source},
                     this.props.organization ?? null
                   );
                   this.setState({category: id, filter: ''});
@@ -150,7 +154,7 @@ class PlatformPicker extends React.Component<Props, State> {
               }}
               onClick={() => {
                 trackAdvancedAnalyticsEvent(
-                  'growth.onboarding_select_platform',
+                  'growth.select_platform',
                   {
                     platformId: platform.id,
                     source: this.props.source,

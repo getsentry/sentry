@@ -46,6 +46,14 @@ class OnboardingPlatform extends Component<Props, State> {
     progressing: false,
   };
 
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent(
+      'growth.onboarding_load_choose_platform',
+      {},
+      this.props.organization ?? null
+    );
+  }
+
   componentDidUpdate(prevProps: Props) {
     if (prevProps.active && !this.props.active) {
       // eslint-disable-next-line react/no-did-update-set-state
@@ -145,7 +153,7 @@ class OnboardingPlatform extends Component<Props, State> {
             platform={selectedPlatform}
             setPlatform={this.handleSetPlatform}
             source="Onboarding"
-            organization={this.props.project?.organization}
+            organization={this.props.organization}
           />
           <p>
             {tct(

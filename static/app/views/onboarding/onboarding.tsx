@@ -149,6 +149,7 @@ class Onboarding extends React.Component<Props, State> {
           platform={this.projectPlatform}
           onComplete={data => this.handleNextStep(step, data)}
           onUpdate={this.handleUpdate}
+          organization={this.props.organization}
         />
       </OnboardingStep>
     );

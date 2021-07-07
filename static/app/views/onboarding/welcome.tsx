@@ -6,18 +6,14 @@ import {preloadIcons} from 'platformicons';
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import testableTransition from 'app/utils/testableTransition';
-import withOrganization from 'app/utils/withOrganization';
 
 import FallingError from './components/fallingError';
 import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
 
-type Props = StepProps & {
-  organization: Organization;
-};
+type Props = StepProps;
 
 const easterEggText = [
   t('Be careful. She’s barely hanging on as it is.'),
@@ -47,12 +43,12 @@ class OnboardingWelcome extends Component<Props> {
     trackAdvancedAnalyticsEvent(
       'growth.onboarding_start_onboarding',
       {},
-      this.props.organization
+      this.props.organization ?? null
     );
   }
 
   render() {
-    const {organization, onComplete, active} = this.props;
+    const {onComplete, active} = this.props;
 
     return (
       <FallingError
@@ -75,11 +71,6 @@ class OnboardingWelcome extends Component<Props> {
                 onClick={() => {
                   triggerFall();
                   onComplete({});
-                  trackAdvancedAnalyticsEvent(
-                    'growth.onboarding_im_ready',
-                    {},
-                    organization
-                  );
                 }}
               >
                 {t("I'm Ready")}
@@ -89,19 +80,7 @@ class OnboardingWelcome extends Component<Props> {
             <SecondaryAction {...fadeAway}>
               {tct('[flavorText][br][exitLink:Skip onboarding].', {
                 br: <br />,
-                exitLink: (
-                  <Button
-                    priority="link"
-                    onClick={() =>
-                      trackAdvancedAnalyticsEvent(
-                        'growth.onboarding_skip_onboarding',
-                        {},
-                        organization
-                      )
-                    }
-                    href="/"
-                  />
-                ),
+                exitLink: <Button priority="link" href="/" />,
                 flavorText:
                   fallCount > 0
                     ? easterEggText[fallCount - 1]
@@ -158,4 +137,4 @@ Wrapper.defaultProps = {
   }),
 };
 
-export default withOrganization(OnboardingWelcome);
+export default OnboardingWelcome;
