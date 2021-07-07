@@ -132,10 +132,10 @@ class ExportedDataBlob(Model):
     __include_in_export__ = False
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
-    blob = FlexibleForeignKey("sentry.FileBlob", db_constraint=False)
+    blob_id = BoundedBigIntegerField()
     offset = BoundedBigIntegerField()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_exporteddatablob"
-        unique_together = (("data_export", "blob", "offset"),)
+        unique_together = (("data_export", "blob_id", "offset"),)
