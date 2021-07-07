@@ -375,3 +375,14 @@ class OrganizationMember(Model):
         cls.objects.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
             email__exact=None
         ).delete()
+
+    @classmethod
+    def get_contactable_members_for_org(cls, organization_id):
+        """
+        Get a list of members we can contact for an organization through email
+        """
+        return cls.objects.filter(
+            organization_id=organization_id,
+            invite_status=InviteStatus.APPROVED.value,
+            user__isnull=False,
+        )
