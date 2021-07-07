@@ -96,8 +96,8 @@ urlpatterns += [
     # a filecontent-based hash in its filenames so that it can be cached long term
     url(
         r"^_static/dist/(?P<module>[^/]+)/(?P<path>.*)$",
-        generic.static_media_with_manifest,
-        name="sentry-webpack-media",
+        generic.unversioned_static_media,
+        name="sentry-unversioned-media",
     ),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
