@@ -607,7 +607,7 @@ function routes() {
           />
           <Route
             path="settings/"
-            name="settings"
+            name="Settings"
             componentPromise={() =>
               import('app/views/settings/organizationTeams/teamSettings')
             }
