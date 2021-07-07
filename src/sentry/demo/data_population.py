@@ -1234,7 +1234,7 @@ class DataPopulation:
         seen_versions = []
         num_versions = 0
         weights = []
-        ind_session_threshold = 0.5
+        ind_session_threshold = self.get_config_var("IND_SESSION_THRESHOLD")
 
         for (timestamp, day) in self.iter_timestamps(distribution_fn_num):
             transaction_user = self.generate_user()

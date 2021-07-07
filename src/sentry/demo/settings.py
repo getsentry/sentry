@@ -44,6 +44,7 @@ DEMO_DATA_GEN_PARAMS = {
     "MAX_INITIALIZATION_TIME": 30,  # number of minutes to give an organization to initialize
     "DISABLE_SESSIONS": False,  # disables generating sessions
     "DISABLE_AGGREGATE_SESSIONS": False,  # disables generating sessions
+    "IND_SESSION_THRESHOLD": 0.5,  # threshold for rate at which individual sessions are not sent
 }
 
 # parameters for an org when quickly generating them synchronously
