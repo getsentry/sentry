@@ -80,7 +80,7 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const StyledDropdownControl = styled(DropdownControl)`
-  z-index: 3;
+  z-index: ${p => p.theme.zIndex.issuesList.displayOptions};
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     order: 1;

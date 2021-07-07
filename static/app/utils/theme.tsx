@@ -514,6 +514,13 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
+
+    // On mobile views issue list dropdowns overlap
+    issuesList: {
+      stickyHeader: 1,
+      sortOptions: 2,
+      displayOptions: 3,
+    },
   },
 
   grid: 8,
