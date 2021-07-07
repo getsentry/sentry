@@ -374,7 +374,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               />
             </Field>
           </DoubleFieldWrapper>
-          <Measurements>
+          <Measurements organization={organization}>
             {({measurements}) => {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
               const amendedFieldOptions = fieldOptions(measurementKeys);
