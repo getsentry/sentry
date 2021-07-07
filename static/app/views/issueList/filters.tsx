@@ -57,32 +57,30 @@ class IssueListFilters extends React.Component<Props> {
 
     return (
       <SearchContainer hasIssuePercent={hasIssuePercent}>
-        <SearchSelectorContainer>
-          <ClassNames>
-            {({css}) => (
-              <GuideAnchor
-                target="assigned_or_suggested_query"
-                disabled={!isAssignedQuery}
-                containerClassName={css`
-                  width: 100%;
-                `}
-              >
-                <IssueListSearchBar
-                  organization={organization}
-                  query={query || ''}
-                  sort={sort}
-                  onSearch={onSearch}
-                  disabled={isSearchDisabled}
-                  excludeEnvironment
-                  supportedTags={tags}
-                  tagValueLoader={tagValueLoader}
-                  savedSearch={savedSearch}
-                  onSidebarToggle={onSidebarToggle}
-                />
-              </GuideAnchor>
-            )}
-          </ClassNames>
-        </SearchSelectorContainer>
+        <ClassNames>
+          {({css}) => (
+            <GuideAnchor
+              target="assigned_or_suggested_query"
+              disabled={!isAssignedQuery}
+              containerClassName={css`
+                width: 100%;
+              `}
+            >
+              <IssueListSearchBar
+                organization={organization}
+                query={query || ''}
+                sort={sort}
+                onSearch={onSearch}
+                disabled={isSearchDisabled}
+                excludeEnvironment
+                supportedTags={tags}
+                tagValueLoader={tagValueLoader}
+                savedSearch={savedSearch}
+                onSidebarToggle={onSidebarToggle}
+              />
+            </GuideAnchor>
+          )}
+        </ClassNames>
 
         <Feature features={['issue-percent-display']} organization={organization}>
           <IssueListDisplayOptions
@@ -109,7 +107,5 @@ const SearchContainer = styled('div')<{hasIssuePercent?: boolean}>`
         p.hasIssuePercent ? `repeat(2, auto)` : `repeat(1, auto)`};
   }
 `;
-
-const SearchSelectorContainer = styled('div')``;
 
 export default IssueListFilters;
