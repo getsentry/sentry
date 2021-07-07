@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T14:58:13.967606Z'
+created: '2021-07-07T15:30:52.915206Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -127,7 +127,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "d445cf32e2f1852b18e5df7044450642"
-  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | @callee_guaranteed | stripped_application_code | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
   component:
     app-depth-max*
       exception*
@@ -251,7 +251,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "d445cf32e2f1852b18e5df7044450642"
-  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | @callee_guaranteed | stripped_application_code | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
   component:
     system*
       exception*
