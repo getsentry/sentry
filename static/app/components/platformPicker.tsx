@@ -16,7 +16,6 @@ import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 import {Organization, PlatformIntegration} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {analytics} from 'app/utils/analytics';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
@@ -81,10 +80,11 @@ class PlatformPicker extends React.Component<Props, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      analytics('platformpicker.search', {
-        query: this.state.filter.toLowerCase(),
-        num_results: this.platformList.length,
-      });
+      trackAdvancedAnalyticsEvent(
+        'growth.onboarding_platform_search',
+        {search: this.state.filter},
+        this.props.organization ?? null
+      );
     }
   }, 300);
 
@@ -114,7 +114,7 @@ class PlatformPicker extends React.Component<Props, State> {
                   trackAdvancedAnalyticsEvent(
                     'growth.onboarding_platform_category',
                     {category},
-                    null
+                    this.props.organization ?? null
                   );
                   this.setState({category: id, filter: ''});
                   e.preventDefault();

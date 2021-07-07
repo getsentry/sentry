@@ -23,6 +23,10 @@ type PlatformPickerParam = {
   source: string | null | undefined;
 };
 
+type PlatformSearchParam = {
+  search: string;
+};
+
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'growth.show_mobile_prompt_banner': ShowParams;
@@ -39,6 +43,7 @@ export type GrowthEventParameters = {
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_select_platform': PlatformPickerParam;
   'growth.onboarding_platform_category': PlatformCategory;
+  'growth.onboarding_platform_search': PlatformSearchParam;
   'growth.onboarding_start_onboarding': {};
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
@@ -66,6 +71,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
   'growth.onboarding_select_platform': 'Growth: Onboarding Choose Platform',
   'growth.onboarding_platform_category': 'Growth: Onboarding Platform Category',
+  'growth.onboarding_platform_search': 'Growth: Onboarding Platform Search',
   'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
   'growth.onboarding_take_to_error': 'Growth: OnboardingTake to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
