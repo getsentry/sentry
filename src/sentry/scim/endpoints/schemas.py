@@ -160,7 +160,7 @@ SCIM_GROUP_ATTRIBUTES_SCHEMA = {
                     "type": "reference",
                     "referenceTypes": ["User"],
                     "multiValued": False,
-                    "description": "The URI of the corresponding 'Group' resource to which the user belongs.",
+                    "description": "The URI of the corresponding 'User' resource to which the user belongs.",
                     "required": False,
                     "caseExact": False,
                     "mutability": "readOnly",
