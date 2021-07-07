@@ -43,12 +43,12 @@ type Props = {
   disableDropdown?: boolean;
   projectFetchError?: boolean;
   hasInbox?: boolean;
-} & typeof defaultProps;
+} & Partial<typeof defaultProps>;
 
 class ResolveActions extends React.Component<Props> {
   static defaultProps = defaultProps;
 
-  onCustomResolution(statusDetails: ResolutionStatusDetails) {
+  handleAnotherExistingReleaseResolution(statusDetails: ResolutionStatusDetails) {
     const {organization, onUpdate} = this.props;
     onUpdate({
       status: ResolutionStatus.RESOLVED,
@@ -61,6 +61,40 @@ class ResolveActions extends React.Component<Props> {
       organization_id: organization.id,
     });
   }
+
+  handleCurrentReleaseResolution = () => {
+    const {onUpdate, organization, hasRelease, latestRelease} = this.props;
+    hasRelease &&
+      onUpdate({
+        status: ResolutionStatus.RESOLVED,
+        statusDetails: {
+          inRelease: latestRelease ? latestRelease.version : 'latest',
+        },
+      });
+    trackAnalyticsEvent({
+      eventKey: 'resolve_issue',
+      eventName: 'Resolve Issue',
+      release: 'current',
+      organization_id: organization.id,
+    });
+  };
+
+  handleNextReleaseResolution = () => {
+    const {onUpdate, organization, hasRelease} = this.props;
+    hasRelease &&
+      onUpdate({
+        status: ResolutionStatus.RESOLVED,
+        statusDetails: {
+          inNextRelease: true,
+        },
+      });
+    trackAnalyticsEvent({
+      eventKey: 'resolve_issue',
+      eventName: 'Resolve Issue',
+      release: 'next',
+      organization_id: organization.id,
+    });
+  };
 
   renderResolved() {
     const {isAutoResolved, onUpdate} = this.props;
@@ -88,12 +122,10 @@ class ResolveActions extends React.Component<Props> {
 
   renderDropdownMenu() {
     const {
-      organization,
       projectSlug,
       isResolved,
       hasRelease,
       latestRelease,
-      onUpdate,
       confirmMessage,
       shouldConfirm,
       disabled,
@@ -140,21 +172,7 @@ class ResolveActions extends React.Component<Props> {
         <MenuItemActionLink
           {...actionLinkProps}
           title={t('The next release')}
-          onAction={() => {
-            hasRelease &&
-              onUpdate({
-                status: ResolutionStatus.RESOLVED,
-                statusDetails: {
-                  inNextRelease: true,
-                },
-              });
-            trackAnalyticsEvent({
-              eventKey: 'resolve_issue',
-              eventName: 'Resolve Issue',
-              release: 'next',
-              organization_id: organization.id,
-            });
-          }}
+          onAction={this.handleNextReleaseResolution}
         >
           <Tooltip disabled={hasRelease} title={actionTitle}>
             {t('The next release')}
@@ -164,21 +182,7 @@ class ResolveActions extends React.Component<Props> {
         <MenuItemActionLink
           {...actionLinkProps}
           title={t('The current release')}
-          onAction={() => {
-            hasRelease &&
-              onUpdate({
-                status: ResolutionStatus.RESOLVED,
-                statusDetails: {
-                  inRelease: latestRelease ? latestRelease.version : 'latest',
-                },
-              });
-            trackAnalyticsEvent({
-              eventKey: 'resolve_issue',
-              eventName: 'Resolve Issue',
-              release: 'current',
-              organization_id: organization.id,
-            });
-          }}
+          onAction={this.handleCurrentReleaseResolution}
         >
           <Tooltip disabled={hasRelease} title={actionTitle}>
             {latestRelease
@@ -208,7 +212,7 @@ class ResolveActions extends React.Component<Props> {
       <CustomResolutionModal
         {...deps}
         onSelected={(statusDetails: ResolutionStatusDetails) =>
-          this.onCustomResolution(statusDetails)
+          this.handleAnotherExistingReleaseResolution(statusDetails)
         }
         orgSlug={orgSlug}
         projectSlug={projectSlug}
