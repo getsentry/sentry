@@ -164,7 +164,10 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(
-      wrapper.find('NavTabs').find({children: 'All Events'}).find('Link')
+      wrapper
+        .find('NavTabs')
+        .find({children: ['All Events']})
+        .find('Link')
     ).toHaveLength(1);
     expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
     expect(wrapper.find('SearchBar')).toHaveLength(1);
