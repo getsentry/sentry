@@ -168,7 +168,21 @@ class TeamDetails extends React.Component<Props, State> {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); // `/organizations/${orgId}/teams/${teamId}`;
+    // `/organizations/${orgId}/teams/${teamId}`;
+    const routePrefix = recreateRoute('', {routes, params, stepBack: -1});
+
+    const navigationTabs = [
+      <ListLink key={0} to={`${routePrefix}members/`}>
+        {t('Members')}
+      </ListLink>,
+      <ListLink key={1} to={`${routePrefix}projects/`}>
+        {t('Projects')}
+      </ListLink>,
+      <ListLink key={2} to={`${routePrefix}settings/`}>
+        {t('Settings')}
+      </ListLink>,
+    ];
+
     return (
       <div>
         <SentryDocumentTitle title={t('Team Details')} orgSlug={params.orgId} />
@@ -176,11 +190,7 @@ class TeamDetails extends React.Component<Props, State> {
           <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>
 
-        <NavTabs underlined>
-          <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
-          <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
-          <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
-        </NavTabs>
+        <NavTabs underlined>{navigationTabs}</NavTabs>
 
         {React.isValidElement(children) &&
           React.cloneElement(children, {
