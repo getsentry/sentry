@@ -156,7 +156,7 @@ const TagsHeatMap = (
         show: true,
       },
       axisLabel: {
-        formatter: (value: string) => truncate(value, 50),
+        formatter: (value: string) => truncate(value, 30),
       },
     } as any, // TODO(k-fish): Expand typing to allow data option
     xAxis: {
