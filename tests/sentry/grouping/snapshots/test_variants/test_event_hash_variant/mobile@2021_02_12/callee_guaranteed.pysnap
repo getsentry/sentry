@@ -1,0 +1,374 @@
+---
+created: '2021-07-07T14:32:30.365751Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "59472e9088d0dd53ab86b896eb702aba"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "a751219c9a247870dc2c39eb941ccbae"
+  tree_label: "UIApplicationMain | stripped_application_code | start"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "30bd43e6f460af376b71818c2f26bf6e"
+  tree_label: "-[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "4ef2ef87e6434061724bf817d8df3651"
+  tree_label: "GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "8a75b0c4742215529fe705e301997038"
+  tree_label: "CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "d23d0dfeac5f1349ceb624b330670b25"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | @callee_guaranteed | stripped_application_code | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+          frame*
+            function*
+              "__CFRunLoopRun"
+          frame*
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame*
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame*
+            function*
+              "_dispatch_client_callout"
+          frame*
+            function*
+              "_dispatch_call_block_and_release"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+system:
+  hash: "d23d0dfeac5f1349ceb624b330670b25"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | @callee_guaranteed | stripped_application_code | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+          frame*
+            function*
+              "__CFRunLoopRun"
+          frame*
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame*
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame*
+            function*
+              "_dispatch_client_callout"
+          frame*
+            function*
+              "_dispatch_call_block_and_release"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
