@@ -308,6 +308,19 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'project_transaction_threshold_override',
+      requiredTargets: ['project_transaction_threshold_override'],
+      steps: [
+        {
+          title: t('Response Time Thresholds'),
+          target: 'project_transaction_threshold_override',
+          description: t(
+            'Use this menu to adjust each transaction’s satisfactory response time threshold, which can vary across transactions. These thresholds are used to calculate Apdex and User Misery, metrics that indicate how satisfied and miserable users are, respectively.'
+          ),
+        },
+      ],
+    },
   ];
 }
 
