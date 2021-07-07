@@ -70,7 +70,9 @@ class AssembleDifTest(BaseAssembleTest):
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.OK
 
-        dif = ProjectDebugFile.objects.filter(project=self.project, checksum=total_checksum).get()
+        dif = ProjectDebugFile.objects.filter(
+            project_id=self.project.id, checksum=total_checksum
+        ).get()
 
         assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
 
@@ -172,7 +174,9 @@ class AssembleDifTest(BaseAssembleTest):
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.OK
 
-        dif = ProjectDebugFile.objects.filter(project=self.project, checksum=total_checksum).get()
+        dif = ProjectDebugFile.objects.filter(
+            project_id=self.project.id, checksum=total_checksum
+        ).get()
 
         assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"
@@ -194,7 +198,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 }
             ):
 
-                ReleaseFile.objects.filter(release=self.release).delete()
+                ReleaseFile.objects.filter(release_id=self.release.id).delete()
 
                 assert self.release.count_artifacts() == 0
 
@@ -217,16 +221,18 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     # An archive was saved
                     index = read_artifact_index(self.release, dist=None)
                     archive_ident = index["files"]["~/index.js"]["archive_ident"]
-                    releasefile = ReleaseFile.objects.get(release=self.release, ident=archive_ident)
+                    releasefile = ReleaseFile.objects.get(
+                        release_id=self.release.id, ident=archive_ident
+                    )
                     # Artifact is the same as original bundle
                     assert releasefile.file.size == len(bundle_file)
                 else:
                     # Individual files were saved
                     release_file = ReleaseFile.objects.get(
-                        organization=self.organization,
-                        release=self.release,
+                        organization_id=self.organization.id,
+                        release_id=self.release.id,
                         name="~/index.js",
-                        dist=None,
+                        dist_id=None,
                     )
                     assert release_file.file.headers == {"Sourcemap": "index.js.map"}
 

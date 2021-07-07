@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import round from 'lodash/round';
+import moment from 'moment';
 
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
@@ -18,14 +20,20 @@ import {IconArrow, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {ReleaseComparisonChartType, SessionApiResponse, SessionField} from 'app/types';
+import {
+  ReleaseComparisonChartType,
+  ReleaseProject,
+  ReleaseWithHealth,
+  SessionApiResponse,
+  SessionField,
+} from 'app/types';
 import {defined, percent} from 'app/utils';
 import {decodeScalar} from 'app/utils/queryString';
 import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
-import {Color} from 'app/utils/theme';
+import {Color, Theme} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
-import {releaseComparisonChartLabels} from '../../utils';
+import {generateReleaseMarkLine, releaseComparisonChartLabels} from '../../utils';
 import {
   fillChartDataFromSessionsResponse,
   initSessionsBreakdownChartData,
@@ -43,6 +51,8 @@ type ComparisonRow = {
 };
 
 type Props = {
+  release: ReleaseWithHealth;
+  project: ReleaseProject;
   releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
   platform: PlatformKey;
@@ -50,9 +60,12 @@ type Props = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
+  theme: Theme;
 };
 
 function ReleaseComparisonChart({
+  release,
+  project,
   releaseSessions,
   allSessions,
   platform,
@@ -60,6 +73,7 @@ function ReleaseComparisonChart({
   loading,
   reloading,
   errored,
+  theme,
 }: Props) {
   const activeChart = decodeScalar(
     location.query.chart,
@@ -181,6 +195,36 @@ function ReleaseComparisonChart({
       return {};
     }
 
+    const adoptionStages = release.adoptionStages?.[project.slug];
+
+    const markLines = [
+      generateReleaseMarkLine(
+        t('Release Created'),
+        moment(release.dateCreated).valueOf(),
+        theme
+      ),
+    ];
+
+    if (adoptionStages?.adopted) {
+      markLines.push(
+        generateReleaseMarkLine(
+          t('Adopted'),
+          moment(adoptionStages.adopted).valueOf(),
+          theme
+        )
+      );
+    }
+
+    if (adoptionStages?.unadopted) {
+      markLines.push(
+        generateReleaseMarkLine(
+          t('Unadopted'),
+          moment(adoptionStages.unadopted).valueOf(),
+          theme
+        )
+      );
+    }
+
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
         return {
@@ -205,6 +249,7 @@ function ReleaseComparisonChart({
               ),
             },
           ],
+          markLines,
         };
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
         return {
@@ -229,6 +274,7 @@ function ReleaseComparisonChart({
               ),
             },
           ],
+          markLines,
         };
       case ReleaseComparisonChartType.SESSION_COUNT:
         return {
@@ -240,6 +286,7 @@ function ReleaseComparisonChart({
               chartData: initSessionsBreakdownChartData(),
             })
           ),
+          markLines,
         };
       case ReleaseComparisonChartType.USER_COUNT:
         return {
@@ -251,6 +298,7 @@ function ReleaseComparisonChart({
               chartData: initSessionsBreakdownChartData(),
             })
           ),
+          markLines,
         };
       default:
         return {};
@@ -267,7 +315,7 @@ function ReleaseComparisonChart({
     });
   }
 
-  const {series, previousSeries} = getSeries(activeChart);
+  const {series, previousSeries, markLines} = getSeries(activeChart);
 
   if (errored) {
     return (
@@ -287,7 +335,7 @@ function ReleaseComparisonChart({
             <TransparentLoadingMask visible={reloading} />
 
             <SessionsChart
-              series={series ?? []}
+              series={[...(series ?? []), ...(markLines ?? [])]}
               previousSeries={previousSeries ?? []}
               chartType={activeChart}
               platform={platform}
@@ -391,4 +439,4 @@ const Change = styled('div')<{color?: Color}>`
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 
-export default ReleaseComparisonChart;
+export default withTheme(ReleaseComparisonChart);

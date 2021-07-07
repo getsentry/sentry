@@ -696,7 +696,7 @@ class DataPopulation:
                 for file in raw_commit["files"]:
                     ReleaseFile.objects.get_or_create(
                         organization_id=project.organization_id,
-                        release=release,
+                        release_id=release.id,
                         name=file[0],
                         file=File.objects.get_or_create(
                             name=file[0], type="release.file", checksum="abcde" * 8, size=13043
@@ -1255,12 +1255,11 @@ class DataPopulation:
                 self.send_aggr_session(
                     dsn, timestamp, mobile, version, num_versions, seen_versions, weights
                 )
+
             outcome = random.random()
             if outcome > ind_session_threshold:
                 # send sessions for duration info
-                session_data = {
-                    "init": True,
-                }
+                session_data = {"init": True}
                 self.send_session(
                     sid, transaction_user["id"], dsn, timestamp, version, **session_data
                 )
@@ -1340,7 +1339,7 @@ class DataPopulation:
         # create session data for each user
         for _ in range(num_users):
 
-            num_session = random.choices([1, 2, 3], k=1, weights=[0.5, 0.3, 0.2])[0]
+            num_session = random.choices([1, 2, 3], k=1, weights=[5, 3, 2])[0]
             exited = sum(random.choices([1, 0], k=num_session, weights=[success, failure]))
             crashed = num_session - exited
 

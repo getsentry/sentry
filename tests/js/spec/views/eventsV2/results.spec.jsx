@@ -237,6 +237,7 @@ describe('EventsV2 > Results', function () {
     search.simulate('change', {target: {value: 'geo:canada'}}).simulate('submit', {
       preventDefault() {},
     });
+    await tick();
 
     // cursor query string should be omitted from the query string
     expect(initialData.router.push).toHaveBeenCalledWith({

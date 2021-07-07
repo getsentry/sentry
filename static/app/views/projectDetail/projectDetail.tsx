@@ -153,7 +153,7 @@ class ProjectDetail extends AsyncView<Props, State> {
       organization.slug,
       key,
       search,
-      [projectId],
+      projectId ? [projectId] : null,
       location.query
     );
   };

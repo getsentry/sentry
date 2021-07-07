@@ -14,20 +14,16 @@ from sentry.models import (
     Team,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
-from sentry.web.helpers import render_to_response
 
-from ..client import SlackClient
-from ..utils import logger
+from ..utils import is_valid_role, logger, render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
 ALLOWED_METHODS = ["GET", "POST"]
-ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 INSUFFICIENT_ROLE_TITLE = "Insufficient role"
 INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher to link teams."
@@ -50,48 +46,6 @@ def build_team_linking_url(
         channel_name=channel_name,
         response_url=response_url,
     )
-
-
-def render_error_page(request: Request, body_text: str) -> HttpResponse:
-    return render_to_response(
-        "sentry/integrations/slack-link-team-error.html",
-        request=request,
-        context={"body_text": body_text},
-    )
-
-
-def send_slack_message(
-    integration: Integration,
-    channel_id: str,
-    heading: str,
-    text: str,
-    request: Request,
-) -> HttpResponse:
-    client = SlackClient()
-    token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-    payload = {
-        "token": token,
-        "channel": channel_id,
-        "text": text,
-    }
-    headers = {"Authorization": f"Bearer {token}"}
-    try:
-        client.post("/chat.postMessage", headers=headers, data=payload, json=True)
-    except ApiError as e:
-        message = str(e)
-        if message != "Expired url":
-            logger.error("slack.link-notify.response-error", extra={"error": message})
-    else:
-        return render_to_response(
-            "sentry/integrations/slack-post-linked-team.html",
-            request=request,
-            context={
-                "heading_text": heading,
-                "body_text": text,
-                "channel_id": channel_id,
-                "team_id": integration.external_id,
-            },
-        )
 
 
 class SelectTeamForm(forms.Form):  # type: ignore
@@ -159,18 +113,15 @@ class SlackLinkTeamView(BaseView):  # type: ignore
 
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
 
-        if not (
-            org_member.role in ALLOWED_ROLES
-            and (organization.flags.allow_joinleave or team in org_member.teams.all())
-        ):
-            return send_slack_message(
+        if not is_valid_role(org_member, team, organization):
+            return send_confirmation(
                 integration,
                 channel_id,
                 INSUFFICIENT_ROLE_TITLE,
                 INSUFFICIENT_ROLE_MESSAGE,
+                "sentry/integrations/slack-post-linked-team.html",
                 request,
             )
-
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=organization,
@@ -183,11 +134,12 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         )
 
         if not created:
-            return send_slack_message(
+            return send_confirmation(
                 integration,
                 channel_id,
                 ALREADY_LINKED_TITLE,
                 ALREADY_LINKED_MESSAGE.format(slug=team.slug),
+                "sentry/integrations/slack-post-linked-team.html",
                 request,
             )
 
@@ -198,10 +150,11 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             NotificationSettingOptionValues.ALWAYS,
             team=team,
         )
-        return send_slack_message(
+        return send_confirmation(
             integration,
             channel_id,
             SUCCESS_LINKED_TITLE,
             SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
+            "sentry/integrations/slack-post-linked-team.html",
             request,
         )
