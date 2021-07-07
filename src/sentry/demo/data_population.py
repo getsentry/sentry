@@ -67,7 +67,7 @@ commit_message_base_messages = [
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
 rate_by_release_num = [0.8, 0.85, 0.75]
-agg_rate_by_release_num = [0.99, 0.998, 0.95]
+agg_rate_by_release_num = [0.99, 0.999, 0.95]
 
 org_users = [
     ("scefali", "Stephen Cefali"),
@@ -1326,6 +1326,10 @@ class DataPopulation:
         envelope_headers = "{}"
         item_headers = json.dumps({"type": "sessions"})
 
+        # if mobile, choose one of previously seen versions
+        if mobile and num_versions > 1:
+            version = random.choices(seen_versions, k=1, weights=weights)[0]
+
         agg = []
         release_num = int(version.split(".")[-1])
         success = agg_rate_by_release_num[release_num]
@@ -1347,10 +1351,6 @@ class DataPopulation:
                 "crashed": crashed,
             }
             agg.append(current)
-
-        # if mobile, choose one of previously seen versions
-        if mobile and num_versions > 1:
-            version = random.choices(seen_versions, k=1, weights=weights)[0]
 
         data = {
             "aggregates": agg,
