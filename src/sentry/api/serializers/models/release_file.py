@@ -1,7 +1,7 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import ReleaseFile
+from sentry.models import Distribution, ReleaseFile
 
 
 def encode_release_file_id(obj):
@@ -16,7 +16,9 @@ def encode_release_file_id(obj):
     if obj.id:
         return str(obj.id)
     if obj.name:
-        dist_name = obj.dist.name if obj.dist else ""
+        dist_name = ""
+        if obj.dist_id:
+            dist_name = Distribution.objects.get(pk=obj.dist_id).name
         return urlsafe_b64encode(f"{dist_name}_{obj.name}".encode())
 
 
@@ -34,10 +36,13 @@ def decode_release_file_id(id: str):
 @register(ReleaseFile)
 class ReleaseFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
+        dist_name = None
+        if obj.dist_id:
+            dist_name = Distribution.objects.get(pk=obj.dist_id).name
         return {
             "id": encode_release_file_id(obj),
             "name": obj.name,
-            "dist": obj.dist_id and obj.dist.name or None,
+            "dist": dist_name,
             "headers": obj.file.headers,
             "size": obj.file.size,
             "sha1": obj.file.checksum,

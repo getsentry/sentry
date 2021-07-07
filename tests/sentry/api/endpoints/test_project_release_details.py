@@ -168,7 +168,7 @@ class ReleaseDeleteTest(APITestCase):
         release.add_project(project2)
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )

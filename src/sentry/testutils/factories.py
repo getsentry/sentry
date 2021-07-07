@@ -414,7 +414,7 @@ class Factories:
         return release
 
     @staticmethod
-    def create_release_file(release, file=None, name=None, dist=None):
+    def create_release_file(release_id, file=None, name=None, dist_id=None):
         if file is None:
             file = Factories.create_file(
                 name="log.txt",
@@ -426,8 +426,14 @@ class Factories:
         if name is None:
             name = file.name
 
+        organization_id = Release.objects.get(pk=release_id).organization.id
+
         return ReleaseFile.objects.create(
-            organization=release.organization, release=release, name=name, file=file, dist=dist
+            organization_id=organization_id,
+            release_id=release_id,
+            name=name,
+            file=file,
+            dist_id=dist_id,
         )
 
     @staticmethod

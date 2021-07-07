@@ -47,8 +47,8 @@ class OrganizationTest(TestCase):
         )
         from_release = Release.objects.create(version="abcabcabc", organization=from_org)
         from_release_file = ReleaseFile.objects.create(
-            release=from_release,
-            organization=from_org,
+            release_id=from_release.id,
+            organization_id=from_org.id,
             file=File.objects.create(name="foo.py", type=".py"),
             ident="abcdefg",
             name="foo.py",
@@ -128,8 +128,8 @@ class OrganizationTest(TestCase):
         assert to_project_two.teams.first() == to_team_two
 
         assert not Release.objects.filter(id=from_release.id).exists()
-        assert ReleaseFile.objects.get(id=from_release_file.id).organization == to_org
-        assert ReleaseFile.objects.get(id=from_release_file.id).release == to_release
+        assert ReleaseFile.objects.get(id=from_release_file.id).organization_id == to_org.id
+        assert ReleaseFile.objects.get(id=from_release_file.id).release_id == to_release.id
         assert Commit.objects.get(id=from_commit.id).organization_id == to_org.id
         assert ReleaseCommit.objects.get(id=from_release_commit.id).organization_id == to_org.id
         assert ReleaseCommit.objects.get(id=from_release_commit.id).release == to_release

@@ -389,10 +389,16 @@ class Organization(Model):
             OrganizationAvatar,
             OrganizationIntegration,
             ReleaseEnvironment,
-            ReleaseFile,
         )
 
-        ATTR_MODEL_LIST = (Commit, ReleaseCommit, ReleaseHeadCommit, Repository, Environment)
+        ATTR_MODEL_LIST = (
+            Commit,
+            Environment,
+            ReleaseCommit,
+            ReleaseFile,
+            ReleaseHeadCommit,
+            Repository,
+        )
 
         for model in INST_MODEL_LIST:
             queryset = model.objects.filter(organization=from_org)

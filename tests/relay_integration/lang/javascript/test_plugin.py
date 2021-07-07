@@ -430,7 +430,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f_minified.putfile(open(get_fixture_path("nofiles.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f_minified,
         )
@@ -441,7 +441,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f_sourcemap.putfile(open(get_fixture_path("nofiles.js.map"), "rb"))
         ReleaseFile.objects.create(
             name=f"app:///{f_sourcemap.name}",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f_sourcemap,
         )
@@ -603,7 +603,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}?foo=bar",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f_minified,
         )
@@ -618,7 +618,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         ReleaseFile.objects.create(
             name=f"http://example.com/{f1.name}",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f1,
         )
@@ -632,7 +632,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f2.putfile(open(get_fixture_path("file2.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"http://example.com/{f2.name}",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f2,
         )
@@ -648,7 +648,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f2_empty,
         )
@@ -664,7 +664,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"http://example.com/{f_sourcemap.name}",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f_sourcemap,
         )
@@ -741,8 +741,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}?foo=bar",
-            release=release,
-            dist=dist,
+            release_id=release.id,
+            dist_id=dist.id,
             organization_id=project.organization_id,
             file=f_minified,
         )
@@ -757,8 +757,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         ReleaseFile.objects.create(
             name=f"http://example.com/{f1.name}",
-            release=release,
-            dist=dist,
+            release_id=release.id,
+            dist_id=dist.id,
             organization_id=project.organization_id,
             file=f1,
         )
@@ -772,8 +772,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f2.putfile(open(get_fixture_path("file2.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"http://example.com/{f2.name}",
-            release=release,
-            dist=dist,
+            release_id=release.id,
+            dist_id=dist.id,
             organization_id=project.organization_id,
             file=f2,
         )
@@ -789,8 +789,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
-            release=release,
-            dist=dist,
+            release_id=release.id,
+            dist_id=dist.id,
             organization_id=project.organization_id,
             file=f2_empty,
         )
@@ -806,8 +806,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"http://example.com/{f_sourcemap.name}",
-            release=release,
-            dist=dist,
+            release_id=release.id,
+            dist_id=dist.id,
             organization_id=project.organization_id,
             file=f_sourcemap,
         )
@@ -1231,7 +1231,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f_minified.putfile(open(get_fixture_path("dist.bundle.js"), "rb"))
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f_minified,
         )
@@ -1244,7 +1244,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f_sourcemap.putfile(open(get_fixture_path("dist.bundle.js.map"), "rb"))
         ReleaseFile.objects.create(
             name=f"~/{f_sourcemap.name}",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=f_sourcemap,
         )

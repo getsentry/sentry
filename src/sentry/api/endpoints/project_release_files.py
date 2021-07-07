@@ -49,7 +49,9 @@ class ReleaseFilesMixin:
         data_sources = []
 
         # Exclude files which are also present in archive:
-        file_list = ReleaseFile.public_objects.filter(release=release).exclude(artifact_count=0)
+        file_list = ReleaseFile.public_objects.filter(release_id=release.id).exclude(
+            artifact_count=0
+        )
         file_list = file_list.select_related("file").order_by("name")
 
         if query:
@@ -118,9 +120,9 @@ class ReleaseFilesMixin:
         # the costly file upload process.
         if ReleaseFile.objects.filter(
             organization_id=release.organization_id,
-            release=release,
+            release_id=release.id,
             name=full_name,
-            dist=dist,
+            dist_id=dist.id if dist else dist,
         ).exists():
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
@@ -145,10 +147,10 @@ class ReleaseFilesMixin:
             with transaction.atomic():
                 releasefile = ReleaseFile.objects.create(
                     organization_id=release.organization_id,
-                    release=release,
+                    release_id=release.id,
                     file=file,
                     name=full_name,
-                    dist=dist,
+                    dist_id=dist.id if dist else dist,
                 )
         except IntegrityError:
             file.delete()
@@ -198,7 +200,7 @@ def pseudo_releasefile(url, info, dist):
             timestamp=info["date_created"],
             checksum=info["sha1"],
         ),
-        dist=dist,
+        dist_id=dist.id if dist else dist,
     )
 
 

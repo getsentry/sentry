@@ -911,7 +911,7 @@ class Release(Model):
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long
         # and expensive operation
-        file_list = ReleaseFile.objects.filter(release=self).select_related("file")
+        file_list = ReleaseFile.objects.filter(release_id=self.id).select_related("file")
         for releasefile in file_list:
             releasefile.file.delete()
             releasefile.delete()

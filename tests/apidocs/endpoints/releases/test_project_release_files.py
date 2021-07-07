@@ -17,7 +17,9 @@ class ProjectReleaseFilesListDocsTest(APIDocsTestCase):
         )
         release = self.create_release(project=project, version="1")
 
-        self.create_release_file(file=file1, release=release, name="http://example.com/blah.js")
+        self.create_release_file(
+            file=file1, release_id=release.id, name="http://example.com/blah.js"
+        )
 
         self.url = reverse(
             "sentry-api-0-project-release-files",

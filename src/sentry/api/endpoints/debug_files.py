@@ -466,7 +466,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
                     organization_id=project.organization_id, projects=project, version=archive_name
                 )
                 if release is not None:
-                    release_files = ReleaseFile.objects.filter(release=release)
+                    release_files = ReleaseFile.objects.filter(release_id=release.id)
                     release_files.delete()
                     return Response(status=204)
 
