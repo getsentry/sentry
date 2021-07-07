@@ -37,8 +37,8 @@ type Props = {
   listProps?: React.ComponentProps<typeof PlatformList>;
   noAutoFilter?: boolean;
   defaultCategory?: Category;
-  organization: Organization | null | undefined;
-  source?: string | null;
+  organization?: Organization;
+  source?: string;
 };
 
 type State = {
@@ -82,7 +82,7 @@ class PlatformPicker extends React.Component<Props, State> {
     if (this.state.filter) {
       trackAdvancedAnalyticsEvent(
         'growth.onboarding_platform_search',
-        {search: this.state.filter},
+        {search: this.state.filter.toLowerCase(), numResults: this.platformList.length},
         this.props.organization ?? null
       );
     }
@@ -113,7 +113,7 @@ class PlatformPicker extends React.Component<Props, State> {
                 onClick={(e: React.MouseEvent) => {
                   trackAdvancedAnalyticsEvent(
                     'growth.onboarding_platform_category',
-                    {category},
+                    {category: id},
                     this.props.organization ?? null
                   );
                   this.setState({category: id, filter: ''});

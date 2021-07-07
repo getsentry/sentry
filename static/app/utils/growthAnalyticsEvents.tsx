@@ -20,11 +20,16 @@ type PlatformCategory = {
 
 type PlatformPickerParam = {
   platformId: string;
-  source: string | null | undefined;
+  source?: string;
 };
 
 type PlatformSearchParam = {
   search: string;
+  numResults: number;
+};
+
+type SampleEventParam = {
+  platform?: PlatformKey;
 };
 
 // define the event key to payload mappings
@@ -47,7 +52,7 @@ export type GrowthEventParameters = {
   'growth.onboarding_start_onboarding': {};
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
-  'growth.onboarding_view_sample_event': {};
+  'growth.onboarding_view_sample_event': SampleEventParam;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
