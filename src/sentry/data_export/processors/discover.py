@@ -30,17 +30,17 @@ class DiscoverProcessor:
         # an empty list DOES NOT work
         if self.environments:
             self.params["environment"] = self.environments
+
+        equations = discover_query.get("equations", [])
         self.header_fields = (
-            map(lambda x: get_function_alias(x), discover_query["field"])
-            + discover_query["equations"]
+            map(lambda x: get_function_alias(x), discover_query["field"]) + equations
         )
         self.equation_aliases = {
-            f"equation[{index}]": equation
-            for index, equation in enumerate(discover_query["equations"])
+            f"equation[{index}]": equation for index, equation in enumerate(equations)
         }
         self.data_fn = self.get_data_fn(
             fields=discover_query["field"],
-            equations=discover_query["equations"],
+            equations=equations,
             query=discover_query["query"],
             params=self.params,
             sort=discover_query.get("sort"),
