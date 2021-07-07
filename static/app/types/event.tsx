@@ -15,14 +15,6 @@ import {
   SDKUpdatesSuggestion,
 } from '.';
 
-// ERROR = 'error',
-// CSP = 'csp',
-// HPKP = 'hpkp',
-// EXPECTCT = 'expectct',
-// EXPECTSTAPLE = 'expectstaple',
-// DEFAULT = 'default',
-// TRANSACTION = 'transaction',
-
 export enum EntryType {
   EXCEPTION = 'exception',
   MESSAGE = 'message',

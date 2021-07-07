@@ -1,10 +1,4 @@
-import {
-  BaseGroup,
-  EventMetadata,
-  EventOrGroupType,
-  GroupTombstone,
-  Organization,
-} from 'app/types';
+import {BaseGroup, EventMetadata, EventOrGroupType, GroupTombstone} from 'app/types';
 import {Event} from 'app/types/event';
 import {isNativePlatform} from 'app/utils/platform';
 
@@ -54,39 +48,55 @@ export function getLocation(event: Event | BaseGroup | GroupTombstone) {
 }
 
 function computeTitleWithTreeLabel(metadata: EventMetadata) {
-  const {type: title, current_tree_label, finest_tree_label} = metadata;
+  const {type, current_tree_label, finest_tree_label} = metadata;
   const treeLabel = current_tree_label || finest_tree_label;
   const formattedTreeLabel = treeLabel ? treeLabel.join(' | ') : undefined;
 
-  if (!title) {
-    return formattedTreeLabel || metadata.function || '<unknown>';
+  if (!type) {
+    return {
+      title: formattedTreeLabel || metadata.function || '<unknown>',
+      treeLabel,
+    };
   }
 
   if (!formattedTreeLabel) {
-    return title;
+    return {title: type, treeLabel: undefined};
   }
 
-  return `${title} | ${formattedTreeLabel}`;
+  return {
+    title: `${type} | ${formattedTreeLabel}`,
+    treeLabel: [type, ...(treeLabel ?? [])],
+  };
 }
 
-export function getTitle(event: Event | BaseGroup, organization?: Organization) {
+export function getTitle(event: Event | BaseGroup, features: string[] = []) {
   const {metadata, type, culprit} = event;
 
-  const customEventTitle =
-    organization?.features.includes('custom-event-title') && metadata?.title
+  const customTitle =
+    features.includes('custom-event-title') && metadata?.title
       ? metadata.title
       : undefined;
 
   switch (type) {
-    case EventOrGroupType.ERROR:
+    case EventOrGroupType.ERROR: {
+      if (customTitle) {
+        return {
+          title: customTitle,
+          subtitle: culprit,
+          treeLabel: undefined,
+        };
+      }
+
       return {
-        title: customEventTitle ?? computeTitleWithTreeLabel(metadata),
         subtitle: culprit,
+        ...computeTitleWithTreeLabel(metadata),
       };
+    }
     case EventOrGroupType.CSP:
       return {
-        title: customEventTitle ?? metadata.directive ?? '',
+        title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',
+        treeLabel: undefined,
       };
     case EventOrGroupType.EXPECTCT:
     case EventOrGroupType.EXPECTSTAPLE:
@@ -95,18 +105,21 @@ export function getTitle(event: Event | BaseGroup, organization?: Organization) 
       // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
       // back to the computed title for these.
       return {
-        title: customEventTitle ?? (metadata.message || event.title),
+        title: customTitle ?? (metadata.message || event.title),
         subtitle: metadata.origin ?? '',
+        treeLabel: undefined,
       };
     case EventOrGroupType.DEFAULT:
       return {
-        title: customEventTitle ?? metadata.title ?? '',
+        title: customTitle ?? metadata.title ?? '',
         subtitle: '',
+        treeLabel: undefined,
       };
     default:
       return {
-        title: customEventTitle ?? '',
+        title: customTitle ?? event.title,
         subtitle: '',
+        treeLabel: undefined,
       };
   }
 }

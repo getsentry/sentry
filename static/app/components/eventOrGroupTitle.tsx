@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -8,7 +7,7 @@ import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 
-import EventTitle from './eventTitle';
+import EventTitleTreeLabel from './eventTitleTreeLabel';
 import StacktracePreview from './stacktracePreview';
 
 type Props = Partial<DefaultProps> & {
@@ -32,8 +31,10 @@ function EventOrGroupTitle({
   hasGuideAnchor,
   style,
 }: Props) {
-  const {title, subtitle} = getTitle(data as Event, organization);
-  const {id, eventID, groupID, projectID, type} = data as Event;
+  const event = data as Event;
+  const {id, eventID, groupID, projectID} = event;
+
+  const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
 
   return (
     <span style={style}>
@@ -47,15 +48,15 @@ function EventOrGroupTitle({
           projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
           disablePreview={!withStackTracePreview}
         >
-          <EventTitle eventType={type} />
+          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
         </StacktracePreview>
       </GuideAnchor>
       {subtitle && (
-        <Fragment>
+        <div>
           <Spacer />
           <Subtitle title={subtitle}>{subtitle}</Subtitle>
           <br />
-        </Fragment>
+        </div>
       )}
     </span>
   );
