@@ -31,6 +31,7 @@ import {Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
+import getDynamicText from 'app/utils/getDynamicText';
 import {TableData as TagTableData} from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'app/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'app/utils/queryString';
@@ -109,40 +110,38 @@ const TagsHeatMap = (
   >();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
-  if (!tableData || !tableData.data || !tableData.data.length) {
-    return null;
-  }
-
   // TODO(k-fish): Replace with actual theme colors.
   const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
 
-  const rowKey = findRowKey(tableData.data[0]);
-  if (!rowKey) {
-    return null;
-  }
-
   const columnNames = new Set();
   const xValues = new Set();
+
+  const rowKey =
+    tableData && tableData.data && tableData.data.length && findRowKey(tableData.data[0]);
   let maxCount = 0;
 
-  const _data = tableData.data.map(row => {
-    const rawDuration = row[rowKey] as number;
-    const x = getPerformanceDuration(rawDuration);
-    const y = row.tags_value;
-    columnNames.add(y);
-    xValues.add(x);
+  const _data =
+    rowKey && tableData && tableData.data
+      ? tableData.data.map(row => {
+          const rawDuration = row[rowKey] as number;
+          const x = getPerformanceDuration(rawDuration);
+          const y = row.tags_value;
+          columnNames.add(y);
+          xValues.add(x);
 
-    maxCount = Math.max(maxCount, row.count);
+          maxCount = Math.max(maxCount, row.count);
 
-    return [x, y, row.count] as number[];
-  });
+          return [x, y, row.count] as number[];
+        })
+      : null;
 
-  _data.sort((a, b) => {
-    if (a[0] === b[0]) {
-      return b[1] - a[1];
-    }
-    return b[0] - a[0];
-  });
+  _data &&
+    _data.sort((a, b) => {
+      if (a[0] === b[0]) {
+        return b[1] - a[1];
+      }
+      return b[0] - a[0];
+    });
 
   // TODO(k-fish): Cleanup options
   const chartOptions = {
@@ -207,22 +206,21 @@ const TagsHeatMap = (
 
   const series: Series[] = [];
 
-  series.push({
-    seriesName: 'Count',
-    dataArray: _data,
-    label: {
-      show: true,
-    },
-    emphasis: {
-      itemStyle: {
-        shadowBlur: 10,
-        shadowColor: 'rgba(0, 0, 0, 0.5)',
+  if (_data) {
+    series.push({
+      seriesName: 'Count',
+      dataArray: _data,
+      label: {
+        show: true,
       },
-    },
-  } as any); // TODO(k-fish): Fix heatmap data typing
-
-  const reloading = isLoading;
-  const loading = isLoading;
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: 'rgba(0, 0, 0, 0.5)',
+        },
+      },
+    } as any); // TODO(k-fish): Fix heatmap data typing
+  }
 
   const onOpenMenu = () => {
     setIsMenuOpen(true);
@@ -240,7 +238,11 @@ const TagsHeatMap = (
     return false;
   };
 
-  const histogramBucketInfo = parseHistogramBucketInfo(tableData.data[0]);
+  const histogramBucketInfo =
+    tableData &&
+    tableData.data &&
+    tableData.data.length &&
+    parseHistogramBucketInfo(tableData.data[0]);
 
   return (
     <StyledPanel>
@@ -255,8 +257,8 @@ const TagsHeatMap = (
         />
       </StyledHeaderTitleLegend>
 
-      <TransitionChart loading={loading} reloading={reloading}>
-        <TransparentLoadingMask visible={reloading} />
+      <TransitionChart loading={isLoading} reloading={isLoading}>
+        <TransparentLoadingMask visible={isLoading} />
         <DropdownMenu
           onOpen={onOpenMenu}
           onClose={onCloseMenu}
@@ -275,7 +277,7 @@ const TagsHeatMap = (
               newTransactionEventView.fields = [{field: aggregateColumn}];
               const [_, tagValue] = bucket.value;
 
-              if (histogramBucketInfo) {
+              if (histogramBucketInfo && tableData && tableData.data) {
                 const row = tableData.data[bucket.dataIndex];
                 const currentBucketStart = parseInt(
                   `${row[histogramBucketInfo.histogramField]}`,
@@ -415,13 +417,18 @@ const TagsHeatMap = (
                   getPortal()
                 )}
 
-                <HeatMapChart
-                  ref={chartRef}
-                  visualMaps={visualMaps}
-                  series={series}
-                  onClick={onChartClick}
-                  {...chartOptions}
-                />
+                {getDynamicText({
+                  value: (
+                    <HeatMapChart
+                      ref={chartRef}
+                      visualMaps={visualMaps}
+                      series={series}
+                      onClick={onChartClick}
+                      {...chartOptions}
+                    />
+                  ),
+                  fixed: <Placeholder height="290px" testId="skeleton-ui" />,
+                })}
               </React.Fragment>
             );
           }}
