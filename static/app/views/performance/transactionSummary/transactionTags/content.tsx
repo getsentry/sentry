@@ -302,8 +302,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledActions = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
 `;
 
 export default TagsPageContent;

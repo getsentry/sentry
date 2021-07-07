@@ -467,12 +467,13 @@ const StyledDropdownContent = styled(Content)`
 `;
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(3)};
+  padding: ${space(3)} ${space(3)} 0 ${space(3)};
   margin-bottom: 0;
   border-bottom: 0;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 `;
+
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)``;
 
 export default withTheme(TagsHeatMap);
