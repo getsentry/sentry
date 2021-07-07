@@ -219,6 +219,8 @@ class TransactionThresholdModal extends React.Component<Props, State> {
               this.handleFieldChange('threshold')(event.target.value);
             }}
             value={this.state.threshold}
+            step={100}
+            min={100}
           />
         </Field>
       </React.Fragment>
