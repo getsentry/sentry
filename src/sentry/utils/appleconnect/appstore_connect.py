@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import namedtuple
-from typing import Any, Dict, Generator, List, Mapping, Optional
+from typing import Any, Dict, Generator, List, Mapping, Optional, Union
 
 import jwt
 from requests import Session
@@ -118,9 +118,6 @@ def get_build_info(
        in starship documentation
     build_number: str - the version of the build (e.g. '101'), looks like the build number
     """
-
-    result = []
-
     # https://developer.apple.com/documentation/appstoreconnectapi/list_builds
     url = (
         f"v1/builds?filter[app]={app_id}"
@@ -141,42 +138,56 @@ def get_build_info(
         "&filter[expired]=false"
     )
     pages = _get_appstore_info_paged(session, credentials, url)
+    result = []
 
     for page in pages:
+
+        # Collect the related data sent in this page so we can look it up by (type, id).
         included_relations = {}
-        for included in safe.get_path(page, "included", default=[]):
-            type = safe.get_path(included, "type")
-            id = safe.get_path(included, "id")
-            if type is not None and id is not None:
-                included_relations[(type, id)] = included
+        for relation in page["included"]:
+            rel_type = relation["type"]
+            rel_id = relation["id"]
+            included_relations[(rel_type, rel_id)] = relation
 
-        def get_related(relation: JSONData) -> JSONData:
-            type = safe.get_path(relation, "data", "type")
-            id = safe.get_path(relation, "data", "id")
-            if type is None or id is None:
+        def get_related(data: JSONData, relation: str) -> Union[None, JSONData]:
+            """Returns related data by looking it up in all the related data included in the page.
+
+            This first looks up the related object in the data provided under the
+            `relationships` key.  Then it uses the `type` and `id` of this key to look up
+            the actual data in `included_relations` which is an index of all related data
+            returned with the page.
+
+            If the `relation` does not exist in `data` then `None` is returned.
+            """
+            rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
+            if rel_ptr_data is None:
+                # The query asks for both the appStoreVersion and preReleaseVersion
+                # relations to be included.  However for each build there is only one of
+                # these that will have the data with type and id, the other will have None
+                # for data.
                 return None
-            return included_relations.get((type, id))
+            rel_type = rel_ptr_data["type"]
+            rel_id = rel_ptr_data["id"]
+            return included_relations[(rel_type, rel_id)]
 
-        for build in safe.get_path(page, "data", default=[]):
-            related_appstore_version = get_related(
-                safe.get_path(build, "relationships", "appStoreVersion")
-            )
-            related_prerelease_version = get_related(
-                safe.get_path(build, "relationships", "preReleaseVersion")
-            )
-            related_version = related_appstore_version or related_prerelease_version
-            if not related_version:
-                logger.error("Missing related version for AppStoreConnect `build`")
-                continue
-            platform = safe.get_path(related_version, "attributes", "platform")
-            version = safe.get_path(related_version, "attributes", "versionString")
-            build_number = safe.get_path(build, "attributes", "version")
-            if platform is not None and version is not None and build_number is not None:
+        for build in page["data"]:
+            try:
+                related_appstore_version = get_related(build, "appStoreVersion")
+                related_prerelease_version = get_related(build, "preReleaseVersion")
+                related_version = related_appstore_version or related_prerelease_version
+                if not related_version:
+                    logger.error("Missing related version for AppStoreConnect `build`")
+                    continue
+                platform = related_version["attributes"]["platform"]
+                version = related_version["attributes"]["version"]
+                build_number = build["attributes"]["version"]
                 result.append(
                     {"platform": platform, "version": version, "build_number": build_number}
                 )
-            else:
-                logger.error("Malformed AppStoreConnect `builds` data")
+            except Exception:
+                logger.error(
+                    "Failed to process AppStoreConnect build from API: %s", build, exc_info=True
+                )
 
     return result
 
