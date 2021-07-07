@@ -9,12 +9,15 @@ import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import {
+  Organization,
   Release,
   ResolutionStatus,
   ResolutionStatusDetails,
   UpdateResolutionStatus,
 } from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {formatVersion} from 'app/utils/formatters';
+import withOrganization from 'app/utils/withOrganization';
 
 import ActionButton from './button';
 import MenuHeader from './menuHeader';
@@ -28,6 +31,7 @@ const defaultProps = {
 };
 
 type Props = {
+  organization: Organization;
   hasRelease: boolean;
   onUpdate: (data: UpdateResolutionStatus) => void;
   orgSlug: string;
@@ -45,9 +49,16 @@ class ResolveActions extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   onCustomResolution(statusDetails: ResolutionStatusDetails) {
-    this.props.onUpdate({
+    const {organization, onUpdate} = this.props;
+    onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
+    });
+    trackAnalyticsEvent({
+      eventKey: 'resolve_issue',
+      eventName: 'Resolve Issue',
+      release: 'anotherExisting',
+      organization_id: organization.id,
     });
   }
 
@@ -77,6 +88,7 @@ class ResolveActions extends React.Component<Props> {
 
   renderDropdownMenu() {
     const {
+      organization,
       projectSlug,
       isResolved,
       hasRelease,
@@ -128,15 +140,21 @@ class ResolveActions extends React.Component<Props> {
         <MenuItemActionLink
           {...actionLinkProps}
           title={t('The next release')}
-          onAction={() =>
+          onAction={() => {
             hasRelease &&
-            onUpdate({
-              status: ResolutionStatus.RESOLVED,
-              statusDetails: {
-                inNextRelease: true,
-              },
-            })
-          }
+              onUpdate({
+                status: ResolutionStatus.RESOLVED,
+                statusDetails: {
+                  inNextRelease: true,
+                },
+              });
+            trackAnalyticsEvent({
+              eventKey: 'resolve_issue',
+              eventName: 'Resolve Issue',
+              release: 'next',
+              organization_id: organization.id,
+            });
+          }}
         >
           <Tooltip disabled={hasRelease} title={actionTitle}>
             {t('The next release')}
@@ -146,15 +164,21 @@ class ResolveActions extends React.Component<Props> {
         <MenuItemActionLink
           {...actionLinkProps}
           title={t('The current release')}
-          onAction={() =>
+          onAction={() => {
             hasRelease &&
-            onUpdate({
-              status: ResolutionStatus.RESOLVED,
-              statusDetails: {
-                inRelease: latestRelease ? latestRelease.version : 'latest',
-              },
-            })
-          }
+              onUpdate({
+                status: ResolutionStatus.RESOLVED,
+                statusDetails: {
+                  inRelease: latestRelease ? latestRelease.version : 'latest',
+                },
+              });
+            trackAnalyticsEvent({
+              eventKey: 'resolve_issue',
+              eventName: 'Resolve Issue',
+              release: 'current',
+              organization_id: organization.id,
+            });
+          }}
         >
           <Tooltip disabled={hasRelease} title={actionTitle}>
             {latestRelease
@@ -165,12 +189,12 @@ class ResolveActions extends React.Component<Props> {
 
         <MenuItemActionLink
           {...actionLinkProps}
-          title={t('Another version')}
+          title={t('Another existing release')}
           onAction={() => hasRelease && this.openCustomReleaseModal()}
           shouldConfirm={false}
         >
           <Tooltip disabled={hasRelease} title={actionTitle}>
-            {t('Another version\u2026')}
+            {t('Another existing release')}
           </Tooltip>
         </MenuItemActionLink>
       </DropdownLink>
@@ -242,4 +266,4 @@ class ResolveActions extends React.Component<Props> {
   }
 }
 
-export default ResolveActions;
+export default withOrganization(ResolveActions);
