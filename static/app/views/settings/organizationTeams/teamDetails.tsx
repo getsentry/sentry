@@ -16,15 +16,17 @@ import NavTabs from 'app/components/navTabs';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t, tct} from 'app/locale';
 import TeamStore from 'app/stores/teamStore';
-import {Team} from 'app/types';
+import {Organization, Team} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 
 type Props = {
   api: Client;
   teams: Team[];
   children: React.ReactNode;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
 type State = {
@@ -136,7 +138,7 @@ class TeamDetails extends React.Component<Props, State> {
   };
 
   render() {
-    const {params, routes, children} = this.props;
+    const {children, organization, params, routes} = this.props;
     const {team, loading, requesting, error} = this.state;
 
     if (loading) {
@@ -202,7 +204,7 @@ class TeamDetails extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withTeams(TeamDetails));
+export default withApi(withOrganization(withTeams(TeamDetails)));
 
 const RequestAccessWrapper = styled('div')`
   display: flex;
