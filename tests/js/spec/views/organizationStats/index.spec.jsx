@@ -135,6 +135,30 @@ describe('OrganizationStats', function () {
     expect(wrapper.find('IconWarning')).toHaveLength(2);
   });
 
+  it('renders with error when user has no access to projects', async function () {
+    MockApiClient.addMockResponse({
+      url: statsUrl,
+      statusCode: 400,
+      body: {
+        detail: 'No projects available',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <OrganizationStats organization={organization} />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.text()).toContain('Organization Usage Stats');
+
+    expect(wrapper.find('UsageTable')).toHaveLength(1);
+    expect(wrapper.find('IconWarning')).toHaveLength(2);
+    expect(wrapper.find('UsageTable').text()).toContain('no projects');
+  });
+
   it('passes state from router down to components', async function () {
     const wrapper = mountWithTheme(
       <OrganizationStats
