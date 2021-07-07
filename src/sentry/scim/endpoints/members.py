@@ -55,7 +55,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 # how okta sets active to false
                 return True
             elif operation["path"] == "active" and operation["value"] is False:
-                # how lumos and other idps set active to false
+                # how other idps set active to false
                 return True
         return False
 
