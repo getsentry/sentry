@@ -273,7 +273,38 @@ class OrganizationReleaseListTest(APITestCase):
         assert [r["version"] for r in response.data] == []
 
     def test_release_stage_filter(self):
-        assert False == True
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted")
+        assert [r["version"] for r in response.data] == []
+
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted")
+        assert [r["version"] for r in response.data] == [adopted_release.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:not_adopted")
+        assert [r["version"] for r in response.data] == [not_adopted_release.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:replaced")
+        assert [r["version"] for r in response.data] == [replaced_release.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,replaced]")
+        assert [r["version"] for r in response.data] == [adopted_release.version, replaced_release.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[not_adopted]")
+        assert [r["version"] for r in response.data] == [not_adopted_release.version]
+
+        # TODO: Test release stage sort here.
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,not_adopted,replaced]", sort="adopted"
+        )
+        assert [r["version"] for r in response.data] == [adopted_release.version, replaced_release.version, not_adopted_release.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:error?")
+        assert [r["version"] for r in response.data] == []    
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
