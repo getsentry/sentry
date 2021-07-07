@@ -3,9 +3,9 @@ import {ColumnType, WebVital} from 'app/utils/discover/fields';
 export type Vital = {
   slug: string;
   name: string;
-  acronym: string;
+  acronym?: string;
   description: string;
-  poorThreshold: number;
+  poorThreshold?: number;
   type: ColumnType;
 };
 

@@ -79,21 +79,41 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
   [MobileVital.AppStartCold]: {
     slug: 'app_start_cold',
     name: t('App Start Cold'),
-    acronym: 'COLD START',
     description: t(
       'Cold start is a measure of the application start up time from scratch.'
     ),
-    poorThreshold: 4000,
     type: measurementType(MobileVital.AppStartCold),
   },
   [MobileVital.AppStartWarm]: {
     slug: 'app_start_warm',
     name: t('App Start Warm'),
-    acronym: 'WARM START',
     description: t(
       'Warm start is a measure of the application start up time while still in memory.'
     ),
-    poorThreshold: 3000,
     type: measurementType(MobileVital.AppStartWarm),
+  },
+  [MobileVital.FramesTotal]: {
+    slug: 'frames_total',
+    name: t('Total Frames'),
+    description: t(
+      'Total frames is a count of the number of frames recorded within a transaction.'
+    ),
+    type: measurementType(MobileVital.FramesTotal),
+  },
+  [MobileVital.FramesSlow]: {
+    slug: 'frames_slow',
+    name: t('Slow Frames'),
+    description: t(
+      'Slow frames is a count of the number of slow frames recorded within a transaction.'
+    ),
+    type: measurementType(MobileVital.FramesSlow),
+  },
+  [MobileVital.FramesFrozen]: {
+    slug: 'frames_frozen',
+    name: t('Frozen Frames'),
+    description: t(
+      'Frozen frames is a count of the number of frozen frames recorded within a transaction.'
+    ),
+    type: measurementType(MobileVital.FramesFrozen),
   },
 };

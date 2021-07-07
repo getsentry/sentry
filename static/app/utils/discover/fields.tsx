@@ -628,6 +628,9 @@ export enum WebVital {
 export enum MobileVital {
   AppStartCold = 'measurements.app_start_cold',
   AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
 }
 
 const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
@@ -640,6 +643,9 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.RequestTime]: 'duration',
   [MobileVital.AppStartCold]: 'duration',
   [MobileVital.AppStartWarm]: 'duration',
+  [MobileVital.FramesTotal]: 'number',
+  [MobileVital.FramesSlow]: 'number',
+  [MobileVital.FramesFrozen]: 'number',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
