@@ -1257,38 +1257,37 @@ class DataPopulation:
                 )
 
             outcome = random.random()
-            if outcome > ind_session_threshold:
-                # send sessions for duration info
-                session_data = {"init": True}
-                self.send_session(
-                    sid, transaction_user["id"], dsn, timestamp, version, **session_data
-                )
-                release_num = int(version.split(".")[-1])
-                threshold = rate_by_release_num[release_num]
-                outcome = random.random()
-                if outcome > threshold:
-                    if error_file:
-                        local_event = copy.deepcopy(error)
-                        local_event.update(
-                            project=project,
-                            platform=project.platform,
-                            timestamp=timestamp,
-                            user=transaction_user,
-                            release=version,
-                        )
-                        update_context(local_event)
-                        self.fix_error_event(local_event)
-                        self.safe_send_event(local_event)
+            if outcome < ind_session_threshold:
+                continue
+            # send sessions for duration info
+            session_data = {"init": True}
+            self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
+            release_num = int(version.split(".")[-1])
+            threshold = rate_by_release_num[release_num]
+            outcome = random.random()
+            if outcome > threshold:
+                if error_file:
+                    local_event = copy.deepcopy(error)
+                    local_event.update(
+                        project=project,
+                        platform=project.platform,
+                        timestamp=timestamp,
+                        user=transaction_user,
+                        release=version,
+                    )
+                    update_context(local_event)
+                    self.fix_error_event(local_event)
+                    self.safe_send_event(local_event)
 
-                    data = {
-                        "status": "crashed",
-                    }
-                else:
-                    data = {
-                        "status": "exited",
-                    }
+                data = {
+                    "status": "crashed",
+                }
+            else:
+                data = {
+                    "status": "exited",
+                }
 
-                self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
+            self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
 
         self.log_info("populate_sessions.end")
 
