@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T14:32:30.365751Z'
+created: '2021-07-07T14:58:13.967606Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -126,7 +126,7 @@ app-depth-5:
           2
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "d23d0dfeac5f1349ceb624b330670b25"
+  hash: "d445cf32e2f1852b18e5df7044450642"
   tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | @callee_guaranteed | stripped_application_code | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
   component:
     app-depth-max*
@@ -165,7 +165,7 @@ app-depth-max:
           frame*
             function*
               "_dispatch_call_block_and_release"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -179,7 +179,7 @@ app-depth-max:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -192,7 +192,7 @@ app-depth-max:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -203,7 +203,7 @@ app-depth-max:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -250,7 +250,7 @@ app-depth-max:
           2
 --------------------------------------------------------------------------
 system:
-  hash: "d23d0dfeac5f1349ceb624b330670b25"
+  hash: "d445cf32e2f1852b18e5df7044450642"
   tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | @callee_guaranteed | stripped_application_code | @callee_guaranteed | @callee_guaranteed | stripped_application_code | stripped_application_code | stripped_application_code | @callee_guaranteed | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
   component:
     system*
@@ -289,7 +289,7 @@ system:
           frame*
             function*
               "_dispatch_call_block_and_release"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -303,7 +303,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -316,7 +316,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -327,7 +327,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*

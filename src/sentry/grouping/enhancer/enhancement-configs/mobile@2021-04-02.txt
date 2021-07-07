@@ -308,6 +308,9 @@ family:native category:system function:_* !function:_purecall category=internals
 family:native category:system function:"<unknown>" category=internals
 family:native function:_INTERNAL* category=internals
 
+# Seen in iOS
+path:"<compiler-generated>" category=internals
+
 # frames with .cold.1 are probably hotpaths vs slow paths but not relevant for grouping
 # e.g., two callstacks that should group together:
 #   foo -> bar
