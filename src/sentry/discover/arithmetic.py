@@ -293,6 +293,7 @@ def resolve_equation_list(
     selected_columns: List[str],
     aggregates_only: Optional[bool] = False,
     auto_add: Optional[bool] = False,
+    plain_math: Optional[bool] = False,
 ) -> Tuple[List[JsonQueryType], List[str]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
@@ -301,12 +302,15 @@ def resolve_equation_list(
         intended for use with event-stats where fields aren't compatible since they change grouping
     :param: auto_add: Optional parameter that will take any fields in the equation that's missing in the
         selected_columns and return a new list with them added
+    :param plain_math: Allow equations that don't include any fields or functions, disabled by default
     """
     resolved_equations = []
     resolved_columns = selected_columns[:]
     for index, equation in enumerate(equations):
         parsed_equation, fields, functions = parse_arithmetic(equation)
 
+        if (len(fields) == 0 and len(functions) == 0) and not plain_math:
+            raise InvalidSearchQuery("Equations need to include a field or function")
         if aggregates_only and len(functions) == 0:
             raise InvalidSearchQuery("Only equations on aggregate functions are supported")
 
