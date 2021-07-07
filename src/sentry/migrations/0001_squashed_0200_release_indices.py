@@ -2237,6 +2237,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -2507,6 +2508,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -2571,13 +2573,17 @@ class Migration(migrations.Migration):
                 (
                     "file",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.File"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.File",
                     ),
                 ),
                 (
                     "project",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Project",
+                        db_constraint=False,
                     ),
                 ),
             ],
@@ -3104,6 +3110,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         to="sentry.Distribution",
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -3115,13 +3122,17 @@ class Migration(migrations.Migration):
                 (
                     "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Organization",
+                        db_constraint=False,
                     ),
                 ),
                 (
                     "release",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Release"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Release",
+                        db_constraint=False,
                     ),
                 ),
             ],
@@ -3564,6 +3575,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -3777,6 +3789,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -3811,6 +3824,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -4330,7 +4344,9 @@ class Migration(migrations.Migration):
             model_name="fileblobowner",
             name="organization",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.Organization",
+                db_constraint=False,
             ),
         ),
         migrations.AddField(
@@ -4389,7 +4405,9 @@ class Migration(migrations.Migration):
             model_name="eventattachment",
             name="file",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.File"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.File",
+                db_constraint=False,
             ),
         ),
         migrations.AddField(
