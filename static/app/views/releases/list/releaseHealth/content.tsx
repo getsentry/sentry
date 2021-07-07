@@ -145,7 +145,7 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
-            const adoptionStage = adoptionStages && adoptionStages[project.slug].stage;
+            const adoptionStage = adoptionStages?.[project.slug]?.stage;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -172,9 +172,9 @@ const Content = ({
                     )}
                   </AdoptionColumn>
 
-                  {adoptionStages && (
+                  {hasAdoptionStages && (
                     <Column>
-                      {adoptionStages[project.slug] ? (
+                      {adoptionStage ? (
                         <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
                           {ADOPTION_STAGE_LABELS[adoptionStage].name}
                         </Tag>
