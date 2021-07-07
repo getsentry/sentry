@@ -152,6 +152,10 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         if not tag_key:
             raise ParseError(detail="'tagKey' must be provided when using histograms.")
 
+        tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
+        if tag_key in tag_aliases:
+            tag_key = tag_aliases.get(tag_key)
+
         def data_fn():
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
