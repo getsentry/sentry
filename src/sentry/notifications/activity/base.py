@@ -137,6 +137,10 @@ class ActivityNotification(BaseNotification, ABC):
     def get_title(self) -> str:
         return self.get_activity_name()
 
+    def get_notification_title(self) -> str:
+        description, params, _ = self.get_description()
+        return self.description_as_text(description, params)
+
     def get_reference(self) -> Any:
         return self.activity
 

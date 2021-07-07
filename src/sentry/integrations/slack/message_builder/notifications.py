@@ -5,6 +5,9 @@ from urllib.parse import urljoin
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.models import Project
+from sentry.notifications.activity import ReleaseActivityNotification
+from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.rules import AlertRuleNotification
 from sentry.utils.http import absolute_uri
@@ -15,11 +18,17 @@ def get_referrer_qstring(notification: BaseNotification) -> str:
 
 
 def get_settings_url(notification: BaseNotification) -> str:
-    return str(
-        urljoin(
-            absolute_uri("/settings/account/notifications/"), get_referrer_qstring(notification)
-        )
-    )
+    if isinstance(notification, ReleaseActivityNotification):
+        fine_tuning = "deploy/"
+    elif isinstance(notification, ActivityNotification):
+        fine_tuning = "workflow/"
+    elif isinstance(notification, AlertRuleNotification):
+        fine_tuning = "alerts/"
+    else:
+        fine_tuning = ""
+
+    url_str = f"/settings/account/notifications/{fine_tuning}"
+    return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 
 def get_group_url(notification: BaseNotification) -> str:
@@ -28,15 +37,12 @@ def get_group_url(notification: BaseNotification) -> str:
 
 def build_notification_footer(notification: BaseNotification) -> str:
     settings_url = get_settings_url(notification)
-
-    if not notification.group:
-        # Groups are not associated with a deploy notification so in this one
-        # case, the footer is different.
+    if isinstance(notification, ReleaseActivityNotification):
+        # temp while I figure out what to put here for deploys
         return f"<{settings_url}|Notification Settings>"
 
-    group_url = get_group_url(notification)
-    short_id = notification.group.qualified_short_id
-    return f"<{group_url}|{short_id}> via <{settings_url}|Notification Settings>"
+    project = Project.objects.get_from_cache(id=notification.group.project_id)
+    return f"{project.slug} | <{settings_url}|Notification Settings>"
 
 
 class SlackNotificationsMessageBuilder(SlackMessageBuilder):
@@ -58,7 +64,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         return self._build(
             footer=build_notification_footer(self.notification),
             text=self.context["text_description"],
-            title=self.notification.get_title(),
+            title=self.notification.get_notification_title(),
         )
 
 

@@ -46,3 +46,6 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "new_processing_issues_activity_email"
+
+    def get_notification_title(self) -> str:
+        return self.get_subject()

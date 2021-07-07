@@ -16,6 +16,11 @@ class NoteActivityNotification(ActivityNotification):
     def get_category(self) -> str:
         return "note_activity_email"
 
+    def get_author(self) -> Any:
+        return self.activity.user.get_display_name()
+
     def get_title(self) -> str:
-        author = self.activity.user.get_display_name()
-        return f"New comment by {author}"
+        return f"New comment by {self.get_author()}"
+
+    def get_notification_title(self) -> str:
+        return f"{self.get_author()} commented on {self.activity.group.qualified_short_id}"

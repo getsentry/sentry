@@ -28,7 +28,6 @@ class ReleaseActivityNotification(ActivityNotification):
         self.email_list: Set[str] = set()
         self.user_ids: Set[int] = set()
         self.deploy = get_deploy(activity)
-
         self.release = get_release(activity, self.organization)
         if not self.release:
             self.repos: Iterable[Mapping[str, Any]] = set()
@@ -102,6 +101,9 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_title(self) -> str:
         return self.get_subject()
+
+    def get_notification_title(self) -> str:
+        return f"Version {self.version} deployed to {self.environment}"
 
     def get_filename(self) -> str:
         return "activity/release"
