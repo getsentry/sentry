@@ -744,8 +744,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           title={
             <span>
               {showEmbeddedChildren
-                ? t('Hide embedded transaction')
-                : t('Show embedded transaction')}
+                ? t('This span is showing a direct child. Collapse to hide.')
+                : t('This span has a direct child. Expand to show.')}
               <FeatureBadge type="alpha" noTooltip />
             </span>
           }

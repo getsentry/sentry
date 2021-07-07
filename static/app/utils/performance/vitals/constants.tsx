@@ -1,5 +1,5 @@
 import {t} from 'app/locale';
-import {measurementType, WebVital} from 'app/utils/discover/fields';
+import {measurementType, MobileVital, WebVital} from 'app/utils/discover/fields';
 import {Vital} from 'app/utils/performance/vitals/types';
 
 export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
@@ -72,5 +72,28 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     ),
     poorThreshold: 600,
     type: measurementType(WebVital.RequestTime),
+  },
+};
+
+export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
+  [MobileVital.AppStartCold]: {
+    slug: 'app_start_cold',
+    name: t('App Start Cold'),
+    acronym: 'COLD START',
+    description: t(
+      'Cold start is a measure of the application start up time from scratch.'
+    ),
+    poorThreshold: 4000,
+    type: measurementType(MobileVital.AppStartCold),
+  },
+  [MobileVital.AppStartWarm]: {
+    slug: 'app_start_warm',
+    name: t('App Start Warm'),
+    acronym: 'WARM START',
+    description: t(
+      'Warm start is a measure of the application start up time while still in memory.'
+    ),
+    poorThreshold: 3000,
+    type: measurementType(MobileVital.AppStartWarm),
   },
 };
