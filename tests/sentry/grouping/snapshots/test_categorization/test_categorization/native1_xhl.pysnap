@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T17:38:01.875479Z'
+created: '2021-07-08T17:52:59.172534Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -22,7 +22,7 @@ source: tests/sentry/grouping/test_categorization.py
         abccore.framework/Versions/A/abccore  boost::function0<T>::~function0 category=indirection
         abccore.framework/Versions/A/abccore  boost::function0<T>::clear category=indirection
         abccore.framework/Versions/A/abccore  boost::detail::function::basic_vtable0<T>::clear category=std
-      /usr/lib/system/libsystem_malloc.dylib  malloc_report category=internals
+      /usr/lib/system/libsystem_malloc.dylib  malloc_report category=malloc
       /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=internals
            /usr/lib/system/libsystem_c.dylib  abort category=throw
            /usr/lib/system/libsystem_c.dylib  __abort category=internals
