@@ -79,13 +79,13 @@ def _compute_tree_label(components: Iterable[GroupingComponent]):
 
     for frame in components:
         if frame.tree_label:
-            tree_label = dict(frame.tree_label)
+            lbl = dict(frame.tree_label)
             if frame.is_sentinel_frame:
-                tree_label["is_sentinel"] = True
+                lbl["is_sentinel"] = True
             if frame.is_prefix_frame:
-                tree_label["is_prefix"] = True
+                lbl["is_prefix"] = True
 
-            tree_label.append(frame.tree_label)
+            tree_label.append(lbl)
 
     # We assume all components are always sorted in the way frames appear in
     # the event (threadbase -> crashing frame). Then we want to show the
