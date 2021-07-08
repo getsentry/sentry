@@ -16,6 +16,8 @@ RELEASE_ALIAS = "release"
 SEMVER_ALIAS = "sentry.semver"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
+MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
+MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay

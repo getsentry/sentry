@@ -4420,3 +4420,52 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
+
+    def test_measurements_frame_rates(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["frames_total"] = {"value": 100}
+        data["measurements"]["frames_slow"] = {"value": 10}
+        data["measurements"]["frames_frozen"] = {"value": 5}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "measurements.frames_slow_rate",
+                "measurements.frames_frozen_rate",
+            ],
+            "query": "",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["measurements.frames_slow_rate"] == 0.1
+        assert data[0]["measurements.frames_frozen_rate"] == 0.05
+        meta = response.data["meta"]
+        assert meta["measurements.frames_slow_rate"] == "percentage"
+        assert meta["measurements.frames_frozen_rate"] == "percentage"
+
+        query = {
+            "field": [
+                "p75(measurements.frames_slow_rate)",
+                "p75(measurements.frames_frozen_rate)",
+                "percentile(measurements.frames_slow_rate,0.5)",
+                "percentile(measurements.frames_frozen_rate,0.5)",
+            ],
+            "query": "",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p75_measurements_frames_slow_rate"] == 0.1
+        assert data[0]["p75_measurements_frames_frozen_rate"] == 0.05
+        assert data[0]["percentile_measurements_frames_slow_rate_0_5"] == 0.1
+        assert data[0]["percentile_measurements_frames_frozen_rate_0_5"] == 0.05
+        meta = response.data["meta"]
+        assert meta["p75_measurements_frames_slow_rate"] == "percentage"
+        assert meta["p75_measurements_frames_frozen_rate"] == "percentage"
+        assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
+        assert meta["percentile_measurements_frames_frozen_rate_0_5"] == "percentage"
