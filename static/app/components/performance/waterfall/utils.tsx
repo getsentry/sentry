@@ -85,11 +85,13 @@ export const getToggleTheme = ({
   isExpanded,
   disabled,
   errored,
+  isSpanGroupToggler,
 }: {
   theme: Theme;
   isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isSpanGroupToggler?: boolean;
 }) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
   const errorTheme = theme.button.danger;
@@ -105,6 +107,15 @@ export const getToggleTheme = ({
       ? errorTheme.background
       : buttonTheme.color
     : buttonTheme.color;
+
+  if (isSpanGroupToggler) {
+    return `
+    background: ${theme.blue300};
+    border: 1px solid ${theme.button.default.border};
+    color: ${color};
+    cursor: default;
+  `;
+  }
 
   if (disabled) {
     return `

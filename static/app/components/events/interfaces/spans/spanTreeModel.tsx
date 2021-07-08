@@ -7,6 +7,7 @@ import {EventTransaction} from 'app/types/event';
 import {ActiveOperationFilter} from './filter';
 import {
   EnhancedProcessedSpanType,
+  EnhancedSpan,
   FetchEmbeddedChildrenState,
   FilterSpans,
   OrphanTreeDepth,
@@ -38,6 +39,7 @@ class SpanTreeModel {
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
   showEmbeddedChildren: boolean = false;
   embeddedChildren: Array<SpanTreeModel> = [];
+  showSpanGroup: boolean = false;
 
   constructor(
     parentSpan: SpanType,
@@ -70,6 +72,8 @@ class SpanTreeModel {
       fetchEmbeddedChildrenState: observable,
       toggleEmbeddedChildren: action,
       fetchEmbeddedTransactions: action,
+      showSpanGroup: observable,
+      toggleSpanGroup: action,
     });
   }
 
@@ -172,6 +176,10 @@ class SpanTreeModel {
     filterSpans: FilterSpans | undefined;
     previousSiblingEndTimestamp: number | undefined;
     event: Readonly<EventTransaction>;
+    isOnlySibling: boolean;
+    spanGrouping: EnhancedSpan[] | undefined;
+    toggleSpanGroup: (() => void) | undefined;
+    showSpanGroup: boolean;
   }): EnhancedProcessedSpanType[] => {
     const {
       operationNameFilters,
@@ -185,15 +193,11 @@ class SpanTreeModel {
       filterSpans,
       previousSiblingEndTimestamp,
       event,
+      isOnlySibling,
+      spanGrouping,
+      toggleSpanGroup,
+      showSpanGroup,
     } = props;
-
-    const treeDepthEntry = isOrphanSpan(this.span)
-      ? ({type: 'orphan', depth: treeDepth} as OrphanTreeDepth)
-      : treeDepth;
-
-    const descendantContinuingTreeDepths = isLastSibling
-      ? continuingTreeDepths
-      : [...continuingTreeDepths, treeDepthEntry];
 
     const parentSpanID = getSpanID(this.span);
     const childSpanGroup = new Set(spanGroups);
@@ -204,6 +208,50 @@ class SpanTreeModel {
       : this.children;
 
     const lastIndex = descendantsSource.length - 1;
+
+    const isNotLastSpanOfGroup =
+      isOnlySibling && !this.isRoot && descendantsSource.length === 1;
+    const shouldGroup = isNotLastSpanOfGroup;
+    const isLastSpanOfGroup =
+      isOnlySibling && !this.isRoot && descendantsSource.length !== 1;
+
+    const wrappedSpan: EnhancedSpan = {
+      type: this.isRoot ? 'root_span' : 'span',
+      span: this.span,
+      numOfSpanChildren: descendantsSource.length,
+      treeDepth,
+      isLastSibling,
+      continuingTreeDepths,
+      fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
+      showEmbeddedChildren: this.showEmbeddedChildren,
+      toggleEmbeddedChildren: this.toggleEmbeddedChildren,
+      spanGrouping:
+        isLastSpanOfGroup && Array.isArray(spanGrouping) ? spanGrouping : undefined,
+      toggleSpanGroup:
+        isLastSpanOfGroup &&
+        Array.isArray(spanGrouping) &&
+        spanGrouping.length &&
+        toggleSpanGroup
+          ? toggleSpanGroup
+          : undefined,
+      showSpanGroup:
+        (toggleSpanGroup === undefined && isLastSpanOfGroup && this.showSpanGroup) ||
+        (toggleSpanGroup !== undefined && isLastSpanOfGroup && showSpanGroup),
+    };
+
+    const treeDepthEntry = isOrphanSpan(this.span)
+      ? ({type: 'orphan', depth: treeDepth} as OrphanTreeDepth)
+      : treeDepth;
+
+    const shouldHideSpanOfGroup =
+      shouldGroup &&
+      ((toggleSpanGroup === undefined && !this.showSpanGroup) ||
+        (toggleSpanGroup !== undefined && !showSpanGroup));
+
+    const descendantContinuingTreeDepths =
+      isLastSibling || shouldHideSpanOfGroup
+        ? continuingTreeDepths
+        : [...continuingTreeDepths, treeDepthEntry];
 
     const {descendants} = descendantsSource.reduce(
       (
@@ -218,7 +266,7 @@ class SpanTreeModel {
           ...span.getSpansList({
             operationNameFilters,
             generateBounds,
-            treeDepth: treeDepth + 1,
+            treeDepth: shouldHideSpanOfGroup ? treeDepth : treeDepth + 1,
             isLastSibling: index === lastIndex,
             continuingTreeDepths: descendantContinuingTreeDepths,
             hiddenSpanGroups,
@@ -226,6 +274,22 @@ class SpanTreeModel {
             filterSpans,
             previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
             event,
+            isOnlySibling: descendantsSource.length === 1,
+            spanGrouping: shouldGroup
+              ? [...(spanGrouping ?? []), wrappedSpan]
+              : undefined,
+            toggleSpanGroup:
+              toggleSpanGroup === undefined && isNotLastSpanOfGroup
+                ? this.toggleSpanGroup
+                : toggleSpanGroup !== undefined && isNotLastSpanOfGroup
+                ? toggleSpanGroup
+                : undefined,
+            showSpanGroup:
+              toggleSpanGroup === undefined && isNotLastSpanOfGroup
+                ? this.showSpanGroup
+                : toggleSpanGroup !== undefined && isNotLastSpanOfGroup
+                ? showSpanGroup
+                : false,
           })
         );
 
@@ -271,17 +335,10 @@ class SpanTreeModel {
       ];
     }
 
-    const wrappedSpan: EnhancedProcessedSpanType = {
-      type: this.isRoot ? 'root_span' : 'span',
-      span: this.span,
-      numOfSpanChildren: descendantsSource.length,
-      treeDepth,
-      isLastSibling,
-      continuingTreeDepths,
-      fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
-      showEmbeddedChildren: this.showEmbeddedChildren,
-      toggleEmbeddedChildren: this.toggleEmbeddedChildren,
-    };
+    if (shouldHideSpanOfGroup) {
+      return [...descendants];
+    }
+
     const gapSpan = this.generateSpanGap(
       event,
       previousSiblingEndTimestamp,
@@ -343,6 +400,10 @@ class SpanTreeModel {
         })
       );
   }
+
+  toggleSpanGroup = () => {
+    this.showSpanGroup = !this.showSpanGroup;
+  };
 }
 
 export default SpanTreeModel;

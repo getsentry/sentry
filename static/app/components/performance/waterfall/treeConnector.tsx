@@ -21,21 +21,31 @@ export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
 type TogglerTypes = OmitHtmlDivProps<{
   hasToggler?: boolean;
   isLast?: boolean;
+  hasCollapsedSpanGroup?: boolean;
 }>;
 
 export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? ROW_HEIGHT / 2 : ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
+  border-left: ${p => {
+    if (p.hasCollapsedSpanGroup) {
+      return 'none';
+    }
+
+    return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border}`;
+  }};
   position: absolute;
   top: 0;
 
   &:before {
     content: '';
     height: 1px;
-    border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-      ${p => p.theme.border};
-
+    border-bottom: ${p => {
+      if (p.hasCollapsedSpanGroup) {
+        return 'none';
+      }
+      return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};`;
+    }};
     width: 100%;
     position: absolute;
     bottom: ${p => (p.isLast ? '0' : '50%')};
@@ -57,6 +67,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isSpanGroupToggler?: boolean;
 }>;
 
 export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`

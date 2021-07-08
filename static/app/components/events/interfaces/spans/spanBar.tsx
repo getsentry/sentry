@@ -117,6 +117,7 @@ type SpanBarProps = {
     | ((props: {orgSlug: string; eventSlug: string}) => void)
     | undefined;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  hasCollapsedSpanGroup: boolean;
 };
 
 type SpanBarState = {
@@ -307,6 +308,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       continuingTreeDepths,
       span,
       showSpanTree,
+      hasCollapsedSpanGroup,
     } = this.props;
 
     const spanID = getSpanID(span);
@@ -352,13 +354,40 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <ConnectorBar
           style={{
             right: '16px',
-            height: '10px',
+            height: `${ROW_HEIGHT / 2}px`,
             bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
-          key={`${spanID}-last`}
+          key={`${spanID}-last-bottom`}
           orphanBranch={false}
         />
+      );
+
+      if (hasCollapsedSpanGroup) {
+        connectorBars.push(
+          <ConnectorBar
+            style={{
+              right: '16px',
+              height: `${ROW_HEIGHT / 2}px`,
+              top: '0',
+            }}
+            key={`${spanID}-last-top`}
+            orphanBranch={false}
+          />
+        );
+      }
+    }
+
+    if (hasCollapsedSpanGroup) {
+      return (
+        <TreeConnector
+          isLast
+          hasToggler={hasToggler}
+          orphanBranch={isOrphanSpan(span)}
+          hasCollapsedSpanGroup
+        >
+          {connectorBars}
+        </TreeConnector>
       );
     }
 
