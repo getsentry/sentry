@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.team import TeamSerializer as TeamWithoutProjectsSerializer
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
@@ -46,7 +47,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         :auth: required
         """
         full = request.GET.get("full", False)
-        serializer = TeamWithProjectsSerializer() if full else TeamSerializer()
+        serializer = TeamWithProjectsSerializer() if full else TeamWithoutProjectsSerializer()
 
         context = serialize(team, request.user, serializer)
         context["organization"] = serialize(team.organization, request.user)
