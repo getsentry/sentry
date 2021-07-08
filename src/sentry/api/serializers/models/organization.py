@@ -322,7 +322,10 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
 
         for project in project_list:
-            project._organization_cache = organization
+            # TODO(joshuarli): Apply this fix wherever else applicable.
+            #                  Haven't yet decided if we want this with 2.0 or
+            #                  get a compat thing in for 1.11.
+            project._meta.get_field("organization").set_cached_value(project, organization)
         return project_list
 
     def _team_list(self, organization, access):
