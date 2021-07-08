@@ -308,6 +308,7 @@ class CreateProject extends React.Component<Props, State> {
             platform={platform}
             defaultCategory={this.defaultCategory}
             setPlatform={this.setPlatform}
+            organization={this.props.organization}
             showOther
           />
           <IssueAlertOptions

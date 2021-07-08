@@ -11,7 +11,6 @@ import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
 import testableTransition from 'app/utils/testableTransition';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -21,19 +20,6 @@ import OnboardingPlatform from './platform';
 import SdkConfiguration from './sdkConfiguration';
 import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
-
-type AnalyticsOpts = {
-  organization: Organization;
-  project: Project | null;
-  step: StepDescriptor;
-};
-
-const recordAnalyticStepComplete = ({organization, project, step}: AnalyticsOpts) =>
-  analytics('onboarding_v2.step_compete', {
-    org_id: parseInt(organization.id, 10),
-    project: project ? project.slug : null,
-    step: step.id,
-  });
 
 const ONBOARDING_STEPS: StepDescriptor[] = [
   {
@@ -127,12 +113,6 @@ class Onboarding extends React.Component<Props, State> {
     const {orgId} = this.props.params;
     const nextStep = this.props.steps[this.activeStepIndex + 1];
 
-    recordAnalyticStepComplete({
-      organization: this.props.organization,
-      project: this.firstProject,
-      step: nextStep,
-    });
-
     browserHistory.push(`/onboarding/${orgId}/${nextStep.id}/`);
   }
 
@@ -169,6 +149,7 @@ class Onboarding extends React.Component<Props, State> {
           platform={this.projectPlatform}
           onComplete={data => this.handleNextStep(step, data)}
           onUpdate={this.handleUpdate}
+          organization={this.props.organization}
         />
       </OnboardingStep>
     );

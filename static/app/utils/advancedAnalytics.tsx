@@ -86,7 +86,6 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
       custom_referrer,
       ...analyticsParams,
     };
-
     if (mapValuesFn) {
       params = mapValuesFn(params) as any;
     }
