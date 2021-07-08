@@ -377,6 +377,36 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1, query_fn
             assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
+    def test_all_aggregates(self):
+        data = load_data("transaction", timestamp=self.two_min_ago)
+        self.store_event(data=data, project_id=self.project.id)
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        txn = self.store_event(data=data, project_id=self.project.id)
+
+        aggregates = [
+            ("count()", "count", 2),
+            ("last_seen()", "last_seen", f"{iso_format(self.one_min_ago)}+00:00"),
+            ("latest_event()", "latest_event", txn.event_id),
+            ("failure_rate()", "failure_rate", 0.5),
+            ("failure_count()", "failure_count", 1),
+        ]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=[aggregate[0] for aggregate in aggregates],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            for function, alias, expected in aggregates:
+                assert data[0][alias] == expected, (query_fn, function)
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],

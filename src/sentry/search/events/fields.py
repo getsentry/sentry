@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Mapping, Optional, Union
+from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -38,10 +38,11 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
-from sentry.search.events.types import SelectType
+from sentry.search.events.types import ParamsType, SelectType
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
+    Dataset,
     get_json_type,
     is_duration_measurement,
     is_measurement,
@@ -457,7 +458,7 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(function, columns):
+def parse_arguments(function: str, columns: str) -> List[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
@@ -2032,6 +2033,17 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
+    def __init__(self, dataset: Dataset, params: ParamsType):
+        super().__init__(dataset, params)
+
+        self.function_converter: Mapping[str, Callable[[str, List[str], str], SelectType]] = {
+            "count": self._resolve_count_function,
+            "last_seen": self._resolve_last_seen_function,
+            "latest_event": self._resolve_latest_event_function,
+            "failure_rate": self._resolve_failure_rate_function,
+            "failure_count": self._resolve_failure_count_function,
+        }
+
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
         if selected_columns is None:
             return []
@@ -2049,8 +2061,8 @@ class QueryFields(QueryBase):
 
     def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
-        if match:
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+        if match is not None:
+            return self.resolve_function(field, match)
 
         if self.is_field_alias(field):
             return self.resolve_field_alias(field)
@@ -2106,3 +2118,87 @@ class QueryFields(QueryBase):
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
         # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+
+    def resolve_function(self, function: str, match: Any) -> SelectType:
+        if function in self.params.get("aliases", {}):
+            raise NotImplementedError(
+                f"function alias: {function} not implemented in snql field parsing yet"
+            )
+
+        function_name, function_arguments, function_aliases = self.parse_function(function, match)
+
+        converter = self.function_converter.get(function_name, self._resolve_unimplemented_function)
+        return converter(function_name, function_arguments, function_aliases)
+
+    def parse_function(
+        self,
+        function: str,
+        match: Optional[Any] = None,
+        err_msg: Optional[str] = None,
+    ) -> Tuple[str, List[str], str]:
+        if not match:
+            match = is_function(function)
+
+        function_name = match.group("function")
+        function_argument_string = match.group("columns")
+        function_alias = match.group("alias")
+
+        if not match or not self.is_valid_function(function_name):
+            if err_msg is None:
+                err_msg = f"{function} is not a valid function"
+            raise InvalidSearchQuery(err_msg)
+
+        function_arguments = parse_arguments(function_name, function_argument_string)
+        if function_alias is None:
+            function_alias = get_function_alias_with_columns(function_name, function_arguments)
+
+        return (function_name, function_arguments, function_alias)
+
+    def is_valid_function(self, function: str) -> bool:
+        return function in self.function_converter
+
+    def _resolve_count_function(self, function: str, _: List[str], alias: str) -> SelectType:
+        return SnqlFunction("count", [], alias)
+
+    def _resolve_last_seen_function(self, function: str, _: List[str], alias: str) -> SelectType:
+        return SnqlFunction("max", [self.column("timestamp")], alias)
+
+    def _resolve_latest_event_function(self, function: str, _: List[str], alias: str) -> SelectType:
+        return SnqlFunction("argMax", [self.column("id"), self.column("timestamp")], alias)
+
+    def _resolve_failure_rate_function(self, function: str, _: List[str], alias: str) -> SelectType:
+        return SnqlFunction("failure_rate", [], alias)
+
+    def _resolve_failure_count_function(
+        self,
+        function: str,
+        _: List[str],
+        alias: str,
+    ) -> SelectType:
+        return SnqlFunction(
+            "countIf",
+            [
+                SnqlFunction(
+                    "notIn",
+                    [
+                        self.column("transaction.status"),
+                        SnqlFunction(
+                            "tuple",
+                            [
+                                SPAN_STATUS_NAME_TO_CODE[name]
+                                for name in ["ok", "cancelled", "unknown"]
+                            ],
+                        ),
+                    ],
+                )
+            ],
+            alias,
+        )
+
+    def _resolve_unimplemented_function(
+        self,
+        function: str,
+        arguments: List[str],
+        alias: str,
+    ) -> SelectType:
+        raise NotImplementedError(f"{function} not implemented in snql field parsing yet")

@@ -76,9 +76,7 @@ class QueryBase:
         return alias in self.field_alias_converter
 
     def resolve_field_alias(self, alias: str) -> SelectType:
-        converter = self.field_alias_converter.get(alias)
-        if not converter:
-            raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
+        converter = self.field_alias_converter.get(alias, self._resolve_unimplemented_alias)
         return converter(alias)
 
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
