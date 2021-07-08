@@ -381,7 +381,7 @@ class OrganizationMember(Model):
         """
         Get a list of members we can contact for an organization through email
         """
-        return cls.objects.filter(
+        return cls.objects.select_related("user").filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
             user__isnull=False,
