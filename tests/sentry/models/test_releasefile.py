@@ -56,8 +56,8 @@ class ReleaseFileTestCase(TestCase):
             ReleaseFile.objects.create(
                 file=file,
                 name=f"dummy-{count}.txt",
-                organization=self.organization,
-                release=self.release,
+                organization_id=self.organization.id,
+                release_id=self.release.id,
                 artifact_count=count,
             )
 

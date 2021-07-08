@@ -7,8 +7,8 @@ import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/grid
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
+import QuestionTooltip from 'app/components/questionTooltip';
 import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -56,13 +56,13 @@ class OperationTitle extends React.Component<TitleProps> {
     return (
       <div onClick={onClick}>
         <span>{t('operation duration')}</span>
-        <Tooltip
+        <StyledIconQuestion
+          size="xs"
+          position="top"
           title={t(
-            'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
+            `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
           )}
-        >
-          <StyledIconQuestion size="xs" color="gray400" />
-        </Tooltip>
+        />
       </div>
     );
   }
@@ -333,9 +333,9 @@ class EventsTable extends React.Component<Props, State> {
   }
 }
 
-const StyledIconQuestion = styled(IconQuestion)`
+const StyledIconQuestion = styled(QuestionTooltip)`
   position: relative;
-  top: 2px;
+  top: 1px;
   left: 4px;
 `;
 
