@@ -44,7 +44,6 @@ const IssueListDisplayOptions = ({
         isActive={key === display}
         disabled={disabled}
       >
-        {key === IssueDisplayOptions.SESSIONS && <FeatureBadge type="beta" noTooltip />}
         <StyledTooltip
           containerDisplayMode="block"
           position="top"
@@ -52,6 +51,7 @@ const IssueListDisplayOptions = ({
           disabled={!tooltipText}
         >
           {getDisplayLabel(key)}
+          {key === IssueDisplayOptions.SESSIONS && <FeatureBadge type="beta" noTooltip />}
         </StyledTooltip>
       </DropdownItem>
     );
