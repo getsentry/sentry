@@ -54,7 +54,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 
             fields = []
             if self.context.get("has_arithmetic"):
-                for field in query_info.get("field", []):
+                for field in base_fields:
                     if is_equation(field):
                         equations.append(strip_equation(field))
                     else:
