@@ -1,0 +1,50 @@
+name: check migration
+on:
+  pull_request:
+    paths:
+      # Matches all python files regardless of directory depth.
+      - '**.py'
+      - requirements*.txt
+      - .github/workflows/check-if-migration-is-required.yml
+      - .github/workflows/scripts/migration-check.sh
+
+jobs:
+  main:
+    name: check migration
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+
+      - name: Migration & lockfile checks
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+          PGPASSWORD: postgres
+        run: |
+          ./.github/workflows/scripts/migration-check.sh

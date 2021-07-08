@@ -1,51 +1,51 @@
-name: symbolicator integration
+name: api docs
+
 on:
   push:
     branches:
       - master
-      - releases/**
+
   pull_request:
+    branches:
+      - master
 
 jobs:
   test:
-    name: symbolicator test
+    name: api docs test
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
 
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
-
-      - name: Check for python file changes
+      - name: Check for python and `api-docs` file changes
         uses: getsentry/paths-filter@v2
         id: changes
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: volta-cli/action@v1
+        if: steps.changes.outputs.api_docs == 'true'
+
       - name: Set python version output
         id: python-version
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           echo "::set-output name=python-version::$(cat .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
 
       - name: pip cache
         uses: actions/cache@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: |
@@ -53,31 +53,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
-      - name: Setup sentry env
+      - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           snuba: true
-          kafka: true
 
-      - name: Start symbolicator
-        if: steps.changes.outputs.backend == 'true'
+      - name: Install Javascript Dependencies
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
-          echo $PWD
-          docker run \
-            -d \
-            -v $PWD/config/symbolicator/:/etc/symbolicator \
-            --network host \
-            --name symbolicator \
-            us.gcr.io/sentryio/symbolicator:nightly \
-            run -c /etc/symbolicator/config.yml
-          docker ps -a
+          cd api-docs && yarn install --frozen-lockfile
 
-      - name: Run test
-        if: steps.changes.outputs.backend == 'true'
+      - name: Run API docs tests
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
-          make test-symbolicator
-
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
+          make test-api-docs

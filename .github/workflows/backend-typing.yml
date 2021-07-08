@@ -1,24 +1,27 @@
-name: symbolicator integration
+name: backend typing
 on:
   push:
     branches:
       - master
-      - releases/**
   pull_request:
 
 jobs:
   test:
-    name: symbolicator test
+    name: backend typing
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 12
+
     steps:
       - uses: actions/checkout@v2
 
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
-
+      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
+      # creates a status check in the "pending" state. This means that the workflow needs to run
+      # for every PR in order to update the status checks.
+      #
+      # In order to optimize CI usage, we want the tests to only run when python files change,
+      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
+      # path filters because entire workflow would be skipped vs skipping individual jobs which
+      # would still allow this status check to pass.
       - name: Check for python file changes
         uses: getsentry/paths-filter@v2
         id: changes
@@ -26,9 +29,9 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      # Until GH composite actions can use `uses`, we need to setup python here
       - name: Set python version output
         id: python-version
+        if: steps.changes.outputs.backend == 'true'
         run: |
           echo "::set-output name=python-version::$(cat .python-version)"
 
@@ -40,8 +43,8 @@ jobs:
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
-        id: pip
         if: steps.changes.outputs.backend == 'true'
+        id: pip
 
       - name: pip cache
         uses: actions/cache@v2
@@ -53,31 +56,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
+      # Since we don't call the setup-sentry action we need to install libxmlsec1-dev
+      - name: Setup backend typing
         if: steps.changes.outputs.backend == 'true'
-        with:
-          snuba: true
-          kafka: true
+        env:
+          SENTRY_LIGHT_BUILD: 1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
+          python setup.py install_egg_info
+          pip install wheel # GitHub Actions does not have `wheel` installed by default
+          pip install -U -e ".[dev]"
 
-      - name: Start symbolicator
+      - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo $PWD
-          docker run \
-            -d \
-            -v $PWD/config/symbolicator/:/etc/symbolicator \
-            --network host \
-            --name symbolicator \
-            us.gcr.io/sentryio/symbolicator:nightly \
-            run -c /etc/symbolicator/config.yml
-          docker ps -a
-
-      - name: Run test
-        if: steps.changes.outputs.backend == 'true'
-        run: |
-          make test-symbolicator
-
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
+          make backend-typing
