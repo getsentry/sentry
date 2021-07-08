@@ -65,7 +65,7 @@ class ReleaseFileDetailsMixin:
         archive_ident = entry["archive_ident"]
 
         # Do not use ReleaseFileCache here, we view download as a singular event
-        archive_file = ReleaseFile.objects.get(release=release, ident=archive_ident)
+        archive_file = ReleaseFile.objects.get(release_id=release.id, ident=archive_ident)
         archive = ZipFile(archive_file.file.getfile())
         fp = archive.open(entry["filename"])
         headers = entry.get("headers", {})
@@ -90,7 +90,7 @@ class ReleaseFileDetailsMixin:
             raise ResourceDoesNotExist
         if isinstance(id, int):
             try:
-                return ReleaseFile.public_objects.get(release=release, id=file_id)
+                return ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
             except ReleaseFile.DoesNotExist:
                 raise ResourceDoesNotExist
         else:
@@ -131,7 +131,7 @@ class ReleaseFileDetailsMixin:
             raise ParseError(INVALID_UPDATE_MESSAGE)
 
         try:
-            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
+            releasefile = ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -160,7 +160,7 @@ class ReleaseFileDetailsMixin:
         releasefile = result
 
         try:
-            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
+            releasefile = ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 

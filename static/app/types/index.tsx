@@ -371,7 +371,7 @@ export type Team = {
 
 export type TeamWithProjects = Team & {projects: Project[]};
 
-export type TreeLabelComponent = {
+export type TreeLabelPart = {
   function?: string;
   package?: string;
   datapath?: (string | number)[];
@@ -389,8 +389,8 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
-  current_tree_label?: TreeLabelComponent[];
-  finest_tree_label?: object[];
+  current_tree_label?: TreeLabelPart[];
+  finest_tree_label?: TreeLabelPart[];
 };
 
 export type EventAttachment = {
@@ -774,14 +774,15 @@ export const DataCategoryName = {
   [DataCategory.ATTACHMENTS]: 'Attachments',
 };
 
-export type EventOrGroupType =
-  | 'error'
-  | 'csp'
-  | 'hpkp'
-  | 'expectct'
-  | 'expectstaple'
-  | 'default'
-  | 'transaction';
+export enum EventOrGroupType {
+  ERROR = 'error',
+  CSP = 'csp',
+  HPKP = 'hpkp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  DEFAULT = 'default',
+  TRANSACTION = 'transaction',
+}
 
 export type InboxReasonDetails = {
   until?: string | null;

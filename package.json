@@ -42,7 +42,7 @@
     "@types/marked": "^0.7.2",
     "@types/papaparse": "^5.2.5",
     "@types/pegjs": "^0.10.2",
-    "@types/react": "~17.0.11",
+    "@types/react": "~17.0.13",
     "@types/react-date-range": "^1.1.4",
     "@types/react-document-title": "^2.0.4",
     "@types/react-dom": "~17.0.8",
@@ -71,7 +71,7 @@
     "css-loader": "^5.2.6",
     "css-minimizer-webpack-plugin": "^3.0.2",
     "diff": "5.0.0",
-    "dompurify": "^2.2.9",
+    "dompurify": "^2.3.0",
     "downsample": "1.4.0",
     "echarts": "4.7.0",
     "echarts-for-react": "2.0.16",
@@ -127,9 +127,8 @@
     "tslib": "^2.3.0",
     "typescript": "^4.3.5",
     "u2f-api": "1.0.10",
-    "webpack": "5.41.1",
+    "webpack": "5.43.0",
     "webpack-cli": "4.7.2",
-    "webpack-manifest-plugin": "^3.1.1",
     "webpack-remove-empty-scripts": "^0.7.1",
     "wink-jaro-distance": "^2.0.0",
     "zxcvbn": "^4.4.2"
@@ -187,7 +186,7 @@
   "resolutions": {
     "**/rrweb": "^0.7.33",
     "**/is-svg": ">=4.2.2",
-    "webpack": "5.41.1",
+    "webpack": "5.43.0",
     "css-loader": "^5.2.6",
     "dotenv-webpack": "^6.0.0",
     "html-webpack-plugin": "^5.0.0",
@@ -220,7 +219,8 @@
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "NODE_ENV=production yarn webpack --mode production",
     "build": "yarn build-production --output-path=public",
-    "validate-api-examples": "yarn install-api-docs && cd api-docs && yarn openapi-examples-validator ./openapi.json --no-additional-properties"
+    "validate-api-examples": "yarn install-api-docs && cd api-docs && yarn openapi-examples-validator ./openapi.json --no-additional-properties",
+    "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost"
   },
   "volta": {
     "node": "12.19.0",

@@ -2289,6 +2289,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -2578,6 +2579,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -2650,7 +2652,9 @@ class Migration(migrations.Migration):
                 (
                     "project",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        to="sentry.Project", null=True
+                        to="sentry.Project",
+                        null=True,
+                        db_constraint=False,
                     ),
                 ),
             ],
@@ -3132,17 +3136,21 @@ class Migration(migrations.Migration):
                 (
                     "dist",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        to="sentry.Distribution", null=True
+                        to="sentry.Distribution", null=True, db_constraint=False
                     ),
                 ),
                 ("file", sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.File")),
                 (
                     "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Organization"),
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        to="sentry.Organization", db_constraint=False
+                    ),
                 ),
                 (
                     "release",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Release"),
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        to="sentry.Release", db_constraint=False
+                    ),
                 ),
             ],
             options={"db_table": "sentry_releasefile"},
@@ -3544,6 +3552,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -3839,6 +3848,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -3873,6 +3883,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -4441,7 +4452,9 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="fileblobowner",
             name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Organization"),
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.Organization", db_constraint=False
+            ),
         ),
         migrations.AddField(
             model_name="file",
@@ -4499,7 +4512,9 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="eventattachment",
             name="file",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.File"),
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.File", db_constraint=False
+            ),
         ),
         migrations.AlterUniqueTogether(name="event", unique_together={("project_id", "event_id")}),
         migrations.AlterIndexTogether(name="event", index_together={("group_id", "datetime")}),
