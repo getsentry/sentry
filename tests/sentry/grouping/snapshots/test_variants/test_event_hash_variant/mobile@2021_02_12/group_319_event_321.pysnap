@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.207087Z'
+created: '2021-07-07T15:30:53.207343Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,7 +32,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "7e64037e487c78ce0439f750a2ef503f"
-  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | gldFlushObject | gliSetInteger | CGLDescribeRenderer | CGLTexImageIOSurface2D | stripped_application_code | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | CA::Layer::display_if_needed | CA::Context::commit_transaction | CA::Transaction::commit | _NSTryRunModal | NSRunAlertPanel | stripped_application_code | stripped_application_code | stripped_application_code | _sigtramp | stripped_application_code | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | SwapFlush | gldPresentFramebufferData | glSwap_Exec | CGLFlushDrawable | -[NSOpenGLContext flushBuffer] | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | -[NSView displayIfNeeded] | stripped_application_code | __NSThreadPerformPerform | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | RunCurrentEventLoopInMode | ReceiveNextEventCommon | _BlockUntilNextEventMatchingListInModeWithFilter | _DPSNextEvent | -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] | -[NSApplication run] | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start"
+  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable | stripped_application_code | -[NSView displayIfNeeded] | stripped_application_code | -[NSApplication run] | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -316,7 +316,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "7e64037e487c78ce0439f750a2ef503f"
-  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | gldFlushObject | gliSetInteger | CGLDescribeRenderer | CGLTexImageIOSurface2D | stripped_application_code | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | CA::Layer::display_if_needed | CA::Context::commit_transaction | CA::Transaction::commit | _NSTryRunModal | NSRunAlertPanel | stripped_application_code | stripped_application_code | stripped_application_code | _sigtramp | stripped_application_code | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | SwapFlush | gldPresentFramebufferData | glSwap_Exec | CGLFlushDrawable | -[NSOpenGLContext flushBuffer] | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | -[NSView displayIfNeeded] | stripped_application_code | __NSThreadPerformPerform | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | RunCurrentEventLoopInMode | ReceiveNextEventCommon | _BlockUntilNextEventMatchingListInModeWithFilter | _DPSNextEvent | -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] | -[NSApplication run] | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start"
+  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable | stripped_application_code | -[NSView displayIfNeeded] | stripped_application_code | -[NSApplication run] | stripped_application_code"
   component:
     system*
       exception*

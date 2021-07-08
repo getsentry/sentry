@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.770925Z'
+created: '2021-07-07T15:30:52.648481Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "3da34e8c72dbcd4a490ac36eb7130638"
-  tree_label: "ImageLoaderMachOCompressed::rebase | ImageLoader::recursiveRebase | ImageLoader::link | dyld::link | dlopen_internal | dlopen | _CFBundleDlfcnLoadBundle | _CFBundleLoadExecutableAndReturnError | CFBundleGetFunctionPointerForName | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start | start"
+  tree_label: "dlopen | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -187,7 +187,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "3da34e8c72dbcd4a490ac36eb7130638"
-  tree_label: "ImageLoaderMachOCompressed::rebase | ImageLoader::recursiveRebase | ImageLoader::link | dyld::link | dlopen_internal | dlopen | _CFBundleDlfcnLoadBundle | _CFBundleLoadExecutableAndReturnError | CFBundleGetFunctionPointerForName | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start | start"
+  tree_label: "dlopen | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*

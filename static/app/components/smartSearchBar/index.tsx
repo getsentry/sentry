@@ -66,7 +66,7 @@ const ACTION_OVERFLOW_STEPS = 75;
 /**
  * Is the SearchItem a default item
  */
-const isDefaultDropdownItem = (item: SearchItem) => item?.type === 'default';
+const isDefaultDropdownItem = (item: SearchItem) => item?.type === ItemType.DEFAULT;
 
 const makeQueryState = (query: string) => ({
   query,
@@ -83,7 +83,7 @@ const generateOpAutocompleteGroup = (
     searchItems: operatorItems,
     recentSearchItems: undefined,
     tagName: '',
-    type: 'tag-operator' as ItemType,
+    type: ItemType.TAG_OPERATOR,
   };
 };
 
@@ -656,7 +656,7 @@ class SmartSearchBar extends React.Component<Props, State> {
             ? `"${value.replace(/"/g, '\\"')}"`
             : value;
 
-        return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
+        return {value: escapedValue, desc: escapedValue, type: ItemType.TAG_VALUE};
       });
     },
     DEFAULT_DEBOUNCE_DURATION,
@@ -673,7 +673,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       .map((value, i) => ({
         value,
         desc: value,
-        type: 'tag-value',
+        type: ItemType.TAG_VALUE,
         ignoreMaxSearchItems: tag.maxSuggestedValues ? i < tag.maxSuggestedValues : false,
       }));
 
@@ -715,7 +715,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       return recentSearches.map(searches => ({
         desc: searches.query,
         value: searches.query,
-        type: 'recent-search',
+        type: ItemType.RECENT_SEARCH,
       }));
     } catch (e) {
       Sentry.captureException(e);
@@ -731,14 +731,14 @@ class SmartSearchBar extends React.Component<Props, State> {
       const tags = this.getPredefinedTagValues(tag, query);
       const tagValues = tags.map<SearchItem>(v => ({
         ...v,
-        type: 'first-release',
+        type: ItemType.FIRST_RELEASE,
       }));
 
       const releases = await releasePromise;
       const releaseValues = releases.map<SearchItem>((r: any) => ({
         value: r.shortVersion,
         desc: r.shortVersion,
-        type: 'first-release',
+        type: ItemType.FIRST_RELEASE,
       }));
 
       return [...tagValues, ...releaseValues];
@@ -790,7 +790,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       searchItems: tagKeys,
       recentSearchItems: recentSearches ?? [],
       tagName,
-      type: 'tag-key' as ItemType,
+      type: ItemType.TAG_KEY,
     };
   }
 
@@ -824,7 +824,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         searchItems: [],
         recentSearchItems: [],
         tagName,
-        type: 'invalid-tag',
+        type: ItemType.INVALID_TAG,
       };
     }
 
@@ -850,7 +850,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       searchItems: tagValues ?? [],
       recentSearchItems: recentSearches ?? [],
       tagName: tag.key,
-      type: 'tag-value',
+      type: ItemType.TAG_VALUE,
     };
   };
 
@@ -867,13 +867,18 @@ class SmartSearchBar extends React.Component<Props, State> {
       const tagKeys = this.getTagKeys('');
       const recentSearches = await this.getRecentSearches();
 
-      this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', 'tag-key');
+      this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', ItemType.TAG_KEY);
       return;
     }
     // cursor on whitespace show default "help" search terms
     this.setState({searchTerm: ''});
 
-    this.updateAutoCompleteState(defaultSearchItems, defaultRecentItems, '', 'default');
+    this.updateAutoCompleteState(
+      defaultSearchItems,
+      defaultRecentItems,
+      '',
+      ItemType.DEFAULT
+    );
     return;
   };
 
@@ -1009,7 +1014,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         autoCompleteItems,
         recentSearches ?? [],
         matchValue,
-        'tag-key'
+        ItemType.TAG_KEY
       );
       return;
     }
@@ -1105,6 +1110,21 @@ class SmartSearchBar extends React.Component<Props, State> {
     this.setState(searchGroups);
   };
 
+  updateQuery = (newQuery: string, cursorPosition?: number) =>
+    this.setState(makeQueryState(newQuery), () => {
+      // setting a new input value will lose focus; restore it
+      if (this.searchInput.current) {
+        this.searchInput.current.focus();
+        if (cursorPosition) {
+          this.searchInput.current.selectionStart = cursorPosition;
+          this.searchInput.current.selectionEnd = cursorPosition;
+        }
+      }
+      // then update the autocomplete box with new items
+      this.updateAutoCompleteItems();
+      this.props.onChange?.(newQuery, new MouseEvent('click') as any);
+    });
+
   onAutoCompleteFromAst = (replaceText: string, item: SearchItem) => {
     const cursor = this.getCursorPosition();
     const {parsedQuery, query} = this.state;
@@ -1112,7 +1132,9 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
     const cursorToken = this.getCursorToken(parsedQuery, cursor);
+
     if (!cursorToken) {
+      this.updateQuery(`${query}${replaceText}`);
       return;
     }
 
@@ -1122,7 +1144,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     // the new text that will exist between clauseStart and clauseEnd
     let replaceToken = replaceText;
     if (cursorToken.type === Token.Filter) {
-      if (item.type === 'tag-operator') {
+      if (item.type === ItemType.TAG_OPERATOR) {
         const valueLocation = cursorToken.value.location;
         clauseStart = cursorToken.location.start.offset;
         clauseEnd = valueLocation.start.offset;
@@ -1136,7 +1158,8 @@ class SmartSearchBar extends React.Component<Props, State> {
         const keyLocation = cursorToken.key.location;
         // Include everything after the ':'
         clauseStart = keyLocation.end.offset + 1;
-        clauseEnd = location.end.offset;
+        clauseEnd = location.end.offset + 1;
+        replaceToken += ' ';
       } else if (isWithinToken(cursorToken.key, cursor)) {
         const location = cursorToken.key.location;
         clauseStart = location.start.offset;
@@ -1154,24 +1177,12 @@ class SmartSearchBar extends React.Component<Props, State> {
       const beforeClause = query.substring(0, clauseStart);
       const endClause = query.substring(clauseEnd);
       const newQuery = `${beforeClause}${replaceToken}${endClause}`;
-      this.setState(makeQueryState(newQuery), () => {
-        // setting a new input value will lose focus; restore it
-        if (this.searchInput.current) {
-          this.searchInput.current.focus();
-          // set cursor to be end of the autocomplete clause
-          const newCursorPosition = beforeClause.length + replaceToken.length;
-          this.searchInput.current.selectionStart = newCursorPosition;
-          this.searchInput.current.selectionEnd = newCursorPosition;
-        }
-        // then update the autocomplete box with new items
-        this.updateAutoCompleteItems();
-        this.props.onChange?.(newQuery, new MouseEvent('click') as any);
-      });
+      this.updateQuery(newQuery, beforeClause.length + replaceToken.length);
     }
   };
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
-    if (item.type === 'recent-search') {
+    if (item.type === ItemType.RECENT_SEARCH) {
       trackAnalyticsEvent({
         eventKey: 'search.searched',
         eventName: 'Search: Performed search',
@@ -1203,9 +1214,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     let newQuery: string;
 
     // If not postfixed with : (tag value), add trailing space
-    replaceText += item.type !== 'tag-value' || cursor < query.length ? '' : ' ';
+    replaceText += item.type !== ItemType.TAG_VALUE || cursor < query.length ? '' : ' ';
 
-    const isNewTerm = query.charAt(query.length - 1) === ' ' && item.type !== 'tag-value';
+    const isNewTerm =
+      query.charAt(query.length - 1) === ' ' && item.type !== ItemType.TAG_VALUE;
 
     if (!terms) {
       newQuery = replaceText;
@@ -1240,16 +1252,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
-    this.setState(makeQueryState(newQuery), () => {
-      // setting a new input value will lose focus; restore it
-      if (this.searchInput.current) {
-        this.searchInput.current.focus();
-      }
-
-      // then update the autocomplete box with new items
-      this.updateAutoCompleteItems();
-      this.props.onChange?.(newQuery, new MouseEvent('click') as any);
-    });
+    this.updateQuery(newQuery);
   };
 
   render() {
