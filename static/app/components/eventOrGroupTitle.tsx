@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -52,11 +53,11 @@ function EventOrGroupTitle({
         </StacktracePreview>
       </GuideAnchor>
       {subtitle && (
-        <div>
+        <Fragment>
           <Spacer />
           <Subtitle title={subtitle}>{subtitle}</Subtitle>
           <br />
-        </div>
+        </Fragment>
       )}
     </span>
   );
