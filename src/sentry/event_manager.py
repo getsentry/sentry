@@ -993,8 +993,12 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
             project=project, hash=root_hierarchical_hash
         )[0]
 
-        metadata["current_tree_label"] = hashes.current_tree_label_from_hash(
-            existing_grouphash.hash if existing_grouphash is not None else root_hierarchical_hash
+        metadata.update(
+            hashes.group_metadata_from_hash(
+                existing_grouphash.hash
+                if existing_grouphash is not None
+                else root_hierarchical_hash
+            )
         )
 
     else:

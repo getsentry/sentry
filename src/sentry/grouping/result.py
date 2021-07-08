@@ -87,8 +87,12 @@ class CalculatedHashes:
         except IndexError:
             return None
 
-    def current_tree_label_from_hash(self, hash: str) -> Optional[TreeLabel]:
+    def group_metadata_from_hash(self, hash: str) -> Dict[str, Any]:
         try:
-            return _strip_tree_label(self.tree_labels[self.hierarchical_hashes.index(hash)])
+            i = self.hierarchical_hashes.index(hash)
+            return {
+                "current_level": i,
+                "current_tree_label": _strip_tree_label(self.tree_labels[i]),
+            }
         except (IndexError, ValueError):
-            return None
+            return {}
