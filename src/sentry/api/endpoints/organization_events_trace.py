@@ -1,6 +1,7 @@
 import logging
 from collections import OrderedDict, defaultdict, deque
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Deque,
@@ -28,13 +29,20 @@ from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
 from sentry.models import Organization
 from sentry.snuba import discover
-from sentry.types.utils import TypedDict
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query
 from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
+
+# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
+if TYPE_CHECKING:
+    from mypy_extensions import TypedDict
+else:
+
+    def TypedDict(*args, **kwargs):
+        pass
 
 
 _T = TypeVar("_T")

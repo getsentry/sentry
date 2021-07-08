@@ -1,8 +1,16 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
 
-from sentry.types.utils import TypedDict
 from sentry.utils.safe import get_path, safe_execute, set_path
+
+# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
+if TYPE_CHECKING:
+    from mypy_extensions import TypedDict
+else:
+
+    def TypedDict(*args, **kwargs):
+        pass
+
 
 TreeLabelPart = TypedDict(
     "TreeLabelPart",
