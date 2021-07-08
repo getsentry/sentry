@@ -321,6 +321,25 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'percentage_based_alerts',
+      requiredTargets: ['percentage_based_alerts'],
+      steps: [
+        {
+          title: t('Percentage Based Alerts'),
+          target: 'percentage_based_alerts',
+          description: tct(
+            'View the event count as a percentage of sessions and alert on this number to adapt to changes in traffic patterns. [link:View the docs] to learn more.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/#when-conditions-triggers" />
+              ),
+            }
+          ),
+          nextText: t('Thank you but please go away'),
+        },
+      ],
+    },
   ];
 }
 
