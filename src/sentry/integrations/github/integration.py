@@ -264,8 +264,17 @@ class GitHubInstallationRedirect(PipelineView):
                 ).exists()
 
                 if installations_exist:
+                    context = {
+                        "payload": {
+                            "success": False,
+                            "data": {
+                                "error": _("Github installed on another Sentry organization.")
+                            },
+                        }
+                    }
                     return render_to_response(
                         "sentry/integrations/github-integration-exists-on-another-org.html",
+                        context=context,
                         request=request,
                     )
 
