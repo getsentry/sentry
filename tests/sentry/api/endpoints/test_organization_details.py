@@ -88,13 +88,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 36
-
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
-        expected_queries += 1
-
-        # TODO(joshuarli): Subquery escaped in Django 2.0.
-        expected_queries += 1
+        expected_queries = 38
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
