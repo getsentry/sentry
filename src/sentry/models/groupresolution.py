@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.models.release import DB_VERSION_LENGTH
 
 
 class GroupResolution(Model):
@@ -24,6 +25,11 @@ class GroupResolution(Model):
     # the release in which its suggested this was resolved
     # which allows us to indicate if it still happens in newer versions
     release = FlexibleForeignKey("sentry.Release")
+    # This release field represents the release version of the bug when the user clicked on the
+    # "resolve in next release" button
+    # This column is specifically added for semver release comparison to be able to compare this
+    # semver release against "future/resolved" semver releases
+    current_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     type = BoundedPositiveIntegerField(
         choices=((Type.in_next_release, "in_next_release"), (Type.in_release, "in_release")),
         null=True,
