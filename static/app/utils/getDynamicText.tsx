@@ -1,4 +1,4 @@
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {IS_ACCEPTANCE_TEST, IS_TEST_ENV} from 'app/constants';
 
 /**
  * Return a specified "fixed" string when we are in a testing environment
@@ -7,9 +7,11 @@ import {IS_ACCEPTANCE_TEST} from 'app/constants';
 export default function getDynamicText<Value, Fixed = Value>({
   value,
   fixed,
+  inTestEnv,
 }: {
   value: Value;
   fixed: Fixed;
+  inTestEnv?: boolean;
 }): Value | Fixed {
-  return IS_ACCEPTANCE_TEST ? fixed : value;
+  return IS_ACCEPTANCE_TEST || (inTestEnv && IS_TEST_ENV) ? fixed : value;
 }
