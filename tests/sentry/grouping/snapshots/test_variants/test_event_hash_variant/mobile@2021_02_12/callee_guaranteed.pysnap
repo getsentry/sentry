@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:52.915206Z'
+created: '2021-07-08T10:36:06.730608Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,21 +20,18 @@ app-depth-1:
           2
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "a751219c9a247870dc2c39eb941ccbae"
-  tree_label: "UIApplicationMain | stripped_application_code | start"
+  hash: "2ecf772c4321a58364d53670ddd82bad"
+  tree_label: "stripped_application_code | stripped_application_code"
   component:
     app-depth-2*
       exception*
         stacktrace*
           frame*
             function*
-              "start"
-          frame*
-            function*
               "stripped_application_code"
           frame*
             function*
-              "UIApplicationMain"
+              "stripped_application_code"
         type*
           "<redacted>"
         ns-error*
@@ -42,24 +39,21 @@ app-depth-2:
           2
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "30bd43e6f460af376b71818c2f26bf6e"
-  tree_label: "-[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  hash: "4ef1fb44d656c3be2a146971f2a222dc"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-3*
       exception*
         stacktrace*
           frame*
             function*
-              "start"
+              "stripped_application_code"
           frame*
             function*
               "stripped_application_code"
           frame*
             function*
-              "UIApplicationMain"
-          frame*
-            function*
-              "-[UIApplication _run]"
+              "stripped_application_code"
         type*
           "<redacted>"
         ns-error*
@@ -67,58 +61,24 @@ app-depth-3:
           2
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "4ef2ef87e6434061724bf817d8df3651"
-  tree_label: "GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  hash: "0211daaed35e19ba74b4d6f08cd00fef"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-4*
       exception*
         stacktrace*
           frame*
             function*
-              "start"
+              "stripped_application_code"
           frame*
             function*
               "stripped_application_code"
           frame*
             function*
-              "UIApplicationMain"
-          frame*
-            function*
-              "-[UIApplication _run]"
-          frame*
-            function*
-              "GSEventRunModal"
-        type*
-          "<redacted>"
-        ns-error*
-          "<redacted>"
-          2
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "8a75b0c4742215529fe705e301997038"
-  tree_label: "CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "start"
-          frame*
-            function*
               "stripped_application_code"
           frame*
             function*
-              "UIApplicationMain"
-          frame*
-            function*
-              "-[UIApplication _run]"
-          frame*
-            function*
-              "GSEventRunModal"
-          frame*
-            function*
-              "CFRunLoopRunSpecific"
+              "stripped_application_code"
         type*
           "<redacted>"
         ns-error*
@@ -126,47 +86,47 @@ app-depth-5:
           2
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "d445cf32e2f1852b18e5df7044450642"
-  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  hash: "0211daaed35e19ba74b4d6f08cd00fef"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "-[UIApplication _run]"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "GSEventRunModal"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "CFRunLoopRunSpecific"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRunLoopRun"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_main_queue_callback_4CF"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_call_block_and_release"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -180,12 +140,12 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -193,7 +153,7 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -204,27 +164,27 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -250,47 +210,47 @@ app-depth-max:
           2
 --------------------------------------------------------------------------
 system:
-  hash: "d445cf32e2f1852b18e5df7044450642"
-  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | _dispatch_call_block_and_release | _dispatch_client_callout | _dispatch_main_queue_callback_4CF | __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ | __CFRunLoopRun | CFRunLoopRunSpecific | GSEventRunModal | -[UIApplication _run] | UIApplicationMain | stripped_application_code | start"
+  hash: "0211daaed35e19ba74b4d6f08cd00fef"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "-[UIApplication _run]"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "GSEventRunModal"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "CFRunLoopRunSpecific"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRunLoopRun"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_main_queue_callback_4CF"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_call_block_and_release"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -304,12 +264,12 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -317,7 +277,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -328,27 +288,27 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "@callee_guaranteed"

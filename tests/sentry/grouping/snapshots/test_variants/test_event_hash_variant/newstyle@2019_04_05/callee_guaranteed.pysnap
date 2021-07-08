@@ -1,10 +1,10 @@
 ---
-created: '2021-07-07T14:32:31.658783Z'
+created: '2021-07-08T10:36:07.502100Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "64a296f402e1b70b6e3eea25b25a9d2c"
+  hash: "e2ea2eb86d26407f06b59beb3a444c91"
   component:
     app*
       exception*
@@ -45,8 +45,8 @@ app:
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame*
             function*
               "stripped_application_code"
@@ -59,21 +59,21 @@ app:
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "partial apply for thunk for @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (non app frame)
             function*
               "stripped_application_code"
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame*
             function*
               "stripped_application_code"
@@ -83,28 +83,28 @@ app:
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed (@guaranteed stripped_application_code) -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame*
             function*
               "stripped_application_code"
@@ -127,7 +127,7 @@ app:
           2
 --------------------------------------------------------------------------
 system:
-  hash: "fd93515397d5e7d0b25832f105d9b653"
+  hash: "d23d0dfeac5f1349ceb624b330670b25"
   component:
     system*
       exception*
@@ -168,8 +168,8 @@ system:
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame*
             function*
               "stripped_application_code"
@@ -182,21 +182,21 @@ system:
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "partial apply for thunk for @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame*
             function*
               "stripped_application_code"
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed () -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame*
             function*
               "stripped_application_code"
@@ -206,28 +206,28 @@ system:
           frame*
             filename*
               "<compiler-generated>"
-            function*
-              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
-            function*
-              "thunk for @escaping @callee_guaranteed (@guaranteed stripped_application_code) -> ()"
+            function* (isolated function)
+              "@callee_guaranteed"
           frame*
             function*
               "stripped_application_code"
