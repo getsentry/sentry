@@ -34,16 +34,16 @@ class SlackClient(ApiClient):
         # If Slack gives us back a 200 we still want to check the 'ok' param
         if resp:
             content_type = resp.headers["content-type"]
-            if content_type == "application/json":
+            if content_type == "text/html":
+                is_ok = str(resp.content) == "ok"
+                # If there is an error, Slack just makes the error the entire response.
+                error_option = resp.content
+
+            else:
+                # The content-type should be "application/json" at this point but we don't check.
                 response = resp.json()
                 is_ok = response.get("ok")
                 error_option = response.get("error")
-
-            else:
-                # The content-type should be "text/html" at this point but we don't check.
-                is_ok = str(resp.content) == "ok"
-                # If there is an error, slack just makes the error the entire response.
-                error_option = resp.content
 
             span.set_tag("ok", is_ok)
 
