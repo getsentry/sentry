@@ -18,6 +18,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.types import ParamsType, SelectType, WhereType
@@ -51,6 +52,7 @@ class QueryBase:
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
+            TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
             # TODO: implement these
             ERROR_UNHANDLED_ALIAS: self._resolve_unimplemented_alias,
             KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
@@ -119,6 +121,10 @@ class QueryBase:
     def _resolve_user_display_alias(self, _: str) -> SelectType:
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
+
+    def _resolve_transaction_status(self, _: str) -> SelectType:
+        column = self.column(TRANSACTION_STATUS_ALIAS)
+        return Function("coalesce", [column], TRANSACTION_STATUS_ALIAS)
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.

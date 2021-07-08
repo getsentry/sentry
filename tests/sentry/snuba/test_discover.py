@@ -377,6 +377,68 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1, query_fn
             assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
+    def test_transaction_status(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/success"
+        data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/aborted"
+        data["contexts"]["trace"]["status"] = "aborted"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/already_exists"
+        data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(data, project_id=self.project.id)
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["transaction.status"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3
+            assert {
+                data[0]["transaction.status"],
+                data[1]["transaction.status"],
+                data[2]["transaction.status"],
+            } == {0, 10, 6}
+
+    def test_transaction_status_filter(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/success"
+        data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/already_exists"
+        data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(data, project_id=self.project.id)
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["transaction.status"],
+                query="has:transaction.status transaction.status:ok",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 2, query_fn
+            assert [item["transaction.status"] for item in data] == [0, 0]
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],

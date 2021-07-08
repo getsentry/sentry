@@ -40,6 +40,7 @@ from sentry.search.events.constants import (
     SEMVER_MAX_SEARCH_RELEASES,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
@@ -466,7 +467,7 @@ key_conversion_map: Mapping[
 ] = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
-    "transaction.status": _transaction_status_filter_converter,
+    TRANSACTION_STATUS_ALIAS: _transaction_status_filter_converter,
     "issue.id": _issue_id_filter_converter,
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
@@ -923,6 +924,7 @@ class QueryFilter(QueryBase):
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
+            TRANSACTION_STATUS_ALIAS: self._transaction_status_filter_converter,
         }
 
     def resolve_where(self, query: Optional[str]) -> List[WhereType]:
@@ -1127,5 +1129,19 @@ class QueryFilter(QueryBase):
                 SearchKey("issue.id"),
                 operator,
                 SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
+            )
+        )
+
+    def _transaction_status_filter_converter(
+        self, search_filter: SearchFilter
+    ) -> Optional[WhereType]:
+        converted = _transaction_status_filter_converter(
+            search_filter, search_filter.key.name, self.params
+        )
+        return self._default_filter_converter(
+            SearchFilter(
+                SearchKey("transaction.status"),
+                converted[1],
+                SearchValue(converted[2]),
             )
         )
