@@ -86,11 +86,11 @@ const Content = ({
           {adoptionStages && (
             <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
           )}
-          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
             <HealthStatsPeriod location={location} />
           </CountColumn>
+          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
           <ViewColumn />
@@ -189,16 +189,6 @@ const Content = ({
                     </AdoptionStageColumn>
                   )}
 
-                  <CrashFreeRateColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeRate) ? (
-                      <CrashFree percent={crashFreeRate} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeRateColumn>
-
                   <CountColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder />
@@ -214,6 +204,16 @@ const Content = ({
                       <NotAvailable />
                     )}
                   </CountColumn>
+
+                  <CrashFreeRateColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="60px" />
+                    ) : defined(crashFreeRate) ? (
+                      <CrashFree percent={crashFreeRate} />
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </CrashFreeRateColumn>
 
                   <CrashesColumn>
                     {showPlaceholders ? (
@@ -384,6 +384,10 @@ const AdoptionWrapper = styled('span')`
 const CrashFreeRateColumn = styled(Column)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: center;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    text-align: right;
   }
 `;
 
