@@ -227,13 +227,13 @@ def track_enhancers_coverage():
                 # they should not be written back, but we should also not
                 # count removing them as modification
                 category = None
-                if frame["data"]:
+                if frame.get("data"):
                     category = frame["data"].pop("category", None)
                     frame.pop("in_app", None)
                     frame["data"].pop("orig_in_app", None)
 
-                if not frame["data"]:
-                    del frame["data"]
+                if not frame.get("data"):
+                    frame.pop("data", None)
 
                 modified |= _strip_sensitive_keys(
                     frame, ["package", "filename", "function", "abs_path", "module"]

@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.684522Z'
+created: '2021-07-07T15:30:53.122858Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -197,7 +197,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
-  tree_label: "ih | Xg | Yg | tag | enqueueSetState | setState | promiseReactionJob"
+  tree_label: "ih | Xg | Yg | tag | enqueueSetState | setState"
   component:
     app-depth-max*
       exception*
@@ -340,7 +340,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
-  tree_label: "ih | Xg | Yg | tag | enqueueSetState | setState | promiseReactionJob"
+  tree_label: "ih | Xg | Yg | tag | enqueueSetState | setState"
   component:
     system*
       exception*

@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.372623Z'
+created: '2021-07-07T15:30:53.473073Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -170,7 +170,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "b2602ad455472dede8e4c340d8a7eaba"
-  tree_label: "aha | callAnotherThing | callback | test/< | test | eval | aha | testMethod"
+  tree_label: "aha | callAnotherThing | callback | test/< | test | aha | testMethod"
   component:
     app-depth-max*
       exception*
@@ -243,7 +243,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "b2602ad455472dede8e4c340d8a7eaba"
-  tree_label: "aha | callAnotherThing | callback | test/< | test | eval | aha | testMethod"
+  tree_label: "aha | callAnotherThing | callback | test/< | test | aha | testMethod"
   component:
     system*
       exception*

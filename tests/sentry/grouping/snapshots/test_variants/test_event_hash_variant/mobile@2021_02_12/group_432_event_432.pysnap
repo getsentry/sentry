@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:43:59.703871Z'
+created: '2021-07-07T15:30:52.704892Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "28f1b76e3bcdfa5e5e1671e6a919a506"
-  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | RtlpTpWorkCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
   component:
     app-depth-max*
       exception*
@@ -163,7 +163,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "28f1b76e3bcdfa5e5e1671e6a919a506"
-  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | RtlpTpWorkCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
   component:
     system*
       exception*

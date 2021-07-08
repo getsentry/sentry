@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:38.641305Z'
+created: '2021-07-08T10:29:50.067363Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -9,7 +9,7 @@ EXC_BAD_ACCESS:sharedApplication >
 Attempted to dereference garbage pointer 0xcd. (thread_id:_, crashed:_)
                                               stripped_application_code
                                               stripped_application_code
-                                   UIKitCore  UIApplicationMain category=ui
+                                   UIKitCore  UIApplicationMain category=threadbase
                                               stripped_application_code
                               CoreFoundation  CFRunLoopRunSpecific category=indirection
                               CoreFoundation  __CFRunLoopRun category=internals

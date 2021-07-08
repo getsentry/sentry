@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:40.080860Z'
+created: '2021-07-08T10:29:50.874649Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,8 +8,8 @@ source: tests/sentry/grouping/test_categorization.py
 EXC_BREAKPOINT:Exception 6, Code 2716049136, Subcode 8 (thread_id:_, crashed:_)
                                               stripped_application_code
                                               stripped_application_code
-                                   UIKitCore  UIApplicationMain category=ui
-                                   UIKitCore  -[UIApplication _run] category=internals
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
                                               stripped_application_code
                               CoreFoundation  CFRunLoopRunSpecific category=indirection
                               CoreFoundation  __CFRunLoopRun category=internals

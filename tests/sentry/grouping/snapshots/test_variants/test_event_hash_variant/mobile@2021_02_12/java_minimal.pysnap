@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:43:59.513294Z'
+created: '2021-07-07T15:30:52.589885Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -170,7 +170,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "12f3d3df2e7804af98f4b56c602d17b0"
-  tree_label: "home | invoke0 | invoke | invoke | invoke | doInvoke | invokeForRequest | invokeAndHandle | invokeHandlerMethod | handleInternal | handle | doDispatch | doService | processRequest | doGet | service | service | service | internalDoFilter | doFilter | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | invoke | invoke | invoke | invoke | invoke | invoke | service | service | process | process | doRun | run | runWorker | run | run | run"
+  tree_label: "home | invoke0 | invoke | invoke | doInvoke | invokeForRequest | invokeAndHandle | invokeHandlerMethod | handleInternal | handle | doDispatch | doService | processRequest | doGet | service | service | service | internalDoFilter | doFilter | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | invoke | invoke | invoke | invoke | invoke | invoke | service | service | process | process | doRun | run"
   component:
     app-depth-max*
       exception*
@@ -574,7 +574,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "12f3d3df2e7804af98f4b56c602d17b0"
-  tree_label: "home | invoke0 | invoke | invoke | invoke | doInvoke | invokeForRequest | invokeAndHandle | invokeHandlerMethod | handleInternal | handle | doDispatch | doService | processRequest | doGet | service | service | service | internalDoFilter | doFilter | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | invoke | invoke | invoke | invoke | invoke | invoke | service | service | process | process | doRun | run | runWorker | run | run | run"
+  tree_label: "home | invoke0 | invoke | invoke | doInvoke | invokeForRequest | invokeAndHandle | invokeHandlerMethod | handleInternal | handle | doDispatch | doService | processRequest | doGet | service | service | service | internalDoFilter | doFilter | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | invoke | invoke | invoke | invoke | invoke | invoke | service | service | process | process | doRun | run"
   component:
     system*
       exception*

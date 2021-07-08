@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.689171Z'
+created: '2021-07-07T15:30:53.770188Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -145,7 +145,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "894c3489e2ade384dc107bca6829d134"
-  tree_label: "throwError | recurFunc | recurFunc | recurFunc | recurFunc | normalFunc | main"
+  tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
   component:
     app-depth-max*
       stacktrace*
@@ -201,7 +201,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "894c3489e2ade384dc107bca6829d134"
-  tree_label: "throwError | recurFunc | recurFunc | recurFunc | recurFunc | normalFunc | main"
+  tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
   component:
     system*
       stacktrace*

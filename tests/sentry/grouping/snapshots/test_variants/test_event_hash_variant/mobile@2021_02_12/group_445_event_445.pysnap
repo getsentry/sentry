@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.302554Z'
+created: '2021-07-07T15:30:52.309356Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
-  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | _purecall | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | UserCallWinProcCheckWow | DispatchMessageWorker | stripped_application_code | std::_Func_class<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::basic_string<T>::_Reallocate_for | std::basic_string<T>::assign | std::basic_string<T>::assign | std::basic_string<T>::{ctor} | wWinMain | invoke_main | stripped_application_code | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
   component:
     app-depth-max*
       exception*
@@ -186,7 +186,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
-  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | _purecall | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | UserCallWinProcCheckWow | DispatchMessageWorker | stripped_application_code | std::_Func_class<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::basic_string<T>::_Reallocate_for | std::basic_string<T>::assign | std::basic_string<T>::assign | std::basic_string<T>::{ctor} | wWinMain | invoke_main | stripped_application_code | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
   component:
     system*
       exception*

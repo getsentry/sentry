@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:40.539964Z'
+created: '2021-07-08T10:29:51.852457Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,7 +8,7 @@ source: tests/sentry/grouping/test_categorization.py
 NSInvalidArgumentException:+[UIColor systemBackgroundColor]: unrecognized selector sent to class 0x1baf0e158 (thread_id:_, crashed:_)
                                               stripped_application_code
                                               stripped_application_code
-                                   UIKitCore  UIApplicationMain category=ui
+                                   UIKitCore  UIApplicationMain category=threadbase
                                               stripped_application_code
                               CoreFoundation  CFRunLoopRunSpecific category=indirection
                               CoreFoundation  __CFRunLoopRun category=internals
