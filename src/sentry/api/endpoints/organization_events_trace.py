@@ -1,7 +1,6 @@
 import logging
 from collections import OrderedDict, defaultdict, deque
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Deque,
