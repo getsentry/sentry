@@ -19,6 +19,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'app/utils/discover/eventView';
+import {fieldAlignment} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import SegmentExplorerQuery, {
   TableData,
@@ -228,6 +229,7 @@ class _TagExplorer extends React.Component<Props> {
     columnInfo: TagColumn
   ): React.ReactNode {
     const {location} = this.props;
+    const align = fieldAlignment(column.key, column.type, tableMeta);
     const field = {field: column.key, width: column.width};
 
     function generateSortLink(): LocationDescriptorObject | undefined {
@@ -251,7 +253,7 @@ class _TagExplorer extends React.Component<Props> {
 
     return (
       <SortLink
-        align="left"
+        align={align}
         title={columnInfo.name}
         direction={currentSortKind}
         canSort={canSort}
@@ -388,21 +390,33 @@ class _TagExplorer extends React.Component<Props> {
     }
 
     if (column.key === 'frequency') {
-      return formatPercentage(dataRow.frequency, 0);
+      return <AlignRight>{formatPercentage(dataRow.frequency, 0)}</AlignRight>;
     }
 
     if (column.key === 'comparison') {
       const localValue = dataRow.comparison;
       const pct = formatPercentage(localValue - 1, 0);
-      return localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct);
+      return (
+        <AlignRight>
+          {localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct)}
+        </AlignRight>
+      );
     }
 
     if (column.key === 'aggregate') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />
+        </AlignRight>
+      );
     }
 
     if (column.key === 'sumdelta') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />
+        </AlignRight>
+      );
     }
     return value;
   };
@@ -525,6 +539,10 @@ export const SectionHeading = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
   line-height: 1.3;
+`;
+
+const AlignRight = styled('div')`
+  text-align: right;
 `;
 
 const Header = styled('div')`
