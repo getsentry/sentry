@@ -12,6 +12,10 @@ else:
         pass
 
 
+EventData = Dict[str, Any]
+EventMetadata = Dict[str, Any]
+
+
 TreeLabelPart = TypedDict(
     "TreeLabelPart",
     {
@@ -23,23 +27,34 @@ TreeLabelPart = TypedDict(
     },
 )
 
+StrippedTreeLabelPart = TypedDict(
+    "StrippedTreeLabelPart",
+    {
+        "function": str,
+        "package": str,
+        "is_sentinel": bool,
+        "is_prefix": bool,
+    },
+)
+
 
 TreeLabel = Sequence[TreeLabelPart]
+StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 
 
-def _strip_tree_label(tree_label: TreeLabel):
+def _strip_tree_label(tree_label: TreeLabel) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
-        part = dict(part)
+        stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
         # TODO(markus): Remove more stuff here if we never use it in group
         # title
-        part.pop("datapath", None)
-        rv.append(part)
+        stripped_part.pop("datapath", None)  # type: ignore
+        rv.append(stripped_part)
 
     return rv
 
 
-def _write_tree_labels(tree_labels: Sequence[TreeLabel], event_data: Dict[str, Any]):
+def _write_tree_labels(tree_labels: Sequence[TreeLabel], event_data: EventData) -> None:
     event_data["hierarchical_tree_labels"] = event_labels = []
 
     for level, tree_label in enumerate(tree_labels):
@@ -68,7 +83,7 @@ class CalculatedHashes:
     hierarchical_hashes: Sequence[str]
     tree_labels: Sequence[TreeLabel]
 
-    def write_to_event(self, event_data):
+    def write_to_event(self, event_data: EventData) -> None:
         event_data["hashes"] = self.hashes
 
         if self.hierarchical_hashes:
@@ -77,7 +92,7 @@ class CalculatedHashes:
             safe_execute(_write_tree_labels, self.tree_labels, event_data, _with_transaction=False)
 
     @classmethod
-    def from_event(cls, event_data) -> Optional["CalculatedHashes"]:
+    def from_event(cls, event_data: EventData) -> Optional["CalculatedHashes"]:
         hashes = event_data.get("hashes")
         hierarchical_hashes = event_data.get("hierarchical_hashes") or []
         tree_labels = event_data.get("hierarchical_tree_labels") or []
@@ -89,13 +104,13 @@ class CalculatedHashes:
         return None
 
     @property
-    def finest_tree_label(self) -> Optional[TreeLabel]:
+    def finest_tree_label(self) -> Optional[StrippedTreeLabel]:
         try:
             return _strip_tree_label(self.tree_labels[-1])
         except IndexError:
             return None
 
-    def group_metadata_from_hash(self, hash: str) -> Dict[str, Any]:
+    def group_metadata_from_hash(self, hash: str) -> EventMetadata:
         try:
             i = self.hierarchical_hashes.index(hash)
             return {
