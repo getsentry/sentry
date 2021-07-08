@@ -32,6 +32,7 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     CommitFileChange,
+    Event,
     File,
     Group,
     GroupAssignee,
@@ -102,14 +103,17 @@ contexts_by_mobile_platform = {
 }
 
 saved_search_by_platform = {
-    "global": [["Unhandled Errors", "is:unresolved error.unhandled:true"]],
+    "global": [
+        ["Unhandled Errors", "is:unresolved error.unhandled:true"],
+        ["Release 3.2 Errors", "release:checkout-app@3.2"],
+    ],
     "python": [
         ["Firefox Errors - Python", "browser.name:Firefox"],
     ],
-    "javascript-react": [],
-    "apple-ios": [],
-    "android": [],
-    "react-native": [],
+    "javascript-react": [["Edge Errors - React", "browser.name:Edge"]],
+    "apple-ios": [["iOS 12 Errors", 'os:"iOS 12"']],
+    "android": [["Pixel Device Errors", "device.family:Pixel"]],
+    "react-native": [["Handled Errors - React Native", "error.unhandled:false"]],
 }
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
@@ -815,6 +819,7 @@ class DataPopulation:
         )
 
     def generate_saved_search(self, projects):
+        SavedSearch.objects.filter().delete()
         global_params = saved_search_by_platform["global"]
         for params in global_params:
             name, query = params
@@ -828,6 +833,8 @@ class DataPopulation:
                 SavedSearch.objects.create(
                     project=project, organization=project.organization, name=name, query=query
                 )
+        for event in Event.objects.filter():
+            event.update({"status": "ignored"})
 
     def assign_issues(self):
         org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
