@@ -386,7 +386,7 @@ const CrashFreeRateColumn = styled(Column)`
     text-align: center;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     text-align: right;
   }
 `;
@@ -398,7 +398,7 @@ const CountColumn = styled(Column)`
     display: flex;
     /* Chart tooltips need overflow */
     overflow: visible;
-    margin-left: ${space(2)};
+    margin-left: ${space(3)};
   }
 `;
 
