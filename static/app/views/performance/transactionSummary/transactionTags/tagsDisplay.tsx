@@ -32,9 +32,6 @@ const TagsDisplay = (props: Props) => {
     projects,
     eventView
   );
-  if (!tagKey) {
-    return null;
-  }
   return (
     <React.Fragment>
       <TagKeyHistogramQuery

@@ -143,7 +143,7 @@ describe('Performance > Transaction Tags', function () {
     // Table is loaded.
     expect(wrapper.find('GridEditable')).toHaveLength(1);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
         project: 1,
         statsPeriod: '14d',
