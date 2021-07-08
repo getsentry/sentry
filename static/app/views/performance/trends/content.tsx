@@ -240,7 +240,7 @@ class TrendsContent extends React.Component<Props, State> {
                 />
                 <TrendsDropdown>
                   <DropdownControl
-                    buttonProps={{prefix: t('Display')}}
+                    buttonProps={{prefix: t('Percentile')}}
                     label={currentTrendFunction.label}
                   >
                     {TRENDS_FUNCTIONS.map(({label, field}) => (
