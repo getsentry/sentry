@@ -111,7 +111,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const {organization} = this.props;
     const newColumn: Column = {kind: FieldValueKind.EQUATION, field: ''};
     trackAnalyticsEvent({
-      eventKey: 'discoverv2.add_equation',
+      eventKey: 'discover_v2.add_equation',
       eventName: 'Discoverv2: Equation added',
       organization_id: parseInt(organization.id, 10),
     });
