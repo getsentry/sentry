@@ -137,6 +137,8 @@ family:native package:libAudioToolboxUtility.dylib category=av
 family:native function:std::_* category=internals
 
 family:native package:/usr/lib/system/** function:start category=threadbase
+family:native package:libdyld.dylib function:start category=threadbase
+family:native package:UIKitCore function:UIApplicationMain category=threadbase
 family:native function:wWinMain category=threadbase
 family:native function:invoke_main category=threadbase
 family:native function:BaseThreadInitThunk category=threadbase
@@ -307,6 +309,9 @@ category:threadbase v-group -group
 family:native category:system function:_* !function:_purecall category=internals
 family:native category:system function:"<unknown>" category=internals
 family:native function:_INTERNAL* category=internals
+
+# Seen in iOS
+path:"<compiler-generated>" category=internals
 
 # frames with .cold.1 are probably hotpaths vs slow paths but not relevant for grouping
 # e.g., two callstacks that should group together:

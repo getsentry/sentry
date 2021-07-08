@@ -894,6 +894,9 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
 
     try:
         result = _raw_snql_query(query, Hub(thread_hub), headers)
+        if result.status != 200:  # Trigger a retry with the legacy endpoint
+            raise SnubaError("error sending snql query")
+
     except Exception as e:
         logger.warning(
             "snuba.snql.sending.error",
@@ -1034,7 +1037,7 @@ def _raw_snql_query(
         body = query.snuba()
         with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
             span.set_tag("referrer", referrer)
-            span.set_tag("snql", str(query))
+            span.set_data("snql", str(query))
             return _snuba_pool.urlopen("POST", f"/{query.dataset}/snql", body=body, headers=headers)
 
 

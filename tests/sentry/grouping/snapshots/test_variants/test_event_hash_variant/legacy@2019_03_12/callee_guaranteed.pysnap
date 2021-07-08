@@ -1,0 +1,244 @@
+---
+created: '2021-07-08T10:36:04.055616Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "start"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_callback_4CF"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "_dispatch_call_block_and_release"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed () -> ()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "partial apply for thunk for @callee_guaranteed () -> ()"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @callee_guaranteed () -> ()"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed () -> ()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed (@guaranteed stripped_application_code) -> ()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+        type*
+          "<redacted>"
+--------------------------------------------------------------------------
+system:
+  hash: "211e972054c29fae035071309ac474aa"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+            function (function name is not used if module or filename are available)
+              "start"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_callback_4CF"
+          frame
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame
+            function (function name is not used if module or filename are available)
+              "_dispatch_call_block_and_release"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed () -> ()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "partial apply for thunk for @callee_guaranteed () -> ()"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @callee_guaranteed () -> ()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed () -> ()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for @escaping @callee_guaranteed (@guaranteed stripped_application_code) -> ()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+        type*
+          "<redacted>"

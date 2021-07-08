@@ -768,14 +768,15 @@ export const DataCategoryName = {
   [DataCategory.ATTACHMENTS]: 'Attachments',
 };
 
-export type EventOrGroupType =
-  | 'error'
-  | 'csp'
-  | 'hpkp'
-  | 'expectct'
-  | 'expectstaple'
-  | 'default'
-  | 'transaction';
+export enum EventOrGroupType {
+  ERROR = 'error',
+  CSP = 'csp',
+  HPKP = 'hpkp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  DEFAULT = 'default',
+  TRANSACTION = 'transaction',
+}
 
 export type InboxReasonDetails = {
   until?: string | null;

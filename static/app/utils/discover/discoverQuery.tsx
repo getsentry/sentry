@@ -23,6 +23,7 @@ export type TableData = {
 };
 
 export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+  transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
 };
@@ -32,6 +33,7 @@ function shouldRefetchData(
   nextProps: DiscoverQueryPropsWithThresholds
 ) {
   return (
+    prevProps.transactionName !== nextProps.transactionName ||
     prevProps.transactionThreshold !== nextProps.transactionThreshold ||
     prevProps.transactionThresholdMetric !== nextProps.transactionThresholdMetric
   );

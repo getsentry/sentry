@@ -432,6 +432,12 @@ const ChartToggle = styled('label')`
   input {
     flex-shrink: 0;
     margin-right: ${space(1)} !important;
+    &:hover {
+      cursor: pointer;
+    }
+  }
+  &:hover {
+    cursor: pointer;
   }
 `;
 

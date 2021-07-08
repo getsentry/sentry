@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:38.676843Z'
+created: '2021-07-08T10:29:50.380503Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -9,8 +9,8 @@ EXC_BAD_ACCESS:Exception 1, Code 0, Subcode 8 >
 Attempted to dereference null pointer. (thread_id:_, crashed:_)
                                               stripped_application_code
                                               stripped_application_code
-                                   UIKitCore  UIApplicationMain category=ui
-                                   UIKitCore  -[UIApplication _run] category=internals
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
                                               stripped_application_code
                               CoreFoundation  CFRunLoopRunSpecific category=indirection
                               CoreFoundation  __CFRunLoopRun category=internals
