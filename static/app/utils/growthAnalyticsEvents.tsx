@@ -20,13 +20,13 @@ type PlatformCategory = {
 };
 
 type PlatformPickerParam = {
-  platformId: string;
+  platform_id: string;
   source?: string;
 };
 
 type PlatformSearchParam = {
   search: string;
-  numResults: number;
+  num_results: number;
   source?: string;
 };
 

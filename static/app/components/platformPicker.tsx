@@ -84,7 +84,7 @@ class PlatformPicker extends React.Component<Props, State> {
         'growth.platformpicker_search',
         {
           search: this.state.filter.toLowerCase(),
-          numResults: this.platformList.length,
+          num_results: this.platformList.length,
           source: this.props.source,
         },
         this.props.organization ?? null
@@ -156,7 +156,7 @@ class PlatformPicker extends React.Component<Props, State> {
                 trackAdvancedAnalyticsEvent(
                   'growth.select_platform',
                   {
-                    platformId: platform.id,
+                    platform_id: platform.id,
                     source: this.props.source,
                   },
                   this.props.organization ?? null
