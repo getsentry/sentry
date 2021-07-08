@@ -598,6 +598,14 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route
+            path="notifications/"
+            name="Notifications"
+            componentPromise={() =>
+              import('app/views/settings/organizationTeams/teamNotifications')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="projects/"
             name="Projects"
             componentPromise={() =>

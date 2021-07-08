@@ -185,6 +185,16 @@ class TeamDetails extends React.Component<Props, State> {
       </ListLink>,
     ];
 
+    if (organization.features.includes('notification-platform')) {
+      navigationTabs.splice(
+        2,
+        0,
+        <ListLink key="x" to={`${routePrefix}notifications/`}>
+          {t('Notifications')}
+        </ListLink>
+      );
+    }
+
     return (
       <div>
         <SentryDocumentTitle title={t('Team Details')} orgSlug={params.orgId} />
