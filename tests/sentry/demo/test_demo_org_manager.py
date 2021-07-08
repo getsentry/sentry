@@ -5,7 +5,6 @@ import pytz
 from django.db import IntegrityError
 from django.test import override_settings
 
-from sentry.conf.server import DEMO_DATA_QUICK_GEN_PARAMS
 from sentry.demo.data_population import DataPopulation
 from sentry.demo.demo_org_manager import assign_demo_org, create_demo_org
 from sentry.demo.models import DemoOrganization, DemoOrgStatus, DemoUser
@@ -30,9 +29,6 @@ org_name = "Org Name"
 DEMO_DATA_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
 DEMO_DATA_GEN_PARAMS["MAX_DAYS"] = 1
 DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"] = 0.05
-
-DEMO_DATA_QUICK_GEN_PARAMS = DEMO_DATA_QUICK_GEN_PARAMS.copy()
-DEMO_DATA_QUICK_GEN_PARAMS["SCALE_FACTOR"] = 0.20
 
 
 @override_settings(
@@ -212,37 +208,3 @@ class DemoOrgManagerTest(TestCase):
         assert len(Project.objects.filter(organization=org)) == 5
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY)
         mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
-
-    @override_settings(DEMO_DATA_QUICK_GEN_PARAMS=DEMO_DATA_QUICK_GEN_PARAMS)
-    @mock.patch.object(DataPopulation, "handle_react_python_scenario")
-    @mock.patch.object(DataPopulation, "handle_mobile_scenario")
-    @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    @mock.patch.object(DataPopulation, "generate_releases")
-    def test_get_config_var(
-        self,
-        mock_generate_releases,
-        mock_generate_name,
-        mock_handle_mobile_scenario,
-        mock_handle_scenario,
-    ):
-        owner = User.objects.create(email=org_owner_email)
-
-        create_demo_org(quick=True)
-
-        demo_org = DemoOrganization.objects.get(
-            organization__name=org_name, status=DemoOrgStatus.PENDING
-        )
-        org = demo_org.organization
-
-        data_population = DataPopulation(org, quick=True)
-
-        assert OrganizationMember.objects.filter(
-            user=owner, organization=org, role="owner"
-        ).exists()
-
-        assert (
-            data_population.get_config_var("SCALE_FACTOR")
-            == DEMO_DATA_QUICK_GEN_PARAMS["SCALE_FACTOR"]
-        )
-        assert "BASE_OFFSET" not in DEMO_DATA_QUICK_GEN_PARAMS
-        assert data_population.get_config_var("BASE_OFFSET") == DEMO_DATA_GEN_PARAMS["BASE_OFFSET"]
