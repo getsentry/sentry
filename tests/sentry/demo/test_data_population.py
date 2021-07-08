@@ -21,9 +21,6 @@ DEMO_DATA_QUICK_GEN_PARAMS["SCALE_FACTOR"] = 0.20
 class DataPopulationTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.react_project = self.create_project(organization=self.organization, platform="react")
-        self.python_project = self.create_project(organization=self.organization, platform="python")
-        self.create_member(organization=self.organization, user=self.create_user())
 
     def test_get_config_var(self):
 
