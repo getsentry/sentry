@@ -3,7 +3,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime
 from hashlib import md5
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence, Union
 
 import pytz
 import sentry_sdk
@@ -22,6 +22,7 @@ from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.compat import zip
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
+from sentry.types.utils import TypedDict
 
 # Keys in the event payload we do not want to send to the event stream / snuba.
 EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
@@ -31,7 +32,16 @@ def ref_func(x):
     return x.project_id or x.project.id
 
 
-TreeLabel = Sequence[str]
+TreeLabelPart = TypedDict("TreeLabelPart", {
+    "function": str,
+    "package": str,
+    "is_sentinel": bool,
+    "is_prefix": bool,
+    "datapath": Sequence[Union[str, int]]
+})
+
+
+TreeLabel = Sequence[TreeLabelPart]
 
 
 @dataclass(frozen=True)
