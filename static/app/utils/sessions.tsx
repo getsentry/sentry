@@ -72,6 +72,31 @@ export function getCrashFreeSeries(
   );
 }
 
+export function getAdoptionSeries(
+  releaseGroups: SessionApiResponse['groups'] = [],
+  allGroups: SessionApiResponse['groups'] = [],
+  intervals: SessionApiResponse['intervals'] = [],
+  field: SessionField
+): SeriesDataUnit[] {
+  return intervals.map((interval, i) => {
+    const intervalReleaseSessions = releaseGroups.reduce(
+      (acc, group) => acc + group.series[field][i],
+      0
+    );
+    const intervalTotalSessions = allGroups.reduce(
+      (acc, group) => acc + group.series[field][i],
+      0
+    );
+
+    const intervalAdoption = percent(intervalReleaseSessions, intervalTotalSessions);
+
+    return {
+      name: interval,
+      value: Math.round(intervalAdoption),
+    };
+  });
+}
+
 type GetSessionsIntervalOptions = {
   highFidelity?: boolean;
 };
