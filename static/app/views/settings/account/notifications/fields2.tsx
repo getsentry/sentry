@@ -19,7 +19,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Notifications sent from Alert rules that your team has setup.'),
+    help: t('Notifications sent from Alert rules that your team has set up.'),
   },
   workflow: {
     name: 'workflow',
