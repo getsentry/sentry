@@ -310,7 +310,7 @@ def post_process_group(
                         if cache.get(group_cache_key):
                             metrics.incr(
                                 "sentry.tasks.process_suspect_commits.debounce",
-                                tags={"detail": "w-o-i:g debounce", "project": event.project.id},
+                                tags={"detail": "w-o-i:g debounce"},
                             )
                         else:
                             from sentry.utils.committers import get_frame_paths
