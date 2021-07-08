@@ -174,13 +174,17 @@ def get_build_info(
             try:
                 related_appstore_version = get_related(build, "appStoreVersion")
                 related_prerelease_version = get_related(build, "preReleaseVersion")
-                related_version = related_appstore_version or related_prerelease_version
-                if not related_version:
-                    logger.error("Missing related version for AppStoreConnect `build`")
-                    continue
-                platform = related_version["attributes"]["platform"]
-                version = related_version["attributes"]["version"]
+
+                if related_appstore_version:
+                    version = related_appstore_version["attributes"]["versionString"]
+                    platform = related_appstore_version["attributes"]["platform"]
+                elif related_prerelease_version:
+                    version = related_prerelease_version["attributes"]["version"]
+                    platform = related_prerelease_version["attributes"]["platform"]
+                else:
+                    raise KeyError("missing related version")
                 build_number = build["attributes"]["version"]
+
                 result.append(
                     {"platform": platform, "version": version, "build_number": build_number}
                 )
