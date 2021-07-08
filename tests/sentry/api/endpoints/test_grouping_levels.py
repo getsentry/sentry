@@ -116,6 +116,28 @@ def test_error_not_hierarchical(client, default_project, reset_snuba, factories)
     assert response.data["detail"]["code"] == "not_hierarchical"
 
 
+def _assert_tree_labels(event, functions):
+    # This should really be its own test, but it is cheaper to run as part of an existing test.
+    assert [
+        prune_empty_keys(frame)
+        for frame in event.data["exception"]["values"][0]["stacktrace"]["frames"]
+    ] == [
+        {
+            "data": {
+                "min_grouping_level": len(functions) - i - 1,
+                "orig_in_app": -1,
+            },
+            "function": function,
+            "in_app": False,
+        }
+        for i, function in enumerate(functions)
+    ]
+
+    assert event.data["metadata"]["finest_tree_label"] == [
+        {"function": function} for function in reversed(functions)
+    ]
+
+
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_previews):
@@ -136,43 +158,10 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
 
     assert len({e.group_id for e in events}) == 1
 
-    assert [
-        prune_empty_keys(frame)
-        for frame in events[0].data["exception"]["values"][0]["stacktrace"]["frames"]
-    ] == [
-        {
-            "data": {
-                "min_grouping_level": 3,
-                "orig_in_app": -1,
-            },
-            "function": "bam",
-            "in_app": False,
-        },
-        {
-            "data": {
-                "min_grouping_level": 2,
-                "orig_in_app": -1,
-            },
-            "function": "baz2",
-            "in_app": False,
-        },
-        {
-            "data": {
-                "min_grouping_level": 1,
-                "orig_in_app": -1,
-            },
-            "function": "bar2",
-            "in_app": False,
-        },
-        {
-            "data": {
-                "min_grouping_level": 0,
-                "orig_in_app": -1,
-            },
-            "function": "foo",
-            "in_app": False,
-        },
-    ]
+    _assert_tree_labels(events[0], ["bam", "baz2", "bar2", "foo"])
+    _assert_tree_labels(events[1], ["baz", "bar", "foo"])
+    _assert_tree_labels(events[2], ["baz2", "bar2", "foo"])
+    _assert_tree_labels(events[3], ["bar3", "foo"])
 
     group = events[0].group
 
