@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:01.202779Z'
+created: '2021-07-07T15:30:52.972996Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "dace415c7739d08199fdcba4a694e255"
-  tree_label: "nvwgf2umx.dll | OpenAdapter10 | NDXGI::CDevice::DestroyDriverInstance | CContext::LUCBeginLayerDestruction | CD3D11LayeredChild<T>::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
+  tree_label: "nvwgf2umx.dll | CD3D11LayeredChild<T>::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
   component:
     app-depth-max*
       exception*
@@ -70,7 +70,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "dace415c7739d08199fdcba4a694e255"
-  tree_label: "nvwgf2umx.dll | OpenAdapter10 | NDXGI::CDevice::DestroyDriverInstance | CContext::LUCBeginLayerDestruction | CD3D11LayeredChild<T>::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
+  tree_label: "nvwgf2umx.dll | CD3D11LayeredChild<T>::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
   component:
     system*
       exception*

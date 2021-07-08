@@ -178,12 +178,12 @@ function Grouping({api, groupId, location, organization, router}: Props) {
 
   return (
     <Wrapper>
-      <Description>
+      <Header>
         {t(
           'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
         )}
-      </Description>
-      <Content>
+      </Header>
+      <Body>
         <SliderWrapper>
           {t('Fewer issues')}
           <StyledRangeSlider
@@ -195,11 +195,8 @@ function Grouping({api, groupId, location, organization, router}: Props) {
           />
           {t('More issues')}
         </SliderWrapper>
-        <div>
-          <StyledPanelTable
-            isReloading={isGroupingLevelDetailsLoading}
-            headers={['', t('Events')]}
-          >
+        <Content isReloading={isGroupingLevelDetailsLoading}>
+          <StyledPanelTable headers={['', t('Events')]}>
             {activeGroupingLevelDetails.map(
               ({hash, title, metadata, latestEvent, eventCount}) => {
                 // XXX(markus): Ugly hack to make NewIssue show the right things.
@@ -220,6 +217,7 @@ function Grouping({api, groupId, location, organization, router}: Props) {
           </StyledPanelTable>
           <StyledPagination
             pageLinks={pagination}
+            disabled={isGroupingLevelDetailsLoading}
             caption={
               <PaginationCaption
                 caption={tct('Showing [current] of [total] [result]', {
@@ -234,8 +232,8 @@ function Grouping({api, groupId, location, organization, router}: Props) {
               />
             }
           />
-        </div>
-      </Content>
+        </Content>
+      </Body>
     </Wrapper>
   );
 }
@@ -250,26 +248,19 @@ const Wrapper = styled('div')`
   padding: ${space(3)} ${space(4)};
 `;
 
-const Description = styled('p')`
+const Header = styled('p')`
   && {
     margin-bottom: ${space(2)};
   }
 `;
 
-const Content = styled('div')`
+const Body = styled('div')`
   display: grid;
   grid-gap: ${space(3)};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
+const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr minmax(60px, auto);
-  ${p =>
-    p.isReloading &&
-    `
-      opacity: 0.5;
-      pointer-events: none;
-    `}
-
   > * {
     padding: ${space(1.5)} ${space(2)};
     :nth-child(-n + 2) {
@@ -289,6 +280,17 @@ const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
+`;
+
+const Content = styled('div')<{isReloading: boolean}>`
+  ${p =>
+    p.isReloading &&
+    `
+      ${StyledPanelTable}, ${StyledPagination} {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    `}
 `;
 
 const SliderWrapper = styled('div')`
