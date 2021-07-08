@@ -30,7 +30,7 @@
     "@sentry/utils": "6.8.0",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
-    "@types/color": "^3.0.0",
+    "@types/color": "^3.0.2",
     "@types/create-react-class": "^15.6.2",
     "@types/diff": "5.0.1",
     "@types/dompurify": "^2.2.2",
