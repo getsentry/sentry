@@ -403,7 +403,7 @@ describe('TransactionsList', function () {
       });
     });
 
-    it('renders Open All Events button when provided with handler', async function () {
+    it('renders View All Events button when provided with handler', async function () {
       wrapper = mountWithTheme(
         <TransactionsList
           api={api}
@@ -422,7 +422,7 @@ describe('TransactionsList', function () {
       wrapper.update();
 
       expect(wrapper.find('Button').last().find('span').children().html()).toEqual(
-        'Open All Events'
+        'View All Events'
       );
     });
   });

@@ -234,7 +234,7 @@ class VitalCard extends Component<Props, State> {
                 })}
               onClick={this.trackOpenAllEventsClicked}
             >
-              {t('Open All Events')}
+              {t('View All Events')}
             </Button>
           ) : (
             <DiscoverButton

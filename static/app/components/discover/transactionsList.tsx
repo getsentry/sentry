@@ -113,7 +113,7 @@ type Props = {
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   /**
-   * The callback for when Open All Events is clicked.
+   * The callback for when View All Events is clicked.
    */
   handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
   /**
@@ -226,7 +226,7 @@ class TransactionsList extends React.Component<Props> {
                 size="small"
                 data-test-id="transaction-events-open"
               >
-                {t('Open All Events')}
+                {t('View All Events')}
               </Button>
             </GuideAnchor>
           ) : (
