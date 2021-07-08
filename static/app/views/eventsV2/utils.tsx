@@ -129,7 +129,7 @@ export function generateTitle({
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event, organization).title : undefined;
+  const eventTitle = event ? getTitle(event, organization?.features).title : undefined;
 
   if (eventTitle) {
     titles.push(eventTitle);
