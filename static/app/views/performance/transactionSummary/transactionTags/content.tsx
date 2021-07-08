@@ -97,7 +97,8 @@ function getTagKeyOptions(tableData: TableData) {
 const InnerContent = (
   props: Props & {tableData: TableData | null; isLoading?: boolean}
 ) => {
-  const {eventView, location, organization, tableData} = props;
+  const {eventView: _eventView, location, organization, tableData} = props;
+  const eventView = _eventView.clone();
 
   if (!tableData) {
     return null;
@@ -301,8 +302,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledActions = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
 `;
 
 export default TagsPageContent;

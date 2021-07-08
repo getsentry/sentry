@@ -1400,10 +1400,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project2 = self.create_project()
 
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-        )
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/count_miserable/horribilis/project2"
         data["user"] = {"email": "project2@example.com"}
         self.store_event(data, project_id=project2.id)

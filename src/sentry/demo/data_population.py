@@ -692,7 +692,7 @@ class DataPopulation:
                 for file in raw_commit["files"]:
                     ReleaseFile.objects.get_or_create(
                         organization_id=project.organization_id,
-                        release=release,
+                        release_id=release.id,
                         name=file[0],
                         file=File.objects.get_or_create(
                             name=file[0], type="release.file", checksum="abcde" * 8, size=13043

@@ -13,11 +13,12 @@ from sentry.models.transaction_threshold import (
 )
 
 MAX_TRANSACTION_THRESHOLDS_PER_PROJECT = 100
+MAX_VALUE = 2147483647
 
 
 class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True, max_length=200)
-    threshold = serializers.IntegerField(required=True)
+    threshold = serializers.IntegerField(required=True, max_value=MAX_VALUE)
     metric = serializers.CharField(required=True)
 
     def validate_metric(self, metric):
