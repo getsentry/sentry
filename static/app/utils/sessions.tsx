@@ -1,5 +1,4 @@
 import compact from 'lodash/compact';
-import round from 'lodash/round';
 
 import {
   DateTimeObject,
@@ -93,7 +92,7 @@ export function getAdoptionSeries(
 
     return {
       name: interval,
-      value: round(intervalAdoption),
+      value: Math.round(intervalAdoption),
     };
   });
 }

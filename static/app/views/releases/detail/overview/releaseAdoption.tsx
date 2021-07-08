@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import round from 'lodash/round';
 
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
@@ -80,7 +79,7 @@ function ReleaseComparisonChart({
     const allSessionsCount = getCount(allSessions?.groups, field);
     const releaseSessionsCount = getCount(releaseSessions?.groups, field);
 
-    const adoptionPercent = round(percent(releaseSessionsCount, allSessionsCount));
+    const adoptionPercent = Math.round(percent(releaseSessionsCount, allSessionsCount));
 
     return {adoptionPercent, allSessionsCount, releaseSessionsCount};
   }
