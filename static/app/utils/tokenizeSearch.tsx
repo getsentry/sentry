@@ -29,6 +29,10 @@ function isParen(token: Token, character: '(' | ')') {
   );
 }
 
+// TODO(epurkhiser): This is legacy from before the existence of
+// searchSyntax/parser. We should absolutely replace the internals of this API
+// with `parseSearch`.
+
 export class QueryResults {
   tagValues: Record<string, string[]>;
   tokens: Token[];
