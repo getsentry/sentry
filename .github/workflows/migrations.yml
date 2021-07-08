@@ -91,7 +91,7 @@ jobs:
           echo "::set-output name=added::$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
 
       - name: Generate SQL for migration
-        uses: getsentry/action-migrations@v1.0.7
+        uses: getsentry/action-migrations@main
         env:
           SENTRY_LOG_LEVEL: ERROR
         with:
