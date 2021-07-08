@@ -162,9 +162,9 @@ def get_build_info(
             rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
             if rel_ptr_data is None:
                 # The query asks for both the appStoreVersion and preReleaseVersion
-                # relations to be included.  However for each build there is only one of
-                # these that will have the data with type and id, the other will have None
-                # for data.
+                # relations to be included.  However for each build there could be only one
+                # of these that will have the data with type and id, the other will have
+                # None for data.
                 return None
             rel_type = rel_ptr_data["type"]
             rel_id = rel_ptr_data["id"]
@@ -175,12 +175,17 @@ def get_build_info(
                 related_appstore_version = get_related(build, "appStoreVersion")
                 related_prerelease_version = get_related(build, "preReleaseVersion")
 
-                if related_appstore_version:
-                    version = related_appstore_version["attributes"]["versionString"]
-                    platform = related_appstore_version["attributes"]["platform"]
-                elif related_prerelease_version:
+                # Normally release versions also have a matching prerelease version, the
+                # platform and version number for them should be identical.  Nevertheless
+                # because we would likely see the build first with a prerelease version
+                # before it also has a release version we prefer to stick with that one if
+                # it is available.
+                if related_prerelease_version:
                     version = related_prerelease_version["attributes"]["version"]
                     platform = related_prerelease_version["attributes"]["platform"]
+                elif related_appstore_version:
+                    version = related_appstore_version["attributes"]["versionString"]
+                    platform = related_appstore_version["attributes"]["platform"]
                 else:
                     raise KeyError("missing related version")
                 build_number = build["attributes"]["version"]
