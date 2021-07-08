@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -21,6 +22,9 @@ import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
+import {mapShowTransactionToPercentile} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+import {TransactionFilterOptions} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
 import TransactionsTable from './transactionsTable';
@@ -109,6 +113,10 @@ type Props = {
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   /**
+   * The callback for when Open All Events is clicked.
+   */
+  handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
+  /**
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
   forceLoading?: boolean;
@@ -117,6 +125,9 @@ type Props = {
    * for generating the Discover query.
    */
   generateDiscoverEventView?: () => EventView;
+  generatePerformanceTransactionEventsView?: () => EventView;
+  showTransactions?: TransactionFilterOptions;
+  breakdown?: SpanOperationBreakdownFilter;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -154,13 +165,21 @@ class TransactionsList extends React.Component<Props> {
     return this.getEventView();
   }
 
+  generatePerformanceTransactionEventsView(): EventView {
+    const {generatePerformanceTransactionEventsView} = this.props;
+    return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
+  }
+
   renderHeader(): React.ReactNode {
     const {
       organization,
       selected,
       options,
       handleDropdownChange,
+      handleOpenAllEventsClick,
       handleOpenInDiscoverClick,
+      showTransactions,
+      breakdown,
     } = this.props;
 
     return (
@@ -192,20 +211,38 @@ class TransactionsList extends React.Component<Props> {
             ))}
           </DropdownControl>
         </div>
-        {!this.isTrend() && (
-          <GuideAnchor target="release_transactions_open_in_discover">
-            <DiscoverButton
-              onClick={handleOpenInDiscoverClick}
-              to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                organization.slug
-              )}
-              size="small"
-              data-test-id="discover-open"
-            >
-              {t('Open in Discover')}
-            </DiscoverButton>
-          </GuideAnchor>
-        )}
+        {!this.isTrend() &&
+          (handleOpenAllEventsClick ? (
+            <GuideAnchor target="release_transactions_open_in_transaction_events">
+              <Button
+                onClick={handleOpenAllEventsClick}
+                to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
+                  organization.slug,
+                  {
+                    showTransactions: mapShowTransactionToPercentile(showTransactions),
+                    breakdown,
+                  }
+                )}
+                size="small"
+                data-test-id="transaction-events-open"
+              >
+                {t('Open All Events')}
+              </Button>
+            </GuideAnchor>
+          ) : (
+            <GuideAnchor target="release_transactions_open_in_discover">
+              <DiscoverButton
+                onClick={handleOpenInDiscoverClick}
+                to={this.generateDiscoverEventView().getResultsViewUrlTarget(
+                  organization.slug
+                )}
+                size="small"
+                data-test-id="discover-open"
+              >
+                {t('Open in Discover')}
+              </DiscoverButton>
+            </GuideAnchor>
+          ))}
       </React.Fragment>
     );
   }

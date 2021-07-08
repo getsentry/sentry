@@ -1,10 +1,12 @@
-export type ItemType =
-  | 'default'
-  | 'tag-key'
-  | 'tag-value'
-  | 'first-release'
-  | 'invalid-tag'
-  | 'recent-search';
+export enum ItemType {
+  DEFAULT = 'default',
+  TAG_KEY = 'tag-key',
+  TAG_VALUE = 'tag-value',
+  TAG_OPERATOR = 'tag-operator',
+  FIRST_RELEASE = 'first-release',
+  INVALID_TAG = 'invalid-tag',
+  RECENT_SEARCH = 'recent-search',
+}
 
 export type SearchGroup = {
   type: ItemType | 'header';

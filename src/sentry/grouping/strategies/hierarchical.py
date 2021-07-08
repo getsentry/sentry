@@ -78,7 +78,7 @@ def _compute_tree_label(components: Iterable[GroupingComponent]):
     tree_label = []
 
     for frame in components:
-        if frame.tree_label:
+        if frame.contributes and frame.tree_label:
             tree_label.append(frame.tree_label)
 
     # We assume all components are always sorted in the way frames appear in

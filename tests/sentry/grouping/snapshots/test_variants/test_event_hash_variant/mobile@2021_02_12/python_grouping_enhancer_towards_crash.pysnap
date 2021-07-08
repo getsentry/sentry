@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.937839Z'
+created: '2021-07-07T15:30:52.468407Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -95,7 +95,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "90888e813b09fa25061af2883c0fb9bd"
-  tree_label: "__getitem__ | handle | post | dispatch | dispatch | bound_func | wrapped_view | _wrapper | view | get_response"
+  tree_label: "_wrapper | view | get_response"
   component:
     app-depth-max*
       exception*
@@ -197,7 +197,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "90888e813b09fa25061af2883c0fb9bd"
-  tree_label: "__getitem__ | handle | post | dispatch | dispatch | bound_func | wrapped_view | _wrapper | view | get_response"
+  tree_label: "_wrapper | view | get_response"
   component:
     system*
       exception*

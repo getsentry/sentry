@@ -408,7 +408,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-type UpdateSdkSuggestion = {
+export type UpdateSdkSuggestion = {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
@@ -768,14 +768,15 @@ export const DataCategoryName = {
   [DataCategory.ATTACHMENTS]: 'Attachments',
 };
 
-export type EventOrGroupType =
-  | 'error'
-  | 'csp'
-  | 'hpkp'
-  | 'expectct'
-  | 'expectstaple'
-  | 'default'
-  | 'transaction';
+export enum EventOrGroupType {
+  ERROR = 'error',
+  CSP = 'csp',
+  HPKP = 'hpkp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  DEFAULT = 'default',
+  TRANSACTION = 'transaction',
+}
 
 export type InboxReasonDetails = {
   until?: string | null;
@@ -1469,7 +1470,14 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
-  adoptionStages?: {};
+  adoptionStages?: Record<
+    'string',
+    {
+      stage: string | null;
+      adopted: string | null;
+      unadopted: string | null;
+    }
+  >;
 };
 
 type BaseRelease = {
@@ -2089,6 +2097,13 @@ export type SessionApiResponse = SeriesApi & {
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+}
+
+export enum ReleaseComparisonChartType {
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  SESSION_COUNT = 'sessionCount',
+  USER_COUNT = 'userCount',
 }
 
 export enum HealthStatsPeriodOption {

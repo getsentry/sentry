@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:01.946666Z'
+created: '2021-07-07T15:30:52.563409Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -30,7 +30,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "0a16eff3ac6acb7f1b7926d65019e155"
-  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | amdradeonx5000gldriver | gpusSubmitDataBuffers | amdradeonx5000gldriver | gleTextureImagePut | glTexSubImage2D_Exec | glTexSubImage2D | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | -[NSRunLoop(NSRunLoop) runMode:beforeDate:] | code | code | code | code | code | code | code | code | code | code | code | code | code | start"
+  tree_label: "abort | amdradeonx5000gldriver | glTexSubImage2D | code | -[NSRunLoop(NSRunLoop) runMode:beforeDate:] | code"
   component:
     app-depth-max*
       exception*
@@ -219,7 +219,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "0a16eff3ac6acb7f1b7926d65019e155"
-  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | amdradeonx5000gldriver | gpusSubmitDataBuffers | amdradeonx5000gldriver | gleTextureImagePut | glTexSubImage2D_Exec | glTexSubImage2D | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | code | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | -[NSRunLoop(NSRunLoop) runMode:beforeDate:] | code | code | code | code | code | code | code | code | code | code | code | code | code | start"
+  tree_label: "abort | amdradeonx5000gldriver | glTexSubImage2D | code | -[NSRunLoop(NSRunLoop) runMode:beforeDate:] | code"
   component:
     system*
       exception*

@@ -6,10 +6,10 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import {tct} from 'app/locale';
 import {Choices, IntegrationIssueConfig, IssueConfigField} from 'app/types';
+import {FormField} from 'app/views/alerts/issueRuleEditor/ruleNode';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import {FieldValue} from 'app/views/settings/components/forms/model';
-import {FormField} from 'app/views/settings/projectAlerts/issueRuleEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 

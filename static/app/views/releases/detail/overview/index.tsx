@@ -44,6 +44,7 @@ import Deploys from './deploys';
 import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
+import ReleaseAdoption from './releaseAdoption';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
 import ReleaseDetailsRequest from './releaseDetailsRequest';
@@ -422,7 +423,7 @@ class ReleaseOverview extends AsyncView<Props> {
               version={version}
               releaseBounds={releaseBounds}
             >
-              {({thisRelease, allReleases}) => (
+              {({thisRelease, allReleases, loading, reloading, errored}) => (
                 <Body>
                   <Main>
                     {isReleaseArchived(release) && (
@@ -441,6 +442,7 @@ class ReleaseOverview extends AsyncView<Props> {
                               end={end ?? null}
                               utc={utc ?? null}
                               onUpdate={this.handleDateChange}
+                              showAbsolute={false}
                               relativeOptions={{
                                 [RELEASE_PERIOD_KEY]: (
                                   <Fragment>
@@ -462,8 +464,15 @@ class ReleaseOverview extends AsyncView<Props> {
                               defaultPeriod={RELEASE_PERIOD_KEY}
                             />
                             <ReleaseComparisonChart
+                              release={release}
                               releaseSessions={thisRelease}
                               allSessions={allReleases}
+                              platform={project.platform}
+                              location={location}
+                              loading={loading}
+                              reloading={reloading}
+                              errored={errored}
+                              project={project}
                             />
                           </Fragment>
                         ) : (
@@ -535,6 +544,15 @@ class ReleaseOverview extends AsyncView<Props> {
                       getHealthData={getHealthData}
                       isHealthLoading={isHealthLoading}
                     />
+                    <Feature features={['release-comparison']}>
+                      <ReleaseAdoption
+                        releaseSessions={thisRelease}
+                        allSessions={allReleases}
+                        loading={loading}
+                        reloading={reloading}
+                        errored={errored}
+                      />
+                    </Feature>
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}

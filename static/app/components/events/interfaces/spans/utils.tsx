@@ -490,7 +490,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
 
   return records.some(record => {
     const value = marks[record.slug];
-    if (typeof value === 'number') {
+    if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
       return value >= record.poorThreshold;
     }
     return false;

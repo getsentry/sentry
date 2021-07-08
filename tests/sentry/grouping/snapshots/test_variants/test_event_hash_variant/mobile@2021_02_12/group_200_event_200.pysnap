@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.022517Z'
+created: '2021-07-07T15:30:53.318342Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,7 +32,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "RtlpOptimizeWaitOnAddressWaitList | RtlpWaitOnAddress | RtlpWaitOnCriticalSection | RtlpEnterCriticalSectionContended | RtlEnterCriticalSection | RtlpFreeHeap | RtlpFreeHeapInternal | RtlFreeHeap | RtlpFreeUserBlockToHeap | RtlpFreeUserBlock | memset | RtlFreeHeap | destructor' | HTTP_USER_REQUEST::~HTTP_USER_REQUEST | destructor' | HTTP_BASE_OBJECT::Dereference | HTTP_USER_REQUEST::OnSendRequest | WEBIO_REQUEST::OnIoComplete | HTTP_ASYNC_OVERLAPPED::OnWorkItem | HTTP_THREAD_POOL::_StaticWorkItemCallback | TppWorkpExecuteCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
   component:
     app-depth-max*
       exception*
@@ -164,7 +164,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "RtlpOptimizeWaitOnAddressWaitList | RtlpWaitOnAddress | RtlpWaitOnCriticalSection | RtlpEnterCriticalSectionContended | RtlEnterCriticalSection | RtlpFreeHeap | RtlpFreeHeapInternal | RtlFreeHeap | RtlpFreeUserBlockToHeap | RtlpFreeUserBlock | memset | RtlFreeHeap | destructor' | HTTP_USER_REQUEST::~HTTP_USER_REQUEST | destructor' | HTTP_BASE_OBJECT::Dereference | HTTP_USER_REQUEST::OnSendRequest | WEBIO_REQUEST::OnIoComplete | HTTP_ASYNC_OVERLAPPED::OnWorkItem | HTTP_THREAD_POOL::_StaticWorkItemCallback | TppWorkpExecuteCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
   component:
     system*
       exception*

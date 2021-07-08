@@ -2,6 +2,7 @@ import * as React from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
@@ -85,11 +86,16 @@ class GroupList extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    const ignoredQueryParams = ['end'];
+
     if (
       prevProps.orgId !== this.props.orgId ||
       prevProps.endpointPath !== this.props.endpointPath ||
       prevProps.query !== this.props.query ||
-      !isEqual(prevProps.queryParams, this.props.queryParams)
+      !isEqual(
+        omit(prevProps.queryParams, ignoredQueryParams),
+        omit(this.props.queryParams, ignoredQueryParams)
+      )
     ) {
       this.fetchData();
     }
@@ -106,6 +112,7 @@ class GroupList extends React.Component<Props, State> {
   fetchData = () => {
     GroupStore.loadInitialData([]);
     const {api, orgId} = this.props;
+    api.clear();
 
     this.setState({loading: true, error: false});
 
