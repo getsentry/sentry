@@ -17,6 +17,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
+# from sentry import eventstore
 from sentry.api.utils import get_date_range_from_params
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DiscoverSavedQuery
@@ -32,7 +33,6 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     CommitFileChange,
-    Event,
     File,
     Group,
     GroupAssignee,
@@ -833,8 +833,8 @@ class DataPopulation:
                 SavedSearch.objects.create(
                     project=project, organization=project.organization, name=name, query=query
                 )
-        for event in Event.objects.filter():
-            event.update({"status": "ignored"})
+
+            # for event in eventstore.get_events(filter=eventstore.Filter(project_ids=[project.id])):
 
     def assign_issues(self):
         org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
