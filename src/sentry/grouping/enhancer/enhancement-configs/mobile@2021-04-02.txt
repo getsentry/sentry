@@ -161,7 +161,7 @@ module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=thre
 module:android.os.* function:call category=threadbase
 module:android.app.ActivityThread function:main category=threadbase
 
-family:native package:"*libsystem_malloc.dylib" category=malloc
+family:native package:"**/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
 family:native function:malloc_base category=malloc
 family:native function:RtlpAllocateHeapInternal category=malloc
