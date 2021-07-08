@@ -347,6 +347,10 @@ function makeFieldOptions(
   const options = columns
     .filter(({kind}) => kind !== 'equation')
     .filter(option => {
+      // Any isn't allowed in arithmetic
+      if (option.kind === 'function' && option.function[0] === 'any') {
+        return false;
+      }
       const columnType = getColumnType(option);
       return (
         columnType === 'number' || columnType === 'integer' || columnType === 'duration'
@@ -366,7 +370,7 @@ function makeFieldOptions(
 }
 
 function makeOperatorOptions(partialTerm: string | null): DropdownOptionGroup {
-  const options = ['+', '-', '*', '/']
+  const options = ['+', '-', '*', '/', '(', ')']
     .filter(operator => (partialTerm ? operator.includes(partialTerm) : true))
     .map(operator => ({
       kind: 'operator' as const,
