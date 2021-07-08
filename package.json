@@ -138,7 +138,7 @@
     "@pmmmwh/react-refresh-webpack-plugin": "^0.4.2",
     "@sentry/node": "6.8.0",
     "@size-limit/preset-small-lib": "^4.10.2",
-    "@storybook/addon-a11y": "6.3.2",
+    "@storybook/addon-a11y": "6.3.4",
     "@storybook/addon-actions": "6.3.2",
     "@storybook/addon-essentials": "6.3.2",
     "@storybook/addon-storysource": "6.3.2",
