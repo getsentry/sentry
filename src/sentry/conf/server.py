@@ -998,6 +998,8 @@ SENTRY_FEATURES = {
     "organizations:alert-details-redesign": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
+    # Enable the mobile screenshots feature
+    "organizations:mobile-screenshots": False,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
     # Enable the release adoption stage labels and sorting+filtering by them
