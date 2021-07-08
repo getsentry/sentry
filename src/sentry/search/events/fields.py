@@ -475,7 +475,7 @@ def parse_arguments(function, columns):
     i, j = 0, 0
 
     while j < len(columns):
-        if i == j and columns[j] == '"':
+        if not quoted and columns[j] == '"':
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
@@ -1955,7 +1955,7 @@ FUNCTIONS = {
                 # This is a FunctionArg cause the column can be a tag as well
                 FunctionArg("column"),
                 ConditionArg("condition"),
-                StringArg("value"),
+                StringArg("value", unquote=True, unescape_quotes=True),
             ],
             calculated_args=[
                 {

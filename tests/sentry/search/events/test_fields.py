@@ -992,6 +992,19 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_count_if_quoted(self):
+        fields = [
+            "count_if(some_tag,equals,\"something,that's,very(annoying)to_parse\")"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["equals", ["some_tag", "'something,that's,very(annoying)to_parse'"]]],
+                'count_if_some_tag_equals__something_that_s_very_annoying_to_parse'
+            ],
+        ]
+
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
         result = resolve_field_list(fields, eventstore.Filter())

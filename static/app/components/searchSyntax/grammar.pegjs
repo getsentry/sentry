@@ -217,9 +217,22 @@ aggregate_key
     }
 
 function_args
-  = arg1:key
-    args:(spaces comma spaces key)* {
+  = arg1:aggregate_param
+    args:(spaces comma spaces aggregate_param)* {
       return tc.tokenKeyAggregateArgs(arg1, args);
+    }
+
+aggregate_param
+  = quoted_aggregate_param / raw_aggregate_param
+
+raw_aggregate_param
+  = param:[^()\t\n, \"]+ {
+    return tc.tokenKeySimple(param.join(''), false);
+    }
+
+quoted_aggregate_param
+  = '"' param:('\\"' / [^\t\n\"])* '"' {
+      return tc.tokenKeySimple(`"${param.join('')}"`, true);
     }
 
 search_key
