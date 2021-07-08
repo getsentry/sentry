@@ -68,7 +68,15 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
     );
 
     if (!externalTeams.length) {
-      return <EmptyMessage>{t('No External Teams have been linked yet.')}</EmptyMessage>;
+      return (
+        <EmptyMessage>
+          <div>{t('No External Teams have been linked yet.')}</div>
+          <NotDisabledSubText>
+            Head over to Slack and type <code>/sentry</code> to get started.{' '}
+            <a href="">Learn more</a>
+          </NotDisabledSubText>
+        </EmptyMessage>
+      );
     }
 
     const integrationsById = Object.fromEntries(
