@@ -222,6 +222,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         buttonProps={{
           'aria-label': t('Save as'),
           showChevron: false,
+          icon: <IconStar />,
           disabled,
         }}
         label={`${t('Save as')}\u{2026}`}
