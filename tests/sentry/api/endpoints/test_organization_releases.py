@@ -27,7 +27,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
@@ -253,21 +253,44 @@ class OrganizationReleaseListTest(APITestCase):
 
         release_1 = self.create_release(version="test@1.2.4")
         release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test2@1.2.5")
         self.create_release(version="some.release")
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
-        assert [r["version"] for r in response.data] == [release_1.version]
+        assert [r["version"] for r in response.data] == [release_3.version, release_1.version]
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
-        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+        assert [r["version"] for r in response.data] == [
+            release_3.version,
+            release_2.version,
+            release_1.version,
+        ]
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
+        assert [r["version"] for r in response.data] == [
+            release_3.version,
+            release_2.version,
+            release_1.version,
+        ]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
+        )
+        assert [r["version"] for r in response.data] == [release_3.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
+        )
         assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
 
         response = self.get_valid_response(
             self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
         )
-        assert [r["version"] for r in response.data] == [release_1.version, release_2.version]
+        assert [r["version"] for r in response.data] == [
+            release_3.version,
+            release_1.version,
+            release_2.version,
+        ]
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
         assert [r["version"] for r in response.data] == []
@@ -540,19 +563,38 @@ class OrganizationReleaseStatsTest(APITestCase):
 
         release_1 = self.create_release(version="test@1.2.4")
         release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test2@1.2.5")
         self.create_release(version="some.release")
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
-        assert [r["version"] for r in response.data] == [release_1.version]
+        assert [r["version"] for r in response.data] == [release_3.version, release_1.version]
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
-        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+        assert [r["version"] for r in response.data] == [
+            release_3.version,
+            release_2.version,
+            release_1.version,
+        ]
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
-        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+        assert [r["version"] for r in response.data] == [
+            release_3.version,
+            release_2.version,
+            release_1.version,
+        ]
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
         assert [r["version"] for r in response.data] == []
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
+        )
+        assert [r["version"] for r in response.data] == [release_3.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
+        )
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
 
     def test_query_filter(self):
         self.login_as(user=self.user)

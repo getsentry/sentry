@@ -18,6 +18,7 @@ from sentry.models import (
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     USER_DISPLAY_ALIAS,
 )
@@ -689,6 +690,44 @@ class SnubaTagStorage(TagStorage):
             order_by=order_by,
         )
 
+    def _get_semver_versions_for_package(self, projects, organization_id, package):
+        packages = (
+            Release.objects.filter(organization_id=organization_id, package__startswith=package)
+            .values_list("package")
+            .distinct()
+        )
+
+        return Release.objects.filter(
+            organization_id=organization_id,
+            package__in=packages,
+            id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                "release_id", flat=True
+            ),
+        ).annotate_prerelease_column()
+
+    def _get_tag_values_for_package(self, projects, environments, package):
+        from sentry.api.paginator import SequencePaginator
+
+        package = package if package else ""
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        versions = self._get_semver_versions_for_package(projects, organization_id, package)
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+        packages = versions.values_list("package", flat=True).distinct().order_by("package")[:1000]
+        return SequencePaginator(
+            [
+                (i, TagValue(SEMVER_PACKAGE_ALIAS, v, None, None, None))
+                for i, v in enumerate(packages)
+            ]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -756,7 +795,11 @@ class SnubaTagStorage(TagStorage):
                 ]
             )
 
+        if key == SEMVER_PACKAGE_ALIAS:
+            return self._get_tag_values_for_package(projects, environments, query)
+
         if key == SEMVER_ALIAS:
+            # TODO: Split into function
             # If doing a search on semver, we want to hit postgres to query the releases
             query = query if query else ""
             organization_id = Project.objects.filter(id=projects[0]).values_list(
@@ -764,22 +807,9 @@ class SnubaTagStorage(TagStorage):
             )[0]
 
             if query and "@" not in query and re.search(r"[^\d.\*]", query):
-                include_package = True
                 # Handle searching just on package
-                packages = (
-                    Release.objects.filter(
-                        organization_id=organization_id, package__startswith=query
-                    )
-                    .values_list("package")
-                    .distinct()
-                )
-                versions = Release.objects.filter(
-                    organization_id=organization_id,
-                    package__in=packages,
-                    id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
-                        "release_id", flat=True
-                    ),
-                ).annotate_prerelease_column()
+                include_package = True
+                versions = self._get_semver_versions_for_package(projects, organization_id, query)
             else:
                 include_package = not query or "@" in query
                 if not query:
