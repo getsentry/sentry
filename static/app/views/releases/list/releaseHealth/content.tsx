@@ -398,6 +398,7 @@ const CountColumn = styled(Column)`
     display: flex;
     /* Chart tooltips need overflow */
     overflow: visible;
+    margin-left: ${space(2)};
   }
 `;
 
