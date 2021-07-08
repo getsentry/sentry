@@ -241,7 +241,7 @@ class OrganizationMemberTest(TestCase):
         )
         self.create_member(organization=organization, email="hi@example.com")
 
-        assert len(OrganizationMember.objects.filter(organization=organization)) == 3
+        assert OrganizationMember.objects.filter(organization=organization).count() == 3
         results = OrganizationMember.get_contactable_members_for_org(organization.id)
-        assert len(results) == 1
+        assert results.count() == 1
         assert results[0].user_id == member.user_id
