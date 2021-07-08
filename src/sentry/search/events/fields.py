@@ -35,7 +35,6 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
-    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
@@ -442,7 +441,6 @@ FIELD_ALIASES = {
             ),
             result_type="boolean",
         ),
-        PseudoField(TRANSACTION_STATUS_ALIAS, TRANSACTION_STATUS_ALIAS),
     ]
 }
 

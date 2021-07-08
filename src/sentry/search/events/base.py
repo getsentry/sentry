@@ -124,7 +124,7 @@ class QueryBase:
 
     def _resolve_transaction_status(self, _: str) -> SelectType:
         column = self.column(TRANSACTION_STATUS_ALIAS)
-        return Function("coalesce", [column], TRANSACTION_STATUS_ALIAS)
+        return Function("toUInt64", [column], TRANSACTION_STATUS_ALIAS)
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.

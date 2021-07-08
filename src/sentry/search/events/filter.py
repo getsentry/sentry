@@ -1135,13 +1135,21 @@ class QueryFilter(QueryBase):
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter
     ) -> Optional[WhereType]:
-        converted = _transaction_status_filter_converter(
-            search_filter, search_filter.key.name, self.params
-        )
-        return self._default_filter_converter(
-            SearchFilter(
-                SearchKey("transaction.status"),
-                converted[1],
-                SearchValue(converted[2]),
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return Condition(
+                Function("isNull", [self.resolve_field_alias(search_filter.key.name)]),
+                Op(search_filter.operator),
+                1,
             )
+        if search_filter.is_in_filter:
+            internal_value = [
+                translate_transaction_status(val) for val in search_filter.value.raw_value
+            ]
+        else:
+            internal_value = translate_transaction_status(search_filter.value.raw_value)
+        return Condition(
+            self.resolve_field_alias(search_filter.key.name),
+            Op(search_filter.operator),
+            internal_value,
         )
