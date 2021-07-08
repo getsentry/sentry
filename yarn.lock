@@ -3368,10 +3368,10 @@
   resolved "https://registry.yarnpkg.com/@types/scheduler/-/scheduler-0.16.1.tgz#18845205e86ff0038517aab7a18a62a6b9f71275"
   integrity sha512-EaCxbanVeyxDRTQBkdLb3Bvl/HK7PBK6UJjsSixB0iHKoWxE5uu2Q/DgtpOhPIojN0Zl1whvOd7PoHs2P0s5eA==
 
-"@types/scroll-to-element@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@types/scroll-to-element/-/scroll-to-element-2.0.0.tgz#caa1e37747db5cf8023b1283b8449a5560c0be4f"
-  integrity sha512-MyhKHHONq0jP4e44PVbic8xrjjawsn7Rp+cijvL7K/I6Hi0KWvD98SB1muqjtIkxoopOPdUqL+DGE67JqNkPsQ==
+"@types/scroll-to-element@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@types/scroll-to-element/-/scroll-to-element-2.0.1.tgz#3e92b1063777bf285e4cedd6eb9e8faf4736f97f"
+  integrity sha512-zRwZyfMlHVjnhZzJD5y+yL8wcph6fE/ZqXpa4r96jR+BS0hDIjmsZmSCgoYEIxepSyvcCUJdFq8pPhInOGarFA==
 
 "@types/smoothscroll-polyfill@^0.3.0":
   version "0.3.1"
