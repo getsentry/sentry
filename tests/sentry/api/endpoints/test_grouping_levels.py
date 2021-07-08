@@ -4,6 +4,7 @@ import pytest
 
 from sentry.models import Group, GroupHash
 from sentry.testutils.helpers import Feature
+from sentry.utils.json import prune_empty_keys
 
 
 @pytest.fixture(autouse=True)
@@ -134,6 +135,45 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
     ]
 
     assert len({e.group_id for e in events}) == 1
+
+    assert [
+        prune_empty_keys(frame)
+        for frame in events[0].data["exception"]["values"][0]["stacktrace"]["frames"]
+    ] == [
+        {
+            "data": {
+                "min_grouping_level": 3,
+                "orig_in_app": -1,
+            },
+            "function": "bam",
+            "in_app": False,
+        },
+        {
+            "data": {
+                "min_grouping_level": 2,
+                "orig_in_app": -1,
+            },
+            "function": "baz2",
+            "in_app": False,
+        },
+        {
+            "data": {
+                "min_grouping_level": 1,
+                "orig_in_app": -1,
+            },
+            "function": "bar2",
+            "in_app": False,
+        },
+        {
+            "data": {
+                "min_grouping_level": 0,
+                "orig_in_app": -1,
+            },
+            "function": "foo",
+            "in_app": False,
+        },
+    ]
+
     group = events[0].group
 
     assert (
