@@ -118,8 +118,8 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep operator? search_value
 
-key              = ~r"[a-zA-Z0-9_.-]+"
-quoted_key       = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
+key              = ~r"[a-zA-Z0-9_.@-]+"
+quoted_key       = '"' ~r"[a-zA-Z0-9_.@:-]+" '"'
 explicit_tag_key = "tags" open_bracket search_key closed_bracket
 aggregate_key    = key open_paren spaces function_args? spaces closed_paren
 function_args    = key (spaces comma spaces key)*

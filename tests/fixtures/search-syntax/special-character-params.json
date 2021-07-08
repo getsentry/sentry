@@ -1,0 +1,50 @@
+[
+  {
+    "query": "count_if(user.email,equals,test@example.com):>100",
+    "result": [
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "count_if", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keySimple",
+                  "value": "user.email",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keySimple",
+                  "value": "equals",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keySimple",
+                  "value": "test@example.com",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {"type": "valueNumber", "rawValue": 100, "unit": null, "value": "100"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

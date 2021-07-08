@@ -117,7 +117,7 @@ divide               = ~r"[/÷]"
 function_value       = function_name open_paren spaces function_args? spaces closed_paren
 function_args        = function_arg (spaces comma spaces function_arg)*
 # Different from a field value, since a function arg may not be a valid field
-function_arg         = ~r"[a-zA-Z_\.0-9]+"
+function_arg         = ~r"[a-zA-Z_.@0-9]+"
 function_name        = ~r"[a-zA-Z_0-9]+"
 numeric_value        = ~r"[+-]?[0-9]+\.?[0-9]*"
 field_value          = ~r"[a-zA-Z_\.]+"
