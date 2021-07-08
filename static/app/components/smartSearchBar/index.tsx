@@ -1133,11 +1133,8 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
     const cursorToken = this.getCursorToken(parsedQuery, cursor);
 
-    if (!cursorToken && isDefaultDropdownItem(item)) {
-      this.updateQuery(`${query}${replaceText}`);
-    }
-
     if (!cursorToken) {
+      this.updateQuery(`${query}${replaceText}`);
       return;
     }
 
@@ -1161,7 +1158,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         const keyLocation = cursorToken.key.location;
         // Include everything after the ':'
         clauseStart = keyLocation.end.offset + 1;
-        clauseEnd = location.end.offset;
+        clauseEnd = location.end.offset + 1;
         replaceToken += ' ';
       } else if (isWithinToken(cursorToken.key, cursor)) {
         const location = cursorToken.key.location;

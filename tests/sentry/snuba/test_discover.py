@@ -4207,6 +4207,20 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 params=self.params,
             )
 
+    def test_equation_without_field_or_function(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.duration",
+                ],
+                equations=[
+                    "5 + 5",
+                ],
+                query=self.query,
+                params=self.params,
+            )
+
     def test_aggregate_equation(self):
         results = discover.query(
             selected_columns=[
