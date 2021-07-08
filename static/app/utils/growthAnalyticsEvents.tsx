@@ -79,7 +79,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
   'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
-  'growth.onboarding_take_to_error': 'Growth: OnboardingTake to Error',
+  'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
 };
