@@ -70,7 +70,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
 
   return {
     title: `${type} | ${formattedTreeLabel}`,
-    treeLabel: [type, ...(treeLabel ?? [])],
+    treeLabel: [{type}, ...(treeLabel ?? [])],
   };
 }
 

@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {TreeLabelPart} from 'app/types';
 
 type Props = {
-  treeLabel: string[];
+  treeLabel: TreeLabelPart[];
 };
 
 function EventTitleTreeLabel({treeLabel}: Props) {
@@ -19,7 +20,9 @@ function EventTitleTreeLabel({treeLabel}: Props) {
           if (index !== firstFourLabels.length - 1) {
             return (
               <Fragment key={index}>
-                <PriorityLabel>{label}</PriorityLabel>
+                <PriorityLabel>
+                  {label?.function || label?.package || label?.type}
+                </PriorityLabel>
                 <Divider>{'|'}</Divider>
               </Fragment>
             );
@@ -33,7 +36,7 @@ function EventTitleTreeLabel({treeLabel}: Props) {
             return (
               <Fragment key={index}>
                 <Divider>{'|'}</Divider>
-                {label}
+                {label?.function || label?.package || label?.type}
               </Fragment>
             );
           })}

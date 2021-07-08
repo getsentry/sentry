@@ -374,6 +374,7 @@ export type TeamWithProjects = Team & {projects: Project[]};
 export type TreeLabelPart = {
   function?: string;
   package?: string;
+  type?: string;
   datapath?: (string | number)[];
 };
 
