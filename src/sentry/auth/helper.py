@@ -313,7 +313,7 @@ class AuthIdentityHandler:
                     "auth_identity_user_id": auth_identity.user.id,
                     "auth_provider_id": self.auth_provider.id,
                     "idp_identity_id": identity["id"],
-                    "idp_identity_email": identity["email"],
+                    "idp_identity_email": identity.get("email"),
                 },
             )
 
