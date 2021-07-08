@@ -259,16 +259,17 @@ class GitHubInstallationRedirect(PipelineView):
         if "installation_id" in request.GET:
             try:
                 # We want to limit GitHub integrations to 1 organization
-                installations = OrganizationIntegration.objects.filter(
+                installations_exist = OrganizationIntegration.objects.filter(
                     integration=Integration.objects.get(external_id=request.GET["installation_id"])
-                )
-                if len(installations):
+                ).exists()
+
+                if installations_exist:
                     return render_to_response(
                         "sentry/integrations/github-integration-exists-on-another-org.html",
                         request=request,
                     )
 
-            except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            except Integration.DoesNotExist:
                 pipeline.bind_state("installation_id", request.GET["installation_id"])
                 return pipeline.next_step()
 
