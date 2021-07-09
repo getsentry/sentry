@@ -124,7 +124,7 @@ class QueryBase:
 
     def _resolve_transaction_status(self, _: str) -> SelectType:
         return Function(
-            "toUInt64", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
+            "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
         )
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:

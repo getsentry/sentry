@@ -424,7 +424,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data["contexts"]["trace"]["status"] = "already_exists"
         self.store_event(data, project_id=self.project.id)
 
-        def run_query(query, expected_statuses):
+        def run_query(query, expected_statuses, message):
             for query_fn in [discover.query, discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=["transaction.status"],
@@ -437,17 +437,31 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     },
                 )
                 data = result["data"]
-                assert len(data) == len(expected_statuses), query_fn
+                assert len(data) == len(
+                    expected_statuses
+                ), f"failed with '{query_fn.__name__}' due to {message}"
                 assert sorted(item["transaction.status"] for item in data) == sorted(
                     expected_statuses
-                )
+                ), f"failed with '{query_fn.__name__}' due to {message} condition"
 
-        run_query("has:transaction.status transaction.status:ok", [0, 0])
-        run_query("has:transaction.status transaction.status:[ok,already_exists]", [0, 0, 6])
-        run_query("has:transaction.status !transaction.status:ok", [6])
-        run_query("has:transaction.status !transaction.status:already_exists", [0, 0])
-        run_query("has:transaction.status !transaction.status:[ok,already_exists]", [])
-        run_query("!has:transaction.status", [])
+        run_query("has:transaction.status transaction.status:ok", [0, 0], "status 'ok'")
+        run_query(
+            "has:transaction.status transaction.status:[ok,already_exists]",
+            [0, 0, 6],
+            "status 'ok' or 'already_exists'",
+        )
+        run_query("has:transaction.status !transaction.status:ok", [6], "status not 'ok'")
+        run_query(
+            "has:transaction.status !transaction.status:already_exists",
+            [0, 0],
+            "status not 'already_exists'",
+        )
+        run_query(
+            "has:transaction.status !transaction.status:[ok,already_exists]",
+            [],
+            "status not 'ok' and not 'already_exists'",
+        )
+        run_query("!has:transaction.status", [], "status nonexistant")
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(

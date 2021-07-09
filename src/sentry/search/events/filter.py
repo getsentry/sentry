@@ -1138,9 +1138,8 @@ class QueryFilter(QueryBase):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return Condition(
-                Function("isNull", [self.resolve_field_alias(search_filter.key.name)]),
-                Op(search_filter.operator),
-                1,
+                self.resolve_field_alias(search_filter.key.name),
+                Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
             )
         if search_filter.is_in_filter:
             internal_value = [
