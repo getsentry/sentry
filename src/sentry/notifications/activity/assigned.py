@@ -70,36 +70,30 @@ class AssignedActivityNotification(ActivityNotification):
         if "assigneeType" not in data or data["assigneeType"] == "user":
             assignee = author
             author = "themselves"
-            return author, assignee
 
-        try:
-            assignee = User.objects.get_from_cache(id=data["assignee"])
-        except User.DoesNotExist:
-            pass
-        else:
-            assignee = assignee.get_display_name()
-            return author, assignee
+            try:
+                assignee = User.objects.get_from_cache(id=data["assignee"])
+            except User.DoesNotExist:
+                pass
+            else:
+                assignee = assignee.get_display_name()
+                return author, assignee
 
-        if data.get("assigneeEmail"):
-            assignee = data["assigneeEmail"]
-            return author, assignee
+            if data.get("assigneeEmail"):
+                assignee = data["assigneeEmail"]
+            else:
+                assignee = "an unknown user"
 
-        assignee = "an unknown user"
-        return author, assignee
-
-        if data["assigneeType"] == "team":
+        if data.get("assigneeType") == "team":
             try:
                 assignee_team = Team.objects.get(
                     id=data["assignee"], organization=self.organization
                 )
             except Team.DoesNotExist:
                 assignee = "an unknown team"
-                return author, assignee
             else:
                 assignee = f"#{assignee_team.slug}"
-                return author, assignee
-
-        raise NotImplementedError("Unknown Assignee Type ")
+        return author, assignee
 
     def get_notification_title(self) -> str:
         author, assignee = self.build_notification_title()
