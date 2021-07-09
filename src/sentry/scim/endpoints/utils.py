@@ -6,6 +6,7 @@ from sentry.models import AuthProvider
 from .constants import SCIM_API_LIST
 
 SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]
+ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 
 class SCIMClientNegotiation(BaseContentNegotiation):
@@ -70,10 +71,10 @@ class SCIMEndpoint(OrganizationEndpoint):
     def add_cursor_headers(self, request, response, cursor_result):
         pass
 
-    def list_api_format(self, request, queryset, results):
+    def list_api_format(self, request, total_results, results):
         return {
             "schemas": [SCIM_API_LIST],
-            "totalResults": queryset.count(),  # TODO: audit perf
+            "totalResults": total_results,  # TODO: audit perf of queryset.count()
             "startIndex": int(request.GET.get("startIndex", 1)),  # must be integer
             "itemsPerPage": len(results),  # what's max?
             "Resources": results,
@@ -109,14 +110,12 @@ def parse_filter_conditions(raw_filters):
 
         value = value[1:-1]
 
-        if key == "userName":
-            value = value.lower()
-        elif key == "value":
+        if key not in ACCEPTED_FILTERED_KEYS:
+            raise ValueError
+
+        if key == "value":
             value = int(value)
-        elif key == "displayName":
-            pass
-        else:
-            raise ValueError  # only support above fields
+
         filters.append([key, value])
 
     if len(filters) == 1:

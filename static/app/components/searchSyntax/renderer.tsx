@@ -1,22 +1,51 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 import {ParseResult, Token, TokenResult} from './parser';
+import {isWithinToken} from './utils';
 
-function renderToken(token: TokenResult<Token>) {
+type Props = {
+  /**
+   * The result from parsing the search query string
+   */
+  parsedQuery: ParseResult;
+  /**
+   * The current location of the cursror within the query. This is used to
+   * highlight active tokens and trigger error tooltips.
+   */
+  cursorPosition?: number;
+};
+
+/**
+ * Renders the parsed query with syntax highlighting.
+ */
+export default function HighlightQuery({parsedQuery, cursorPosition}: Props) {
+  const result = renderResult(parsedQuery, cursorPosition ?? -1);
+
+  return <Fragment>{result}</Fragment>;
+}
+
+function renderResult(result: ParseResult, cursor: number) {
+  return result
+    .map(t => renderToken(t, cursor))
+    .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
+}
+
+function renderToken(token: TokenResult<Token>, cursor: number) {
   switch (token.type) {
     case Token.Spaces:
       return token.value;
 
     case Token.Filter:
-      return <FilterToken filter={token} />;
+      return <FilterToken filter={token} cursor={cursor} />;
 
     case Token.ValueTextList:
     case Token.ValueNumberList:
-      return <ListToken token={token} />;
+      return <ListToken token={token} cursor={cursor} />;
 
     case Token.ValueNumber:
       return <NumberToken token={token} />;
@@ -28,7 +57,7 @@ function renderToken(token: TokenResult<Token>) {
       return <DateTime>{token.text}</DateTime>;
 
     case Token.LogicGroup:
-      return <LogicGroup>{renderResult(token.inner)}</LogicGroup>;
+      return <LogicGroup>{renderResult(token.inner, cursor)}</LogicGroup>;
 
     case Token.LogicBoolean:
       return <LogicBoolean>{token.value}</LogicBoolean>;
@@ -38,41 +67,48 @@ function renderToken(token: TokenResult<Token>) {
   }
 }
 
-function renderResult(result: ParseResult) {
-  return result
-    .map(renderToken)
-    .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
-}
+const FilterToken = ({
+  filter,
+  cursor,
+}: {
+  filter: TokenResult<Token.Filter>;
+  cursor: number;
+}) => {
+  const isActive = isWithinToken(filter, cursor);
 
-type Props = {
-  /**
-   * The result from parsing the search query string
-   */
-  parsedQuery: ParseResult;
-  /**
-   * The current location of the cursror within the query. This is used to
-   * highligh active tokens and trigger error tooltips.
-   */
-  cursorPosition?: number;
+  // This state tracks if the cursor has left the filter token. We initialize it
+  // to !isActive in the case where the filter token is rendered without the
+  // cursor initally being in it.
+  const [hasLeft, setHasLeft] = useState(!isActive);
+
+  // Trigger the effect when isActive changes to updated whether the cursor has
+  // left the token.
+  useEffect(() => {
+    if (!isActive && !hasLeft) {
+      setHasLeft(true);
+    }
+  }, [isActive]);
+
+  const showInvalid = hasLeft && !!filter.invalid;
+  const showTooltip = showInvalid && isActive;
+
+  return (
+    <Tooltip
+      disabled={!showTooltip}
+      title={filter.invalid?.reason}
+      popperStyle={{maxWidth: '350px'}}
+      forceShow
+      skipWrapper
+    >
+      <Filter active={isActive} invalid={showInvalid}>
+        {filter.negated && <Negation>!</Negation>}
+        <KeyToken token={filter.key} negated={filter.negated} />
+        {filter.operator && <Operator>{filter.operator}</Operator>}
+        <Value>{renderToken(filter.value, cursor)}</Value>
+      </Filter>
+    </Tooltip>
+  );
 };
-
-/**
- * Renders the parsed query with syntax highlighting.
- */
-export default function HighlightQuery({parsedQuery}: Props) {
-  const rendered = renderResult(parsedQuery);
-
-  return <Fragment>{rendered}</Fragment>;
-}
-
-const FilterToken = ({filter}: {filter: TokenResult<Token.Filter>}) => (
-  <Filter>
-    {filter.negated && <Negation>!</Negation>}
-    <KeyToken token={filter.key} negated={filter.negated} />
-    {filter.operator && <Operator>{filter.operator}</Operator>}
-    <Value>{renderToken(filter.value)}</Value>
-  </Filter>
-);
 
 const KeyToken = ({
   token,
@@ -96,13 +132,15 @@ const KeyToken = ({
 
 const ListToken = ({
   token,
+  cursor,
 }: {
   token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
+  cursor: number;
 }) => (
   <InList>
     {token.items.map(({value, separator}) => [
       <ListComma key="comma">{separator}</ListComma>,
-      renderToken(value),
+      renderToken(value, cursor),
     ])}
   </InList>
 );
@@ -114,10 +152,18 @@ const NumberToken = ({token}: {token: TokenResult<Token.ValueNumber>}) => (
   </Fragment>
 );
 
-const Filter = styled('span')`
-  --token-bg: ${p => p.theme.searchTokenBackground};
-  --token-border: ${p => p.theme.searchTokenBorder};
-  --token-value-color: ${p => p.theme.blue300};
+type FilterProps = {
+  active: boolean;
+  invalid: boolean;
+};
+
+const colorType = (p: FilterProps) =>
+  `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
+
+const Filter = styled('span')<FilterProps>`
+  --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
+  --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
+  --token-value-color: ${p => (p.invalid ? p.theme.red300 : p.theme.blue300)};
 `;
 
 const filterCss = css`
