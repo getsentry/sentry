@@ -29,7 +29,7 @@ from .constants import (
     SCIM_400_UNSUPPORTED_ATTRIBUTE,
     SCIM_404_GROUP_RES,
     SCIM_404_USER_RES,
-    GroupPatchOps,
+    TeamPatchOps,
 )
 from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_conditions
 
@@ -70,7 +70,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
 
         def on_results(results):
             results = serialize(results, None, TeamSCIMSerializer(expand=expand))
-            return self.list_api_format(request, queryset, results)
+            return self.list_api_format(request, queryset.count(), results)
 
         return self.paginate(
             request=request,
@@ -187,13 +187,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             with transaction.atomic():
                 for operation in operations:
                     op = operation["op"].lower()
-                    if op == GroupPatchOps.ADD and operation["path"] == "members":
+                    if op == TeamPatchOps.ADD and operation["path"] == "members":
                         self._add_members_operation(request, operation, team)
-                    elif op == GroupPatchOps.REMOVE and "members" in operation["path"]:
+                    elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
                         # the members op contains a filter string like so:
                         # members[userName eq "baz@sentry.io"]
                         self._remove_members_operation(request, operation, team)
-                    elif op == GroupPatchOps.REPLACE:
+                    elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
 
                         if path == "members":

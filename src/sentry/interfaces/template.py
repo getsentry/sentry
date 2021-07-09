@@ -32,7 +32,7 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kwargs):
         for key in (
             "abs_path",
             "filename",
@@ -42,7 +42,8 @@ class Template(Interface):
             "post_context",
         ):
             data.setdefault(key, None)
-        return cls(**data)
+
+        return super().to_python(data, **kwargs)
 
     def to_string(self, event, is_public=False, **kwargs):
         context = get_context(

@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
@@ -174,13 +175,18 @@ class TransactionHeader extends React.Component<Props> {
       >
         {({hasFeature}) =>
           hasFeature ? (
-            <Button
-              onClick={() => this.openModal()}
-              data-test-id="set-transaction-threshold"
-              icon={<IconSettings />}
-              disabled={loadingThreshold}
-              aria-label={t('Settings')}
-            />
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <Button
+                onClick={() => this.openModal()}
+                data-test-id="set-transaction-threshold"
+                icon={<IconSettings />}
+                disabled={loadingThreshold}
+                aria-label={t('Settings')}
+              />
+            </GuideAnchor>
           ) : (
             <Button
               href={`/settings/${organization.slug}/performance/`}
@@ -269,7 +275,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTagsTabClick}
               >
                 {t('Tags')}
-                <FeatureBadge type="beta" noTooltip />
+                <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
             <Feature features={['organizations:performance-events-page']}>
@@ -279,6 +285,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackEventsTabClick}
               >
                 {t('All Events')}
+                <FeatureBadge type="beta" noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>

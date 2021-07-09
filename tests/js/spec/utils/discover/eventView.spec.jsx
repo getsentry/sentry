@@ -1572,6 +1572,9 @@ describe('EventView.clone()', function () {
     expect(eventView).toMatchObject(state);
     expect(eventView2).toMatchObject(state);
     expect(eventView.isEqualTo(eventView2)).toBe(true);
+    expect(
+      eventView.additionalConditions === eventView2.additionalConditions
+    ).toBeFalsy();
   });
 });
 
@@ -2220,6 +2223,23 @@ describe('EventView.getQuery()', function () {
     expect(eventView.getQuery('hello')).toEqual('hello');
     expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
       'event.type:error hello'
+    );
+  });
+});
+
+describe('EventView.getQueryWithAdditionalConditions', function () {
+  it('with overlapping conditions', function () {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      project: [],
+      query: 'event.type:transaction foo:bar',
+    });
+
+    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+
+    expect(eventView.getQueryWithAdditionalConditions()).toEqual(
+      'event.type:transaction foo:bar'
     );
   });
 });

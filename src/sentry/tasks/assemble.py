@@ -291,8 +291,8 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
             meta = {  # Required for release file creation
                 "organization_id": organization.id,
-                "release": release,
-                "dist": dist,
+                "release_id": release.id,
+                "dist_id": dist.id if dist else dist,
             }
 
             saved_as_archive = False

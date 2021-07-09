@@ -16,7 +16,9 @@ class ReleaseFilesListDocsTest(APIDocsTestCase):
             headers={"Content-Type": "application/json"},
             checksum="dc1e3f3e411979d336c3057cce64294f3420f93a",
         )
-        self.create_release_file(file=file1, release=release, name="http://example.com/blah.js")
+        self.create_release_file(
+            file=file1, release_id=release.id, name="http://example.com/blah.js"
+        )
 
         self.url = reverse(
             "sentry-api-0-organization-release-files",
