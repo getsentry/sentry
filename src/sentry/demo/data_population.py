@@ -852,7 +852,8 @@ class DataPopulation:
             if outcome < ignore_rate:
                 group.update(status=GroupStatus.IGNORED)
             elif group in unassigned_groups:
-                add_group_to_inbox(group, random.choice(reasons))
+                group_inbox = add_group_to_inbox(group, random.choice(reasons))
+                group_inbox.update(date_added=group.first_seen)
 
     def assign_issues(self):
         org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
