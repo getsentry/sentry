@@ -17,6 +17,7 @@ SEMVER_ALIAS = "sentry.semver"
 SEMVER_PACKAGE_ALIAS = "release.package"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
+TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 
@@ -89,6 +90,7 @@ SNQL_FIELD_ALLOWLIST = {
     ISSUE_ID_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
 }
 
 OPERATOR_NEGATION_MAP = {

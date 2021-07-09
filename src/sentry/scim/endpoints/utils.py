@@ -70,10 +70,10 @@ class SCIMEndpoint(OrganizationEndpoint):
     def add_cursor_headers(self, request, response, cursor_result):
         pass
 
-    def list_api_format(self, request, queryset, results):
+    def list_api_format(self, request, total_results, results):
         return {
             "schemas": [SCIM_API_LIST],
-            "totalResults": queryset.count(),  # TODO: audit perf
+            "totalResults": total_results,  # TODO: audit perf of queryset.count()
             "startIndex": int(request.GET.get("startIndex", 1)),  # must be integer
             "itemsPerPage": len(results),  # what's max?
             "Resources": results,
