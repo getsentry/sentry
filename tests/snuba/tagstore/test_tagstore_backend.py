@@ -720,7 +720,6 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
     def test_semver(self):
         env_2 = self.create_environment()
         project_2 = self.create_project()
-
         self.create_release(version="test@1.0.0.0+123", additional_projects=[project_2])
         self.create_release(version="test@1.2.0.0-alpha", environments=[self.environment])
         self.create_release(version="test@1.2.3.0-beta+789", environments=[env_2])
@@ -819,7 +818,7 @@ class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase,
         self.run_test("", ["test2"], env_2)
 
 
-class GetTagValuePaginatorForProjectsReleastStageTest(TestCase, SnubaTestCase):
+class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.ts = SnubaTagStorage()

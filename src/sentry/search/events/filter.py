@@ -350,45 +350,19 @@ def _release_stage_filter_converter(
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
     """
-    # TODO: Should I filter by project and/or env here?
-    # I think it's done elsewhere, but could limit versions
+    # TODO: Should I filter by project and/or env here? I think it's done elsewhere, but could limit versions
 
     if not params or "organization_id" not in params:
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-
-    # Note that we sort this such that if we end up fetching more than
-    # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
-    # the passed filter.
     qs = (
         Release.objects.filter_by_stage(organization_id, search_filter)
         .values_list("version", flat=True)
-        .order_by("date_added")  # [:SEMVER_MAX_SEARCH_RELEASES]
+        .order_by("date_added")
     )
     versions = list(qs)
     final_operator = "IN"
-
-    # TODO: Implement this logic like SEMVER does
-    # if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
-    #     # We want to limit how many versions we pass through to Snuba. If we've hit
-    #     # the limit, make an extra query and see whether the inverse has fewer ids.
-    #     # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
-    #     # do our best.
-    #     operator = OPERATOR_NEGATION_MAP[operator]
-    #     # Note that the `order_by` here is important for index usage. Postgres seems
-    #     # to seq scan with this query if the `order_by` isn't included, so we
-    #     # include it even though we don't really care about order for this query
-    #     qs_flipped = (
-    #         Release.objects.filter_by_stage(organization_id, search_filter)
-    #         .order_by(-"date_added")
-    #         .values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
-    #     )
-    #     exclude_versions = list(qs_flipped)
-    #     if exclude_versions and len(exclude_versions) < len(versions):
-    #         # Do a negative search instead
-    #         final_operator = "NOT IN"
-    #         versions = exclude_versions
 
     if not versions:
         # XXX: Just return a filter that will return no results if we have no versions
