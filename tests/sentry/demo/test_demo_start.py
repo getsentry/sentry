@@ -6,7 +6,7 @@ from exam import fixture
 
 from sentry.demo.demo_start import MEMBER_ID_COOKIE, SAAS_ORG_SLUG, SKIP_EMAIL_COOKIE
 from sentry.demo.models import DemoOrganization
-from sentry.demo.settings import DEMO_DATA_QUICK_GEN_PARAMS
+from sentry.demo.settings import DEMO_DATA_GEN_PARAMS, DEMO_DATA_QUICK_GEN_PARAMS
 from sentry.models import Group, Organization, OrganizationStatus, Project, Release, User
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
@@ -88,7 +88,9 @@ class DemoStartTest(TestCase):
             assert partial_url in resp.url
 
     @override_settings(
-        DEMO_DATA_QUICK_GEN_PARAMS=DEMO_DATA_QUICK_GEN_PARAMS, DEMO_ORG_OWNER_EMAIL=org_owner_email
+        DEMO_DATA_QUICK_GEN_PARAMS=DEMO_DATA_QUICK_GEN_PARAMS,
+        DEMO_DATA_GEN_PARAMS=DEMO_DATA_GEN_PARAMS,
+        DEMO_ORG_OWNER_EMAIL=org_owner_email,
     )
     def test_advanced_deep_links(self):
         User.objects.create(email=org_owner_email)

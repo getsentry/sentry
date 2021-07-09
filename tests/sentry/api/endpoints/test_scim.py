@@ -83,7 +83,7 @@ class SCIMMemberTests(SCIMTestCase):
         ).id
         correct_post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "id": org_member_id,
+            "id": str(org_member_id),
             "userName": "test.user@okta.local",
             # "name": {"givenName": "Test", "familyName": "User"},
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
@@ -121,7 +121,7 @@ class SCIMMemberTests(SCIMTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": org_member_id,
+                    "id": str(org_member_id),
                     "userName": "test.user@okta.local",
                     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -142,7 +142,7 @@ class SCIMMemberTests(SCIMTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "id": org_member_id,
+            "id": str(org_member_id),
             "userName": "test.user@okta.local",
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
             "name": {"familyName": "N/A", "givenName": "N/A"},
