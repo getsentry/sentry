@@ -1,3 +1,4 @@
+import re
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from django.core.cache import cache
@@ -253,13 +254,18 @@ def build_actions(
 
 
 def get_title_link(
-    group: Group, event: Optional[Event], link_to_event: bool, issue_alert: bool
+    group: Group,
+    event: Optional[Event],
+    link_to_event: bool,
+    issue_details: bool,
+    notification: Optional[BaseNotification],
 ) -> Any:
     if event and link_to_event:
         return group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
 
-    if issue_alert:
-        return group.get_absolute_url(params={"referrer": "IssueAlertSlack"})
+    if issue_details:
+        referrer = re.sub("Notification$", "Slack", notification.__class__.__name__)
+        return group.get_absolute_url(params={"referrer": referrer})
 
     return group.get_absolute_url(params={"referrer": "slack"})
 
@@ -287,8 +293,9 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         actions: Optional[Sequence[Any]] = None,
         rules: Optional[List[Rule]] = None,
         link_to_event: bool = False,
-        issue_alert: bool = False,
+        issue_details: bool = False,
         notification: Optional[BaseNotification] = None,
+        recipient: Optional[Union[Team, User]] = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -298,8 +305,9 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.actions = actions
         self.rules = rules
         self.link_to_event = link_to_event
-        self.issue_alert = issue_alert
+        self.issue_details = issue_details
         self.notification = notification
+        self.recipient = recipient
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
@@ -311,13 +319,12 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         color = get_color(event_for_tags)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
-            build_notification_footer(self.notification)
-            if self.notification
+            build_notification_footer(self.notification, self.recipient)
+            if self.notification and self.recipient
             else build_footer(self.group, project, self.rules)
         )
         obj = self.event if self.event is not None else self.group
-
-        if not self.issue_alert:
+        if not self.issue_details or self.recipient and isinstance(self.recipient, Team):
             payload_actions, text, color = build_actions(
                 self.group, project, text, color, self.actions, self.identity
             )
@@ -332,8 +339,10 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             footer=footer,
             text=text,
             title=build_attachment_title(obj),
-            title_link=get_title_link(self.group, self.event, self.link_to_event, self.issue_alert),
-            ts=get_timestamp(self.group, self.event) if not self.issue_alert else None,
+            title_link=get_title_link(
+                self.group, self.event, self.link_to_event, self.issue_details, self.notification
+            ),
+            ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
 
 
@@ -345,9 +354,9 @@ def build_group_attachment(
     actions: Optional[Sequence[Any]] = None,
     rules: Optional[List[Rule]] = None,
     link_to_event: bool = False,
-    issue_alert: bool = False,
+    issue_details: bool = False,
 ) -> SlackBody:
     """@deprecated"""
     return SlackIssuesMessageBuilder(
-        group, event, tags, identity, actions, rules, link_to_event, issue_alert
+        group, event, tags, identity, actions, rules, link_to_event, issue_details
     ).build()

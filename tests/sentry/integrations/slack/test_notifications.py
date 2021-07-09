@@ -481,7 +481,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         )
         assert (
             attachment["footer"]
-            == "<http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -596,7 +596,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachments[0]["text"] == ""
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlack|Notification Settings>"
         )
 
     @responses.activate
@@ -677,7 +677,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachments[0]["text"] == ""
         assert (
             attachments[0]["footer"]
-            == f"{project2.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlack|Notification Settings>"
         )
 
     @responses.activate

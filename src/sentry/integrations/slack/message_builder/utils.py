@@ -1,9 +1,10 @@
 import re
+from typing import Any, Union
 from urllib.parse import urljoin
 
-from sentry.models import Project
-from sentry.notifications.activity import ReleaseActivityNotification
+from sentry.models import Project, Team, User
 from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.rules import AlertRuleNotification
 from sentry.utils.http import absolute_uri
@@ -27,11 +28,18 @@ def get_settings_url(notification: BaseNotification) -> str:
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 
-def build_notification_footer(notification: BaseNotification) -> str:
-    settings_url = get_settings_url(notification)
+def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> Any:
+    if isinstance(recipient, Team):
+        team = Team.objects.get(id=recipient.id)
+        url_str = f"/settings/{notification.group.project.organization.slug}/teams/{team.slug}/notifications/"
+        settings_url = str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+    else:
+        settings_url = get_settings_url(notification)
+
     if isinstance(notification, ReleaseActivityNotification):
-        # temp while I figure out what to put here for deploys
-        return f"<{settings_url}|Notification Settings>"
+        # no environment related to a deploy
+        return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
+
     footer = Project.objects.get_from_cache(id=notification.group.project_id).slug
     latest_event = notification.group.get_latest_event()
     environment = None

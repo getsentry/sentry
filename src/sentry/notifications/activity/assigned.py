@@ -57,7 +57,7 @@ class AssignedActivityNotification(ActivityNotification):
     def get_category(self) -> str:
         return "assigned_activity_email"
 
-    def build_notification_title(self):
+    def build_notification_title(self) -> Tuple[str, str]:
         activity = self.activity
         data = activity.data
         user = self.activity.user
@@ -102,7 +102,7 @@ class AssignedActivityNotification(ActivityNotification):
         raise NotImplementedError("Unknown Assignee Type ")
 
     def get_notification_title(self) -> str:
-        # Issue assigned to {assignee} by {assigner}
-
         author, assignee = self.build_notification_title()
+        if author == "Sentry":
+            return f"Issue automatically assigned to {assignee}"
         return f"Issue assigned to {assignee} by {author}"

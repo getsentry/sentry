@@ -48,3 +48,6 @@ class BaseNotification:
         self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         return {}
+
+    def get_notification_title(self) -> str:
+        raise NotImplementedError
