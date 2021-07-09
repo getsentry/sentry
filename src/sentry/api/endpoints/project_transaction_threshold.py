@@ -43,6 +43,10 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
     def has_feature(self, project, request):
         return features.has(
             "organizations:project-transaction-threshold", project.organization, actor=request.user
+        ) or features.has(
+            "organizations:project-transaction-threshold-override",
+            project.organization,
+            actor=request.user,
         )
 
     def get(self, request, project):

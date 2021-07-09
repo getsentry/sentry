@@ -115,9 +115,11 @@ export function getReleaseEventView(
   const {projects, environments, datetime} = selection;
   const {start, end, period} = datetime;
 
-  const apdexField = organization.features.includes('project-transaction-threshold')
-    ? 'apdex()'
-    : `apdex(${organization.apdexThreshold})`;
+  const apdexField =
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+      ? 'apdex()'
+      : `apdex(${organization.apdexThreshold})`;
 
   const discoverQuery = {
     id: undefined,

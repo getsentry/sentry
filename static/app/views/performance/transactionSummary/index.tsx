@@ -249,37 +249,37 @@ class TransactionSummary extends Component<Props, State> {
       },
     ];
 
-    const featureColumns: QueryFieldValue[] = organization.features.includes(
-      'project-transaction-threshold'
-    )
-      ? [
-          {
-            kind: 'function',
-            function: ['count_miserable', 'user', undefined, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['user_misery', '', undefined, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['apdex', '', undefined, undefined],
-          },
-        ]
-      : [
-          {
-            kind: 'function',
-            function: ['count_miserable', 'user', threshold, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['user_misery', threshold, undefined, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['apdex', threshold, undefined, undefined],
-          },
-        ];
+    const featureColumns: QueryFieldValue[] =
+      organization.features.includes('project-transaction-threshold') ||
+      organization.features.includes('project-transaction-threshold-override')
+        ? [
+            {
+              kind: 'function',
+              function: ['count_miserable', 'user', undefined, undefined],
+            },
+            {
+              kind: 'function',
+              function: ['user_misery', '', undefined, undefined],
+            },
+            {
+              kind: 'function',
+              function: ['apdex', '', undefined, undefined],
+            },
+          ]
+        : [
+            {
+              kind: 'function',
+              function: ['count_miserable', 'user', threshold, undefined],
+            },
+            {
+              kind: 'function',
+              function: ['user_misery', threshold, undefined, undefined],
+            },
+            {
+              kind: 'function',
+              function: ['apdex', threshold, undefined, undefined],
+            },
+          ];
 
     return eventView.withColumns([
       ...totalsColumns,

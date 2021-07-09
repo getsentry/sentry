@@ -50,9 +50,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       return [];
     }
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
+    const apdexField =
+      organization.features.includes('project-transaction-threshold') ||
+      organization.features.includes('project-transaction-threshold-override')
+        ? 'apdex()'
+        : `apdex(${organization.apdexThreshold})`;
 
     const {projects, environments, datetime} = selection;
     const {period} = datetime;
@@ -114,11 +116,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get cardHelp() {
     const {organization} = this.props;
-    const performanceTerm = organization.features.includes(
-      'project-transaction-threshold'
-    )
-      ? PERFORMANCE_TERM.APDEX_NEW
-      : PERFORMANCE_TERM.APDEX;
+    const performanceTerm =
+      organization.features.includes('project-transaction-threshold') ||
+      organization.features.includes('project-transaction-threshold-override')
+        ? PERFORMANCE_TERM.APDEX_NEW
+        : PERFORMANCE_TERM.APDEX;
     const baseHelp = getTermHelp(this.props.organization, performanceTerm);
 
     if (this.trend) {
@@ -132,9 +134,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     const {currentApdex} = this.state;
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
+    const apdexField =
+      organization.features.includes('project-transaction-threshold') ||
+      organization.features.includes('project-transaction-threshold-override')
+        ? 'apdex()'
+        : `apdex(${organization.apdexThreshold})`;
 
     const apdex = currentApdex?.data[0]?.[getAggregateAlias(apdexField)];
 
@@ -145,9 +149,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     const {previousApdex} = this.state;
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
+    const apdexField =
+      organization.features.includes('project-transaction-threshold') ||
+      organization.features.includes('project-transaction-threshold-override')
+        ? 'apdex()'
+        : `apdex(${organization.apdexThreshold})`;
 
     const apdex = previousApdex?.data[0]?.[getAggregateAlias(apdexField)];
 

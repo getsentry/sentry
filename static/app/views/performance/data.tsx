@@ -54,7 +54,10 @@ export type TooltipOption = SelectValue<string> & {
 
 export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
   let apdexOption: TooltipOption;
-  if (organization.features.includes('project-transaction-threshold')) {
+  if (
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+  ) {
     apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
       value: 'apdex()',
@@ -185,7 +188,10 @@ export function getBackendAxisOptions(
   organization: LightWeightOrganization
 ): AxisOption[] {
   let apdexOption: AxisOption;
-  if (organization.features.includes('project-transaction-threshold')) {
+  if (
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+  ) {
     apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: 'apdex()',
@@ -410,14 +416,16 @@ function generateGenericPerformanceEventView(
     'failure_rate()',
   ];
 
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
+  const featureFields =
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+      ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
+      : [
+          `apdex(${organization.apdexThreshold})`,
+          'count_unique(user)',
+          `count_miserable(user,${organization.apdexThreshold})`,
+          `user_misery(${organization.apdexThreshold})`,
+        ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -480,14 +488,16 @@ function generateBackendPerformanceEventView(
     'failure_rate()',
   ];
 
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
+  const featureFields =
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+      ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
+      : [
+          `apdex(${organization.apdexThreshold})`,
+          'count_unique(user)',
+          `count_miserable(user,${organization.apdexThreshold})`,
+          `user_misery(${organization.apdexThreshold})`,
+        ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -551,14 +561,16 @@ function generateMobilePerformanceEventView(
     'failure_rate()',
   ];
 
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
+  const featureFields =
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+      ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
+      : [
+          `apdex(${organization.apdexThreshold})`,
+          'count_unique(user)',
+          `count_miserable(user,${organization.apdexThreshold})`,
+          `user_misery(${organization.apdexThreshold})`,
+        ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -620,13 +632,15 @@ function generateFrontendPageloadPerformanceEventView(
     'p75(measurements.cls)',
   ];
 
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
+  const featureFields =
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+      ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
+      : [
+          'count_unique(user)',
+          `count_miserable(user,${organization.apdexThreshold})`,
+          `user_misery(${organization.apdexThreshold})`,
+        ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -690,13 +704,15 @@ function generateFrontendOtherPerformanceEventView(
     'p95(transaction.duration)',
   ];
 
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
+  const featureFields =
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+      ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
+      : [
+          'count_unique(user)',
+          `count_miserable(user,${organization.apdexThreshold})`,
+          `user_misery(${organization.apdexThreshold})`,
+        ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {

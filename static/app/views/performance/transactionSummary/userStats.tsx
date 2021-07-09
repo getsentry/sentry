@@ -45,7 +45,10 @@ function UserStats({
   if (!isLoading && error === null && totals) {
     let miserableUsers, threshold: number | undefined;
     let userMiseryScore: number;
-    if (organization.features.includes('project-transaction-threshold')) {
+    if (
+      organization.features.includes('project-transaction-threshold') ||
+      organization.features.includes('project-transaction-threshold-override')
+    ) {
       threshold = totals.project_threshold_config[1];
       miserableUsers = totals.count_miserable_user;
       userMiseryScore = totals.user_misery;
@@ -110,7 +113,8 @@ function UserStats({
           position="top"
           title={getTermHelp(
             organization,
-            organization.features.includes('project-transaction-threshold')
+            organization.features.includes('project-transaction-threshold') ||
+              organization.features.includes('project-transaction-threshold-override')
               ? PERFORMANCE_TERM.USER_MISERY_NEW
               : PERFORMANCE_TERM.USER_MISERY
           )}

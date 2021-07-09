@@ -115,6 +115,7 @@ describe('Performance > TransactionSummary', function () {
               p95: 750.123,
               failure_rate: 1,
               tpm: 1,
+              project_threshold_config: ['duration', 300],
             },
           ],
         },

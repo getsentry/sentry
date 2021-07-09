@@ -36,8 +36,17 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
-    def has_feature_for_fields(self, feature, organization, request, feature_fields):
-        has_feature = features.has(feature, organization, actor=request.user)
+    def has_feature_for_fields(
+        self, features_, organization, request, feature_fields, require_all=False
+    ):
+        if require_all:
+            has_feature = all(
+                [features.has(feature, organization, actor=request.user) for feature in features_]
+            )
+        else:
+            has_feature = any(
+                [features.has(feature, organization, actor=request.user) for feature in features_]
+            )
 
         columns = self.get_field_list(organization, request)
 
@@ -66,7 +75,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         )
 
         if not self.has_feature_for_fields(
-            "organizations:project-transaction-threshold",
+            [
+                "organizations:project-transaction-threshold",
+                "organizations:project-transaction-threshold-override",
+            ],
             organization,
             request,
             feature_fields=[

@@ -314,7 +314,10 @@ class Table extends React.Component<Props, State> {
         <GuideAnchor
           target="project_transaction_threshold"
           position="top"
-          disabled={!organization.features.includes('project-transaction-threshold')}
+          disabled={
+            !organization.features.includes('project-transaction-threshold') &&
+            !organization.features.includes('project-transaction-threshold-override')
+          }
         >
           {sortLink}
         </GuideAnchor>

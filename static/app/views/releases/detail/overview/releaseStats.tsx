@@ -102,7 +102,10 @@ function ReleaseStats({
 
   let apdexField: string;
   let apdexPerformanceTerm: PERFORMANCE_TERM;
-  if (organization.features.includes('project-transaction-threshold')) {
+  if (
+    organization.features.includes('project-transaction-threshold') ||
+    organization.features.includes('project-transaction-threshold-override')
+  ) {
     apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
     apdexField = 'apdex()';
   } else {
