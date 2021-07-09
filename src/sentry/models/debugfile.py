@@ -292,7 +292,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     # this can happen at any time in near or distant future, we don't care and
     # assume a successful upload. The DIF will be reported to the uploader and
     # reprocessing can start.
-    # clean_redundant_difs(project, meta.debug_id)
+    clean_redundant_difs(project, meta.debug_id)
 
     resolve_processing_issue(project=project, scope="native", object="dsym:%s" % meta.debug_id)
 
