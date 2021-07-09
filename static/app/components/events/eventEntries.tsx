@@ -408,14 +408,16 @@ class EventEntries extends Component<Props, State> {
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
         {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
-        {!isShare && features.has('event-attachments') && (
-          <EventAttachments
-            event={event}
-            orgId={organization.slug}
-            projectId={project.slug}
-            location={location}
-          />
-        )}
+        {!isShare &&
+          features.has('event-attachments') &&
+          !hasMobileScreenshotsFeature && (
+            <EventAttachments
+              event={event}
+              orgId={organization.slug}
+              projectId={project.slug}
+              location={location}
+            />
+          )}
         {event?.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
         {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
