@@ -1572,6 +1572,9 @@ describe('EventView.clone()', function () {
     expect(eventView).toMatchObject(state);
     expect(eventView2).toMatchObject(state);
     expect(eventView.isEqualTo(eventView2)).toBe(true);
+    expect(
+      eventView.additionalConditions === eventView2.additionalConditions
+    ).toBeFalsy();
   });
 });
 
