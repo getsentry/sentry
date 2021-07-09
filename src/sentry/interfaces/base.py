@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -9,10 +10,12 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.json import prune_empty_keys
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import get_path, safe_execute
 
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
+
+DataPath = List[Union[str, int]]
 
 
 def get_interface(name):
@@ -42,7 +45,7 @@ def get_interfaces(data):
         except ValueError:
             continue
 
-        value = safe_execute(cls.to_python, data, _with_transaction=False)
+        value = safe_execute(cls.to_python, data, datapath=[key], _with_transaction=False)
         if not value:
             continue
 
@@ -63,11 +66,12 @@ class Interface:
     render differently than the default ``extra`` metadata in an event.
     """
 
-    _data = None
+    _data: Dict[str, Any]
     score = 0
     display_score = None
     ephemeral = False
     grouping_variants = ["default"]
+    datapath = None
 
     def __init__(self, **data):
         self._data = data or {}
@@ -107,14 +111,27 @@ class Interface:
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, datapath: Optional[DataPath] = None):
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
         defaults where data is missing but does not need to handle interface
         validation.
         """
-        return cls(**data) if data is not None else None
+        if data is None:
+            return None
+
+        rv = cls(**data)
+        object.__setattr__(rv, "datapath", datapath)
+        return rv
+
+    @classmethod
+    def to_python_subpath(cls, data, path: DataPath, datapath: Optional[DataPath] = None):
+        if data is None:
+            return None
+
+        subdata = get_path(data, *path)
+        return cls.to_python(subdata, datapath=datapath + path if datapath else None)
 
     def get_raw_data(self):
         """Returns the underlying raw data."""

@@ -1616,7 +1616,7 @@ class EventManagerTest(TestCase):
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-        assert event1.get_hashes() == event2.get_hashes(grouping_config)
+        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
 
 
 class ReleaseIssueTest(TestCase):

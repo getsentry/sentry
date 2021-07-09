@@ -144,11 +144,10 @@ def _list_levels(group):
 
     # It is a little silly to transfer a list of integers rather than just
     # giving the UI a range, but in the future we may want to add
-    # additional fields to each level. Also it is good if the UI does not
-    # assume too much about the form of IDs.
-    levels = [{"id": str(i)} for i in range(fields.num_levels)]
+    # additional fields to each level.
+    levels = [{"id": i} for i in range(fields.num_levels)]
 
     current_level = fields.current_level
-    assert levels[current_level]["id"] == str(current_level)
+    assert levels[current_level]["id"] == current_level
     levels[current_level]["isCurrent"] = True
     return {"levels": levels}

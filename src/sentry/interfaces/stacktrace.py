@@ -1,10 +1,11 @@
 __all__ = ("Stacktrace",)
 
+from typing import Optional
 
 from django.utils.translation import ugettext as _
 
 from sentry.app import env
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import DataPath, Interface
 from sentry.models import UserOption
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
@@ -128,7 +129,7 @@ class Frame(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, raw=False):
+    def to_python(cls, data, **kwargs):
         for key in (
             "abs_path",
             "colno",
@@ -155,7 +156,8 @@ class Frame(Interface):
             "snapshot",
         ):
             data.setdefault(key, None)
-        return cls(**data)
+
+        return super().to_python(data, **kwargs)
 
     def to_json(self):
         return prune_empty_keys(
@@ -428,17 +430,20 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, raw=False):
+    def to_python(cls, data, datapath: Optional[DataPath] = None, **kwargs):
         data = dict(data)
         frame_list = []
-        for f in data.get("frames") or []:
+        for i, f in enumerate(data.get("frames") or []):
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            frame_list.append(Frame.to_python(f or {}, raw=raw))
+            frame_list.append(
+                Frame.to_python(f or {}, datapath=datapath + ["frames", i] if datapath else None)
+            )
 
         data["frames"] = frame_list
         data.setdefault("registers", None)
         data.setdefault("frames_omitted", None)
-        return cls(**data)
+
+        return super().to_python(data, datapath=datapath, **kwargs)
 
     def get_has_system_frames(self):
         # This is a simplified logic from how the normalizer works.

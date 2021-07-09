@@ -40,10 +40,11 @@ class Span(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kwargs):
         for key in SPAN_KEYS:
             data.setdefault(key, None)
-        return cls(**data)
+
+        return super().to_python(data, **kwargs)
 
 
 class Spans(Interface):
@@ -56,9 +57,9 @@ class Spans(Interface):
     path = "spans"
 
     @classmethod
-    def to_python(cls, data):
-        spans = [Span.to_python(span) for span in data]
-        return cls(spans=spans)
+    def to_python(cls, data, **kwargs):
+        spans = [Span.to_python_subpath(data, [i], **kwargs) for i, span in enumerate(data)]
+        return super().to_python({"spans": spans}, **kwargs)
 
     def __iter__(self):
         return iter(self.spans)
