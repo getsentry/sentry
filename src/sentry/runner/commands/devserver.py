@@ -107,9 +107,6 @@ def devserver(
         port = None
 
     import os
-    
-    print("meow")
-    os.environ["PYTHONUNBUFFERED"] = "true"
 
     os.environ["SENTRY_ENVIRONMENT"] = environment
     # NODE_ENV *must* use production for any prod-like environment as third party libraries look
@@ -159,7 +156,6 @@ def devserver(
         "timeout": 600,
         "harakiri": 600,
     }
-
 
     if reload:
         uwsgi_overrides["py-autoreload"] = 1
@@ -282,7 +278,8 @@ def devserver(
 
     from honcho.manager import Manager
     from honcho.printer import Printer
-    
+
+    os.environ["PYTHONUNBUFFERED"] = "true"
 
     if debug_server:
         threading.Thread(target=server.run).start()
