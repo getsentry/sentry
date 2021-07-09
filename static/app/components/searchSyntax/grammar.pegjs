@@ -197,12 +197,12 @@ text_filter
 
 // Filter keys
 key
-  = value:[a-zA-Z0-9_.@-]+ {
+  = value:[a-zA-Z0-9_.-]+ {
       return tc.tokenKeySimple(value.join(''), false);
     }
 
 quoted_key
-  = '"' key:[a-zA-Z0-9_.@:-]+ '"' {
+  = '"' key:[a-zA-Z0-9_.:-]+ '"' {
       return tc.tokenKeySimple(key.join(''), true);
     }
 
