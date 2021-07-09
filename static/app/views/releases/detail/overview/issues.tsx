@@ -305,12 +305,22 @@ class Issues extends Component<Props, State> {
   };
 
   renderEmptyMessage = () => {
-    const {selection} = this.props;
+    const {location, releaseBounds, defaultStatsPeriod, organization} = this.props;
     const {issuesType} = this.state;
+    const hasReleaseComparison = organization.features.includes('release-comparison');
 
-    const selectedTimePeriod = DEFAULT_RELATIVE_PERIODS[selection.datetime.period];
+    const {statsPeriod} = getReleaseParams({
+      location,
+      releaseBounds,
+      defaultStatsPeriod,
+      allowEmptyPeriod: hasReleaseComparison,
+    });
+
+    const selectedTimePeriod = statsPeriod ? DEFAULT_RELATIVE_PERIODS[statsPeriod] : null;
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
+      : hasReleaseComparison
+      ? t('release period')
       : t('given timeframe');
 
     return (
