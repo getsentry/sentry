@@ -47,6 +47,5 @@ DEMO_DATA_GEN_PARAMS = {
     "IND_SESSION_THRESHOLD": 0.5,  # threshold for rate at which individual sessions are not sent
 }
 
-
-DEMO_DATA_QUICK_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
+# parameters for an org when quickly generating them synchronously
 DEMO_DATA_QUICK_GEN_PARAMS = {"MAX_DAYS": 1, "SCALE_FACTOR": 0.25, "NAME_STEP_SIZE": 20}
