@@ -345,10 +345,6 @@ class SCIMUtilsTests(TestCase):
         fil = parse_filter_conditions('displayName eq "MyTeamName"')
         assert fil == ["MyTeamName"]
 
-    def test_parse_filter_conditions_upper_to_lower(self):
-        fil = parse_filter_conditions('userName eq "USER@sentry.io"')
-        assert fil == ["user@sentry.io"]
-
     def test_parse_filter_conditions_invalids(self):
         with pytest.raises(ValueError):
             parse_filter_conditions("userName invalid USER@sentry.io")
