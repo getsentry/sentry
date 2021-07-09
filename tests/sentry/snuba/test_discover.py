@@ -424,20 +424,30 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data["contexts"]["trace"]["status"] = "already_exists"
         self.store_event(data, project_id=self.project.id)
 
-        for query_fn in [discover.query, discover.wip_snql_query]:
-            result = query_fn(
-                selected_columns=["transaction.status"],
-                query="has:transaction.status transaction.status:ok",
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-            )
-            data = result["data"]
-            assert len(data) == 2, query_fn
-            assert [item["transaction.status"] for item in data] == [0, 0]
+        def run_query(query, expected_statuses):
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction.status"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == len(expected_statuses), query_fn
+                assert sorted(item["transaction.status"] for item in data) == sorted(
+                    expected_statuses
+                )
+
+        run_query("has:transaction.status transaction.status:ok", [0, 0])
+        run_query("has:transaction.status transaction.status:[ok,already_exists]", [0, 0, 6])
+        run_query("has:transaction.status !transaction.status:ok", [6])
+        run_query("has:transaction.status !transaction.status:already_exists", [0, 0])
+        run_query("has:transaction.status !transaction.status:[ok,already_exists]", [])
+        run_query("!has:transaction.status", [])
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
