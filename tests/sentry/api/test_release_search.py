@@ -28,18 +28,28 @@ class ParseSearchQueryTest(TestCase):
 
     def test_release_stage(self):
         assert parse_search_query(f"{RELEASE_STAGE_ALIAS}:adopted") == [
-            SearchFilter(key=SearchKey(name=RELEASE_STAGE_ALIAS), operator="=", value=SearchValue("adopted"))
+            SearchFilter(
+                key=SearchKey(name=RELEASE_STAGE_ALIAS), operator="=", value=SearchValue("adopted")
+            )
         ]
         assert parse_search_query(f"!{RELEASE_STAGE_ALIAS}:replaced") == [
-            SearchFilter(key=SearchKey(name=RELEASE_STAGE_ALIAS), operator="!=", value=SearchValue("replaced"))
+            SearchFilter(
+                key=SearchKey(name=RELEASE_STAGE_ALIAS),
+                operator="!=",
+                value=SearchValue("replaced"),
+            )
         ]
         assert parse_search_query(f"{RELEASE_STAGE_ALIAS}:[adopted, not_adopted]") == [
             SearchFilter(
-                key=SearchKey(name=RELEASE_STAGE_ALIAS), operator="IN", value=SearchValue(["adopted", "not_adopted"])
+                key=SearchKey(name=RELEASE_STAGE_ALIAS),
+                operator="IN",
+                value=SearchValue(["adopted", "not_adopted"]),
             ),
         ]
         assert parse_search_query(f"!{RELEASE_STAGE_ALIAS}:[replaced, adopted]") == [
             SearchFilter(
-                key=SearchKey(name=RELEASE_STAGE_ALIAS), operator="NOT IN", value=SearchValue(["replaced", "adopted"])
+                key=SearchKey(name=RELEASE_STAGE_ALIAS),
+                operator="NOT IN",
+                value=SearchValue(["replaced", "adopted"]),
             ),
         ]
