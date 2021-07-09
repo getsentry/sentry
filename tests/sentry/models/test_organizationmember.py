@@ -227,3 +227,21 @@ class OrganizationMemberTest(TestCase):
 
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
+
+    def test_get_contactable_members_for_org(self):
+        organization = self.create_organization()
+        user1 = self.create_user()
+        user2 = self.create_user()
+
+        member = self.create_member(organization=organization, user=user1)
+        self.create_member(
+            organization=organization,
+            user=user2,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        self.create_member(organization=organization, email="hi@example.com")
+
+        assert OrganizationMember.objects.filter(organization=organization).count() == 3
+        results = OrganizationMember.objects.get_contactable_members_for_org(organization.id)
+        assert results.count() == 1
+        assert results[0].user_id == member.user_id
