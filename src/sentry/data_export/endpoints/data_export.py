@@ -46,12 +46,11 @@ class DataExportQuerySerializer(serializers.Serializer):
         # Discover Pre-processing
         if data["query_type"] == ExportQueryType.DISCOVER_STR:
             # coerce the fields into a list as needed
-            equations = []
-
             base_fields = query_info.get("field", [])
             if not isinstance(base_fields, list):
                 base_fields = [base_fields]
 
+            equations = []
             fields = []
             if self.context.get("has_arithmetic"):
                 for field in base_fields:
@@ -102,7 +101,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             )
             try:
                 snuba_filter = get_filter(query_info["query"], processor.params)
-                if equations is not None:
+                if len(equations) > 0:
                     resolved_equations, _ = resolve_equation_list(equations, fields)
                 else:
                     resolved_equations = []
