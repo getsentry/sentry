@@ -98,6 +98,13 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
 
     if blaming_frame_idx is None:
         for idx, (component, frame) in enumerate(zip(components, frames)):
+            if component.contributes and not component.is_prefix_frame:
+                blaming_frame_idx = idx
+                if inverted_hierarchy:
+                    break
+
+    if blaming_frame_idx is None:
+        for idx, (component, frame) in enumerate(zip(components, frames)):
             if component.contributes:
                 blaming_frame_idx = idx
                 if inverted_hierarchy:
