@@ -46,6 +46,7 @@ import {projectProcessingIssuesMessages} from 'app/views/settings/project/projec
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
+import EventAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -327,6 +328,7 @@ class EventEntries extends Component<Props, State> {
 
     const features = new Set(organization?.features);
     const hasQueryFeature = features.has('discover-query');
+    const hasMobileScreenshotsFeature = features.has('mobile-screenshots');
 
     if (!event) {
       return (
@@ -373,31 +375,42 @@ class EventEntries extends Component<Props, State> {
             includeBorder={!hasErrors}
           />
         )}
-        {showTagSummary && (
-          <StyledEventDataSection title={t('Tags')} type="tags">
-            {hasContext && <EventContextSummary event={event} />}
-            <EventTags
+        {showTagSummary &&
+          (hasMobileScreenshotsFeature ? (
+            <EventAndScreenshot
               event={event}
               organization={organization as Organization}
               projectId={project.slug}
               location={location}
               hasQueryFeature={hasQueryFeature}
             />
-          </StyledEventDataSection>
-        )}
+          ) : (
+            <StyledEventDataSection title={t('Tags')} type="tags">
+              {hasContext && <EventContextSummary event={event} />}
+              <EventTags
+                event={event}
+                organization={organization as Organization}
+                projectId={project.slug}
+                location={location}
+                hasQueryFeature={hasQueryFeature}
+              />
+            </StyledEventDataSection>
+          ))}
         {this.renderEntries(event)}
         {hasContext && <EventContexts group={group} event={event} />}
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
         {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
-        {!isShare && features.has('event-attachments') && (
-          <EventAttachments
-            event={event}
-            orgId={organization.slug}
-            projectId={project.slug}
-            location={location}
-          />
-        )}
+        {!isShare &&
+          features.has('event-attachments') &&
+          !hasMobileScreenshotsFeature && (
+            <EventAttachments
+              event={event}
+              orgId={organization.slug}
+              projectId={project.slug}
+              location={location}
+            />
+          )}
         {event?.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
         {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
