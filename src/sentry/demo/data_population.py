@@ -641,15 +641,11 @@ class DataPopulation:
         fix_spans(event_json, old_span_id)
         fix_measurements(event_json)
 
-    def safe_send_event(self, data, first=False):
+    def safe_send_event(self, data):
         project = data.pop("project")
         config = self.get_config()
         try:
-            event = create_sample_event_basic(data, project.id)
-            if first and random.random() > 0.8:
-                reasons = [GroupInboxReason.REGRESSION, GroupInboxReason.NEW]
-                add_group_to_inbox(event.group, random.choice(reasons))
-
+            create_sample_event_basic(data, project.id)
             time.sleep(config["DEFAULT_BACKOFF_TIME"])
         except SnubaError:
             # if snuba fails, just back off and continue
@@ -831,41 +827,32 @@ class DataPopulation:
         global_params = saved_search_by_platform["global"]
         for params in global_params:
             name, query = params
-            SavedSearch.objects.create(
+            SavedSearch.objects.get_or_create(
                 is_global=True, organization=projects[0].organization, name=name, query=query
             )
         for project in projects:
             project_params = saved_search_by_platform[project.platform]
             for params in project_params:
                 name, query = params
-                SavedSearch.objects.create(
+                SavedSearch.objects.get_or_create(
                     project=project, organization=project.organization, name=name, query=query
                 )
 
-    # def inbox_issues(self):
-    #     assigned_issues = GroupAssignee.objects.filter(project__organization=self.org)
-    #     assigned_groups = [assignee.group for assignee in assigned_issues]
-    #     groups = Group.objects.filter(project__organization=self.org)
-    #     unassigned_groups = [group for group in groups if group not in assigned_groups]
-
-    #     reasons = [GroupInboxReason.REGRESSION, GroupInboxReason.NEW]
-    #     ignore_rate = .1
-
-    #     for group in groups:
-    #         outcome = random.random()
-    #         if outcome < ignore_rate:
-    #             group.update(status=GroupStatus.IGNORED)
-    #         elif group in unassigned_groups:
-    #             add_group_to_inbox(group, random.choice(reasons))
-
-    def ignore_issues(self):
+    def inbox_issues(self):
+        assigned_issues = GroupAssignee.objects.filter(project__organization=self.org)
+        assigned_groups = [assignee.group for assignee in assigned_issues]
         groups = Group.objects.filter(project__organization=self.org)
-        ignore_rate = 0.15
+        unassigned_groups = [group for group in groups if group not in assigned_groups]
+
+        reasons = [GroupInboxReason.REGRESSION, GroupInboxReason.NEW]
+        ignore_rate = 0.1
 
         for group in groups:
             outcome = random.random()
             if outcome < ignore_rate:
                 group.update(status=GroupStatus.IGNORED)
+            elif group in unassigned_groups:
+                add_group_to_inbox(group, random.choice(reasons))
 
     def assign_issues(self):
         org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
@@ -1224,8 +1211,6 @@ class DataPopulation:
 
         self.log_info("populate_generic_error.start")
 
-        first = True
-
         for (timestamp, day) in self.iter_timestamps(dist_number, starting_release):
             transaction_user = self.generate_user()
             release = get_release_from_time(project.organization_id, timestamp)
@@ -1241,11 +1226,7 @@ class DataPopulation:
             )
             update_context(local_event, platform=project.platform)
             self.fix_error_event(local_event)
-            self.safe_send_event(local_event, first)
-
-            if first:
-                first = False
-
+            self.safe_send_event(local_event)
         self.log_info("populate_generic_error.finished")
 
     def populate_generic_transaction(
@@ -1468,7 +1449,7 @@ class DataPopulation:
                 python_project, "errors/python/concat_str_none.json", 4, starting_release=1
             )
         self.assign_issues()
-        self.ignore_issues()
+        self.inbox_issues()
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
@@ -1510,4 +1491,4 @@ class DataPopulation:
                 starting_release=2,
             )
         self.assign_issues()
-        self.ignore_issues()
+        self.inbox_issues()
