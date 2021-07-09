@@ -1152,6 +1152,13 @@ class SmartSearchBar extends React.Component<Props, State> {
     let replaceToken = replaceText;
     if (cursorToken.type === Token.Filter) {
       if (item.type === ItemType.TAG_OPERATOR) {
+        trackAnalyticsEvent({
+          eventKey: 'search.operator_autocompleted',
+          eventName: 'Search: Operator Autocompleted',
+          organization_id: this.props.organization.id,
+          query: removeSpace(query),
+          search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        });
         const valueLocation = cursorToken.value.location;
         clauseStart = cursorToken.location.start.offset;
         clauseEnd = valueLocation.start.offset;
