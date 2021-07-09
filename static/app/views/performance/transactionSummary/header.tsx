@@ -78,7 +78,12 @@ class TransactionHeader extends React.Component<Props> {
   };
 
   trackTagsTabClick = () => {
-    // TODO(k-fish): Add analytics for tags
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.tags.tags_tab_clicked',
+      eventName: 'Performance Views: Tags tab clicked',
+      organization_id: organization.id,
+    });
   };
 
   trackEventsTabClick = () => {
