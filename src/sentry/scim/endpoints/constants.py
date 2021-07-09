@@ -43,8 +43,17 @@ SCIM_400_UNSUPPORTED_ATTRIBUTE = {
     "detail": "Invalid Replace attr. Only displayName and members supported.",
 }
 
+SCIM_400_INVALID_PATCH = {
+    "schemas": [SCIM_API_ERROR],
+    "detail": "Invalid Patch Operation.",
+}
 
-class GroupPatchOps(str, Enum):
+
+class TeamPatchOps(str, Enum):
     ADD = "add"
     REMOVE = "remove"
+    REPLACE = "replace"
+
+
+class MemberPatchOps(str, Enum):
     REPLACE = "replace"
