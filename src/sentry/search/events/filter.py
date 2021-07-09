@@ -1183,7 +1183,7 @@ class QueryFilter(QueryBase):
             Op(search_filter.operator),
             internal_value,
         )
-      
+
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
         value = search_filter.value.value
