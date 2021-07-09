@@ -3,7 +3,7 @@ import {withTheme} from '@emotion/react';
 
 import AreaChart from 'app/components/charts/areaChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
+import {HeaderTitleLegend, HeaderValue} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
 import {ReleaseComparisonChartType} from 'app/types';
@@ -20,6 +20,8 @@ type Props = {
   previousSeries: Series[];
   chartType: ReleaseComparisonChartType;
   platform: PlatformKey;
+  value: React.ReactNode;
+  diff: React.ReactNode;
 };
 
 class SessionsChart extends React.Component<Props> {
@@ -76,7 +78,7 @@ class SessionsChart extends React.Component<Props> {
   }
 
   render() {
-    const {series, previousSeries, chartType} = this.props;
+    const {series, previousSeries, chartType, value, diff} = this.props;
 
     const Chart = this.getChart();
 
@@ -102,6 +104,10 @@ class SessionsChart extends React.Component<Props> {
           )}
         </HeaderTitleLegend>
 
+        <HeaderValue>
+          {value} {diff}
+        </HeaderValue>
+
         <Chart
           legend={legend}
           series={series}
@@ -111,12 +117,13 @@ class SessionsChart extends React.Component<Props> {
           grid={{
             left: '10px',
             right: '10px',
-            top: '40px',
+            top: '70px',
             bottom: '0px',
           }}
           yAxis={this.configureYAxis()}
           tooltip={{valueFormatter: this.formatTooltipValue}}
           transformSinglePointToBar
+          height={240}
         />
       </React.Fragment>
     );
