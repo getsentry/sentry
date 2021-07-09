@@ -69,8 +69,8 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-rate_by_release_num = [0.9, 0.95, 0.85]
-agg_rate_by_release_num = [0.995, 0.998, 0.95]
+rate_by_release_num = [0.8, 0.85, 0.75]
+agg_rate_by_release_num = [0.99, 0.999, 0.95]
 
 org_users = [
     ("scefali", "Stephen Cefali"),
@@ -570,7 +570,13 @@ class DataPopulation:
             return settings.DEMO_DATA_GEN_PARAMS
 
     def get_config_var(self, name):
-        return self.get_config()[name]
+        if self.quick:
+            if name in self.get_config():
+                return self.get_config()[name]
+            else:
+                return settings.DEMO_DATA_GEN_PARAMS[name]
+        else:
+            return self.get_config()[name]
 
     def log_info(self, message):
         log_context = {
@@ -590,14 +596,14 @@ class DataPopulation:
         Generates the length of the front-end transaction based on our config,
         the day, and some randomness
         """
-        config = self.get_config()
-        DAY_DURATION_IMPACT = config["DAY_DURATION_IMPACT"]
-        MAX_DAYS = config["MAX_DAYS"]
-        MIN_FRONTEND_DURATION = config["MIN_FRONTEND_DURATION"]
+
+        DAY_DURATION_IMPACT = self.get_config_var("DAY_DURATION_IMPACT")
+        MAX_DAYS = self.get_config_var("MAX_DAYS")
+        MIN_FRONTEND_DURATION = self.get_config_var("MIN_FRONTEND_DURATION")
         day_weight = DAY_DURATION_IMPACT * day / MAX_DAYS
 
-        alpha = config["DURATION_ALPHA"]
-        beta = config["DURATION_BETA"]
+        alpha = self.get_config_var("DURATION_ALPHA")
+        beta = self.get_config_var("DURATION_BETA")
         return MIN_FRONTEND_DURATION / 1000.0 + random.gammavariate(alpha, beta) / (1 + day_weight)
 
     def fix_breadcrumbs(self, event_json):
@@ -639,19 +645,17 @@ class DataPopulation:
 
     def safe_send_event(self, data):
         project = data.pop("project")
-        config = self.get_config()
         try:
             create_sample_event_basic(data, project.id)
-            time.sleep(config["DEFAULT_BACKOFF_TIME"])
+            time.sleep(self.get_config_var("DEFAULT_BACKOFF_TIME"))
         except SnubaError:
             # if snuba fails, just back off and continue
             self.log_info("safe_send_event.snuba_error")
-            time.sleep(config["ERROR_BACKOFF_TIME"])
+            time.sleep(self.get_config_var("ERROR_BACKOFF_TIME"))
 
     def generate_releases(self, projects):
-        config = self.get_config()
-        NUM_RELEASES = config["NUM_RELEASES"]
-        MAX_DAYS = config["MAX_DAYS"]
+        NUM_RELEASES = self.get_config_var("NUM_RELEASES")
+        MAX_DAYS = self.get_config_var("MAX_DAYS")
         release_time = timezone.now() - timedelta(days=MAX_DAYS)
         hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
         org = projects[0].organization
@@ -867,11 +871,10 @@ class DataPopulation:
         # distribution_fn_num starts at 1 instead of 0
         distribution_fn = distribution_fns[distribution_fn_num - 1]
 
-        config = self.get_config()
-        MAX_DAYS = config["MAX_DAYS"]
-        SCALE_FACTOR = config["SCALE_FACTOR"]
-        BASE_OFFSET = config["BASE_OFFSET"]
-        NUM_RELEASES = config["NUM_RELEASES"]
+        MAX_DAYS = self.get_config_var("MAX_DAYS")
+        SCALE_FACTOR = self.get_config_var("SCALE_FACTOR")
+        BASE_OFFSET = self.get_config_var("BASE_OFFSET")
+        NUM_RELEASES = self.get_config_var("NUM_RELEASES")
         start_time = timezone.now() - timedelta(days=MAX_DAYS)
 
         # offset by the release time
@@ -1176,7 +1179,7 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
                 timestamp=timestamp,
-                start_timestamp=timestamp - timedelta(duration),
+                start_timestamp=timestamp - timedelta(seconds=duration),
             )
             update_context(local_event, trace, platform=ios_project.platform)
             self.fix_transaction_event(local_event, old_span_id)
@@ -1280,6 +1283,7 @@ class DataPopulation:
         seen_versions = []
         num_versions = 0
         weights = []
+        ind_session_threshold = self.get_config_var("IND_SESSION_THRESHOLD")
 
         for (timestamp, day) in self.iter_timestamps(distribution_fn_num):
             transaction_user = self.generate_user()
@@ -1301,10 +1305,11 @@ class DataPopulation:
                     dsn, timestamp, mobile, version, num_versions, seen_versions, weights
                 )
 
+            outcome = random.random()
+            if outcome < ind_session_threshold:
+                continue
             # send sessions for duration info
-            session_data = {
-                "init": True,
-            }
+            session_data = {"init": True}
             self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
             release_num = int(version.split(".")[-1])
             threshold = rate_by_release_num[release_num]
@@ -1368,24 +1373,24 @@ class DataPopulation:
         envelope_headers = "{}"
         item_headers = json.dumps({"type": "sessions"})
 
+        # if mobile, choose one of previously seen versions
+        if mobile and num_versions > 1:
+            version = random.choices(seen_versions, k=1, weights=weights)[0]
+
         agg = []
         release_num = int(version.split(".")[-1])
-        threshold = agg_rate_by_release_num[release_num]
+        success = agg_rate_by_release_num[release_num]
+        failure = 1 - success
 
-        if self.quick:
-            num_users = int(random.uniform(100, 200))
-        else:
-            num_users = int(random.uniform(1000, 2000))
+        num_users = int(random.uniform(70, 100))
 
         # create session data for each user
         for _ in range(num_users):
-            exited = random.choices([1, 2, 3, 4], k=1, weights=[10, 5, 3, 1])[0]
-            outcome = random.random()
 
-            if outcome > threshold:
-                crashed = int(random.uniform(1, 10))
-            else:
-                crashed = 0
+            num_session = random.choices([1, 2, 3], k=1, weights=[5, 3, 2])[0]
+            exited = sum(random.choices([1, 0], k=num_session, weights=[success, failure]))
+            crashed = num_session - exited
+
             current = {
                 "started": formatted_time,
                 "did": uuid4().hex[:8],
@@ -1393,10 +1398,6 @@ class DataPopulation:
                 "crashed": crashed,
             }
             agg.append(current)
-
-        # if mobile, choose one of previously seen versions
-        if mobile and num_versions > 1:
-            version = random.choices(seen_versions, k=1, weights=weights)[0]
 
         data = {
             "aggregates": agg,

@@ -144,14 +144,15 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kwargs):
         rv = {}
         for alias, value in data.items():
             # XXX(markus): The `None`-case should be handled in the UI and
             # other consumers of this interface
             if value is not None:
                 rv[alias] = cls.normalize_context(alias, value)
-        return cls(**rv)
+
+        return super().to_python(rv, **kwargs)
 
     @classmethod
     def normalize_context(cls, alias, data):

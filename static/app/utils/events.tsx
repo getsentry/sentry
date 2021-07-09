@@ -1,4 +1,10 @@
-import {BaseGroup, EventMetadata, EventOrGroupType, GroupTombstone} from 'app/types';
+import {
+  BaseGroup,
+  EventMetadata,
+  EventOrGroupType,
+  GroupTombstone,
+  TreeLabelPart,
+} from 'app/types';
 import {Event} from 'app/types/event';
 import {isNativePlatform} from 'app/utils/platform';
 
@@ -47,10 +53,20 @@ export function getLocation(event: Event | BaseGroup | GroupTombstone) {
   return undefined;
 }
 
+export function formatTreeLabelPart(part: TreeLabelPart): string {
+  if (typeof part === 'string') {
+    return part;
+  } else {
+    return part?.function || part?.package || part?.type || '<unknown>';
+  }
+}
+
 function computeTitleWithTreeLabel(metadata: EventMetadata) {
   const {type, current_tree_label, finest_tree_label} = metadata;
   const treeLabel = current_tree_label || finest_tree_label;
-  const formattedTreeLabel = treeLabel ? treeLabel.join(' | ') : undefined;
+  const formattedTreeLabel = treeLabel
+    ? treeLabel.map(formatTreeLabelPart).join(' | ')
+    : undefined;
 
   if (!type) {
     return {
@@ -65,7 +81,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
 
   return {
     title: `${type} | ${formattedTreeLabel}`,
-    treeLabel: [type, ...(treeLabel ?? [])],
+    treeLabel: [{type}, ...(treeLabel ?? [])],
   };
 }
 
