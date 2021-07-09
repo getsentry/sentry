@@ -112,9 +112,7 @@ def test_sources_custom_disabled(default_project):
 def test_sources_ignored_empty(default_project):
     features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
 
-    default_project.update_option(
-        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
-    )
+    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
     default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
     options.set("symbolicator.ignored_sources", [])
 
@@ -129,11 +127,9 @@ def test_sources_ignored_empty(default_project):
 # project.
 @pytest.mark.django_db
 def test_sources_ignored_builtin(default_project):
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
 
-    default_project.update_option(
-        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
-    )
+    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
     default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
     options.set("symbolicator.ignored_sources", ["sentry:microsoft"])
 
@@ -148,11 +144,9 @@ def test_sources_ignored_builtin(default_project):
 # project.
 @pytest.mark.django_db
 def test_sources_ignored_custom(default_project):
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
 
-    default_project.update_option(
-        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
-    )
+    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
     default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
     options.set("symbolicator.ignored_sources", ["custom"])
 
@@ -166,11 +160,9 @@ def test_sources_ignored_custom(default_project):
 # Unrecognized source IDs in the kill switch should just be silently ignored.
 @pytest.mark.django_db
 def test_sources_ignored_unrecognized(default_project):
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
 
-    default_project.update_option(
-        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
-    )
+    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
     default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
     options.set("symbolicator.ignored_sources", ["honk"])
 
