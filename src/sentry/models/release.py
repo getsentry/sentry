@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
 from sentry.app import locks
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, SEMVER_FAKE_PACKAGE
 from sentry.db.models import (
     ArrayField,
     BoundedBigIntegerField,
@@ -451,6 +451,27 @@ class Release(Model):
             or value in (".", "..")
             or value.lower() == "latest"
         )
+
+    @staticmethod
+    def is_semver_version(release):
+        """
+        Method that checks if a version follows semantic versioning
+        """
+        if not Release.is_valid_version(release):
+            return False
+
+        # Release name has to contain package_name to be parsed correctly by parse_release
+        release = release if "@" in release else f"{SEMVER_FAKE_PACKAGE}@{release}"
+        try:
+            version_info = parse_release(release)
+            version_parsed = version_info.get("version_parsed")
+            return version_parsed is not None and all(
+                ReleaseModelManager.validate_bigint(version_parsed[field])
+                for field in ("major", "minor", "patch", "revision")
+            )
+        except RelayError:
+            # This can happen on invalid legacy releases
+            return False
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -1021,3 +1042,14 @@ def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
     )
     qs.query.group_by = ["release_id"]
     return dict(qs)
+
+
+def follows_semver_versioning_scheme(release):
+    """
+    Checks if we should follow semantic versioning scheme for ordering based on
+    1. project_options -> versioningScheme == semver
+    2. provided release argument is a valid semver version
+    """
+    # ToDo(ahmed): Add check for project_options once it is implemented & Move function else
+    #  where to be easily accessible for re-use
+    return Release.is_semver_version(release)

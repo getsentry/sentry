@@ -33,6 +33,33 @@ from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
 
 
+@pytest.mark.parametrize(
+    "release_version",
+    [
+        "1.0.0",
+        "1.0.0-alpha",
+        "1.0.0-alpha.1",
+        "1.0.0-alpha.beta",
+        "1.0.0-rc.1+43",
+        "org.example.FooApp@1.0+whatever",
+    ],
+)
+def test_version_is_semver_valid(release_version):
+    assert Release.is_semver_version(release_version) is True
+
+
+@pytest.mark.parametrize(
+    "release_version",
+    [
+        "helloworld",
+        "alpha@helloworld",
+        "alpha@helloworld-1.0",
+    ],
+)
+def test_version_is_semver_invalid(release_version):
+    assert Release.is_semver_version(release_version) is False
+
+
 class MergeReleasesTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
