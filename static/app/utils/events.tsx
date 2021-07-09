@@ -1,4 +1,10 @@
-import {BaseGroup, EventMetadata, GroupTombstone, Organization} from 'app/types';
+import {
+  BaseGroup,
+  EventMetadata,
+  EventOrGroupType,
+  GroupTombstone,
+  TreeLabelPart,
+} from 'app/types';
 import {Event} from 'app/types/event';
 import {isNativePlatform} from 'app/utils/platform';
 
@@ -15,90 +21,123 @@ export function getMessage(
   if (isTombstone(event)) {
     return event.culprit || '';
   }
+
   const {metadata, type, culprit} = event;
 
   switch (type) {
-    case 'error':
+    case EventOrGroupType.ERROR:
       return metadata.value;
-    case 'csp':
+    case EventOrGroupType.CSP:
       return metadata.message;
-    case 'expectct':
-    case 'expectstaple':
-    case 'hpkp':
+    case EventOrGroupType.EXPECTCT:
+    case EventOrGroupType.EXPECTSTAPLE:
+    case EventOrGroupType.HPKP:
       return '';
     default:
       return culprit || '';
   }
 }
 
-function formatTreeLabel(treeLabel: string[]) {
-  return treeLabel.join(' | ');
-}
-
-function computeTitleWithTreeLabel(title: string | undefined, metadata: EventMetadata) {
-  const treeLabel = metadata.current_tree_label || metadata.finest_tree_label;
-  const formattedTreeLabel = treeLabel ? formatTreeLabel(treeLabel) : null;
-
-  if (!title) {
-    return formattedTreeLabel || metadata.function || '<unknown>';
-  }
-
-  if (formattedTreeLabel) {
-    title += ' | ' + formattedTreeLabel;
-  }
-
-  return title;
-}
-
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event | BaseGroup | GroupTombstone): string | null {
+export function getLocation(event: Event | BaseGroup | GroupTombstone) {
   if (isTombstone(event)) {
-    return null;
+    return undefined;
   }
-  if (event.type === 'error' && isNativePlatform(event.platform)) {
-    return event.metadata.filename || null;
+
+  if (event.type === EventOrGroupType.ERROR && isNativePlatform(event.platform)) {
+    return event.metadata.filename || undefined;
   }
-  return null;
+
+  return undefined;
 }
 
-type EventTitle = {
-  title: string;
-  subtitle: string;
-};
+export function formatTreeLabelPart(part: TreeLabelPart): string {
+  if (typeof part === 'string') {
+    return part;
+  } else {
+    return part?.function || part?.package || part?.type || '<unknown>';
+  }
+}
 
-export function getTitle(
-  event: Event | BaseGroup,
-  organization?: Organization
-): EventTitle {
-  const {metadata, type, culprit} = event;
-  const result: EventTitle = {
-    title: event.title,
-    subtitle: '',
+function computeTitleWithTreeLabel(metadata: EventMetadata) {
+  const {type, current_tree_label, finest_tree_label} = metadata;
+  const treeLabel = current_tree_label || finest_tree_label;
+  const formattedTreeLabel = treeLabel
+    ? treeLabel.map(formatTreeLabelPart).join(' | ')
+    : undefined;
+
+  if (!type) {
+    return {
+      title: formattedTreeLabel || metadata.function || '<unknown>',
+      treeLabel,
+    };
+  }
+
+  if (!formattedTreeLabel) {
+    return {title: type, treeLabel: undefined};
+  }
+
+  return {
+    title: `${type} | ${formattedTreeLabel}`,
+    treeLabel: [{type}, ...(treeLabel ?? [])],
   };
+}
 
-  if (type === 'error') {
-    result.subtitle = culprit;
-    result.title = computeTitleWithTreeLabel(metadata.type, metadata);
-  } else if (type === 'csp') {
-    result.title = metadata.directive || '';
-    result.subtitle = metadata.uri || '';
-  } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
-    // Due to a regression some reports did not have message persisted
-    // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
-    // back to the computed title for these.
-    result.title = metadata.message || result.title || '';
-    result.subtitle = metadata.origin || '';
-  } else if (type === 'default') {
-    result.title = metadata.title || '';
+export function getTitle(event: Event | BaseGroup, features: string[] = []) {
+  const {metadata, type, culprit} = event;
+
+  const customTitle =
+    features.includes('custom-event-title') && metadata?.title
+      ? metadata.title
+      : undefined;
+
+  switch (type) {
+    case EventOrGroupType.ERROR: {
+      if (customTitle) {
+        return {
+          title: customTitle,
+          subtitle: culprit,
+          treeLabel: undefined,
+        };
+      }
+
+      return {
+        subtitle: culprit,
+        ...computeTitleWithTreeLabel(metadata),
+      };
+    }
+    case EventOrGroupType.CSP:
+      return {
+        title: customTitle ?? metadata.directive ?? '',
+        subtitle: metadata.uri ?? '',
+        treeLabel: undefined,
+      };
+    case EventOrGroupType.EXPECTCT:
+    case EventOrGroupType.EXPECTSTAPLE:
+    case EventOrGroupType.HPKP:
+      // Due to a regression some reports did not have message persisted
+      // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
+      // back to the computed title for these.
+      return {
+        title: customTitle ?? (metadata.message || event.title),
+        subtitle: metadata.origin ?? '',
+        treeLabel: undefined,
+      };
+    case EventOrGroupType.DEFAULT:
+      return {
+        title: customTitle ?? metadata.title ?? '',
+        subtitle: '',
+        treeLabel: undefined,
+      };
+    default:
+      return {
+        title: customTitle ?? event.title,
+        subtitle: '',
+        treeLabel: undefined,
+      };
   }
-
-  if (organization?.features.includes('custom-event-title') && metadata?.title) {
-    result.title = metadata.title;
-  }
-
-  return result;
 }
 
 /**

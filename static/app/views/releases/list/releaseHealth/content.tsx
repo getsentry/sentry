@@ -86,11 +86,11 @@ const Content = ({
           {adoptionStages && (
             <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
           )}
-          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
             <HealthStatsPeriod location={location} />
           </CountColumn>
+          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
           <ViewColumn />
@@ -147,7 +147,10 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
-            const adoptionStage = adoptionStages && adoptionStages[project.slug].stage;
+            const adoptionStage =
+              adoptionStages &&
+              adoptionStages[project.slug] &&
+              adoptionStages[project.slug].stage;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -186,16 +189,6 @@ const Content = ({
                     </AdoptionStageColumn>
                   )}
 
-                  <CrashFreeRateColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeRate) ? (
-                      <CrashFree percent={crashFreeRate} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeRateColumn>
-
                   <CountColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder />
@@ -211,6 +204,16 @@ const Content = ({
                       <NotAvailable />
                     )}
                   </CountColumn>
+
+                  <CrashFreeRateColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="60px" />
+                    ) : defined(crashFreeRate) ? (
+                      <CrashFree percent={crashFreeRate} />
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </CrashFreeRateColumn>
 
                   <CrashesColumn>
                     {showPlaceholders ? (
@@ -382,6 +385,10 @@ const CrashFreeRateColumn = styled(Column)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: center;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    text-align: right;
+  }
 `;
 
 const CountColumn = styled(Column)`
@@ -391,6 +398,7 @@ const CountColumn = styled(Column)`
     display: flex;
     /* Chart tooltips need overflow */
     overflow: visible;
+    margin-left: ${space(3)};
   }
 `;
 

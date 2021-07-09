@@ -10,6 +10,7 @@ import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {AGGREGATIONS, Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
@@ -107,7 +108,13 @@ class ColumnEditCollection extends React.Component<Props, State> {
   };
 
   handleAddEquation = () => {
+    const {organization} = this.props;
     const newColumn: Column = {kind: FieldValueKind.EQUATION, field: ''};
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.add_equation',
+      eventName: 'Discoverv2: Equation added',
+      organization_id: parseInt(organization.id, 10),
+    });
     this.props.onChange([...this.props.columns, newColumn]);
   };
 

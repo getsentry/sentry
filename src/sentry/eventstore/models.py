@@ -1,9 +1,8 @@
 import string
 from collections import OrderedDict
-from dataclasses import dataclass
 from datetime import datetime
 from hashlib import md5
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Optional
 
 import pytz
 import sentry_sdk
@@ -13,6 +12,7 @@ from django.utils.encoding import force_text
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
+from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import get_interfaces
 from sentry.models import EventDict
 from sentry.snuba.events import Columns
@@ -29,41 +29,6 @@ EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
 
 def ref_func(x):
     return x.project_id or x.project.id
-
-
-TreeLabel = Sequence[str]
-
-
-@dataclass(frozen=True)
-class CalculatedHashes:
-    hashes: Sequence[str]
-    hierarchical_hashes: Sequence[str]
-    tree_labels: Sequence[TreeLabel]
-
-    def write_to_event(self, event_data):
-        event_data["hashes"] = self.hashes
-
-        if self.hierarchical_hashes:
-            event_data["hierarchical_hashes"] = self.hierarchical_hashes
-            event_data["hierarchical_tree_labels"] = self.tree_labels
-
-    @classmethod
-    def from_event(cls, event_data) -> Optional["CalculatedHashes"]:
-        hashes = event_data.get("hashes")
-        hierarchical_hashes = event_data.get("hierarchical_hashes") or []
-        tree_labels = event_data.get("hierarchical_tree_labels") or []
-        if hashes is not None:
-            return cls(
-                hashes=hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
-            )
-
-        return None
-
-    def tree_label_from_hash(self, hash: str) -> Optional[str]:
-        try:
-            return self.tree_labels[self.hierarchical_hashes.index(hash)]
-        except (IndexError, ValueError):
-            return None
 
 
 class Event:
@@ -434,7 +399,9 @@ class Event:
             seen_hashes.add(hash_)
             filtered_hashes.append(hash_)
             tree_labels.append(
-                variant.component.tree_label if isinstance(variant, ComponentVariant) else None
+                variant.component.tree_label or None
+                if isinstance(variant, ComponentVariant)
+                else None
             )
 
         return filtered_hashes, tree_labels
