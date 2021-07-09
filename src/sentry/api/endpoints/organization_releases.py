@@ -27,8 +27,9 @@ from sentry.models import (
     ReleaseCommitError,
     ReleaseProject,
     ReleaseStatus,
+    SemverFilter,
 )
-from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.search.events.filter import parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
@@ -84,11 +85,18 @@ def _filter_releases_by_query(queryset, organization, query):
                 parse_semver(search_filter.value.raw_value, search_filter.operator),
             )
 
+        if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
+            queryset = queryset.filter_by_semver(
+                organization.id,
+                SemverFilter("exact", [], search_filter.value.raw_value),
+            )
+
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
             queryset = queryset.filter_by_stage(
                 organization.id,
                 search_filter,
             )
+
     return queryset
 
 

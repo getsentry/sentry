@@ -15,8 +15,8 @@ import platforms from 'app/data/platforms';
 import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {Organization} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -31,19 +31,6 @@ import {StepProps} from './types';
  * verification example, which currently a lot of docs are.
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
-
-type AnalyticsOpts = {
-  organization: Organization;
-  project: Project | null;
-  platform: PlatformKey | null;
-};
-
-const recordAnalyticsDocsClicked = ({organization, project, platform}: AnalyticsOpts) =>
-  analytics('onboarding_v2.full_docs_clicked', {
-    org_id: organization.id,
-    project: project?.slug,
-    platform,
-  });
 
 type Props = StepProps & {
   api: Client;
@@ -93,8 +80,8 @@ class DocumentationSetup extends React.Component<Props, State> {
   };
 
   handleFullDocsClick = () => {
-    const {organization, project, platform} = this.props;
-    recordAnalyticsDocsClicked({organization, project, platform});
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
   };
 
   /**

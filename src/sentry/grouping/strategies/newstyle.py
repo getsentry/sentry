@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List
 
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import GroupingComponent, calculate_tree_label
 from sentry.grouping.strategies.base import call_with_variants, strategy
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
@@ -267,7 +267,7 @@ def get_function_component(
             )
 
     if function_component.values and context["hierarchical_grouping"]:
-        function_component.update(tree_label=function_component.values[0])
+        function_component.update(tree_label={"function": function_component.values[0]})
 
     return function_component
 
@@ -346,7 +346,7 @@ def frame(frame, event, context, **meta):
                 )
 
             if package_component.values and context["hierarchical_grouping"]:
-                package_component.update(tree_label=package_component.values[0])
+                package_component.update(tree_label={"package": package_component.values[0]})
 
             values.append(package_component)
 
@@ -384,6 +384,9 @@ def frame(frame, event, context, **meta):
 
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
+
+    if rv.tree_label:
+        rv.tree_label = {"datapath": frame.datapath, **rv.tree_label}
 
     return {context["variant"]: rv}
 
@@ -640,7 +643,11 @@ def chained_exception(chained_exception, context, **meta):
     rv = {}
 
     for name, component_list in by_name.items():
-        rv[name] = GroupingComponent(id="chained-exception", values=component_list)
+        rv[name] = GroupingComponent(
+            id="chained-exception",
+            values=component_list,
+            tree_label=calculate_tree_label(reversed(component_list)),
+        )
 
     return rv
 

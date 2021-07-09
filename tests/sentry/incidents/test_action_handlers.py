@@ -24,7 +24,7 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
     TriggerStatus,
 )
-from sentry.models import Integration, NotificationSetting, PagerDutyService
+from sentry.models import Integration, NotificationSetting, PagerDutyService, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
@@ -97,6 +97,42 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
+
+    def test_user_email_routing(self):
+        new_email = "marcos@sentry.io"
+        UserOption.objects.create(
+            user=self.user, project=self.project, key="mail:email", value=new_email
+        )
+
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(self.user.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+
+        assert handler.get_targets() == [(self.user.id, new_email)]
+
+    def test_team_email_routing(self):
+        new_user = self.create_user()
+
+        new_email = "marcos@sentry.io"
+        UserOption.objects.create(
+            user=self.user, project=self.project, key="mail:email", value=new_email
+        )
+        UserOption.objects.create(
+            user=new_user, project=self.project, key="mail:email", value=new_email
+        )
+
+        self.create_team_membership(team=self.team, user=new_user)
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(self.team.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        assert set(handler.get_targets()) == {
+            (self.user.id, new_email),
+            (new_user.id, new_email),
+        }
 
 
 @freeze_time()

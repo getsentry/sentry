@@ -140,10 +140,10 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
-    def create_release_file(self, release=None, file=None, name=None, dist=None):
-        if release is None:
-            release = self.release
-        return Factories.create_release_file(release, file, name, dist)
+    def create_release_file(self, release_id=None, file=None, name=None, dist_id=None):
+        if release_id is None:
+            release_id = self.release.id
+        return Factories.create_release_file(release_id, file, name, dist_id)
 
     def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
         if org is None:

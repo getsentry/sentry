@@ -3,8 +3,8 @@ import os
 from django.test.utils import override_settings
 
 from sentry.testutils import TestCase
-from sentry.utils.assets import get_manifest_url
-from sentry.web.frontend.generic import FOREVER_CACHE, NEVER_CACHE
+from sentry.utils.assets import get_unversioned_asset_url
+from sentry.web.frontend.generic import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
 
 
 class StaticMediaTest(TestCase):
@@ -44,29 +44,28 @@ class StaticMediaTest(TestCase):
             assert response["Access-Control-Allow-Origin"] == "*"
 
     @override_settings(DEBUG=False)
-    def test_from_manifest(self):
+    def test_unversioned(self):
         """
-        manifest here refers to the webpack manifest for frontend assets
+        static assets that do not have versioned filenames/paths
         """
 
-        app_manifest = {
-            "app.js": "app.f00f00.js",
-        }
+        # non-existant dist file
+        response = self.client.get("/_static/dist/sentry/invalid.js")
+        assert response.status_code == 404, response
 
-        with self.static_asset_manifest(app_manifest):
-            # `get_manifest_url()` should return the mapped filename
-            url = get_manifest_url("sentry", "app.js")
+        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist")
+        os.makedirs(dist_path, exist_ok=True)
 
-            response = self.client.get(url)
-            assert response.status_code == 200, response
-            assert response["Cache-Control"] == FOREVER_CACHE
-            assert response["Vary"] == "Accept-Encoding"
-            assert response["Access-Control-Allow-Origin"] == "*"
-            assert "Content-Encoding" not in response
+        try:
+            with open(os.path.join(dist_path, "test.js"), "a"):
+                url = get_unversioned_asset_url("sentry", "test.js")
 
-            # non-existant dist file
-            response = self.client.get("/_static/dist/sentry/invalid.js")
-            assert response.status_code == 404, response
+                response = self.client.get(url)
+                assert response.status_code == 200, response
+                assert response["Cache-Control"] == NO_CACHE
+                assert response["Vary"] == "Accept-Encoding"
+                assert response["Access-Control-Allow-Origin"] == "*"
+                assert "Content-Encoding" not in response
 
             with override_settings(DEBUG=True):
                 response = self.client.get(url)
@@ -74,6 +73,11 @@ class StaticMediaTest(TestCase):
                 assert response["Cache-Control"] == NEVER_CACHE
                 assert response["Vary"] == "Accept-Encoding"
                 assert response["Access-Control-Allow-Origin"] == "*"
+        finally:
+            try:
+                os.unlink(os.path.join(dist_path, "test.js"))
+            except Exception:
+                pass
 
     @override_settings(DEBUG=False)
     def test_no_cors(self):

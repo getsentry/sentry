@@ -15,6 +15,7 @@ ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "sentry.semver"
+SEMVER_PACKAGE_ALIAS = "release.package"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 

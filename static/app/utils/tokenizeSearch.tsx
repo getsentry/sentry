@@ -29,6 +29,10 @@ function isParen(token: Token, character: '(' | ')') {
   );
 }
 
+// TODO(epurkhiser): This is legacy from before the existence of
+// searchSyntax/parser. We should absolutely replace the internals of this API
+// with `parseSearch`.
+
 export class QueryResults {
   tagValues: Record<string, string[]>;
   tokens: Token[];
@@ -406,6 +410,5 @@ function escapeTagValue(value: string) {
   // Need to dig deeper to see where exactly it's wrong.
   //
   // astericks (*) is used for wildcard searches
-  // back slaches (\) is used to escape other characters
-  return typeof value === 'string' ? value.replace(/([\*\\])/g, '\\$1') : value;
+  return typeof value === 'string' ? value.replace(/([\*])/g, '\\$1') : value;
 }
