@@ -76,8 +76,9 @@ jobs:
 
       - name: Run test
         if: steps.changes.outputs.backend == 'true'
+        continue-on-error: true
         run: |
           make test-symbolicator
 
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
+      - name: symbolicator logs
+        run: docker logs symbolicator
