@@ -1,5 +1,5 @@
 import {addons} from '@storybook/addons';
-import {create} from '@storybook/theming/create';
+import {create} from '@storybook/theming';
 
 const theme = create({
   base: 'light',

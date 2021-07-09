@@ -551,6 +551,8 @@ class ReleaseOverview extends AsyncView<Props> {
                         loading={loading}
                         reloading={reloading}
                         errored={errored}
+                        release={release}
+                        project={project}
                       />
                     </Feature>
                     <ProjectReleaseDetails

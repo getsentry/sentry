@@ -21,6 +21,7 @@ const selectFirstAutocompleteItem = async el => {
 };
 
 const setQuery = async (el, query) => {
+  el.find('textarea').simulate('focus');
   el.find('textarea')
     .simulate('change', {target: {value: query}})
     .getDOMNode()
