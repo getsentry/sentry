@@ -4,7 +4,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -684,9 +684,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_release_stage(self):
-        assert False == True
-
 
 class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
     def setUp(self):
@@ -754,3 +751,78 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
         self.run_test("test@", [release_1, release_2, release_3, release_4])
         self.run_test("test@*", [release_1, release_2, release_3, release_4])
         self.run_test("test@1.2", [release_2, release_3, release_4])
+
+
+class GetTagValuePaginatorForProjectsReleastStageTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.ts = SnubaTagStorage()
+
+    def run_test(self, query, expected_releases, environment=None, project=None):
+        if project is None:
+            project = self.project
+        assert list(
+            self.ts.get_tag_value_paginator(
+                project.id,
+                environment.id if environment else None,
+                RELEASE_STAGE_ALIAS,
+                query=query,
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key=RELEASE_STAGE_ALIAS,
+                value=r.version,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for r in expected_releases
+        ]
+
+    def test_release_stage(self):
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        env_2 = self.create_environment()
+        project_2 = self.create_project()
+
+        # release_1 = self.create_release(version="test@1.0.0.0", additional_projects=[project_2])
+        # release_2 = self.create_release(version="test@1.2.0.0", environments=[self.environment])
+        # release_3 = self.create_release(version="test@1.2.3.0", environments=[env_2])
+        # release_4 = self.create_release(version="test@1.2.3.4", environments=[env_2])
+        # release_5 = self.create_release(
+        #     version="test2@2.0.0.0", environments=[self.environment, env_2]
+        # )
+        # release_6 = self.create_release(version="z_test@1.0.0.0")
+        # release_7 = self.create_release(version="z_test@2.0.0.0", additional_projects=[project_2])
+
+        # self.run_test(
+        #     "", [adopted_release, not_adopted_release, replaced_release]
+        # )
+
+        # These should all be equivalent
+        self.run_test("adopted", [adopted_release])
+        self.run_test("not_adopted", [not_adopted_release])
+        self.run_test("replaced", [replaced_release])
+
+        self.run_test("adopted", [], environment=env_2)
+        self.run_test("adopted", [], project=project_2)

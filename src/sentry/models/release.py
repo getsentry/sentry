@@ -171,11 +171,14 @@ class ReleaseQuerySet(models.QuerySet):
             ).filter(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
-    def filter_by_stage(self, organization_id: int, search_filter) -> models.QuerySet:
-        print("Filtering releases by stage", search_filter)
+    def filter_by_stage(
+        self,
+        organization_id: int,
+        search_filter,
+        project_ids: Sequence[int] = None,
+    ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment
 
-        release_filter = Q(organization_id=organization_id)
         value: str = search_filter.value.value
         operator: str = search_filter.operator
         filters = {
@@ -186,14 +189,18 @@ class ReleaseQuerySet(models.QuerySet):
         if isinstance(value, list):
             for stage in value:
                 if stage not in filters.keys():
-                    raise InvalidSearchQuery(f"Unsupported release.stage value.")
+                    raise InvalidSearchQuery("Unsupported release.stage value.")
         else:
             if value not in filters.keys():
-                raise InvalidSearchQuery(f"Unsupported release.stage value.")
+                raise InvalidSearchQuery("Unsupported release.stage value.")
 
         rpes = ReleaseProjectEnvironment.objects.filter(
             release__organization_id=organization_id,
         ).select_related("release")
+
+        if project_ids:
+            rpes = rpes.filter(project_id__in=project_ids)
+
         query = Q()
         if operator == "IN":
             for stage in value:
@@ -206,7 +213,6 @@ class ReleaseQuerySet(models.QuerySet):
         elif operator == "!=":
             query = ~filters[value]
 
-        release_ids = rpes.filter(query).values_list("release_id", flat=True)
         qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
 
@@ -226,8 +232,13 @@ class ReleaseModelManager(models.Manager):
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
-    def filter_by_stage(self, organization_id: int, search_filter) -> models.QuerySet:
-        return self.get_queryset().filter_by_stage(organization_id, search_filter)
+    def filter_by_stage(
+        self,
+        organization_id: int,
+        search_filter,
+        project_ids: Sequence[int] = None,
+    ) -> models.QuerySet:
+        return self.get_queryset().filter_by_stage(organization_id, search_filter, project_ids)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):

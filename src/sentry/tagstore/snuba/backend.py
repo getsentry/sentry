@@ -7,6 +7,7 @@ from django.core.cache import cache
 from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.utils import default_start_end_dates
 from sentry.models import (
     Project,
@@ -808,7 +809,34 @@ class SnubaTagStorage(TagStorage):
             )
 
         if key == RELEASE_STAGE_ALIAS:
-            raise Exception("Gotta code stuff")
+            # TODO: How does IN search work here? is it needed?
+            organization_id = Project.objects.filter(id=projects[0]).values_list(
+                "organization_id", flat=True
+            )[0]
+            # TODO, What happens when no or multiple envs are sent?
+            versions = Release.objects.filter_by_stage(
+                organization_id,
+                SearchFilter(
+                    SearchKey(key),
+                    "=",
+                    SearchValue(query),
+                ),
+                project_ids=projects,
+            )
+            if environments:
+                versions = versions.filter(
+                    id__in=ReleaseEnvironment.objects.filter(
+                        environment_id__in=environments
+                    ).values_list("release_id", flat=True)
+                )
+
+            versions = versions.values_list("version", flat=True)[:1000]
+            # versions = versions.order_by("adopted").values_list(
+            # "version", flat=True
+            # )[:1000]
+            return SequencePaginator(
+                [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(versions)]
+            )
 
         conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes

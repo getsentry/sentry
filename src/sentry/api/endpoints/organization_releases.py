@@ -85,8 +85,6 @@ def _filter_releases_by_query(queryset, organization, query):
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
-            print("operator:",search_filter.operator)
-            print("value:", search_filter.value.value)
             queryset = queryset.filter_by_stage(
                 organization.id,
                 search_filter,
@@ -286,10 +284,9 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
-        # with_adoption_stages = with_adoption_stages and features.has(
-            # "organizations:release-adoption-stage", organization, actor=request.user
-        # )
-        with_adoption_stages = True
+        with_adoption_stages = with_adoption_stages and features.has(
+            "organizations:release-adoption-stage", organization, actor=request.user
+        )
 
         return self.paginate(
             request=request,
@@ -499,7 +496,13 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
         queryset = add_date_filter_to_queryset(queryset, filter_params)
         queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
-            queryset = _filter_releases_by_query(queryset, organization, query)
+            try:
+                queryset = _filter_releases_by_query(queryset, organization, query)
+            except InvalidSearchQuery as e:
+                return Response(
+                    {"detail": str(e)},
+                    status=400,
+                )
 
         return self.paginate(
             request=request,

@@ -8,8 +8,9 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.models import ReleaseProjectEnvironment
 from sentry.models.release import SemverFilter
-from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_EMPTY_RELEASE
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_EMPTY_RELEASE
 from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
 from sentry.search.events.filter import _semver_filter_converter, get_filter, parse_semver
 from sentry.testutils.cases import TestCase
@@ -1308,9 +1309,56 @@ class GetSnubaQueryArgsTest(TestCase):
         _filter = get_filter(f"{SEMVER_ALIAS}:>1.2.4-hi", {"organization_id": self.organization.id})
         assert _filter.conditions == [["release", "IN", [release_2.version]]]
         assert _filter.filter_keys == {}
-    
+
     def test_release_stage(self):
-        assert False == True
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+        _filter = get_filter(
+            f"{RELEASE_STAGE_ALIAS}:adopted", {"organization_id": self.organization.id}
+        )
+
+        assert _filter.conditions == [["release", "IN", [adopted_release.version]]]
+        assert _filter.filter_keys == {}
+
+        _filter = get_filter(
+            f"{RELEASE_STAGE_ALIAS}:[replaced, not_adopted]",
+            {"organization_id": self.organization.id},
+        )
+        assert _filter.conditions == [
+            ["release", "IN", [replaced_release.version, not_adopted_release.version]]
+        ]
+        assert _filter.filter_keys == {}
+
+        _filter = get_filter(
+            f"!{RELEASE_STAGE_ALIAS}:[adopted, not_adopted]",
+            {"organization_id": self.organization.id},
+        )
+        assert _filter.conditions == [["release", "IN", [replaced_release.version]]]
+        assert _filter.filter_keys == {}
+
+        with self.assertRaises(InvalidSearchQuery):
+            _filter = get_filter(
+                f"!{RELEASE_STAGE_ALIAS}:invalid", {"organization_id": self.organization.id}
+            )
 
 
 def with_type(type, argument):
