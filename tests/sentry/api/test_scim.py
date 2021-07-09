@@ -233,7 +233,7 @@ class SCIMMemberTests(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": "Invalid Patch Operation. See documentation for what is supported",
+            "detail": "Invalid Patch Operation.",
         }
 
     def test_member_detail_patch_too_many_ops(self):

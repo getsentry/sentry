@@ -44,7 +44,7 @@ SCIM_400_UNSUPPORTED_ATTRIBUTE = {
 
 SCIM_400_INVALID_PATCH = {
     "schemas": [SCIM_API_ERROR],
-    "detail": "Invalid Patch Operation. See documentation for what is supported",
+    "detail": "Invalid Patch Operation.",
 }
 
 
