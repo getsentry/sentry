@@ -308,6 +308,10 @@ class Issues extends Component<Props, State> {
     const {location, releaseBounds, defaultStatsPeriod, organization} = this.props;
     const {issuesType} = this.state;
     const hasReleaseComparison = organization.features.includes('release-comparison');
+    const isEntireReleasePeriod =
+      hasReleaseComparison &&
+      !location.query.pageStatsPeriod &&
+      !location.query.pageStart;
 
     const {statsPeriod} = getReleaseParams({
       location,
@@ -319,26 +323,33 @@ class Issues extends Component<Props, State> {
     const selectedTimePeriod = statsPeriod ? DEFAULT_RELATIVE_PERIODS[statsPeriod] : null;
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
-      : hasReleaseComparison
-      ? t('release period')
       : t('given timeframe');
 
     return (
       <EmptyState>
         <Fragment>
-          {issuesType === IssuesType.NEW &&
-            tct('No new issues for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
-          {issuesType === IssuesType.UNHANDLED &&
-            tct('No unhandled issues for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
-          {issuesType === IssuesType.RESOLVED && t('No resolved issues.')}
-          {issuesType === IssuesType.ALL &&
-            tct('No issues for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
+          {issuesType === IssuesType.NEW
+            ? isEntireReleasePeriod
+              ? t('No new issues in this release.')
+              : tct('No new issues for the [timePeriod].', {
+                  timePeriod: displayedPeriod,
+                })
+            : null}
+          {issuesType === IssuesType.UNHANDLED
+            ? isEntireReleasePeriod
+              ? t('No unhandled issues in this release.')
+              : tct('No unhandled issues for the [timePeriod].', {
+                  timePeriod: displayedPeriod,
+                })
+            : null}
+          {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
+          {issuesType === IssuesType.ALL
+            ? isEntireReleasePeriod
+              ? t('No issues in this release')
+              : tct('No issues for the [timePeriod].', {
+                  timePeriod: displayedPeriod,
+                })
+            : null}
         </Fragment>
       </EmptyState>
     );

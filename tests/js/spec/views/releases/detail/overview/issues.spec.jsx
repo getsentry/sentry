@@ -90,7 +90,9 @@ describe('Release Issues', function () {
     filterIssues(wrapper, 'resolved');
     await tick();
     wrapper.update();
-    expect(wrapper.find('EmptyStateWarning').text()).toBe('No resolved issues.');
+    expect(wrapper.find('EmptyStateWarning').text()).toBe(
+      'No resolved issues in this release.'
+    );
 
     filterIssues(wrapper2, 'unhandled');
     await tick();
