@@ -111,13 +111,9 @@ saved_search_by_platform = {
     "python": [
         ["Firefox Errors - Python", "browser.name:Firefox"],
     ],
-    # "javascript-react": [["Edge Errors - React", "browser.name:Edge"]],
     "apple-ios": [["iOS 12 Errors", 'os:"iOS 12"']],
     "javascript-react": [],
     "android": [],
-    "react-native": []
-    # "android": [["Pixel Device Errors", "device.family:Pixel"]],
-    # "react-native": [["Handled Errors - React Native", "error.unhandled:false"]],
 }
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
@@ -828,7 +824,7 @@ class DataPopulation:
         for params in global_params:
             name, query = params
             SavedSearch.objects.get_or_create(
-                is_global=True, organization=projects[0].organization, name=name, query=query
+                is_global=True, organization=self.org.id, name=name, query=query
             )
         for project in projects:
             project_params = saved_search_by_platform[project.platform]

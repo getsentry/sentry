@@ -59,11 +59,9 @@ def create_demo_org(quick=False) -> Organization:
 
             python_project = create_project("Python", "python")
             react_project = create_project("React", "javascript-react")
-
-            if settings.DEMO_MOBILE_PROJECTS:
-                react_native_project = create_project("React-Native", "react-native")
-                android_project = create_project("Android", "android")
-                ios_project = create_project("iOS", "apple-ios")
+            react_native_project = create_project("React-Native", "react-native")
+            android_project = create_project("Android", "android")
+            ios_project = create_project("iOS", "apple-ios")
 
             populate_org_members(org, team)
             # we'll be adding transactions later
@@ -82,11 +80,9 @@ def create_demo_org(quick=False) -> Organization:
                 data_population.generate_releases(projects)
                 data_population.generate_saved_search(projects)
                 data_population.handle_react_python_scenario(react_project, python_project)
-
-                if settings.DEMO_MOBILE_PROJECTS:
-                    data_population.handle_mobile_scenario(
-                        ios_project, android_project, react_native_project
-                    )
+                data_population.handle_mobile_scenario(
+                    ios_project, android_project, react_native_project
+                )
 
             except Exception as e:
                 logger.error(
