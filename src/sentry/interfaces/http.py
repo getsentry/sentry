@@ -113,7 +113,7 @@ class Http(Interface):
     FORM_TYPE = "application/x-www-form-urlencoded"
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kwargs):
         data.setdefault("query_string", [])
         for key in (
             "method",
@@ -126,7 +126,8 @@ class Http(Interface):
             "inferred_content_type",
         ):
             data.setdefault(key, None)
-        return cls(**data)
+
+        return super().to_python(data, **kwargs)
 
     def to_json(self):
         return prune_empty_keys(
