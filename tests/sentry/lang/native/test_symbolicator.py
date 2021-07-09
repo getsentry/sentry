@@ -2,6 +2,7 @@ import copy
 
 import pytest
 
+from sentry import options
 from sentry.lang.native import symbolicator
 from sentry.lang.native.symbolicator import get_sources_for_project, redact_internal_sources
 from sentry.testutils.helpers import Feature
@@ -103,6 +104,81 @@ def test_sources_custom_disabled(default_project):
 
     source_ids = map(lambda s: s["id"], sources)
     assert source_ids == ["sentry:project"]
+
+
+# Tests that the default value for the source killswitch does not affect the generated list of
+# sources.
+@pytest.mark.django_db
+def test_sources_ignored_empty(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+
+    default_project.update_option(
+        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
+    )
+    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
+    options.set("symbolicator.ignored_sources", [])
+
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project", "custom", "sentry:microsoft", "sentry:electron"]
+
+
+# When a built-in source's ID is provided to the kill switch the source should be excluded from the
+# project.
+@pytest.mark.django_db
+def test_sources_ignored_builtin(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+
+    default_project.update_option(
+        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
+    )
+    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
+    options.set("symbolicator.ignored_sources", ["sentry:microsoft"])
+
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project", "custom", "sentry:electron"]
+
+
+# When a custom source's ID is provided to the kill switch the source should be excluded from the
+# project.
+@pytest.mark.django_db
+def test_sources_ignored_custom(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+
+    default_project.update_option(
+        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
+    )
+    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
+    options.set("symbolicator.ignored_sources", ["custom"])
+
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project", "sentry:microsoft", "sentry:electron"]
+
+
+# Unrecognized source IDs in the kill switch should just be silently ignored.
+@pytest.mark.django_db
+def test_sources_ignored_unrecognized(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+
+    default_project.update_option(
+        "sentry:builtin_symbol_sources", ["sentry:microsoft", "sentry:electron"]
+    )
+    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
+    options.set("symbolicator.ignored_sources", ["honk"])
+
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project", "custom", "sentry:microsoft", "sentry:electron"]
 
 
 class TestInternalSourcesRedaction:

@@ -351,6 +351,12 @@ def get_sources_for_project(project):
 
     sources = []
 
+    def remove_ignored_sources(sources):
+        blocked_source_ids = options.get("symbolicator.ignored_sources")
+        if not blocked_source_ids:
+            return sources
+        return [src for src in sources if src["id"] not in blocked_source_ids]
+
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
     project_source = get_internal_source(project)
@@ -361,7 +367,7 @@ def get_sources_for_project(project):
     organization = project.organization
 
     if not features.has("organizations:symbol-sources", organization):
-        return sources
+        return remove_ignored_sources(sources)
 
     # Custom sources have their own feature flag. Check them independently.
     if features.has("organizations:custom-symbol-sources", organization):
@@ -392,9 +398,6 @@ def get_sources_for_project(project):
                 else:
                     yield other_source
 
-    if options.get("symbolicator.ignore_builtin_sources"):
-        return sources
-
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
@@ -410,7 +413,7 @@ def get_sources_for_project(project):
         else:
             sources.append(source)
 
-    return sources
+    return remove_ignored_sources(sources)
 
 
 class SymbolicatorSession:
