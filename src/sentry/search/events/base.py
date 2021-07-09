@@ -123,6 +123,7 @@ class QueryBase:
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
     def _resolve_transaction_status(self, _: str) -> SelectType:
+        # TODO: Remove the `toUInt8` once Column supports aliases
         return Function(
             "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
         )
