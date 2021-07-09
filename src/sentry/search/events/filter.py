@@ -546,58 +546,6 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
         return SemverFilter("exact", version_parts, package)
 
 
-def parse_release_stage(version, operator) -> Optional[SemverFilter]:
-    """
-    Attempts to parse a release version using our semver syntax. version should be in
-    format `<package_name>@<version>` or `<version>`, where package_name is a string and
-    version is a version string matching semver format (https://semver.org/). We've
-    slightly extended this format to allow up to 4 integers. EG
-     - sentry@1.2.3.4
-     - sentry@1.2.3.4-alpha
-     - 1.2.3.4
-     - 1.2.3.4-alpha
-     - 1.*
-    """
-    operator = OPERATOR_TO_DJANGO[operator]
-    version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
-    parsed = parse_release_relay(version)
-    parsed_version = parsed.get("version_parsed")
-    if parsed_version:
-        # Convert `pre` to always be a string
-        prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
-        semver_filter = SemverFilter(
-            operator,
-            [
-                parsed_version["major"],
-                parsed_version["minor"],
-                parsed_version["patch"],
-                parsed_version["revision"],
-                0 if prerelease else 1,
-                prerelease,
-            ],
-        )
-        if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
-            semver_filter.package = parsed["package"]
-        return semver_filter
-    else:
-        # Try to parse as a wildcard match
-        package, version = version.split("@", 1)
-        version_parts = []
-        if version:
-            for part in version.split(".", 3):
-                if part in SEMVER_WILDCARDS:
-                    break
-                try:
-                    # We assume all ints for a wildcard match - not handling prerelease as
-                    # part of these
-                    version_parts.append(int(part))
-                except ValueError:
-                    raise InvalidSearchQuery(f"Invalid format for semver query {version}")
-
-        package = package if package and package != SEMVER_FAKE_PACKAGE else None
-        return SemverFilter("exact", version_parts, package)
-
-
 key_conversion_map: Mapping[
     str,
     Callable[[SearchFilter, str, Mapping[str, Union[int, str, datetime]]], Optional[Sequence[any]]],
@@ -1046,6 +994,7 @@ def format_search_filter(term, params):
         converted_filter = convert_search_filter_to_snuba_query(term, params=params)
         if converted_filter:
             conditions.append(converted_filter)
+
     return conditions, projects_to_filter, group_ids
 
 
