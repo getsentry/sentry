@@ -462,7 +462,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # Fill out name and submit form.
             self.browser.element('input[name="query_name"]').send_keys(query_name)
-            self.browser.element('[aria-label="Save"]').click()
+            self.browser.element('[aria-label="Save for Org"]').click()
 
             self.browser.wait_until(f'[data-test-id="discover2-query-name-{query_name}"]')
 
