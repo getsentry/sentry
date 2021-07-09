@@ -23,6 +23,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.db.models.manager import BaseManager
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
 
@@ -72,6 +73,18 @@ class OrganizationMemberTeam(BaseModel):
         }
 
 
+class OrganizationMemberManager(BaseManager):
+    def get_contactable_members_for_org(self, organization_id):
+        """
+        Get a list of members we can contact for an organization through email
+        """
+        return self.select_related("user").filter(
+            organization_id=organization_id,
+            invite_status=InviteStatus.APPROVED.value,
+            user__isnull=False,
+        )
+
+
 class OrganizationMember(Model):
     """
     Identifies relationships between organizations and users.
@@ -82,6 +95,8 @@ class OrganizationMember(Model):
     """
 
     __include_in_export__ = True
+
+    objects = OrganizationMemberManager()
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
@@ -375,14 +390,3 @@ class OrganizationMember(Model):
         cls.objects.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
             email__exact=None
         ).delete()
-
-    @classmethod
-    def get_contactable_members_for_org(cls, organization_id):
-        """
-        Get a list of members we can contact for an organization through email
-        """
-        return cls.objects.select_related("user").filter(
-            organization_id=organization_id,
-            invite_status=InviteStatus.APPROVED.value,
-            user__isnull=False,
-        )
