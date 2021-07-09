@@ -9,7 +9,7 @@
     "inlineSources": false,
     "importHelpers": true,
     "lib": ["esnext", "dom"],
-    "module": "esnext",
+    "module": "commonjs",
     "moduleResolution": "node",
     "noEmitHelpers": true,
     "noFallthroughCasesInSwitch": true,

@@ -1,9 +1,14 @@
 /* eslint-env node */
-const path = require('path'); // eslint-disable-line
+/* eslint import/no-nodejs-modules:0 */
 
-let testMatch;
+import path from 'path';
+
+import type {Config} from '@jest/types';
+
+import babelConfig from './babel.config';
 
 const {JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
+
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
  *
@@ -11,26 +16,30 @@ const {JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
  * Then we split up the tests based on the total number of CI instances that will
  * be running the tests.
  */
+let testMatch: string[] | undefined;
+
 if (
   JEST_TESTS &&
   typeof CI_NODE_TOTAL !== 'undefined' &&
   typeof CI_NODE_INDEX !== 'undefined'
 ) {
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const tests = JSON.parse(process.env.JEST_TESTS).sort((a, b) => {
-    return b.localeCompare(a);
-  });
+  const envTestList = JSON.parse(JEST_TESTS) as string[];
+  const tests = envTestList.sort((a, b) => b.localeCompare(a));
+
+  const nodeTotal = Number(CI_NODE_TOTAL);
+  const nodeIndex = Number(CI_NODE_INDEX);
 
   const length = tests.length;
-  const size = Math.floor(length / CI_NODE_TOTAL);
-  const remainder = length % CI_NODE_TOTAL;
-  const offset = Math.min(CI_NODE_INDEX, remainder) + CI_NODE_INDEX * size;
-  const chunk = size + (CI_NODE_INDEX < remainder ? 1 : 0);
+  const size = Math.floor(length / nodeTotal);
+  const remainder = length % nodeTotal;
+  const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
+  const chunk = size + (nodeIndex < remainder ? 1 : 0);
 
   testMatch = tests.slice(offset, offset + chunk);
 }
 
-module.exports = {
+const config: Config.InitialOptions = {
   verbose: false,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx,tsx}',
@@ -66,8 +75,8 @@ module.exports = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'babel-jest',
+    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
@@ -92,3 +101,5 @@ module.exports = {
     SENTRY_DSN: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
   },
 };
+
+export default config;
