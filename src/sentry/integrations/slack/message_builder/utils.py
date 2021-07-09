@@ -38,7 +38,9 @@ def build_notification_footer(notification: BaseNotification, recipient: Union[T
 
     if isinstance(notification, ReleaseActivityNotification):
         # no environment related to a deploy
-        return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
+        if notification.release:
+            return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
+        return f"<{settings_url}|Notification Settings>"
 
     footer = Project.objects.get_from_cache(id=notification.group.project_id).slug
     latest_event = notification.group.get_latest_event()

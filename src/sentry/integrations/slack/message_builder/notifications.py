@@ -71,9 +71,9 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         if isinstance(self.notification, ISSUE_UNFURL):
             return SlackIssuesMessageBuilder(
                 group=self.notification.group,
-                event=self.notification.event if hasattr(self.notification, "event") else None,
+                event=getattr(self.notification, "event"),
                 tags=self.context.get("tags", None),
-                rules=self.notification.rules if hasattr(self.notification, "rules") else None,
+                rules=getattr(self.notification, "rules"),
                 issue_details=True,
                 notification=self.notification,
                 recipient=self.recipient,
@@ -93,11 +93,12 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 
         if isinstance(self.notification, ReleaseActivityNotification):
             text = ""
-            for project in self.notification.release.projects.all():
-                project_url = absolute_uri(
-                    f"/organizations/{self.notification.release.organization.slug}/releases/{self.notification.release.version}/?project={project.id}&unselectedSeries=Healthy/"
-                )
-                text += f"* <{project_url}|{project.slug}>\n"
+            if self.notification.release:
+                for project in self.notification.release.projects.all():
+                    project_url = absolute_uri(
+                        f"/organizations/{self.notification.release.organization.slug}/releases/{self.notification.release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                    )
+                    text += f"* <{project_url}|{project.slug}>\n"
             return self._build(
                 text=text.rstrip(),
                 footer=build_notification_footer(self.notification, self.recipient),
