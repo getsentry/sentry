@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {Location} from 'history';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
@@ -13,8 +12,6 @@ import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 
-import {getTransactionName} from '../utils';
-
 import TransactionThresholdModal, {
   modalCss,
   TransactionThresholdMetric,
@@ -22,7 +19,6 @@ import TransactionThresholdModal, {
 
 type Props = {
   api: Client;
-  location: Location;
   organization: Organization;
   transactionName: string;
   projects: Project[];
@@ -60,8 +56,7 @@ class TransactionThresholdButton extends Component<Props, State> {
   }
 
   fetchTransactionThreshold = () => {
-    const {api, organization, location} = this.props;
-    const transactionName = getTransactionName(location);
+    const {api, organization, transactionName} = this.props;
 
     const project = this.getProject();
     if (!defined(project)) {
@@ -139,6 +134,7 @@ class TransactionThresholdButton extends Component<Props, State> {
           transactionThreshold={transactionThreshold}
           transactionThresholdMetric={transactionThresholdMetric}
           onApply={(threshold, metric) => this.onChangeThreshold(threshold, metric)}
+          data-test-id="threshold-settings"
         />
       ),
       {modalCss, backdrop: 'static'}
@@ -147,11 +143,9 @@ class TransactionThresholdButton extends Component<Props, State> {
 
   render() {
     const {loadingThreshold} = this.state;
-
     return (
       <Button
         onClick={() => this.openModal()}
-        data-test-id="set-transaction-threshold"
         icon={<IconSettings />}
         disabled={loadingThreshold}
         aria-label={t('Settings')}

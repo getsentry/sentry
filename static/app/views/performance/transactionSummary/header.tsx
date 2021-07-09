@@ -135,8 +135,7 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   renderSettingsButton() {
-    const {organization, location, transactionName, eventView, onChangeThreshold} =
-      this.props;
+    const {organization, transactionName, eventView, onChangeThreshold} = this.props;
 
     return (
       <Feature
@@ -150,7 +149,6 @@ class TransactionHeader extends React.Component<Props> {
               position="bottom"
             >
               <TransactionThresholdButton
-                location={location}
                 organization={organization}
                 transactionName={transactionName}
                 eventView={eventView}
