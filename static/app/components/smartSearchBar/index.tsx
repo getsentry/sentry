@@ -323,6 +323,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
   }
 
+  get hasImporvedSearch() {
+    return this.props.organization.features.includes('improved-search');
+  }
+
   get initialQuery() {
     const {query, defaultQuery} = this.props;
     return query !== null ? addSpace(query) : defaultQuery ?? '';
@@ -974,8 +978,8 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     const cursor = this.getCursorPosition();
-    const {organization} = this.props;
-    if (organization.features.includes('search-syntax-highlight')) {
+
+    if (this.hasImporvedSearch) {
       this.updateAutoCompleteFromAst();
       return;
     }
@@ -1210,8 +1214,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursor = this.getCursorPosition();
     const {query} = this.state;
 
-    const {organization} = this.props;
-    if (organization.features.includes('search-syntax-highlight')) {
+    if (this.hasImporvedSearch) {
       this.onAutoCompleteFromAst(replaceText, item);
       return;
     }
@@ -1287,8 +1290,6 @@ class SmartSearchBar extends React.Component<Props, State> {
       loading,
     } = this.state;
 
-    const hasSyntaxHighlight = organization.features.includes('search-syntax-highlight');
-
     const input = (
       <SearchInput
         type="text"
@@ -1338,7 +1339,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
         <InputWrapper>
           <Highlight>
-            {hasSyntaxHighlight && parsedQuery !== null ? (
+            {this.hasImporvedSearch && parsedQuery !== null ? (
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={cursor === -1 ? undefined : cursor}
