@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List
 
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import GroupingComponent, calculate_tree_label
 from sentry.grouping.strategies.base import call_with_variants, strategy
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
@@ -640,7 +640,11 @@ def chained_exception(chained_exception, context, **meta):
     rv = {}
 
     for name, component_list in by_name.items():
-        rv[name] = GroupingComponent(id="chained-exception", values=component_list)
+        rv[name] = GroupingComponent(
+            id="chained-exception",
+            values=component_list,
+            tree_label=calculate_tree_label(reversed(component_list)),
+        )
 
     return rv
 
