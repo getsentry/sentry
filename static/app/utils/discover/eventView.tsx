@@ -706,7 +706,7 @@ class EventView {
       interval: this.interval,
       expired: this.expired,
       createdBy: this.createdBy,
-      additionalConditions: this.additionalConditions,
+      additionalConditions: this.additionalConditions.copy(),
     });
   }
 
