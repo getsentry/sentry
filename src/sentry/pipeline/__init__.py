@@ -1,5 +1,7 @@
 import logging
+from dataclasses import dataclass
 from types import LambdaType
+from typing import Optional
 
 from sentry import analytics
 from sentry.models import Organization
@@ -115,6 +117,14 @@ class PipelineSessionStore(RedisSessionStore):
     step_index = redis_property("step_index")
     config = redis_property("config")
     data = redis_property("data")
+
+
+@dataclass
+class PipelineAnalyticsEntry:
+    """Attributes to describe a pipeline in analytics records."""
+
+    event_type: str
+    pipeline_type: str
 
 
 class Pipeline:
@@ -260,16 +270,23 @@ class Pipeline:
         Render the next step.
         """
         self.state.step_index += step_size
-        if self.organization:
+
+        analytics_entry = self.get_analytics_entry()
+        if analytics_entry and self.organization:
             analytics.record(
-                "integrations.pipeline_step",
+                analytics_entry.event_type,
                 user_id=self.request.user.id,
                 organization_id=self.organization.id,
                 integration=self.provider.key,
                 step_index=self.state.step_index,
-                pipeline_type="reauth" if self.fetch_state("integration_id") else "install",
+                pipeline_type=analytics_entry.pipeline_type,
             )
+
         return self.current_step()
+
+    def get_analytics_entry(self) -> Optional[PipelineAnalyticsEntry]:
+        """Return analytics attributes for this pipeline."""
+        return None
 
     def finish_pipeline(self):
         """
