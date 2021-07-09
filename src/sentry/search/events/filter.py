@@ -20,7 +20,6 @@ from sentry.api.event_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, Release, SemverFilter
 from sentry.models.group import Group
-from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -42,7 +41,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, QueryFields, resolve_field
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
@@ -910,7 +909,7 @@ def format_search_filter(term, params):
     return conditions, projects_to_filter, group_ids
 
 
-class QueryFilter(QueryBase):
+class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
     def __init__(self, dataset: Dataset, params: ParamsType):
@@ -925,21 +924,33 @@ class QueryFilter(QueryBase):
             ISSUE_ALIAS: self._issue_filter_converter,
         }
 
-    def resolve_where(self, query: Optional[str]) -> List[WhereType]:
+    def resolve_query(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool = False,
+    ) -> Tuple[List[WhereType], List[WhereType]]:
         if query is None:
-            return []
+            return ([], [])
 
         try:
             parsed_terms = parse_search_query(query, params=self.params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
-        conditions = [
-            self.format_search_filter(term)
-            for term in parsed_terms
-            if isinstance(term, SearchFilter)
-        ]
-        return [condition for condition in conditions if condition]
+        having_conditions: List[WhereType] = []
+        where_conditions: List[WhereType] = []
+
+        for term in parsed_terms:
+            if isinstance(term, SearchFilter):
+                condition = self.format_search_filter(term)
+                if condition:
+                    where_conditions.append(condition)
+            elif use_aggregate_conditions and isinstance(term, AggregateFilter):
+                condition = self.format_aggregate_filter(term)
+                if condition:
+                    having_conditions.append(condition)
+
+        return (where_conditions, having_conditions)
 
     def resolve_params(self) -> List[WhereType]:
         """Keys included as url params take precedent if same key is included in search
@@ -1011,10 +1022,10 @@ class QueryFilter(QueryBase):
         if name in NO_CONVERSION_FIELDS:
             return None
 
-        converter = self.search_filter_converter.get(name, self._default_filter_converter)
+        converter = self.search_filter_converter.get(name, self._default_search_filter_converter)
         return converter(search_filter)
 
-    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _default_search_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
         value = search_filter.value.value
 
@@ -1129,3 +1140,29 @@ class QueryFilter(QueryBase):
                 SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
             )
         )
+
+    def format_aggregate_filter(
+        self,
+        aggregate_filter: AggregateFilter,
+    ) -> Optional[WhereType]:
+        name = aggregate_filter.key.name
+        value = aggregate_filter.value.value
+
+        if name in self.params.get("aliases", {}):
+            raise NotImplementedError(
+                f"aggregate alias: {name} not implemented in snql filter parsing yet"
+            )
+
+        value = (
+            int(to_timestamp(value))
+            if isinstance(value, datetime) and name != "timestamp"
+            else value
+        )
+
+        if aggregate_filter.operator in {"=", "!="} and value == "":
+            operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
+            return Condition(name, operator)
+
+        function = self.resolve_function(name)
+
+        return Condition(function, Op(aggregate_filter.operator), value)

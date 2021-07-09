@@ -407,6 +407,43 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             for function, alias, expected in aggregates:
                 assert data[0][alias] == expected, (query_fn, function)
 
+    def test_all_aggregates_filter(self):
+        data = load_data("transaction", timestamp=self.two_min_ago)
+        self.store_event(data=data, project_id=self.project.id)
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data=data, project_id=self.project.id)
+
+        aggregates = [
+            ("count()", ">1", "count", 2),
+            (
+                "last_seen()",
+                f">{iso_format(self.two_min_ago)}",
+                "last_seen",
+                f"{iso_format(self.one_min_ago)}+00:00",
+            ),
+            ("failure_rate()", ">0.1", "failure_rate", 0.5),
+            ("failure_count()", "<15", "failure_count", 1),
+        ]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=[aggregate[0] for aggregate in aggregates],
+                query=" ".join(
+                    f"{aggregate[0]}:{aggregate[1]}" for aggregate in aggregates if aggregate[1]
+                ),
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                use_aggregate_conditions=True,
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            for function, condition, alias, expected in aggregates:
+                assert data[0][alias] == expected, (query_fn, function)
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],

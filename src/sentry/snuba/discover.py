@@ -198,7 +198,15 @@ def wip_snql_query(
     Replacement API for query using snql, this function is still a work in
     progress and is not ready for use in production
     """
-    builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
+    builder = QueryBuilder(
+        Dataset.Discover,
+        params,
+        query=query,
+        selected_columns=selected_columns,
+        orderby=orderby,
+        limit=limit,
+        use_aggregate_conditions=use_aggregate_conditions,
+    )
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, referrer)
     return results

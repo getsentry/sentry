@@ -2119,10 +2119,10 @@ class QueryFields(QueryBase):
         # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
 
-    def resolve_function(self, function: str, match: Any) -> SelectType:
+    def resolve_function(self, function: str, match: Optional[Any] = None) -> SelectType:
         if function in self.params.get("aliases", {}):
             raise NotImplementedError(
-                f"function alias: {function} not implemented in snql field parsing yet"
+                f"aggregate alias: {function} not implemented in snql field parsing yet"
             )
 
         function_name, function_arguments, function_aliases = self.parse_function(function, match)

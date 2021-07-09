@@ -21,12 +21,15 @@ class QueryBuilder(QueryFilter, QueryFields):
         selected_columns: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
         limit: int = 50,
+        use_aggregate_conditions: bool = False,
     ):
         super().__init__(dataset, params)
 
         self.limit = Limit(limit)
 
-        self.where = self.resolve_where(query)
+        self.where, self.having = self.resolve_query(
+            query, use_aggregate_conditions=use_aggregate_conditions
+        )
 
         # params depends on get_filter since there may be projects in the query
         self.where += self.resolve_params()
@@ -51,6 +54,7 @@ class QueryBuilder(QueryFilter, QueryFields):
             match=Entity(self.dataset.value),
             select=self.select,
             where=self.where,
+            having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,
             limit=self.limit,
