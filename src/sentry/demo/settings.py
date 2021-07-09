@@ -44,10 +44,10 @@ DEMO_DATA_GEN_PARAMS = {
     "MAX_INITIALIZATION_TIME": 30,  # number of minutes to give an organization to initialize
     "DISABLE_SESSIONS": False,  # disables generating sessions
     "DISABLE_AGGREGATE_SESSIONS": False,  # disables generating sessions
+    "IND_SESSION_THRESHOLD": 0.5,  # threshold for rate at which individual sessions are not sent
 }
 
 # parameters for an org when quickly generating them synchronously
-DEMO_DATA_QUICK_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
-DEMO_DATA_QUICK_GEN_PARAMS.update(MAX_DAYS=1, SCALE_FACTOR=0.25, NAME_STEP_SIZE=200)
+DEMO_DATA_QUICK_GEN_PARAMS = {"MAX_DAYS": 1, "SCALE_FACTOR": 0.25, "NAME_STEP_SIZE": 20}
 
 DEMO_MOBILE_PROJECTS = False

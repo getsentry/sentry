@@ -1,5 +1,5 @@
 import {PlatformKey} from 'app/data/platformCategories';
-import {Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 
 export type StepData = {
   platform?: PlatformKey | null;
@@ -12,6 +12,7 @@ export type StepProps = {
   platform: PlatformKey | null;
   onComplete: (data: StepData) => void;
   onUpdate: (data: StepData) => void;
+  organization?: Organization;
 };
 
 export type StepDescriptor = {
