@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T10:29:51.974612Z'
+created: '2021-07-08T17:38:02.005485Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -57,7 +57,7 @@ SIGABRT:_ (thread_id:_, crashed:_)
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-                      libsystem_malloc.dylib  malloc_vreport category=oom
+                      libsystem_malloc.dylib  malloc_vreport category=malloc
                            libsystem_c.dylib  abort category=throw
                                               stripped_application_code
                                               stripped_application_code

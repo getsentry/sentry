@@ -59,7 +59,9 @@ from sentry.utils.safe import get_path
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
 
 _SHOULD_DELETE_DATA = os.environ.get("SENTRY_TEST_GROUPING_DELETE_USELESS_DATA") == "1"
-_DELETE_KEYWORDS = os.environ.get("SENTRY_TEST_GROUPING_DELETE_KEYWORDS", "").lower().split(",")
+_DELETE_KEYWORDS = [
+    x for x in os.environ.get("SENTRY_TEST_GROUPING_DELETE_KEYWORDS", "").lower().split(",") if x
+]
 
 
 class CategorizationInput:

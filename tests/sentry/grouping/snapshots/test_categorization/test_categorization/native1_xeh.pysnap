@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T17:02:07.565940Z'
+created: '2021-07-08T17:52:58.623531Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -86,6 +86,6 @@ source: tests/sentry/grouping/test_categorization.py
       /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block category=internals
       /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block.cold.1 category=indirection
       /usr/lib/system/libsystem_malloc.dylib  malloc_zone_error category=internals
-      /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=oom
+      /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=internals
            /usr/lib/system/libsystem_c.dylib  abort category=throw
       /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals
