@@ -194,6 +194,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             (
                 "organizations:performance-view",
                 "organizations:project-transaction-threshold-override",
+                "organizations:project-transaction-threshold",
             )
         ):
             self.browser.get(self.path)
@@ -204,6 +205,5 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
             # We have to wait for this again because there are loaders inside of the table
-            self.page.wait_until_loaded()
             self.browser.click('[data-test-id="set-transaction-threshold"]')
             self.browser.snapshot("transaction threshold modal")
