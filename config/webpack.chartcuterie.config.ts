@@ -1,21 +1,28 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-const path = require('path');
-const childProcess = require('child_process');
-const webpack = require('webpack');
+import childProcess from 'child_process';
+import path from 'path';
 
-const baseConfig = require('../webpack.config');
+import webpack from 'webpack';
+
+import baseConfig from '../webpack.config';
 
 const commitHash =
   process.env.SENTRY_BUILD ||
   childProcess.execSync('git rev-parse HEAD').toString().trim();
 
-const findLoader = loaderName =>
-  baseConfig.module.rules.find(rule => rule.use.loader === loaderName);
+const findLoader = (loaderName: string) =>
+  baseConfig.module?.rules?.find(
+    rule =>
+      typeof rule === 'object' &&
+      typeof rule.use === 'object' &&
+      !Array.isArray(rule.use) &&
+      rule.use.loader === loaderName
+  ) as webpack.RuleSetRule;
 
-const config = {
-  mode: process.env.NODE_ENV || 'development',
+const config: webpack.Configuration = {
+  mode: baseConfig.mode,
   context: baseConfig.context,
   resolve: baseConfig.resolve,
 
@@ -26,7 +33,7 @@ const config = {
 
   module: {
     rules: [findLoader('babel-loader'), findLoader('po-catalog-loader')],
-    noParse: baseConfig.module.noParse,
+    noParse: baseConfig.module?.noParse,
   },
 
   plugins: [
