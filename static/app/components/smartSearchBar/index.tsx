@@ -258,7 +258,7 @@ type State = {
    */
   activeSearchItem: number;
   tags: Record<string, string>;
-  dropdownVisible: boolean;
+  inputHasFocus: boolean;
   loading: boolean;
   /**
    * The number of actions that are not in the overflow menu.
@@ -287,7 +287,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     flatSearchItems: [],
     activeSearchItem: -1,
     tags: {},
-    dropdownVisible: false,
+    inputHasFocus: false,
     loading: false,
     numActionsVisible: this.props.actionBarItems?.length ?? 0,
   };
@@ -425,7 +425,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       callIfFunction(this.props.onSearch, this.state.query)
     );
 
-  onQueryFocus = () => this.setState({dropdownVisible: true});
+  onQueryFocus = () => this.setState({inputHasFocus: true});
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     // wait before closing dropdown in case blur was a result of clicking a
@@ -433,7 +433,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     const value = e.target.value;
     const blurHandler = () => {
       this.blurTimeout = undefined;
-      this.setState({dropdownVisible: false});
+      this.setState({inputHasFocus: false});
       callIfFunction(this.props.onBlur, value);
     };
 
@@ -578,6 +578,13 @@ class SmartSearchBar extends React.Component<Props, State> {
     if (!this.searchInput.current) {
       return -1;
     }
+
+    // No cursor position when the input loses focus. This is important for
+    // updating the search highlighters active state
+    if (!this.state.inputHasFocus) {
+      return -1;
+    }
+
     return this.searchInput.current.selectionStart ?? -1;
   }
 
@@ -1275,7 +1282,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       parsedQuery,
       searchGroups,
       searchTerm,
-      dropdownVisible,
+      inputHasFocus,
       numActionsVisible,
       loading,
     } = this.state;
@@ -1323,7 +1330,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursor = this.getCursorPosition();
 
     return (
-      <Container ref={this.containerRef} className={className} isOpen={dropdownVisible}>
+      <Container ref={this.containerRef} className={className} isOpen={inputHasFocus}>
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
           {inlineLabel}
@@ -1371,7 +1378,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
         {(loading || searchGroups.length > 0) && (
           <SearchDropdown
-            css={{display: dropdownVisible ? 'block' : 'none'}}
+            css={{display: inputHasFocus ? 'block' : 'none'}}
             className={dropdownClassName}
             items={searchGroups}
             onClick={this.onAutoComplete}

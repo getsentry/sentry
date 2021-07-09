@@ -426,6 +426,7 @@ describe('ReleasesList', function () {
       'sentry.semver:'
     );
 
+    wrapper.find('SmartSearchBar textarea').simulate('focus');
     wrapper
       .find('SmartSearchBar textarea')
       .simulate('change', {target: {value: 'sentry.semver:'}});

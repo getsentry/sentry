@@ -171,6 +171,7 @@ describe('IssueListSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
 
+      wrapper.find('textarea').simulate('focus');
       wrapper.find('textarea').simulate('change', {target: {value: 'is:'}});
       await tick();
       wrapper.update();
