@@ -976,7 +976,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_count_if(self):
         fields = [
             "count_if(event.type,equals,transaction)",
-            "count_if(event.type,notEquals,transaction)",
+            "count_if(event.type,notEquals,\"transaction\")",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -988,7 +988,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "countIf",
                 [["notEquals", ["event.type", "'transaction'"]]],
-                "count_if_event_type_notEquals_transaction",
+                "count_if_event_type_notEquals__transaction",
             ],
         ]
 
