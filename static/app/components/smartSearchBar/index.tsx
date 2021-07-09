@@ -1157,6 +1157,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           eventName: 'Search: Operator Autocompleted',
           organization_id: this.props.organization.id,
           query: removeSpace(query),
+          search_operator: replaceText,
           search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
         });
         const valueLocation = cursorToken.value.location;
