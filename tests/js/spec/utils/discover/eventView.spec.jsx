@@ -2227,6 +2227,23 @@ describe('EventView.getQuery()', function () {
   });
 });
 
+describe('EventView.getQueryWithAdditionalConditions', function () {
+  it('with overlapping conditions', function () {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      project: [],
+      query: 'event.type:transaction foo:bar',
+    });
+
+    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+
+    expect(eventView.getQueryWithAdditionalConditions()).toEqual(
+      'event.type:transaction foo:bar'
+    );
+  });
+});
+
 describe('EventView.sortForField()', function () {
   const state = {
     id: '1234',
