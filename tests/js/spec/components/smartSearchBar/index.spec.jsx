@@ -304,11 +304,11 @@ describe('SmartSearchBar', function () {
         />,
         options
       ).instance();
-      expect(searchBar.state.dropdownVisible).toBe(false);
+      expect(searchBar.state.inputHasFocus).toBe(false);
 
       searchBar.onQueryFocus();
 
-      expect(searchBar.state.dropdownVisible).toBe(true);
+      expect(searchBar.state.inputHasFocus).toBe(true);
     });
 
     it('displays dropdown in hasPinnedSearch mode', function () {
@@ -322,11 +322,11 @@ describe('SmartSearchBar', function () {
         />,
         options
       ).instance();
-      expect(searchBar.state.dropdownVisible).toBe(false);
+      expect(searchBar.state.inputHasFocus).toBe(false);
 
       searchBar.onQueryFocus();
 
-      expect(searchBar.state.dropdownVisible).toBe(true);
+      expect(searchBar.state.inputHasFocus).toBe(true);
     });
   });
 
@@ -340,13 +340,13 @@ describe('SmartSearchBar', function () {
         />,
         options
       ).instance();
-      searchBar.state.dropdownVisible = true;
+      searchBar.state.inputHasFocus = true;
 
       jest.useFakeTimers();
       searchBar.onQueryBlur({target: {value: 'test'}});
       jest.advanceTimersByTime(201); // doesn't close until 200ms
 
-      expect(searchBar.state.dropdownVisible).toBe(false);
+      expect(searchBar.state.inputHasFocus).toBe(false);
     });
   });
 
@@ -361,7 +361,7 @@ describe('SmartSearchBar', function () {
           />,
           options
         );
-        wrapper.setState({dropdownVisible: true});
+        wrapper.setState({inputHasFocus: true});
 
         const instance = wrapper.instance();
         jest.spyOn(instance, 'blur');

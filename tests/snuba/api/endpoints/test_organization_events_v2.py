@@ -10,7 +10,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -815,6 +815,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert {r["id"] for r in response.data["data"]} == {
             release_1_e_1,
             release_1_e_2,
+        }
+
+    def test_semver_package(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.4")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{SEMVER_PACKAGE_ALIAS}:test"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_PACKAGE_ALIAS}:test2"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
         }
 
     def test_aliased_fields(self):

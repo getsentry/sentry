@@ -8,10 +8,9 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
-import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {Organization} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -20,19 +19,6 @@ import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import {StepProps} from './types';
-
-type AnalyticsOpts = {
-  organization: Organization;
-  project: Project | null;
-  platform: PlatformKey | null;
-};
-
-const recordAnalyticsDocsClicked = ({organization, project, platform}: AnalyticsOpts) =>
-  analytics('onboarding_v2.full_docs_clicked', {
-    org_id: organization.id,
-    project: project?.slug,
-    platform,
-  });
 
 type Props = StepProps & {
   api: Client;
@@ -57,8 +43,8 @@ class OtherSetup extends AsyncComponent<Props, State> {
   }
 
   handleFullDocsClick = () => {
-    const {organization, project, platform} = this.props;
-    recordAnalyticsDocsClicked({organization, project, platform});
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
   };
 
   render() {
