@@ -26,7 +26,7 @@ function EventTitleTreeLabel({treeLabel}: Props) {
               </Fragment>
             );
           }
-          return <PriorityPart key={index}>{part}</PriorityPart>;
+          return <PriorityPart key={index}>{formatTreeLabelPart(part)}</PriorityPart>;
         })}
       </FirstFourParts>
       {!!remainingParts.length && (
