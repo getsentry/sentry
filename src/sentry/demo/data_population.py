@@ -114,6 +114,7 @@ saved_search_by_platform = {
     "apple-ios": [["iOS 12 Errors", 'os:"iOS 12"']],
     "javascript-react": [],
     "android": [],
+    "react-native": [],
 }
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
@@ -828,14 +829,14 @@ class DataPopulation:
         for params in global_params:
             name, query = params
             SavedSearch.objects.get_or_create(
-                is_global=True, organization=self.org.id, name=name, query=query
+                is_global=True, organization=self.org, name=name, query=query
             )
         for project in projects:
             project_params = saved_search_by_platform[project.platform]
             for params in project_params:
                 name, query = params
                 SavedSearch.objects.get_or_create(
-                    project=project, organization=project.organization, name=name, query=query
+                    project=project, organization=self.org, name=name, query=query
                 )
 
     def inbox_issues(self):
