@@ -13,16 +13,6 @@ def get_referrer_qstring(notification: BaseNotification) -> str:
     return "?referrer=" + re.sub("Notification$", "Slack", notification.__class__.__name__)
 
 
-def build_notification_footer(notification: BaseNotification) -> str:
-    settings_url = get_settings_url(notification)
-    if isinstance(notification, ReleaseActivityNotification):
-        # temp while I figure out what to put here for deploys
-        return f"<{settings_url}|Notification Settings>"
-
-    project = Project.objects.get_from_cache(id=notification.group.project_id)
-    return f"{project.slug} | <{settings_url}|Notification Settings>"
-
-
 def get_settings_url(notification: BaseNotification) -> str:
     if isinstance(notification, ReleaseActivityNotification):
         fine_tuning = "deploy/"
@@ -35,3 +25,19 @@ def get_settings_url(notification: BaseNotification) -> str:
 
     url_str = f"/settings/account/notifications/{fine_tuning}"
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+
+
+def build_notification_footer(notification: BaseNotification) -> str:
+    settings_url = get_settings_url(notification)
+    if isinstance(notification, ReleaseActivityNotification):
+        # temp while I figure out what to put here for deploys
+        return f"<{settings_url}|Notification Settings>"
+    footer = Project.objects.get_from_cache(id=notification.group.project_id).slug
+    latest_event = notification.group.get_latest_event()
+    environment = None
+    if latest_event:
+        environment = latest_event.get_environment()
+    if environment and environment.name != "":
+        footer += f" | {environment.name}"
+    footer += f" | <{settings_url}|Notification Settings>"
+    return footer

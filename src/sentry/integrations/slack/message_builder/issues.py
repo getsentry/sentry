@@ -333,7 +333,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             text=text,
             title=build_attachment_title(obj),
             title_link=get_title_link(self.group, self.event, self.link_to_event, self.issue_alert),
-            ts=get_timestamp(self.group, self.event),
+            ts=get_timestamp(self.group, self.event) if not self.issue_alert else None,
         )
 
 
