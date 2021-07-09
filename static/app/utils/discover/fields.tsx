@@ -742,10 +742,13 @@ export function parseArguments(functionText: string, columnText: string): string
   let j: number = 0;
 
   while (j < columnText.length) {
-    if (!quoted && columnText[j] === '"') {
+    if (i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (i === j && columnText[j] === ' ') {
+      // argument has leading spaces, skip over them
+      i += 1;
     } else if (quoted && !escaped && columnText[j] === '\\') {
       // when we see a slash inside a quoted string,
       // the next character is an escape character

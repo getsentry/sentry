@@ -475,10 +475,13 @@ def parse_arguments(function, columns):
     i, j = 0, 0
 
     while j < len(columns):
-        if not quoted and columns[j] == '"':
+        if i == j and columns[j] == '"':
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
+        elif i == j and columns[j] == " ":
+            # argument has leading spaces, skip over them
+            i += 1
         elif quoted and not escaped and columns[j] == "\\":
             # when we see a slash inside a quoted string,
             # the next character is an escape character
