@@ -236,7 +236,7 @@ class BuildIncidentAttachmentTest(TestCase):
 
     def test_build_group_attachment_issue_alert(self):
         issue_alert_group = self.create_group(project=self.project)
-        assert build_group_attachment(issue_alert_group, issue_alert=True)["actions"] == []
+        assert build_group_attachment(issue_alert_group, issue_details=True)["actions"] == []
 
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)

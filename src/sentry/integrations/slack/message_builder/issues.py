@@ -25,7 +25,7 @@ from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 
-from .utils import build_notification_footer
+from ..utils import build_notification_footer
 
 
 def format_actor_option(actor: Union[User, Team]) -> Mapping[str, str]:

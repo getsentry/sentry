@@ -21,7 +21,7 @@ from sentry.notifications.base import BaseNotification
 from sentry.notifications.rules import AlertRuleNotification
 from sentry.utils.http import absolute_uri
 
-from .utils import build_notification_footer, get_referrer_qstring
+from ..utils import build_notification_footer, get_referrer_qstring
 
 ISSUE_UNFURL = (
     AlertRuleNotification,
@@ -69,17 +69,11 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 
     def build(self) -> SlackBody:
         if isinstance(self.notification, ISSUE_UNFURL):
-            event = (
-                getattr(self.notification, "event") if hasattr(self.notification, "event") else None
-            )
-            rules = (
-                getattr(self.notification, "rules") if hasattr(self.notification, "rules") else None
-            )
             return SlackIssuesMessageBuilder(
                 group=self.notification.group,
-                event=event,
+                event=getattr(self.notification, "event", None),
                 tags=self.context.get("tags", None),
-                rules=rules,
+                rules=getattr(self.notification, "rules", None),
                 issue_details=True,
                 notification=self.notification,
                 recipient=self.recipient,
