@@ -4,7 +4,6 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import round from 'lodash/round';
-import moment from 'moment';
 
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
@@ -33,7 +32,7 @@ import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions
 import {Color, Theme} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
-import {generateReleaseMarkLine, releaseComparisonChartLabels} from '../../utils';
+import {generateReleaseMarkLines, releaseComparisonChartLabels} from '../../utils';
 import {
   fillChartDataFromSessionsResponse,
   initSessionsBreakdownChartData,
@@ -195,35 +194,7 @@ function ReleaseComparisonChart({
       return {};
     }
 
-    const adoptionStages = release.adoptionStages?.[project.slug];
-
-    const markLines = [
-      generateReleaseMarkLine(
-        t('Release Created'),
-        moment(release.dateCreated).valueOf(),
-        theme
-      ),
-    ];
-
-    if (adoptionStages?.adopted) {
-      markLines.push(
-        generateReleaseMarkLine(
-          t('Adopted'),
-          moment(adoptionStages.adopted).valueOf(),
-          theme
-        )
-      );
-    }
-
-    if (adoptionStages?.unadopted) {
-      markLines.push(
-        generateReleaseMarkLine(
-          t('Unadopted'),
-          moment(adoptionStages.unadopted).valueOf(),
-          theme
-        )
-      );
-    }
+    const markLines = generateReleaseMarkLines(release, project.slug, theme);
 
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
