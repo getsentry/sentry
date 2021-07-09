@@ -78,7 +78,7 @@ def _compute_tree_label(components: Iterable[GroupingComponent]):
     tree_label = []
 
     for frame in components:
-        if frame.tree_label:
+        if frame.contributes and frame.tree_label:
             lbl = dict(frame.tree_label)
             if frame.is_sentinel_frame:
                 lbl["is_sentinel"] = True
