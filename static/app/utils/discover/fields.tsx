@@ -304,9 +304,6 @@ export const AGGREGATIONS = {
   },
   apdex: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
-      }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
       };
@@ -325,9 +322,6 @@ export const AGGREGATIONS = {
   },
   user_misery: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
-      }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
       };
@@ -360,9 +354,6 @@ export const AGGREGATIONS = {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
-      }
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
       }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
