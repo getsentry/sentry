@@ -36,8 +36,12 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
 
         commit = onboard_cache.get(commit_key)
         if commit is None:
-            # Maybe we should limit by date_added to only check the most recent releases?
-            release_ids = Release.objects.filter(projects=project.id).values_list("id", flat=True)
+            # only get the last 1000 releases
+            release_ids = (
+                Release.objects.filter(projects=project.id)
+                .order_by("-id")
+                .values_list("id", flat=True)
+            )[:1000]
             commit = ReleaseCommit.objects.filter(
                 organization_id=project.organization_id, release__id__in=release_ids
             ).exists()
