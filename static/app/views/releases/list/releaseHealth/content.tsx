@@ -83,7 +83,9 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
-          {adoptionStages && <Column>{t('Adoption Stage')}</Column>}
+          {adoptionStages && (
+            <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
+          )}
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
@@ -145,7 +147,10 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
-            const adoptionStage = adoptionStages && adoptionStages[project.slug].stage;
+            const adoptionStage =
+              adoptionStages &&
+              adoptionStages[project.slug] &&
+              adoptionStages[project.slug].stage;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -156,7 +161,7 @@ const Content = ({
 
                   <AdoptionColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder width="150px" />
+                      <StyledPlaceholder width="100px" />
                     ) : get24hCountByProject ? (
                       <AdoptionWrapper>
                         <ReleaseAdoption
@@ -173,7 +178,7 @@ const Content = ({
                   </AdoptionColumn>
 
                   {adoptionStages && (
-                    <Column>
+                    <AdoptionStageColumn>
                       {adoptionStages[project.slug] ? (
                         <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
                           {ADOPTION_STAGE_LABELS[adoptionStage].name}
@@ -181,7 +186,7 @@ const Content = ({
                       ) : (
                         <NotAvailable />
                       )}
-                    </Column>
+                    </AdoptionStageColumn>
                   )}
 
                   <CrashFreeRateColumn>
@@ -310,39 +315,18 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   display: grid;
-  ${p =>
-    p.hasAdoptionStages
-      ? `
-      grid-template-columns: 1fr 1.4fr 0.5fr 0.6fr 0.7fr;
-    `
-      : `
-      grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
-    `}
+  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    ${p =>
-      p.hasAdoptionStages
-        ? `
-      grid-template-columns: 1fr 1fr 0.5fr 1fr 0.5fr 0.5fr 0.5fr;
-    `
-        : `
-      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-    `}
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    ${p =>
-      p.hasAdoptionStages
-        ? `
-      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 0.5fr 0.5fr 0.6fr;
-    `
-        : `
-      grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
-    `}
+    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -373,6 +357,16 @@ const AdoptionColumn = styled(Column)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
     /* Chart tooltips need overflow */
+    overflow: visible;
+  }
+`;
+
+const AdoptionStageColumn = styled(Column)`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    display: flex;
+
+    /* Need to show the edges of the tags */
     overflow: visible;
   }
 `;

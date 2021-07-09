@@ -204,13 +204,12 @@ class TableView extends React.Component<TableViewProps> {
     const titleText = isEquationAlias(column.name)
       ? eventView.getEquations()[getEquationAliasIndex(column.name)]
       : column.name;
-    const titleElement = <Truncate value={titleText} maxLength={60} expandable={false} />;
-    const title =
-      titleText.length > 60 ? (
-        <Tooltip title={titleText}>{titleElement}</Tooltip>
-      ) : (
-        titleElement
-      );
+
+    const title = (
+      <StyledTooltip title={titleText}>
+        <Truncate value={titleText} maxLength={60} expandable={false} />
+      </StyledTooltip>
+    );
 
     return (
       <SortLink
@@ -506,6 +505,10 @@ class TableView extends React.Component<TableViewProps> {
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: initial;
 `;
 
 const StyledLink = styled(Link)`
