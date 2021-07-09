@@ -81,7 +81,7 @@ def _write_tree_labels(tree_labels: Sequence[TreeLabel], event_data: EventData) 
 class CalculatedHashes:
     hashes: Sequence[str]
     hierarchical_hashes: Sequence[str]
-    tree_labels: Sequence[TreeLabel]
+    tree_labels: Sequence[Optional[TreeLabel]]
 
     def write_to_event(self, event_data: EventData) -> None:
         event_data["hashes"] = self.hashes
@@ -106,16 +106,18 @@ class CalculatedHashes:
     @property
     def finest_tree_label(self) -> Optional[StrippedTreeLabel]:
         try:
-            return _strip_tree_label(self.tree_labels[-1])
+            tree_label = self.tree_labels[-1]
+            return tree_label and _strip_tree_label(tree_label)
         except IndexError:
             return None
 
     def group_metadata_from_hash(self, hash: str) -> EventMetadata:
         try:
             i = self.hierarchical_hashes.index(hash)
+            tree_label = self.tree_labels[i]
             return {
                 "current_level": i,
-                "current_tree_label": _strip_tree_label(self.tree_labels[i]),
+                "current_tree_label": tree_label and _strip_tree_label(tree_label),
             }
         except (IndexError, ValueError):
             return {}

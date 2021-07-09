@@ -399,7 +399,9 @@ class Event:
             seen_hashes.add(hash_)
             filtered_hashes.append(hash_)
             tree_labels.append(
-                variant.component.tree_label if isinstance(variant, ComponentVariant) else None
+                variant.component.tree_label or None
+                if isinstance(variant, ComponentVariant)
+                else None
             )
 
         return filtered_hashes, tree_labels
