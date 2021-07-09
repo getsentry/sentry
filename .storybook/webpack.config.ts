@@ -1,8 +1,15 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-const path = require('path');
-const webpack = require('webpack');
-const appConfig = require('../webpack.config');
+
+import path from 'path';
+
+import webpack from 'webpack';
+
+import appConfigAny from '../webpack.config';
+
+// TODO(epurkhiser): Once we convert our webpack.config over to typescript we
+// can remove this
+const appConfig = appConfigAny as any;
 
 const staticPath = path.resolve(__dirname, '..', 'static', 'app');
 
@@ -11,24 +18,37 @@ const staticPath = path.resolve(__dirname, '..', 'static', 'app');
  * to an empty object specifically for eslint, since it will load this config
  * without passing in a config object.
  */
-const emptyConfig = {
+const emptyConfig: webpack.Configuration = {
   module: {rules: []},
   resolve: {alias: {}, extensions: []},
   plugins: [],
 };
 
-module.exports = ({config} = {config: emptyConfig}) => {
-  const [firstRule, ...rules] = config.module.rules;
+type Opts = {
+  config: webpack.Configuration;
+};
+
+const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
+  const [firstRule, ...rules] = (config.module?.rules ?? []) as webpack.RuleSetRule[];
 
   const filteredRules = rules.filter(rule => {
-    return (
-      (!rule.loader || !rule.loader.includes('file-loader')) &&
-      (!Array.isArray(rule.use) ||
-        !rule.use.find(({loader}) => loader && loader.includes('postcss-loader')))
-    );
+    const isFileLoader = !!rule?.loader?.includes('file-loader');
+
+    const isPostCssLoader =
+      Array.isArray(rule.use) &&
+      rule.use.find(
+        use => typeof use === 'object' && use?.loader?.includes('postcss-loader')
+      );
+
+    return !isFileLoader && !isPostCssLoader;
   });
 
-  const newConfig = {
+  const extensions = new Set([
+    ...(config.resolve?.extensions ?? []),
+    ...(appConfig.resolve?.extensions ?? []),
+  ]);
+
+  const newConfig: webpack.Configuration = {
     ...config,
     module: {
       ...config.module,
@@ -65,27 +85,21 @@ module.exports = ({config} = {config: emptyConfig}) => {
     },
 
     plugins: [
-      ...config.plugins,
-      new webpack.ProvidePlugin({
-        jQuery: 'jquery',
-      }),
-      new webpack.DefinePlugin({
-        'process.env.FIXED_DYNAMIC_CONTENT': true,
-      }),
+      ...(config.plugins ?? []),
+      new webpack.ProvidePlugin({jQuery: 'jquery'}),
+      new webpack.DefinePlugin({'process.env.FIXED_DYNAMIC_CONTENT': true}),
     ],
 
     resolve: {
       ...config.resolve,
-      extensions: Array.from(
-        new Set([...config.resolve.extensions, ...appConfig.resolve.extensions])
-      ),
+      extensions: Array.from(extensions),
       alias: {
-        ...config.resolve.alias,
-        ...appConfig.resolve.alias,
+        ...config.resolve?.alias,
+        ...appConfig.resolve?.alias,
         app: staticPath,
       },
       fallback: {
-        ...appConfig.resolve.fallback,
+        ...appConfig.resolve?.fallback,
         // XXX(epurkhiser): As per [0] assert is required for
         // @storybook/addons-docs, but seems we can just noop the pollyfill.
         //
@@ -97,3 +111,5 @@ module.exports = ({config} = {config: emptyConfig}) => {
 
   return newConfig;
 };
+
+export default configBuilder;

@@ -1,14 +1,13 @@
 import 'focus-visible';
 import '../docs-ui/index.js';
 
-import React from 'react';
-import {addDecorator, addParameters} from '@storybook/react';
+import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {ThemeProvider} from 'emotion-theming';
 
 import GlobalStyles from '../static/app/styles/global';
 import {darkTheme, lightTheme} from '../static/app/utils/theme';
 
-const withTheme = (Story, context) => {
+const withTheme: DecoratorFn = (Story, context) => {
   const isDark = context.globals.theme === 'dark';
   const currentTheme = isDark ? darkTheme : lightTheme;
 
@@ -123,7 +122,7 @@ export const globalTypes = {
   },
 };
 
-export const parameters = {
+export const parameters: Parameters = {
   /**
    * @storybook/addon-backgrounds background is controlled via theme
    */
