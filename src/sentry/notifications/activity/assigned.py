@@ -72,20 +72,20 @@ class AssignedActivityNotification(ActivityNotification):
             author = "themselves"
             return author, assignee
 
-            try:
-                assignee = User.objects.get_from_cache(id=data["assignee"])
-            except User.DoesNotExist:
-                pass
-            else:
-                assignee = assignee.get_display_name()
-                return author, assignee
-
-            if data.get("assigneeEmail"):
-                assignee = data["assigneeEmail"]
-                return author, assignee
-
-            assignee = "an unknown user"
+        try:
+            assignee = User.objects.get_from_cache(id=data["assignee"])
+        except User.DoesNotExist:
+            pass
+        else:
+            assignee = assignee.get_display_name()
             return author, assignee
+
+        if data.get("assigneeEmail"):
+            assignee = data["assigneeEmail"]
+            return author, assignee
+
+        assignee = "an unknown user"
+        return author, assignee
 
         if data["assigneeType"] == "team":
             try:

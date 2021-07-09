@@ -69,11 +69,17 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 
     def build(self) -> SlackBody:
         if isinstance(self.notification, ISSUE_UNFURL):
+            event = (
+                getattr(self.notification, "event") if hasattr(self.notification, "event") else None
+            )
+            rules = (
+                getattr(self.notification, "rules") if hasattr(self.notification, "rules") else None
+            )
             return SlackIssuesMessageBuilder(
                 group=self.notification.group,
-                event=getattr(self.notification, "event"),
+                event=event,
                 tags=self.context.get("tags", None),
-                rules=getattr(self.notification, "rules"),
+                rules=rules,
                 issue_details=True,
                 notification=self.notification,
                 recipient=self.recipient,
