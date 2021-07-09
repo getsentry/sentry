@@ -22,7 +22,7 @@ type Props = {
   tagKey: string;
 };
 
-const TAG_VALUE_LIMIT = 10;
+const HISTOGRAM_TAG_KEY_LIMIT = 8;
 const HISTOGRAM_BUCKET_LIMIT = 20;
 
 const TagsDisplay = (props: Props) => {
@@ -32,9 +32,6 @@ const TagsDisplay = (props: Props) => {
     projects,
     eventView
   );
-  if (!tagKey) {
-    return null;
-  }
   return (
     <React.Fragment>
       <TagKeyHistogramQuery
@@ -42,12 +39,20 @@ const TagsDisplay = (props: Props) => {
         orgSlug={organization.slug}
         location={location}
         aggregateColumn={aggregateColumn}
-        limit={HISTOGRAM_BUCKET_LIMIT}
+        tagKeyLimit={HISTOGRAM_TAG_KEY_LIMIT}
+        numBucketsPerKey={HISTOGRAM_BUCKET_LIMIT}
         tagKey={tagKey}
         sort="-frequency"
       >
         {({isLoading, tableData}) => {
-          return <TagsHeatMap {...props} tableData={tableData} isLoading={isLoading} />;
+          return (
+            <TagsHeatMap
+              {...props}
+              aggregateColumn={aggregateColumn}
+              tableData={tableData}
+              isLoading={isLoading}
+            />
+          );
         }}
       </TagKeyHistogramQuery>
       <SegmentExplorerQuery
@@ -56,12 +61,19 @@ const TagsDisplay = (props: Props) => {
         location={location}
         aggregateColumn={aggregateColumn}
         tagKey={tagKey}
-        limit={TAG_VALUE_LIMIT}
+        limit={HISTOGRAM_TAG_KEY_LIMIT}
         sort="-frequency"
         allTagKeys
       >
         {({isLoading, tableData}) => {
-          return <TagValueTable {...props} tableData={tableData} isLoading={isLoading} />;
+          return (
+            <TagValueTable
+              {...props}
+              aggregateColumn={aggregateColumn}
+              tableData={tableData}
+              isLoading={isLoading}
+            />
+          );
         }}
       </SegmentExplorerQuery>
     </React.Fragment>

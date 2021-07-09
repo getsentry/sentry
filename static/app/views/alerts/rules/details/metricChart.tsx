@@ -252,11 +252,12 @@ class MetricChart extends React.PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, projects, timePeriod} = this.props;
+    const {rule, orgId, projects, timePeriod, query} = this.props;
     const ctaOpts = {
       orgSlug: orgId,
       projects: projects as Project[],
       rule,
+      eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
     };

@@ -4,6 +4,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
+import FeatureBadge from 'app/components/featureBadge';
 import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
 import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
@@ -40,6 +41,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
@@ -730,7 +732,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderEmbeddedTransactionsBadge(
     transactions: QuickTraceEvent[] | null
   ): React.ReactNode {
-    const {toggleEmbeddedChildren, organization} = this.props;
+    const {toggleEmbeddedChildren, organization, showEmbeddedChildren} = this.props;
 
     if (!organization.features.includes('unified-span-view')) {
       return null;
@@ -739,20 +741,47 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (transactions && transactions.length === 1) {
       const transaction = transactions[0];
       return (
-        <EmbeddedTransactionBadge
-          expanded={!!this.props.showEmbeddedChildren}
-          onClick={() => {
-            if (toggleEmbeddedChildren) {
-              toggleEmbeddedChildren({
-                orgSlug: organization.slug,
-                eventSlug: generateEventSlug({
-                  id: transaction.event_id,
-                  project: transaction.project_slug,
-                }),
-              });
-            }
-          }}
-        />
+        <Tooltip
+          title={
+            <span>
+              {showEmbeddedChildren
+                ? t('This span is showing a direct child. Collapse to hide.')
+                : t('This span has a direct child. Expand to show.')}
+              <FeatureBadge type="alpha" noTooltip />
+            </span>
+          }
+          position="top"
+          containerDisplayMode="block"
+        >
+          <EmbeddedTransactionBadge
+            expanded={showEmbeddedChildren}
+            onClick={() => {
+              if (toggleEmbeddedChildren) {
+                if (showEmbeddedChildren) {
+                  trackAnalyticsEvent({
+                    eventKey: 'span_view.embedded_child.hide',
+                    eventName: 'Span View: Hide Embedded Transaction',
+                    organization_id: parseInt(organization.id, 10),
+                  });
+                } else {
+                  trackAnalyticsEvent({
+                    eventKey: 'span_view.embedded_child.show',
+                    eventName: 'Span View: Show Embedded Transaction',
+                    organization_id: parseInt(organization.id, 10),
+                  });
+                }
+
+                toggleEmbeddedChildren({
+                  orgSlug: organization.slug,
+                  eventSlug: generateEventSlug({
+                    id: transaction.event_id,
+                    project: transaction.project_slug,
+                  }),
+                });
+              }
+            }}
+          />
+        </Tooltip>
       );
     }
     return null;

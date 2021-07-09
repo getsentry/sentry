@@ -265,7 +265,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
         blob_fileobj = ContentFile(contents)
         blob = FileBlob.from_file(blob_fileobj, logger=logger)
         ExportedDataBlob.objects.get_or_create(
-            data_export=data_export, blob=blob, offset=bytes_written + bytes_offset
+            data_export=data_export, blob_id=blob.id, offset=bytes_written + bytes_offset
         )
 
         bytes_offset += blob.size
@@ -320,7 +320,7 @@ def merge_export_blobs(data_export_id, **kwargs):
                 for export_blob in ExportedDataBlob.objects.filter(
                     data_export=data_export
                 ).order_by("offset"):
-                    blob = export_blob.blob
+                    blob = FileBlob.objects.get(pk=export_blob.blob_id)
                     FileBlobIndex.objects.create(file=file, blob=blob, offset=size)
                     size += blob.size
                     blob_checksum = sha1(b"")

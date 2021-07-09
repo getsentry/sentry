@@ -625,7 +625,15 @@ export enum WebVital {
   RequestTime = 'measurements.ttfb.requesttime',
 }
 
-const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+export enum MobileVital {
+  AppStartCold = 'measurements.app_start_cold',
+  AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.FP]: 'duration',
   [WebVital.FCP]: 'duration',
   [WebVital.LCP]: 'duration',
@@ -633,6 +641,11 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.CLS]: 'number',
   [WebVital.TTFB]: 'duration',
   [WebVital.RequestTime]: 'duration',
+  [MobileVital.AppStartCold]: 'duration',
+  [MobileVital.AppStartWarm]: 'duration',
+  [MobileVital.FramesTotal]: 'number',
+  [MobileVital.FramesSlow]: 'number',
+  [MobileVital.FramesFrozen]: 'number',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
@@ -682,9 +695,9 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*)?\)$/;
+const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /([^\(]+)\((.*)?\)/g;
+const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate

@@ -9,7 +9,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -328,6 +328,81 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 f"{iso_format(day)}+00:00"
             ], query_fn
 
+    def test_user_display(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        # `user.display` should give `ip`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"ip_address": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert {item["user.display"] for item in data} == {
+                "bruce@example.com",
+                "brucew",
+                "127.0.0.1",
+            }
+
+    def test_user_display_filter(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="has:user.display user.display:bruce@example.com",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert [item["user.display"] for item in data] == ["bruce@example.com"]
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
@@ -508,6 +583,41 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+
+    def test_semver_package_condition(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.4")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_PACKAGE_ALIAS}:test",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_PACKAGE_ALIAS}:test2",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_2_e_1,
+        }
 
     def test_latest_release_condition(self):
         result = discover.query(
@@ -4124,6 +4234,20 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                     "transaction.duration",
                 ],
                 orderby=["equation[1]"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_equation_without_field_or_function(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.duration",
+                ],
+                equations=[
+                    "5 + 5",
+                ],
                 query=self.query,
                 params=self.params,
             )
