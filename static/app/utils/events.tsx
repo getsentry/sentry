@@ -52,7 +52,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
   const treeLabel = current_tree_label || finest_tree_label;
   const formattedTreeLabel = treeLabel
     ? treeLabel
-        .map(part => part?.function || part?.package)
+        .map(part => part?.function || part?.package || part?.type)
         .filter(part => !!part)
         .join(' | ')
     : undefined;

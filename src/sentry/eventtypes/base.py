@@ -8,7 +8,9 @@ from sentry.utils.strings import strip, truncatechars
 
 
 def format_title_from_tree_label(tree_label):
-    return " | ".join(filter(bool, (x.get("function") or x.get("package") for x in tree_label)))
+    return " | ".join(
+        filter(bool, (x.get("function") or x.get("package") or x.get("type") for x in tree_label))
+    )
 
 
 def compute_title_with_tree_label(title: Optional[str], metadata: dict):
