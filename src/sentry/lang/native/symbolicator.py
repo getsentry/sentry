@@ -392,6 +392,9 @@ def get_sources_for_project(project):
                 else:
                     yield other_source
 
+    if options.get("symbolicator.ignore_builtin_sources"):
+        return sources
+
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
