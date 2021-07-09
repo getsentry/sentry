@@ -134,7 +134,6 @@ class TransactionThresholdButton extends Component<Props, State> {
           transactionThreshold={transactionThreshold}
           transactionThresholdMetric={transactionThresholdMetric}
           onApply={(threshold, metric) => this.onChangeThreshold(threshold, metric)}
-          data-test-id="threshold-settings"
         />
       ),
       {modalCss, backdrop: 'static'}
@@ -149,6 +148,7 @@ class TransactionThresholdButton extends Component<Props, State> {
         icon={<IconSettings />}
         disabled={loadingThreshold}
         aria-label={t('Settings')}
+        data-test-id="set-transaction-threshold"
       />
     );
   }
