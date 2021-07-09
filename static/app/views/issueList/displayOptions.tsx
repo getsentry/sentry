@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import {getDisplayLabel, IssueDisplayOptions} from 'app/views/issueList/utils';
@@ -50,6 +51,7 @@ const IssueListDisplayOptions = ({
           disabled={!tooltipText}
         >
           {getDisplayLabel(key)}
+          {key === IssueDisplayOptions.SESSIONS && <FeatureBadge type="beta" noTooltip />}
         </StyledTooltip>
       </DropdownItem>
     );

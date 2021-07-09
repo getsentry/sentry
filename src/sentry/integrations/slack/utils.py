@@ -4,7 +4,8 @@ from typing import List, Tuple
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.core.exceptions import ValidationError
-from django.http import Http404
+from django.http import Http404, HttpResponse
+from rest_framework.request import Request
 
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Organization
@@ -14,6 +15,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
 )
 from sentry.utils import json
+from sentry.web.helpers import render_to_response
 
 from .client import SlackClient
 
@@ -23,6 +25,7 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
+ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 
 def get_integration_type(integration: Integration):
@@ -298,3 +301,53 @@ def get_identities_by_user(idp, users):
         status=IdentityStatus.VALID,
     )
     return {identity.user: identity for identity in identity_models}
+
+
+def is_valid_role(org_member, team, organization):
+    return org_member.role in ALLOWED_ROLES and (
+        organization.flags.allow_joinleave or team in org_member.teams.all()
+    )
+
+
+def render_error_page(request: Request, body_text: str) -> HttpResponse:
+    return render_to_response(
+        "sentry/integrations/slack-link-team-error.html",
+        request=request,
+        context={"body_text": body_text},
+    )
+
+
+def send_confirmation(
+    integration: Integration,
+    channel_id: str,
+    heading: str,
+    text: str,
+    template: str,
+    request: Request,
+) -> HttpResponse:
+    client = SlackClient()
+    token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+    payload = {
+        "token": token,
+        "channel": channel_id,
+        "text": text,
+    }
+
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+    except ApiError as e:
+        message = str(e)
+        if message != "Expired url":
+            logger.error("slack.slash-notify.response-error", extra={"error": message})
+    else:
+        return render_to_response(
+            template,
+            request=request,
+            context={
+                "heading_text": heading,
+                "body_text": text,
+                "channel_id": channel_id,
+                "team_id": integration.external_id,
+            },
+        )

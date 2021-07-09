@@ -44,6 +44,7 @@ import Deploys from './deploys';
 import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
+import ReleaseAdoption from './releaseAdoption';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
 import ReleaseDetailsRequest from './releaseDetailsRequest';
@@ -543,6 +544,17 @@ class ReleaseOverview extends AsyncView<Props> {
                       getHealthData={getHealthData}
                       isHealthLoading={isHealthLoading}
                     />
+                    <Feature features={['release-comparison']}>
+                      <ReleaseAdoption
+                        releaseSessions={thisRelease}
+                        allSessions={allReleases}
+                        loading={loading}
+                        reloading={reloading}
+                        errored={errored}
+                        release={release}
+                        project={project}
+                      />
+                    </Feature>
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}

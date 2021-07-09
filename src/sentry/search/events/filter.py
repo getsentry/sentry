@@ -38,6 +38,7 @@ from sentry.search.events.constants import (
     SEMVER_EMPTY_RELEASE,
     SEMVER_FAKE_PACKAGE,
     SEMVER_MAX_SEARCH_RELEASES,
+    SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
@@ -408,6 +409,34 @@ def _semver_filter_converter(
     return ["release", final_operator, versions]
 
 
+def _semver_package_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Applies a semver package filter to the search. Note that if the query returns more than
+    `SEMVER_MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    package: str = search_filter.value.raw_value
+
+    versions = list(
+        Release.objects.filter_by_semver(
+            organization_id, SemverFilter("exact", [], package)
+        ).values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
+    )
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", "IN", versions]
+
+
 def parse_semver(version, operator) -> Optional[SemverFilter]:
     """
     Attempts to parse a release version using our semver syntax. version should be in
@@ -474,6 +503,7 @@ key_conversion_map: Mapping[
     KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,
+    SEMVER_PACKAGE_ALIAS: _semver_package_filter_converter,
 }
 
 
