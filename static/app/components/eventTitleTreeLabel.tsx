@@ -4,39 +4,38 @@ import styled from '@emotion/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {TreeLabelPart} from 'app/types';
+import {formatTreeLabelPart} from 'app/utils/events';
 
 type Props = {
   treeLabel: TreeLabelPart[];
 };
 
 function EventTitleTreeLabel({treeLabel}: Props) {
-  const firstFourLabels = treeLabel.slice(0, 4);
-  const remainingLabels = treeLabel.slice(firstFourLabels.length);
+  const firstFourParts = treeLabel.slice(0, 4);
+  const remainingParts = treeLabel.slice(firstFourParts.length);
 
   return (
     <Wrapper>
-      <FirstFourLabels>
-        {firstFourLabels.map((label, index) => {
-          if (index !== firstFourLabels.length - 1) {
+      <FirstFourParts>
+        {firstFourParts.map((part, index) => {
+          if (index !== firstFourParts.length - 1) {
             return (
               <Fragment key={index}>
-                <PriorityLabel>
-                  {label?.function || label?.package || label?.type}
-                </PriorityLabel>
+                <PriorityPart>{formatTreeLabelPart(part)}</PriorityPart>
                 <Divider>{'|'}</Divider>
               </Fragment>
             );
           }
-          return <PriorityLabel key={index}>{label}</PriorityLabel>;
+          return <PriorityPart key={index}>{part}</PriorityPart>;
         })}
-      </FirstFourLabels>
-      {!!remainingLabels.length && (
+      </FirstFourParts>
+      {!!remainingParts.length && (
         <RemainingLabels>
-          {remainingLabels.map((label, index) => {
+          {remainingParts.map((part, index) => {
             return (
               <Fragment key={index}>
                 <Divider>{'|'}</Divider>
-                {label?.function || label?.package || label?.type}
+                {formatTreeLabelPart(part)}
               </Fragment>
             );
           })}
@@ -53,12 +52,12 @@ const Wrapper = styled('span')`
   grid-template-columns: auto 1fr;
 `;
 
-const FirstFourLabels = styled('span')`
+const FirstFourParts = styled('span')`
   display: grid;
   grid-auto-flow: column;
 `;
 
-const PriorityLabel = styled('div')`
+const PriorityPart = styled('div')`
   ${overflowEllipsis}
 `;
 

@@ -371,12 +371,14 @@ export type Team = {
 
 export type TeamWithProjects = Team & {projects: Project[]};
 
-export type TreeLabelPart = {
-  function?: string;
-  package?: string;
-  type?: string;
-  datapath?: (string | number)[];
-};
+export type TreeLabelPart =
+  | string
+  | {
+      function?: string;
+      package?: string;
+      type?: string;
+      datapath?: (string | number)[];
+    };
 
 // This type is incomplete
 export type EventMetadata = {
