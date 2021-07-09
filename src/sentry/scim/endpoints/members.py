@@ -100,7 +100,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         def on_results(results):
             results = serialize(results, None, OrganizationMemberSCIMSerializer())
-            return self.list_api_format(request, queryset, results)
+            return self.list_api_format(request, queryset.count(), results)
 
         return self.paginate(
             request=request,
