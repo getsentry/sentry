@@ -129,15 +129,20 @@ export const vitalCardDetails = (organization: LightWeightOrganization) => {
         : getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       formatter: value => formatFloat(value, 4),
     },
-    'frame_rate(measurements.frames_slow,0.75)': {
+    'p75(measurements.frames_slow_rate)': {
       title: t('Slow Frames (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
       formatter: value => formatPercentage(value, 2),
     },
-    'frame_rate(measurements.frames_frozen,0.75)': {
+    'p75(measurements.frames_frozen_rate)': {
       title: t('Frozen Frames (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
       formatter: value => formatPercentage(value, 2),
+    },
+    'p75(measurements.app_start_cold)': {
+      title: t('Cold Start (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
     'p75(measurements.app_start_warm)': {
       title: t('Warm Start (p75)'),
