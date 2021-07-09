@@ -289,7 +289,9 @@ class AuthIdentityHandler:
             # test email addresses + is_managed to determine if we can auto
             # merge
             if auth_identity.user != self.user:
-                self._wipe_existing_identity(auth_identity)
+                wipe = self._wipe_existing_identity(auth_identity)
+            else:
+                wipe = None
 
             now = timezone.now()
             auth_identity.update(
@@ -300,6 +302,19 @@ class AuthIdentityHandler:
                 ),
                 last_verified=now,
                 last_synced=now,
+            )
+
+            logger.info(
+                "sso.login-pipeline.attach-existing-identity",
+                extra={
+                    "wipe_result": repr(wipe),
+                    "organization_id": self.organization.id,
+                    "user_id": self.user.id,
+                    "auth_identity_user_id": auth_identity.user.id,
+                    "auth_provider_id": self.auth_provider.id,
+                    "idp_identity_id": identity["id"],
+                    "idp_identity_email": identity.get("email"),
+                },
             )
 
         if member is None:
@@ -320,14 +335,16 @@ class AuthIdentityHandler:
 
         return auth_identity
 
-    def _wipe_existing_identity(self, auth_identity: AuthIdentity) -> None:
+    def _wipe_existing_identity(self, auth_identity: AuthIdentity) -> Any:
         # it's possible the user has an existing identity, let's wipe it out
         # so that the new identifier gets used (other we'll hit a constraint)
         # violation since one might exist for (provider, user) as well as
         # (provider, ident)
-        AuthIdentity.objects.exclude(id=auth_identity.id).filter(
-            auth_provider=self.auth_provider, user=self.user
-        ).delete()
+        deletion_result = (
+            AuthIdentity.objects.exclude(id=auth_identity.id)
+            .filter(auth_provider=self.auth_provider, user=self.user)
+            .delete()
+        )
 
         # since we've identified an identity which is no longer valid
         # lets preemptively mark it as such
@@ -340,6 +357,8 @@ class AuthIdentityHandler:
         other_member.flags["sso:invalid"] = True
         other_member.flags["sso:linked"] = False
         other_member.save()
+
+        return deletion_result
 
     def _get_organization_member(self) -> OrganizationMember:
         try:

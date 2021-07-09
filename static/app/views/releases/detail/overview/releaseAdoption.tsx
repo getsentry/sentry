@@ -11,14 +11,23 @@ import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import {SessionApiResponse, SessionField} from 'app/types';
+import {
+  ReleaseProject,
+  ReleaseWithHealth,
+  SessionApiResponse,
+  SessionField,
+} from 'app/types';
 import {percent} from 'app/utils';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 
+import {generateReleaseMarkLines} from '../utils';
+
 import {SectionHeading} from './styles';
 
 type Props = {
+  release: ReleaseWithHealth;
+  project: ReleaseProject;
   releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
   loading: boolean;
@@ -28,6 +37,8 @@ type Props = {
 };
 
 function ReleaseComparisonChart({
+  release,
+  project,
   releaseSessions,
   allSessions,
   loading,
@@ -42,7 +53,13 @@ function ReleaseComparisonChart({
       return [];
     }
 
+    const sessionsMarkLines = generateReleaseMarkLines(release, project.slug, theme, {
+      hideLabel: true,
+      axisIndex: 0,
+    });
+
     const series = [
+      ...sessionsMarkLines,
       {
         seriesName: t('Sessions Adopted'),
         connectNulls: true,
@@ -58,6 +75,12 @@ function ReleaseComparisonChart({
     ];
 
     if (hasUsers) {
+      const usersMarkLines = generateReleaseMarkLines(release, project.slug, theme, {
+        hideLabel: true,
+        axisIndex: 1,
+      });
+
+      series.push(...usersMarkLines);
       series.push({
         seriesName: t('Users Adopted'),
         connectNulls: true,

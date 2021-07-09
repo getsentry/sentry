@@ -9,7 +9,7 @@ describe('ArithmeticInput', function () {
   let handleQueryChange: (value: string) => void;
   let numericColumns: Column[];
   let columns: Column[];
-  const operators = ['+', '-', '*', '/'];
+  const operators = ['+', '-', '*', '/', '(', ')'];
 
   beforeEach(function () {
     query = '';
@@ -30,6 +30,7 @@ describe('ArithmeticInput', function () {
     columns = [
       ...numericColumns,
       // these columns will not be rendered in the dropdown
+      {kind: 'function', function: ['any', 'transaction.duration', undefined, undefined]},
       {kind: 'field', field: 'transaction'},
       {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
       {kind: 'equation', field: 'transaction.duration+measurements.lcp'},

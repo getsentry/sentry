@@ -24,7 +24,7 @@ def _calculate_contributes(values):
     return False
 
 
-def _calculate_tree_label(values):
+def calculate_tree_label(values):
     for value in values or ():
         if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
             return value.tree_label
@@ -132,7 +132,7 @@ class GroupingComponent:
             if contributes is None:
                 contributes = _calculate_contributes(values)
             if tree_label is None:
-                tree_label = _calculate_tree_label(values)
+                tree_label = calculate_tree_label(values)
             self.values = values
         if contributes is not None:
             if contributes_to_similarity is None:
