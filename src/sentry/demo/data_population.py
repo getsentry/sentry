@@ -17,7 +17,6 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-# from sentry import eventstore
 from sentry.api.utils import get_date_range_from_params
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DiscoverSavedQuery
@@ -36,6 +35,7 @@ from sentry.models import (
     File,
     Group,
     GroupAssignee,
+    GroupStatus,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -49,6 +49,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
 from sentry.utils.email import create_fake_email
@@ -110,10 +111,13 @@ saved_search_by_platform = {
     "python": [
         ["Firefox Errors - Python", "browser.name:Firefox"],
     ],
-    "javascript-react": [["Edge Errors - React", "browser.name:Edge"]],
+    # "javascript-react": [["Edge Errors - React", "browser.name:Edge"]],
     "apple-ios": [["iOS 12 Errors", 'os:"iOS 12"']],
-    "android": [["Pixel Device Errors", "device.family:Pixel"]],
-    "react-native": [["Handled Errors - React Native", "error.unhandled:false"]],
+    "javascript-react": [],
+    "android": [],
+    "react-native": []
+    # "android": [["Pixel Device Errors", "device.family:Pixel"]],
+    # "react-native": [["Handled Errors - React Native", "error.unhandled:false"]],
 }
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
@@ -637,11 +641,15 @@ class DataPopulation:
         fix_spans(event_json, old_span_id)
         fix_measurements(event_json)
 
-    def safe_send_event(self, data):
+    def safe_send_event(self, data, first=False):
         project = data.pop("project")
         config = self.get_config()
         try:
-            create_sample_event_basic(data, project.id)
+            event = create_sample_event_basic(data, project.id)
+            if first and random.random() > 0.8:
+                reasons = [GroupInboxReason.REGRESSION, GroupInboxReason.NEW]
+                add_group_to_inbox(event.group, random.choice(reasons))
+
             time.sleep(config["DEFAULT_BACKOFF_TIME"])
         except SnubaError:
             # if snuba fails, just back off and continue
@@ -834,7 +842,30 @@ class DataPopulation:
                     project=project, organization=project.organization, name=name, query=query
                 )
 
-            # for event in eventstore.get_events(filter=eventstore.Filter(project_ids=[project.id])):
+    # def inbox_issues(self):
+    #     assigned_issues = GroupAssignee.objects.filter(project__organization=self.org)
+    #     assigned_groups = [assignee.group for assignee in assigned_issues]
+    #     groups = Group.objects.filter(project__organization=self.org)
+    #     unassigned_groups = [group for group in groups if group not in assigned_groups]
+
+    #     reasons = [GroupInboxReason.REGRESSION, GroupInboxReason.NEW]
+    #     ignore_rate = .1
+
+    #     for group in groups:
+    #         outcome = random.random()
+    #         if outcome < ignore_rate:
+    #             group.update(status=GroupStatus.IGNORED)
+    #         elif group in unassigned_groups:
+    #             add_group_to_inbox(group, random.choice(reasons))
+
+    def ignore_issues(self):
+        groups = Group.objects.filter(project__organization=self.org)
+        ignore_rate = 0.15
+
+        for group in groups:
+            outcome = random.random()
+            if outcome < ignore_rate:
+                group.update(status=GroupStatus.IGNORED)
 
     def assign_issues(self):
         org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
@@ -1193,6 +1224,8 @@ class DataPopulation:
 
         self.log_info("populate_generic_error.start")
 
+        first = True
+
         for (timestamp, day) in self.iter_timestamps(dist_number, starting_release):
             transaction_user = self.generate_user()
             release = get_release_from_time(project.organization_id, timestamp)
@@ -1208,7 +1241,11 @@ class DataPopulation:
             )
             update_context(local_event, platform=project.platform)
             self.fix_error_event(local_event)
-            self.safe_send_event(local_event)
+            self.safe_send_event(local_event, first)
+
+            if first:
+                first = False
+
         self.log_info("populate_generic_error.finished")
 
     def populate_generic_transaction(
@@ -1431,6 +1468,7 @@ class DataPopulation:
                 python_project, "errors/python/concat_str_none.json", 4, starting_release=1
             )
         self.assign_issues()
+        self.ignore_issues()
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
@@ -1472,3 +1510,4 @@ class DataPopulation:
                 starting_release=2,
             )
         self.assign_issues()
+        self.ignore_issues()
