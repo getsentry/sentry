@@ -884,7 +884,7 @@ def is_function(field):
     return None
 
 
-def get_function_alias(field):
+def get_function_alias(field: str) -> str:
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
@@ -896,8 +896,8 @@ def get_function_alias(field):
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
+def get_function_alias_with_columns(function_name: str, cols: List[str]) -> str:
+    columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in cols))
     return f"{function_name}_{columns}".rstrip("_")
 
 
@@ -2139,14 +2139,14 @@ class QueryFields(QueryBase):
         if not match:
             match = is_function(function)
 
-        function_name = match.group("function")
-        function_argument_string = match.group("columns")
-        function_alias = match.group("alias")
-
-        if not match or not self.is_valid_function(function_name):
+        if not match or not self.is_valid_function(match.group("function")):
             if err_msg is None:
                 err_msg = f"{function} is not a valid function"
             raise InvalidSearchQuery(err_msg)
+
+        function_name = match.group("function")
+        function_argument_string = match.group("columns")
+        function_alias = match.group("alias")
 
         function_arguments = parse_arguments(function_name, function_argument_string)
         if function_alias is None:
