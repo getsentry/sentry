@@ -83,27 +83,27 @@ export type Alignments = 'left' | 'right';
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   {
-    label: 'equal =',
+    label: 'is equal to',
     value: 'equals',
   },
   {
-    label: 'not equal !=',
+    label: 'is not equal to',
     value: 'notEquals',
   },
   {
-    label: 'less <',
+    label: 'is less than',
     value: 'less',
   },
   {
-    label: 'greater >',
+    label: 'is greater than',
     value: 'greater',
   },
   {
-    label: 'less or equals <=',
+    label: 'is less than or equal to',
     value: 'lessOrEquals',
   },
   {
-    label: 'greater or equals >=',
+    label: 'is greater than or equal to',
     value: 'greaterOrEquals',
   },
 ];
