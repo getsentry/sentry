@@ -21,6 +21,7 @@ from .constants import (
     SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
     SCIM_409_USER_EXISTS,
     MemberPatchOps,
+    SCIM_429_RATE_LIMITED,
 )
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
 
@@ -28,6 +29,7 @@ ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.exceptions import ConflictError
+from sentry.utils import metrics, ratelimits
 
 
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
@@ -150,6 +152,21 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
+
+        if ratelimits.for_organization_member_invite(
+            organization=organization,
+            email=result["email"],
+            user=request.user,
+            auth=request.auth,
+            config=ratelimits.SCIM_CONFIG,
+        ):
+            metrics.incr(
+                "scim.invite_attempt",
+                instance="rate_limited",
+                skip_internal=True,
+                sample_rate=1.0,
+            )
+            return Response(SCIM_429_RATE_LIMITED, status=429)
         with transaction.atomic():
             member = OrganizationMember(
                 organization=organization,

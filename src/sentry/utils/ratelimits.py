@@ -12,6 +12,16 @@ DEFAULT_CONFIG = {
 }
 
 
+SCIM_CONFIG = {
+    # 20000 invites from a user per day
+    "members:invite-by-user": {"limit": 20000, "window": 3600 * 24},
+    # 20000 invites from an org per day
+    "members:invite-by-org": {"limit": 20000, "window": 3600 * 24},
+    # 10 invites per email per org per day
+    "members:org-invite-to-email": {"limit": 10, "window": 3600 * 24},
+}
+
+
 def for_organization_member_invite(organization, email, user=None, auth=None, config=None):
     """
     Rate limit logic for triggering a user invite email, which should also be applied for generating

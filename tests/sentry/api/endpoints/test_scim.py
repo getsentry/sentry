@@ -4,6 +4,7 @@ from django.urls import reverse
 from sentry.models import AuthProvider, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.scim.endpoints.utils import parse_filter_conditions
 from sentry.testutils import APITestCase, TestCase
+from sentry.utils.compat.mock import patch
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -356,6 +357,20 @@ class SCIMMemberTests(SCIMTestCase):
         assert response.data["totalResults"] == 151
         assert response.data["itemsPerPage"] == 51
         assert response.data["startIndex"] == 101
+
+    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    def test_rate_limited(self, mock_rate_limit):
+        mock_rate_limit.return_value = True
+        url = reverse(
+            "sentry-api-0-organization-scim-member-index",
+            args=[self.organization.slug],
+        )
+        response = self.client.post(url, CREATE_USER_POST_DATA)
+        assert response.status_code == 429, response.content
+        assert response.data == {
+            "detail": "You are being rate limited.",
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+        }
 
     # TODO: test patch with bad op
 

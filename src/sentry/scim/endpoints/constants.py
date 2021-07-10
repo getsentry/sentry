@@ -48,6 +48,11 @@ SCIM_400_INVALID_PATCH = {
     "detail": "Invalid Patch Operation.",
 }
 
+SCIM_429_RATE_LIMITED = {
+    "schemas": [SCIM_API_ERROR],
+    "detail": "You are being rate limited.",
+}
+
 
 class TeamPatchOps(str, Enum):
     ADD = "add"
