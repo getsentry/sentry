@@ -103,7 +103,7 @@ const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
     value: 'lessOrEquals',
   },
   {
-    label: 'is greater than or equals to',
+    label: 'is greater than or equal to',
     value: 'greaterOrEquals',
   },
 ];
