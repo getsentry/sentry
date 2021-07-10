@@ -20,8 +20,8 @@ from .constants import (
     SCIM_400_INVALID_PATCH,
     SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
     SCIM_409_USER_EXISTS,
-    MemberPatchOps,
     SCIM_429_RATE_LIMITED,
+    MemberPatchOps,
 )
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
 
