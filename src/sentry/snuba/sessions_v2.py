@@ -297,7 +297,7 @@ class InvalidParams(Exception):
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False, max_points=MAX_POINTS
+    params, allow_minute_resolution=False, isProject=False, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
@@ -352,7 +352,8 @@ def get_constrained_date_range(
             "Your interval and date range would create too many results. "
             "Use a larger interval, or a smaller date range."
         )
-
+    if isProject:
+        rounding_interval = ONE_HOUR
     end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
     end = to_datetime(end_ts)
     # when expanding the rounding interval, we would adjust the end time too far

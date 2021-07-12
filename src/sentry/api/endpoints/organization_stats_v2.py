@@ -7,7 +7,12 @@ from rest_framework.response import Response
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
-from sentry.snuba.outcomes import QueryDefinition, massage_outcomes_result, run_outcomes_query
+from sentry.snuba.outcomes import (
+    QueryDefinition,
+    massage_outcomes_result,
+    run_outcomes_query_timeseries,
+    run_outcomes_query_totals,
+)
 from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
 
 
@@ -20,7 +25,13 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                     organization,
                 )
             with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
-                result_totals, result_timeseries = run_outcomes_query(query)
+                if "project_id" in query.query_groupby:
+                    result_totals = run_outcomes_query_totals(query)
+                    result_timeseries = ""
+                else:
+                    # result_totals, result_timeseries = run_outcomes_query(query)
+                    result_totals = run_outcomes_query_totals(query)
+                    result_timeseries = run_outcomes_query_timeseries(query)
             with sentry_sdk.start_span(
                 op="outcomes.endpoint", description="massage_outcomes_result"
             ):

@@ -17,6 +17,9 @@ from sentry.utils.snuba import raw_query
 
 from .dataset import Dataset
 
+# from sentry.api.utils import get_date_range_from_params
+
+
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
 a similar way to "sessions" and "discover"
@@ -226,11 +229,13 @@ class QueryDefinition:
         raw_groupby = query.getlist("groupBy", [])
         if len(raw_fields) == 0:
             raise InvalidField('At least one "field" is required.')
-
+        isProject = False
+        if "project" in raw_groupby:
+            isProject = True
         self.fields = {}
         self.aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
+        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution, isProject)
         self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
@@ -267,7 +272,40 @@ class QueryDefinition:
         self.conditions, self.filter_keys = get_filter(query, params)
 
 
-def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
+# def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
+#     result = raw_query(
+#         dataset=query.dataset,
+#         start=query.start,
+#         end=query.end,
+#         groupby=query.query_groupby,
+#         aggregations=query.aggregations,
+#         rollup=query.rollup,
+#         filter_keys=query.filter_keys,
+#         conditions=query.conditions,
+#         selected_columns=query.query_columns,
+#         referrer="outcomes.totals",
+#         limit=10000,
+#     )
+#     result_timeseries = raw_query(
+#         dataset=query.dataset,
+#         selected_columns=[TS_COL] + query.query_columns,
+#         groupby=[TS_COL] + query.query_groupby,
+#         aggregations=query.aggregations,
+#         conditions=query.conditions,
+#         filter_keys=query.filter_keys,
+#         start=query.start,
+#         end=query.end,
+#         rollup=query.rollup,
+#         referrer="outcomes.timeseries",
+#         limit=10000,
+#     )
+
+#     result_totals = _format_rows(result["data"], query)
+#     result_timeseries = _format_rows(result_timeseries["data"], query)
+#     return result_totals, result_timeseries
+
+
+def run_outcomes_query_totals(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
     result = raw_query(
         dataset=query.dataset,
         start=query.start,
@@ -281,6 +319,11 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
         referrer="outcomes.totals",
         limit=10000,
     )
+    result_totals = _format_rows(result["data"], query)
+    return result_totals
+
+
+def run_outcomes_query_timeseries(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
     result_timeseries = raw_query(
         dataset=query.dataset,
         selected_columns=[TS_COL] + query.query_columns,
@@ -294,10 +337,8 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
         referrer="outcomes.timeseries",
         limit=10000,
     )
-
-    result_totals = _format_rows(result["data"], query)
     result_timeseries = _format_rows(result_timeseries["data"], query)
-    return result_totals, result_timeseries
+    return result_timeseries
 
 
 def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
