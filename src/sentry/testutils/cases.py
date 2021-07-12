@@ -723,7 +723,7 @@ class IntegrationTestCase(TestCase):
         self.save_session()
 
     def assertDialogSuccess(self, resp):
-        assert b"window.opener.postMessage(" in resp.content
+        assert b'window.opener.postMessage({"success":true' in resp.content
 
 
 @pytest.mark.snuba

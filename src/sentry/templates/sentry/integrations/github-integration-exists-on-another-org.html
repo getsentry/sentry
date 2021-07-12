@@ -1,0 +1,24 @@
+{% extends "sentry/bases/modal.html" %}
+{% load i18n %}
+{% load sentry_assets %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "GitHub Integration Setup Failed" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}narrow auth{% endblock %}
+
+{% block main %}
+{% script %}
+<script>
+  if (window.opener) {
+    window.opener.postMessage({{ payload|to_json }}, document.origin);
+  }
+  window.close();
+</script>
+{% endscript %}
+  <div class="align-center">
+    <p>
+      {% trans "It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again." %}
+    </p>
+    <p>{% trans "You can safely close this window now." %}</p>
+  </div>
+{% endblock %}
