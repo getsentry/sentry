@@ -322,7 +322,8 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
 
         for project in project_list:
-            project._organization_cache = organization
+            project.set_cached_field_value("organization", organization)
+
         return project_list
 
     def _team_list(self, organization, access):
