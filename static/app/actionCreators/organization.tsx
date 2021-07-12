@@ -18,14 +18,15 @@ async function fetchOrg(
   detailed: boolean,
   isInitialFetch?: boolean
 ): Promise<Organization> {
+  const detailedQueryParam = detailed ? 1 : 0;
   const org = await getPreloadedDataPromise(
-    'organization',
+    `organization?detailed=${detailedQueryParam}`,
     slug,
     () =>
       // This data should get preloaded in static/sentry/index.ejs
       // If this url changes make sure to update the preload
       api.requestPromise(`/organizations/${slug}/`, {
-        query: {detailed: detailed ? 1 : 0},
+        query: {detailed: detailedQueryParam},
       }),
     isInitialFetch
   );
