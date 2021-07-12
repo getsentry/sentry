@@ -29,6 +29,8 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 import {PerformanceDuration} from '../../utils';
 import {TagValue} from '../tagExplorer';
 
+import {trackTagPageInteraction} from './utils';
+
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
 type ColumnKeys =
@@ -189,7 +191,8 @@ export class TagValueTable extends Component<Props, State> {
     actionRow: any
   ) => {
     return (action: Actions) => {
-      const {eventView, location} = this.props;
+      const {eventView, location, organization} = this.props;
+      trackTagPageInteraction(organization);
 
       const searchConditions = tokenizeSearch(eventView.query);
 
@@ -214,7 +217,7 @@ export class TagValueTable extends Component<Props, State> {
     dataRow: TableDataRow
   ): React.ReactNode => {
     const value = dataRow[column.key];
-    const {location, eventView} = parentProps;
+    const {location, eventView, organization} = parentProps;
 
     if (column.key === 'key') {
       return dataRow.tags_key;
@@ -247,9 +250,10 @@ export class TagValueTable extends Component<Props, State> {
         <Link
           disabled={disabled}
           to=""
-          onClick={() =>
-            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
-          }
+          onClick={() => {
+            trackTagPageInteraction(organization);
+            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value);
+          }}
         >
           <LinkContainer>
             <IconAdd isCircled />
