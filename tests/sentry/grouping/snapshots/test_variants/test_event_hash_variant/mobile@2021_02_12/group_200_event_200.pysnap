@@ -1,11 +1,11 @@
 ---
-created: '2021-06-30T16:44:00.022517Z'
+created: '2021-07-08T17:38:04.749059Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "4d4c43d1d793f5a308704e28502a515f"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor'"
+  hash: "3a4c4c96a80c9be6a81afca4bb54f6ef"
+  tree_label: "destructor'"
   component:
     app-depth-1*
       exception*
@@ -15,12 +15,71 @@ app-depth-1:
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+        type (ignored because exception is synthetic (detected via exception type))
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "fb961faae31201361a148da84b7b886b"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor'"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+        type (ignored because exception is synthetic (detected via exception type))
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "6b9106347534a0018fe5f3d9993b3bb5"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "TppWorkerThread"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
             package (ignored because function takes precedence)
@@ -32,7 +91,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "RtlpOptimizeWaitOnAddressWaitList | RtlpWaitOnAddress | RtlpWaitOnCriticalSection | RtlpEnterCriticalSectionContended | RtlEnterCriticalSection | RtlpFreeHeap | RtlpFreeHeapInternal | RtlFreeHeap | RtlpFreeUserBlockToHeap | RtlpFreeUserBlock | memset | RtlFreeHeap | destructor' | HTTP_USER_REQUEST::~HTTP_USER_REQUEST | destructor' | HTTP_BASE_OBJECT::Dereference | HTTP_USER_REQUEST::OnSendRequest | WEBIO_REQUEST::OnIoComplete | HTTP_ASYNC_OVERLAPPED::OnWorkItem | HTTP_THREAD_POOL::_StaticWorkItemCallback | TppWorkpExecuteCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
   component:
     app-depth-max*
       exception*
@@ -97,7 +156,7 @@ app-depth-max:
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
             package (ignored because function takes precedence)
@@ -117,7 +176,7 @@ app-depth-max:
               "RtlpFreeUserBlockToHeap"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
             package (ignored because function takes precedence)
@@ -164,7 +223,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "RtlpOptimizeWaitOnAddressWaitList | RtlpWaitOnAddress | RtlpWaitOnCriticalSection | RtlpEnterCriticalSectionContended | RtlEnterCriticalSection | RtlpFreeHeap | RtlpFreeHeapInternal | RtlFreeHeap | RtlpFreeUserBlockToHeap | RtlpFreeUserBlock | memset | RtlFreeHeap | destructor' | HTTP_USER_REQUEST::~HTTP_USER_REQUEST | destructor' | HTTP_BASE_OBJECT::Dereference | HTTP_USER_REQUEST::OnSendRequest | WEBIO_REQUEST::OnIoComplete | HTTP_ASYNC_OVERLAPPED::OnWorkItem | HTTP_THREAD_POOL::_StaticWorkItemCallback | TppWorkpExecuteCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
   component:
     system*
       exception*
@@ -229,7 +288,7 @@ system:
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
             package (ignored because function takes precedence)
@@ -249,7 +308,7 @@ system:
               "RtlpFreeUserBlockToHeap"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
             package (ignored because function takes precedence)

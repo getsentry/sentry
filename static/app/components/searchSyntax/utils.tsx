@@ -2,14 +2,22 @@ import {LocationRange} from 'pegjs';
 
 import {Token, TokenConverter, TokenResult} from './parser';
 
+type TreeTransformerOpts = {
+  /**
+   * The tree to transform
+   */
+  tree: TokenResult<Token>[];
+  /**
+   * The function used to transform each node
+   */
+  transform: (token: TokenResult<Token>) => any;
+};
+
 /**
  * Utility function to visit every Token node within an AST tree and apply
  * a transform to those nodes.
  */
-export function treeTransformer(
-  tree: TokenResult<Token>[],
-  transform: (token: TokenResult<Token>) => any
-) {
+export function treeTransformer({tree, transform}: TreeTransformerOpts) {
   const nodeVisitor = (token: TokenResult<Token>) => {
     switch (token.type) {
       case Token.Filter:

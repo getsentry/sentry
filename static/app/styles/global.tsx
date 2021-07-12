@@ -148,9 +148,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .group-detail h3 em {
           color: ${theme.subText};
         }
-        .context-summary {
-          border-top: 1px solid ${theme.border};
-        }
         .event-details-container {
           background-color: ${theme.background};
           .secondary {
@@ -195,6 +192,17 @@ const styles = (theme: Theme, isDark: boolean) => css`
           &:before {
             border-bottom-color: ${theme.background};
           }
+        }
+        .context-summary .context-item.darwin .context-item-icon,
+        .context-summary .context-item.ios .context-item-icon,
+        .context-summary .context-item.macos .context-item-icon,
+        .context-summary .context-item.tvos .context-item-icon,
+        .context-summary .context-item.mac-os-x .context-item-icon,
+        .context-summary .context-item.mac .context-item-icon,
+        .context-summary .context-item.apple .context-item-icon,
+        .context-summary .context-item.watchos .context-item-icon {
+          filter: invert(100%);
+          opacity: 0.8;
         }
       `
     : ''}

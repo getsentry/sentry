@@ -304,7 +304,7 @@ class EventView {
     let equations = 0;
     const sortKeys = fields
       .map(field => {
-        if (isEquation(field.field)) {
+        if (field.field && isEquation(field.field)) {
           const sortKey = getSortKeyFromField(
             {field: `equation[${equations}]`},
             undefined
@@ -337,7 +337,9 @@ class EventView {
     this.interval = props.interval;
     this.createdBy = props.createdBy;
     this.expired = props.expired;
-    this.additionalConditions = props.additionalConditions ?? new QueryResults([]);
+    this.additionalConditions = props.additionalConditions
+      ? props.additionalConditions.copy()
+      : new QueryResults([]);
   }
 
   static fromLocation(location: Location): EventView {
@@ -704,7 +706,7 @@ class EventView {
       interval: this.interval,
       expired: this.expired,
       createdBy: this.createdBy,
-      additionalConditions: this.additionalConditions,
+      additionalConditions: this.additionalConditions.copy(),
     });
   }
 
@@ -1293,7 +1295,13 @@ class EventView {
     }
     const conditions = tokenizeSearch(query);
     Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
-      conditions.addTagValues(tag, tagValues);
+      const existingTagValues = conditions.getTagValues(tag);
+      const newTagValues = tagValues.filter(
+        tagValue => !existingTagValues.includes(tagValue)
+      );
+      if (newTagValues.length) {
+        conditions.addTagValues(tag, newTagValues);
+      }
     });
     return conditions.formatString();
   }

@@ -83,27 +83,27 @@ export type Alignments = 'left' | 'right';
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   {
-    label: 'equal =',
+    label: 'is equal to',
     value: 'equals',
   },
   {
-    label: 'not equal !=',
+    label: 'is not equal to',
     value: 'notEquals',
   },
   {
-    label: 'less <',
+    label: 'is less than',
     value: 'less',
   },
   {
-    label: 'greater >',
+    label: 'is greater than',
     value: 'greater',
   },
   {
-    label: 'less or equals <=',
+    label: 'is less than or equal to',
     value: 'lessOrEquals',
   },
   {
-    label: 'greater or equals >=',
+    label: 'is greater than or equal to',
     value: 'greaterOrEquals',
   },
 ];
@@ -304,9 +304,6 @@ export const AGGREGATIONS = {
   },
   apdex: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
-      }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
       };
@@ -325,9 +322,6 @@ export const AGGREGATIONS = {
   },
   user_misery: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
-      }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
       };
@@ -360,9 +354,6 @@ export const AGGREGATIONS = {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
-      }
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
       }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
@@ -628,6 +619,9 @@ export enum WebVital {
 export enum MobileVital {
   AppStartCold = 'measurements.app_start_cold',
   AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
 }
 
 const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
@@ -640,6 +634,9 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.RequestTime]: 'duration',
   [MobileVital.AppStartCold]: 'duration',
   [MobileVital.AppStartWarm]: 'duration',
+  [MobileVital.FramesTotal]: 'number',
+  [MobileVital.FramesSlow]: 'number',
+  [MobileVital.FramesFrozen]: 'number',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
@@ -689,9 +686,9 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*)?\)$/;
+const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /([^\(]+)\((.*)?\)/g;
+const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
@@ -740,6 +737,9 @@ export function parseArguments(functionText: string, columnText: string): string
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (i === j && columnText[j] === ' ') {
+      // argument has leading spaces, skip over them
+      i += 1;
     } else if (quoted && !escaped && columnText[j] === '\\') {
       // when we see a slash inside a quoted string,
       // the next character is an escape character

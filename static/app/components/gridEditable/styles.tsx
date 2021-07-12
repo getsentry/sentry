@@ -81,7 +81,7 @@ export const Grid = styled('table')`
   margin: 0;
 
   z-index: ${Z_INDEX_GRID};
-  overflow-x: scroll;
+  overflow-x: auto;
 `;
 
 export const GridRow = styled('tr')`
@@ -125,7 +125,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   user-select: none;
 
   a,
-  div {
+  div,
+  span {
     line-height: 1.1;
     color: inherit;
     white-space: nowrap;
