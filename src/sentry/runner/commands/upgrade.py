@@ -1,6 +1,7 @@
 import click
 from django.conf import settings
 from django.db import connections
+from django.db.utils import ProgrammingError
 
 from sentry.runner.decorators import configuration
 
@@ -9,26 +10,21 @@ def _check_history():
     connection = connections["default"]
     cursor = connection.cursor()
     try:
-        # If the database has 0 tables we are good to go.
-        cursor.execute(
-            """
-            SELECT COUNT(*) AS total FROM information_schema.tables
-            WHERE table_catalog = %s AND table_schema = 'public'
-            """,
-            [settings.DATABASES["default"]["NAME"]],
-        )
+        # If this query fails because there are no tables we're good to go.
+        cursor.execute("SELECT COUNT(*) FROM django_migrations")
         if cursor.fetchone()[0] == 0:
             return
-    except Exception:
+    except ProgrammingError as e:
+        # Having no migrations table is ok, as we're likely operating on a new install.
+        if 'relation "django_migrations" does not exist' in str(e):
+            return
+        click.echo(f"Checking migration state failed with: {e}")
         raise click.ClickException("Could not determine migration state. Aborting")
 
-    try:
-        # If we haven't run all the migration up to the latest squash abort.
-        # As we squash more history this should be updated.
-        cursor.execute("SELECT 1 FROM django_migrations WHERE name = '0200_release_indices'")
-        if not cursor.fetchone()[0]:
-            raise RuntimeError
-    except Exception:
+    # If we haven't run all the migration up to the latest squash abort.
+    # As we squash more history this should be updated.
+    cursor.execute("SELECT 1 FROM django_migrations WHERE name = '0200_release_indices'")
+    if not cursor.fetchone()[0]:
         raise click.ClickException(
             "It looks like you've skipped a hard stop in our upgrade process. "
             "Please follow the upgrade process here: https://develop.sentry.dev/self-hosted/#hard-stops"
