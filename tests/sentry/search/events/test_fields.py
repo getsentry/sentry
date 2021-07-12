@@ -1510,6 +1510,39 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_count_if_with_transaction_status(self):
+        result = resolve_field_list(
+            ["count_if(transaction.status, equals, ok)"], eventstore.Filter()
+        )
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "equals",
+                        ["transaction.status", 0],
+                    ],
+                ],
+                "count_if_transaction_status_equals_ok",
+            ],
+        ]
+
+        result = resolve_field_list(
+            ["count_if(transaction.status, notEquals, ok)"], eventstore.Filter()
+        )
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "notEquals",
+                        ["transaction.status", 0],
+                    ],
+                ],
+                "count_if_transaction_status_notEquals_ok",
+            ],
+        ]
+
     def test_invalid_count_if_fields(self):
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(
@@ -1531,3 +1564,11 @@ class ResolveFieldListTest(unittest.TestCase):
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(http.status_code, greater, test)"], eventstore.Filter())
         assert str(query_error.exception) == "greater is not compatible with http.status_code"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.status, equals, fakestatus)"], eventstore.Filter()
+            )
+        assert (
+            str(query_error.exception) == "'fakestatus' is not a valid value for transaction.status"
+        )

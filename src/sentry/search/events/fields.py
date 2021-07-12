@@ -368,7 +368,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
-def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
+def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     """Ensures that the type of the third parameter is compatible with the first
     and cast the value if needed
     eg. duration = numeric_value, and not duration = string_value
@@ -378,17 +378,27 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
     value = args["value"]
     if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
         try:
-            value = float(value.strip("'"))
+            normalized_value = float(value.strip("'"))
         except Exception:
             raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
-
+    elif column == "transaction.status":
+        code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
+        if code is None:
+            raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
+        try:
+            normalized_value = int(code)
+        except Exception:
+            raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
     # TODO: not supporting field aliases or arrays yet
     elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
     # At this point only string or tag columns are left
     elif condition not in ["equals", "notEquals"]:
         raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
-    return value
+    else:
+        normalized_value = value
+
+    return normalized_value
 
 
 # When updating this list, also check if the following need to be updated:
