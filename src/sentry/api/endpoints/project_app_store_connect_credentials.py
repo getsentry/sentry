@@ -66,7 +66,7 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
-from sentry.models import AuditLogEntryEvent, Project, AppConnectBuild
+from sentry.models import AppConnectBuild, AuditLogEntryEvent, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
