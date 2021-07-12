@@ -1,3 +1,4 @@
+import django
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
@@ -53,6 +54,14 @@ class BaseModel(models.Model):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+    def set_cached_field_value(self, field_name, value):
+        # Django 1.11 + at least 2.0 compatible method
+        # to explicitly set a field's cached value.
+        if django.VERSION[:2] < (2, 0):
+            setattr(self, f"_{field_name}_cache", value)
+            return
+        self._meta.get_field(field_name).set_cached_value(self, value)
 
 
 class Model(BaseModel):
