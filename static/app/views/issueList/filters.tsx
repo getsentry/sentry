@@ -85,14 +85,12 @@ class IssueListFilters extends React.Component<Props> {
           </ClassNames>
           <ButtonBar gap={1}>
             <Feature features={['issue-percent-display']} organization={organization}>
-              <GuideAnchor target="percentage_based_alerts" position="bottom">
-                <IssueListDisplayOptions
-                  onDisplayChange={onDisplayChange}
-                  display={display}
-                  hasSessions={hasSessions}
-                  hasMultipleProjectsSelected={selectedProjects.length !== 1}
-                />
-              </GuideAnchor>
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasSessions={hasSessions}
+                hasMultipleProjectsSelected={selectedProjects.length !== 1}
+              />
             </Feature>
             <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
           </ButtonBar>
