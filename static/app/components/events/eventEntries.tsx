@@ -55,6 +55,7 @@ const defaultProps = {
   isShare: false,
   showExampleCommit: false,
   showTagSummary: true,
+  isBorderless: false,
 };
 
 type ProGuardErrors = Array<Error>;
@@ -323,6 +324,7 @@ class EventEntries extends Component<Props, State> {
       showExampleCommit,
       showTagSummary,
       location,
+      isBorderless,
     } = this.props;
     const {proGuardErrors, isLoading} = this.state;
 
@@ -383,34 +385,37 @@ class EventEntries extends Component<Props, State> {
               projectId={project.slug}
               location={location}
               hasQueryFeature={hasQueryFeature}
+              isShare={isShare}
+              hasContext={hasContext}
+              isBorderless={isBorderless}
             />
           ) : (
-            <StyledEventDataSection title={t('Tags')} type="tags">
-              {hasContext && <EventContextSummary event={event} />}
-              <EventTags
-                event={event}
-                organization={organization as Organization}
-                projectId={project.slug}
-                location={location}
-                hasQueryFeature={hasQueryFeature}
-              />
-            </StyledEventDataSection>
+            (!!(event.tags ?? []).length || hasContext) && (
+              <StyledEventDataSection title={t('Tags')} type="tags">
+                {hasContext && <EventContextSummary event={event} />}
+                <EventTags
+                  event={event}
+                  organization={organization as Organization}
+                  projectId={project.slug}
+                  location={location}
+                  hasQueryFeature={hasQueryFeature}
+                />
+              </StyledEventDataSection>
+            )
           ))}
         {this.renderEntries(event)}
         {hasContext && <EventContexts group={group} event={event} />}
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
         {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
-        {!isShare &&
-          features.has('event-attachments') &&
-          !hasMobileScreenshotsFeature && (
-            <EventAttachments
-              event={event}
-              orgId={organization.slug}
-              projectId={project.slug}
-              location={location}
-            />
-          )}
+        {!isShare && features.has('event-attachments') && (
+          <EventAttachments
+            event={event}
+            orgId={organization.slug}
+            projectId={project.slug}
+            location={location}
+          />
+        )}
         {event?.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
         {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />

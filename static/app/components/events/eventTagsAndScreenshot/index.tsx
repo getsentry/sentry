@@ -8,24 +8,45 @@ import Tags from './tags';
 
 type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug'> & {
   projectId: string;
+  isShare: boolean;
+  hasContext: boolean;
+  isBorderless: boolean;
 };
 
 function EventTagsAndScreenshots({
   projectId: projectSlug,
-  organization,
+  isShare,
+  hasContext,
+  hasQueryFeature,
+  location,
+  isBorderless,
+  event,
   ...props
 }: Props) {
+  const {tags = []} = event;
+
+  if (!tags.length && !hasContext && isShare) {
+    return null;
+  }
+
   return (
-    <Wrapper>
-      <Screenshot {...props} projectSlug={projectSlug} orgSlug={organization.slug} />
-      <Tags {...props} projectSlug={projectSlug} organization={organization} />
+    <Wrapper isBorderless={isBorderless}>
+      {!isShare && <Screenshot {...props} event={event} projectSlug={projectSlug} />}
+      <Tags
+        {...props}
+        event={event}
+        projectSlug={projectSlug}
+        hasContext={hasContext}
+        hasQueryFeature={hasQueryFeature}
+        location={location}
+      />
     </Wrapper>
   );
 }
 
 export default EventTagsAndScreenshots;
 
-const Wrapper = styled(DataSection)`
+const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
   display: grid;
   grid-gap: ${space(3)};
 
@@ -38,7 +59,7 @@ const Wrapper = styled(DataSection)`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-gap: ${space(4)};
 
     > *:first-child {
@@ -46,4 +67,16 @@ const Wrapper = styled(DataSection)`
       padding-bottom: 0;
     }
   }
+
+  ${p =>
+    p.isBorderless &&
+    `
+    && {
+        padding: ${space(3)} 0 0 0;
+        :first-child {
+          padding-top: 0;
+          border-top: 0;
+        }
+      }
+    `}
 `;

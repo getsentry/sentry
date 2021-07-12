@@ -10,14 +10,12 @@ type Props = {
   title: string;
   description: string;
   children: React.ReactNode;
-  className?: string;
 };
 
-function DataSection({title, description, children, className}: Props) {
+function DataSection({title, description, children}: Props) {
   const type = kebabCase(title);
   return (
     <StyledEventDataSection
-      className={className}
       type={type}
       title={
         <TitleWrapper>
@@ -53,6 +51,7 @@ const Title = styled('h3')`
 const StyledEventDataSection = styled(EventDataSection)`
   ${SectionContents} {
     flex: 1;
+    overflow: hidden;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

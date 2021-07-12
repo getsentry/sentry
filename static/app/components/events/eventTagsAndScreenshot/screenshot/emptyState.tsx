@@ -6,13 +6,22 @@ import Button, {ButtonLabel} from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {PlatformType} from 'app/types';
 
-function ScreenshotEmpty() {
+import {getConfigureAttachmentsDocsLink} from './utils';
+
+type Props = {
+  platform?: PlatformType;
+};
+
+function EmptyState({platform}: Props) {
+  const configureAttachmentsDocsLink = getConfigureAttachmentsDocsLink(platform);
+
   return (
     <Wrapper>
       <img src={emptyStateImg} />
       <StyledButtonbar gap={1}>
-        <Button priority="link" size="xsmall">
+        <Button priority="link" size="xsmall" to={configureAttachmentsDocsLink} external>
           {t('Setup screenshot')}
         </Button>
         {'|'}
@@ -24,7 +33,7 @@ function ScreenshotEmpty() {
   );
 }
 
-export default ScreenshotEmpty;
+export default EmptyState;
 
 const Wrapper = styled('div')`
   width: 100%;
