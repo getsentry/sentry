@@ -81,6 +81,28 @@ class AlertRuleNotification(BaseNotification):
 
         return context
 
+    @property
+    def fine_tuning_key(self) -> str:
+        return "alerts/"
+
+    @property
+    def is_message_issue_unfurl(self) -> bool:
+        return True
+
+    def get_notification_title(self) -> Any:
+        from sentry.integrations.slack.message_builder.issues import build_rule_url
+
+        title_str = "Issue triggered"
+
+        if self.rules:
+            rule_url = build_rule_url(self.rules[0], self.group, self.project)
+            title_str += f" <{rule_url}|{self.rules[0].label}>"
+
+            if len(self.rules) > 1:
+                title_str += f" (+{len(self.rules) - 1} other)"
+
+        return title_str
+
     def send(self) -> None:
         from sentry.notifications.notify import notify
 

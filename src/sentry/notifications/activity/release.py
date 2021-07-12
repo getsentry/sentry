@@ -28,8 +28,8 @@ class ReleaseActivityNotification(ActivityNotification):
         self.email_list: Set[str] = set()
         self.user_ids: Set[int] = set()
         self.deploy = get_deploy(activity)
-
         self.release = get_release(activity, self.organization)
+
         if not self.release:
             self.repos: Iterable[Mapping[str, Any]] = set()
             self.projects: Set[Project] = set()
@@ -103,8 +103,25 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_title(self) -> str:
         return self.get_subject()
 
+    def get_notification_title(self) -> str:
+        return f"Version {self.version} deployed to {self.environment}"
+
     def get_filename(self) -> str:
         return "activity/release"
 
     def get_category(self) -> str:
         return "release_activity_email"
+
+    @property
+    def fine_tuning_key(self) -> str:
+        return "deploy/"
+
+    def get_message_description(self) -> str:
+        text = ""
+        if self.release:
+            for project in self.projects:
+                project_url = absolute_uri(
+                    f"/organizations/{self.organization.slug}/releases/{self.version}/?project={project.id}&unselectedSeries=Healthy/"
+                )
+                text += f"* <{project_url}|{project.slug}>\n"
+        return text.rstrip()

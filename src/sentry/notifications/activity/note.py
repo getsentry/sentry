@@ -19,3 +19,9 @@ class NoteActivityNotification(ActivityNotification):
     def get_title(self) -> str:
         author = self.activity.user.get_display_name()
         return f"New comment by {author}"
+
+    def get_notification_title(self) -> str:
+        return self.get_title()
+
+    def get_message_description(self) -> Any:
+        return self.get_context()["text_description"]
