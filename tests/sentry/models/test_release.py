@@ -54,6 +54,7 @@ def test_version_is_semver_valid(release_version):
         "helloworld",
         "alpha@helloworld",
         "alpha@helloworld-1.0",
+        "org.example.FooApp@9223372036854775808.1.2.3-r1+12345",
     ],
 )
 def test_version_is_semver_invalid(release_version):
