@@ -26,7 +26,6 @@ from sentry.db.models import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
-from sentry.search.events.filter import to_list
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -179,6 +178,7 @@ class ReleaseQuerySet(models.QuerySet):
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment
+        from sentry.search.events.filter import to_list
 
         value: str = search_filter.value.value
         operator: str = search_filter.operator
