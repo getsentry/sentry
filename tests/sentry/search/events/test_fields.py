@@ -9,6 +9,7 @@ from sentry.search.events.fields import (
     FunctionDetails,
     InvalidSearchQuery,
     get_json_meta_type,
+    parse_arguments,
     parse_function,
     resolve_field_list,
 )
@@ -168,6 +169,25 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected):
 )
 def test_parse_function(function, expected):
     assert parse_function(function) == expected
+
+
+@pytest.mark.parametrize(
+    "function,columns,result",
+    [
+        # pretty straight forward since its effectively a split on `,`
+        ("func", "a,b,c", ["a", "b", "c"]),
+        ("func", "a, b, c", ["a", "b", "c"]),
+        # to_other and count_if support quotes so have special handling
+        ("to_other", "a,b", ["a", "b"]),
+        ("to_other", "a, b", ["a", "b"]),
+        ("count_if", 'a, b, "c"', ["a", "b", '"c"']),
+        ("count_if", 'a, b, "\\""', ["a", "b", '"\\""']),
+        ("count_if", 'a, b, "\\test"', ["a", "b", '"\\test"']),
+        ("count_if", 'a, b,","', ["a", "b", '","']),
+    ],
+)
+def test_parse_arguments(function, columns, result):
+    assert parse_arguments(function, columns) == result
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -958,7 +978,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_count_if(self):
         fields = [
             "count_if(event.type,equals,transaction)",
-            "count_if(event.type,notEquals,transaction)",
+            'count_if(event.type,notEquals,"transaction")',
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -970,7 +990,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "countIf",
                 [["notEquals", ["event.type", "'transaction'"]]],
-                "count_if_event_type_notEquals_transaction",
+                "count_if_event_type_notEquals__transaction",
             ],
         ]
 
