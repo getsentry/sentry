@@ -215,8 +215,8 @@ def post_process_group(
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
-        event.project._organization_cache = Organization.objects.get_from_cache(
-            id=event.project.organization_id
+        event.project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=event.project.organization_id)
         )
 
         # Simplified post processing for transaction events.
@@ -251,7 +251,7 @@ def post_process_group(
         event.group_id = event.group.id
 
         event.group.project = event.project
-        event.group.project._organization_cache = event.project._organization_cache
+        event.group.project.set_cached_field_value("organization", event.project.organization)
 
         bind_organization_context(event.project.organization)
 

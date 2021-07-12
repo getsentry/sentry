@@ -325,10 +325,12 @@ class Quota(Service):
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
 
-        org = getattr(project, "_organization_cache", None)
-        if not org:
-            org = Organization.objects.get_from_cache(id=project.organization_id)
-            project._organization_cache = org
+        if not project.is_field_cached("organization"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+
+        org = project.organization
 
         max_quota_share = int(
             OrganizationOption.objects.get_value(org, "sentry:project-rate-limit", 100)

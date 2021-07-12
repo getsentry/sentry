@@ -322,7 +322,8 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
 
         for project in project_list:
-            project._organization_cache = organization
+            project.set_cached_field_value("organization", organization)
+
         return project_list
 
     def _team_list(self, organization, access):
@@ -336,7 +337,8 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)
 
         for team in team_list:
-            team._organization_cache = organization
+            team.set_cached_field_value("organization", organization)
+
         return team_list
 
     def serialize(self, obj, attrs, user, access):

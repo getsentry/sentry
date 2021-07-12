@@ -1,3 +1,4 @@
+import django
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
@@ -53,6 +54,28 @@ class BaseModel(models.Model):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+    def set_cached_field_value(self, field_name, value):
+        # Django 1.11 + at least 2.0 compatible method
+        # to explicitly set a field's cached value.
+        # This only works for relational fields, and is useful when
+        # you already have the value and can therefore use this
+        # to populate Django's cache before accessing the attribute
+        # and triggering a duplicate, unnecessary query.
+        if django.VERSION[:2] < (2, 0):
+            setattr(self, f"_{field_name}_cache", value)
+            return
+        self._meta.get_field(field_name).set_cached_value(self, value)
+
+    def is_field_cached(self, field_name):
+        # Django 1.11 + at least 2.0 compatible method
+        # to ask if a field has a cached value.
+        # See set_cached_field_value for more information.
+        if django.VERSION[:2] < (2, 0):
+            if not getattr(self, f"_{field_name}_cache", False):
+                return False
+            return True
+        return self._meta.get_field(field_name).get_cache_name() in self._state.fields_cache
 
 
 class Model(BaseModel):
