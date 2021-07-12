@@ -152,6 +152,10 @@ class ActivityNotification(BaseNotification, ABC):
     def get_reply_reference(self) -> Optional[Any]:
         return self.group
 
+    @property
+    def fine_tuning_key(self) -> str:
+        return "workflow/"
+
     def send(self) -> None:
         if not self.should_email():
             return

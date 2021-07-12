@@ -22,3 +22,6 @@ class NoteActivityNotification(ActivityNotification):
 
     def get_notification_title(self) -> str:
         return self.get_title()
+
+    def get_message_description(self) -> str:
+        return self.get_context()["text_description"]

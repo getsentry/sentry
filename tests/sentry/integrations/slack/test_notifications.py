@@ -241,7 +241,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         )
         with self.tasks():
             notification.send()
-
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
         assert attachment["title"] == self.group.title
@@ -433,9 +432,10 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         attachment, text = get_attachment()
 
         assert text == f"New comment by {self.name}"
+        assert attachment["title"] == f"{self.group.title}"
         assert (
-            attachment["title"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack|{self.group.title}>"
+            attachment["title_link"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack"
         )
         assert attachment["text"] == notification.activity.data["text"]
         assert (

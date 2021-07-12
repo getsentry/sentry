@@ -57,6 +57,10 @@ class AssignedActivityNotification(ActivityNotification):
     def get_category(self) -> str:
         return "assigned_activity_email"
 
+    @property
+    def is_message_issue_unfurl(self) -> bool:
+        return True
+
     def build_notification_title(self) -> Tuple[str, str]:
         activity = self.activity
         data = activity.data
@@ -74,15 +78,10 @@ class AssignedActivityNotification(ActivityNotification):
             try:
                 assignee = User.objects.get_from_cache(id=data["assignee"])
             except User.DoesNotExist:
-                pass
+                assignee = data.get("assigneeEmail", "an unknown user")
             else:
                 assignee = assignee.get_display_name()
-                return author, assignee
-
-            if data.get("assigneeEmail"):
-                assignee = data["assigneeEmail"]
-            else:
-                assignee = "an unknown user"
+            return author, assignee
 
         if data.get("assigneeType") == "team":
             try:

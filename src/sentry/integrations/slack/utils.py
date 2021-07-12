@@ -20,18 +20,16 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.base import BaseNotification
-from sentry.notifications.rules import AlertRuleNotification
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
 from sentry.utils import json
-from sentry.web.helpers import render_to_response
 from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
 
 from .client import SlackClient
 
@@ -374,16 +372,7 @@ def get_referrer_qstring(notification: BaseNotification) -> str:
 
 
 def get_settings_url(notification: BaseNotification) -> str:
-    if isinstance(notification, ReleaseActivityNotification):
-        fine_tuning = "deploy/"
-    elif isinstance(notification, ActivityNotification):
-        fine_tuning = "workflow/"
-    elif isinstance(notification, AlertRuleNotification):
-        fine_tuning = "alerts/"
-    else:
-        fine_tuning = ""
-
-    url_str = f"/settings/account/notifications/{fine_tuning}"
+    url_str = f"/settings/account/notifications/{notification.fine_tuning_key}"
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 

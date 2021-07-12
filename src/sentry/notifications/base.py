@@ -51,3 +51,14 @@ class BaseNotification:
 
     def get_notification_title(self) -> str:
         raise NotImplementedError
+
+    @property
+    def fine_tuning_key(self) -> str:
+        return ""
+
+    @property
+    def is_message_issue_unfurl(self) -> bool:
+        return False
+
+    def get_message_description(self) -> str:
+        return self.context["text_description"]

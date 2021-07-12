@@ -52,3 +52,6 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
         )
         return f"Processing issues on <{self.project.slug}|{project_url}"
+
+    def get_message_description(self) -> str:
+        return self.get_context()["text_description"]

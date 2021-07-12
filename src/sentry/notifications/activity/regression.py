@@ -40,3 +40,7 @@ class RegressionActivityNotification(ActivityNotification):
         if release:
             text += f" in release {release}"
         return text
+
+    @property
+    def is_message_issue_unfurl(self) -> bool:
+        return True

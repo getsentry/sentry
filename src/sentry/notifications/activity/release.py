@@ -111,3 +111,17 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "release_activity_email"
+
+    @property
+    def fine_tuning_key(self) -> str:
+        return "deploy/"
+
+    def get_message_description(self) -> str:
+        text = ""
+        if self.release:
+            for project in self.projects:
+                project_url = absolute_uri(
+                    f"/organizations/{self.organization.slug}/releases/{self.version}/?project={project.id}&unselectedSeries=Healthy/"
+                )
+                text += f"* <{project_url}|{project.slug}>\n"
+        return text.rstrip()
