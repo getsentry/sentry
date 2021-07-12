@@ -10,6 +10,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import FeatureBadge from 'app/components/featureBadge';
 import SelectControl from 'app/components/forms/selectControl';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -36,6 +37,7 @@ type Props = {
   organization: Organization;
   transactionName: string;
   onApply?: (threshold, metric) => void;
+  project?: string;
   projects: Project[];
   eventView: EventView;
   transactionThreshold: number | undefined;
@@ -56,11 +58,14 @@ class TransactionThresholdModal extends React.Component<Props, State> {
   };
 
   getProject() {
-    const {projects, eventView} = this.props;
-    const projectId = String(eventView.project[0]);
-    const project = projects.find(proj => proj.id === projectId);
+    const {projects, eventView, project} = this.props;
 
-    return project;
+    if (defined(project)) {
+      return projects.find(proj => proj.id === project);
+    } else {
+      const projectId = String(eventView.project[0]);
+      return projects.find(proj => proj.id === projectId);
+    }
   }
 
   handleApply = async (event: React.FormEvent) => {
@@ -98,7 +103,8 @@ class TransactionThresholdModal extends React.Component<Props, State> {
         this.setState({
           error: err,
         });
-        const errorMessage = err.responseJSON?.threshold ?? null;
+        const errorMessage =
+          err.responseJSON?.threshold ?? err.responseJSON?.non_field_errors ?? null;
         addErrorMessage(errorMessage);
       });
   };
@@ -214,6 +220,8 @@ class TransactionThresholdModal extends React.Component<Props, State> {
               this.handleFieldChange('threshold')(event.target.value);
             }}
             value={this.state.threshold}
+            step={100}
+            min={100}
           />
         </Field>
       </React.Fragment>
@@ -228,7 +236,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Header closeButton>
-          <h4>{t('Transaction Settings')}</h4>
+          <h4>
+            {t('Transaction Settings')} <FeatureBadge type="alpha" />
+          </h4>
         </Header>
         <Body>
           <Instruction>

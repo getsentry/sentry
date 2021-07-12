@@ -8,7 +8,19 @@ from sentry.utils.strings import strip, truncatechars
 
 
 def format_title_from_tree_label(tree_label):
-    return " | ".join(tree_label)
+    parts = []
+
+    for x in tree_label:
+        if isinstance(x, str):
+            # XXX(markus): Legacy codepath, should be unnecessary 90d after
+            # 2021-06-09. Same for frontend version.
+            part = x
+        else:
+            part = x.get("function") or x.get("package") or x.get("type")
+
+        parts.append(part or "<unknown>")
+
+    return " | ".join(parts)
 
 
 def compute_title_with_tree_label(title: Optional[str], metadata: dict):

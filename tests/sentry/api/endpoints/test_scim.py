@@ -25,6 +25,18 @@ CREATE_GROUP_POST_DATA = {
 }
 
 
+class SCIMTestCase(APITestCase):
+    def setUp(self):
+        super().setUp()
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        with self.feature({"organizations:sso-scim": True}):
+            auth_provider.enable_scim(self.user)
+            auth_provider.save()
+        self.login_as(user=self.user)
+
+
 class SCIMMemberTestsPermissions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -42,17 +54,7 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
 
-class SCIMMemberTests(APITestCase):
-    def setUp(self):
-        super().setUp()
-        auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
-        )
-        with self.feature({"organizations:sso-scim": True}):
-            auth_provider.enable_scim(self.user)
-            auth_provider.save()
-        self.login_as(user=self.user)
-
+class SCIMMemberTests(SCIMTestCase):
     def test_user_flow(self):
 
         # test OM to be created does not exist
@@ -81,7 +83,7 @@ class SCIMMemberTests(APITestCase):
         ).id
         correct_post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "id": org_member_id,
+            "id": str(org_member_id),
             "userName": "test.user@okta.local",
             # "name": {"givenName": "Test", "familyName": "User"},
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
@@ -119,7 +121,7 @@ class SCIMMemberTests(APITestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": org_member_id,
+                    "id": str(org_member_id),
                     "userName": "test.user@okta.local",
                     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -140,7 +142,7 @@ class SCIMMemberTests(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "id": org_member_id,
+            "id": str(org_member_id),
             "userName": "test.user@okta.local",
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
             "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -207,6 +209,34 @@ class SCIMMemberTests(APITestCase):
         assert response.status_code == 204, response.content
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+    def test_patch_inactive_alternate_schema(self):
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.patch(
+            url, {"Operations": [{"op": "replace", "path": "active", "value": False}]}
+        )
+        assert response.status_code == 204, response.content
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+    def test_patch_bad_schema(self):
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.patch(
+            url, {"Operations": [{"op": "replace", "path": "blahblahbbalh", "value": False}]}
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid Patch Operation.",
+        }
 
     def test_member_detail_patch_too_many_ops(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
@@ -345,10 +375,6 @@ class SCIMUtilsTests(TestCase):
         fil = parse_filter_conditions('displayName eq "MyTeamName"')
         assert fil == ["MyTeamName"]
 
-    def test_parse_filter_conditions_upper_to_lower(self):
-        fil = parse_filter_conditions('userName eq "USER@sentry.io"')
-        assert fil == ["user@sentry.io"]
-
     def test_parse_filter_conditions_invalids(self):
         with pytest.raises(ValueError):
             parse_filter_conditions("userName invalid USER@sentry.io")
@@ -360,17 +386,7 @@ class SCIMUtilsTests(TestCase):
         assert fil == ["jos'h@sentry.io"]
 
 
-class SCIMGroupTests(APITestCase):
-    def setUp(self):
-        super().setUp()
-        auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
-        )
-        with self.feature({"organizations:sso-scim": True}):
-            auth_provider.enable_scim(self.user)
-            auth_provider.save()
-        self.login_as(user=self.user)
-
+class SCIMGroupTests(SCIMTestCase):
     def test_group_flow(self):
         member1 = self.create_member(user=self.create_user(), organization=self.organization)
         member2 = self.create_member(user=self.create_user(), organization=self.organization)
