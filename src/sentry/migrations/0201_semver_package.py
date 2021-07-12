@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0200_release_indices"),
+        ("sentry", "0001_squashed_0200_release_indices"),
     ]
 
     operations = [

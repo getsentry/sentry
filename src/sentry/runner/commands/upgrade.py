@@ -1,11 +1,40 @@
 import click
 from django.conf import settings
+from django.db import connections
+from django.db.utils import ProgrammingError
 
 from sentry.runner.decorators import configuration
 
 
+def _check_history():
+    connection = connections["default"]
+    cursor = connection.cursor()
+    try:
+        # If this query fails because there are no tables we're good to go.
+        cursor.execute("SELECT COUNT(*) FROM django_migrations")
+        if cursor.fetchone()[0] == 0:
+            return
+    except ProgrammingError as e:
+        # Having no migrations table is ok, as we're likely operating on a new install.
+        if 'relation "django_migrations" does not exist' in str(e):
+            return
+        click.echo(f"Checking migration state failed with: {e}")
+        raise click.ClickException("Could not determine migration state. Aborting")
+
+    # If we haven't run all the migration up to the latest squash abort.
+    # As we squash more history this should be updated.
+    cursor.execute("SELECT 1 FROM django_migrations WHERE name = '0200_release_indices'")
+    if not cursor.fetchone()[0]:
+        raise click.ClickException(
+            "It looks like you've skipped a hard stop in our upgrade process. "
+            "Please follow the upgrade process here: https://develop.sentry.dev/self-hosted/#hard-stops"
+        )
+
+
 def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
     from django.core.management import call_command as dj_call_command
+
+    _check_history()
 
     for db_conn in settings.DATABASES.keys():
         # Always run migrations for the default connection.
