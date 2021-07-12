@@ -28,7 +28,7 @@
                 "name": "excludedAttributes",
                 "in": "query",
                 "required": false,
-                "description": "fields that should be left off of return values. Right now the only supported field for this query is `members`.",
+                "description": "Fields that should be left off of return values. Right now the only supported field for this query is `members`.",
                 "schema": {
                     "type": "string"
                 }
