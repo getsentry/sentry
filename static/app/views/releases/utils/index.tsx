@@ -48,6 +48,17 @@ export const displayCrashFreePercent = (
   return `${rounded}\u0025`;
 };
 
+export const displayCrashFreeDiff = (
+  diffPercent: number,
+  crashFreePercent?: number | null
+) =>
+  `${Math.abs(
+    round(
+      diffPercent,
+      crashFreePercent && crashFreePercent > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
+    )
+  ).toLocaleString()}\u0025`;
+
 export const getReleaseNewIssuesUrl = (
   orgSlug: string,
   projectId: string | number | null,

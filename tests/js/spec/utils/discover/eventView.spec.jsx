@@ -1,4 +1,4 @@
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
@@ -2223,6 +2223,23 @@ describe('EventView.getQuery()', function () {
     expect(eventView.getQuery('hello')).toEqual('hello');
     expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
       'event.type:error hello'
+    );
+  });
+});
+
+describe('EventView.getQueryWithAdditionalConditions', function () {
+  it('with overlapping conditions', function () {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      project: [],
+      query: 'event.type:transaction foo:bar',
+    });
+
+    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+
+    expect(eventView.getQueryWithAdditionalConditions()).toEqual(
+      'event.type:transaction foo:bar'
     );
   });
 });

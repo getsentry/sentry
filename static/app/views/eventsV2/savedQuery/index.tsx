@@ -13,7 +13,7 @@ import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Hovercard from 'app/components/hovercard';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SavedQuery} from 'app/types';
@@ -222,6 +222,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         buttonProps={{
           'aria-label': t('Save as'),
           showChevron: false,
+          icon: <IconStar />,
           disabled,
         }}
         label={`${t('Save as')}\u{2026}`}
@@ -242,7 +243,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             disabled={disabled || !this.state.queryName}
             style={{width: '100%'}}
           >
-            {t('Save')}
+            {t('Save for Org')}
           </Button>
         </ButtonSaveDropDown>
       </DropdownControl>
@@ -255,8 +256,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     // Existing query that hasn't been modified.
     if (!isNewQuery && !isEditingQuery) {
       return (
-        <Button disabled data-test-id="discover2-savedquery-button-saved">
-          {t('Saved query')}
+        <Button
+          icon={<IconStar color="yellow100" isSolid size="sm" />}
+          disabled
+          data-test-id="discover2-savedquery-button-saved"
+        >
+          {t('Saved for Org')}
         </Button>
       );
     }
