@@ -308,6 +308,38 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'project_transaction_threshold_override',
+      requiredTargets: ['project_transaction_threshold_override'],
+      steps: [
+        {
+          title: t('Response Time Thresholds'),
+          target: 'project_transaction_threshold_override',
+          description: t(
+            'Use this menu to adjust each transaction’s satisfactory response time threshold, which can vary across transactions. These thresholds are used to calculate Apdex and User Misery, metrics that indicate how satisfied and miserable users are, respectively.'
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'percentage_based_alerts',
+      requiredTargets: ['percentage_based_alerts'],
+      steps: [
+        {
+          title: t('Percentage Based Alerts'),
+          target: 'percentage_based_alerts',
+          description: tct(
+            'View the event count as a percentage of sessions and alert on this number to adapt to changes in traffic patterns. [link:View the docs] to learn more.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/#when-conditions-triggers" />
+              ),
+            }
+          ),
+          nextText: t('Got it'),
+        },
+      ],
+    },
   ];
 }
 

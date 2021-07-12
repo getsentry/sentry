@@ -1,4 +1,4 @@
-import {LightWeightOrganization} from 'app/types';
+import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
 
 export type Sort = {
@@ -46,6 +46,14 @@ export type AggregateParameter =
       defaultValue?: string;
       required: boolean;
       placeholder?: string;
+    }
+  | {
+      kind: 'dropdown';
+      options: SelectValue<string>[];
+      dataType: string;
+      defaultValue?: string;
+      required: boolean;
+      placeholder?: string;
     };
 
 export type AggregationRefinement = string | undefined;
@@ -65,7 +73,7 @@ export type QueryFieldValue =
     }
   | {
       kind: 'function';
-      function: [AggregationKey, string, AggregationRefinement];
+      function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
     };
 
 // Column is just an alias of a Query value
@@ -73,7 +81,34 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-// Refer to src/sentry/api/event_search.py
+const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
+  {
+    label: 'is equal to',
+    value: 'equals',
+  },
+  {
+    label: 'is not equal to',
+    value: 'notEquals',
+  },
+  {
+    label: 'is less than',
+    value: 'less',
+  },
+  {
+    label: 'is greater than',
+    value: 'greater',
+  },
+  {
+    label: 'is less than or equal to',
+    value: 'lessOrEquals',
+  },
+  {
+    label: 'is greater than or equal to',
+    value: 'greaterOrEquals',
+  },
+];
+
+// Refer to src/sentry/search/events/fields.py
 export const AGGREGATIONS = {
   count: {
     parameters: [],
@@ -269,9 +304,6 @@ export const AGGREGATIONS = {
   },
   apdex: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
-      }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
       };
@@ -290,9 +322,6 @@ export const AGGREGATIONS = {
   },
   user_misery: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
-      }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
       };
@@ -326,9 +355,6 @@ export const AGGREGATIONS = {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
       }
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {required: false, placeholder: 'Automatic', defaultValue: ''};
-      }
       return {
         defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
       };
@@ -343,6 +369,32 @@ export const AGGREGATIONS = {
       {
         kind: 'value',
         dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  count_if: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'dropdown',
+        options: CONDITIONS_ARGUMENTS,
+        dataType: 'string',
+        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'string',
         defaultValue: '300',
         required: true,
       },
@@ -564,7 +616,15 @@ export enum WebVital {
   RequestTime = 'measurements.ttfb.requesttime',
 }
 
-const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+export enum MobileVital {
+  AppStartCold = 'measurements.app_start_cold',
+  AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.FP]: 'duration',
   [WebVital.FCP]: 'duration',
   [WebVital.LCP]: 'duration',
@@ -572,6 +632,11 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.CLS]: 'number',
   [WebVital.TTFB]: 'duration',
   [WebVital.RequestTime]: 'duration',
+  [MobileVital.AppStartCold]: 'duration',
+  [MobileVital.AppStartWarm]: 'duration',
+  [MobileVital.FramesTotal]: 'number',
+  [MobileVital.FramesSlow]: 'number',
+  [MobileVital.FramesFrozen]: 'number',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
@@ -621,9 +686,9 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*)?\)$/;
+const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /([^\(]+)\((.*)?\)/g;
+const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
@@ -781,6 +846,7 @@ export function explodeFieldString(field: string): Column {
         results.name as AggregationKey,
         results.arguments[0] ?? '',
         results.arguments[1] as AggregationRefinement,
+        results.arguments[2] as AggregationRefinement,
       ],
     };
   }

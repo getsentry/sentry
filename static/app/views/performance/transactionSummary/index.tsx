@@ -43,6 +43,7 @@ import {
   SpanOperationBreakdownFilter,
 } from './filter';
 import {ZOOM_END, ZOOM_START} from './latencyChart';
+import {TransactionThresholdMetric} from './transactionThresholdModal';
 
 type Props = {
   api: Client;
@@ -57,6 +58,8 @@ type Props = {
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   eventView: EventView | undefined;
+  transactionThreshold: number | undefined;
+  transactionThresholdMetric: TransactionThresholdMetric | undefined;
 };
 
 // Used to cast the totals request to numbers
@@ -65,6 +68,8 @@ type TotalValues = Record<string, number>;
 
 class TransactionSummary extends Component<Props, State> {
   state: State = {
+    transactionThreshold: undefined,
+    transactionThresholdMetric: undefined,
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateSummaryEventView(
       this.props.location,
@@ -151,23 +156,23 @@ class TransactionSummary extends Component<Props, State> {
     const totalsColumns: QueryFieldValue[] = [
       {
         kind: 'function',
-        function: ['p95', '', undefined],
+        function: ['p95', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['count', '', undefined],
+        function: ['count', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['count_unique', 'user', undefined],
+        function: ['count_unique', 'user', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['failure_rate', '', undefined],
+        function: ['failure_rate', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['tpm', '', undefined],
+        function: ['tpm', '', undefined, undefined],
       },
     ];
 
@@ -177,29 +182,29 @@ class TransactionSummary extends Component<Props, State> {
       ? [
           {
             kind: 'function',
-            function: ['count_miserable', 'user', undefined],
+            function: ['count_miserable', 'user', undefined, undefined],
           },
           {
             kind: 'function',
-            function: ['user_misery', '', undefined],
+            function: ['user_misery', '', undefined, undefined],
           },
           {
             kind: 'function',
-            function: ['apdex', '', undefined],
+            function: ['apdex', '', undefined, undefined],
           },
         ]
       : [
           {
             kind: 'function',
-            function: ['count_miserable', 'user', threshold],
+            function: ['count_miserable', 'user', threshold, undefined],
           },
           {
             kind: 'function',
-            function: ['user_misery', threshold, undefined],
+            function: ['user_misery', threshold, undefined, undefined],
           },
           {
             kind: 'function',
-            function: ['apdex', threshold, undefined],
+            function: ['apdex', threshold, undefined, undefined],
           },
         ];
 
@@ -210,7 +215,7 @@ class TransactionSummary extends Component<Props, State> {
         vital =>
           ({
             kind: 'function',
-            function: ['percentile', vital, VITAL_PERCENTILE.toString()],
+            function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
           } as Column)
       ),
     ]);
@@ -218,7 +223,7 @@ class TransactionSummary extends Component<Props, State> {
 
   render() {
     const {organization, projects, location} = this.props;
-    const {eventView} = this.state;
+    const {eventView, transactionThreshold, transactionThresholdMetric} = this.state;
     const transactionName = getTransactionName(location);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
@@ -263,6 +268,8 @@ class TransactionSummary extends Component<Props, State> {
                 eventView={totalsView}
                 orgSlug={organization.slug}
                 location={location}
+                transactionThreshold={transactionThreshold}
+                transactionThresholdMetric={transactionThresholdMetric}
                 referrer="api.performance.transaction-summary"
               >
                 {({isLoading, error, tableData}) => {
@@ -279,6 +286,12 @@ class TransactionSummary extends Component<Props, State> {
                       onChangeFilter={this.onChangeFilter}
                       spanOperationBreakdownFilter={
                         this.state.spanOperationBreakdownFilter
+                      }
+                      onChangeThreshold={(threshold, metric) =>
+                        this.setState({
+                          transactionThreshold: threshold,
+                          transactionThresholdMetric: metric,
+                        })
                       }
                     />
                   );

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {IconCollapse, IconExpand, IconFire} from 'app/icons';
 import space from 'app/styles/space';
-import {Color} from 'app/utils/theme';
+import {Aliases, Color} from 'app/utils/theme';
 
 export const DividerContainer = styled('div')`
   position: relative;
@@ -49,7 +49,7 @@ export const DividerLineGhostContainer = styled('div')`
   height: 100%;
 `;
 
-const BadgeBorder = styled('div')<{borderColor: Color}>`
+const BadgeBorder = styled('div')<{borderColor: Color | keyof Aliases}>`
   position: absolute;
   margin: ${space(0.25)};
   left: -11px;
@@ -72,13 +72,26 @@ export function ErrorBadge() {
   );
 }
 
-export function EmbeddedTransactionBadge({expanded}: {expanded: boolean}) {
+export function EmbeddedTransactionBadge({
+  expanded,
+  onClick,
+}: {
+  expanded: boolean;
+  onClick: () => void;
+}) {
   return (
-    <BadgeBorder borderColor="gray500">
+    <BadgeBorder
+      borderColor="border"
+      onClick={event => {
+        event.stopPropagation();
+        event.preventDefault();
+        onClick();
+      }}
+    >
       {expanded ? (
-        <IconCollapse color="gray500" size="xs" />
+        <IconCollapse color="textColor" size="xs" />
       ) : (
-        <IconExpand color="gray500" size="xs" />
+        <IconExpand color="textColor" size="xs" />
       )}
     </BadgeBorder>
   );

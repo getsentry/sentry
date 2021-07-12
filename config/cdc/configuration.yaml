@@ -29,6 +29,7 @@ source:
                     include-xids: 'true'
                     include-timestamp: 'true'
                     include-message-header: 'true'
+                    add-tables: '*.sentry_groupasignee, *.sentry_groupedmessage'
 
 snapshot:
     source:

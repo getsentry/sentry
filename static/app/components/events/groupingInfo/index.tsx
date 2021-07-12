@@ -188,6 +188,7 @@ export const GroupingConfigItem = styled('span')<{
 
 const VariantDivider = styled('hr')`
   padding-top: ${space(1)};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 export default withOrganization(EventGroupingInfo);

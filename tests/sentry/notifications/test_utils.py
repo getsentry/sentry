@@ -176,9 +176,9 @@ class NotificationHelpersTest(TestCase):
         }
 
     def test_transform_to_notification_settings_by_user(self):
-        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+        notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,
-            users=[self.user],
+            recipients=[self.user],
             parent=self.group.project,
         )
         notification_settings_by_user = transform_to_notification_settings_by_user(

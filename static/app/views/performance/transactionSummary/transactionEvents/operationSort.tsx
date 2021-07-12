@@ -255,7 +255,6 @@ const MenuItemContent = styled('div')`
   justify-content: flex-start;
   align-items: center;
   width: 100%;
-  color: ${p => p.theme.gray500};
 `;
 
 const RadioLabel = styled('label')`

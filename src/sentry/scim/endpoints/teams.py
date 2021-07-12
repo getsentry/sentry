@@ -29,7 +29,7 @@ from .constants import (
     SCIM_400_UNSUPPORTED_ATTRIBUTE,
     SCIM_404_GROUP_RES,
     SCIM_404_USER_RES,
-    GroupPatchOps,
+    TeamPatchOps,
 )
 from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_conditions
 
@@ -41,7 +41,9 @@ CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
-    team_serializer = TeamSCIMSerializer
+
+    def team_serializer_for_post(self):
+        return TeamSCIMSerializer(expand=["members"])
 
     def should_add_creator_to_team(self, request):
         return False
@@ -53,9 +55,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
         if "members" in request.GET.get("excludedAttributes", []):
-            exclude_members = True
+            expand = None
         else:
-            exclude_members = False
+            expand = ["members"]
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
@@ -67,10 +69,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(
-                results, None, TeamSCIMSerializer(), exclude_members=exclude_members
-            )
-            return self.list_api_format(request, queryset, results)
+            results = serialize(results, None, TeamSCIMSerializer(expand=expand))
+            return self.list_api_format(request, queryset.count(), results)
 
         return self.paginate(
             request=request,
@@ -110,7 +110,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     def get(self, request, organization, team):
-        context = serialize(team, serializer=TeamSCIMSerializer())
+        context = serialize(team, serializer=TeamSCIMSerializer(expand=["members"]))
         return Response(context)
 
     def _add_members_operation(self, request, operation, team):
@@ -157,7 +157,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             omt.delete()
 
     def _rename_team_operation(self, request, new_name, team):
-        ##
         serializer = TeamSerializer(
             team,
             data={
@@ -188,13 +187,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             with transaction.atomic():
                 for operation in operations:
                     op = operation["op"].lower()
-                    if op == GroupPatchOps.ADD and operation["path"] == "members":
+                    if op == TeamPatchOps.ADD and operation["path"] == "members":
                         self._add_members_operation(request, operation, team)
-                    elif op == GroupPatchOps.REMOVE and "members" in operation["path"]:
+                    elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
                         # the members op contains a filter string like so:
                         # members[userName eq "baz@sentry.io"]
                         self._remove_members_operation(request, operation, team)
-                    elif op == GroupPatchOps.REPLACE:
+                    elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
 
                         if path == "members":
@@ -222,13 +221,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
-        context = serialize(team, serializer=TeamSCIMSerializer(), exclude_members=True)
+        context = serialize(team, serializer=TeamSCIMSerializer())
         return Response(context)
 
     def delete(self, request, organization, team):
         return super().delete(request, team)
 
     def put(self, request, organization, team):
-        # override parents put since we dont have puts
+        # override parent's put since we dont have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

@@ -48,6 +48,17 @@ export const displayCrashFreePercent = (
   return `${rounded}\u0025`;
 };
 
+export const displayCrashFreeDiff = (
+  diffPercent: number,
+  crashFreePercent?: number | null
+) =>
+  `${Math.abs(
+    round(
+      diffPercent,
+      crashFreePercent && crashFreePercent > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
+    )
+  ).toLocaleString()}\u0025`;
+
 export const getReleaseNewIssuesUrl = (
   orgSlug: string,
   projectId: string | number | null,
@@ -99,14 +110,11 @@ export function releaseDisplayLabel(displayOption: DisplayOption, count?: number
 export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
-  const {firstEvent, lastEvent, currentProjectMeta, dateCreated} = release || {};
-  const {sessionsLowerBound, sessionsUpperBound} = currentProjectMeta || {};
+  const {lastEvent, currentProjectMeta, dateCreated} = release || {};
+  const {sessionsUpperBound} = currentProjectMeta || {};
 
   return {
-    releaseStart:
-      (moment(sessionsLowerBound).isBefore(firstEvent)
-        ? sessionsLowerBound
-        : firstEvent) ?? dateCreated,
+    releaseStart: dateCreated,
     releaseEnd:
       (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
       moment().utc().format(),

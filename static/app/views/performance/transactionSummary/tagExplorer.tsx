@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject, Query} from 'history';
 
+import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
@@ -18,6 +19,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'app/utils/discover/eventView';
+import {fieldAlignment} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import SegmentExplorerQuery, {
   TableData,
@@ -34,6 +36,7 @@ import {
   PROJECT_PERFORMANCE_TYPE,
 } from '../utils';
 
+import {tagsRouteWithQuery} from './transactionTags/utils';
 import {SpanOperationBreakdownFilter} from './filter';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
@@ -226,6 +229,7 @@ class _TagExplorer extends React.Component<Props> {
     columnInfo: TagColumn
   ): React.ReactNode {
     const {location} = this.props;
+    const align = fieldAlignment(column.key, column.type, tableMeta);
     const field = {field: column.key, width: column.width};
 
     function generateSortLink(): LocationDescriptorObject | undefined {
@@ -249,7 +253,7 @@ class _TagExplorer extends React.Component<Props> {
 
     return (
       <SortLink
-        align="left"
+        align={align}
         title={columnInfo.name}
         direction={currentSortKind}
         canSort={canSort}
@@ -328,10 +332,25 @@ class _TagExplorer extends React.Component<Props> {
     dataRow: TableDataRow
   ): React.ReactNode => {
     const value = dataRow[column.key];
-    const {location} = parentProps;
+    const {location, organization, transactionName} = parentProps;
 
     if (column.key === 'key') {
-      return dataRow.tags_key;
+      const target = tagsRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        projectID: decodeScalar(location.query.project),
+        query: {...location.query, tagKey: dataRow.tags_key},
+      });
+      return (
+        <Feature features={['performance-tag-page']} organization={organization}>
+          {({hasFeature}) => {
+            if (hasFeature) {
+              return <Link to={target}>{dataRow.tags_key}</Link>;
+            }
+            return dataRow.tags_key;
+          }}
+        </Feature>
+      );
     }
 
     const allowActions = [Actions.ADD, Actions.EXCLUDE];
@@ -345,34 +364,59 @@ class _TagExplorer extends React.Component<Props> {
           handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
-          <Link
-            to=""
-            onClick={() =>
-              this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
-            }
-          >
-            <TagValue row={dataRow} />
-          </Link>
+          <Feature features={['performance-tag-page']} organization={organization}>
+            {({hasFeature}) => {
+              if (hasFeature) {
+                return <div className="truncate">{dataRow.tags_value}</div>;
+              }
+              return (
+                <Link
+                  to=""
+                  onClick={() =>
+                    this.handleTagValueClick(
+                      location,
+                      dataRow.tags_key,
+                      dataRow.tags_value
+                    )
+                  }
+                >
+                  <TagValue row={dataRow} />
+                </Link>
+              );
+            }}
+          </Feature>
         </CellAction>
       );
     }
 
     if (column.key === 'frequency') {
-      return formatPercentage(dataRow.frequency, 0);
+      return <AlignRight>{formatPercentage(dataRow.frequency, 0)}</AlignRight>;
     }
 
     if (column.key === 'comparison') {
       const localValue = dataRow.comparison;
       const pct = formatPercentage(localValue - 1, 0);
-      return localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct);
+      return (
+        <AlignRight>
+          {localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct)}
+        </AlignRight>
+      );
     }
 
     if (column.key === 'aggregate') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />
+        </AlignRight>
+      );
     }
 
     if (column.key === 'sumdelta') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />
+        </AlignRight>
+      );
     }
     return value;
   };
@@ -495,6 +539,10 @@ export const SectionHeading = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
   line-height: 1.3;
+`;
+
+const AlignRight = styled('div')`
+  text-align: right;
 `;
 
 const Header = styled('div')`

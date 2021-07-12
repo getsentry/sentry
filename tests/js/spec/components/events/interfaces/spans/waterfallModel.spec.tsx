@@ -111,6 +111,9 @@ describe('WaterfallModel', () => {
       treeDepth: 0,
       isLastSibling: true,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -130,6 +133,9 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'gap',
@@ -144,6 +150,9 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -163,6 +172,9 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -184,6 +196,9 @@ describe('WaterfallModel', () => {
       treeDepth: 2,
       isLastSibling: true,
       continuingTreeDepths: [1],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'gap',
@@ -198,6 +213,9 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -219,6 +237,9 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: true,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
   ];
 

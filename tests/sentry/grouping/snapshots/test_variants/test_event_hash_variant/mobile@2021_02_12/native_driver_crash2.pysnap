@@ -1,5 +1,5 @@
 ---
-created: '2021-05-17T08:41:27.912069Z'
+created: '2021-07-07T15:30:52.747963Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "c85e23e804b52ea4b9f290ba838e77a0"
-  tree_label: "<entire stacktrace>"
+  tree_label: "CUseCountedObject<T>::UCDestroy"
   component:
     app-depth-max*
       exception*
@@ -60,7 +60,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c85e23e804b52ea4b9f290ba838e77a0"
-  tree_label: "<entire stacktrace>"
+  tree_label: "CUseCountedObject<T>::UCDestroy"
   component:
     system*
       exception*

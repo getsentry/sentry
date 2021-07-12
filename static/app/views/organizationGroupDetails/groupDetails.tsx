@@ -426,7 +426,7 @@ class GroupDetails extends React.Component<Props, State> {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group, organization);
+    const {title} = getTitle(group, organization?.features);
     const message = getMessage(group);
 
     const {project} = group;

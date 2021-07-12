@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
-const {WebpackManifestPlugin} = require('webpack-manifest-plugin');
 const webpack = require('webpack');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -248,20 +247,20 @@ let appConfig = {
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              // This needs to be `false` because of platformicons package
-              esModule: false,
-              name: '[folder]/[name].[contenthash:6].[ext]',
-            },
-          },
-        ],
+        type: 'asset',
       },
     ],
     noParse: [
@@ -274,8 +273,6 @@ let appConfig = {
   },
   plugins: [
     new CleanWebpackPlugin(),
-
-    new WebpackManifestPlugin({}),
 
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
@@ -300,7 +297,9 @@ let appConfig = {
      * Extract CSS into separate files.
      */
     new MiniCssExtractPlugin({
-      filename: '[name].[contenthash:6].css',
+      // We want the sentry css file to be unversioned for frontend-only deploys
+      // We will cache using `Cache-Control` headers
+      filename: 'entrypoints/[name].css',
     }),
 
     /**
@@ -332,6 +331,7 @@ let appConfig = {
                 compilerOptions: {incremental: true},
               },
             },
+            logger: {devServer: false},
           }),
         ]
       : []),
@@ -391,9 +391,10 @@ let appConfig = {
   output: {
     path: distPath,
     publicPath: '',
-    filename: '[name].[contenthash].js',
-    chunkFilename: '[name].[contenthash].js',
-    sourceMapFilename: '[name].js.map',
+    filename: 'entrypoints/[name].js',
+    chunkFilename: 'chunks/[name].[contenthash].js',
+    sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
+    assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
     chunkIds: 'named',
@@ -482,9 +483,6 @@ if (
         '/api/0/relays/outcomes/': relayAddress,
         '!/_static/dist/sentry/**': backendAddress,
       },
-      writeToDisk: filePath => {
-        return /manifest\.json/.test(filePath);
-      },
     };
   }
 }
@@ -499,10 +497,19 @@ if (
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
+  // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
+  const certPath = path.join(__dirname, 'config');
+  const https = !fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? true
+    : {
+        key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
+        cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
+      };
+
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
-    https: true,
+    https,
     publicPath: '/_assets/',
     proxy: [
       {

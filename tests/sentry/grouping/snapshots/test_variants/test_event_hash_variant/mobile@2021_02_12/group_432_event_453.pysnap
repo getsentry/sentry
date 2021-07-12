@@ -1,20 +1,15 @@
 ---
-created: '2021-05-05T18:04:39.675908Z'
+created: '2021-07-08T17:38:04.805020Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "989aaa994181faf8b1df77c0d7e0d85f"
-  tree_label: "abort | stripped_application_code [throw]"
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "stripped_application_code"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
-            function*
-              "abort"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
           frame*
             function*
               "stripped_application_code"
@@ -23,9 +18,119 @@ app-depth-1:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
+app-depth-2:
+  hash: "3cd20dc9b7e7fea3e8575c7cae7b76c2"
+  tree_label: "abort | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "6816ce334af8d6b9fb66dc1265c9fccc"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "26eb79a70b1adbd61006c21288099591"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "1056f62d72ff8b4d0c3842d696dbb10a"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
 app-depth-max:
   hash: "8a62fbea1511325fb930366d547f0afa"
-  tree_label: "<entire stacktrace>"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
   component:
     app-depth-max*
       exception*
@@ -141,17 +246,17 @@ app-depth-max:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             filename (discarded native filename for grouping stability)
               "crashpad_client_win.cc"
             function*
@@ -163,7 +268,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "8a62fbea1511325fb930366d547f0afa"
-  tree_label: "<entire stacktrace>"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
   component:
     system*
       exception*
@@ -279,17 +384,17 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             filename (discarded native filename for grouping stability)
               "crashpad_client_win.cc"
             function*

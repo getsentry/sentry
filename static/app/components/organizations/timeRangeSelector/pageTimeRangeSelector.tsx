@@ -17,6 +17,7 @@ function PageTimeRangeSelector({className, ...props}: Props) {
   return (
     <DropdownDate className={className} isCalendarOpen={isCalendarOpen}>
       <TimeRangeSelector
+        key={`period:${props.relative}-start:${props.start}-end:${props.end}-utc:${props.utc}-defaultPeriod:${props.defaultPeriod}`}
         label={<DropdownLabel>{t('Date Range:')}</DropdownLabel>}
         onToggleSelector={isOpen => setIsCalendarOpen(isOpen)}
         relativeOptions={DEFAULT_RELATIVE_PERIODS}
@@ -42,7 +43,6 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
-  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
   /* TimeRangeRoot in TimeRangeSelector */
   > div {

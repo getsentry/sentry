@@ -327,7 +327,6 @@ INSTALLED_APPS = (
     "django.contrib.sites",
     "crispy_forms",
     "rest_framework",
-    "manifest_loader",
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
@@ -367,15 +366,12 @@ STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
-STATIC_MANIFEST_URL = "/_static/dist/"
+STATIC_UNVERSIONED_URL = "/_static/dist/"
 
-# The webpack output directory, used by django-manifest-loader
+# The webpack output directory
 STATICFILES_DIRS = [
     os.path.join(STATIC_ROOT, "sentry", "dist"),
 ]
-
-# django-manifest-loader settings
-MANIFEST_LOADER = {"cache": True}
 
 # various middleware will use this to identify resources which should not access
 # cookies
@@ -895,8 +891,8 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable experimental syntax highlightign on unified search
-    "organizations:search-syntax-highlight": False,
+    # Enable imporved syntax highlightign + autocomplete on unified search
+    "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable the new Metrics page
@@ -996,18 +992,14 @@ SENTRY_FEATURES = {
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
-    # Enable inbox support in the issue stream
-    "organizations:inbox": True,
     # Enable percent-based conditions on issue rules
     "organizations:issue-percent-filters": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": True,
-    # Enable the new alert history filters
-    "organizations:alert-history-filters": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
-    # Enable teams to have ownership of alert rules
-    "organizations:team-alerts-ownership": False,
+    # Enable the mobile screenshots feature
+    "organizations:mobile-screenshots": False,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
     # Enable the release adoption stage labels and sorting+filtering by them
@@ -1018,6 +1010,8 @@ SENTRY_FEATURES = {
     "organizations:release-comparison": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
+    # Enable the transaction level thresholds
+    "organizations:project-transaction-threshold-override": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -2244,6 +2238,3 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
-
-# adds mobile projects
-DEMO_MOBILE_PROJECTS = False

@@ -44,6 +44,8 @@ export enum PERFORMANCE_TERM {
   DURATION_DISTRIBUTION = 'durationDistribution',
   USER_MISERY_NEW = 'userMiseryNew',
   APDEX_NEW = 'apdexNew',
+  APP_START_COLD = 'appStartCold',
+  APP_START_WARM = 'appStartWarm',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -248,6 +250,89 @@ export function getBackendAxisOptions(
   ];
 }
 
+export function getMobileAxisOptions(
+  organization: LightWeightOrganization
+): AxisOption[] {
+  return [
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      value: `p50(measurements.app_start_cold)`,
+      label: t('Cold Start Duration p50'),
+      field: 'p50(measurements.app_start_cold)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      value: `p75(measurements.app_start_cold)`,
+      label: t('Cold Start Duration p75'),
+      field: 'p75(measurements.app_start_cold)',
+      isLeftDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      value: `p95(measurements.app_start_cold)`,
+      label: t('Cold Start Duration p95'),
+      field: 'p95(measurements.app_start_cold)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      value: `p99(measurements.app_start_cold)`,
+      label: t('Cold Start Duration p99'),
+      field: 'p99(measurements.app_start_cold)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      value: 'app_start_cold_distribution',
+      label: t('Cold Start Distribution'),
+      field: 'measurements.app_start_cold',
+      isDistribution: true,
+      isRightDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      value: `p50(measurements.app_start_warm)`,
+      label: t('Warm Start Duration p50'),
+      field: 'p50(measurements.app_start_warm)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      value: `p75(measurements.app_start_warm)`,
+      label: t('Warm Start Duration p75'),
+      field: 'p75(measurements.app_start_warm)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      value: `p95(measurements.app_start_warm)`,
+      label: t('Warm Start Duration p95'),
+      field: 'p95(measurements.app_start_warm)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      value: `p99(measurements.app_start_warm)`,
+      label: t('Warm Start Duration p99'),
+      field: 'p99(measurements.app_start_warm)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      value: 'app_start_warm_distribution',
+      label: t('Warm Start Distribution'),
+      field: 'measurements.app_start_warm',
+      isDistribution: true,
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
+      value: 'tpm()',
+      label: t('Transactions Per Minute'),
+      field: 'tpm()',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      value: 'failure_rate()',
+      label: t('Failure Rate'),
+      field: 'failure_rate()',
+    },
+  ];
+}
+
 type TermFormatter = (organization: LightWeightOrganization) => string;
 
 const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
@@ -291,6 +376,10 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to project performance settings.'
     ),
+  appStartCold: () =>
+    t('Cold start is a measure of the application start up time from scratch.'),
+  appStartWarm: () =>
+    t('Warm start is a measure of the application start up time while still in memory.'),
 };
 
 export function getTermHelp(
@@ -388,6 +477,77 @@ function generateBackendPerformanceEventView(
     'tpm()',
     'p50()',
     'p95()',
+    'failure_rate()',
+  ];
+
+  const featureFields = organization.features.includes('project-transaction-threshold')
+    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
+    : [
+        `apdex(${organization.apdexThreshold})`,
+        'count_unique(user)',
+        `count_miserable(user,${organization.apdexThreshold})`,
+        `user_misery(${organization.apdexThreshold})`,
+      ];
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction',
+    projects: [],
+    fields: [...fields, ...featureFields],
+    version: 2,
+  };
+
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = DEFAULT_STATS_PERIOD;
+  }
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
+
+  const searchQuery = decodeScalar(query.query, '');
+  const conditions = tokenizeSearch(searchQuery);
+
+  // This is not an override condition since we want the duration to appear in the search bar as a default.
+  if (!conditions.hasTag('transaction.duration')) {
+    conditions.setTagValues('transaction.duration', ['<15m']);
+  }
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.query.length > 0) {
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
+    conditions.query = [];
+  }
+  savedQuery.query = conditions.formatString();
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  return eventView;
+}
+
+function generateMobilePerformanceEventView(
+  organization: LightWeightOrganization,
+  location: Location
+): EventView {
+  const {query} = location;
+
+  const fields = [
+    organization.features.includes('team-key-transactions')
+      ? 'team_key_transaction'
+      : 'key_transaction',
+    'transaction',
+    'project',
+    'transaction.op',
+    'tpm()',
+    'p50(measurements.app_start_cold)',
+    'p95(measurements.app_start_cold)',
+    'p50(measurements.app_start_warm)',
+    'p95(measurements.app_start_warm)',
     'failure_rate()',
   ];
 
@@ -600,6 +760,8 @@ export function generatePerformanceEventView(
       return generateFrontendOtherPerformanceEventView(organization, location);
     case LandingDisplayField.BACKEND:
       return generateBackendPerformanceEventView(organization, location);
+    case LandingDisplayField.MOBILE:
+      return generateMobilePerformanceEventView(organization, location);
     default:
       return eventView;
   }

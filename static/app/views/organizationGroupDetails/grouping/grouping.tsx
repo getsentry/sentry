@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -11,8 +12,7 @@ import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import {BaseGroup, Group, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -26,14 +26,15 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 type Props = {
   organization: Organization;
   groupId: Group['id'];
-  location: Location;
+  location: Location<{level?: number; cursor?: string}>;
   api: Client;
+  router: InjectedRouter;
 };
 
-type GroupingLevelDetails = {
+type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
   eventCount: number;
   hash: string;
-  latestEvent: Event;
+  latestEvent: BaseGroup['latestEvent'];
 };
 
 type GroupingLevel = {
@@ -41,11 +42,12 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization}: Props) {
+function Grouping({api, groupId, location, organization, router}: Props) {
+  const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
     useState(false);
-  const [error, setError] = useState<undefined | Error>(undefined);
+  const [error, setError] = useState<undefined | Error | string>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(
     undefined
@@ -65,8 +67,12 @@ function Grouping({api, groupId, location, organization}: Props) {
   }, [groupingLevels]);
 
   useEffect(() => {
+    updateUrlWithNewLevel();
+  }, [activeGroupingLevel]);
+
+  useEffect(() => {
     fetchGroupingLevelDetails();
-  }, [activeGroupingLevel, location.query]);
+  }, [activeGroupingLevel, cursor]);
 
   const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
@@ -75,7 +81,6 @@ function Grouping({api, groupId, location, organization}: Props) {
   async function fetchGroupingLevels() {
     setIsLoading(true);
     setError(undefined);
-
     try {
       const response = await api.requestPromise(`/issues/${groupId}/grouping/levels/`);
       setIsLoading(false);
@@ -117,8 +122,33 @@ function Grouping({api, groupId, location, organization}: Props) {
     }
   }
 
+  function updateUrlWithNewLevel() {
+    if (!defined(activeGroupingLevel) || level === activeGroupingLevel) {
+      return;
+    }
+
+    router.replace({
+      pathname: location.pathname,
+      query: {...location.query, cursor: undefined, level: activeGroupingLevel},
+    });
+  }
+
   function setSecondGrouping() {
     if (!groupingLevels.length) {
+      return;
+    }
+
+    if (defined(level)) {
+      if (!defined(groupingLevels[level])) {
+        setError(t('The level you were looking for was not found.'));
+        return;
+      }
+
+      if (level === activeGroupingLevel) {
+        return;
+      }
+
+      setActiveGroupingLevel(level);
       return;
     }
 
@@ -148,12 +178,12 @@ function Grouping({api, groupId, location, organization}: Props) {
 
   return (
     <Wrapper>
-      <Description>
+      <Header>
         {t(
           'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
         )}
-      </Description>
-      <Content>
+      </Header>
+      <Body>
         <SliderWrapper>
           {t('Fewer issues')}
           <StyledRangeSlider
@@ -165,22 +195,29 @@ function Grouping({api, groupId, location, organization}: Props) {
           />
           {t('More issues')}
         </SliderWrapper>
-        <div>
-          <StyledPanelTable
-            isReloading={isGroupingLevelDetailsLoading}
-            headers={['', t('Events')]}
-          >
-            {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
-              <NewIssue
-                key={hash}
-                sampleEvent={latestEvent}
-                eventCount={eventCount}
-                organization={organization}
-              />
-            ))}
+        <Content isReloading={isGroupingLevelDetailsLoading}>
+          <StyledPanelTable headers={['', t('Events')]}>
+            {activeGroupingLevelDetails.map(
+              ({hash, title, metadata, latestEvent, eventCount}) => {
+                // XXX(markus): Ugly hack to make NewIssue show the right things.
+                return (
+                  <NewIssue
+                    key={hash}
+                    sampleEvent={{
+                      ...latestEvent,
+                      metadata: metadata || latestEvent.metadata,
+                      title: title || latestEvent.title,
+                    }}
+                    eventCount={eventCount}
+                    organization={organization}
+                  />
+                );
+              }
+            )}
           </StyledPanelTable>
           <StyledPagination
             pageLinks={pagination}
+            disabled={isGroupingLevelDetailsLoading}
             caption={
               <PaginationCaption
                 caption={tct('Showing [current] of [total] [result]', {
@@ -195,8 +232,8 @@ function Grouping({api, groupId, location, organization}: Props) {
               />
             }
           />
-        </div>
-      </Content>
+        </Content>
+      </Body>
     </Wrapper>
   );
 }
@@ -211,26 +248,19 @@ const Wrapper = styled('div')`
   padding: ${space(3)} ${space(4)};
 `;
 
-const Description = styled('p')`
+const Header = styled('p')`
   && {
     margin-bottom: ${space(2)};
   }
 `;
 
-const Content = styled('div')`
+const Body = styled('div')`
   display: grid;
   grid-gap: ${space(3)};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
+const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr minmax(60px, auto);
-  ${p =>
-    p.isReloading &&
-    `
-      opacity: 0.5;
-      pointer-events: none;
-    `}
-
   > * {
     padding: ${space(1.5)} ${space(2)};
     :nth-child(-n + 2) {
@@ -250,6 +280,17 @@ const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
+`;
+
+const Content = styled('div')<{isReloading: boolean}>`
+  ${p =>
+    p.isReloading &&
+    `
+      ${StyledPanelTable}, ${StyledPagination} {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    `}
 `;
 
 const SliderWrapper = styled('div')`

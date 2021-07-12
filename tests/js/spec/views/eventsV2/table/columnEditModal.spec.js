@@ -235,7 +235,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined]},
+        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
       ]);
     });
 
@@ -249,39 +249,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Trigger a blur and make sure the column is not wrong.
       field.simulate('blur');
-
-      const newData = initializeOrg({
-        organization: {
-          features: ['performance-view', 'project-transaction-threshold'],
-          apdexThreshold: 400,
-        },
-      });
-
-      const newApply = jest.fn();
-      const newWrapper = mountModal(
-        {
-          columns,
-          onApply: newApply,
-          tagKeys,
-        },
-        newData
-      );
-
-      selectByLabel(newWrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
-
-      // Parameter select should display and use the default value.
-      const newField = newWrapper.find('QueryField input[name="refinement"]');
-      expect(newField.props().value).toBe('');
-      expect(newField.prop('placeholder')).toBe('Automatic');
-
-      // Trigger a blur and make sure the column is not wrong.
-      newField.simulate('blur');
-
-      // Apply the changes so we can see the new columns.
-      newWrapper.find('Button[priority="primary"]').simulate('click');
-      expect(newApply).toHaveBeenCalledWith(
-        expect.objectContaining([{kind: 'function', function: ['apdex', '', undefined]}])
-      );
     });
 
     it('clears unused parameters', function () {
@@ -292,7 +259,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined]},
+        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
       ]);
     });
 
@@ -304,7 +271,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['failure_rate', '', undefined]},
+        {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
       ]);
     });
   });

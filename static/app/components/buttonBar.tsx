@@ -125,4 +125,5 @@ const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
   ${p => p.merged && MergedStyles}
 `;
 
+export {ButtonGrid, MergedStyles};
 export default ButtonBar;

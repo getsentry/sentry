@@ -20,9 +20,9 @@ type BadgeProps = {
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
 
 const defaultTitles = {
-  alpha: t('This feature is in alpha and may be unstable'),
-  beta: t('This feature is in beta and may change in the future'),
-  new: t('This is a new feature'),
+  alpha: t('This feature is internal and available for QA purposes'),
+  beta: t('This feature is available for early adopters and may change'),
+  new: t('This feature is new! Try it out and let us know what you think'),
 };
 
 const labels = {
@@ -31,7 +31,7 @@ const labels = {
   new: t('new'),
 };
 
-const FeaturedBadge = ({
+const FeatureBadge = ({
   type,
   variant = 'badge',
   title,
@@ -55,7 +55,7 @@ const StyledTag = styled(Tag)`
   padding: 3px ${space(0.75)};
 `;
 
-const StyledFeatureBadge = styled(withTheme(FeaturedBadge))`
+const StyledFeatureBadge = styled(withTheme(FeatureBadge))`
   display: inline-flex;
   align-items: center;
   margin-left: ${space(0.75)};

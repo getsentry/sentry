@@ -44,6 +44,7 @@ async function getTranslations(language: string) {
  *
  * - URL params (`?lang=en`)
  * - User configuration options
+ * - User's system language code (from request)
  * - "en" as default
  */
 export async function initializeLocale(config: Config) {
@@ -61,7 +62,8 @@ export async function initializeLocale(config: Config) {
   const queryStringLang = Array.isArray(queryString.lang)
     ? queryString.lang[0]
     : queryString.lang;
-  const languageCode = queryStringLang || config.languageCode || 'en';
+  const languageCode =
+    queryStringLang || config.user?.options?.language || config.languageCode || 'en';
 
   try {
     const translations = await getTranslations(languageCode);

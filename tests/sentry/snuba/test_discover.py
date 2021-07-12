@@ -5,8 +5,11 @@ import pytest
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import ProjectTransactionThreshold
-from sentry.models.transaction_threshold import TransactionMetric
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.models.transaction_threshold import (
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+)
+from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -195,6 +198,32 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 # is required to insert the `issue` column.
                 assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
 
+    def test_issue_filters(self):
+        tests = [
+            "has:issue",
+            "has:issue.id",
+            f"issue:[{self.event.group.qualified_short_id}]",
+            f"issue.id:[{self.event.group_id}]",
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for query in tests:
+                result = query_fn(
+                    selected_columns=["issue", "issue.id"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == 1, query_fn
+                # The query will translate `issue` into `issue.id`. Additional post processing
+                # is required to insert the `issue` column.
+                assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
+
     def test_reverse_sorting_issue(self):
         other_event = self.store_event(
             data={
@@ -234,6 +263,231 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     if direction == "-":
                         expected.reverse()
                     assert [item["issue.id"] for item in data] == expected, query_fn
+
+    def test_timestamp_rounding_fields(self):
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = self.event_time.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
+
+    def test_timestamp_rounding_filters(self):
+        one_day_ago = before_now(days=1)
+        two_day_ago = before_now(days=2)
+        three_day_ago = before_now(days=3)
+
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(two_day_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": three_day_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
+
+    def test_user_display(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        # `user.display` should give `ip`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"ip_address": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert {item["user.display"] for item in data} == {
+                "bruce@example.com",
+                "brucew",
+                "127.0.0.1",
+            }
+
+    def test_user_display_filter(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="has:user.display user.display:bruce@example.com",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert [item["user.display"] for item in data] == ["bruce@example.com"]
+
+    def test_transaction_status(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/success"
+        data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/aborted"
+        data["contexts"]["trace"]["status"] = "aborted"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/already_exists"
+        data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(data, project_id=self.project.id)
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["transaction.status"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3
+            assert {
+                data[0]["transaction.status"],
+                data[1]["transaction.status"],
+                data[2]["transaction.status"],
+            } == {0, 10, 6}
+
+    def test_transaction_status_filter(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/success"
+        data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/already_exists"
+        data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(data, project_id=self.project.id)
+
+        def run_query(query, expected_statuses, message):
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction.status"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == len(
+                    expected_statuses
+                ), f"failed with '{query_fn.__name__}' due to {message}"
+                assert sorted(item["transaction.status"] for item in data) == sorted(
+                    expected_statuses
+                ), f"failed with '{query_fn.__name__}' due to {message} condition"
+
+        run_query("has:transaction.status transaction.status:ok", [0, 0], "status 'ok'")
+        run_query(
+            "has:transaction.status transaction.status:[ok,already_exists]",
+            [0, 0, 6],
+            "status 'ok' or 'already_exists'",
+        )
+        run_query("has:transaction.status !transaction.status:ok", [6], "status not 'ok'")
+        run_query(
+            "has:transaction.status !transaction.status:already_exists",
+            [0, 0],
+            "status not 'already_exists'",
+        )
+        run_query(
+            "has:transaction.status !transaction.status:[ok,already_exists]",
+            [],
+            "status not 'ok' and not 'already_exists'",
+        )
+        run_query("!has:transaction.status", [], "status nonexistant")
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
@@ -415,6 +669,41 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+
+    def test_semver_package_condition(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.4")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_PACKAGE_ALIAS}:test",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_PACKAGE_ALIAS}:test2",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_2_e_1,
+        }
 
     def test_latest_release_condition(self):
         result = discover.query(
@@ -1372,7 +1661,7 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_project_threshold_config_alias(self, mock_query):
+    def test_threshold_config_selected_with_project_threshold_configured(self, mock_query):
         mock_query.return_value = {
             "meta": [
                 {"name": "transaction"},
@@ -1432,6 +1721,280 @@ class QueryTransformTest(TestCase):
                                 [
                                     "indexOf",
                                     [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_threshold_config_selected_with_txn_threshold_configured(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction/threshold",
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                                0,
+                            ],
+                        ],
+                        ["tuple", ["'duration'", 300]],
+                        [
+                            "arrayElement",
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_threshold_config_selected_with_project_and_txn_thresholds_configured(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction/threshold",
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        ProjectTransactionThreshold.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
+                                ],
+                                0,
+                            ],
+                        ],
+                        [
+                            "if",
+                            [
+                                [
+                                    "equals",
+                                    [
+                                        [
+                                            "indexOf",
+                                            [
+                                                ["array", [["toUInt64", [self.project.id]]]],
+                                                "project_id",
+                                            ],
+                                        ],
+                                        0,
+                                    ],
+                                ],
+                                ["tuple", ["'duration'", 300]],
+                                [
+                                    "arrayElement",
+                                    [
+                                        ["array", [["tuple", ["'duration'", 200]]]],
+                                        [
+                                            "indexOf",
+                                            [
+                                                ["array", [["toUInt64", [self.project.id]]]],
+                                                "project_id",
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        [
+                            "arrayElement",
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [
+                                        [
+                                            "array",
+                                            [
+                                                [
+                                                    "tuple",
+                                                    [
+                                                        ["toUInt64", [self.project.id]],
+                                                        "'transaction/threshold'",
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                        ["tuple", ["project_id", "transaction"]],
+                                    ],
                                 ],
                             ],
                         ],
@@ -3757,6 +4320,20 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                     "transaction.duration",
                 ],
                 orderby=["equation[1]"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_equation_without_field_or_function(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.duration",
+                ],
+                equations=[
+                    "5 + 5",
+                ],
                 query=self.query,
                 params=self.params,
             )

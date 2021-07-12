@@ -293,13 +293,13 @@ class DebugFilesUploadTest(APITestCase):
 
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application2.js", type="release.file"),
             name="http://example.com/application2.js",
         )
@@ -329,7 +329,7 @@ class DebugFilesUploadTest(APITestCase):
 
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )
@@ -343,7 +343,7 @@ class DebugFilesUploadTest(APITestCase):
 
         response = self.client.delete(url + "?name=1")
         assert response.status_code == 204
-        assert not ReleaseFile.objects.filter(release=release).exists()
+        assert not ReleaseFile.objects.filter(release_id=release.id).exists()
 
     def test_source_maps_release_archive(self):
         project = self.create_project(name="foo")

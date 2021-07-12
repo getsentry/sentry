@@ -26,6 +26,7 @@ type Props = AsyncComponent['props'] & {
   selection: GlobalSelection;
   isProjectStabilized: boolean;
   hasSessions: boolean | null;
+  query?: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -45,7 +46,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection, isProjectStabilized, hasSessions} = this.props;
+    const {organization, selection, isProjectStabilized, hasSessions, query} = this.props;
 
     if (!isProjectStabilized || !hasSessions) {
       return [];
@@ -59,6 +60,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       field: 'sum(session)',
       groupBy: 'session.status',
       interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
+      query,
     };
 
     // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request
@@ -138,12 +140,13 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized, hasSessions} = this.props;
+    const {selection, isProjectStabilized, hasSessions, query} = this.props;
 
     if (
       prevProps.selection !== selection ||
       prevProps.hasSessions !== hasSessions ||
-      prevProps.isProjectStabilized !== isProjectStabilized
+      prevProps.isProjectStabilized !== isProjectStabilized ||
+      prevProps.query !== query
     ) {
       this.remountComponent();
     }

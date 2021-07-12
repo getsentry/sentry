@@ -1,117 +1,169 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
-import {ParseResult, parseSearch, Token, TokenResult} from './parser';
+import {ParseResult, Token, TokenResult} from './parser';
+import {isWithinToken} from './utils';
 
-class ResultRenderer {
-  renderFilter = (filter: TokenResult<Token.Filter>) => (
-    <FilterToken>
-      {filter.negated && <Negation>!</Negation>}
-      {this.renderKey(filter.key, filter.negated)}
-      {filter.operator && <Operator>{filter.operator}</Operator>}
-      <Value>{this.renderToken(filter.value)}</Value>
-    </FilterToken>
-  );
+type Props = {
+  /**
+   * The result from parsing the search query string
+   */
+  parsedQuery: ParseResult;
+  /**
+   * The current location of the cursror within the query. This is used to
+   * highlight active tokens and trigger error tooltips.
+   */
+  cursorPosition?: number;
+};
 
-  renderKey = (
-    key: TokenResult<Token.KeySimple | Token.KeyAggregate | Token.KeyExplicitTag>,
-    negated?: boolean
-  ) => {
-    let value: React.ReactNode = key.text;
+/**
+ * Renders the parsed query with syntax highlighting.
+ */
+export default function HighlightQuery({parsedQuery, cursorPosition}: Props) {
+  const result = renderResult(parsedQuery, cursorPosition ?? -1);
 
-    if (key.type === Token.KeyExplicitTag) {
-      value = (
-        <ExplicitKey prefix={key.prefix}>
-          {key.key.quoted ? `"${key.key.value}"` : key.key.value}
-        </ExplicitKey>
-      );
-    }
-
-    return <Key negated={!!negated}>{value}:</Key>;
-  };
-
-  renderList = (token: TokenResult<Token.ValueNumberList | Token.ValueTextList>) => (
-    <InList>
-      {token.items.map(({value, separator}) => [
-        <ListComma key="comma">{separator}</ListComma>,
-        this.renderToken(value),
-      ])}
-    </InList>
-  );
-
-  renderNumber = (token: TokenResult<Token.ValueNumber>) => (
-    <Fragment>
-      {token.value}
-      <Unit>{token.unit}</Unit>
-    </Fragment>
-  );
-
-  renderToken = (token: TokenResult<Token>) => {
-    switch (token.type) {
-      case Token.Spaces:
-        return token.value;
-
-      case Token.Filter:
-        return this.renderFilter(token);
-
-      case Token.LogicGroup:
-        return <LogicGroup>{this.renderResult(token.inner)}</LogicGroup>;
-
-      case Token.LogicBoolean:
-        return <LogicBoolean>{token.value}</LogicBoolean>;
-
-      case Token.ValueBoolean:
-        return <Boolean>{token.text}</Boolean>;
-
-      case Token.ValueIso8601Date:
-        return <DateTime>{token.text}</DateTime>;
-
-      case Token.ValueTextList:
-      case Token.ValueNumberList:
-        return this.renderList(token);
-
-      case Token.ValueNumber:
-        return this.renderNumber(token);
-
-      default:
-        return token.text;
-    }
-  };
-
-  renderResult = (result: ParseResult) =>
-    result
-      .map(this.renderToken)
-      .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
+  return <Fragment>{result}</Fragment>;
 }
 
-const renderer = new ResultRenderer();
+function renderResult(result: ParseResult, cursor: number) {
+  return result
+    .map(t => renderToken(t, cursor))
+    .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
+}
 
-export default function renderQuery(query: string) {
-  let result: React.ReactNode = query;
+function renderToken(token: TokenResult<Token>, cursor: number) {
+  switch (token.type) {
+    case Token.Spaces:
+      return token.value;
 
-  try {
-    const parseResult = parseSearch(query);
-    result = renderer.renderResult(parseResult);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.log(err);
+    case Token.Filter:
+      return <FilterToken filter={token} cursor={cursor} />;
+
+    case Token.ValueTextList:
+    case Token.ValueNumberList:
+      return <ListToken token={token} cursor={cursor} />;
+
+    case Token.ValueNumber:
+      return <NumberToken token={token} />;
+
+    case Token.ValueBoolean:
+      return <Boolean>{token.text}</Boolean>;
+
+    case Token.ValueIso8601Date:
+      return <DateTime>{token.text}</DateTime>;
+
+    case Token.LogicGroup:
+      return <LogicGroup>{renderResult(token.inner, cursor)}</LogicGroup>;
+
+    case Token.LogicBoolean:
+      return <LogicBoolean>{token.value}</LogicBoolean>;
+
+    default:
+      return token.text;
+  }
+}
+
+const FilterToken = ({
+  filter,
+  cursor,
+}: {
+  filter: TokenResult<Token.Filter>;
+  cursor: number;
+}) => {
+  const isActive = isWithinToken(filter, cursor);
+
+  // This state tracks if the cursor has left the filter token. We initialize it
+  // to !isActive in the case where the filter token is rendered without the
+  // cursor initally being in it.
+  const [hasLeft, setHasLeft] = useState(!isActive);
+
+  // Trigger the effect when isActive changes to updated whether the cursor has
+  // left the token.
+  useEffect(() => {
+    if (!isActive && !hasLeft) {
+      setHasLeft(true);
+    }
+  }, [isActive]);
+
+  const showInvalid = hasLeft && !!filter.invalid;
+  const showTooltip = showInvalid && isActive;
+
+  return (
+    <Tooltip
+      disabled={!showTooltip}
+      title={filter.invalid?.reason}
+      popperStyle={{maxWidth: '350px'}}
+      forceShow
+      skipWrapper
+    >
+      <Filter active={isActive} invalid={showInvalid}>
+        {filter.negated && <Negation>!</Negation>}
+        <KeyToken token={filter.key} negated={filter.negated} />
+        {filter.operator && <Operator>{filter.operator}</Operator>}
+        <Value>{renderToken(filter.value, cursor)}</Value>
+      </Filter>
+    </Tooltip>
+  );
+};
+
+const KeyToken = ({
+  token,
+  negated,
+}: {
+  token: TokenResult<Token.KeySimple | Token.KeyAggregate | Token.KeyExplicitTag>;
+  negated?: boolean;
+}) => {
+  let value: React.ReactNode = token.text;
+
+  if (token.type === Token.KeyExplicitTag) {
+    value = (
+      <ExplicitKey prefix={token.prefix}>
+        {token.key.quoted ? `"${token.key.value}"` : token.key.value}
+      </ExplicitKey>
+    );
   }
 
-  return <SearchQuery>{result}</SearchQuery>;
-}
+  return <Key negated={!!negated}>{value}:</Key>;
+};
 
-const SearchQuery = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-family: ${p => p.theme.text.familyMono};
-`;
+const ListToken = ({
+  token,
+  cursor,
+}: {
+  token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
+  cursor: number;
+}) => (
+  <InList>
+    {token.items.map(({value, separator}) => [
+      <ListComma key="comma">{separator}</ListComma>,
+      renderToken(value, cursor),
+    ])}
+  </InList>
+);
 
-const FilterToken = styled('span')`
-  --token-bg: ${p => p.theme.searchTokenBackground};
-  --token-border: ${p => p.theme.searchTokenBorder};
-  --token-value-color: ${p => p.theme.blue300};
+const NumberToken = ({token}: {token: TokenResult<Token.ValueNumber>}) => (
+  <Fragment>
+    {token.value}
+    <Unit>{token.unit}</Unit>
+  </Fragment>
+);
+
+type FilterProps = {
+  active: boolean;
+  invalid: boolean;
+};
+
+const colorType = (p: FilterProps) =>
+  `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
+
+const Filter = styled('span')<FilterProps>`
+  --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
+  --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
+  --token-value-color: ${p => (p.invalid ? p.theme.red300 : p.theme.blue300)};
 `;
 
 const filterCss = css`
@@ -216,21 +268,32 @@ const InList = styled('span')`
   }
 `;
 
-const LogicGroup = styled('span')`
-  &:before,
-  &:after {
+const LogicGroup = styled(({children, ...props}) => (
+  <span {...props}>
+    <span>(</span>
+    {children}
+    <span>)</span>
+  </span>
+))`
+  > span:first-child,
+  > span:last-child {
     position: relative;
-    font-weight: bold;
-    color: ${p => p.theme.white};
-    padding: 3px 0;
-    background: ${p => p.theme.red200};
-    border-radius: 1px;
+    color: transparent;
+
+    &:before {
+      position: absolute;
+      top: -5px;
+      color: ${p => p.theme.orange400};
+      font-size: 16px;
+      font-weight: bold;
+    }
   }
-  &:before {
+
+  > span:first-child:before {
     left: -3px;
     content: '(';
   }
-  &:after {
+  > span:last-child:before {
     right: -3px;
     content: ')';
   }

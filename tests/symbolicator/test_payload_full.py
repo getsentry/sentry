@@ -123,7 +123,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             file=file,
             object_name="crash.pdb",
             cpu_name="x86",
-            project=self.project,
+            project_id=self.project.id,
             debug_id="3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
             code_id="5AB380779000",
         )
@@ -202,7 +202,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             file=file,
             object_name="crash.pdb",
             cpu_name="x86",
-            project=self.project,
+            project_id=self.project.id,
             debug_id="3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
             code_id="5AB380779000",
         )

@@ -1,4 +1,4 @@
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
@@ -1572,6 +1572,9 @@ describe('EventView.clone()', function () {
     expect(eventView).toMatchObject(state);
     expect(eventView2).toMatchObject(state);
     expect(eventView.isEqualTo(eventView2)).toBe(true);
+    expect(
+      eventView.additionalConditions === eventView2.additionalConditions
+    ).toBeFalsy();
   });
 });
 
@@ -2224,6 +2227,23 @@ describe('EventView.getQuery()', function () {
   });
 });
 
+describe('EventView.getQueryWithAdditionalConditions', function () {
+  it('with overlapping conditions', function () {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      project: [],
+      query: 'event.type:transaction foo:bar',
+    });
+
+    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+
+    expect(eventView.getQueryWithAdditionalConditions()).toEqual(
+      'event.type:transaction foo:bar'
+    );
+  });
+});
+
 describe('EventView.sortForField()', function () {
   const state = {
     id: '1234',
@@ -2552,6 +2572,45 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
     expect(result.query.project).toEqual(state.project);
     expect(result.query.environment).toEqual(state.environment);
+  });
+});
+
+describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [{field: 'count()'}, {field: 'project.id'}],
+    sorts: generateSorts(['count']),
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+    display: 'previous',
+  };
+  const organization = TestStubs.Organization();
+  const showTransactions = 'p99';
+  const breakdown = 'http';
+  const webVital = 'measurements.lcp';
+
+  it('generates a URL', function () {
+    const view = new EventView(state);
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+      showTransactions,
+      breakdown,
+      webVital,
+    });
+    expect(result.pathname).toEqual(
+      '/organizations/org-slug/performance/summary/events/'
+    );
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.transaction).toEqual(state.name);
+    expect(result.query.showTransactions).toEqual(showTransactions);
+    expect(result.query.breakdown).toEqual(breakdown);
+    expect(result.query.webVital).toEqual(webVital);
   });
 });
 

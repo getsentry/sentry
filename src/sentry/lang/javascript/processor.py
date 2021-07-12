@@ -324,7 +324,9 @@ def fetch_release_file(filename, release, dist=None):
 
             possible_files = list(
                 ReleaseFile.objects.filter(
-                    release=release, dist=dist, ident__in=filename_idents
+                    release_id=release.id,
+                    dist_id=dist.id if dist else dist,
+                    ident__in=filename_idents,
                 ).select_related("file")
             )
 
@@ -400,7 +402,7 @@ def get_artifact_index(release, dist):
     elif result:
         index = json.loads(result)
     else:
-        index = read_artifact_index(release, dist)
+        index = read_artifact_index(release, dist, use_cache=True)
         cache_value = -1 if index is None else json.dumps(index)
         # Only cache for a short time to keep the manifest up-to-date
         cache.set(cache_key, cache_value, timeout=60)
@@ -454,7 +456,7 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
         return BytesIO(result)
     else:
         qs = ReleaseFile.objects.filter(
-            release=release, dist=dist, ident=archive_ident
+            release_id=release.id, dist_id=dist.id if dist else dist, ident=archive_ident
         ).select_related("file")
         try:
             releasefile = qs[0]

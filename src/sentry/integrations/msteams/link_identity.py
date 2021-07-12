@@ -1,3 +1,4 @@
+from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.urls import reverse
 from django.utils import timezone
@@ -33,7 +34,13 @@ class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
-        params = unsign(signed_params)
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/msteams-expired-link.html",
+                request=request,
+            )
 
         organization, integration, idp = get_identity(
             request.user, params["organization_id"], params["integration_id"]
@@ -49,7 +56,10 @@ class MsTeamsLinkIdentityView(BaseView):
         defaults = {"status": IdentityStatus.VALID, "date_verified": timezone.now()}
         try:
             identity, created = Identity.objects.get_or_create(
-                idp=idp, user=request.user, external_id=params["teams_user_id"], defaults=defaults
+                idp=idp,
+                user=request.user,
+                external_id=params["teams_user_id"],
+                defaults=defaults,
             )
             if not created:
                 identity.update(**defaults)
