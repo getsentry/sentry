@@ -89,7 +89,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
-        expected_queries = 38
+        expected_queries = 37
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
