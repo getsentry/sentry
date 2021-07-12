@@ -452,6 +452,10 @@ class Release(Model):
             or value.lower() == "latest"
         )
 
+    @property
+    def is_semver_release(self):
+        return self.package is not None
+
     @staticmethod
     def is_semver_version(release):
         """
@@ -1044,12 +1048,30 @@ def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
     return dict(qs)
 
 
-def follows_semver_versioning_scheme(release):
+def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     """
     Checks if we should follow semantic versioning scheme for ordering based on
-    1. project_options -> versioningScheme == semver
-    2. provided release argument is a valid semver version
+    1. Latest ten releases of the project_id passed in all follow semver
+    2. provided release version argument is a valid semver version
+
+    Inputs:
+        * org_id
+        * project_id
+        * release_version
+    Returns:
+        Boolean that indicates if we should follow semantic version or not
     """
-    # ToDo(ahmed): Add check for project_options once it is implemented & Move function else
-    #  where to be easily accessible for re-use
-    return Release.is_semver_version(release)
+    # ToDo(ahmed): Replace check for lastest 10 releases by check for project_options once it is
+    #  implemented & move function else where to be easily accessible for re-use
+    follows_semver = True
+
+    # Check if the latest ten releases are semver compliant
+    releases_list = Release.objects.filter(
+        organization=org_id, projects__id__in=[project_id]
+    ).order_by("-date_added")[:10]
+    follows_semver = follows_semver and all(release.is_semver_release for release in releases_list)
+
+    # Check release_version that is passed is semver compliant
+    if release_version:
+        follows_semver = follows_semver and Release.is_semver_version(release_version)
+    return follows_semver

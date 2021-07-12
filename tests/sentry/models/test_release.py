@@ -26,6 +26,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Repository,
     add_group_to_inbox,
+    follows_semver_versioning_scheme,
 )
 from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
@@ -965,3 +966,70 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123a*", [release_3])
         self.run_test("exact", "123ab", [])
         self.run_test("exact", "123abc", [release_3])
+
+
+class FollowsSemverVersioningSchemeTestCase(TestCase):
+    def setUp(self):
+        self.org = self.create_organization()
+
+        # Project with 10 semver releases
+        self.proj_1 = self.create_project(organization=self.org)
+        for i in range(10):
+            self.create_release(version=f"fake_package-ahmed@1.1.{i}", project=self.proj_1)
+
+        # Project with only 5 (<10) semver releases
+        self.proj_2 = self.create_project(organization=self.org)
+        for i in range(5):
+            self.create_release(version=f"fake_package_2-ahmed@1.1.{i}", project=self.proj_2)
+
+        # Project with 9 semver releases and 1 non-semver compliant release
+        self.proj_3 = self.create_project(organization=self.org)
+        for i in range(9):
+            self.create_release(version=f"fake_package_3-ahmed@1.1.{i}", project=self.proj_3)
+        self.create_release(version="helloworld", project=self.proj_3)
+
+    def test_follows_semver_with_all_releases_semver_and_semver_release_version(self):
+        """
+        Test that ensures that when the last 10 releases and the release version passed in as an arg
+        follow semver versioning, then True should be returned
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org, project_id=self.proj_1.id, release_version="fake_package@2.0.0"
+            )
+            is True
+        )
+
+    def test_follows_semver_with_all_releases_semver_and_no_release_version(self):
+        """
+        Test that ensures that when the last 10 releases follow semver versioning and no release
+        version is passed in as an argument, then True should be returned
+        """
+        assert follows_semver_versioning_scheme(org_id=self.org, project_id=self.proj_1.id) is True
+
+    def test_follows_semver_with_all_releases_semver_and_non_semver_release_version(self):
+        """
+        Test that ensures that even if the last 10 releases follow semver but the passed in
+        release_version doesn't then we should return False because we should not follow semver
+        versioning in this case
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org, project_id=self.proj_1.id, release_version="fizbuzz"
+            )
+            is False
+        )
+
+    def test_follows_semver_with_not_enough_releases_semver(self):
+        """
+        Test that ensures if we have less than 10 releases but they all follow semver then True
+        should be returned
+        """
+        assert follows_semver_versioning_scheme(org_id=self.org, project_id=self.proj_2.id) is True
+
+    def test_follows_semver_with_releases_non_semver(self):
+        """
+        Test that ensures that even if only one release in the last 10 releases is not semver,
+        then we return False
+        """
+        assert follows_semver_versioning_scheme(org_id=self.org, project_id=self.proj_3.id) is False
