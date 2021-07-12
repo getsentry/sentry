@@ -22,13 +22,14 @@ class DataExportTest(APITestCase):
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.login_as(user=self.user)
 
-    def make_payload(self, type, extras=None, overwrite=False):
-        if type == "issue":
+    def make_payload(self, payload_type, extras=None, overwrite=False):
+        payload = {}
+        if payload_type == "issue":
             payload = {
                 "query_type": ExportQueryType.ISSUES_BY_TAG_STR,
                 "query_info": {"env": "test", "project": [self.project.id]},
             }
-        elif type == "discover":
+        elif payload_type == "discover":
             payload = {
                 "query_type": ExportQueryType.DISCOVER_STR,
                 "query_info": {"field": ["id"], "query": "", "project": [self.project.id]},
@@ -298,3 +299,15 @@ class DataExportTest(APITestCase):
 
         query_info = mock_discover_processor.call_args[1]
         assert query_info["discover_query"]["project"] == [self.project.id]
+
+    def test_equations(self):
+        """
+        Ensures that equations are handled
+        """
+        payload = self.make_payload("discover", {"field": ["equation|count() / 2", "count()"]})
+        with self.feature(["organizations:discover-query", "organizations:discover-arithmetic"]):
+            response = self.get_valid_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["count()"]
+        assert query_info["equations"] == ["count() / 2"]

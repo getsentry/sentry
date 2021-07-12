@@ -30,9 +30,17 @@ class DiscoverProcessor:
         # an empty list DOES NOT work
         if self.environments:
             self.params["environment"] = self.environments
-        self.header_fields = map(lambda x: get_function_alias(x), discover_query["field"])
+
+        equations = discover_query.get("equations", [])
+        self.header_fields = (
+            map(lambda x: get_function_alias(x), discover_query["field"]) + equations
+        )
+        self.equation_aliases = {
+            f"equation[{index}]": equation for index, equation in enumerate(equations)
+        }
         self.data_fn = self.get_data_fn(
             fields=discover_query["field"],
+            equations=equations,
             query=discover_query["query"],
             params=self.params,
             sort=discover_query.get("sort"),
@@ -67,10 +75,11 @@ class DiscoverProcessor:
         return environment_names
 
     @staticmethod
-    def get_data_fn(fields, query, params, sort):
+    def get_data_fn(fields, equations, query, params, sort):
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=fields,
+                equations=equations,
                 query=query,
                 params=params,
                 offset=offset,
@@ -88,6 +97,7 @@ class DiscoverProcessor:
         # Find issue short_id if present
         # (originally in `/api/bases/organization_events.py`)
         new_result_list = result_list[:]
+
         if "issue" in self.header_fields:
             issue_ids = {result["issue.id"] for result in new_result_list}
             issues = {
@@ -101,4 +111,11 @@ class DiscoverProcessor:
             for result in new_result_list:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
+
+        # Map equations back to their unaliased forms
+        if self.equation_aliases:
+            for result in new_result_list:
+                for equation_alias, equation in self.equation_aliases.items():
+                    result[equation] = result.get(equation_alias)
+
         return new_result_list
