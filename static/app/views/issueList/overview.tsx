@@ -1030,7 +1030,7 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
-    // TODO(workflow): When organization:semver flag is removed add 'release' to tagStore
+    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
     if (organization.features.includes('semver') && !tags['release.semver']) {
       tags['release.semver'] = {
         key: 'release.semver',
