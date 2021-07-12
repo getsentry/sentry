@@ -504,13 +504,13 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             self.store_event(data=data, project_id=self.project.id)
 
         queries = [
-            ("error.handled:1", ["b" * 32, "c" * 32], [1, 1]),
-            ("!error.handled:1", ["a" * 32], [0]),
-            ("!error.handled:1", ["a" * 32], [0]),
+            ("error.handled:true", ["b" * 32, "c" * 32], [1, 1]),
+            ("!error.handled:true", ["a" * 32], [0]),
+            ("!error.handled:true", ["a" * 32], [0]),
             ("has:error.handled", ["b" * 32, "c" * 32], [1, 1]),
-            ("has:error.handled error.handled:1", ["b" * 32, "c" * 32], [1, 1]),
-            ("error.handled:0", ["a" * 32], [0]),
-            ("has:error.handled error.handled:0", [], []),
+            ("has:error.handled error.handled:true", ["b" * 32, "c" * 32], [1, 1]),
+            ("error.handled:false", ["a" * 32], [0]),
+            ("has:error.handled error.handled:false", [], []),
         ]
 
         for query, expected_events, error_handled in queries:
@@ -545,13 +545,13 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             self.store_event(data=data, project_id=self.project.id)
 
         queries = [
-            ("error.unhandled:1", ["a" * 32], [1]),
-            ("!error.unhandled:1", ["b" * 32, "c" * 32], [0, 0]),
+            ("error.unhandled:true", ["a" * 32], [1]),
+            ("!error.unhandled:true", ["b" * 32, "c" * 32], [0, 0]),
             ("has:error.unhandled", ["a" * 32], [1]),
             ("!has:error.unhandled", ["b" * 32, "c" * 32], [0, 0]),
-            ("has:error.unhandled error.unhandled:1", ["a" * 32], [1]),
-            ("error.unhandled:0", ["b" * 32, "c" * 32], [0, 0]),
-            ("has:error.unhandled error.unhandled:0", [], []),
+            ("has:error.unhandled error.unhandled:true", ["a" * 32], [1]),
+            ("error.unhandled:false", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled error.unhandled:false", [], []),
         ]
 
         for query, expected_events, error_handled in queries:
