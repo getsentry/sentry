@@ -17,9 +17,6 @@ from sentry.utils.snuba import raw_query
 
 from .dataset import Dataset
 
-# from sentry.api.utils import get_date_range_from_params
-
-
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
 a similar way to "sessions" and "discover"
@@ -270,39 +267,6 @@ class QueryDefinition:
         self.query_groupby = list(query_groupby)
 
         self.conditions, self.filter_keys = get_filter(query, params)
-
-
-# def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
-#     result = raw_query(
-#         dataset=query.dataset,
-#         start=query.start,
-#         end=query.end,
-#         groupby=query.query_groupby,
-#         aggregations=query.aggregations,
-#         rollup=query.rollup,
-#         filter_keys=query.filter_keys,
-#         conditions=query.conditions,
-#         selected_columns=query.query_columns,
-#         referrer="outcomes.totals",
-#         limit=10000,
-#     )
-#     result_timeseries = raw_query(
-#         dataset=query.dataset,
-#         selected_columns=[TS_COL] + query.query_columns,
-#         groupby=[TS_COL] + query.query_groupby,
-#         aggregations=query.aggregations,
-#         conditions=query.conditions,
-#         filter_keys=query.filter_keys,
-#         start=query.start,
-#         end=query.end,
-#         rollup=query.rollup,
-#         referrer="outcomes.timeseries",
-#         limit=10000,
-#     )
-
-#     result_totals = _format_rows(result["data"], query)
-#     result_timeseries = _format_rows(result_timeseries["data"], query)
-#     return result_totals, result_timeseries
 
 
 def run_outcomes_query_totals(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:

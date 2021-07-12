@@ -29,7 +29,6 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                     result_totals = run_outcomes_query_totals(query)
                     result_timeseries = ""
                 else:
-                    # result_totals, result_timeseries = run_outcomes_query(query)
                     result_totals = run_outcomes_query_totals(query)
                     result_timeseries = run_outcomes_query_timeseries(query)
             with sentry_sdk.start_span(
