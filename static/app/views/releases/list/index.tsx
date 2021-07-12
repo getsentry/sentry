@@ -52,9 +52,9 @@ import ReleasePromo from './releasePromo';
 import {DisplayOption, SortOption, StatusOption} from './utils';
 
 const supportedTags = {
-  'release.semver': {
-    key: 'release.semver',
-    name: 'release.semver',
+  'release.version': {
+    key: 'release.version',
+    name: 'release.version',
   },
   'release.build': {
     key: 'release.build',

@@ -5,9 +5,9 @@ import {Tag} from 'app/types';
 import {TagValueLoader} from '../issueList/types';
 
 const supportedTags = {
-  'release.semver': {
-    key: 'release.semver',
-    name: 'release.semver',
+  'release.version': {
+    key: 'release.version',
+    name: 'release.version',
   },
   'release.build': {
     key: 'release.build',

@@ -399,12 +399,12 @@ describe('ReleasesList', function () {
 
   it('autocompletes semver search tag', async function () {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/release.semver/values/',
+      url: '/organizations/org-slug/tags/release.version/values/',
       body: [
         {
           count: null,
           firstSeen: null,
-          key: 'release.semver',
+          key: 'release.version',
           lastSeen: null,
           name: 'sentry@0.5.3',
           value: 'sentry@0.5.3',
@@ -423,13 +423,13 @@ describe('ReleasesList', function () {
     wrapper.update();
 
     expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'release.semver:'
+      'release.version:'
     );
 
     wrapper.find('SmartSearchBar textarea').simulate('focus');
     wrapper
       .find('SmartSearchBar textarea')
-      .simulate('change', {target: {value: 'release.semver:'}});
+      .simulate('change', {target: {value: 'release.version:'}});
 
     await tick();
     wrapper.update();

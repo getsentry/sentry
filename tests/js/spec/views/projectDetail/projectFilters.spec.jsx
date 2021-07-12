@@ -16,7 +16,7 @@ describe('ProjectDetail > ProjectFilters', () => {
         {
           count: null,
           firstSeen: null,
-          key: 'release.semver',
+          key: 'release.version',
           lastSeen: null,
           name: 'sentry@0.5.3',
           value: 'sentry@0.5.3',
@@ -36,13 +36,13 @@ describe('ProjectDetail > ProjectFilters', () => {
     wrapper.update();
 
     expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'release.semver:'
+      'release.version:'
     );
 
     wrapper.find('SmartSearchBar textarea').simulate('focus');
     wrapper
       .find('SmartSearchBar textarea')
-      .simulate('change', {target: {value: 'release.semver:'}});
+      .simulate('change', {target: {value: 'release.version:'}});
 
     await tick();
     wrapper.update();
