@@ -223,8 +223,6 @@ describe('ProjectAlertsCreate', function () {
       ]);
 
       const filterRuleNode = getByText('The issue is').parentElement;
-      // console.log(debug(filterRuleNode));
-
       fireEvent.change(filterRuleNode.querySelector('input[type="number"]'), {
         target: {value: '12'},
       });
