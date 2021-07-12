@@ -578,7 +578,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     });
   };
 
-  getCursorPosition() {
+  get cursorPosition() {
     if (!this.searchInput.current) {
       return -1;
     }
@@ -913,7 +913,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   };
 
   updateAutoCompleteFromAst = async () => {
-    const cursor = this.getCursorPosition();
+    const cursor = this.cursorPosition;
     const {parsedQuery} = this.state;
 
     if (!parsedQuery) {
@@ -977,7 +977,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.blurTimeout = undefined;
     }
 
-    const cursor = this.getCursorPosition();
+    const cursor = this.cursorPosition;
 
     if (this.hasImprovedSearch) {
       this.updateAutoCompleteFromAst();
@@ -1137,7 +1137,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     });
 
   onAutoCompleteFromAst = (replaceText: string, item: SearchItem) => {
-    const cursor = this.getCursorPosition();
+    const cursor = this.cursorPosition;
     const {parsedQuery, query} = this.state;
     if (!parsedQuery) {
       return;
@@ -1219,7 +1219,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
 
-    const cursor = this.getCursorPosition();
+    const cursor = this.cursorPosition;
     const {query} = this.state;
 
     if (this.hasImprovedSearch) {
@@ -1336,7 +1336,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       .slice(numActionsVisible)
       .map(({key, Action}) => <Action key={key} {...actionProps} menuItemVariant />);
 
-    const cursor = this.getCursorPosition();
+    const cursor = this.cursorPosition;
 
     return (
       <Container ref={this.containerRef} className={className} isOpen={inputHasFocus}>
