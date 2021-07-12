@@ -5,17 +5,17 @@ import {Tag} from 'app/types';
 import {TagValueLoader} from '../issueList/types';
 
 const supportedTags = {
-  'sentry.semver': {
-    key: 'sentry.semver',
-    name: 'sentry.semver',
+  'release.semver': {
+    key: 'release.semver',
+    name: 'release.semver',
   },
-  'sentry.semver.build': {
-    key: 'sentry.semver.build',
-    name: 'sentry.semver.build',
+  'release.build': {
+    key: 'release.build',
+    name: 'release.build',
   },
-  'sentry.semver.package': {
-    key: 'sentry.semver.package',
-    name: 'sentry.semver.package',
+  'release.package': {
+    key: 'release.package',
+    name: 'release.package',
   },
   release: {
     key: 'release',
