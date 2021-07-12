@@ -118,9 +118,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             if organization is None:
                 continue
 
-            # Try to prevent organization from being fetched again in quotas.
-            project.organization = organization
-            project._organization_cache = organization
+            # Prevent organization from being fetched again in quotas.
+            project.set_cached_field_value("organization", organization)
 
             with Hub.current.start_span(op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):
@@ -183,9 +182,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             if organization is None:
                 continue
 
-            # Try to prevent organization from being fetched again in quotas.
-            project.organization = organization
-            project._organization_cache = organization
+            # Prevent organization from being fetched again in quotas.
+            project.set_cached_field_value("organization", organization)
 
             with start_span(op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):

@@ -368,7 +368,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
-def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
+def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     """Ensures that the type of the third parameter is compatible with the first
     and cast the value if needed
     eg. duration = numeric_value, and not duration = string_value
@@ -378,17 +378,27 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
     value = args["value"]
     if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
         try:
-            value = float(value.strip("'"))
+            normalized_value = float(value.strip("'"))
         except Exception:
             raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
-
+    elif column == "transaction.status":
+        code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
+        if code is None:
+            raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
+        try:
+            normalized_value = int(code)
+        except Exception:
+            raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
     # TODO: not supporting field aliases or arrays yet
     elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
     # At this point only string or tag columns are left
     elif condition not in ["equals", "notEquals"]:
         raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
-    return value
+    else:
+        normalized_value = value
+
+    return normalized_value
 
 
 # When updating this list, also check if the following need to be updated:
@@ -479,6 +489,9 @@ def parse_arguments(function, columns):
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
+        elif i == j and columns[j] == " ":
+            # argument has leading spaces, skip over them
+            i += 1
         elif quoted and not escaped and columns[j] == "\\":
             # when we see a slash inside a quoted string,
             # the next character is an escape character
@@ -1028,16 +1041,25 @@ class FieldColumn(CountColumn):
 
 
 class StringArg(FunctionArg):
-    def __init__(self, name, unquote=False, unescape_quotes=False):
+    def __init__(self, name, unquote=False, unescape_quotes=False, optional_unquote=False):
+        """
+        :param str name: The name of the function, this refers to the name to invoke.
+        :param boolean unquote: Whether to try unquoting the arg or not
+        :param boolean unescape_quotes: Whether quotes within the string should be unescaped
+        :param boolean optional_unquote: Don't error when unable to unquote
+        """
         super().__init__(name)
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
+        self.optional_unquote = optional_unquote
 
     def normalize(self, value, params):
         if self.unquote:
             if len(value) < 2 or value[0] != '"' or value[-1] != '"':
-                raise InvalidFunctionArgument("string should be quoted")
-            value = value[1:-1]
+                if not self.optional_unquote:
+                    raise InvalidFunctionArgument("string should be quoted")
+            else:
+                value = value[1:-1]
         if self.unescape_quotes:
             value = re.sub(r'\\"', '"', value)
         return f"'{value}'"
@@ -1955,7 +1977,7 @@ FUNCTIONS = {
                 # This is a FunctionArg cause the column can be a tag as well
                 FunctionArg("column"),
                 ConditionArg("condition"),
-                StringArg("value"),
+                StringArg("value", unquote=True, unescape_quotes=True, optional_unquote=True),
             ],
             calculated_args=[
                 {

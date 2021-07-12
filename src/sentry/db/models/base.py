@@ -63,6 +63,15 @@ class BaseModel(models.Model):
             return
         self._meta.get_field(field_name).set_cached_value(self, value)
 
+    def is_field_cached(self, field_name):
+        # Django 1.11 + at least 2.0 compatible method
+        # to ask if a field has a cached value.
+        if django.VERSION[:2] < (2, 0):
+            if not getattr(self, f"_{field_name}_cache", False):
+                return False
+            return True
+        return self._meta.get_field(field_name).get_cache_name() in self._state.fields_cache
+
 
 class Model(BaseModel):
     id = BoundedBigAutoField(primary_key=True)

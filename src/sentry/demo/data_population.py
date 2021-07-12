@@ -35,6 +35,7 @@ from sentry.models import (
     File,
     Group,
     GroupAssignee,
+    GroupStatus,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -44,9 +45,11 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseFile,
     Repository,
+    SavedSearch,
     Team,
     User,
 )
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
 from sentry.utils.email import create_fake_email
@@ -98,6 +101,20 @@ contexts_by_mobile_platform = {
         ],
         "os": [["Android", "10"], ["Android", "9"], ["Android", "8"]],
     },
+}
+
+saved_search_by_platform = {
+    "global": [
+        ["Unhandled Errors", "is:unresolved error.unhandled:true"],
+        ["Release 3.2 Errors", "release:checkout-app@3.2"],
+    ],
+    "python": [
+        ["Firefox Errors - Python", "browser.name:Firefox"],
+    ],
+    "apple-ios": [["iOS 12 Errors", 'os:"iOS 12"']],
+    "javascript-react": [],
+    "android": [],
+    "react-native": [],
 }
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
@@ -806,6 +823,39 @@ class DataPopulation:
             version=data["version"],
         )
 
+    def generate_saved_search(self, projects):
+        SavedSearch.objects.filter().delete()
+        global_params = saved_search_by_platform["global"]
+        for params in global_params:
+            name, query = params
+            SavedSearch.objects.get_or_create(
+                is_global=True, organization=self.org, name=name, query=query
+            )
+        for project in projects:
+            project_params = saved_search_by_platform[project.platform]
+            for params in project_params:
+                name, query = params
+                SavedSearch.objects.get_or_create(
+                    project=project, organization=self.org, name=name, query=query
+                )
+
+    def inbox_issues(self):
+        assigned_issues = GroupAssignee.objects.filter(project__organization=self.org)
+        assigned_groups = [assignee.group for assignee in assigned_issues]
+        groups = Group.objects.filter(project__organization=self.org)
+        unassigned_groups = [group for group in groups if group not in assigned_groups]
+
+        reasons = [GroupInboxReason.REGRESSION, GroupInboxReason.NEW]
+        ignore_rate = 0.1
+
+        for group in groups:
+            outcome = random.random()
+            if outcome < ignore_rate:
+                group.update(status=GroupStatus.IGNORED)
+            elif group in unassigned_groups:
+                group_inbox = add_group_to_inbox(group, random.choice(reasons))
+                group_inbox.update(date_added=group.first_seen)
+
     def assign_issues(self):
         org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
         for group in Group.objects.filter(project__organization=self.org):
@@ -1368,6 +1418,7 @@ class DataPopulation:
         ):
             self.generate_alerts(python_project)
             self.generate_saved_query(react_project, "/productstore", "Product Store by Browser")
+
         if not self.get_config_var("DISABLE_SESSIONS"):
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
@@ -1397,6 +1448,7 @@ class DataPopulation:
                 python_project, "errors/python/concat_str_none.json", 4, starting_release=1
             )
         self.assign_issues()
+        self.inbox_issues()
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
@@ -1438,3 +1490,4 @@ class DataPopulation:
                 starting_release=2,
             )
         self.assign_issues()
+        self.inbox_issues()
