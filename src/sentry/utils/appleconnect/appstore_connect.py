@@ -16,18 +16,16 @@ AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "i
 def _get_authorization_header(
     credentials: AppConnectCredentials, expiry_sec: Optional[int] = None
 ) -> Mapping[str, str]:
-    """
-    Creates a JWT (javascript web token) for use with app store connect API
+    """Creates a JWT (javascript web token) for use with app store connect API
 
     All requests to app store connect require an "Authorization" header build as below.
 
-    Note: Setting a very large expiry for the token will cause the authorization to fail,
-    the default is one hour, which should be suitable for most cases.
+    Note: The maximum allowed expiry time is 20 minutes.  The default is somewhat shorter
+    than that to avoid running into the limit.
 
     :return: the Bearer auth token to be added as the  "Authorization" header
     """
     if expiry_sec is None:
-        # Maximum time allowed by the API is 20 mins.
         expiry_sec = 60 * 10  # default to 10 mins
     token = jwt.encode(
         {
