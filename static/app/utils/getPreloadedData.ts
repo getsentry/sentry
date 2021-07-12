@@ -17,7 +17,7 @@ export async function getPreloadedDataPromise(
       return await fallback();
     }
     const result = await data[name].catch(fallback);
-    if (!result) {
+    if (!result || result.then) {
       return await fallback();
     }
     return await result;
