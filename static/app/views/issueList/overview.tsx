@@ -1030,11 +1030,19 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
-    // TODO(workflow): When organization:semver flag is removed add 'sentry.semver' to tagStore
-    if (organization.features.includes('semver') && !tags['sentry.semver']) {
-      tags['sentry.semver'] = {
-        key: 'sentry.semver',
-        name: 'sentry.semver',
+    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
+    if (organization.features.includes('semver') && !tags['release.version']) {
+      tags['release.version'] = {
+        key: 'release.version',
+        name: 'release.version',
+      };
+      tags['release.build'] = {
+        key: 'release.build',
+        name: 'release.build',
+      };
+      tags['release.package'] = {
+        key: 'release.package',
+        name: 'release.package',
       };
     }
 

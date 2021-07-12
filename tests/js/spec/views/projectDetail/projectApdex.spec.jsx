@@ -41,7 +41,7 @@ describe('ProjectDetail > ProjectApdex', function () {
         selection={selection}
         isProjectStabilized
         hasTransactions
-        query="sentry.semver:1.0.0"
+        query="release.version:1.0.0"
       />
     );
 
@@ -53,7 +53,7 @@ describe('ProjectDetail > ProjectApdex', function () {
           environment: [],
           field: ['apdex(500)'],
           project: ['1'],
-          query: 'event.type:transaction count():>0 sentry.semver:1.0.0',
+          query: 'event.type:transaction count():>0 release.version:1.0.0',
           statsPeriod: '14d',
         },
       })
