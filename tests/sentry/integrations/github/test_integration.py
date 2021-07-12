@@ -185,6 +185,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # Try again and should be successful
         resp = self.client.get(self.init_path_2)
         self.assertDialogSuccess(resp)
+        integration = Integration.objects.get(external_id=self.installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization=self.organization_2, integration=integration
+        ).exists()
 
     @responses.activate
     def test_reinstall_flow(self):
