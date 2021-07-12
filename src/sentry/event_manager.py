@@ -590,7 +590,7 @@ def _pull_out_data(jobs, projects):
         job["data"] = data = event.data.data
         job["category"] = DataCategory.from_event_type(data.get("type"))
         job["platform"] = event.platform
-        event.set_cached_field_value("project", projects[job["project_id"]])
+        event._project_cache = projects[job["project_id"]]
 
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
