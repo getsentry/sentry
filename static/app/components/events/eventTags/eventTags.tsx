@@ -1,5 +1,4 @@
 import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
 
 import Pills from 'app/components/pills';
 import {Organization} from 'app/types';
@@ -17,13 +16,13 @@ type Props = {
 };
 
 const EventTags = ({
-  event: {tags},
+  event: {tags = []},
   organization,
   projectId,
   location,
   hasQueryFeature,
 }: Props) => {
-  if (isEmpty(tags)) {
+  if (!tags.length) {
     return null;
   }
 

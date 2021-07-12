@@ -46,6 +46,7 @@ import {projectProcessingIssuesMessages} from 'app/views/settings/project/projec
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
+import EventAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -54,6 +55,7 @@ const defaultProps = {
   isShare: false,
   showExampleCommit: false,
   showTagSummary: true,
+  isBorderless: false,
 };
 
 type ProGuardErrors = Array<Error>;
@@ -322,11 +324,13 @@ class EventEntries extends Component<Props, State> {
       showExampleCommit,
       showTagSummary,
       location,
+      isBorderless,
     } = this.props;
     const {proGuardErrors, isLoading} = this.state;
 
     const features = new Set(organization?.features);
     const hasQueryFeature = features.has('discover-query');
+    const hasMobileScreenshotsFeature = features.has('mobile-screenshots');
 
     if (!event) {
       return (
@@ -373,18 +377,32 @@ class EventEntries extends Component<Props, State> {
             includeBorder={!hasErrors}
           />
         )}
-        {showTagSummary && (
-          <StyledEventDataSection title={t('Tags')} type="tags">
-            {hasContext && <EventContextSummary event={event} />}
-            <EventTags
+        {showTagSummary &&
+          (hasMobileScreenshotsFeature ? (
+            <EventAndScreenshot
               event={event}
               organization={organization as Organization}
               projectId={project.slug}
               location={location}
               hasQueryFeature={hasQueryFeature}
+              isShare={isShare}
+              hasContext={hasContext}
+              isBorderless={isBorderless}
             />
-          </StyledEventDataSection>
-        )}
+          ) : (
+            (!!(event.tags ?? []).length || hasContext) && (
+              <StyledEventDataSection title={t('Tags')} type="tags">
+                {hasContext && <EventContextSummary event={event} />}
+                <EventTags
+                  event={event}
+                  organization={organization as Organization}
+                  projectId={project.slug}
+                  location={location}
+                  hasQueryFeature={hasQueryFeature}
+                />
+              </StyledEventDataSection>
+            )
+          ))}
         {this.renderEntries(event)}
         {hasContext && <EventContexts group={group} event={event} />}
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}

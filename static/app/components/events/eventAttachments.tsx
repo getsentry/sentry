@@ -205,7 +205,6 @@ class EventAttachments extends React.Component<Props, State> {
                   )}
                 </AttachmentUrl>
                 {this.renderInlineAttachment(attachment)}
-
                 {/* XXX: hack to deal with table grid borders */}
                 {lastAttachmentPreviewed && (
                   <React.Fragment>

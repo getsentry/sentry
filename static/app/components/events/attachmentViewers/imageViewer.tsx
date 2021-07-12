@@ -6,13 +6,15 @@ import {
 } from 'app/components/events/attachmentViewers/utils';
 import {PanelItem} from 'app/components/panels';
 
-export default function ImageViewer(props: ViewerProps) {
+function ImageViewer({className, ...props}: ViewerProps) {
   return (
-    <Container>
+    <Container className={className}>
       <img src={getAttachmentUrl(props, true)} />
     </Container>
   );
 }
+
+export default ImageViewer;
 
 const Container = styled(PanelItem)`
   justify-content: center;
