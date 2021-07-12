@@ -437,7 +437,7 @@ class SymbolicatorSession:
         # Remove sources that should be ignored. This leaves a few extra entries in the alias
         # maps and source names maps, but that's fine. The orphaned entries in the maps will just
         # never be used.
-        self.source_names = filter_ignored_sources(self.sources, self.reverse_source_aliases)
+        self.sources = filter_ignored_sources(self.sources, self.reverse_source_aliases)
 
     def __enter__(self):
         self.open()
