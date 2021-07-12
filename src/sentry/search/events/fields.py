@@ -385,7 +385,10 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
         code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
         if code is None:
             raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
-        normalized_value = int(code)
+        try:
+            normalized_value = int(code)
+        except Exception:
+            raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
     # TODO: not supporting field aliases or arrays yet
     elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
