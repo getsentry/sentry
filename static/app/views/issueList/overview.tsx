@@ -417,6 +417,7 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
+      this.setState({hasSessions: false});
       return;
     }
     const requestParams: StatEndpointParams = {
