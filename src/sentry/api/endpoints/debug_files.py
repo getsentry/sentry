@@ -5,7 +5,7 @@ import re
 import jsonschema
 from django.db import transaction
 from django.db.models import Q
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -99,10 +99,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         try:
             fp = debug_file.file.getfile()
-            response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
-            )
-            response["Content-Length"] = debug_file.file.size
+            response = FileResponse(fp)
+            response["Content-Type"] = "application/octet-stream"
             response["Content-Disposition"] = 'attachment; filename="{}{}"'.format(
                 posixpath.basename(debug_file.debug_id),
                 debug_file.file_extension,
