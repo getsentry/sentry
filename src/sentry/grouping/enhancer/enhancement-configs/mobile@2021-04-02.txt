@@ -240,7 +240,6 @@ module:cn.gundam.sdk.* category=telemetry
 # entirely sure if any of that is linked into the app, it's probably something
 # preinstalled on Lenovo devices.
 module:com.lenovo.payplus.analytics.* category=telemetry
-
 package:"**/libBugly.so" category=telemetry
 
 family:native function:dlopen category=load
