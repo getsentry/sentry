@@ -410,10 +410,10 @@ def get_sources_for_project(project):
     return sources
 
 
-def filter_ignored_sources(sources, reversed_alias_map=()):
+def filter_ignored_sources(sources, reversed_alias_map=None):
     """
     Filters out sources that are meant to be blocked based on a global killswitch. If any sources
-    were de-aliased, a reverse mapping of {unaliased id: alias} should be provided for this to
+    were de-aliased, a reverse mapping of { unaliased id: alias } should be provided for this to
     properly filter out all blocked sources.
     """
 
@@ -424,14 +424,14 @@ def filter_ignored_sources(sources, reversed_alias_map=()):
     filtered = []
     for src in sources:
         resolved = src["id"]
-        alias = reversed_alias_map.get(resolved) or resolved
+        alias = reversed_alias_map is not None and reversed_alias_map.get(resolved) or resolved
         # This covers three scenarios:
         # 1. The source had an alias, and the config may have used that alias to block it (alias map
         #    lookup resolved)
         # 2. The source had no alias, and the config may have used the source's ID to block it
         #    (alias map lookup returned None and fell back to resolved)
         # 3. The source had an alias, but the config used the source's internal unaliased ID to
-        #    block it (alias map lookup resolved but not in ignored_source_ids, resolved IS in
+        #    block it (alias map lookup resolved but not in ignored_source_ids, resolved is in
         #    ignored_source_ids)
         if alias not in ignored_source_ids and resolved not in ignored_source_ids:
             filtered.append(src)
