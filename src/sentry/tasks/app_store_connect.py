@@ -11,6 +11,7 @@ import tempfile
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, debugfile
 from sentry.tasks.base import instrumented_task
+from sentry.utils.appleconnect.itunes_connect import FailedFetchingDsymError
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger(__name__)
@@ -41,38 +42,36 @@ def inner_dsym_download(
     client = appconnect.AppConnectClient.from_config(config)
     itunes_client = client.itunes_client()
 
-    builds = client.list_builds()
-    for build in builds:
-        try:
-            build_state = AppConnectBuild.objects.get(
-                project=project,
-                app_id=build.app_id,
-                platform=build.platform,
-                bundle_short_version=build.version,
-                bundle_version=build.build_number,
-            )
-        except AppConnectBuild.DoesNotExist:
-            build_state = AppConnectBuild(
-                project=project,
-                app_id=build.app_id,
-                bundle_id=config.bundleId,
-                platform=build.platform,
-                bundle_short_version=build.version,
-                bundle_version=build.build_number,
-                fetched=False,
-            )
-
+    # persist all fetched builds into the database as "pending"
+    builds = []
+    for build in client.list_builds():
+        build_state = get_or_create_persisted_build(project, config, build)
         if not build_state.fetched:
-            with tempfile.NamedTemporaryFile() as dsyms_zip:
-                try:
-                    itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
-                except appconnect.NoDsymsError:
-                    logger.debug("No dSYMs for build %s", build)
-                    continue
+            builds.append(build_state)
+
+    for build_state in builds:
+        with tempfile.NamedTemporaryFile() as dsyms_zip:
+            try:
+                itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
+
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
-            build_state.fetched = True
-            build_state.save()
-            logger.debug("Uploaded dSYMs for build %s", build)
+                logger.debug("Uploaded dSYMs for build %s", build)
+            except appconnect.NoDsymsError:
+                logger.debug("No dSYMs for build %s", build)
+            except FailedFetchingDsymError:
+                # TODO: We should probably persist this error in some way so
+                # we can inform the user about expired itunes credentials.
+                logger.debug("Error fetching dSYMs (probably expired token)")
+                # we early-return here to avoid trying all the other builds
+                # as well, since an expired token will error for all of them.
+                # we also swallow the error and not report it because this is
+                # a totally expected error and not actionable.
+                return
+
+        # If we either downloaded, or didn't need to download the dSYMs
+        # (there was no dSYM url), we check off this build.
+        build_state.fetched = True
+        build_state.save()
 
 
 def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
@@ -80,3 +79,33 @@ def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
         created = debugfile.create_files_from_dif_zip(fp, project, accept_unknown=True)
         for proj_debug_file in created:
             logger.debug("Created %r for project %s", proj_debug_file, project.id)
+
+
+def get_or_create_persisted_build(
+    project: Project, config: appconnect.AppStoreConnectConfig, build: appconnect.BuildInfo
+) -> AppConnectBuild:
+    """Fetches the sentry-internal :class:`AppConnectBuild` corresponding
+    to the provided :class:`appconnect.BuildInfo` as returned by the
+    AppStore Connect API. If no build exists yet, a new "pending" build is
+    created."""
+    try:
+        build_state = AppConnectBuild.objects.get(
+            project=project,
+            app_id=build.app_id,
+            platform=build.platform,
+            bundle_short_version=build.version,
+            bundle_version=build.build_number,
+        )
+    except AppConnectBuild.DoesNotExist:
+        build_state = AppConnectBuild(
+            project=project,
+            app_id=build.app_id,
+            bundle_id=config.bundleId,
+            platform=build.platform,
+            bundle_short_version=build.version,
+            bundle_version=build.build_number,
+            fetched=False,
+            # TODO: persist the `uploadedDate` attribute as well.
+        )
+        build_state.save()
+    return build_state
