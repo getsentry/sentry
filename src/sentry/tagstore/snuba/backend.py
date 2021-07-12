@@ -872,11 +872,9 @@ class SnubaTagStorage(TagStorage):
             return self._get_tag_values_for_semver(projects, environments, query)
 
         if key == RELEASE_STAGE_ALIAS:
-            # TODO: How does IN search work here? is it needed?
             organization_id = Project.objects.filter(id=projects[0]).values_list(
                 "organization_id", flat=True
             )[0]
-            # TODO, What happens when no or multiple envs are sent?
             versions = Release.objects.filter_by_stage(
                 organization_id,
                 SearchFilter(
@@ -893,10 +891,7 @@ class SnubaTagStorage(TagStorage):
                     ).values_list("release_id", flat=True)
                 )
 
-            versions = versions.values_list("version", flat=True)[:1000]
-            # versions = versions.order_by("adopted").values_list(
-            # "version", flat=True
-            # )[:1000]
+            versions = versions.order_by("version").values_list("version", flat=True)[:1000]
             return SequencePaginator(
                 [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(versions)]
             )

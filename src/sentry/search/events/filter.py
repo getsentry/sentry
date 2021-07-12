@@ -28,6 +28,7 @@ from sentry.search.events.constants import (
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
+    MAX_SEARCH_RELEASES,
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
@@ -38,7 +39,6 @@ from sentry.search.events.constants import (
     SEMVER_ALIAS,
     SEMVER_EMPTY_RELEASE,
     SEMVER_FAKE_PACKAGE,
-    SEMVER_MAX_SEARCH_RELEASES,
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
@@ -350,7 +350,8 @@ def _release_stage_filter_converter(
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
     """
-    # TODO: Should I filter by project and/or env here? I think it's done elsewhere, but could limit versions
+    # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
+    # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
 
     if not params or "organization_id" not in params:
         raise ValueError("organization_id is a required param")
@@ -359,7 +360,7 @@ def _release_stage_filter_converter(
     qs = (
         Release.objects.filter_by_stage(organization_id, search_filter)
         .values_list("version", flat=True)
-        .order_by("date_added")
+        .order_by("date_added")[:MAX_SEARCH_RELEASES]
     )
     versions = list(qs)
     final_operator = "IN"
@@ -408,11 +409,11 @@ def _semver_filter_converter(
     qs = (
         Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
         .values_list("version", flat=True)
-        .order_by(*order_by)[:SEMVER_MAX_SEARCH_RELEASES]
+        .order_by(*order_by)[:MAX_SEARCH_RELEASES]
     )
     versions = list(qs)
     final_operator = "IN"
-    if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
+    if len(versions) == MAX_SEARCH_RELEASES:
         # We want to limit how many versions we pass through to Snuba. If we've hit
         # the limit, make an extra query and see whether the inverse has fewer ids.
         # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
@@ -424,7 +425,7 @@ def _semver_filter_converter(
         qs_flipped = (
             Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
             .order_by(*map(_flip_field_sort, order_by))
-            .values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
+            .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
 
         exclude_versions = list(qs_flipped)
@@ -447,7 +448,7 @@ def _semver_package_filter_converter(
 ) -> Tuple[str, str, Sequence[str]]:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
-    `SEMVER_MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+    `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
     """
     if not params or "organization_id" not in params:
         raise ValueError("organization_id is a required param")
@@ -458,7 +459,7 @@ def _semver_package_filter_converter(
     versions = list(
         Release.objects.filter_by_semver(
             organization_id, SemverFilter("exact", [], package)
-        ).values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
+        ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 
     if not versions:

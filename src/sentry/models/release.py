@@ -26,6 +26,7 @@ from sentry.db.models import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.search.events.filter import to_list
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -186,12 +187,13 @@ class ReleaseQuerySet(models.QuerySet):
             "replaced": Q(adopted__isnull=False, unadopted__isnull=False),
             "not_adopted": Q(adopted__isnull=True, unadopted__isnull=True),
         }
-        if isinstance(value, list):
-            for stage in value:
-                if stage not in filters.keys():
-                    raise InvalidSearchQuery("Unsupported release.stage value.")
-        else:
-            if value not in filters.keys():
+        value = to_list(value)
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        if operator in operator_conversions.keys():
+            operator = operator_conversions[operator]
+
+        for stage in value:
+            if stage not in filters.keys():
                 raise InvalidSearchQuery("Unsupported release.stage value.")
 
         rpes = ReleaseProjectEnvironment.objects.filter(
@@ -208,10 +210,6 @@ class ReleaseQuerySet(models.QuerySet):
         elif operator == "NOT IN":
             for stage in value:
                 query &= ~filters[stage]
-        elif operator == "=":
-            query = filters[value]
-        elif operator == "!=":
-            query = ~filters[value]
 
         qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
@@ -235,7 +233,7 @@ class ReleaseModelManager(models.Manager):
     def filter_by_stage(
         self,
         organization_id: int,
-        search_filter,
+        search_filter,  # TODO: Make a StageFilter or pass operator+value separately.
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(organization_id, search_filter, project_ids)
