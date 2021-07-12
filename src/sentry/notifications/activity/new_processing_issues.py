@@ -53,5 +53,5 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         )
         return f"Processing issues on <{self.project.slug}|{project_url}"
 
-    def get_message_description(self) -> str:
+    def get_message_description(self) -> Any:
         return self.get_context()["text_description"]

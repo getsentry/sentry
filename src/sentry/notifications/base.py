@@ -60,5 +60,6 @@ class BaseNotification:
     def is_message_issue_unfurl(self) -> bool:
         return False
 
-    def get_message_description(self) -> str:
-        return self.context["text_description"]
+    def get_message_description(self) -> Any:
+        context = getattr(self, "context", None)
+        return context["text_description"] if context else None
