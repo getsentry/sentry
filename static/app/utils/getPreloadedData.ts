@@ -20,7 +20,7 @@ export async function getPreloadedDataPromise(
     if (!result) {
       return await fallback();
     }
-    return result;
+    return await result;
   } catch (_) {
     //
   }
