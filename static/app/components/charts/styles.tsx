@@ -69,6 +69,19 @@ export const HeaderTitleLegend = styled(HeaderTitle)`
   z-index: 1;
 `;
 
+// Used for rendering total value of a chart right below the HeaderTitleLegend
+export const HeaderValue = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: baseline;
+  background-color: ${p => p.theme.background};
+  position: absolute;
+  top: 40px;
+  z-index: 1;
+  font-size: ${p => p.theme.headerFontSize};
+`;
+
 export const ChartContainer = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
