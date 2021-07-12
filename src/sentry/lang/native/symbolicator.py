@@ -351,7 +351,7 @@ def get_sources_for_project(project):
 
     sources = []
 
-    def remove_ignored_sources(sources):
+    def filter_ignored_sources(sources):
         blocked_source_ids = options.get("symbolicator.ignored_sources")
         if not blocked_source_ids:
             return sources
@@ -367,7 +367,7 @@ def get_sources_for_project(project):
     organization = project.organization
 
     if not features.has("organizations:symbol-sources", organization):
-        return remove_ignored_sources(sources)
+        return filter_ignored_sources(sources)
 
     # Custom sources have their own feature flag. Check them independently.
     if features.has("organizations:custom-symbol-sources", organization):
@@ -413,7 +413,7 @@ def get_sources_for_project(project):
         else:
             sources.append(source)
 
-    return remove_ignored_sources(sources)
+    return filter_ignored_sources(sources)
 
 
 class SymbolicatorSession:
