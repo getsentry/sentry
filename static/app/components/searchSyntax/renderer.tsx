@@ -98,6 +98,7 @@ const FilterToken = ({
       title={filter.invalid?.reason}
       popperStyle={{maxWidth: '350px'}}
       forceShow
+      skipWrapper
     >
       <Filter active={isActive} invalid={showInvalid}>
         {filter.negated && <Negation>!</Negation>}

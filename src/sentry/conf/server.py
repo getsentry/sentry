@@ -891,8 +891,8 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable experimental syntax highlightign on unified search
-    "organizations:search-syntax-highlight": False,
+    # Enable imporved syntax highlightign + autocomplete on unified search
+    "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable the new Metrics page
@@ -2238,6 +2238,3 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
-
-# adds mobile projects
-DEMO_MOBILE_PROJECTS = False

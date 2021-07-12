@@ -210,6 +210,34 @@ class SCIMMemberTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
+    def test_patch_inactive_alternate_schema(self):
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.patch(
+            url, {"Operations": [{"op": "replace", "path": "active", "value": False}]}
+        )
+        assert response.status_code == 204, response.content
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+    def test_patch_bad_schema(self):
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.patch(
+            url, {"Operations": [{"op": "replace", "path": "blahblahbbalh", "value": False}]}
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid Patch Operation.",
+        }
+
     def test_member_detail_patch_too_many_ops(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
         url = reverse(
@@ -346,10 +374,6 @@ class SCIMUtilsTests(TestCase):
 
         fil = parse_filter_conditions('displayName eq "MyTeamName"')
         assert fil == ["MyTeamName"]
-
-    def test_parse_filter_conditions_upper_to_lower(self):
-        fil = parse_filter_conditions('userName eq "USER@sentry.io"')
-        assert fil == ["user@sentry.io"]
 
     def test_parse_filter_conditions_invalids(self):
         with pytest.raises(ValueError):

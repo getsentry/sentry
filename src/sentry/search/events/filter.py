@@ -41,6 +41,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
@@ -495,7 +496,7 @@ key_conversion_map: Mapping[
 ] = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
-    "transaction.status": _transaction_status_filter_converter,
+    TRANSACTION_STATUS_ALIAS: _transaction_status_filter_converter,
     "issue.id": _issue_id_filter_converter,
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
@@ -953,6 +954,8 @@ class QueryFilter(QueryBase):
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
+            TRANSACTION_STATUS_ALIAS: self._transaction_status_filter_converter,
+            ISSUE_ID_ALIAS: self._issue_id_filter_converter,
         }
 
     def resolve_where(self, query: Optional[str]) -> List[WhereType]:
@@ -1159,3 +1162,46 @@ class QueryFilter(QueryBase):
                 SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
             )
         )
+
+    def _transaction_status_filter_converter(
+        self, search_filter: SearchFilter
+    ) -> Optional[WhereType]:
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return Condition(
+                self.resolve_field_alias(search_filter.key.name),
+                Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
+            )
+        if search_filter.is_in_filter:
+            internal_value = [
+                translate_transaction_status(val) for val in search_filter.value.raw_value
+            ]
+        else:
+            internal_value = translate_transaction_status(search_filter.value.raw_value)
+        return Condition(
+            self.resolve_field_alias(search_filter.key.name),
+            Op(search_filter.operator),
+            internal_value,
+        )
+
+    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        value = search_filter.value.value
+
+        lhs = self.column(name)
+        rhs = value
+
+        # Handle "has" queries
+        if (
+            search_filter.value.raw_value == ""
+            or search_filter.is_in_filter
+            and [v for v in value if not v]
+        ):
+            if search_filter.is_in_filter:
+                rhs = [v if v else 0 for v in value]
+            else:
+                rhs = 0
+
+        # Skip isNull check on group_id value as we want to
+        # allow snuba's prewhere optimizer to find this condition.
+        return Condition(lhs, Op(search_filter.operator), rhs)

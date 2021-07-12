@@ -32,6 +32,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
 import {Color, Theme} from 'app/utils/theme';
 import {
+  displayCrashFreeDiff,
   displayCrashFreePercent,
   getReleaseBounds,
   getReleaseParams,
@@ -131,7 +132,7 @@ function ReleaseComparisonChart({
         ? displayCrashFreePercent(allCrashFreeSessions)
         : null,
       diff: defined(diffCrashFreeSessions)
-        ? `${Math.abs(round(diffCrashFreeSessions, 3))}%`
+        ? displayCrashFreeDiff(diffCrashFreeSessions, releaseCrashFreeSessions)
         : null,
       diffDirection: diffCrashFreeSessions
         ? diffCrashFreeSessions > 0
@@ -153,7 +154,7 @@ function ReleaseComparisonChart({
         ? displayCrashFreePercent(allCrashFreeUsers)
         : null,
       diff: defined(diffCrashFreeUsers)
-        ? `${Math.abs(round(diffCrashFreeUsers, 3))}%`
+        ? displayCrashFreeDiff(diffCrashFreeUsers, releaseCrashFreeUsers)
         : null,
       diffDirection: diffCrashFreeUsers ? (diffCrashFreeUsers > 0 ? 'up' : 'down') : null,
       diffColor: diffCrashFreeUsers
@@ -292,8 +293,9 @@ function ReleaseComparisonChart({
   }
 
   const {series, previousSeries, markLines} = getSeries(activeChart);
+  const chart = charts.find(ch => ch.type === activeChart);
 
-  if (errored) {
+  if (errored || !chart) {
     return (
       <Panel>
         <ErrorPanel>
@@ -331,6 +333,15 @@ function ReleaseComparisonChart({
               start={start}
               end={end}
               utc={utc === 'true'}
+              value={chart.thisRelease}
+              diff={
+                <Change color={defined(chart.diffColor) ? chart.diffColor : undefined}>
+                  {chart.diff}{' '}
+                  {defined(chart.diffDirection) && (
+                    <IconArrow direction={chart.diffDirection} size="xs" />
+                  )}
+                </Change>
+              }
             />
           </TransitionChart>
         </ChartContainer>
@@ -434,6 +445,7 @@ const ChartToggle = styled('label')`
 `;
 
 const Change = styled('div')<{color?: Color}>`
+  font-size: ${p => p.theme.fontSizeLarge};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 
