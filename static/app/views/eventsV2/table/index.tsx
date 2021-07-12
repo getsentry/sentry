@@ -150,7 +150,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, tags} = this.props;
+    const {eventView, organization, tags} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
     const tagKeys = Object.values(tags).map(({key}) => key);
 
@@ -160,7 +160,7 @@ class Table extends PureComponent<TableProps, TableState> {
 
     return (
       <Container>
-        <Measurements>
+        <Measurements organization={organization}>
           {({measurements}) => {
             const measurementKeys = Object.values(measurements).map(({key}) => key);
 

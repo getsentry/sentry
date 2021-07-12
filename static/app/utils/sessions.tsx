@@ -1,4 +1,5 @@
 import compact from 'lodash/compact';
+import moment from 'moment';
 
 import {
   DateTimeObject,
@@ -72,6 +73,31 @@ export function getCrashFreeSeries(
   );
 }
 
+export function getAdoptionSeries(
+  releaseGroups: SessionApiResponse['groups'] = [],
+  allGroups: SessionApiResponse['groups'] = [],
+  intervals: SessionApiResponse['intervals'] = [],
+  field: SessionField
+): SeriesDataUnit[] {
+  return intervals.map((interval, i) => {
+    const intervalReleaseSessions = releaseGroups.reduce(
+      (acc, group) => acc + group.series[field][i],
+      0
+    );
+    const intervalTotalSessions = allGroups.reduce(
+      (acc, group) => acc + group.series[field][i],
+      0
+    );
+
+    const intervalAdoption = percent(intervalReleaseSessions, intervalTotalSessions);
+
+    return {
+      name: interval,
+      value: Math.round(intervalAdoption),
+    };
+  });
+}
+
 type GetSessionsIntervalOptions = {
   highFidelity?: boolean;
 };
@@ -99,4 +125,51 @@ export function getSessionsInterval(
   }
 
   return '1h';
+}
+
+// Sessions API can only round intervals to the closest hour - this is especially problematic when using sub-hour resolution.
+// We filter out results that are out of bounds on frontend and recalculate totals.
+export function filterSessionsInTimeWindow(
+  sessions: SessionApiResponse,
+  start?: string,
+  end?: string
+) {
+  if (!start || !end) {
+    return sessions;
+  }
+
+  const filteredIndexes: number[] = [];
+
+  const intervals = sessions.intervals.filter((interval, index) => {
+    const isBetween = moment(interval).isBetween(start, end, undefined, '[]');
+    if (isBetween) {
+      filteredIndexes.push(index);
+    }
+
+    return isBetween;
+  });
+
+  const groups = sessions.groups.map(group => {
+    const series = {};
+    const totals = {};
+    Object.keys(group.series).forEach(field => {
+      series[field] = group.series[field].filter((value, index) => {
+        const isBetween = filteredIndexes.includes(index);
+        if (isBetween) {
+          totals[field] = (totals[field] ?? 0) + value;
+        }
+
+        return isBetween;
+      });
+    });
+    return {...group, series, totals};
+  });
+
+  return {
+    start: intervals[0],
+    end: intervals[intervals.length - 1],
+    query: sessions.query,
+    intervals,
+    groups,
+  };
 }

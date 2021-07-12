@@ -148,9 +148,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .group-detail h3 em {
           color: ${theme.subText};
         }
-        .context-summary {
-          border-top: 1px solid ${theme.border};
-        }
         .event-details-container {
           background-color: ${theme.background};
           .secondary {
