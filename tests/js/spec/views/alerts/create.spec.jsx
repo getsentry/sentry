@@ -159,7 +159,13 @@ describe('ProjectAlertsCreate', function () {
 
     it('updates values and saves', async function () {
       const {
-        wrapper: {getByText, getByLabelText, findAllByLabelText, container},
+        wrapper: {
+          getAllByLabelText,
+          getAllByText,
+          getByLabelText,
+          getByPlaceholderText,
+          getByText,
+        },
         router,
       } = createWrapper({
         organization: {
@@ -179,15 +185,14 @@ describe('ProjectAlertsCreate', function () {
       // Change target environment
       await selectEvent.select(getByText('All Environments'), ['production']);
       // Change actionMatch and filterMatch dropdown
-      await selectEvent.select(container.querySelector('#actionMatch'), ['any']);
-      await selectEvent.select(container.querySelector('#filterMatch'), ['any']);
-      expect(container.querySelector('input[name="actionMatch"]')).toHaveValue('any');
-      expect(container.querySelector('input[name="filterMatch"]')).toHaveValue('any');
+      await selectEvent.select(getAllByText('all')[0], ['any']);
+      await selectEvent.select(getAllByText('all')[0], ['any']);
 
       // Change name of alert rule
-      fireEvent.change(container.querySelector('input[name="name"]'), {
+      fireEvent.change(getByPlaceholderText('My Rule Name'), {
         target: {value: 'My Rule Name'},
       });
+
       // Add a condition and remove it
       await selectEvent.select(getByText('Add optional condition...'), [
         'A new issue is created',
@@ -198,24 +203,20 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(getByText('Add optional condition...'), [
         "An event's tags match {key} {match} {value}",
       ]);
-
       // Edit new Condition
-      const ruleNode = getByText("An event's tags match").parentElement;
-
-      fireEvent.change(ruleNode.querySelector('input[name="key"]'), {
+      fireEvent.change(getByPlaceholderText('key'), {
         target: {value: 'conditionKey'},
       });
-      fireEvent.change(ruleNode.querySelector('input[name="value"]'), {
+      fireEvent.change(getByPlaceholderText('value'), {
         target: {value: 'conditionValue'},
       });
-
       await selectEvent.select(getByText('equals'), ['does not equal']);
 
       // Add a filter and remove it
       await selectEvent.select(getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
-      fireEvent.click((await findAllByLabelText('Delete Node'))[1]);
+      fireEvent.click(getAllByLabelText('Delete Node')[1]);
 
       // Add a new filter
       await selectEvent.select(getByText('Add optional filter...'), [
@@ -231,7 +232,7 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(getByText('Add action...'), [
         'Send a notification (for all legacy integrations)',
       ]);
-      fireEvent.click((await findAllByLabelText('Delete Node'))[2]);
+      fireEvent.click(getAllByLabelText('Delete Node')[2]);
 
       // Add a new action
       await selectEvent.select(getByText('Add action...'), [
