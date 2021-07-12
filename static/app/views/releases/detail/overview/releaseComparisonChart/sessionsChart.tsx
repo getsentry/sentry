@@ -1,7 +1,10 @@
 import * as React from 'react';
+import {withRouter} from 'react-router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 import {withTheme} from '@emotion/react';
 
 import AreaChart from 'app/components/charts/areaChart';
+import ChartZoom from 'app/components/charts/chartZoom';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -22,7 +25,11 @@ type Props = {
   platform: PlatformKey;
   value: React.ReactNode;
   diff: React.ReactNode;
-};
+  period?: string;
+  start?: string;
+  end?: string;
+  utc?: boolean;
+} & WithRouterProps;
 
 class SessionsChart extends React.Component<Props> {
   formatTooltipValue = (value: string | number | null) => {
@@ -78,7 +85,18 @@ class SessionsChart extends React.Component<Props> {
   }
 
   render() {
-    const {series, previousSeries, chartType, value, diff} = this.props;
+    const {
+      series,
+      previousSeries,
+      chartType,
+      router,
+      period,
+      start,
+      end,
+      utc,
+      value,
+      diff,
+    } = this.props;
 
     const Chart = this.getChart();
 
@@ -108,26 +126,36 @@ class SessionsChart extends React.Component<Props> {
           {value} {diff}
         </HeaderValue>
 
-        <Chart
-          legend={legend}
-          series={series}
-          previousPeriod={previousSeries}
-          isGroupedByDate
-          showTimeInTooltip
-          grid={{
-            left: '10px',
-            right: '10px',
-            top: '70px',
-            bottom: '0px',
-          }}
-          yAxis={this.configureYAxis()}
-          tooltip={{valueFormatter: this.formatTooltipValue}}
-          transformSinglePointToBar
-          height={240}
-        />
+        <ChartZoom
+          router={router}
+          period={period}
+          utc={utc}
+          start={start}
+          end={end}
+          usePageDate
+        >
+          {zoomRenderProps => (
+            <Chart
+              legend={legend}
+              series={series}
+              previousPeriod={previousSeries}
+              {...zoomRenderProps}
+              grid={{
+                left: '10px',
+                right: '10px',
+                top: '70px',
+                bottom: '0px',
+              }}
+              yAxis={this.configureYAxis()}
+              tooltip={{valueFormatter: this.formatTooltipValue}}
+              transformSinglePointToBar
+              height={240}
+            />
+          )}
+        </ChartZoom>
       </React.Fragment>
     );
   }
 }
 
-export default withTheme(SessionsChart);
+export default withTheme(withRouter(SessionsChart));

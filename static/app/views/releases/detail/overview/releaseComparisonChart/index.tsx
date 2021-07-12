@@ -14,6 +14,7 @@ import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import Radio from 'app/components/radio';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {IconArrow, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -30,7 +31,12 @@ import {defined, percent} from 'app/utils';
 import {decodeScalar} from 'app/utils/queryString';
 import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
 import {Color, Theme} from 'app/utils/theme';
-import {displayCrashFreeDiff, displayCrashFreePercent} from 'app/views/releases/utils';
+import {
+  displayCrashFreeDiff,
+  displayCrashFreePercent,
+  getReleaseBounds,
+  getReleaseParams,
+} from 'app/views/releases/utils';
 
 import {generateReleaseMarkLines, releaseComparisonChartLabels} from '../../utils';
 import {
@@ -299,6 +305,18 @@ function ReleaseComparisonChart({
     );
   }
 
+  const {
+    statsPeriod: period,
+    start,
+    end,
+    utc,
+  } = getReleaseParams({
+    location,
+    releaseBounds: getReleaseBounds(release),
+    defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
+    allowEmptyPeriod: true,
+  });
+
   return (
     <Fragment>
       <ChartPanel>
@@ -311,6 +329,10 @@ function ReleaseComparisonChart({
               previousSeries={previousSeries ?? []}
               chartType={activeChart}
               platform={platform}
+              period={period ?? undefined}
+              start={start}
+              end={end}
+              utc={utc === 'true'}
               value={chart.thisRelease}
               diff={
                 <Change color={defined(chart.diffColor) ? chart.diffColor : undefined}>
