@@ -41,11 +41,6 @@ def validate_association(
     unique_diff = list(dict.fromkeys(diff).keys())
 
     return unique_diff if len(unique_diff) else []
-    #     return [
-    #         f'The following {type} do not have an association in Sentry: {", ".join(unique_diff)}.'
-    #     ]
-
-    # return []
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
