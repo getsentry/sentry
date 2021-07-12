@@ -241,6 +241,8 @@ module:cn.gundam.sdk.* category=telemetry
 # preinstalled on Lenovo devices.
 module:com.lenovo.payplus.analytics.* category=telemetry
 
+package:"**/libBugly.so" category=telemetry
+
 family:native function:dlopen category=load
 family:native package:/system/lib/libnativeloader.so function:android::OpenNativeLibrary category=load
 module:java.lang.System function:loadLibrary category=load
