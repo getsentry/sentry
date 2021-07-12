@@ -2,6 +2,7 @@
   {
     "query": "random:<hello",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -16,6 +17,7 @@
   {
     "query": "random:<512.1.0",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -30,6 +32,7 @@
   {
     "query": "random:2018-01-01",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -44,6 +47,7 @@
   {
     "query": "random:+7d",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -58,6 +62,7 @@
   {
     "query": "random:>2018-01-01",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -72,6 +77,7 @@
   {
     "query": "random:hello",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -86,6 +92,7 @@
   {
     "query": "random:123",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

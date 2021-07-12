@@ -2,6 +2,7 @@
   {
     "query": "first_seen:+7d",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "relativeDate",
@@ -16,6 +17,7 @@
   {
     "query": "first_seen:-2w",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "relativeDate",
@@ -30,6 +32,7 @@
   {
     "query": "random:-2w",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

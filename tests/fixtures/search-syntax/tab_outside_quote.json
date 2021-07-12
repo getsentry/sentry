@@ -3,6 +3,7 @@
     "desc": "tab outside quote",
     "query": "release:a\trelease",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

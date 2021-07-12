@@ -2,6 +2,7 @@
   {
     "query": "transaction.duration:>3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",

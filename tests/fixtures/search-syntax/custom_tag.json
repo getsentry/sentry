@@ -2,6 +2,7 @@
   {
     "query": "fruit:apple release:1.2.1",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

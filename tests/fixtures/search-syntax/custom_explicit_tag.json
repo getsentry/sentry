@@ -2,6 +2,7 @@
   {
     "query": "tags[fruit]:apple release:1.2.1 tags[project_id]:123",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

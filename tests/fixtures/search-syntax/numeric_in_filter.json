@@ -2,6 +2,7 @@
   {
     "query": "project_id:[500,501,502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -47,6 +48,7 @@
   {
     "query": "project_id:[500, 501,     502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -92,6 +94,7 @@
   {
     "query": "project_id:[500, 501 ,502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -137,6 +140,7 @@
   {
     "query": "project_id:[500,501,502] issue.id:[100]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -205,6 +209,7 @@
     "desc": "Numeric format should still return a string if field isn't allowed",
     "query": "project_id:[500,501,502] random_field:[500,501,502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",

@@ -2,6 +2,7 @@
   {
     "query": "\"hi:there\":value",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "filter": "text",
         "negated": false,
@@ -16,6 +17,7 @@
   {
     "query": "!\"hi:there\":value",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "filter": "text",
         "negated": true,

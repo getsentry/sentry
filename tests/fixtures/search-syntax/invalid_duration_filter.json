@@ -2,6 +2,7 @@
   {
     "query": "transaction.duration:>..500s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "filter": "text",
         "negated": false,

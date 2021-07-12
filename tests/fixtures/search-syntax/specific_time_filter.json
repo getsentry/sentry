@@ -2,6 +2,7 @@
   {
     "query": "first_seen:2018-01-01",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "specificDate",
@@ -16,6 +17,7 @@
   {
     "query": "first_seen:2018-01-01T05:06:07Z",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "specificDate",
@@ -30,6 +32,7 @@
   {
     "query": "first_seen:2018-01-01T05:06:07+00:00",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "specificDate",
@@ -44,6 +47,7 @@
   {
     "query": "random:2018-01-01T05:06:07",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

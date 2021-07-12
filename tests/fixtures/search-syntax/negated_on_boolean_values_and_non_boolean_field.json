@@ -2,6 +2,7 @@
   {
     "query": "!user.id:true",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -16,6 +17,7 @@
   {
     "query": "!user.id:1",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

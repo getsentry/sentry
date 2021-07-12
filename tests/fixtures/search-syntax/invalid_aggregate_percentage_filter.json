@@ -2,6 +2,7 @@
   {
     "query": "percentage(transaction.duration, transaction.duration):>..500%",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "freeText",
         "value": "percentage(transaction.duration, transaction.duration):>..500%",

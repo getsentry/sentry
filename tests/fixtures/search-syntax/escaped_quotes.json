@@ -2,6 +2,7 @@
   {
     "query": "release:\"a\\\"thing\\\"\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -16,6 +17,7 @@
   {
     "query": "release:\"a\\\"\\\"release\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

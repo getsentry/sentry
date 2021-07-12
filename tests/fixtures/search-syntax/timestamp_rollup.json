@@ -2,6 +2,7 @@
   {
     "query": "timestamp.to_hour:2018-01-01T05:06:07+00:00",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "specificDate",

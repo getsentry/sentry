@@ -3,6 +3,7 @@
     "desc": "test date format with other name",
     "query": "first_seen:>2015-05-18",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "date",
@@ -17,6 +18,7 @@
   {
     "query": "first_seen:>2018-01-01T05:06:07+00:00",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "date",
@@ -31,6 +33,7 @@
   {
     "query": "random:>2015-05-18",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

@@ -2,6 +2,7 @@
   {
     "query": "device.family:\\\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -16,6 +17,7 @@
   {
     "query": "device.family:te\\\"st",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -31,6 +33,7 @@
     "desc": "This is a weird case. I think this should be an error, but it doesn't seem trivial to rewrite the grammar to handle that.",
     "query": "url:\"te\"st",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
