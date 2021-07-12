@@ -18,6 +18,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.types import ParamsType, SelectType, WhereType
@@ -51,6 +52,7 @@ class QueryBase:
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
+            TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
             # TODO: implement these
             ERROR_UNHANDLED_ALIAS: self._resolve_unimplemented_alias,
             KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
@@ -82,9 +84,12 @@ class QueryBase:
         return converter(alias)
 
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
-        column = self.column("issue.id")
-        # TODO: Remove the `toUInt64` once Column supports aliases
-        return Function("toUInt64", [column], "issue.id")
+        """The state of having no issues is represented differently on transactions vs
+        other events. On the transactions table, it is represented by 0 whereas it is
+        represented by NULL everywhere else. We use coalesce here so we can treat this
+        consistently
+        """
+        return Function("coalesce", [self.column("issue.id"), 0], ISSUE_ID_ALIAS)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         project_ids = {
@@ -119,6 +124,12 @@ class QueryBase:
     def _resolve_user_display_alias(self, _: str) -> SelectType:
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
+
+    def _resolve_transaction_status(self, _: str) -> SelectType:
+        # TODO: Remove the `toUInt8` once Column supports aliases
+        return Function(
+            "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
+        )
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
