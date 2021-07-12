@@ -116,9 +116,10 @@ class ActivityNotificationTest(APITestCase):
         attachment, text = get_attachment()
         # check the Slack version
         assert text == f"New comment by {self.name}"
+        assert attachment["title"] == f"{self.group.title}"
         assert (
-            attachment["title"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack|{self.group.title}>"
+            attachment["title_link"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack"
         )
         assert attachment["text"] == "blah blah"
         assert (

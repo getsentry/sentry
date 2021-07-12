@@ -72,7 +72,6 @@ class AssignedActivityNotification(ActivityNotification):
 
         # legacy Activity objects from before assignable teams
         if "assigneeType" not in data or data["assigneeType"] == "user":
-            assignee = author
             author = "themselves"
 
             try:

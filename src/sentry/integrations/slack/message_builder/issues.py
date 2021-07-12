@@ -324,7 +324,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             else build_footer(self.group, project, self.rules)
         )
         obj = self.event if self.event is not None else self.group
-        if not self.issue_details or self.recipient and isinstance(self.recipient, Team):
+        if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):
             payload_actions, text, color = build_actions(
                 self.group, project, text, color, self.actions, self.identity
             )
