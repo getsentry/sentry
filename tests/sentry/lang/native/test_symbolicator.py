@@ -305,7 +305,8 @@ class TestIgnoredSourcesFiltering:
         return {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
 
     # Explicitly empty list of sources
-    def test_sources_included_and_ignored_empty(default_project):
+    @pytest.mark.django_db
+    def test_sources_included_and_ignored_empty(self):
         options.set("symbolicator.ignored_sources", [])
 
         sources = filter_ignored_sources([])
@@ -313,7 +314,8 @@ class TestIgnoredSourcesFiltering:
         assert sources == []
 
     # Default/unset list of sources
-    def test_sources_ignored_unset(default_project, sources):
+    @pytest.mark.django_db
+    def test_sources_ignored_unset(self, sources):
         sources = filter_ignored_sources(sources)
 
         source_ids = map(lambda s: s["id"], sources)
@@ -325,7 +327,8 @@ class TestIgnoredSourcesFiltering:
             "sentry:tvos-source",
         ]
 
-    def test_sources_ignored_empty(default_project, sources):
+    @pytest.mark.django_db
+    def test_sources_ignored_empty(self, sources):
         options.set("symbolicator.ignored_sources", [])
 
         sources = filter_ignored_sources(sources)
@@ -339,7 +342,8 @@ class TestIgnoredSourcesFiltering:
             "sentry:tvos-source",
         ]
 
-    def test_sources_ignored_builtin(default_project, sources):
+    @pytest.mark.django_db
+    def test_sources_ignored_builtin(self, sources):
         options.set("symbolicator.ignored_sources", ["sentry:microsoft"])
 
         sources = filter_ignored_sources(sources)
@@ -352,7 +356,8 @@ class TestIgnoredSourcesFiltering:
             "sentry:tvos-source",
         ]
 
-    def test_sources_ignored_alias(default_project, sources, reversed_alias_map):
+    @pytest.mark.django_db
+    def test_sources_ignored_alias(self, sources, reversed_alias_map):
         options.set("symbolicator.ignored_sources", ["sentry:ios"])
 
         sources = filter_ignored_sources(sources, reversed_alias_map)
@@ -360,7 +365,8 @@ class TestIgnoredSourcesFiltering:
         source_ids = map(lambda s: s["id"], sources)
         assert source_ids == ["custom", "sentry:microsoft", "sentry:electron"]
 
-    def test_sources_ignored_bypass_alias(default_project, sources, reversed_alias_map):
+    @pytest.mark.django_db
+    def test_sources_ignored_bypass_alias(self, sources, reversed_alias_map):
         options.set("symbolicator.ignored_sources", ["sentry:ios-source"])
 
         sources = filter_ignored_sources(sources, reversed_alias_map)
@@ -368,7 +374,8 @@ class TestIgnoredSourcesFiltering:
         source_ids = map(lambda s: s["id"], sources)
         assert source_ids == ["custom", "sentry:microsoft", "sentry:electron", "sentry:tvos-source"]
 
-    def test_sources_ignored_custom(default_project, sources):
+    @pytest.mark.django_db
+    def test_sources_ignored_custom(self, sources):
         options.set("symbolicator.ignored_sources", ["custom"])
 
         sources = filter_ignored_sources(sources)
@@ -381,7 +388,8 @@ class TestIgnoredSourcesFiltering:
             "sentry:tvos-source",
         ]
 
-    def test_sources_ignored_unrecognized(default_project, sources):
+    @pytest.mark.django_db
+    def test_sources_ignored_unrecognized(self, sources):
         options.set("symbolicator.ignored_sources", ["honk"])
 
         sources = filter_ignored_sources(sources)
