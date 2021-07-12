@@ -319,9 +319,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
+            "start": "2021-03-13T13:00:00Z",
             "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "intervals": ["2021-03-13T13:00:00Z"],
             "groups": [],
         }
 
@@ -383,18 +383,18 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
+            "start": "2021-03-13T13:00:00Z",
             "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "intervals": ["2021-03-13T13:00:00Z"],
             "groups": [
                 {
                     "by": {"project": self.project.id},
-                    "series": {"sum(quantity)": [6]},
+                    "series": {"sum(quantity)": [0]},
                     "totals": {"sum(quantity)": 6},
                 },
                 {
                     "by": {"project": self.project2.id},
-                    "series": {"sum(quantity)": [1]},
+                    "series": {"sum(quantity)": [0]},
                     "totals": {"sum(quantity)": 1},
                 },
             ],
@@ -510,19 +510,19 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
+            "start": "2021-03-13T13:00:00Z",
             "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "intervals": ["2021-03-13T13:00:00Z"],
             "groups": [
                 {
                     "by": {"project": self.project.id},
                     "totals": {"sum(times_seen)": 6},
-                    "series": {"sum(times_seen)": [6]},
+                    "series": {"sum(times_seen)": [0]},
                 },
                 {
                     "by": {"project": self.project2.id},
                     "totals": {"sum(times_seen)": 1},
-                    "series": {"sum(times_seen)": [1]},
+                    "series": {"sum(times_seen)": [0]},
                 },
             ],
         }
