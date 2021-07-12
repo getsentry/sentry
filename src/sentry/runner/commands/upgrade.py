@@ -23,8 +23,11 @@ def _check_history():
 
     # If we haven't run all the migration up to the latest squash abort.
     # As we squash more history this should be updated.
-    cursor.execute("SELECT 1 FROM django_migrations WHERE name = '0200_release_indices'")
-    if not cursor.fetchone()[0]:
+    cursor.execute(
+        "SELECT 1 FROM django_migrations WHERE name = '0001_squashed_0200_release_indices'"
+    )
+    release_indices = cursor.fetchone()
+    if release_indices is None or not release_indices[0]:
         raise click.ClickException(
             "It looks like you've skipped a hard stop in our upgrade process. "
             "Please follow the upgrade process here: https://develop.sentry.dev/self-hosted/#hard-stops"
