@@ -1,6 +1,7 @@
 from urllib.parse import urlencode, urlparse
 
 import responses
+from django.urls import reverse
 
 import sentry
 from sentry.constants import ObjectStatus
@@ -152,26 +153,38 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
 
         # Second installation attempt for same Github account should fail
-        resp = self.client.get(self.init_path)
-        assert resp.status_code == 302
-        redirect = urlparse(resp["Location"])
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "github.com"
-        assert redirect.path == "/apps/sentry-test-app"
-
+        self.organization_2 = self.create_organization(name="petal", owner=self.user)
         # Use the same Github installation_id
-        resp = self.client.get(
-            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        self.init_path_2 = "{}?{}".format(
+            reverse(
+                "sentry-organization-integrations-setup",
+                kwargs={
+                    "organization_slug": self.organization_2.slug,
+                    "provider_id": self.provider.key,
+                },
+            ),
+            urlencode({"installation_id": self.installation_id}),
         )
-
+        resp = self.client.get(self.init_path_2)
         assert (
             b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
             in resp.content
         )
         assert (
-            b"It seems that your Github account has been installed on another Sentry organization. Please uninstall and try again."
+            b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
             in resp.content
         )
+
+        # Delete the Integration
+        integration = Integration.objects.get(external_id=self.installation_id)
+        OrganizationIntegration.objects.filter(
+            organization=self.organization, integration=integration
+        ).delete()
+        integration.delete()
+
+        # Try again and should be successful
+        resp = self.client.get(self.init_path_2)
+        self.assertDialogSuccess(resp)
 
     @responses.activate
     def test_reinstall_flow(self):
