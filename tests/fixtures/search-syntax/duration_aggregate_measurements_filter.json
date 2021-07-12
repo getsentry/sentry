@@ -2,6 +2,7 @@
   {
     "query": "percentile(measurements.fp, 0.5):3.3s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateDuration",
@@ -38,6 +39,7 @@
   {
     "query": "percentile(measurements.fp, 0.5):>3.3s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateDuration",
@@ -74,6 +76,7 @@
   {
     "query": "percentile(measurements.fp, 0.5):<3.3s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateDuration",

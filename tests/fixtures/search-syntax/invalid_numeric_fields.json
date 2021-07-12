@@ -2,6 +2,7 @@
   {
     "query": "project.id:one",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -20,6 +21,7 @@
   {
     "query": "issue.id:two",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -38,6 +40,7 @@
   {
     "query": "transaction.duration:>hotdog",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
