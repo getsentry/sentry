@@ -9,6 +9,14 @@ describe('SmartSearchBar', function () {
   let environmentTagValuesMock;
   const tagValuesMock = jest.fn(() => Promise.resolve([]));
 
+  const mockCursorPosition = (component, pos) => {
+    delete component.cursorPosition;
+    Object.defineProperty(component, 'cursorPosition', {
+      get: jest.fn().mockReturnValue(pos),
+      configurable: true,
+    });
+  };
+
   beforeEach(function () {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
@@ -511,8 +519,8 @@ describe('SmartSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
-      searchBar.getCursorPosition = jest.fn();
-      searchBar.getCursorPosition.mockReturnValue(15); // end of line
+      // Cursor is at end of line
+      mockCursorPosition(searchBar, 15);
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
@@ -611,7 +619,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(3);
+      mockCursorPosition(searchBar, 3);
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(searchBar.state.query).toEqual('id:12345 event.type:error ');
     });
@@ -624,7 +632,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      mockCursorPosition(searchBar, 20);
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
     });
@@ -641,7 +649,7 @@ describe('SmartSearchBar', function () {
         <SmartSearchBar {...props} onChange={onChange} />,
         options
       ).instance();
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      mockCursorPosition(searchBar, 20);
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(onChange).toHaveBeenCalledWith(
         'event.type:error id:12345 ',
@@ -661,7 +669,7 @@ describe('SmartSearchBar', function () {
       const textarea = smartSearchBar.find('textarea');
       // start typing part of the tag prefixed by the negation operator!
       textarea.simulate('change', {target: {value: 'event.type:error !ti'}});
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      mockCursorPosition(searchBar, 20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('title:', {});
       expect(searchBar.state.query).toEqual('event.type:error !title:');
@@ -680,14 +688,14 @@ describe('SmartSearchBar', function () {
 
       // leading wildcard
       textarea.simulate('change', {target: {value: 'event.type:*err'}});
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      mockCursorPosition(searchBar, 20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('error', {});
       expect(searchBar.state.query).toEqual('event.type:error');
 
       // trailing wildcard
       textarea.simulate('change', {target: {value: 'event.type:err*'}});
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      mockCursorPosition(searchBar, 20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('error', {});
       expect(searchBar.state.query).toEqual('event.type:error');
@@ -705,13 +713,13 @@ describe('SmartSearchBar', function () {
       const textarea = smartSearchBar.find('textarea');
 
       textarea.simulate('change', {target: {value: 'user:'}});
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      mockCursorPosition(searchBar, 5);
       searchBar.onAutoComplete('id:1', {});
       expect(searchBar.state.query).toEqual('user:"id:1"');
 
       // try it with the SEARCH_WILDCARD
       textarea.simulate('change', {target: {value: 'user:1*'}});
-      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      mockCursorPosition(searchBar, 5);
       searchBar.onAutoComplete('ip:127.0.0.1', {});
       expect(searchBar.state.query).toEqual('user:"ip:127.0.0.1"');
     });
