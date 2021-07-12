@@ -319,8 +319,8 @@ class EventManager:
             return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project._organization_cache = Organization.objects.get_from_cache(
-                id=project.organization_id
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
             )
 
         job = {"data": self._data, "project_id": project_id, "raw": raw, "start_time": start_time}
@@ -590,7 +590,7 @@ def _pull_out_data(jobs, projects):
         job["data"] = data = event.data.data
         job["category"] = DataCategory.from_event_type(data.get("type"))
         job["platform"] = event.platform
-        event._project_cache = projects[job["project_id"]]
+        event.set_cached_field_value("project", projects[job["project_id"]])
 
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
@@ -1679,7 +1679,9 @@ def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.set_organization_cache"):
         for project in projects.values():
             try:
-                project._organization_cache = organizations[project.organization_id]
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
             except KeyError:
                 continue
 
