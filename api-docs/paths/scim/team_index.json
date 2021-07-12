@@ -1,0 +1,175 @@
+{
+    "get": {
+        "tags": [
+            "SCIM"
+        ],
+        "description": "Returns a paginated list of teams bound to a organization with a SCIM Groups GET Request.\n- Note that the members field will only contain up to 10000 members.",
+        "operationId": "List an Organization's Paginated Teams",
+        "parameters": [
+            {
+                "name": "organization_slug",
+                "description": "The slug of the organization.",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            },
+            {
+                "$ref": "../../components/parameters/scim.json#/startIndex"
+            },
+            {
+                "$ref": "../../components/parameters/scim.json#/filter"
+            },
+            {
+                "$ref": "../../components/parameters/scim.json#/count"
+            },
+            {
+                "name": "excludedAttributes",
+                "in": "query",
+                "required": false,
+                "description": "Fields that should be left off of return values. Right now the only supported field for this query is `members`.",
+                "schema": {
+                    "type": "string"
+                }
+            }
+        ],
+        "responses": {
+            "200": {
+                "description": "Success",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "../../components/schemas/scim/group_list.json#/GroupList"
+                        },
+                        "example": {
+                            "schemas": [
+                                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+                            ],
+                            "totalResults": 1,
+                            "startIndex": 1,
+                            "itemsPerPage": 1,
+                            "Resources": [
+                                {
+                                    "schemas": [
+                                        "urn:ietf:params:scim:schemas:core:2.0:Group"
+                                    ],
+                                    "id": "23232",
+                                    "displayName": "test-scimv2",
+                                    "members": [],
+                                    "meta": {
+                                        "resourceType": "Group"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "401": {
+                "description": "Permission Denied"
+            },
+            "403": {
+                "description": "Forbidden"
+            },
+            "404": {
+                "description": "Not Found"
+            }
+        },
+        "security": [
+            {
+                "auth_token": [
+                    "team:read"
+                ]
+            }
+        ]
+    },
+    "post": {
+        "tags": [
+            "SCIM"
+        ],
+        "description": "Create a new team bound to an organization via a SCIM Groups POST Request. Note that teams are always created with an empty member set. The endpoint will also do a normalization of uppercase / spaces to lowercase and dashes.",
+        "operationId": "Provision a New Team",
+        "parameters": [
+            {
+                "name": "organization_slug",
+                "description": "The slug of the organization.",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            }
+        ],
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "required": [
+                            "schemas","displayName"
+                        ],
+                        "type": "object",
+                        "properties": {
+                            "schemas": {
+                                "$ref": "../../components/schemas/scim/group.json#/definitions/schemas"
+                            },
+                            "displayName": {
+                                "$ref": "../../components/schemas/scim/group.json#/definitions/displayName"
+                            },
+                            "members": {
+                                "$ref": "../../components/schemas/scim/group.json#/definitions/members"
+                            }
+                        }
+                    },
+                    "example": {
+                        "schemas": [
+                            "urn:ietf:params:scim:schemas:core:2.0:Group"
+                        ],
+                        "displayName": "Test SCIMv2",
+                        "members": []
+                    }
+                }
+            },
+            "required": true
+        },
+        "responses": {
+            "201": {
+                "description": "Success",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "../../components/schemas/scim/group.json#/Group"
+                        },
+                        "example": {
+                            "schemas": [
+                                "urn:ietf:params:scim:schemas:core:2.0:Group"
+                            ],
+                            "displayName": "Test SCIMv2",
+                            "members": [],
+                            "meta": {
+                                "resourceType": "Group"
+                            },
+                            "id": "123"
+                        }
+                    }
+                }
+            },
+            "400": {
+                "description": "Bad input"
+            },
+            "403": {
+                "description": "Forbidden"
+            },
+            "409": {
+                "description": "Team slug already exists"
+            }
+        },
+        "security": [
+            {
+                "auth_token": [
+                    "team:write"
+                ]
+            }
+        ]
+    }
+}
