@@ -15,10 +15,10 @@
         "name": {
             "type": "object",
             "properties": {
-                "firstName": {
+                "givenName": {
                     "type": "string"
                 },
-                "lastName": {
+                "familyName": {
                     "type": "string"
                 }
             }

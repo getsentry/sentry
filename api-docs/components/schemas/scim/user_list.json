@@ -12,6 +12,12 @@
             "startIndex": {
                 "type": "integer"
             },
+            "schemas": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
             "Resources": {
                 "type": "array",
                 "items": {

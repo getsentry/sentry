@@ -106,7 +106,7 @@
                 "application/json": {
                     "schema": {
                         "required": [
-                            "name","schemas","userName","active"
+                            "schemas","userName","active"
                         ],
                         "type": "object",
                         "properties": {
@@ -118,6 +118,21 @@
                             },
                             "active": {
                                 "$ref": "../../components/schemas/scim/user.json#/definitions/active"
+                            },
+                            "emails": {
+                                "$ref": "../../components/schemas/scim/user.json#/definitions/emails"
+                            },
+                            "displayName": {
+                                "type": "string"
+                            },
+                            "locale": {
+                                "type": "string"
+                            },
+                            "externalId": {
+                                "type": "string"
+                            },
+                            "groups": {
+                                "type": "array"
                             }
                         }
                     },
