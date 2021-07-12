@@ -146,6 +146,34 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert oi.config == {}
 
     @responses.activate
+    def test_github_installed_on_another_org(self):
+        self._stub_github()
+        # First installation should be successful
+        self.assert_setup_flow()
+
+        # Second installation attempt for same Github account should fail
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/apps/sentry-test-app"
+
+        # Use the same Github installation_id
+        resp = self.client.get(
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
+
+        assert (
+            b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
+            in resp.content
+        )
+        assert (
+            b"It seems that your Github account has been installed on another Sentry organization. Please uninstall and try again."
+            in resp.content
+        )
+
+    @responses.activate
     def test_reinstall_flow(self):
         self._stub_github()
         self.assert_setup_flow()
