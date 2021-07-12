@@ -132,6 +132,7 @@ class SharedGroupDetails extends Component<Props, State> {
                     event={latestEvent}
                     project={project}
                     api={api}
+                    isBorderless
                     isShare
                   />
                 </Container>

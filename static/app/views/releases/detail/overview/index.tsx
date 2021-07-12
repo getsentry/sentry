@@ -44,6 +44,7 @@ import Deploys from './deploys';
 import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
+import ReleaseAdoption from './releaseAdoption';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
 import ReleaseDetailsRequest from './releaseDetailsRequest';
@@ -291,12 +292,7 @@ class ReleaseOverview extends AsyncView<Props> {
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
-    const {
-      start,
-      end,
-      statsPeriod,
-      utc: utcString,
-    } = getParams(query, {
+    const {start, end, statsPeriod} = getParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -306,13 +302,10 @@ class ReleaseOverview extends AsyncView<Props> {
       return {period: statsPeriod};
     }
 
-    const utc = utcString === 'true';
-    const parser = utc ? moment.utc : moment;
     if (start && end) {
       return {
-        start: parser(start).format(),
-        end: parser(end).format(),
-        utc,
+        start: moment.utc(start).format(),
+        end: moment.utc(end).format(),
       };
     }
 
@@ -441,7 +434,6 @@ class ReleaseOverview extends AsyncView<Props> {
                               end={end ?? null}
                               utc={utc ?? null}
                               onUpdate={this.handleDateChange}
-                              showAbsolute={false}
                               relativeOptions={{
                                 [RELEASE_PERIOD_KEY]: (
                                   <Fragment>
@@ -543,6 +535,17 @@ class ReleaseOverview extends AsyncView<Props> {
                       getHealthData={getHealthData}
                       isHealthLoading={isHealthLoading}
                     />
+                    <Feature features={['release-comparison']}>
+                      <ReleaseAdoption
+                        releaseSessions={thisRelease}
+                        allSessions={allReleases}
+                        loading={loading}
+                        reloading={reloading}
+                        errored={errored}
+                        release={release}
+                        project={project}
+                      />
+                    </Feature>
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}
