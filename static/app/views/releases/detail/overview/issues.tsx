@@ -327,30 +327,28 @@ class Issues extends Component<Props, State> {
 
     return (
       <EmptyState>
-        <Fragment>
-          {issuesType === IssuesType.NEW
-            ? isEntireReleasePeriod
-              ? t('No new issues in this release.')
-              : tct('No new issues for the [timePeriod].', {
-                  timePeriod: displayedPeriod,
-                })
-            : null}
-          {issuesType === IssuesType.UNHANDLED
-            ? isEntireReleasePeriod
-              ? t('No unhandled issues in this release.')
-              : tct('No unhandled issues for the [timePeriod].', {
-                  timePeriod: displayedPeriod,
-                })
-            : null}
-          {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
-          {issuesType === IssuesType.ALL
-            ? isEntireReleasePeriod
-              ? t('No issues in this release')
-              : tct('No issues for the [timePeriod].', {
-                  timePeriod: displayedPeriod,
-                })
-            : null}
-        </Fragment>
+        {issuesType === IssuesType.NEW
+          ? isEntireReleasePeriod
+            ? t('No new issues in this release.')
+            : tct('No new issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })
+          : null}
+        {issuesType === IssuesType.UNHANDLED
+          ? isEntireReleasePeriod
+            ? t('No unhandled issues in this release.')
+            : tct('No unhandled issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })
+          : null}
+        {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
+        {issuesType === IssuesType.ALL
+          ? isEntireReleasePeriod
+            ? t('No issues in this release')
+            : tct('No issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })
+          : null}
       </EmptyState>
     );
   };
