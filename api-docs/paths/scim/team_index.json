@@ -8,6 +8,7 @@
         "parameters": [
             {
                 "name": "organization_slug",
+                "description": "The slug of the organization.",
                 "in": "path",
                 "required": true,
                 "schema": {
@@ -39,18 +40,28 @@
                 "content": {
                     "application/json": {
                         "schema": {
-                            "$ref": "../../components/schemas/scim/group_list.json"
+                            "$ref": "../../components/schemas/scim/group_list.json#/GroupList"
                         },
                         "example": {
                             "schemas": [
-                                "urn:ietf:params:scim:schemas:core:2.0:Group"
+                                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
                             ],
-                            "id": "23232",
-                            "displayName": "test-scimv2",
-                            "members": [],
-                            "meta": {
-                                "resourceType": "Group"
-                            }
+                            "totalResults": 1,
+                            "startIndex": 1,
+                            "itemsPerPage": 1,
+                            "Resources": [
+                                {
+                                    "schemas": [
+                                        "urn:ietf:params:scim:schemas:core:2.0:Group"
+                                    ],
+                                    "id": "23232",
+                                    "displayName": "test-scimv2",
+                                    "members": [],
+                                    "meta": {
+                                        "resourceType": "Group"
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -82,6 +93,7 @@
         "parameters": [
             {
                 "name": "organization_slug",
+                "description": "The slug of the organization.",
                 "in": "path",
                 "required": true,
                 "schema": {
@@ -94,7 +106,7 @@
                 "application/json": {
                     "schema": {
                         "required": [
-                            "name"
+                            "schemas","displayName"
                         ],
                         "type": "object",
                         "properties": {
@@ -106,9 +118,6 @@
                             },
                             "members": {
                                 "$ref": "../../components/schemas/scim/group.json#/definitions/members"
-                            },
-                            "meta": {
-                                "$ref": "../../components/schemas/scim/group.json#/definitions/meta"
                             }
                         }
                     },
@@ -139,7 +148,8 @@
                             "members": [],
                             "meta": {
                                 "resourceType": "Group"
-                            }
+                            },
+                            "id": "123"
                         }
                     }
                 }

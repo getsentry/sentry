@@ -1,20 +1,33 @@
 {
-    "type": "object",
-    "required": ["totalResults","itemsPerPage","startIndex","Resources"],
-    "properties": {
-        "totalResults": {
-            "type": "integer"
-        },
-        "itemsPerPage": {
-            "type": "integer"
-        },
-        "startIndex": {
-            "type": "integer"
-        },
-        "Resources": {
-            "type": "array",
-            "items": {
-                "$ref": "group.json#/Group"
+    "GroupList": {
+        "type": "object",
+        "required": [
+            "totalResults",
+            "itemsPerPage",
+            "startIndex",
+            "Resources"
+        ],
+        "properties": {
+            "schemas": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
+            "totalResults": {
+                "type": "integer"
+            },
+            "itemsPerPage": {
+                "type": "integer"
+            },
+            "startIndex": {
+                "type": "integer"
+            },
+            "Resources": {
+                "type": "array",
+                "items": {
+                    "$ref": "group.json#/Group"
+                }
             }
         }
     }
