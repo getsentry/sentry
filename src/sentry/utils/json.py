@@ -10,6 +10,7 @@ import uuid
 from enum import Enum
 from typing import Any
 
+import rapidjson
 import sentry_sdk
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
@@ -105,9 +106,12 @@ def load(fp, **kwargs) -> JSONData:
     return loads(fp.read())
 
 
-def loads(value: str, **kwargs) -> JSONData:
+def loads(value: str, use_rapid_json: bool = False, **kwargs) -> JSONData:
     with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-        return _default_decoder.decode(value)
+        if use_rapid_json is True:
+            return rapidjson.loads(value)
+        else:
+            return _default_decoder.decode(value)
 
 
 def dumps_htmlsafe(value):
