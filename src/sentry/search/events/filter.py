@@ -1215,12 +1215,11 @@ class QueryFilter(QueryBase):
     ) -> Optional[WhereType]:
         name = search_filter.key.name
         value = search_filter.value.value
-
-        lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
+        lhs = self.resolve_field_alias(name)
 
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            output = 0 if search_filter.operator == "!=" else 1
-            return Condition(Function("isHandled", []), Op.EQ, output)
+            output = 1 if search_filter.operator == "!=" else 0
+            return Condition(lhs, Op.EQ, output)
 
         if value not in ("0", 0, "1", 1):
             raise InvalidSearchQuery(
@@ -1235,8 +1234,7 @@ class QueryFilter(QueryBase):
     ) -> Optional[WhereType]:
         name = search_filter.key.name
         value = search_filter.value.value
-
-        lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
+        lhs = self.resolve_field_alias(name)
 
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             output = 1 if search_filter.operator == "!=" else 0

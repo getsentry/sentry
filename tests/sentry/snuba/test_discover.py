@@ -569,7 +569,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data = result["data"]
 
                 assert len(data) == len(expected_events), query_fn
-                assert [item["error.handled"] for item in data] == error_handled
+                assert [item["error.unhandled"] for item in data] == error_handled
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
