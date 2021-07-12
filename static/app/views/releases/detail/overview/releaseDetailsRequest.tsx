@@ -7,7 +7,7 @@ import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, SessionApiResponse} from 'app/types';
-import {getSessionsInterval} from 'app/utils/sessions';
+import {filterSessionsInTimeWindow, getSessionsInterval} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
 
 import {getReleaseParams, ReleaseBounds} from '../../utils';
@@ -109,8 +109,16 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
 
       this.setState({
         reloading: false,
-        thisRelease,
-        allReleases,
+        thisRelease: filterSessionsInTimeWindow(
+          thisRelease,
+          this.baseQueryParams.start,
+          this.baseQueryParams.end
+        ),
+        allReleases: filterSessionsInTimeWindow(
+          allReleases,
+          this.baseQueryParams.start,
+          this.baseQueryParams.end
+        ),
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
