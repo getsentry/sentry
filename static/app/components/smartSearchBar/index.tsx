@@ -323,7 +323,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
   }
 
-  get hasImporvedSearch() {
+  get hasImprovedSearch() {
     return this.props.organization.features.includes('improved-search');
   }
 
@@ -979,7 +979,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     const cursor = this.getCursorPosition();
 
-    if (this.hasImporvedSearch) {
+    if (this.hasImprovedSearch) {
       this.updateAutoCompleteFromAst();
       return;
     }
@@ -1222,7 +1222,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursor = this.getCursorPosition();
     const {query} = this.state;
 
-    if (this.hasImporvedSearch) {
+    if (this.hasImprovedSearch) {
       this.onAutoCompleteFromAst(replaceText, item);
       return;
     }
@@ -1347,7 +1347,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
         <InputWrapper>
           <Highlight>
-            {this.hasImporvedSearch && parsedQuery !== null ? (
+            {this.hasImprovedSearch && parsedQuery !== null ? (
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={cursor === -1 ? undefined : cursor}
