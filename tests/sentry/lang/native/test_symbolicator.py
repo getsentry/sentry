@@ -4,7 +4,11 @@ import pytest
 
 from sentry import options
 from sentry.lang.native import symbolicator
-from sentry.lang.native.symbolicator import get_sources_for_project, redact_internal_sources
+from sentry.lang.native.symbolicator import (
+    filter_ignored_sources,
+    get_sources_for_project,
+    redact_internal_sources,
+)
 from sentry.testutils.helpers import Feature
 from sentry.utils.compat import map
 
@@ -104,73 +108,6 @@ def test_sources_custom_disabled(default_project):
 
     source_ids = map(lambda s: s["id"], sources)
     assert source_ids == ["sentry:project"]
-
-
-# Tests that the default value for the source killswitch does not affect the generated list of
-# sources.
-@pytest.mark.django_db
-def test_sources_ignored_empty(default_project):
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
-
-    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
-    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
-    options.set("symbolicator.ignored_sources", [])
-
-    with Feature(features):
-        sources = get_sources_for_project(default_project)
-
-    source_ids = map(lambda s: s["id"], sources)
-    assert source_ids == ["sentry:project", "custom", "sentry:microsoft", "sentry:electron"]
-
-
-# When a built-in source's ID is provided to the kill switch the source should be excluded from the
-# project.
-@pytest.mark.django_db
-def test_sources_ignored_builtin(default_project):
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-
-    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
-    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
-    options.set("symbolicator.ignored_sources", ["sentry:microsoft"])
-
-    with Feature(features):
-        sources = get_sources_for_project(default_project)
-
-    source_ids = map(lambda s: s["id"], sources)
-    assert source_ids == ["sentry:project", "custom", "sentry:electron"]
-
-
-# When a custom source's ID is provided to the kill switch the source should be excluded from the
-# project.
-@pytest.mark.django_db
-def test_sources_ignored_custom(default_project):
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-
-    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
-    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
-    options.set("symbolicator.ignored_sources", ["custom"])
-
-    with Feature(features):
-        sources = get_sources_for_project(default_project)
-
-    source_ids = map(lambda s: s["id"], sources)
-    assert source_ids == ["sentry:project", "sentry:microsoft", "sentry:electron"]
-
-
-# Unrecognized source IDs in the kill switch should just be silently ignored.
-@pytest.mark.django_db
-def test_sources_ignored_unrecognized(default_project):
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-
-    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft", "electron"])
-    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
-    options.set("symbolicator.ignored_sources", ["honk"])
-
-    with Feature(features):
-        sources = get_sources_for_project(default_project)
-
-    source_ids = map(lambda s: s["id"], sources)
-    assert source_ids == ["sentry:project", "custom", "sentry:microsoft", "sentry:electron"]
 
 
 class TestInternalSourcesRedaction:
@@ -333,3 +270,127 @@ class TestAliasReversion:
         reverse_aliases = symbolicator.reverse_aliases_map(builtin_sources)
         expected = {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
         assert reverse_aliases == expected
+
+
+class TestIgnoredSourcesFiltering:
+    @pytest.fixture
+    def sources(self):
+        builtins = [
+            {
+                "id": "sentry:microsoft",
+                "name": "Microsoft",
+                "type": "gcs",
+            },
+            {
+                "id": "sentry:electron",
+                "name": "Electron",
+                "type": "s3",
+            },
+            {
+                "id": "sentry:ios-source",
+                "name": "iOS",
+                "type": "http",
+            },
+            {
+                "id": "sentry:tvos-source",
+                "name": "iOS",
+                "type": "http",
+            },
+        ]
+        builtins.extend(CUSTOM_SOURCE_CONFIG)
+        return builtins
+
+    @pytest.fixture
+    def reversed_alias_map(self):
+        return {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
+
+    # Explicitly empty list of sources
+    def test_sources_included_and_ignored_empty(default_project):
+        options.set("symbolicator.ignored_sources", [])
+
+        sources = filter_ignored_sources([])
+
+        assert sources == []
+
+    # Default/unset list of sources
+    def test_sources_ignored_unset(default_project, sources):
+        sources = filter_ignored_sources(sources)
+
+        source_ids = map(lambda s: s["id"], sources)
+        assert source_ids == [
+            "custom",
+            "sentry:microsoft",
+            "sentry:electron",
+            "sentry:ios-source",
+            "sentry:tvos-source",
+        ]
+
+    def test_sources_ignored_empty(default_project, sources):
+        options.set("symbolicator.ignored_sources", [])
+
+        sources = filter_ignored_sources(sources)
+
+        source_ids = map(lambda s: s["id"], sources)
+        assert source_ids == [
+            "custom",
+            "sentry:microsoft",
+            "sentry:electron",
+            "sentry:ios-source",
+            "sentry:tvos-source",
+        ]
+
+    def test_sources_ignored_builtin(default_project, sources):
+        options.set("symbolicator.ignored_sources", ["sentry:microsoft"])
+
+        sources = filter_ignored_sources(sources)
+
+        source_ids = map(lambda s: s["id"], sources)
+        assert source_ids == [
+            "custom",
+            "sentry:electron",
+            "sentry:ios-source",
+            "sentry:tvos-source",
+        ]
+
+    def test_sources_ignored_alias(default_project, sources, reversed_alias_map):
+        options.set("symbolicator.ignored_sources", ["sentry:ios"])
+
+        sources = filter_ignored_sources(sources, reversed_alias_map)
+
+        source_ids = map(lambda s: s["id"], sources)
+        assert source_ids == ["custom", "sentry:microsoft", "sentry:electron"]
+
+    def test_sources_ignored_bypass_alias(default_project, sources, reversed_alias_map):
+        options.set("symbolicator.ignored_sources", ["sentry:ios-source"])
+
+        sources = filter_ignored_sources(sources, reversed_alias_map)
+
+        source_ids = map(lambda s: s["id"], sources)
+        assert source_ids == ["custom", "sentry:microsoft", "sentry:electron", "sentry:tvos-source"]
+
+    def test_sources_ignored_custom(default_project, sources):
+        options.set("symbolicator.ignored_sources", ["custom"])
+
+        sources = filter_ignored_sources(sources)
+
+        source_ids = map(lambda s: s["id"], sources)
+        assert source_ids == [
+            "sentry:microsoft",
+            "sentry:electron",
+            "sentry:ios-source",
+            "sentry:tvos-source",
+        ]
+
+    def test_sources_ignored_unrecognized(default_project, sources):
+        options.set("symbolicator.ignored_sources", ["honk"])
+
+        sources = filter_ignored_sources(sources)
+
+        source_ids = map(lambda s: s["id"], sources)
+        assert source_ids == [
+            "custom",
+            "sentry:microsoft",
+            "sentry:electron",
+            "sentry:ios-source",
+            "sentry:tvos-source",
+        ]

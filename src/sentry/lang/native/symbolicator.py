@@ -351,12 +351,6 @@ def get_sources_for_project(project):
 
     sources = []
 
-    def filter_ignored_sources(sources):
-        blocked_source_ids = options.get("symbolicator.ignored_sources")
-        if not blocked_source_ids:
-            return sources
-        return [src for src in sources if src["id"] not in blocked_source_ids]
-
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
     project_source = get_internal_source(project)
@@ -367,7 +361,7 @@ def get_sources_for_project(project):
     organization = project.organization
 
     if not features.has("organizations:symbol-sources", organization):
-        return filter_ignored_sources(sources)
+        return sources
 
     # Custom sources have their own feature flag. Check them independently.
     if features.has("organizations:custom-symbol-sources", organization):
@@ -413,7 +407,35 @@ def get_sources_for_project(project):
         else:
             sources.append(source)
 
-    return filter_ignored_sources(sources)
+    return sources
+
+
+def filter_ignored_sources(sources, reversed_alias_map=()):
+    """
+    Filters out sources that are meant to be blocked based on a global killswitch. If any sources
+    were de-aliased, a reverse mapping of {unaliased id: alias} should be provided for this to
+    properly filter out all blocked sources.
+    """
+
+    ignored_source_ids = options.get("symbolicator.ignored_sources")
+    if not ignored_source_ids:
+        return sources
+
+    filtered = []
+    for src in sources:
+        resolved = src["id"]
+        alias = reversed_alias_map.get(resolved) or resolved
+        # This covers three scenarios:
+        # 1. The source had an alias, and the config may have used that alias to block it (alias map
+        #    lookup resolved)
+        # 2. The source had no alias, and the config may have used the source's ID to block it
+        #    (alias map lookup returned None and fell back to resolved)
+        # 3. The source had an alias, but the config used the source's internal unaliased ID to
+        #    block it (alias map lookup resolved but not in ignored_source_ids, resolved IS in
+        #    ignored_source_ids)
+        if alias not in ignored_source_ids and resolved not in ignored_source_ids:
+            filtered.append(src)
+    return filtered
 
 
 class SymbolicatorSession:
@@ -439,6 +461,11 @@ class SymbolicatorSession:
         for source in settings.SENTRY_BUILTIN_SOURCES.values():
             if source.get("type") == "alias":
                 self.source_names[source["id"]] = source.get("name", "unknown")
+
+        # Remove sources that should be ignored. This leaves a few extra entries in the alias
+        # maps and source names maps, but that's fine. The orphaned entries in the maps will just
+        # never be used.
+        self.source_names = filter_ignored_sources(self.sources, self.reverse_source_aliases)
 
     def __enter__(self):
         self.open()
