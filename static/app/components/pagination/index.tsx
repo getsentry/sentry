@@ -14,6 +14,7 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 
 const defaultProps: DefaultProps = {
   size: 'small',
+  disabled: false,
   onCursor: (cursor: string, path: string, query: Query, _direction: number) => {
     browserHistory.push({
       pathname: path,
@@ -25,6 +26,7 @@ const defaultProps: DefaultProps = {
 type DefaultProps = {
   size?: 'zero' | 'xsmall' | 'small';
   onCursor?: (cursor: string, path: string, query: Query, _direction: number) => void;
+  disabled?: boolean;
 };
 
 type Props = DefaultProps & {
@@ -45,7 +47,7 @@ class Pagination extends Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
-    const {className, onCursor, pageLinks, size, caption} = this.props;
+    const {className, onCursor, pageLinks, size, caption, disabled} = this.props;
     if (!pageLinks) {
       return null;
     }
@@ -54,8 +56,8 @@ class Pagination extends Component<Props> {
     const path = this.props.to || location.pathname;
     const query = location.query;
     const links = parseLinkHeader(pageLinks);
-    const previousDisabled = links.previous.results === false;
-    const nextDisabled = links.next.results === false;
+    const previousDisabled = disabled || links.previous.results === false;
+    const nextDisabled = disabled || links.next.results === false;
 
     return (
       <Wrapper className={className}>

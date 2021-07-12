@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {IconCollapse, IconExpand, IconFire} from 'app/icons';
+import {IconAdd, IconFire, IconSubtract} from 'app/icons';
 import space from 'app/styles/space';
-import {Color} from 'app/utils/theme';
+import {Aliases, Color} from 'app/utils/theme';
 
 export const DividerContainer = styled('div')`
   position: relative;
@@ -49,7 +49,7 @@ export const DividerLineGhostContainer = styled('div')`
   height: 100%;
 `;
 
-const BadgeBorder = styled('div')<{borderColor: Color}>`
+const BadgeBorder = styled('div')<{borderColor: Color | keyof Aliases}>`
   position: absolute;
   margin: ${space(0.25)};
   left: -11px;
@@ -81,7 +81,7 @@ export function EmbeddedTransactionBadge({
 }) {
   return (
     <BadgeBorder
-      borderColor="gray500"
+      borderColor="border"
       onClick={event => {
         event.stopPropagation();
         event.preventDefault();
@@ -89,9 +89,9 @@ export function EmbeddedTransactionBadge({
       }}
     >
       {expanded ? (
-        <IconCollapse color="gray500" size="xs" />
+        <IconSubtract color="textColor" size="xs" />
       ) : (
-        <IconExpand color="gray500" size="xs" />
+        <IconAdd color="textColor" size="xs" />
       )}
     </BadgeBorder>
   );

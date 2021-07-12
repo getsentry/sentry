@@ -2,8 +2,8 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
@@ -24,10 +24,8 @@ import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
-import TransactionThresholdModal, {
-  modalCss,
-  TransactionThresholdMetric,
-} from './transactionThresholdModal';
+import TransactionThresholdButton from './transactionThresholdButton';
+import {TransactionThresholdMetric} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum Tab {
@@ -49,9 +47,6 @@ type Props = {
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
-  transactionThreshold?: number;
-  transactionThresholdMetric?: TransactionThresholdMetric;
-  loadingThreshold?: boolean;
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -77,7 +72,12 @@ class TransactionHeader extends React.Component<Props> {
   };
 
   trackTagsTabClick = () => {
-    // TODO(k-fish): Add analytics for tags
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.tags.tags_tab_clicked',
+      eventName: 'Performance Views: Tags tab clicked',
+      organization_id: organization.id,
+    });
   };
 
   trackEventsTabClick = () => {
@@ -139,33 +139,8 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  openModal() {
-    const {
-      organization,
-      transactionName,
-      eventView,
-      transactionThreshold,
-      transactionThresholdMetric,
-      onChangeThreshold,
-    } = this.props;
-    openModal(
-      modalProps => (
-        <TransactionThresholdModal
-          {...modalProps}
-          organization={organization}
-          transactionName={transactionName}
-          eventView={eventView}
-          transactionThreshold={transactionThreshold}
-          transactionThresholdMetric={transactionThresholdMetric}
-          onApply={onChangeThreshold}
-        />
-      ),
-      {modalCss, backdrop: 'static'}
-    );
-  }
-
   renderSettingsButton() {
-    const {organization, loadingThreshold} = this.props;
+    const {organization, transactionName, eventView, onChangeThreshold} = this.props;
 
     return (
       <Feature
@@ -174,13 +149,17 @@ class TransactionHeader extends React.Component<Props> {
       >
         {({hasFeature}) =>
           hasFeature ? (
-            <Button
-              onClick={() => this.openModal()}
-              data-test-id="set-transaction-threshold"
-              icon={<IconSettings />}
-              disabled={loadingThreshold}
-              aria-label={t('Settings')}
-            />
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <TransactionThresholdButton
+                organization={organization}
+                transactionName={transactionName}
+                eventView={eventView}
+                onChangeThreshold={onChangeThreshold}
+              />
+            </GuideAnchor>
           ) : (
             <Button
               href={`/settings/${organization.slug}/performance/`}
@@ -269,7 +248,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTagsTabClick}
               >
                 {t('Tags')}
-                <FeatureBadge type="beta" noTooltip />
+                <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
             <Feature features={['organizations:performance-events-page']}>
@@ -279,6 +258,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackEventsTabClick}
               >
                 {t('All Events')}
+                <FeatureBadge type="beta" noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>
