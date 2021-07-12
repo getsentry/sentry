@@ -8,7 +8,6 @@ from django.core.cache import cache
 from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
-from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.utils import default_start_end_dates
 from sentry.models import (
     Project,
@@ -797,6 +796,33 @@ class SnubaTagStorage(TagStorage):
             ]
         )
 
+    def _get_tag_values_for_release_stages(self, projects, environments, query):
+        from sentry.api.paginator import SequencePaginator
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        versions = Release.objects.filter_by_stage(
+            organization_id,
+            "=",
+            query,
+            project_ids=projects,
+        )
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        versions = versions.order_by("version").values_list("version", flat=True)[:1000]
+        return SequencePaginator(
+            [
+                (i, TagValue(RELEASE_STAGE_ALIAS, v, None, None, None))
+                for i, v in enumerate(versions)
+            ]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -872,29 +898,7 @@ class SnubaTagStorage(TagStorage):
             return self._get_tag_values_for_semver(projects, environments, query)
 
         if key == RELEASE_STAGE_ALIAS:
-            organization_id = Project.objects.filter(id=projects[0]).values_list(
-                "organization_id", flat=True
-            )[0]
-            versions = Release.objects.filter_by_stage(
-                organization_id,
-                SearchFilter(
-                    SearchKey(key),
-                    "=",
-                    SearchValue(query),
-                ),
-                project_ids=projects,
-            )
-            if environments:
-                versions = versions.filter(
-                    id__in=ReleaseEnvironment.objects.filter(
-                        environment_id__in=environments
-                    ).values_list("release_id", flat=True)
-                )
-
-            versions = versions.order_by("version").values_list("version", flat=True)[:1000]
-            return SequencePaginator(
-                [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(versions)]
-            )
+            return self._get_tag_values_for_release_stages(projects, environments, query)
 
         conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes

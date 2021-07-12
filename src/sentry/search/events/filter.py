@@ -359,7 +359,9 @@ def _release_stage_filter_converter(
 
     organization_id: int = params["organization_id"]
     qs = (
-        Release.objects.filter_by_stage(organization_id, search_filter)
+        Release.objects.filter_by_stage(
+            organization_id, search_filter.operator, search_filter.value.value
+        )
         .values_list("version", flat=True)
         .order_by("date_added")[:MAX_SEARCH_RELEASES]
     )

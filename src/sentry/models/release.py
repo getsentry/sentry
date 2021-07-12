@@ -174,14 +174,13 @@ class ReleaseQuerySet(models.QuerySet):
     def filter_by_stage(
         self,
         organization_id: int,
-        search_filter,
+        operator: str,
+        value,
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment
         from sentry.search.events.filter import to_list
 
-        value: str = search_filter.value.value
-        operator: str = search_filter.operator
         filters = {
             "adopted": Q(adopted__isnull=False, unadopted__isnull=True),
             "replaced": Q(adopted__isnull=False, unadopted__isnull=False),
@@ -190,10 +189,10 @@ class ReleaseQuerySet(models.QuerySet):
         value = to_list(value)
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
         if operator in operator_conversions.keys():
-            operator = operator_conversions[operator]
+            operator = operator_conversions.get(operator)
 
         for stage in value:
-            if stage not in filters.keys():
+            if stage not in filters:
                 raise InvalidSearchQuery("Unsupported release.stage value.")
 
         rpes = ReleaseProjectEnvironment.objects.filter(
@@ -233,10 +232,11 @@ class ReleaseModelManager(models.Manager):
     def filter_by_stage(
         self,
         organization_id: int,
-        search_filter,  # TODO: Make a StageFilter or pass operator+value separately.
+        operator: str,
+        value,
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
-        return self.get_queryset().filter_by_stage(organization_id, search_filter, project_ids)
+        return self.get_queryset().filter_by_stage(organization_id, operator, value, project_ids)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):

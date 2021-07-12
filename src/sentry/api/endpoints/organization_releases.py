@@ -93,8 +93,7 @@ def _filter_releases_by_query(queryset, organization, query):
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
             queryset = queryset.filter_by_stage(
-                organization.id,
-                search_filter,
+                organization.id, search_filter.operator, search_filter.value.value
             )
 
     return queryset
