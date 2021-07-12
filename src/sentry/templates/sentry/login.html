@@ -3,7 +3,7 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Sign In" %} | {{ block.super }}{% endblock %}
 
 {% block auth_container %}
   {% if banner %}
@@ -14,7 +14,7 @@
     <h3>{% trans "Sign in to continue" %}</h3>
     <ul class="nav nav-tabs auth-toggle m-b-0">
       <li{% if op == "login" %} class="active"{% endif %}>
-        <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
+        <a href="#login" data-toggle="tab">{% trans "Sign In" %}</a>
       </li>
       {% if CAN_REGISTER %}
         <li{% if op == "register" %} class="active"{% endif %}>
