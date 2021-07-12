@@ -33,7 +33,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
     @classmethod
     def get_cache_key(self, project_id):
-        return f"projectcodewoners_project_id:1:{project_id}"
+        return f"projectcodeowners_project_id:1:{project_id}"
 
     @classmethod
     def get_codeowners_cached(self, project_id):
