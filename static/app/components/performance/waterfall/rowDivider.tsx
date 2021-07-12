@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {IconCollapse, IconExpand, IconFire} from 'app/icons';
+import {IconAdd, IconFire, IconSubtract} from 'app/icons';
 import space from 'app/styles/space';
 import {Aliases, Color} from 'app/utils/theme';
 
@@ -89,9 +89,9 @@ export function EmbeddedTransactionBadge({
       }}
     >
       {expanded ? (
-        <IconCollapse color="textColor" size="xs" />
+        <IconSubtract color="textColor" size="xs" />
       ) : (
-        <IconExpand color="textColor" size="xs" />
+        <IconAdd color="textColor" size="xs" />
       )}
     </BadgeBorder>
   );
