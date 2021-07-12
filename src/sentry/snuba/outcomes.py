@@ -269,7 +269,7 @@ class QueryDefinition:
         self.conditions, self.filter_keys = get_filter(query, params)
 
 
-def run_outcomes_query_totals(query: QueryDefinition) -> List[List[ResultSet]]:
+def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
     result = raw_query(
         dataset=query.dataset,
         start=query.start,
@@ -287,7 +287,7 @@ def run_outcomes_query_totals(query: QueryDefinition) -> List[List[ResultSet]]:
     return result_totals
 
 
-def run_outcomes_query_timeseries(query: QueryDefinition) -> List[List[ResultSet]]:
+def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
     result_timeseries = raw_query(
         dataset=query.dataset,
         selected_columns=[TS_COL] + query.query_columns,
