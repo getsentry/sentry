@@ -30,16 +30,14 @@ def validate_association(
     associations: Sequence[Union[UserEmail, ExternalActor]],
     type: str,
 ) -> Sequence[str]:
+    raw_items_set = {str(item) for item in raw_items}
     if type == "emails":
         # associations are UserEmail objects
-        sentry_items = [item.email for item in associations]
+        sentry_items = {item.email for item in associations}
     else:
         # associations are ExternalActor objects
-        sentry_items = [item.external_name for item in associations]
-
-    diff = [str(item) for item in raw_items if item not in sentry_items]
-
-    return list(dict.fromkeys(diff).keys())
+        sentry_items = {item.external_name for item in associations}
+    return list(raw_items_set.difference(sentry_items))
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
@@ -169,7 +167,6 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         :pparam string project_slug: the slug of the project to get.
         :param string raw: the raw CODEOWNERS text
         :param string codeMappingId: id of the RepositoryProjectPathConfig object
-        :param boolean (optional) ignoreMissing: if true, ignore errors for unassociated owners
         :auth: required
         """
         if not self.has_feature(request, project):
