@@ -25,6 +25,7 @@ from sentry.db.models import (
 )
 from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
+from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
@@ -295,6 +296,18 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     clean_redundant_difs(project, meta.debug_id)
 
     resolve_processing_issue(project=project, scope="native", object="dsym:%s" % meta.debug_id)
+
+    # When uploading a new bcsymbolmap, we trigger a new task to enumerate and
+    # downloads the AppStore Connect builds / dSYMs, assuming the bcsymbolmap
+    # belongs to a newly uploaded build.
+    if meta.file_format == "bcsymbolmap":
+        config_id = "TODO: where do I get this ID from?"
+        dsym_download.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "config_id": config_id,
+            }
+        )
 
     return dif, True
 
