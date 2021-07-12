@@ -489,6 +489,88 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         run_query("!has:transaction.status", [], "status nonexistant")
 
+    def test_error_handled_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("error.handled:1", ["b" * 32, "c" * 32], [1, 1]),
+            ("!error.handled:1", ["a" * 32], [0]),
+            ("!error.handled:1", ["a" * 32], [0]),
+            ("has:error.handled", ["b" * 32, "c" * 32], [1, 1]),
+            ("has:error.handled error.handled:1", ["b" * 32, "c" * 32], [1, 1]),
+            ("error.handled:0", ["a" * 32], [0]),
+            ("has:error.handled error.handled:0", [], []),
+        ]
+
+        for query, expected_events, error_handled in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["error.handled"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+                data = result["data"]
+
+                assert len(data) == len(expected_events), query_fn
+                assert [item["error.handled"] for item in data] == error_handled
+
+    def test_error_unhandled_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("error.unhandled:1", ["a" * 32], [1]),
+            ("!error.unhandled:1", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled", ["a" * 32], [1]),
+            ("!has:error.unhandled", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled error.unhandled:1", ["a" * 32], [1]),
+            ("error.unhandled:0", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled error.unhandled:0", [], []),
+        ]
+
+        for query, expected_events, error_handled in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["error.unhandled"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+                data = result["data"]
+
+                assert len(data) == len(expected_events), query_fn
+                assert [item["error.handled"] for item in data] == error_handled
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
