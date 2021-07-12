@@ -127,7 +127,7 @@ export function getSessionsInterval(
   return '1h';
 }
 
-// Sessions API can only round intervals to the closest hour - this is espacially problematic when using sub-hour resolution.
+// Sessions API can only round intervals to the closest hour - this is especially problematic when using sub-hour resolution.
 // We filter out results that are out of bounds on frontend and recalculate totals.
 export function filterSessionsInTimeWindow(
   sessions: SessionApiResponse,
