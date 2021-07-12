@@ -167,7 +167,9 @@ class TeamWithProjectsSerializer(TeamSerializer):
         orgs = {i.organization_id: i.organization for i in item_list}
 
         for project_team in project_teams:
-            project_team.project._organization_cache = orgs[project_team.project.organization_id]
+            project_team.project.set_cached_field_value(
+                "organization", orgs[project_team.project.organization_id]
+            )
 
         projects = [pt.project for pt in project_teams]
         projects_by_id = {
