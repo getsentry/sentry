@@ -38,9 +38,8 @@ def validate_association(
         sentry_items = [item.external_name for item in associations]
 
     diff = [str(item) for item in raw_items if item not in sentry_items]
-    unique_diff = list(dict.fromkeys(diff).keys())
 
-    return unique_diff if len(unique_diff) else []
+    return list(dict.fromkeys(diff).keys())
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
