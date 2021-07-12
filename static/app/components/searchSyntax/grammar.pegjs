@@ -227,12 +227,12 @@ aggregate_param
 
 raw_aggregate_param
   = param:[^()\t\n, \"]+ {
-    return tc.tokenKeySimple(param.join(''), false);
+      return tc.tokenKeyAggregateParam(param.join(''), false);
     }
 
 quoted_aggregate_param
   = '"' param:('\\"' / [^\t\n\"])* '"' {
-      return tc.tokenKeySimple(`"${param.join('')}"`, true);
+      return tc.tokenKeyAggregateParam(`"${param.join('')}"`, true);
     }
 
 search_key

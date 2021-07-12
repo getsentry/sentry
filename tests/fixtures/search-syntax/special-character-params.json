@@ -15,7 +15,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "user.email",
                   "quoted": false
                 }
@@ -23,7 +23,7 @@
               {
                 "separator": ",",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "equals",
                   "quoted": false
                 }
@@ -31,7 +31,7 @@
               {
                 "separator": ",",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "test+something@example.com",
                   "quoted": false
                 }
@@ -63,7 +63,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "user.email",
                   "quoted": false
                 }
@@ -71,7 +71,7 @@
               {
                 "separator": ",",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "equals",
                   "quoted": false
                 }
@@ -79,7 +79,7 @@
               {
                 "separator": ",",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "\"something,with,commas\"",
                   "quoted": true
                 }
@@ -111,7 +111,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "user.email",
                   "quoted": false
                 }
@@ -119,7 +119,7 @@
               {
                 "separator": ",",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "equals",
                   "quoted": false
                 }
@@ -127,7 +127,7 @@
               {
                 "separator": ",",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "\"I, got my own \\\"quotes\\\"\"",
                   "quoted": true
                 }

@@ -15,7 +15,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -52,7 +52,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -89,7 +89,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -126,7 +126,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -158,7 +158,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }

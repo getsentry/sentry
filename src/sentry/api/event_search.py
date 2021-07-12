@@ -861,8 +861,7 @@ class SearchVisitor(NodeVisitor):
         return process_list(children[0], children[1])
 
     def visit_aggregate_param(self, node, children):
-        key = children[0]
-        return key
+        return children[0]
 
     def visit_raw_aggregate_param(self, node, children):
         return node.text

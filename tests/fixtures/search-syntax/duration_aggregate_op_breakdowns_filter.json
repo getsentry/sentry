@@ -14,11 +14,11 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },
@@ -46,11 +46,11 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },
@@ -78,11 +78,11 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },
