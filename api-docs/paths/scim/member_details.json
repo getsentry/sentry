@@ -78,7 +78,7 @@
         "tags": [
             "SCIM"
         ],
-        "description": "Update an organization member's attributes with a SCIM PATCH Request. The only supported attribute is `active`, and after setting to false, will permanently delete the Organization Member.",
+        "description": "Update an organization member's attributes with a SCIM PATCH Request. The only supported attribute is `active`. After setting `active` to false Sentry will permanently delete the Organization Member.",
         "operationId": "Update an Organization Member's Attributes",
         "parameters": [
             {
