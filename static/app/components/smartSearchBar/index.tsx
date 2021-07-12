@@ -17,9 +17,14 @@ import {
   parseSearch,
   TermOperator,
   Token,
+  TokenResult,
 } from 'app/components/searchSyntax/parser';
 import HighlightQuery from 'app/components/searchSyntax/renderer';
-import {getKeyName, isWithinToken} from 'app/components/searchSyntax/utils';
+import {
+  getKeyName,
+  isWithinToken,
+  treeResultLocator,
+} from 'app/components/searchSyntax/utils';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
@@ -384,10 +389,25 @@ class SmartSearchBar extends React.Component<Props, State> {
   }
 
   async doSearch() {
+    this.blur();
+
+    if (!this.hasValidSearch && this.hasImprovedSearch) {
+      return;
+    }
+
+    const query = removeSpace(this.state.query);
     const {onSearch, onSavedRecentSearch, api, organization, savedSearchType} =
       this.props;
-    this.blur();
-    const query = removeSpace(this.state.query);
+
+    trackAnalyticsEvent({
+      eventKey: 'search.searched',
+      eventName: 'Search: Performed search',
+      organization_id: organization.id,
+      query,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: 'main_search',
+    });
+
     callIfFunction(onSearch, query);
 
     // Only save recent search query if we have a savedSearchType (also 0 is a valid value)
@@ -409,18 +429,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   }
 
   onSubmit = (evt: React.FormEvent) => {
-    const {organization, savedSearchType} = this.props;
     evt.preventDefault();
-
-    trackAnalyticsEvent({
-      eventKey: 'search.searched',
-      eventName: 'Search: Performed search',
-      organization_id: organization.id,
-      query: removeSpace(this.state.query),
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
-      search_source: 'main_search',
-    });
-
     this.doSearch();
   };
 
@@ -578,6 +587,57 @@ class SmartSearchBar extends React.Component<Props, State> {
     });
   };
 
+  /**
+   * Check if any filters are invalid within the search query
+   */
+  get hasValidSearch() {
+    const {parsedQuery} = this.state;
+
+    // If we fail to parse be optimistic that it's valid
+    if (parsedQuery === null) {
+      return true;
+    }
+
+    return treeResultLocator<boolean>({
+      tree: parsedQuery,
+      noResultValue: true,
+      visitorTest: ({token, returnResult, skipToken}) =>
+        token.type !== Token.Filter
+          ? null
+          : token.invalid
+          ? returnResult(false)
+          : skipToken,
+    });
+  }
+
+  /**
+   * Get the active filter or free text actively focused.
+   */
+  get cursorToken() {
+    const {parsedQuery} = this.state;
+
+    if (parsedQuery === null) {
+      return null;
+    }
+
+    const matchedTokens = [Token.Filter, Token.FreeText];
+    const cursor = this.cursorPosition;
+
+    return treeResultLocator<TokenResult<Token.Filter | Token.FreeText> | null>({
+      tree: parsedQuery,
+      noResultValue: null,
+      visitorTest: ({token, returnResult, skipToken}) =>
+        !matchedTokens.includes(token.type)
+          ? null
+          : isWithinToken(token, cursor)
+          ? returnResult(token)
+          : skipToken,
+    });
+  }
+
+  /**
+   * Get the current cursor position within the input
+   */
   get cursorPosition() {
     if (!this.searchInput.current) {
       return -1;
@@ -893,38 +953,15 @@ class SmartSearchBar extends React.Component<Props, State> {
     return;
   };
 
-  getCursorToken = (
-    parsedQuery: ParseResult,
-    cursor: number
-  ): ParseResult[number] | null => {
-    for (const node of parsedQuery) {
-      if (node.type === Token.Spaces || !isWithinToken(node, cursor)) {
-        continue;
-      }
-
-      // traverse into a logic group to find specific filter
-      if (node.type === Token.LogicGroup) {
-        return this.getCursorToken(node.inner, cursor);
-      }
-
-      return node;
-    }
-    return null;
-  };
-
   updateAutoCompleteFromAst = async () => {
     const cursor = this.cursorPosition;
-    const {parsedQuery} = this.state;
+    const cursorToken = this.cursorToken;
 
-    if (!parsedQuery) {
-      return;
-    }
-
-    const cursorToken = this.getCursorToken(parsedQuery, cursor);
     if (!cursorToken) {
       this.showDefaultSearches();
       return;
     }
+
     if (cursorToken.type === Token.Filter) {
       const tagName = getKeyName(cursorToken.key, {aggregateWithArgs: true});
       // check if we are on the tag, value, or operator
@@ -1138,11 +1175,9 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   onAutoCompleteFromAst = (replaceText: string, item: SearchItem) => {
     const cursor = this.cursorPosition;
-    const {parsedQuery, query} = this.state;
-    if (!parsedQuery) {
-      return;
-    }
-    const cursorToken = this.getCursorToken(parsedQuery, cursor);
+    const {query} = this.state;
+
+    const cursorToken = this.cursorToken;
 
     if (!cursorToken) {
       this.updateQuery(`${query}${replaceText}`);
