@@ -251,9 +251,7 @@ def post_process_group(
         event.group_id = event.group.id
 
         event.group.project = event.project
-        event.group.project.set_cached_field_value(
-            "organization", event.project._organization_cache
-        )
+        event.group.project.set_cached_field_value("organization", event.project.organization)
 
         bind_organization_context(event.project.organization)
 
