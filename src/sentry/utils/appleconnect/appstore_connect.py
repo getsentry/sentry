@@ -3,10 +3,9 @@ import time
 from collections import namedtuple
 from typing import Any, Dict, Generator, List, Mapping, Optional, Union
 
-import jwt
 from requests import Session
 
-from sentry.utils import safe
+from sentry.utils import jwt, safe
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,7 @@ AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "i
 
 def _get_authorization_header(
     credentials: AppConnectCredentials, expiry_sec: Optional[int] = None
-) -> str:
+) -> Mapping[str, str]:
     """
     Creates a JWT (javascript web token) for use with app store connect API
 
@@ -28,7 +27,8 @@ def _get_authorization_header(
     :return: the Bearer auth token to be added as the  "Authorization" header
     """
     if expiry_sec is None:
-        expiry_sec = 60 * 60  # default one hour
+        # Maximum time allowed by the API is 20 mins.
+        expiry_sec = 60 * 10  # default to 10 mins
     token = jwt.encode(
         {
             "iss": credentials.issuer_id,
@@ -39,7 +39,7 @@ def _get_authorization_header(
         algorithm="ES256",
         headers={"kid": credentials.key_id, "alg": "ES256", "typ": "JWT"},
     )
-    return f"Bearer {token}"
+    return jwt.authorization_header(token)
 
 
 def _get_appstore_json(
@@ -54,7 +54,7 @@ def _get_appstore_json(
     :raises ValueError: if the request failed or the response body could not be parsed as
        JSON.
     """
-    headers = {"Authorization": _get_authorization_header(credentials)}
+    headers = _get_authorization_header(credentials)
 
     if not url.startswith("https://"):
         full_url = "https://api.appstoreconnect.apple.com"
