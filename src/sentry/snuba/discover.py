@@ -94,6 +94,10 @@ def resolve_discover_aliases(snuba_filter, function_translations=None):
 
 
 def zerofill(data, start, end, rollup, orderby):
+    return format(data, start, end, rollup, orderby, zerofill=True)
+
+
+def format(data, start, end, rollup, orderby, zerofill=False):
     rv = []
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
     end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
@@ -109,7 +113,7 @@ def zerofill(data, start, end, rollup, orderby):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv = rv + data_by_time[key]
             data_by_time[key] = []
-        else:
+        elif zerofill:
             rv.append({"time": key})
 
     if "-time" in orderby:

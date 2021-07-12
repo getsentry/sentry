@@ -122,6 +122,10 @@ def value_from_row(row, tagkey):
 
 
 def zerofill(data, start, end, rollup, allow_partial_buckets=False):
+    return format(data, start, end, rollup, allow_partial_buckets, zerofill=True)
+
+
+def format(data, start, end, rollup, allow_partial_buckets=False, zerofill=False):
     rv = []
     end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
@@ -145,8 +149,8 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False):
                 continue
         except IndexError:
             pass
-
-        rv.append((key, []))
+        if zerofill:
+            rv.append((key, []))
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
