@@ -194,6 +194,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             (
                 "organizations:performance-view",
                 "organizations:project-transaction-threshold-override",
+                "organizations:project-transaction-threshold",
             )
         ):
             self.browser.get(self.path)
@@ -206,5 +207,4 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             # We have to wait for this again because there are loaders inside of the table
             self.page.wait_until_loaded()
             self.browser.click('[data-test-id="set-transaction-threshold"]')
-            self.browser.wait_until_not(".loading-indicator")
-            self.browser.snapshot("performance summary - with data")
+            self.browser.snapshot("transaction threshold modal")

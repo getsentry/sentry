@@ -336,7 +336,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
               ),
             }
           ),
-          nextText: t('Thank you but please go away'),
+          nextText: t('Got it'),
         },
       ],
     },

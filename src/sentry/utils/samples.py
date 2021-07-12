@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytz
-from django.utils import timezone
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
@@ -168,9 +167,9 @@ def load_data(
 
     # Generate a timestamp in the present.
     if timestamp is None:
-        timestamp = timezone.now()
-    else:
-        timestamp = timestamp.replace(tzinfo=pytz.utc)
+        timestamp = datetime.utcnow() - timedelta(minutes=1)
+        timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
+    timestamp = timestamp.replace(tzinfo=pytz.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))
 
     if data.get("type") == "transaction":
