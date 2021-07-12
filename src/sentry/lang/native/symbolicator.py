@@ -410,34 +410,6 @@ def get_sources_for_project(project):
     return sources
 
 
-def filter_ignored_sources(sources, reversed_alias_map=None):
-    """
-    Filters out sources that are meant to be blocked based on a global killswitch. If any sources
-    were de-aliased, a reverse mapping of { unaliased id: alias } should be provided for this to
-    properly filter out all blocked sources.
-    """
-
-    ignored_source_ids = options.get("symbolicator.ignored_sources")
-    if not ignored_source_ids:
-        return sources
-
-    filtered = []
-    for src in sources:
-        resolved = src["id"]
-        alias = reversed_alias_map is not None and reversed_alias_map.get(resolved) or resolved
-        # This covers three scenarios:
-        # 1. The source had an alias, and the config may have used that alias to block it (alias map
-        #    lookup resolved)
-        # 2. The source had no alias, and the config may have used the source's ID to block it
-        #    (alias map lookup returned None and fell back to resolved)
-        # 3. The source had an alias, but the config used the source's internal unaliased ID to
-        #    block it (alias map lookup resolved but not in ignored_source_ids, resolved is in
-        #    ignored_source_ids)
-        if alias not in ignored_source_ids and resolved not in ignored_source_ids:
-            filtered.append(src)
-    return filtered
-
-
 class SymbolicatorSession:
     def __init__(
         self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
@@ -644,6 +616,34 @@ def reverse_aliases_map(builtin_sources):
                 continue
             reverse_aliases[aliased_id] = self_id
     return reverse_aliases
+
+
+def filter_ignored_sources(sources, reversed_alias_map=None):
+    """
+    Filters out sources that are meant to be blocked based on a global killswitch. If any sources
+    were de-aliased, a reverse mapping of { unaliased id: alias } should be provided for this to
+    also recognize and filter out aliased sources.
+    """
+
+    ignored_source_ids = options.get("symbolicator.ignored_sources")
+    if not ignored_source_ids:
+        return sources
+
+    filtered = []
+    for src in sources:
+        resolved = src["id"]
+        alias = reversed_alias_map is not None and reversed_alias_map.get(resolved) or resolved
+        # This covers three scenarios:
+        # 1. The source had an alias, and the config may have used that alias to block it (alias map
+        #    lookup resolved)
+        # 2. The source had no alias, and the config may have used the source's ID to block it
+        #    (alias map lookup returned None and fell back to resolved)
+        # 3. The source had an alias, but the config used the source's internal unaliased ID to
+        #    block it (alias map lookup resolved but not in ignored_source_ids, resolved is in
+        #    ignored_source_ids)
+        if alias not in ignored_source_ids and resolved not in ignored_source_ids:
+            filtered.append(src)
+    return filtered
 
 
 def redact_internal_sources(response):
