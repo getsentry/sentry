@@ -4,7 +4,7 @@
 {% load i18n %}
 {% load sentry_assets %}
 
-{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Sign In" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
   <div class="align-center p-b-1">
@@ -28,7 +28,7 @@
     {% endfor %}
 
     <fieldset class="form-actions">
-      <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+      <button type="submit" class="btn btn-primary">{% trans "Sign In" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
     </fieldset>
   </form>
 {% endblock %}
