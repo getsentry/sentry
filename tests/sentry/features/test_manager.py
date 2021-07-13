@@ -9,6 +9,26 @@ from sentry.testutils import TestCase
 from sentry.utils.compat import mock
 
 
+class MockBatchHandler(features.BatchFeatureHandler):
+    features = frozenset(["auth:register", "organizations:feature", "projects:feature"])
+
+    def has(
+        self, feature: Feature, actor: User
+    ) -> Union[Optional[bool], Mapping[str, Optional[bool]]]:
+        return {feature.name: True}
+
+    def batch_has(self, feature_names, *args: Any, **kwargs: Any):
+        if isinstance(feature_names, str):
+            return {feature_names: True}
+
+        return {
+            feature_name: True for feature_name in feature_names if feature_name in self.features
+        }
+
+    def _check_for_batch(self, feature_name, organization, actor):
+        return True if feature_name in self.features else None
+
+
 class FeatureManagerTest(TestCase):
     def test_feature_registry(self):
         manager = features.FeatureManager()
@@ -157,25 +177,6 @@ class FeatureManagerTest(TestCase):
         assert null_handler.hit_counter == 2
 
     def test_batch_has(self):
-        flag_name = "organizations:feature1"
-        flag_value = True
-
-        class OrganizationBatchHandler(features.BatchFeatureHandler):
-            features = frozenset([flag_name])
-
-            def batch_has(self, feature_names, *args: Any, **kwargs: Any):
-                if isinstance(feature_names, str):
-                    return {feature_names: flag_value}
-
-                return {
-                    feature_name: flag_value
-                    for feature_name in feature_names
-                    if feature_name in self.features
-                }
-
-            def _check_for_batch(self, feature_name, organization, actor):
-                return flag_value if feature_name in self.features else None
-
         manager = features.FeatureManager()
         manager.add(flag_name, features.OrganizationFeature)
         manager.add_entity_handler(OrganizationBatchHandler())
@@ -186,17 +187,6 @@ class FeatureManagerTest(TestCase):
         assert batch_features[flag_name] == flag_value
 
     def test_has(self):
-        flag_name = "organizations:feature1"
-        flag_value = True
-
-        class OrganizationHandler(features.FeatureHandler):
-            features = frozenset([flag_name])
-
-            def has(
-                self, feature: Feature, actor: User
-            ) -> Union[Optional[bool], Mapping[str, Optional[bool]]]:
-                return {feature.name: flag_value}
-
         manager = features.FeatureManager()
         manager.add(flag_name, features.OrganizationFeature)
         manager.add_handler(OrganizationHandler())
