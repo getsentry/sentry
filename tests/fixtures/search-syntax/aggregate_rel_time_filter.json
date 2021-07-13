@@ -2,6 +2,7 @@
   {
     "query": "last_seen():+7d",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateRelativeDate",
@@ -22,6 +23,7 @@
   {
     "query": "last_seen():-2w",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateRelativeDate",
@@ -42,6 +44,7 @@
   {
     "query": "random:-2w",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

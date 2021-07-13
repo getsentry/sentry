@@ -150,12 +150,11 @@ class Symbolicator:
         base_url = symbolicator_options["url"].rstrip("/")
         assert base_url
 
-        if not getattr(project, "_organization_cache", False):
-            # needed for efficient featureflag checks in getsentry
-            with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-                project._organization_cache = Organization.objects.get_from_cache(
-                    id=project.organization_id
-                )
+        # needed for efficient featureflag checks in getsentry
+        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
 
         self.sess = SymbolicatorSession(
             url=base_url,
@@ -315,12 +314,12 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except Exception as e:
-        raise InvalidSourcesError(str(e))
+        raise InvalidSourcesError(f"{e}")
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
     except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(e.message)
+        raise InvalidSourcesError(f"{e}")
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
     filter(lambda src: src.get("type") != "AppStoreConnect", sources)

@@ -2,6 +2,7 @@
   {
     "query": "\"hello there\" user.email:foo@example.com \"general kenobi\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {"type": "freeText", "value": "hello there", "quoted": true},
       {"type": "spaces", "value": " "},
       {
@@ -20,6 +21,7 @@
   {
     "query": " \" hello \" ",
     "result": [
+      {"type": "spaces", "value": " "},
       {"type": "freeText", "value": " hello ", "quoted": true},
       {"type": "spaces", "value": " "}
     ]
@@ -27,6 +29,7 @@
   {
     "query": " \" he\\\"llo \" ",
     "result": [
+      {"type": "spaces", "value": " "},
       {"type": "freeText", "value": " he\\\"llo ", "quoted": true},
       {"type": "spaces", "value": " "}
     ]

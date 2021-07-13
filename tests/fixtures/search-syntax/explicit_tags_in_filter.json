@@ -2,6 +2,7 @@
   {
     "query": "tags[fruit]:[apple, pear]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -32,6 +33,7 @@
   {
     "query": "tags[fruit]:[\"apple wow\", \"pear\"]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
