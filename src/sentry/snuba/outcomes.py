@@ -346,7 +346,7 @@ def _outcomes_dataset(rollup: int) -> Dataset:
 def massage_outcomes_result(
     query: QueryDefinition,
     result_totals: ResultSet,
-    result_timeseries: ResultSet,
+    result_timeseries: Optional[ResultSet],
 ) -> Dict[str, List[Any]]:
     result: Dict[str, List[Any]] = massage_sessions_result(
         query, result_totals, result_timeseries, ts_col=TS_COL
