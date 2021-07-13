@@ -326,6 +326,15 @@ class _TagExplorer extends React.Component<Props> {
     };
   };
 
+  onTagKeyClick() {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.visit_tag_key',
+      eventName: 'Performance Views: Tag Explorer - Visit Tag Key',
+      organization_id: parseInt(organization.id, 10),
+    });
+  }
+
   renderBodyCell = (
     parentProps: Props,
     column: TableColumn<ColumnKeys>,
@@ -345,7 +354,11 @@ class _TagExplorer extends React.Component<Props> {
         <Feature features={['performance-tag-page']} organization={organization}>
           {({hasFeature}) => {
             if (hasFeature) {
-              return <Link to={target}>{dataRow.tags_key}</Link>;
+              return (
+                <Link to={target} onClick={() => this.onTagKeyClick()}>
+                  {dataRow.tags_key}
+                </Link>
+              );
             }
             return dataRow.tags_key;
           }}

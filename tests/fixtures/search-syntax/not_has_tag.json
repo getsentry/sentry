@@ -3,6 +3,7 @@
     "desc": "unquoted key",
     "query": "!has:release",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "has",
@@ -18,6 +19,7 @@
     "desc": "quoted key",
     "query": "!has:\"hi:there\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "has",

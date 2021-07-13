@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 import pytz
 from django.urls import reverse
+from django.utils import timezone
 from exam import fixture
 
 from sentry.api.endpoints.organization_releases import (
@@ -27,7 +28,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
@@ -295,6 +296,75 @@ class OrganizationReleaseListTest(APITestCase):
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
         assert [r["version"] for r in response.data] == []
 
+    def test_release_stage_filter(self):
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+        )
+        assert [r["version"] for r in response.data] == []
+
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+        )
+        assert [r["version"] for r in response.data] == [adopted_release.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:not_adopted"
+        )
+        assert [r["version"] for r in response.data] == [not_adopted_release.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:replaced"
+        )
+        assert [r["version"] for r in response.data] == [replaced_release.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,replaced]"
+        )
+        assert [r["version"] for r in response.data] == [
+            adopted_release.version,
+            replaced_release.version,
+        ]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[not_adopted]"
+        )
+        assert [r["version"] for r in response.data] == [not_adopted_release.version]
+
+        # TODO: Test release stage sort here. Not currently supported
+        # response = self.get_valid_response(
+        #     self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,not_adopted,replaced]", sort="adopted"
+        # )
+        # assert [r["version"] for r in response.data] == [adopted_release.version, replaced_release.version, not_adopted_release.version]
+
+        response = self.get_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:invalid_stage"
+        )
+        assert response.status_code == 400
+
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -421,7 +491,7 @@ class OrganizationReleaseListTest(APITestCase):
         assert len(response.data) == 1
 
 
-class OrganizationReleaseStatsTest(APITestCase):
+class OrganizationReleasesStatsTest(APITestCase):
     endpoint = "sentry-api-0-organization-releases-stats"
 
     def setUp(self):
@@ -595,6 +665,75 @@ class OrganizationReleaseStatsTest(APITestCase):
             self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
         )
         assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+    def test_release_stage_filter(self):
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+        )
+        assert [r["version"] for r in response.data] == []
+
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+        )
+        assert [r["version"] for r in response.data] == [adopted_release.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:not_adopted"
+        )
+        assert [r["version"] for r in response.data] == [not_adopted_release.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:replaced"
+        )
+        assert [r["version"] for r in response.data] == [replaced_release.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,replaced]"
+        )
+        assert [r["version"] for r in response.data] == [
+            adopted_release.version,
+            replaced_release.version,
+        ]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[not_adopted]"
+        )
+        assert [r["version"] for r in response.data] == [not_adopted_release.version]
+
+        # TODO: Test release stage sort here. Not currently supported
+        # response = self.get_valid_response(
+        #     self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,not_adopted,replaced]", sort="adopted"
+        # )
+        # assert [r["version"] for r in response.data] == [adopted_release.version, replaced_release.version, not_adopted_release.version]
+
+        response = self.get_response(
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:invalid_stage"
+        )
+        assert response.status_code == 400
 
     def test_query_filter(self):
         self.login_as(user=self.user)

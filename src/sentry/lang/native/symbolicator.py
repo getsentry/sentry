@@ -150,12 +150,11 @@ class Symbolicator:
         base_url = symbolicator_options["url"].rstrip("/")
         assert base_url
 
-        if not getattr(project, "_organization_cache", False):
-            # needed for efficient featureflag checks in getsentry
-            with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-                project._organization_cache = Organization.objects.get_from_cache(
-                    id=project.organization_id
-                )
+        # needed for efficient featureflag checks in getsentry
+        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
 
         self.sess = SymbolicatorSession(
             url=base_url,
@@ -315,12 +314,12 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except Exception as e:
-        raise InvalidSourcesError(str(e))
+        raise InvalidSourcesError(f"{e}")
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
     except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(e.message)
+        raise InvalidSourcesError(f"{e}")
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
     filter(lambda src: src.get("type") != "AppStoreConnect", sources)
@@ -434,6 +433,11 @@ class SymbolicatorSession:
         for source in settings.SENTRY_BUILTIN_SOURCES.values():
             if source.get("type") == "alias":
                 self.source_names[source["id"]] = source.get("name", "unknown")
+
+        # Remove sources that should be ignored. This leaves a few extra entries in the alias
+        # maps and source names maps, but that's fine. The orphaned entries in the maps will just
+        # never be used.
+        self.sources = filter_ignored_sources(self.sources, self.reverse_source_aliases)
 
     def __enter__(self):
         self.open()
@@ -612,6 +616,34 @@ def reverse_aliases_map(builtin_sources):
                 continue
             reverse_aliases[aliased_id] = self_id
     return reverse_aliases
+
+
+def filter_ignored_sources(sources, reversed_alias_map=None):
+    """
+    Filters out sources that are meant to be blocked based on a global killswitch. If any sources
+    were de-aliased, a reverse mapping of { unaliased id: alias } should be provided for this to
+    also recognize and filter out aliased sources.
+    """
+
+    ignored_source_ids = options.get("symbolicator.ignored_sources")
+    if not ignored_source_ids:
+        return sources
+
+    filtered = []
+    for src in sources:
+        resolved = src["id"]
+        alias = reversed_alias_map is not None and reversed_alias_map.get(resolved) or resolved
+        # This covers three scenarios:
+        # 1. The source had an alias, and the config may have used that alias to block it (alias map
+        #    lookup resolved)
+        # 2. The source had no alias, and the config may have used the source's ID to block it
+        #    (alias map lookup returned None and fell back to resolved)
+        # 3. The source had an alias, but the config used the source's internal unaliased ID to
+        #    block it (alias map lookup resolved but not in ignored_source_ids, resolved is in
+        #    ignored_source_ids)
+        if alias not in ignored_source_ids and resolved not in ignored_source_ids:
+            filtered.append(src)
+    return filtered
 
 
 def redact_internal_sources(response):

@@ -2,6 +2,7 @@
   {
     "query": "user.id:500s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
