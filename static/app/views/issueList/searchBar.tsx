@@ -127,6 +127,7 @@ class IssueListSearchBar extends React.Component<Props, State> {
 
     return (
       <SmartSearchBar
+        searchSource="main_search"
         hasRecentSearches
         maxSearchItems={5}
         savedSearchType={SavedSearchType.ISSUE}

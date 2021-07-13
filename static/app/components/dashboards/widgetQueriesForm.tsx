@@ -97,6 +97,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             >
               <SearchConditionsWrapper>
                 <StyledSearchBar
+                  searchSource="widget_builder"
                   organization={organization}
                   projectIds={selection.projects}
                   query={widgetQuery.conditions}

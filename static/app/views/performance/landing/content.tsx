@@ -266,6 +266,7 @@ class LandingContent extends Component<Props, State> {
       <Fragment>
         <SearchContainer>
           <SearchBar
+            searchSource="performance_landing"
             organization={organization}
             projectIds={eventView.project}
             query={filterString}
