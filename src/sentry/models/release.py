@@ -29,6 +29,7 @@ from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.numbers import validate_bigint
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
 
@@ -129,6 +130,28 @@ class ReleaseQuerySet(models.QuerySet):
         """
         return self.filter(major__isnull=False)
 
+    def filter_by_semver_build(
+        self, organization_id: int, operator: str, build: str, project_ids: Sequence[int] = None
+    ) -> models.QuerySet:
+        qs = self.filter(organization_id=organization_id)
+
+        if project_ids:
+            qs = qs.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
+                    "release_id", flat=True
+                )
+            )
+
+        if build.isnumeric():
+            qs = qs.filter(**{f"build_number__{operator}": int(build)})
+        else:
+            if not build or build.endswith("*"):
+                qs = qs.filter(build_code__startswith=build[:-1])
+            else:
+                qs = qs.filter(build_code=build)
+
+        return qs
+
     def filter_by_semver(
         self,
         organization_id: int,
@@ -181,6 +204,13 @@ class ReleaseModelManager(models.Manager):
     def filter_to_semver(self):
         return self.get_queryset().filter_to_semver()
 
+    def filter_by_semver_build(
+        self, organization_id: int, operator: str, build: str, project_ids: Sequence[int] = None
+    ) -> models.QuerySet:
+        return self.get_queryset().filter_by_semver_build(
+            organization_id, operator, build, project_ids
+        )
+
     def filter_by_semver(
         self, organization_id: int, semver_filter: SemverFilter, project_ids: Sequence[int] = None
     ) -> models.QuerySet:
@@ -200,15 +230,11 @@ class ReleaseModelManager(models.Manager):
         if build_code is not None:
             try:
                 build_code_as_int = int(build_code)
-                if ReleaseModelManager.validate_bigint(build_code_as_int):
+                if validate_bigint(build_code_as_int):
                     build_number = build_code_as_int
             except ValueError:
                 pass
         return build_number
-
-    @staticmethod
-    def validate_bigint(value):
-        return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
 
     @staticmethod
     def _massage_semver_cols_into_release_object_data(kwargs):
@@ -225,7 +251,7 @@ class ReleaseModelManager(models.Manager):
                 version_parsed = version_info.get("version_parsed")
 
                 if version_parsed is not None and all(
-                    ReleaseModelManager.validate_bigint(version_parsed[field])
+                    validate_bigint(version_parsed[field])
                     for field in ("major", "minor", "patch", "revision")
                 ):
                     build_code = version_parsed.get("build_code")

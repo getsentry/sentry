@@ -892,3 +892,40 @@ class ReleaseFilterBySemverTest(TestCase):
         )
         self.run_test(">=", "test@1.2.3", [release, release_2, release_3], projects=[self.project])
         self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])
+
+
+class ReleaseFilterBySemverBuildTest(TestCase):
+    def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
+        organization_id = organization_id if organization_id else self.organization.id
+        project_ids = [p.id for p in projects] if projects else None
+        assert set(
+            Release.objects.filter_by_semver_build(
+                organization_id, operator, build, project_ids=project_ids
+            )
+        ) == set(expected_releases)
+
+    def test_no_build(self):
+        self.create_release(version="test@1.2.3")
+        self.create_release(version="test@1.2.4")
+        self.run_test("gt", "100", [])
+        self.run_test("exact", "105aab", [])
+
+    def test_numeric(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test@1.2.4+456")
+        self.create_release(version="test@1.2.4+123abc")
+        self.run_test("gt", "123", [release_2])
+        self.run_test("lte", "123", [release_1])
+        self.run_test("exact", "123", [release_1])
+
+    def test_text(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test@1.2.4+1234")
+        release_3 = self.create_release(version="test@1.2.4+123abc")
+
+        self.run_test("exact", "", [release_1, release_2, release_3])
+        self.run_test("exact", "*", [release_1, release_2, release_3])
+        self.run_test("exact", "123*", [release_1, release_2, release_3])
+        self.run_test("exact", "123a*", [release_3])
+        self.run_test("exact", "123ab", [])
+        self.run_test("exact", "123abc", [release_3])
