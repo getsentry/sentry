@@ -12,7 +12,7 @@ module.exports = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.11',
+        corejs: '3.15',
       },
     ],
     '@babel/preset-typescript',
