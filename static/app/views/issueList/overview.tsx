@@ -626,6 +626,16 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
+        trackAnalyticsEvent({
+          eventKey: 'issue_search.failed',
+          eventName: 'Issue Search: Failed',
+          organization_id: this.props.organization.id,
+          query: this.getQuery(),
+          search_type: 'issues',
+          search_source: 'main_search',
+          error: parseApiError(err),
+        });
+
         this.setState({
           error: parseApiError(err),
           issuesLoading: false,
