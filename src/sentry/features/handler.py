@@ -1,5 +1,6 @@
 __all__ = ["FeatureHandler", "BatchFeatureHandler"]
 
+import abc
 from typing import TYPE_CHECKING, Mapping, MutableSet, Optional, Sequence
 
 if TYPE_CHECKING:
@@ -17,6 +18,7 @@ class FeatureHandler:
 
         return self.has(feature, actor)
 
+    @abc.abstractmethod
     def has(self, feature: "Feature", actor: "User") -> bool:
         raise NotImplementedError
 
@@ -27,6 +29,7 @@ class FeatureHandler:
             for (obj, feature) in batch.get_feature_objects().items()
         }
 
+    @abc.abstractmethod
     def batch_has(
         self,
         feature_names: Sequence[str],
@@ -45,6 +48,7 @@ class FeatureHandler:
 
 
 class BatchFeatureHandler(FeatureHandler):
+    @abc.abstractmethod
     def _check_for_batch(
         self, feature_name: str, organization: "Organization", actor: "User"
     ) -> bool:

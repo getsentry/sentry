@@ -7,7 +7,10 @@ if TYPE_CHECKING:
     from sentry.models import Organization, Project
 
 
-class Feature(abc.ABC):
+class Feature:
+    """Feature is not actually an abstract class even though it only has abstract
+    methods. This is because we need to be able to instantiate it."""
+
     def __init__(self, name: str, *args: Any, **kwargs: Any) -> None:
         """
         `FeatureManager.get()` and `FeatureCheckBatch.get_feature_objects()`
