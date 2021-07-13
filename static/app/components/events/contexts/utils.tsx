@@ -40,7 +40,8 @@ export function getSourcePlugin(pluginContexts: Array<any>, contextType: string)
 
 export function getRelativeTimeFromEventDateCreated(
   eventDateCreated: string,
-  timestamp?: string
+  timestamp?: string,
+  showTimestamp = true
 ) {
   if (!defined(timestamp)) {
     return timestamp;
@@ -55,6 +56,10 @@ export function getRelativeTimeFromEventDateCreated(
   const relativeTime = `(${dateTime.from(eventDateCreated, true)} ${t(
     'before this event'
   )})`;
+
+  if (!showTimestamp) {
+    return <RelativeTime>{relativeTime}</RelativeTime>;
+  }
 
   return (
     <Fragment>

@@ -49,6 +49,7 @@ export default function ActionLink({
   children,
   shouldConfirm,
   confirmPriority,
+  header,
   ...props
 }: Props) {
   const actionCommonProps = {
@@ -74,6 +75,7 @@ export default function ActionLink({
         priority={confirmPriority}
         disabled={disabled}
         message={message}
+        header={header}
         confirmText={confirmLabel}
         onConfirm={onAction}
         stopPropagation={disabled}

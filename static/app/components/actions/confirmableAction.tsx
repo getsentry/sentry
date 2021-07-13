@@ -6,7 +6,9 @@ type ConfirmProps = React.ComponentProps<typeof Confirm>;
 type Props = {
   children: React.ReactNode | ConfirmProps['children'];
   shouldConfirm?: boolean;
-} & Partial<Pick<ConfirmProps, 'confirmText' | 'priority' | 'stopPropagation'>> &
+} & Partial<
+  Pick<ConfirmProps, 'confirmText' | 'priority' | 'stopPropagation' | 'header'>
+> &
   Pick<ConfirmProps, 'message' | 'disabled' | 'confirmText' | 'onConfirm'>;
 
 export default function ConfirmableAction({shouldConfirm, children, ...props}: Props) {

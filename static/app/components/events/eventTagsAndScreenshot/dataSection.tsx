@@ -51,7 +51,6 @@ const Title = styled('h3')`
 const StyledEventDataSection = styled(EventDataSection)`
   ${SectionContents} {
     flex: 1;
-    overflow: hidden;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
