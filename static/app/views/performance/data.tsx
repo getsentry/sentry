@@ -46,6 +46,8 @@ export enum PERFORMANCE_TERM {
   APDEX_NEW = 'apdexNew',
   APP_START_COLD = 'appStartCold',
   APP_START_WARM = 'appStartWarm',
+  SLOW_FRAMES = 'slowFrames',
+  FROZEN_FRAMES = 'frozenFrames',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -380,6 +382,8 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Cold start is a measure of the application start up time from scratch.'),
   appStartWarm: () =>
     t('Warm start is a measure of the application start up time while still in memory.'),
+  slowFrames: () => t('The count of the number of slow frames in the transaction.'),
+  frozenFrames: () => t('The count of the number of frozen frames in the transaction.'),
 };
 
 export function getTermHelp(
@@ -552,9 +556,8 @@ function generateMobilePerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
+    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
-        `apdex(${organization.apdexThreshold})`,
         'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
