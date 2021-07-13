@@ -4,7 +4,6 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import round from 'lodash/round';
-import moment from 'moment';
 
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
@@ -15,6 +14,7 @@ import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import Radio from 'app/components/radio';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {IconArrow, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -31,9 +31,14 @@ import {defined, percent} from 'app/utils';
 import {decodeScalar} from 'app/utils/queryString';
 import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
 import {Color, Theme} from 'app/utils/theme';
-import {displayCrashFreePercent} from 'app/views/releases/utils';
+import {
+  displayCrashFreeDiff,
+  displayCrashFreePercent,
+  getReleaseBounds,
+  getReleaseParams,
+} from 'app/views/releases/utils';
 
-import {generateReleaseMarkLine, releaseComparisonChartLabels} from '../../utils';
+import {generateReleaseMarkLines, releaseComparisonChartLabels} from '../../utils';
 import {
   fillChartDataFromSessionsResponse,
   initSessionsBreakdownChartData,
@@ -127,7 +132,7 @@ function ReleaseComparisonChart({
         ? displayCrashFreePercent(allCrashFreeSessions)
         : null,
       diff: defined(diffCrashFreeSessions)
-        ? `${Math.abs(round(diffCrashFreeSessions, 3))}%`
+        ? displayCrashFreeDiff(diffCrashFreeSessions, releaseCrashFreeSessions)
         : null,
       diffDirection: diffCrashFreeSessions
         ? diffCrashFreeSessions > 0
@@ -149,7 +154,7 @@ function ReleaseComparisonChart({
         ? displayCrashFreePercent(allCrashFreeUsers)
         : null,
       diff: defined(diffCrashFreeUsers)
-        ? `${Math.abs(round(diffCrashFreeUsers, 3))}%`
+        ? displayCrashFreeDiff(diffCrashFreeUsers, releaseCrashFreeUsers)
         : null,
       diffDirection: diffCrashFreeUsers ? (diffCrashFreeUsers > 0 ? 'up' : 'down') : null,
       diffColor: diffCrashFreeUsers
@@ -195,35 +200,7 @@ function ReleaseComparisonChart({
       return {};
     }
 
-    const adoptionStages = release.adoptionStages?.[project.slug];
-
-    const markLines = [
-      generateReleaseMarkLine(
-        t('Release Created'),
-        moment(release.dateCreated).valueOf(),
-        theme
-      ),
-    ];
-
-    if (adoptionStages?.adopted) {
-      markLines.push(
-        generateReleaseMarkLine(
-          t('Adopted'),
-          moment(adoptionStages.adopted).valueOf(),
-          theme
-        )
-      );
-    }
-
-    if (adoptionStages?.unadopted) {
-      markLines.push(
-        generateReleaseMarkLine(
-          t('Unadopted'),
-          moment(adoptionStages.unadopted).valueOf(),
-          theme
-        )
-      );
-    }
+    const markLines = generateReleaseMarkLines(release, project.slug, theme);
 
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
@@ -316,8 +293,9 @@ function ReleaseComparisonChart({
   }
 
   const {series, previousSeries, markLines} = getSeries(activeChart);
+  const chart = charts.find(ch => ch.type === activeChart);
 
-  if (errored) {
+  if (errored || !chart) {
     return (
       <Panel>
         <ErrorPanel>
@@ -326,6 +304,18 @@ function ReleaseComparisonChart({
       </Panel>
     );
   }
+
+  const {
+    statsPeriod: period,
+    start,
+    end,
+    utc,
+  } = getReleaseParams({
+    location,
+    releaseBounds: getReleaseBounds(release),
+    defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
+    allowEmptyPeriod: true,
+  });
 
   return (
     <Fragment>
@@ -339,6 +329,19 @@ function ReleaseComparisonChart({
               previousSeries={previousSeries ?? []}
               chartType={activeChart}
               platform={platform}
+              period={period ?? undefined}
+              start={start}
+              end={end}
+              utc={utc === 'true'}
+              value={chart.thisRelease}
+              diff={
+                <Change color={defined(chart.diffColor) ? chart.diffColor : undefined}>
+                  {chart.diff}{' '}
+                  {defined(chart.diffDirection) && (
+                    <IconArrow direction={chart.diffDirection} size="xs" />
+                  )}
+                </Change>
+              }
             />
           </TransitionChart>
         </ChartContainer>
@@ -442,6 +445,7 @@ const ChartToggle = styled('label')`
 `;
 
 const Change = styled('div')<{color?: Color}>`
+  font-size: ${p => p.theme.fontSizeLarge};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 

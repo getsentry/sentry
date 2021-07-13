@@ -589,10 +589,16 @@ export class TokenConverter {
     }
 
     if (this.keyValidation.isDate(keyName)) {
+      const date = new Date();
+      date.setSeconds(0);
+      date.setMilliseconds(0);
+      const example = date.toISOString();
+
       return {
         reason: t(
-          'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now})',
-          new Date().toISOString()
+          'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
+          example.slice(0, 10),
+          example
         ),
         expectedType: [FilterType.Date, FilterType.SpecificDate, FilterType.RelativeDate],
       };
@@ -706,7 +712,7 @@ export type SearchConfig = {
 };
 
 const defaultConfig: SearchConfig = {
-  textOperatorKeys: new Set(['sentry.semver']),
+  textOperatorKeys: new Set(['release.version', 'release.build', 'release.package']),
   durationKeys: new Set(['transaction.duration']),
   percentageKeys: new Set(['percentage']),
   numericKeys: new Set([

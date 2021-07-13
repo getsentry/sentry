@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta
 
 import pytest
+from django.utils import timezone
 
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
+from sentry.models import ProjectTransactionThreshold, ReleaseProjectEnvironment
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -184,6 +185,32 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             for column, query in tests:
                 result = query_fn(
                     selected_columns=[column],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == 1, query_fn
+                # The query will translate `issue` into `issue.id`. Additional post processing
+                # is required to insert the `issue` column.
+                assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
+
+    def test_issue_filters(self):
+        tests = [
+            "has:issue",
+            "has:issue.id",
+            f"issue:[{self.event.group.qualified_short_id}]",
+            f"issue.id:[{self.event.group_id}]",
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for query in tests:
+                result = query_fn(
+                    selected_columns=["issue", "issue.id"],
                     query=query,
                     params={
                         "organization_id": self.organization.id,
@@ -377,6 +404,92 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1, query_fn
             assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
+    def test_transaction_status(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/success"
+        data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/aborted"
+        data["contexts"]["trace"]["status"] = "aborted"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/already_exists"
+        data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(data, project_id=self.project.id)
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["transaction.status"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3
+            assert {
+                data[0]["transaction.status"],
+                data[1]["transaction.status"],
+                data[2]["transaction.status"],
+            } == {0, 10, 6}
+
+    def test_transaction_status_filter(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/success"
+        data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/test_transaction/already_exists"
+        data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(data, project_id=self.project.id)
+
+        def run_query(query, expected_statuses, message):
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction.status"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == len(
+                    expected_statuses
+                ), f"failed with '{query_fn.__name__}' due to {message}"
+                assert sorted(item["transaction.status"] for item in data) == sorted(
+                    expected_statuses
+                ), f"failed with '{query_fn.__name__}' due to {message} condition"
+
+        run_query("has:transaction.status transaction.status:ok", [0, 0], "status 'ok'")
+        run_query(
+            "has:transaction.status transaction.status:[ok,already_exists]",
+            [0, 0, 6],
+            "status 'ok' or 'already_exists'",
+        )
+        run_query("has:transaction.status !transaction.status:ok", [6], "status not 'ok'")
+        run_query(
+            "has:transaction.status !transaction.status:already_exists",
+            [0, 0],
+            "status not 'already_exists'",
+        )
+        run_query(
+            "has:transaction.status !transaction.status:[ok,already_exists]",
+            [],
+            "status not 'ok' and not 'already_exists'",
+        )
+        run_query("!has:transaction.status", [], "status nonexistant")
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
@@ -557,6 +670,114 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+
+    def test_release_stage_condition(self):
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        adopted_release_e_1 = self.store_event(
+            data={"release": adopted_release.version},
+            project_id=self.project.id,
+        ).event_id
+        adopted_release_e_2 = self.store_event(
+            data={"release": adopted_release.version},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_1 = self.store_event(
+            data={"release": replaced_release.version},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_2 = self.store_event(
+            data={"release": replaced_release.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{RELEASE_STAGE_ALIAS}:adopted",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+        }
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"!{RELEASE_STAGE_ALIAS}:not_adopted",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{RELEASE_STAGE_ALIAS}:[adopted, replaced]",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+
+    def test_semver_package_condition(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.4")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_PACKAGE_ALIAS}:test",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_PACKAGE_ALIAS}:test2",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_2_e_1,
+        }
 
     def test_latest_release_condition(self):
         result = discover.query(

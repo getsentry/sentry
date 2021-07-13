@@ -23,7 +23,6 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.eventstore.models import CalculatedHashes
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -35,6 +34,7 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -319,8 +319,8 @@ class EventManager:
             return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project._organization_cache = Organization.objects.get_from_cache(
-                id=project.organization_id
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
             )
 
         job = {"data": self._data, "project_id": project_id, "raw": raw, "start_time": start_time}
@@ -386,6 +386,9 @@ class EventManager:
 
         if not do_background_grouping_before:
             _run_background_grouping(project, job)
+
+        if hashes.tree_labels:
+            job["finest_tree_label"] = hashes.finest_tree_label
 
         _materialize_metadata_many(jobs)
 
@@ -710,9 +713,8 @@ def _materialize_metadata_many(jobs):
         # In save_aggregate we store current_tree_label for the group metadata,
         # and finest_tree_label for the event's own title.
 
-        finest_tree_label = get_path(data, "hierarchical_tree_labels", -1)
-        if finest_tree_label is not None:
-            event_metadata["finest_tree_label"] = finest_tree_label
+        if "finest_tree_label" in job:
+            event_metadata["finest_tree_label"] = job["finest_tree_label"]
 
         data.update(materialize_metadata(data, event_type, event_metadata))
         job["culprit"] = data["culprit"]
@@ -990,8 +992,12 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
             project=project, hash=root_hierarchical_hash
         )[0]
 
-        metadata["current_tree_label"] = hashes.tree_label_from_hash(
-            existing_grouphash.hash if existing_grouphash is not None else root_hierarchical_hash
+        metadata.update(
+            hashes.group_metadata_from_hash(
+                existing_grouphash.hash
+                if existing_grouphash is not None
+                else root_hierarchical_hash
+            )
         )
 
     else:
@@ -1673,7 +1679,9 @@ def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.set_organization_cache"):
         for project in projects.values():
             try:
-                project._organization_cache = organizations[project.organization_id]
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
             except KeyError:
                 continue
 

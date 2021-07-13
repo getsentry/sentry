@@ -2,6 +2,7 @@
   {
     "query": "user.email:[test@test.com] test:[hello]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -41,6 +42,7 @@
   {
     "query": "user.email:[test@test.com,test2@test.com,test3@test.com] test:[hello]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -88,6 +90,7 @@
   {
     "query": "!user.email:[test@test.com, test@test2.com,     test@test3.com] test:[hello]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -135,6 +138,7 @@
   {
     "query": "test:h[e]llo]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -149,6 +153,7 @@
   {
     "query": "test:[h[e]llo",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -163,6 +168,7 @@
   {
     "query": "test:\"[h]\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -177,6 +183,7 @@
   {
     "query": "test:[h]*",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -191,6 +198,7 @@
   {
     "query": "test:[h e]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -207,6 +215,7 @@
   {
     "query": "test:[]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -221,6 +230,7 @@
   {
     "query": "user.email:[test@test.com, \"hi\", 1]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -251,6 +261,7 @@
   {
     "query": "user.email:[test@test.com, \"hi\", 1.0]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -281,6 +292,7 @@
   {
     "query": "test:[[h]]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -303,6 +315,7 @@
   {
     "query": "test:[a, [h]]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
@@ -329,6 +342,7 @@
   {
     "query": "user.email:[test@test.com]user.email:hello@hello.com",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

@@ -1,6 +1,7 @@
 import functools
 import re
 from collections import Iterable, OrderedDict, defaultdict
+from typing import Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
@@ -17,7 +18,9 @@ from sentry.models import (
 )
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
+    RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     USER_DISPLAY_ALIAS,
 )
@@ -689,6 +692,137 @@ class SnubaTagStorage(TagStorage):
             order_by=order_by,
         )
 
+    def _get_semver_versions_for_package(self, projects, organization_id, package):
+        packages = (
+            Release.objects.filter(organization_id=organization_id, package__startswith=package)
+            .values_list("package")
+            .distinct()
+        )
+
+        return Release.objects.filter(
+            organization_id=organization_id,
+            package__in=packages,
+            id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                "release_id", flat=True
+            ),
+        ).annotate_prerelease_column()
+
+    def _get_tag_values_for_semver(
+        self,
+        projects: Sequence[int],
+        environments: Optional[Sequence[str]],
+        query: Optional[str],
+    ):
+        from sentry.api.paginator import SequencePaginator
+
+        query = query if query else ""
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+
+        if query and "@" not in query and re.search(r"[^\d.\*]", query):
+            # Handle searching just on package
+            include_package = True
+            versions = self._get_semver_versions_for_package(projects, organization_id, query)
+        else:
+            include_package = not query or "@" in query
+            if not query:
+                query = "*"
+            elif query[-1] not in SEMVER_WILDCARDS | {"@"}:
+                if query[-1] != ".":
+                    query += "."
+                query += "*"
+
+            versions = Release.objects.filter_by_semver(
+                organization_id,
+                parse_semver(query, "="),
+                project_ids=projects,
+            )
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        versions = versions.order_by(*Release.SEMVER_COLS, "package").values_list(
+            "version", flat=True
+        )[:1000]
+
+        seen = set()
+        formatted_versions = []
+        # We want to format versions here in a way that makes sense for autocomplete. So we
+        # - Only include package if we think the user entered a package
+        # - Exclude build number, since it's not used as part of filtering
+        # When we don't include package, this can result in duplicate version numbers, so we
+        # also de-dupe here. This can result in less than 1000 versions returned, but we
+        # typically use very few values so this works ok.
+        for version in versions:
+            formatted_version = version if include_package else version.split("@", 1)[1]
+            formatted_version = formatted_version.split("+", 1)[0]
+            if formatted_version in seen:
+                continue
+
+            seen.add(formatted_version)
+            formatted_versions.append(formatted_version)
+
+        return SequencePaginator(
+            [
+                (i, TagValue(SEMVER_ALIAS, v, None, None, None))
+                for i, v in enumerate(formatted_versions)
+            ]
+        )
+
+    def _get_tag_values_for_semver_package(self, projects, environments, package):
+        from sentry.api.paginator import SequencePaginator
+
+        package = package if package else ""
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        versions = self._get_semver_versions_for_package(projects, organization_id, package)
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+        packages = versions.values_list("package", flat=True).distinct().order_by("package")[:1000]
+        return SequencePaginator(
+            [
+                (i, TagValue(SEMVER_PACKAGE_ALIAS, v, None, None, None))
+                for i, v in enumerate(packages)
+            ]
+        )
+
+    def _get_tag_values_for_release_stages(self, projects, environments, query):
+        from sentry.api.paginator import SequencePaginator
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        versions = Release.objects.filter_by_stage(
+            organization_id,
+            "=",
+            query,
+            project_ids=projects,
+        )
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        versions = versions.order_by("version").values_list("version", flat=True)[:1000]
+        return SequencePaginator(
+            [
+                (i, TagValue(RELEASE_STAGE_ALIAS, v, None, None, None))
+                for i, v in enumerate(versions)
+            ]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -756,75 +890,15 @@ class SnubaTagStorage(TagStorage):
                 ]
             )
 
+        if key == SEMVER_PACKAGE_ALIAS:
+            return self._get_tag_values_for_semver_package(projects, environments, query)
+
         if key == SEMVER_ALIAS:
             # If doing a search on semver, we want to hit postgres to query the releases
-            query = query if query else ""
-            organization_id = Project.objects.filter(id=projects[0]).values_list(
-                "organization_id", flat=True
-            )[0]
+            return self._get_tag_values_for_semver(projects, environments, query)
 
-            if query and "@" not in query and re.search(r"[^\d.\*]", query):
-                include_package = True
-                # Handle searching just on package
-                packages = (
-                    Release.objects.filter(
-                        organization_id=organization_id, package__startswith=query
-                    )
-                    .values_list("package")
-                    .distinct()
-                )
-                versions = Release.objects.filter(
-                    organization_id=organization_id,
-                    package__in=packages,
-                    id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
-                        "release_id", flat=True
-                    ),
-                ).annotate_prerelease_column()
-            else:
-                include_package = not query or "@" in query
-                if not query:
-                    query = "*"
-                elif query[-1] not in SEMVER_WILDCARDS | {"@"}:
-                    if query[-1] != ".":
-                        query += "."
-                    query += "*"
-
-                versions = Release.objects.filter_by_semver(
-                    organization_id,
-                    parse_semver(query, "="),
-                    project_ids=projects,
-                )
-            if environments:
-                versions = versions.filter(
-                    id__in=ReleaseEnvironment.objects.filter(
-                        environment_id__in=environments
-                    ).values_list("release_id", flat=True)
-                )
-
-            versions = versions.order_by(*Release.SEMVER_COLS, "package").values_list(
-                "version", flat=True
-            )[:1000]
-
-            seen = set()
-            formatted_versions = []
-            # We want to format versions here in a way that makes sense for autocomplete. So we
-            # - Only include package if we think the user entered a package
-            # - Exclude build number, since it's not used as part of filtering
-            # When we don't include package, this can result in duplicate version numbers, so we
-            # also de-dupe here. This can result in less than 1000 versions returned, but we
-            # typically use very few values so this works ok.
-            for version in versions:
-                formatted_version = version if include_package else version.split("@", 1)[1]
-                formatted_version = formatted_version.split("+", 1)[0]
-                if formatted_version in seen:
-                    continue
-
-                seen.add(formatted_version)
-                formatted_versions.append(formatted_version)
-
-            return SequencePaginator(
-                [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(formatted_versions)]
-            )
+        if key == RELEASE_STAGE_ALIAS:
+            return self._get_tag_values_for_release_stages(projects, environments, query)
 
         conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes

@@ -1,10 +1,11 @@
-import React, {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'app/components/charts/styles';
 import SearchBar from 'app/components/events/searchBar';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Radio from 'app/components/radio';
@@ -97,27 +98,21 @@ function getTagKeyOptions(tableData: TableData) {
 const InnerContent = (
   props: Props & {tableData: TableData | null; isLoading?: boolean}
 ) => {
-  const {eventView: _eventView, location, organization, tableData} = props;
+  const {eventView: _eventView, location, organization, tableData, isLoading} = props;
   const eventView = _eventView.clone();
 
-  if (!tableData) {
-    return null;
-  }
-
-  const tagOptions = getTagKeyOptions(tableData);
+  const tagOptions = tableData ? getTagKeyOptions(tableData) : null;
+  const suspectTags = tagOptions ? tagOptions.suspectTags : [];
+  const otherTags = tagOptions ? tagOptions.otherTags : [];
 
   const decodedTagKey = decodeSelectedTagKey(location);
 
-  const allTags = [...tagOptions.suspectTags, ...tagOptions.otherTags];
+  const allTags = [...suspectTags, ...otherTags];
   const decodedTagFromOptions = decodedTagKey
     ? allTags.find(tag => tag === decodedTagKey)
     : undefined;
 
-  const defaultTag = tagOptions.suspectTags.length
-    ? tagOptions.suspectTags[0]
-    : tagOptions.otherTags.length
-    ? tagOptions.otherTags[0]
-    : '';
+  const defaultTag = allTags.length ? allTags[0] : undefined;
 
   const initialTag = decodedTagFromOptions ?? defaultTag;
 
@@ -129,7 +124,7 @@ const InnerContent = (
       tagKey,
     });
 
-    browserHistory.push({
+    browserHistory.replace({
       pathname: location.pathname,
       query: queryParams,
     });
@@ -137,10 +132,10 @@ const InnerContent = (
   };
 
   useEffect(() => {
-    if (!decodedTagFromOptions) {
+    if (initialTag) {
       changeTagSelected(initialTag);
     }
-  }, [decodedTagFromOptions]);
+  }, [initialTag]);
 
   const handleSearch = (query: string) => {
     const queryParams = getParams({
@@ -166,10 +161,11 @@ const InnerContent = (
   return (
     <ReversedLayoutBody>
       <TagsSideBar
-        suspectTags={tagOptions.suspectTags}
-        otherTags={tagOptions.otherTags}
+        suspectTags={suspectTags}
+        otherTags={otherTags}
         tagSelected={tagSelected}
         changeTag={changeTag}
+        isLoading={isLoading}
       />
       <StyledMain>
         <StyledActions>
@@ -188,63 +184,79 @@ const InnerContent = (
 };
 
 const TagsSideBar = (props: {
-  tagSelected: string;
+  tagSelected?: string;
   changeTag: (tag: string) => void;
   suspectTags: TagOption[];
   otherTags: TagOption[];
+  isLoading?: boolean;
 }) => {
-  const {suspectTags, otherTags, changeTag, tagSelected} = props;
+  const {suspectTags, otherTags, changeTag, tagSelected, isLoading} = props;
   return (
     <StyledSide>
-      {suspectTags.length ? (
-        <React.Fragment>
-          <StyledSectionHeading>
-            {t('Suspect Tags')}
-            <QuestionTooltip
-              position="top"
-              title={t(
-                'Suspect tags are tags that often correspond to slower transaction'
-              )}
-              size="sm"
+      <StyledSectionHeading>
+        {t('Suspect Tags')}
+        <QuestionTooltip
+          position="top"
+          title={t('Suspect tags are tags that often correspond to slower transaction')}
+          size="sm"
+        />
+      </StyledSectionHeading>
+      {isLoading ? (
+        <Center>
+          <LoadingIndicator mini />
+        </Center>
+      ) : suspectTags.length ? (
+        suspectTags.map(tag => (
+          <RadioLabel key={tag}>
+            <Radio
+              aria-label={tag}
+              checked={tagSelected === tag}
+              onChange={() => changeTag(tag)}
             />
-          </StyledSectionHeading>
-          {suspectTags.map(tag => (
-            <RadioLabel key={tag}>
-              <Radio
-                aria-label={tag}
-                checked={tagSelected === tag}
-                onChange={() => changeTag(tag)}
-              />
-              <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
-            </RadioLabel>
-          ))}
+            <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
+          </RadioLabel>
+        ))
+      ) : (
+        <div>{t('No tags detected.')}</div>
+      )}
 
-          <SidebarSpacer />
-        </React.Fragment>
-      ) : null}
-      {otherTags.length ? (
-        <StyledSectionHeading>
-          {t('Other Tags')}
-          <QuestionTooltip
-            position="top"
-            title={t('Other common tags for this transaction')}
-            size="sm"
-          />
-        </StyledSectionHeading>
-      ) : null}
-      {otherTags.map(tag => (
-        <RadioLabel key={tag}>
-          <Radio
-            aria-label={tag}
-            checked={tagSelected === tag}
-            onChange={() => changeTag(tag)}
-          />
-          <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
-        </RadioLabel>
-      ))}
+      <SidebarSpacer />
+      <StyledSectionHeading>
+        {t('Other Tags')}
+        <QuestionTooltip
+          position="top"
+          title={t('Other common tags for this transaction')}
+          size="sm"
+        />
+      </StyledSectionHeading>
+
+      {isLoading ? (
+        <Center>
+          <LoadingIndicator mini />
+        </Center>
+      ) : otherTags.length ? (
+        otherTags.map(tag => (
+          <RadioLabel key={tag}>
+            <Radio
+              aria-label={tag}
+              checked={tagSelected === tag}
+              onChange={() => changeTag(tag)}
+            />
+            <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
+          </RadioLabel>
+        ))
+      ) : (
+        <div>{t('No tags detected.')}</div>
+      )}
     </StyledSide>
   );
 };
+
+const Center = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const RadioLabel = styled('label')`
   cursor: pointer;

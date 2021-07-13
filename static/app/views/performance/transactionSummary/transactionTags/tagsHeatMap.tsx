@@ -41,7 +41,7 @@ import {getPerformanceDuration, PerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 import {generateTransactionLink} from '../utils';
 
-import {parseHistogramBucketInfo} from './utils';
+import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -297,6 +297,7 @@ const TagsHeatMap = (
               ]);
 
               setTransactionEventView(newTransactionEventView);
+              trackTagPageInteraction(organization);
 
               if (!isMenuOpen) {
                 actions.open();
