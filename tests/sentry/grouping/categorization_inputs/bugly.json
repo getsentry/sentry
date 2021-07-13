@@ -1,0 +1,52 @@
+{
+  "event_id": "65999293099e49d9adb5f4dff4b9b0b7",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            },
+            {
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/system/bin/app_process64"
+            },
+            {
+              "package": "/lib/arm64/libBugly.so"
+            },
+            {
+              "function": "kill",
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}
