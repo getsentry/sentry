@@ -96,6 +96,42 @@ type OptionType = {
 };
 
 class QueryField extends React.Component<Props> {
+  FieldSelectComponents = {
+    Option: ({label, data, ...props}: OptionProps<OptionType>) => (
+      <components.Option label={label} data={data} {...props}>
+        <span data-test-id="label">{label}</span>
+        {this.renderTag(data.value.kind)}
+      </components.Option>
+    ),
+    SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
+      <components.SingleValue data={data} {...props}>
+        <span data-test-id="label">{data.label}</span>
+        {this.renderTag(data.value.kind)}
+      </components.SingleValue>
+    ),
+  };
+
+  FieldSelectStyles = {
+    singleValue(provided: CSSProperties) {
+      const custom = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: 'calc(100% - 10px)',
+      };
+      return {...provided, ...custom};
+    },
+    option(provided: CSSProperties) {
+      const custom = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+      };
+      return {...provided, ...custom};
+    },
+  };
+
   handleFieldChange = (selected?: FieldValueOption | null) => {
     if (!selected) {
       return;
@@ -373,6 +409,8 @@ class QueryField extends React.Component<Props> {
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
+            styles={this.FieldSelectStyles}
+            components={this.FieldSelectComponents}
           />
         );
       }
@@ -512,27 +550,6 @@ class QueryField extends React.Component<Props> {
       selectProps.autoFocus = true;
     }
 
-    const styles = {
-      singleValue(provided: CSSProperties) {
-        const custom = {
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: 'calc(100% - 10px)',
-        };
-        return {...provided, ...custom};
-      },
-      option(provided: CSSProperties) {
-        const custom = {
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '100%',
-        };
-        return {...provided, ...custom};
-      },
-    };
-
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
     if (fieldValue.kind === FieldValueKind.EQUATION) {
@@ -563,21 +580,8 @@ class QueryField extends React.Component<Props> {
         {!hidePrimarySelector && (
           <SelectControl
             {...selectProps}
-            styles={!inFieldLabels ? styles : undefined}
-            components={{
-              Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-                <components.Option label={label} data={data} {...props}>
-                  <span data-test-id="label">{label}</span>
-                  {this.renderTag(data.value.kind)}
-                </components.Option>
-              ),
-              SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-                <components.SingleValue data={data} {...props}>
-                  <span data-test-id="label">{data.label}</span>
-                  {this.renderTag(data.value.kind)}
-                </components.SingleValue>
-              ),
-            }}
+            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            components={this.FieldSelectComponents}
           />
         )}
         {parameters}
