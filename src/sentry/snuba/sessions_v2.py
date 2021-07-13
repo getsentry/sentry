@@ -297,7 +297,7 @@ class InvalidParams(Exception):
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False, custom_interval=None, max_points=MAX_POINTS
+    params, allow_minute_resolution=False, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
@@ -333,11 +333,7 @@ def get_constrained_date_range(
     # as soon as snuba can provide us with grouped totals in the same query
     # as the timeseries (using `WITH ROLLUP` in clickhouse)
 
-    rounding_interval = (
-        int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
-        if custom_interval is None
-        else custom_interval
-    )
+    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
 
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))

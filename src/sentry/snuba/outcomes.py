@@ -226,15 +226,10 @@ class QueryDefinition:
         raw_groupby = query.getlist("groupBy", [])
         if len(raw_fields) == 0:
             raise InvalidField('At least one "field" is required.')
-        custom_interval = None
-        if query["statsPeriod"] != "90d":
-            custom_interval = ONE_HOUR * 4 if query["interval"] == "4h" else ONE_HOUR
         self.fields = {}
         self.aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
-        start, end, rollup = get_constrained_date_range(
-            query, allow_minute_resolution, custom_interval
-        )
+        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
         self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
