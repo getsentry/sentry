@@ -321,11 +321,11 @@ class TestIgnoredSourcesFiltering:
 
         source_ids = map(lambda s: s["id"], sources)
         assert source_ids == [
-            "custom",
             "sentry:microsoft",
             "sentry:electron",
             "sentry:ios-source",
             "sentry:tvos-source",
+            "custom",
         ]
 
     @pytest.mark.django_db
@@ -336,11 +336,11 @@ class TestIgnoredSourcesFiltering:
 
         source_ids = map(lambda s: s["id"], sources)
         assert source_ids == [
-            "custom",
             "sentry:microsoft",
             "sentry:electron",
             "sentry:ios-source",
             "sentry:tvos-source",
+            "custom",
         ]
 
     @pytest.mark.django_db
@@ -351,10 +351,10 @@ class TestIgnoredSourcesFiltering:
 
         source_ids = map(lambda s: s["id"], sources)
         assert source_ids == [
-            "custom",
             "sentry:electron",
             "sentry:ios-source",
             "sentry:tvos-source",
+            "custom",
         ]
 
     @pytest.mark.django_db
@@ -364,7 +364,7 @@ class TestIgnoredSourcesFiltering:
         sources = filter_ignored_sources(sources, reversed_alias_map)
 
         source_ids = map(lambda s: s["id"], sources)
-        assert source_ids == ["custom", "sentry:microsoft", "sentry:electron"]
+        assert source_ids == ["sentry:microsoft", "sentry:electron", "custom"]
 
     @pytest.mark.django_db
     def test_sources_ignored_bypass_alias(self, sources, reversed_alias_map):
@@ -373,7 +373,7 @@ class TestIgnoredSourcesFiltering:
         sources = filter_ignored_sources(sources, reversed_alias_map)
 
         source_ids = map(lambda s: s["id"], sources)
-        assert source_ids == ["custom", "sentry:microsoft", "sentry:electron", "sentry:tvos-source"]
+        assert source_ids == ["sentry:microsoft", "sentry:electron", "sentry:tvos-source", "custom"]
 
     @pytest.mark.django_db
     def test_sources_ignored_custom(self, sources):
@@ -397,9 +397,9 @@ class TestIgnoredSourcesFiltering:
 
         source_ids = map(lambda s: s["id"], sources)
         assert source_ids == [
-            "custom",
             "sentry:microsoft",
             "sentry:electron",
             "sentry:ios-source",
             "sentry:tvos-source",
+            "custom",
         ]
