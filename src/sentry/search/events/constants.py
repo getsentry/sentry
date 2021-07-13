@@ -13,6 +13,7 @@ PROJECT_NAME_ALIAS = "project.name"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
+RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "release.version"
 SEMVER_PACKAGE_ALIAS = "release.package"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
@@ -68,6 +69,7 @@ SEARCH_MAP = {
     "last_seen": "last_seen",
     "times_seen": "times_seen",
     SEMVER_ALIAS: SEMVER_ALIAS,
+    RELEASE_STAGE_ALIAS: RELEASE_STAGE_ALIAS,
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
@@ -103,7 +105,7 @@ OPERATOR_NEGATION_MAP = {
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
-SEMVER_MAX_SEARCH_RELEASES = 1000
+MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
