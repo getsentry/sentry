@@ -34,7 +34,7 @@ class FeatureHandler:
         projects: Optional[Sequence["Project"]] = None,
         organization: Optional["Organization"] = None,
         batch: bool = True,
-    ) -> Optional[bool]:
+    ) -> Optional[Mapping[str, Mapping[str, bool]]]:
         raise NotImplementedError
 
 

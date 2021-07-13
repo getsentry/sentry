@@ -224,7 +224,7 @@ class FeatureManager(RegisteredFeatureManager):
         actor: Optional["User"] = None,
         projects: Optional[Sequence["Project"]] = None,
         organization: Optional["Organization"] = None,
-    ) -> Optional[bool]:
+    ) -> Optional[Mapping[str, Mapping[str, bool]]]:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
         the results if they cannot be handled.
@@ -233,10 +233,8 @@ class FeatureManager(RegisteredFeatureManager):
         OrganizationFeatures.
         """
         if self._entity_handler:
-            return bool(
-                self._entity_handler.batch_has(
-                    feature_names, actor, projects=projects, organization=organization
-                )
+            return self._entity_handler.batch_has(
+                feature_names, actor, projects=projects, organization=organization
             )
         else:
             return None
