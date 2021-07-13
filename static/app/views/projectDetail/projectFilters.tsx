@@ -37,6 +37,7 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
 
   return (
     <SmartSearchBar
+      searchSource="project_filters"
       query={query}
       placeholder={t('Search by release version')}
       maxSearchItems={5}
