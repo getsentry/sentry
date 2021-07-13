@@ -1,4 +1,4 @@
-name: symbolicator integration
+name: relay integration
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: symbolicator test
+    name: relay test
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
@@ -26,7 +26,6 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      # Until GH composite actions can use `uses`, we need to setup python here
       - name: Set python version output
         id: python-version
         run: |
@@ -61,23 +60,17 @@ jobs:
           snuba: true
           kafka: true
 
-      - name: Start symbolicator
+      - name: Pull relay image
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo $PWD
-          docker run \
-            -d \
-            -v $PWD/config/symbolicator/:/etc/symbolicator \
-            --network host \
-            --name symbolicator \
-            us.gcr.io/sentryio/symbolicator:nightly \
-            run -c /etc/symbolicator/config.yml
+          # pull relay we'll run and kill it for each test
+          docker pull us.gcr.io/sentryio/relay:nightly
           docker ps -a
 
       - name: Run test
         if: steps.changes.outputs.backend == 'true'
         run: |
-          make test-symbolicator
+          make test-relay-integration
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts

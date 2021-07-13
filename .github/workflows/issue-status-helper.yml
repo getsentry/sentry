@@ -1,0 +1,16 @@
+name: Issue Status Helper
+on:
+  issues:
+    types: [labeled]
+jobs:
+  ensure_one_status:
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.label.name, 'Status: ')"
+    steps:
+      - name: "Ensure a single 'Status: *' label"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          labels_to_remove=$(gh api --paginate "/repos/$GH_REPO/labels" -q '[.[].name | select(startswith("Status: ") and . != "${{ github.event.label.name }}")] | join(",")')
+          gh issue edit ${{ github.event.issue.number }} --remove-label "$labels_to_remove" --add-label "${{ github.event.label.name }}"
