@@ -13,6 +13,7 @@ describe('ReleasesList', function () {
     organization,
     selection: {
       projects: [],
+      environments: [],
       datetime: {
         period: '14d',
       },
@@ -368,7 +369,7 @@ describe('ReleasesList', function () {
       ],
     });
     const healthSection = mountWithTheme(
-      <ReleasesList {...props} selection={{projects: [2]}} />,
+      <ReleasesList {...props} selection={{...props.selection, projects: [2]}} />,
       routerContext
     ).find('ReleaseHealth');
     const hiddenProjectsMessage = healthSection.find('HiddenProjectsMessage');
@@ -388,7 +389,7 @@ describe('ReleasesList', function () {
       body: [TestStubs.Release({version: '2.0.0'})],
     });
     const healthSection = mountWithTheme(
-      <ReleasesList {...props} selection={{projects: [-1]}} />,
+      <ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />,
       routerContext
     ).find('ReleaseHealth');
 
