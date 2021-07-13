@@ -10,6 +10,7 @@ from sentry.lang.native.symbolicator import (
     redact_internal_sources,
 )
 from sentry.testutils.helpers import Feature
+from sentry.utils import json
 from sentry.utils.compat import map
 
 CUSTOM_SOURCE_CONFIG = """
@@ -297,7 +298,7 @@ class TestIgnoredSourcesFiltering:
                 "type": "http",
             },
         ]
-        builtins.extend(CUSTOM_SOURCE_CONFIG)
+        builtins.extend(json.loads(CUSTOM_SOURCE_CONFIG))
         return builtins
 
     @pytest.fixture
