@@ -38,7 +38,10 @@ def patch_django_runserver():
     # to GET DebugFilesEndpoint and fail when django liveserver closes conns prematurely.
     # Can be removed in Django >= 2.1.4.
 
-    import django.core.servers.basehttp
+    try:
+        import django.core.servers.basehttp
+    except ImportError:
+        return
 
     def _cleanup_headers(self):
         super(django.core.servers.basehttp.ServerHandler, self).cleanup_headers()
