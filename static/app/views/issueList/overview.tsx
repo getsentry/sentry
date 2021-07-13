@@ -633,7 +633,6 @@ class IssueListOverview extends React.Component<Props, State> {
           eventKey: 'issue_search.failed',
           eventName: 'Issue Search: Failed',
           organization_id: this.props.organization.id,
-          query: this.getQuery(),
           search_type: 'issues',
           search_source: 'main_search',
           error: parseApiError(err),
@@ -931,7 +930,6 @@ class IssueListOverview extends React.Component<Props, State> {
       eventKey: 'organization_saved_search.selected',
       eventName: 'Organization Saved Search: Selected saved search',
       organization_id: this.props.organization.id,
-      query: savedSearch.query,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
     });
