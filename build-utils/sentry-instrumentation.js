@@ -1,12 +1,8 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
-import crypto from 'crypto';
-import https from 'https';
-import os from 'os';
-
-import type Sentry from '@sentry/node';
-import webpack from 'webpack';
+const crypto = require('crypto');
+const https = require('https');
+const os = require('os');
 
 const {
   NODE_ENV,
@@ -15,22 +11,17 @@ const {
   GITHUB_SHA,
   GITHUB_REF,
 } = process.env;
-
 const IS_CI = !!GITHUB_SHA;
 
 const PLUGIN_NAME = 'SentryInstrumentation';
 const GB_BYTE = 1073741824;
 
-const createSignature = function (secret: string, payload: string) {
+const createSignature = function (secret, payload) {
   const hmac = crypto.createHmac('sha1', secret);
   return `sha1=${hmac.update(payload).digest('hex')}`;
 };
 
 class SentryInstrumentation {
-  initialBuild: boolean = false;
-
-  Sentry?: typeof Sentry;
-
   constructor() {
     // Only run if SENTRY_INSTRUMENTATION` is set or when in ci,
     // only in the javascript suite that runs webpack
@@ -38,41 +29,40 @@ class SentryInstrumentation {
       return;
     }
 
-    const sentry = require('@sentry/node');
+    this.initialBuild = false;
+    this.Sentry = require('@sentry/node');
     require('@sentry/tracing'); // This is required to patch Sentry
 
-    sentry.init({
+    this.Sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
     });
 
     if (IS_CI) {
-      sentry.setTag('branch', GITHUB_REF);
+      this.Sentry.setTag('branch', GITHUB_REF);
     }
 
     const cpus = os.cpus();
-    sentry.setTag('platform', os.platform());
-    sentry.setTag('arch', os.arch());
-    sentry.setTag(
+    this.Sentry.setTag('platform', os.platform());
+    this.Sentry.setTag('arch', os.arch());
+    this.Sentry.setTag(
       'cpu',
       cpus && cpus.length ? `${cpus[0].model} (cores: ${cpus.length})}` : 'N/A'
     );
-
-    this.Sentry = sentry;
   }
 
   /**
    * Measures the file sizes of assets emitted from the entrypoints
    */
-  measureAssetSizes(compilation: webpack.Compilation) {
+  measureAssetSizes(compilation) {
     if (!SENTRY_WEBPACK_WEBHOOK_SECRET) {
       return;
     }
 
     [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
       entry.chunks.forEach(chunk =>
-        Array.from(chunk.files)
+        chunk.files
           .filter(assetName => !assetName.endsWith('.map'))
           .forEach(assetName => {
             const asset = compilation.assets[assetName];
@@ -106,7 +96,7 @@ class SentryInstrumentation {
     );
   }
 
-  measureBuildTime(startTime: number, endTime: number) {
+  measureBuildTime(startTime, endTime) {
     if (!this.Sentry) {
       return;
     }
@@ -137,7 +127,7 @@ class SentryInstrumentation {
     transaction.finish();
   }
 
-  apply(compiler: webpack.Compiler) {
+  apply(compiler) {
     compiler.hooks.done.tapAsync(
       PLUGIN_NAME,
       async ({compilation, startTime, endTime}, done) => {
@@ -159,5 +149,4 @@ class SentryInstrumentation {
     );
   }
 }
-
-export default SentryInstrumentation;
+module.exports = SentryInstrumentation;
