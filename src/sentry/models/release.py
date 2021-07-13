@@ -148,7 +148,7 @@ class ReleaseQuerySet(models.QuerySet):
                 )
             )
 
-        if build.isnumeric():
+        if build.isnumeric() and validate_bigint(int(build)):
             qs = qs.filter(**{f"build_number__{operator}": int(build)})
         else:
             if not build or build.endswith("*"):

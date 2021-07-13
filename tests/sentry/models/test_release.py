@@ -918,6 +918,14 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("lte", "123", [release_1])
         self.run_test("exact", "123", [release_1])
 
+    def test_large_numeric(self):
+        release_1 = self.create_release(version="test@1.2.3+9223372036854775808")
+        self.create_release(version="test@1.2.3+9223372036854775809")
+
+        # This should only return `release_1`, since this exceeds the max size for a bigint and
+        # so should fall back to an exact string match instead.
+        self.run_test("gt", "9223372036854775808", [release_1])
+
     def test_text(self):
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test@1.2.4+1234")
