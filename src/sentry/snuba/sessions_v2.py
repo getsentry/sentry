@@ -338,10 +338,6 @@ def get_constrained_date_range(
         if custom_interval is None
         else custom_interval
     )
-    # print("_____________________________")
-    # print(int(math.ceil(interval / ONE_HOUR) * ONE_HOUR))
-    # print(custom_interval)
-    # print("_____________________________")
 
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
