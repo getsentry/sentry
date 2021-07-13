@@ -178,17 +178,26 @@ class FeatureManagerTest(TestCase):
 
     def test_batch_has(self):
         manager = features.FeatureManager()
-        manager.add(flag_name, features.OrganizationFeature)
-        manager.add_entity_handler(OrganizationBatchHandler())
+        manager.add("auth:register")
+        manager.add("organizations:feature", features.OrganizationFeature)
+        manager.add("projects:feature", features.ProjectFeature)
+        manager.add_entity_handler(MockBatchHandler())
 
-        batch_features = manager.batch_has(
-            flag_name, actor=self.user, organization=self.organization
-        )
-        assert batch_features[flag_name] == flag_value
+        assert manager.batch_has("auth:register", actor=self.user)["auth:register"]
+        assert manager.batch_has(
+            "organizations:feature", actor=self.user, organization=self.organization
+        )["organizations:feature"]
+        assert manager.batch_has("projects:feature", actor=self.user, projects=[self.project])[
+            "projects:feature"
+        ]
 
     def test_has(self):
         manager = features.FeatureManager()
-        manager.add(flag_name, features.OrganizationFeature)
-        manager.add_handler(OrganizationHandler())
+        manager.add("auth:register")
+        manager.add("organizations:feature", features.OrganizationFeature)
+        manager.add("projects:feature", features.ProjectFeature)
+        manager.add_handler(MockBatchHandler())
 
-        assert manager.has(flag_name, actor=self.user, organization=self.organization) == flag_value
+        assert manager.has("organizations:feature", actor=self.user, organization=self.organization)
+        assert manager.has("projects:feature", actor=self.user, project=self.project)
+        assert manager.has("auth:register", actor=self.user)
