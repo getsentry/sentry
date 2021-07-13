@@ -15,7 +15,11 @@ import {defined} from 'app/utils';
 import {Theme} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
-import {releaseComparisonChartHelp, releaseComparisonChartLabels} from '../../utils';
+import {
+  releaseComparisonChartHelp,
+  releaseComparisonChartLabels,
+  releaseMarkLinesLabels,
+} from '../../utils';
 
 type Props = {
   theme: Theme;
@@ -32,7 +36,11 @@ type Props = {
 } & WithRouterProps;
 
 class SessionsChart extends React.Component<Props> {
-  formatTooltipValue = (value: string | number | null) => {
+  formatTooltipValue = (value: string | number | null, label?: string) => {
+    if (label && Object.values(releaseMarkLinesLabels).includes(label)) {
+      return '';
+    }
+
     const {chartType} = this.props;
     if (value === null) {
       return '\u2015';

@@ -173,9 +173,10 @@ function generateReleaseMarkLine(
   return {
     seriesName: title,
     type: 'line',
-    data: [],
+    data: [{name: position, value: 0}],
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
+    color: theme.gray300,
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: theme.gray300, type: 'solid'},
@@ -194,6 +195,12 @@ function generateReleaseMarkLine(
   };
 }
 
+export const releaseMarkLinesLabels = {
+  created: t('Release Created'),
+  adopted: t('Adopted'),
+  unadopted: t('Unadopted'),
+};
+
 export function generateReleaseMarkLines(
   release: ReleaseWithHealth,
   projectSlug: string,
@@ -204,7 +211,7 @@ export function generateReleaseMarkLines(
 
   const markLines = [
     generateReleaseMarkLine(
-      t('Release Created'),
+      releaseMarkLinesLabels.created,
       moment(release.dateCreated).valueOf(),
       theme,
       options
@@ -214,7 +221,7 @@ export function generateReleaseMarkLines(
   if (adoptionStages?.adopted) {
     markLines.push(
       generateReleaseMarkLine(
-        t('Adopted'),
+        releaseMarkLinesLabels.adopted,
         moment(adoptionStages.adopted).valueOf(),
         theme,
         options
@@ -225,7 +232,7 @@ export function generateReleaseMarkLines(
   if (adoptionStages?.unadopted) {
     markLines.push(
       generateReleaseMarkLine(
-        t('Unadopted'),
+        releaseMarkLinesLabels.unadopted,
         moment(adoptionStages.unadopted).valueOf(),
         theme,
         options
