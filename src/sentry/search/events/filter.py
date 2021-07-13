@@ -37,6 +37,7 @@ from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     SEMVER_EMPTY_RELEASE,
     SEMVER_FAKE_PACKAGE,
     SEMVER_PACKAGE_ALIAS,
@@ -472,6 +473,34 @@ def _semver_package_filter_converter(
     return ["release", "IN", versions]
 
 
+def _semver_build_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Applies a semver build filter to the search. Note that if the query returns more than
+    `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    build: str = search_filter.value.raw_value
+
+    versions = list(
+        Release.objects.filter_by_semver_build(
+            organization_id, OPERATOR_TO_DJANGO[search_filter.operator], build
+        ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+    )
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", "IN", versions]
+
+
 def parse_semver(version, operator) -> Optional[SemverFilter]:
     """
     Attempts to parse a release version using our semver syntax. version should be in
@@ -540,6 +569,7 @@ key_conversion_map: Mapping[
     RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,
     SEMVER_PACKAGE_ALIAS: _semver_package_filter_converter,
+    SEMVER_BUILD_ALIAS: _semver_build_filter_converter,
 }
 
 

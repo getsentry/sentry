@@ -29,7 +29,13 @@ from sentry.models import (
     ReleaseStatus,
     SemverFilter,
 )
-from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import (
+    OPERATOR_TO_DJANGO,
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.search.events.filter import parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
@@ -94,6 +100,13 @@ def _filter_releases_by_query(queryset, organization, query):
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
             queryset = queryset.filter_by_stage(
                 organization.id, search_filter.operator, search_filter.value.value
+            )
+
+        if search_filter.key.name == SEMVER_BUILD_ALIAS:
+            queryset = queryset.filter_by_semver_build(
+                organization.id,
+                OPERATOR_TO_DJANGO[search_filter.operator],
+                search_filter.value.raw_value,
             )
 
     return queryset
