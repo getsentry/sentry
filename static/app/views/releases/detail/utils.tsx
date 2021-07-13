@@ -144,6 +144,9 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free Users'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
+  [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
+  [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
+  [ReleaseComparisonChartType.FAILURE_RATE]: t('Failure Rate'),
 };
 
 export const releaseComparisonChartHelp = {
@@ -173,7 +176,7 @@ function generateReleaseMarkLine(
   return {
     seriesName: title,
     type: 'line',
-    data: [{name: position, value: 0}],
+    data: [{name: position, value: null as any}],
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
     color: theme.gray300,

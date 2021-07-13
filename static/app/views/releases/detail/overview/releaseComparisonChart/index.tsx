@@ -44,7 +44,8 @@ import {
   initSessionsBreakdownChartData,
 } from '../chart/utils';
 
-import SessionsChart from './sessionsChart';
+import ReleaseEventsChart from './releaseEventsChart';
+import ReleaseSessionsChart from './releaseSessionsChart';
 
 type ComparisonRow = {
   type: ReleaseComparisonChartType;
@@ -122,6 +123,7 @@ function ReleaseComparisonChart({
       ? percent(releaseUsersCount - allUsersCount, allUsersCount)
       : null;
 
+  // TODO(release-comparison): conditional based on sessions/transactions/discover existence
   const charts: ComparisonRow[] = [
     {
       type: ReleaseComparisonChartType.CRASH_FREE_SESSIONS,
@@ -191,6 +193,31 @@ function ReleaseComparisonChart({
           ? 'up'
           : 'down'
         : null,
+      diffColor: null,
+    },
+    // TODO(release-comparison): calculate totals/diffs
+    {
+      type: ReleaseComparisonChartType.ERROR_COUNT,
+      thisRelease: null,
+      allReleases: null,
+      diff: null,
+      diffDirection: null,
+      diffColor: null,
+    },
+    {
+      type: ReleaseComparisonChartType.TRANSACTION_COUNT,
+      thisRelease: null,
+      allReleases: null,
+      diff: null,
+      diffDirection: null,
+      diffColor: null,
+    },
+    {
+      type: ReleaseComparisonChartType.FAILURE_RATE,
+      thisRelease: null,
+      allReleases: null,
+      diff: null,
+      diffDirection: null,
       diffColor: null,
     },
   ];
@@ -305,6 +332,15 @@ function ReleaseComparisonChart({
     );
   }
 
+  const chartDiff = chart.diff ? (
+    <Change color={defined(chart.diffColor) ? chart.diffColor : undefined}>
+      {chart.diff}{' '}
+      {defined(chart.diffDirection) && (
+        <IconArrow direction={chart.diffDirection} size="xs" />
+      )}
+    </Change>
+  ) : null;
+
   const {
     statsPeriod: period,
     start,
@@ -321,29 +357,39 @@ function ReleaseComparisonChart({
     <Fragment>
       <ChartPanel>
         <ChartContainer>
-          <TransitionChart loading={loading} reloading={reloading}>
-            <TransparentLoadingMask visible={reloading} />
-
-            <SessionsChart
-              series={[...(series ?? []), ...(markLines ?? [])]}
-              previousSeries={previousSeries ?? []}
+          {[
+            ReleaseComparisonChartType.ERROR_COUNT,
+            ReleaseComparisonChartType.TRANSACTION_COUNT,
+            ReleaseComparisonChartType.FAILURE_RATE,
+          ].includes(activeChart) ? (
+            <ReleaseEventsChart
+              version={release.version}
               chartType={activeChart}
-              platform={platform}
               period={period ?? undefined}
               start={start}
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={
-                <Change color={defined(chart.diffColor) ? chart.diffColor : undefined}>
-                  {chart.diff}{' '}
-                  {defined(chart.diffDirection) && (
-                    <IconArrow direction={chart.diffDirection} size="xs" />
-                  )}
-                </Change>
-              }
+              diff={chartDiff}
             />
-          </TransitionChart>
+          ) : (
+            <TransitionChart loading={loading} reloading={reloading}>
+              <TransparentLoadingMask visible={reloading} />
+
+              <ReleaseSessionsChart
+                series={[...(series ?? []), ...(markLines ?? [])]}
+                previousSeries={previousSeries ?? []}
+                chartType={activeChart}
+                platform={platform}
+                period={period ?? undefined}
+                start={start}
+                end={end}
+                utc={utc === 'true'}
+                value={chart.thisRelease}
+                diff={chartDiff}
+              />
+            </TransitionChart>
+          )}
         </ChartContainer>
       </ChartPanel>
       <ChartTable
