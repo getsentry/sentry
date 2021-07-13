@@ -409,7 +409,7 @@ class QueryField extends React.Component<Props> {
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
-            styles={this.FieldSelectStyles}
+            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
             components={this.FieldSelectComponents}
           />
         );
