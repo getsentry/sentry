@@ -216,6 +216,7 @@ class VitalDetailContent extends React.Component<Props, State> {
           <Layout.Main fullWidth>
             <StyledDescription>{description}</StyledDescription>
             <StyledSearchBar
+              searchSource="performance_vitals"
               organization={organization}
               projectIds={eventView.project}
               query={query}

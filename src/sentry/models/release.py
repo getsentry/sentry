@@ -7,7 +7,7 @@ from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Sum, Value, When
+from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -24,11 +24,13 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.numbers import validate_bigint
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
 
@@ -129,6 +131,34 @@ class ReleaseQuerySet(models.QuerySet):
         """
         return self.filter(major__isnull=False)
 
+    def filter_by_semver_build(
+        self, organization_id: int, operator: str, build: str, project_ids: Sequence[int] = None
+    ) -> models.QuerySet:
+        """
+        Filters released by build. If the passed `build` is a numeric string, we'll filter on
+        `build_number` and make use of the passed operator.
+        If it is a non-numeric string, then we'll filter on `build_code` instead. We support a
+        wildcard only at the end of this string, so that we can filter efficiently via the index.
+        """
+        qs = self.filter(organization_id=organization_id)
+
+        if project_ids:
+            qs = qs.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
+                    "release_id", flat=True
+                )
+            )
+
+        if build.isnumeric() and validate_bigint(int(build)):
+            qs = qs.filter(**{f"build_number__{operator}": int(build)})
+        else:
+            if not build or build.endswith("*"):
+                qs = qs.filter(build_code__startswith=build[:-1])
+            else:
+                qs = qs.filter(build_code=build)
+
+        return qs
+
     def filter_by_semver(
         self,
         organization_id: int,
@@ -136,7 +166,7 @@ class ReleaseQuerySet(models.QuerySet):
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
         """
-        Filters released based on a based `SemverFilter` instance.
+        Filters releases based on a based `SemverFilter` instance.
         `SemverFilter.version_parts` can contain up to 6 components, which should map
         to the columns defined in `Release.SEMVER_COLS`. If fewer components are
         included, then we will exclude later columns from the filter.
@@ -170,6 +200,48 @@ class ReleaseQuerySet(models.QuerySet):
             ).filter(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
+    def filter_by_stage(
+        self,
+        organization_id: int,
+        operator: str,
+        value,
+        project_ids: Sequence[int] = None,
+    ) -> models.QuerySet:
+        from sentry.models import ReleaseProjectEnvironment
+        from sentry.search.events.filter import to_list
+
+        filters = {
+            "adopted": Q(adopted__isnull=False, unadopted__isnull=True),
+            "replaced": Q(adopted__isnull=False, unadopted__isnull=False),
+            "not_adopted": Q(adopted__isnull=True, unadopted__isnull=True),
+        }
+        value = to_list(value)
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        if operator in operator_conversions.keys():
+            operator = operator_conversions.get(operator)
+
+        for stage in value:
+            if stage not in filters:
+                raise InvalidSearchQuery("Unsupported release.stage value.")
+
+        rpes = ReleaseProjectEnvironment.objects.filter(
+            release__organization_id=organization_id,
+        ).select_related("release")
+
+        if project_ids:
+            rpes = rpes.filter(project_id__in=project_ids)
+
+        query = Q()
+        if operator == "IN":
+            for stage in value:
+                query |= filters[stage]
+        elif operator == "NOT IN":
+            for stage in value:
+                query &= ~filters[stage]
+
+        qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
+        return qs
+
 
 class ReleaseModelManager(models.Manager):
     def get_queryset(self):
@@ -181,10 +253,26 @@ class ReleaseModelManager(models.Manager):
     def filter_to_semver(self):
         return self.get_queryset().filter_to_semver()
 
+    def filter_by_semver_build(
+        self, organization_id: int, operator: str, build: str, project_ids: Sequence[int] = None
+    ) -> models.QuerySet:
+        return self.get_queryset().filter_by_semver_build(
+            organization_id, operator, build, project_ids
+        )
+
     def filter_by_semver(
         self, organization_id: int, semver_filter: SemverFilter, project_ids: Sequence[int] = None
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
+
+    def filter_by_stage(
+        self,
+        organization_id: int,
+        operator: str,
+        value,
+        project_ids: Sequence[int] = None,
+    ) -> models.QuerySet:
+        return self.get_queryset().filter_by_stage(organization_id, operator, value, project_ids)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
@@ -200,15 +288,11 @@ class ReleaseModelManager(models.Manager):
         if build_code is not None:
             try:
                 build_code_as_int = int(build_code)
-                if ReleaseModelManager.validate_bigint(build_code_as_int):
+                if validate_bigint(build_code_as_int):
                     build_number = build_code_as_int
             except ValueError:
                 pass
         return build_number
-
-    @staticmethod
-    def validate_bigint(value):
-        return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
 
     @staticmethod
     def _massage_semver_cols_into_release_object_data(kwargs):
@@ -225,7 +309,7 @@ class ReleaseModelManager(models.Manager):
                 version_parsed = version_info.get("version_parsed")
 
                 if version_parsed is not None and all(
-                    ReleaseModelManager.validate_bigint(version_parsed[field])
+                    validate_bigint(version_parsed[field])
                     for field in ("major", "minor", "patch", "revision")
                 ):
                     build_code = version_parsed.get("build_code")

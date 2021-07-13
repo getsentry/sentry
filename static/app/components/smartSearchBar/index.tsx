@@ -187,6 +187,10 @@ type Props = WithRouterProps & {
    */
   savedSearchType?: SavedSearchType;
   /**
+   * Indicates the usage of the search bar for analytics
+   */
+  searchSource?: string;
+  /**
    * Get a list of tag values for the passed tag
    */
   onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
@@ -391,13 +395,19 @@ class SmartSearchBar extends React.Component<Props, State> {
   async doSearch() {
     this.blur();
 
-    if (!this.hasValidSearch && this.hasImprovedSearch) {
+    if (this.hasImprovedSearch && !this.hasValidSearch) {
       return;
     }
 
     const query = removeSpace(this.state.query);
-    const {onSearch, onSavedRecentSearch, api, organization, savedSearchType} =
-      this.props;
+    const {
+      onSearch,
+      onSavedRecentSearch,
+      api,
+      organization,
+      savedSearchType,
+      searchSource,
+    } = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'search.searched',
@@ -405,7 +415,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       organization_id: organization.id,
       query,
       search_type: savedSearchType === 0 ? 'issues' : 'events',
-      search_source: 'main_search',
+      search_source: searchSource,
     });
 
     callIfFunction(onSearch, query);
