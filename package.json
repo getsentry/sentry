@@ -224,10 +224,12 @@
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost"
   },
   "browserslist": [
-    "> 1%",
-    "not dead",
-    "not OperaMini all",
-    "not IE 11"
+    "last 2 Chrome version",
+    "last 2 Firefox version",
+    "last 2 Edge major versions",
+    "last 2 Safari major versions",
+    "last 2 iOS major versions",
+    "Firefox ESR"
   ],
   "volta": {
     "node": "12.19.0",
