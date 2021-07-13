@@ -33,7 +33,7 @@
     "@types/color": "^3.0.2",
     "@types/create-react-class": "^15.6.2",
     "@types/diff": "5.0.1",
-    "@types/dompurify": "^2.2.2",
+    "@types/dompurify": "^2.2.3",
     "@types/echarts": "^4.9.3",
     "@types/jest": "^26.0.24",
     "@types/jquery": "^2.0.53",
