@@ -301,7 +301,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     # downloads the AppStore Connect builds / dSYMs, assuming the bcsymbolmap
     # belongs to a newly uploaded build.
     if meta.file_format == "bcsymbolmap":
-        config_id = "TODO: where do I get this ID from?"
+        config_id = None
         dsym_download.apply_async(
             kwargs={
                 "project_id": project.id,
