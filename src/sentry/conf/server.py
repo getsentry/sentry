@@ -1546,7 +1546,7 @@ SENTRY_WATCHERS = (
             "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
                 )
             ),
         ],

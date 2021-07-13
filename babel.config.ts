@@ -1,5 +1,8 @@
 /* eslint-env node */
-module.exports = {
+
+import {TransformOptions} from '@babel/core';
+
+const config: TransformOptions = {
   presets: [
     [
       '@babel/preset-react',
@@ -50,8 +53,8 @@ module.exports = {
       plugins: [
         '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
-        !!process.env.SENTRY_UI_HOT_RELOAD ? 'react-refresh/babel' : null,
-      ].filter(Boolean),
+        ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
+      ],
     },
     test: {
       // Required, see https://github.com/facebook/jest/issues/9430
@@ -59,3 +62,5 @@ module.exports = {
     },
   },
 };
+
+export default config;
