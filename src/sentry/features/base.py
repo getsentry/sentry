@@ -29,10 +29,13 @@ class OrganizationFeature(Feature):
         return self.organization
 
 
-class ProjectFeature(OrganizationFeature):
+class ProjectFeature(Feature):
     def __init__(self, name: str, project: "Project") -> None:
-        super().__init__(name, organization=project.organization)
+        super().__init__(name)
         self.project = project
+
+    def get_organization(self) -> "Organization":
+        return self.project.organization
 
 
 class ProjectPluginFeature(ProjectFeature):
