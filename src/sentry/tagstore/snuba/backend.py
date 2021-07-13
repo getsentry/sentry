@@ -18,6 +18,7 @@ from sentry.models import (
 )
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
+    RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
@@ -795,6 +796,33 @@ class SnubaTagStorage(TagStorage):
             ]
         )
 
+    def _get_tag_values_for_release_stages(self, projects, environments, query):
+        from sentry.api.paginator import SequencePaginator
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        versions = Release.objects.filter_by_stage(
+            organization_id,
+            "=",
+            query,
+            project_ids=projects,
+        )
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        versions = versions.order_by("version").values_list("version", flat=True)[:1000]
+        return SequencePaginator(
+            [
+                (i, TagValue(RELEASE_STAGE_ALIAS, v, None, None, None))
+                for i, v in enumerate(versions)
+            ]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -868,6 +896,9 @@ class SnubaTagStorage(TagStorage):
         if key == SEMVER_ALIAS:
             # If doing a search on semver, we want to hit postgres to query the releases
             return self._get_tag_values_for_semver(projects, environments, query)
+
+        if key == RELEASE_STAGE_ALIAS:
+            return self._get_tag_values_for_release_stages(projects, environments, query)
 
         conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes

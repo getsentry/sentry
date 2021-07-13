@@ -49,7 +49,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
-from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
@@ -758,6 +758,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # TODO: Above comment is wrong, we do need to filter by at least `SEMVER_ALIAS` here since
         # groups can appear across releases. Probably unnecessary for the `SEMVER_PACKAGE_ALIAS`
         # though, since package tends to be tied to a specific project.
+        RELEASE_STAGE_ALIAS,
         SEMVER_ALIAS,
         SEMVER_PACKAGE_ALIAS,
     }

@@ -169,7 +169,7 @@ def adopt_releases(org_id, totals):
                 total_releases = len(environment_totals["releases"])
                 for release in environment_totals["releases"]:
                     threshold = 0.1 / total_releases
-                    if (
+                    if environment_totals["total_sessions"] != 0 and (
                         environment_totals["releases"][release]
                         / environment_totals["total_sessions"]
                         >= threshold

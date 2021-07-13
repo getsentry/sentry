@@ -7,7 +7,7 @@ from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Sum, Value, When
+from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -24,6 +24,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
@@ -170,6 +171,48 @@ class ReleaseQuerySet(models.QuerySet):
             ).filter(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
+    def filter_by_stage(
+        self,
+        organization_id: int,
+        operator: str,
+        value,
+        project_ids: Sequence[int] = None,
+    ) -> models.QuerySet:
+        from sentry.models import ReleaseProjectEnvironment
+        from sentry.search.events.filter import to_list
+
+        filters = {
+            "adopted": Q(adopted__isnull=False, unadopted__isnull=True),
+            "replaced": Q(adopted__isnull=False, unadopted__isnull=False),
+            "not_adopted": Q(adopted__isnull=True, unadopted__isnull=True),
+        }
+        value = to_list(value)
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        if operator in operator_conversions.keys():
+            operator = operator_conversions.get(operator)
+
+        for stage in value:
+            if stage not in filters:
+                raise InvalidSearchQuery("Unsupported release.stage value.")
+
+        rpes = ReleaseProjectEnvironment.objects.filter(
+            release__organization_id=organization_id,
+        ).select_related("release")
+
+        if project_ids:
+            rpes = rpes.filter(project_id__in=project_ids)
+
+        query = Q()
+        if operator == "IN":
+            for stage in value:
+                query |= filters[stage]
+        elif operator == "NOT IN":
+            for stage in value:
+                query &= ~filters[stage]
+
+        qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
+        return qs
+
 
 class ReleaseModelManager(models.Manager):
     def get_queryset(self):
@@ -185,6 +228,15 @@ class ReleaseModelManager(models.Manager):
         self, organization_id: int, semver_filter: SemverFilter, project_ids: Sequence[int] = None
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
+
+    def filter_by_stage(
+        self,
+        organization_id: int,
+        operator: str,
+        value,
+        project_ids: Sequence[int] = None,
+    ) -> models.QuerySet:
+        return self.get_queryset().filter_by_stage(organization_id, operator, value, project_ids)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
