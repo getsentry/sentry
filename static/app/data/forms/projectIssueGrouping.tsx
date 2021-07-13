@@ -117,7 +117,7 @@ stack.function:malloc -> memory-allocation-error`}
             `This can be used to enhance the grouping algorithm with custom rules.
         Rules follow the pattern [pattern]. To learn more about stack trace rules, [docs:read the docs].`,
             {
-              pattern: <code>matcher:glob [^v]?[+-]flag</code>,
+              pattern: <code>matcher:glob [v^]?[+-]flag</code>,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/stack-trace-rules/" />
               ),

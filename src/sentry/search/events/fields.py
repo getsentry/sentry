@@ -28,8 +28,6 @@ from sentry.search.events.constants import (
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
-    MEASUREMENTS_FRAMES_FROZEN_RATE,
-    MEASUREMENTS_FRAMES_SLOW_RATE,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -406,6 +404,8 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
+
+# TODO: I think I have to support the release stage alias here maybe?
 FIELD_ALIASES = {
     field.name: field
     for field in [
@@ -452,32 +452,6 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
             result_type="boolean",
-        ),
-        PseudoField(
-            MEASUREMENTS_FRAMES_SLOW_RATE,
-            MEASUREMENTS_FRAMES_SLOW_RATE,
-            expression=[
-                "if",
-                [
-                    ["greater", ["measurements.frames_total", 0]],
-                    ["divide", ["measurements.frames_slow", "measurements.frames_total"]],
-                    None,
-                ],
-            ],
-            result_type="percentage",
-        ),
-        PseudoField(
-            MEASUREMENTS_FRAMES_FROZEN_RATE,
-            MEASUREMENTS_FRAMES_FROZEN_RATE,
-            expression=[
-                "if",
-                [
-                    ["greater", ["measurements.frames_total", 0]],
-                    ["divide", ["measurements.frames_frozen", "measurements.frames_total"]],
-                    None,
-                ],
-            ],
-            result_type="percentage",
         ),
     ]
 }
@@ -1199,24 +1173,8 @@ class NumericColumnNoLookup(NumericColumn):
             if value in {"measurements_value", "span_op_breakdowns_value"}:
                 return ["arrayJoin", [value]]
 
-        if value in {MEASUREMENTS_FRAMES_SLOW_RATE, MEASUREMENTS_FRAMES_FROZEN_RATE}:
-            field = FIELD_ALIASES[value]
-            return field.get_expression(params)
-
         super().normalize(value, params)
         return value
-
-    def get_type(self, value):
-        # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
-        # to a percentage value, since they are expressions rather than columns, we special
-        # case them here
-        if isinstance(value, list):
-            for name in {MEASUREMENTS_FRAMES_SLOW_RATE, MEASUREMENTS_FRAMES_FROZEN_RATE}:
-                field = FIELD_ALIASES[name]
-                expression = field.get_expression(None)
-                if expression == value:
-                    return field.result_type
-        return super().get_type(value)
 
 
 class DurationColumn(FunctionArg):
@@ -1720,7 +1678,7 @@ FUNCTIONS = {
                                             for name in ["ok", "cancelled", "unknown"]
                                         ],
                                     ],
-                                    "transaction.status",
+                                    "transaction_status",
                                 ],
                             ],
                         ],

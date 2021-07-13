@@ -2,15 +2,21 @@ from base64 import b64encode
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from pytz import utc
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
-from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
+from sentry.models import (
+    ApiKey,
+    ProjectTeam,
+    ProjectTransactionThreshold,
+    ReleaseProjectEnvironment,
+)
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -815,6 +821,74 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert {r["id"] for r in response.data["data"]} == {
             release_1_e_1,
             release_1_e_2,
+        }
+
+    def test_release_stage(self):
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        adopted_release_e_1 = self.store_event(
+            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        adopted_release_e_2 = self.store_event(
+            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_1 = self.store_event(
+            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_2 = self.store_event(
+            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:adopted"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"!{RELEASE_STAGE_ALIAS}:not_adopted"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:[adopted, replaced]"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
         }
 
     def test_semver_package(self):
@@ -4452,52 +4526,3 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
-
-    def test_measurements_frame_rates(self):
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["measurements"]["frames_total"] = {"value": 100}
-        data["measurements"]["frames_slow"] = {"value": 10}
-        data["measurements"]["frames_frozen"] = {"value": 5}
-        self.store_event(data, project_id=self.project.id)
-
-        query = {
-            "field": [
-                "measurements.frames_slow_rate",
-                "measurements.frames_frozen_rate",
-            ],
-            "query": "",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["measurements.frames_slow_rate"] == 0.1
-        assert data[0]["measurements.frames_frozen_rate"] == 0.05
-        meta = response.data["meta"]
-        assert meta["measurements.frames_slow_rate"] == "percentage"
-        assert meta["measurements.frames_frozen_rate"] == "percentage"
-
-        query = {
-            "field": [
-                "p75(measurements.frames_slow_rate)",
-                "p75(measurements.frames_frozen_rate)",
-                "percentile(measurements.frames_slow_rate,0.5)",
-                "percentile(measurements.frames_frozen_rate,0.5)",
-            ],
-            "query": "",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["p75_measurements_frames_slow_rate"] == 0.1
-        assert data[0]["p75_measurements_frames_frozen_rate"] == 0.05
-        assert data[0]["percentile_measurements_frames_slow_rate_0_5"] == 0.1
-        assert data[0]["percentile_measurements_frames_frozen_rate_0_5"] == 0.05
-        meta = response.data["meta"]
-        assert meta["p75_measurements_frames_slow_rate"] == "percentage"
-        assert meta["p75_measurements_frames_frozen_rate"] == "percentage"
-        assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
-        assert meta["percentile_measurements_frames_frozen_rate_0_5"] == "percentage"
