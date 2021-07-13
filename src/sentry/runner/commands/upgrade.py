@@ -13,7 +13,7 @@ def _check_history():
         # If this query fails because there are no tables we're good to go.
         cursor.execute("SELECT COUNT(*) FROM django_migrations")
         row = cursor.fetchone()
-        if not row or row == 0:
+        if not row or row[0] == 0:
             return
     except ProgrammingError as e:
         # Having no migrations table is ok, as we're likely operating on a new install.
