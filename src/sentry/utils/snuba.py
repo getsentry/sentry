@@ -1368,7 +1368,16 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
                 if func_index is not None:
                     # Resolve the columns on the nested function, and add a wrapping
                     # list to become a valid query expression.
-                    formatted.append([argument[0], [resolve_func(col) for col in argument[1]]])
+                    resolved_args = []
+                    for col in argument[1]:
+                        if col is None or isinstance(col, float):
+                            resolved_args.append(col)
+                        elif isinstance(col, list):
+                            resolve_complex_column(col, resolve_func, aggregation_aliases)
+                            resolved_args.append(col)
+                        else:
+                            resolved_args.append(resolve_func(col))
+                    formatted.append([argument[0], resolved_args])
                 else:
                     # Parameter is a list of fields.
                     formatted.append(

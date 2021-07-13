@@ -20,7 +20,7 @@ import {Organization, Project} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
+import {Column, getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
@@ -41,10 +41,9 @@ import {
 import VitalPercents from '../vitalDetail/vitalPercents';
 
 import {
-  backendCardDetails,
-  getBackendFunction,
   getDefaultDisplayFieldForPlatform,
   LandingDisplayField,
+  vitalCardDetails,
 } from './utils';
 
 type FrontendCardsProps = {
@@ -123,22 +122,19 @@ const VitalBarContainer = styled('div')`
   margin-top: ${space(1.5)};
 `;
 
-type BackendCardsProps = {
+type BaseCardsProps = {
   api: Client;
   eventView: EventView;
   location: Location;
   organization: Organization;
 };
 
-function _BackendCards(props: BackendCardsProps) {
-  const {api, eventView: baseEventView, location, organization} = props;
-  const functionNames = [
-    'p75' as const,
-    'tpm' as const,
-    'failure_rate' as const,
-    'apdex' as const,
-  ];
-  const functions = functionNames.map(fn => getBackendFunction(fn, organization));
+type GenericCardsProps = BaseCardsProps & {
+  functions: Column[];
+};
+
+function GenericCards(props: GenericCardsProps) {
+  const {api, eventView: baseEventView, location, organization, functions} = props;
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
@@ -184,17 +180,15 @@ function _BackendCards(props: BackendCardsProps) {
               allSeries[oneSeries.seriesName] = oneSeries.data.map(item => item.value);
               return allSeries;
             }, {});
-            const fields = eventView
-              .getFields()
-              .map((fn, i) => [functionNames[i], fn, series?.[fn]]);
+            const details = vitalCardDetails(organization);
 
             return (
               <VitalsContainer>
-                {fields.map(([name, fn, data]) => {
-                  const {title, tooltip, formatter} =
-                    backendCardDetails(organization)[name];
+                {eventView.getFields().map(fn => {
+                  const {title, tooltip, formatter} = details[fn];
                   const alias = getAggregateAlias(fn);
                   const rawValue = tableData?.data?.[0]?.[alias];
+                  const data = series?.[fn];
                   const value =
                     isSummaryLoading || rawValue === undefined
                       ? '\u2014'
@@ -202,7 +196,7 @@ function _BackendCards(props: BackendCardsProps) {
                   const chart = <SparklineChart data={data} />;
                   return (
                     <VitalCard
-                      key={name}
+                      key={fn}
                       title={title}
                       tooltip={tooltip}
                       value={value}
@@ -222,7 +216,53 @@ function _BackendCards(props: BackendCardsProps) {
   );
 }
 
+function _BackendCards(props: BaseCardsProps) {
+  const {organization} = props;
+  const functions: Column[] = [
+    {
+      kind: 'function',
+      function: ['p75', 'transaction.duration', undefined, undefined],
+    },
+    {kind: 'function', function: ['tpm', '', undefined, undefined]},
+    {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
+    organization.features.includes('project-transaction-threshold')
+      ? {
+          kind: 'function',
+          function: ['apdex', '', undefined, undefined],
+        }
+      : {
+          kind: 'function',
+          function: ['apdex', `${organization.apdexThreshold}`, undefined, undefined],
+        },
+  ];
+  return <GenericCards {...props} functions={functions} />;
+}
+
 export const BackendCards = withApi(_BackendCards);
+
+function _MobileCards(props: BaseCardsProps) {
+  const functions: Column[] = [
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.app_start_cold', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.app_start_warm', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
+    },
+  ];
+  return <GenericCards {...props} functions={functions} />;
+}
+
+export const MobileCards = withApi(_MobileCards);
 
 type SparklineChartProps = {
   data: number[];
