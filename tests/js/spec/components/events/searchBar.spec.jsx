@@ -93,6 +93,26 @@ describe('Events > SearchBar', function () {
     );
   });
 
+  it('autocompletes release semver queries', async function () {
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['semver'],
+      },
+    });
+    props.organization = initializationObj.organization;
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+    setQuery(wrapper, 'release.');
+
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('release.');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+      'release.version:'
+    );
+  });
+
   it('autocompletes has suggestions correctly', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
