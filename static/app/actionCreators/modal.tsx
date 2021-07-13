@@ -3,6 +3,7 @@ import * as React from 'react';
 import ModalActions from 'app/actions/modalActions';
 import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
+import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {
@@ -53,9 +54,7 @@ type emailVerificationModalOptions = {
 
 type inviteMembersModalOptions = {
   onClose?: () => void;
-  initialData?: {
-    emails: Set<string> | undefined;
-  }[];
+  initialData?: Partial<InviteRow>[];
   source?: string;
 };
 
