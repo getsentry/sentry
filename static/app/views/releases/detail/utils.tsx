@@ -176,7 +176,7 @@ function generateReleaseMarkLine(
   return {
     seriesName: title,
     type: 'line',
-    data: [{name: position, value: null as any}],
+    data: [{name: position, value: null as any}], // TODO(ts): echart types
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
     color: theme.gray300,
