@@ -9,7 +9,7 @@ from sentry import tsdb
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.utils.snuba import Dataset, options_override, raw_query
 
 standard_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -170,16 +170,18 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             filters = {"project_id": [project_id]}
             if environment_id:
                 filters["environment"] = [environment_id]
-            result_totals = raw_query(
-                selected_columns=["sessions"],
-                rollup=60,
-                dataset=Dataset.Sessions,
-                start=end - timedelta(minutes=60),
-                end=end,
-                filter_keys=filters,
-                groupby=["bucketed_started"],
-                referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
-            )
+            with options_override({"consistent": False}):
+                result_totals = raw_query(
+                    selected_columns=["sessions"],
+                    rollup=60,
+                    dataset=Dataset.Sessions,
+                    start=end - timedelta(minutes=60),
+                    end=end,
+                    filter_keys=filters,
+                    groupby=["bucketed_started"],
+                    referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
+                )
+
             if result_totals["data"]:
                 session_count_last_hour = sum(
                     bucket["sessions"] for bucket in result_totals["data"]
