@@ -53,14 +53,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
-      - name: install custom django
-        run: |
-          git clone https://github.com/django/django
-          cd django
-          git checkout 2.0.13
-          git checkout 934acf1126995f6e6ccba5947ec8f7561633c27f django/core/servers/basehttp.py
-          pip install -e .
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
