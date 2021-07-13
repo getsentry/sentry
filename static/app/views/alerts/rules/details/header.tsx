@@ -39,7 +39,7 @@ function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
         />
         <Controls>
           <Button icon={<IconEdit />} to={settingsLink}>
-            Edit Rule
+            {t('Edit Rule')}
           </Button>
         </Controls>
       </BreadCrumbBar>
