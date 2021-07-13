@@ -26,7 +26,7 @@ import {getAdoptionSeries, getCount} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 
 import {getReleaseBounds, getReleaseParams} from '../../utils';
-import {generateReleaseMarkLines} from '../utils';
+import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../utils';
 
 import {SectionHeading} from './styles';
 
@@ -178,7 +178,8 @@ function ReleaseComparisonChart({
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
-      valueFormatter: (value: number) => `${value}%`,
+      valueFormatter: (value: number, label?: string) =>
+        label && Object.values(releaseMarkLinesLabels).includes(label) ? '' : `${value}%`,
     },
   };
 
