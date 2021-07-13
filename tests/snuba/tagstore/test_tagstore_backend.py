@@ -731,66 +731,66 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         self.run_test(
             None,
             [
-                "test@1.0.0.0",
-                "z_test@1.0.0.0",
-                "test@1.2.0.0-alpha",
-                "test@1.2.3.0-beta",
-                "test@1.2.3.4",
-                "test2@2.0.0.0",
                 "z_test@2.0.0.0",
+                "test2@2.0.0.0",
+                "test@1.2.3.4",
+                "test@1.2.3.0-beta",
+                "test@1.2.0.0-alpha",
+                "z_test@1.0.0.0",
+                "test@1.0.0.0",
             ],
         )
         self.run_test(
             "",
             [
-                "test@1.0.0.0",
-                "z_test@1.0.0.0",
-                "test@1.2.0.0-alpha",
-                "test@1.2.3.0-beta",
-                "test@1.2.3.4",
-                "test2@2.0.0.0",
                 "z_test@2.0.0.0",
+                "test2@2.0.0.0",
+                "test@1.2.3.4",
+                "test@1.2.3.0-beta",
+                "test@1.2.0.0-alpha",
+                "z_test@1.0.0.0",
+                "test@1.0.0.0",
             ],
         )
 
         # These should all be equivalent
-        self.run_test("1", ["1.0.0.0", "1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
-        self.run_test("1.", ["1.0.0.0", "1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
-        self.run_test("1.*", ["1.0.0.0", "1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
+        self.run_test("1", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha", "1.0.0.0"])
+        self.run_test("1.", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha", "1.0.0.0"])
+        self.run_test("1.*", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha", "1.0.0.0"])
 
         self.run_test("1.*", ["1.0.0.0"], project=project_2)
 
-        self.run_test("1.2", ["1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
+        self.run_test("1.2", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha"])
 
-        self.run_test("", ["test@1.2.0.0-alpha", "test2@2.0.0.0"], self.environment)
-        self.run_test("", ["test@1.2.3.0-beta", "test@1.2.3.4", "test2@2.0.0.0"], env_2)
+        self.run_test("", ["test2@2.0.0.0", "test@1.2.0.0-alpha"], self.environment)
+        self.run_test("", ["test2@2.0.0.0", "test@1.2.3.4", "test@1.2.3.0-beta"], env_2)
         self.run_test("1", ["1.2.0.0-alpha"], self.environment)
-        self.run_test("1", ["1.2.3.0-beta", "1.2.3.4"], env_2)
+        self.run_test("1", ["1.2.3.4", "1.2.3.0-beta"], env_2)
 
         # Test packages handling
 
         self.run_test(
             "test",
             [
-                "test@1.0.0.0",
-                "test@1.2.0.0-alpha",
-                "test@1.2.3.0-beta",
-                "test@1.2.3.4",
                 "test2@2.0.0.0",
+                "test@1.2.3.4",
+                "test@1.2.3.0-beta",
+                "test@1.2.0.0-alpha",
+                "test@1.0.0.0",
             ],
         )
         self.run_test("test", ["test@1.0.0.0"], project=project_2)
         self.run_test("test2", ["test2@2.0.0.0"])
-        self.run_test("z", ["z_test@1.0.0.0", "z_test@2.0.0.0"])
+        self.run_test("z", ["z_test@2.0.0.0", "z_test@1.0.0.0"])
         self.run_test("z", ["z_test@2.0.0.0"], project=project_2)
 
         self.run_test(
-            "test@", ["test@1.0.0.0", "test@1.2.0.0-alpha", "test@1.2.3.0-beta", "test@1.2.3.4"]
+            "test@", ["test@1.2.3.4", "test@1.2.3.0-beta", "test@1.2.0.0-alpha", "test@1.0.0.0"]
         )
         self.run_test(
-            "test@*", ["test@1.0.0.0", "test@1.2.0.0-alpha", "test@1.2.3.0-beta", "test@1.2.3.4"]
+            "test@*", ["test@1.2.3.4", "test@1.2.3.0-beta", "test@1.2.0.0-alpha", "test@1.0.0.0"]
         )
-        self.run_test("test@1.2", ["test@1.2.0.0-alpha", "test@1.2.3.0-beta", "test@1.2.3.4"])
+        self.run_test("test@1.2", ["test@1.2.3.4", "test@1.2.3.0-beta", "test@1.2.0.0-alpha"])
 
 
 class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase, SnubaTestCase):
