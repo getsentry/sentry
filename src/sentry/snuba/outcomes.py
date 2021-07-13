@@ -351,5 +351,7 @@ def massage_outcomes_result(
     result: Dict[str, List[Any]] = massage_sessions_result(
         query, result_totals, result_timeseries, ts_col=TS_COL
     )
+    if result_timeseries is None:
+        del result["intervals"]
     del result["query"]
     return result

@@ -27,7 +27,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
                 if "project_id" in query.query_groupby:
                     result_totals = run_outcomes_query_totals(query)
-                    result_timeseries = []
+                    result_timeseries = None
                 else:
                     result_totals = run_outcomes_query_totals(query)
                     result_timeseries = run_outcomes_query_timeseries(query)

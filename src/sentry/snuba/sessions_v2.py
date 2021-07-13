@@ -490,8 +490,9 @@ def massage_sessions_result(
         group = {
             "by": by,
             "totals": make_totals(total_groups.get(key, [None]), by),
-            "series": make_timeseries(timeseries_groups.get(key, []), by),
         }
+        if result_timeseries is not None:
+            group["series"] = make_timeseries(timeseries_groups.get(key, []), by)
 
         groups.append(group)
 
@@ -521,6 +522,8 @@ def _get_timestamps(query):
 
 def _split_rows_groupby(rows, groupby):
     groups = {}
+    if rows is None:
+        return groups
     for row in rows:
         key_parts = (group.get_keys_for_row(row) for group in groupby)
         keys = itertools.product(*key_parts)
