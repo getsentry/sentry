@@ -133,6 +133,12 @@ class ReleaseQuerySet(models.QuerySet):
     def filter_by_semver_build(
         self, organization_id: int, operator: str, build: str, project_ids: Sequence[int] = None
     ) -> models.QuerySet:
+        """
+        Filters released by build. If the passed `build` is a numeric string, we'll filter on
+        `build_number` and make use of the passed operator.
+        If it is a non-numeric string, then we'll filter on `build_code` instead. We support a
+        wildcard only at the end of this string, so that we can filter efficiently via the index.
+        """
         qs = self.filter(organization_id=organization_id)
 
         if project_ids:
@@ -159,7 +165,7 @@ class ReleaseQuerySet(models.QuerySet):
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
         """
-        Filters released based on a based `SemverFilter` instance.
+        Filters releases based on a based `SemverFilter` instance.
         `SemverFilter.version_parts` can contain up to 6 components, which should map
         to the columns defined in `Release.SEMVER_COLS`. If fewer components are
         included, then we will exclude later columns from the filter.
