@@ -107,14 +107,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         if (err.responseJSON.raw) {
           this.setState({error: true, errorJSON: err.responseJSON, isLoading: false});
         } else {
-          addErrorMessage(
-            t(
-              Object.entries(err.responseJSON)
-                .map(([_, value]) => value)
-                .flat()
-                .join(' ')
-            )
-          );
+          addErrorMessage(t(Object.values(err.responseJSON).flat().join(' ')));
         }
       }
     }

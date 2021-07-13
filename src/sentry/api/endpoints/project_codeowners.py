@@ -61,6 +61,8 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         if not attrs.get("raw", "").strip():
             return attrs
 
+        # Ignore association errors and continue parsing CODEOWNERS for valid lines.
+        # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.
         associations, _ = ProjectCodeOwners.validate_codeowners_associations(
             attrs, self.context["project"]
         )
