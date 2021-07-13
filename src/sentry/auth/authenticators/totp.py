@@ -18,3 +18,9 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
 
     def get_provision_url(self, user, issuer=None):
         return self.make_otp().get_provision_url(user, issuer=issuer)
+
+    @property
+    def allow_rotation_in_place(self):
+        return self.is_enrolled() and any(
+            org.flags.require_2fa for org in self.authenticator.user.get_orgs()
+        )

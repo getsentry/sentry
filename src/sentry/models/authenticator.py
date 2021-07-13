@@ -87,7 +87,7 @@ class AuthenticatorManager(BaseManager):
         try:
             return Authenticator.objects.get(user=user, type=interface.type).interface
         except Authenticator.DoesNotExist:
-            return interface()
+            return interface.generate()
 
     def user_has_2fa(self, user):
         """Checks if the user has any 2FA configured."""

@@ -111,8 +111,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         interface = Authenticator.objects.get_interface(user, interface_id)
 
         # Not all interfaces allow multi enrollment
-        if interface.is_enrolled() and not interface.allow_multi_enrollment:
-            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+        if interface.is_enrolled():
+            if not interface.allow_multi_enrollment:
+                if interface.allow_rotation_in_place:
+                    interface = interface.generate()
+                else:
+                    return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # User is not enrolled in auth interface:
         # - display configuration form
@@ -181,8 +185,13 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         #
         # This is probably un-needed because we catch
         # `Authenticator.AlreadyEnrolled` when attempting to enroll
-        if interface.is_enrolled() and not interface.allow_multi_enrollment:
-            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+        rotating_in_place = False
+        if interface.is_enrolled():
+            if not interface.allow_multi_enrollment:
+                if interface.allow_rotation_in_place:
+                    rotating_in_place = True
+                else:
+                    return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             interface.secret = request.data["secret"]
@@ -217,10 +226,13 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             )
             context.update({"device_name": serializer.data["deviceName"]})
 
-        try:
-            interface.enroll(request.user)
-        except Authenticator.AlreadyEnrolled:
-            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+        if rotating_in_place:
+            interface.rotate_in_place()
+        else:
+            try:
+                interface.enroll(request.user)
+            except Authenticator.AlreadyEnrolled:
+                return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         context.update({"authenticator": interface.authenticator})
         capture_security_activity(

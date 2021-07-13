@@ -1,4 +1,5 @@
 from django.core.cache import cache
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.utils.otp import TOTP, generate_secret_key
@@ -39,12 +40,17 @@ class AuthenticatorInterface:
     remove_button = _("Remove")
     is_available = True
     allow_multi_enrollment = False
+    allow_rotation_in_place = False
 
     def __init__(self, authenticator=None):
         if authenticator is None:
             self.authenticator = None
         else:
             self.authenticator = authenticator
+
+    @classmethod
+    def generate(cls):
+        return cls()
 
     def is_enrolled(self):
         """Returns `True` if the interfaces is enrolled (eg: has an
@@ -110,6 +116,17 @@ class AuthenticatorInterface:
                 raise Authenticator.AlreadyEnrolled()
             self.authenticator.config = self.config
             self.authenticator.save()
+
+    def rotate_in_place(self):
+        if not self.allow_rotation_in_place:
+            raise Exception("This interface does not allow rotation in place")
+        if self.authenticator is None:
+            raise Exception("There is no Authenticator to rotate")
+
+        self.authenticator.config = self.config
+        self.authenticator.created_at = timezone.now()
+        self.authenticator.last_used_at = None
+        self.authenticator.save()
 
     def validate_otp(self, otp):
         """This method is invoked for an OTP response and has to return
