@@ -365,14 +365,14 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     {
         "appstoreCredentialsValid": true,
         "itunesSessionValid": true,
-        "hasDownloadsPending": false,
+        "pendingDownloads": 123,
         "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
     }
     ```
 
     Here the ``itunesSessionRefreshAt`` is when we recommend to refresh the
-    iTunes session, and ``hasDownloadsPending`` is an indicator if we do need
-    the session to fetch new builds.
+    iTunes session, and ``pendingDownloads`` is the number of pending downloads,
+    and an indicator if we do need the session to fetch new builds.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -404,16 +404,14 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         itunes_connect.load_session_cookie(session, symbol_source_cfg.itunesSession)
         itunes_session_info = itunes_connect.get_session_info(session)
 
-        has_downloads_pending = AppConnectBuild.objects.filter(
-            project=project, fetched=False
-        ).exists()
+        pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
 
         return Response(
             {
                 "appstoreCredentialsValid": apps is not None,
                 "itunesSessionValid": itunes_session_info is not None,
                 "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
-                "hasDownloadsPending": has_downloads_pending,
+                "pendingDownloads": pending_downloads,
             },
             status=200,
         )

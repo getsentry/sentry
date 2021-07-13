@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 SESSION_COOKIE_NAME = "myacinfo"
 
 
-class FailedFetchingDsymError(Exception):
-    """Failed to fetch dSYM URL."""
+class ITunesSessionExpiredException(Exception):
+    """The iTunes Session is expired."""
 
     pass
 
@@ -326,16 +326,18 @@ def get_dsym_url(
     details_response = session.get(details_url)
 
     # A non-OK status code will probably mean an expired token/session
-    if details_response.status_code != HTTPStatus.OK:
-        raise FailedFetchingDsymError
-    try:
-        data = details_response.json()
-        dsym_url = safe.get_path(data, "data", "dsymurl")
-        return dsym_url  # type: ignore
-    except Exception as e:
-        logger.info(
-            f"Could not obtain dSYM info for app id={app_id}, bundle_short={bundle_short_version}, "
-            f"bundle={bundle_version}, platform={platform}",
-            exc_info=True,
-        )
-        raise e
+    if details_response.status_code == HTTPStatus.UNAUTHORIZED:
+        raise ITunesSessionExpiredException
+    if details_response.status_code == HTTPStatus.OK:
+        try:
+            data = details_response.json()
+            dsym_url = safe.get_path(data, "data", "dsymurl")
+            return dsym_url  # type: ignore
+        except Exception as e:
+            logger.info(
+                f"Could not obtain dSYM info for app id={app_id}, bundle_short={bundle_short_version}, "
+                f"bundle={bundle_version}, platform={platform}",
+                exc_info=True,
+            )
+            raise e
+    return None

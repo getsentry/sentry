@@ -11,7 +11,7 @@ import tempfile
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, debugfile
 from sentry.tasks.base import instrumented_task
-from sentry.utils.appleconnect.itunes_connect import FailedFetchingDsymError
+from sentry.utils.appleconnect.itunes_connect import ITunesSessionExpiredException
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,6 @@ def inner_dsym_download(
     project = Project.objects.get(pk=project_id)
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
     client = appconnect.AppConnectClient.from_config(config)
-    itunes_client = client.itunes_client()
 
     # persist all fetched builds into the database as "pending"
     builds = []
@@ -49,6 +48,7 @@ def inner_dsym_download(
         if not build_state.fetched:
             builds.append(build_state)
 
+    itunes_client = client.itunes_client()
     for build_state in builds:
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
@@ -58,10 +58,8 @@ def inner_dsym_download(
                 logger.debug("Uploaded dSYMs for build %s", build)
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
-            except FailedFetchingDsymError:
-                # TODO: We should probably persist this error in some way so
-                # we can inform the user about expired itunes credentials.
-                logger.debug("Error fetching dSYMs (probably expired token)")
+            except ITunesSessionExpiredException:
+                logger.debug("Error fetching dSYMs: expired iTunes session")
                 # we early-return here to avoid trying all the other builds
                 # as well, since an expired token will error for all of them.
                 # we also swallow the error and not report it because this is
