@@ -202,7 +202,7 @@ const RangeSliderContainer = React.forwardRef(function RangeSliderContainer(
 
 export default RangeSliderContainer;
 
-const Slider = styled('input')<{hasLabel: boolean}>`
+export const Slider = styled('input')<{hasLabel: boolean}>`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
