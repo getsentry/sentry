@@ -226,13 +226,15 @@ class QueryDefinition:
         raw_groupby = query.getlist("groupBy", [])
         if len(raw_fields) == 0:
             raise InvalidField('At least one "field" is required.')
-        isProject = False
-        if "project" in raw_groupby:
-            isProject = True
+        custom_interval = None
+        if query["statsPeriod"] != "90d":
+            custom_interval = ONE_HOUR * 4 if query["interval"] == "4h" else ONE_HOUR
         self.fields = {}
         self.aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution, isProject)
+        start, end, rollup = get_constrained_date_range(
+            query, allow_minute_resolution, custom_interval
+        )
         self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
@@ -283,8 +285,7 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
         referrer="outcomes.totals",
         limit=10000,
     )
-    result_totals = _format_rows(result["data"], query)
-    return result_totals
+    return _format_rows(result["data"], query)
 
 
 def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
@@ -301,8 +302,7 @@ def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
         referrer="outcomes.timeseries",
         limit=10000,
     )
-    formatted_results = _format_rows(result_timeseries["data"], query)
-    return formatted_results
+    return _format_rows(result_timeseries["data"], query)
 
 
 def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:

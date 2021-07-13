@@ -546,7 +546,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         response_total = make_request(
             {
                 "statsPeriod": "1d",
-                "interval": "1d",
+                "interval": "1h",
                 "field": ["sum(times_seen)"],
                 "category": ["error", "transaction"],
             }

@@ -297,7 +297,7 @@ class InvalidParams(Exception):
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False, isProject=False, max_points=MAX_POINTS
+    params, allow_minute_resolution=False, custom_interval=None, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
@@ -332,7 +332,17 @@ def get_constrained_date_range(
     # NOTE: we can remove the difference between `interval` / `rounding_interval`
     # as soon as snuba can provide us with grouped totals in the same query
     # as the timeseries (using `WITH ROLLUP` in clickhouse)
-    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+
+    rounding_interval = (
+        int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+        if custom_interval is None
+        else custom_interval
+    )
+    # print("_____________________________")
+    # print(int(math.ceil(interval / ONE_HOUR) * ONE_HOUR))
+    # print(custom_interval)
+    # print("_____________________________")
+
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
     )
@@ -352,8 +362,7 @@ def get_constrained_date_range(
             "Your interval and date range would create too many results. "
             "Use a larger interval, or a smaller date range."
         )
-    if isProject:
-        rounding_interval = ONE_HOUR
+
     end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
     end = to_datetime(end_ts)
     # when expanding the rounding interval, we would adjust the end time too far
