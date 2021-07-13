@@ -301,8 +301,8 @@ def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
         referrer="outcomes.timeseries",
         limit=10000,
     )
-    result_timeseries = _format_rows(result_timeseries["data"], query)
-    return result_timeseries
+    formatted_results = _format_rows(result_timeseries["data"], query)
+    return formatted_results
 
 
 def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
