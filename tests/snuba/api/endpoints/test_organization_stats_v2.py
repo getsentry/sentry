@@ -662,9 +662,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T13:00:00Z",
+            "start": "2021-03-14T00:00:00Z",
             "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-13T13:00:00Z"],
+            "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
                 {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
             ],
