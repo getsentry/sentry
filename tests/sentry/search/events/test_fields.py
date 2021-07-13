@@ -1416,7 +1416,7 @@ class ResolveFieldListTest(unittest.TestCase):
                                             for name in ["ok", "cancelled", "unknown"]
                                         ],
                                     ],
-                                    "transaction.status",
+                                    "transaction_status",
                                 ],
                             ],
                         ],
