@@ -174,9 +174,21 @@ def get_one_release(org: Organization, project_slug: Optional[str]):
 
 def get_one_issue(org: Organization, project_slug: Optional[str]):
     group_query = Group.objects.filter(project__organization=org)
-    if project_slug:
+    if project_slug == "react-native":
         group_query = group_query.filter(project__slug=project_slug)
-    group = group_query.first()
+        for group in group_query:
+            if "Promise" in group.message:
+                break
+    elif project_slug == "ios":
+        group_query = group_query.filter(project__slug=project_slug)
+        for group in group_query:
+            if "BAD" in group.message:
+                break
+    elif project_slug:
+        group_query = group_query.filter(project__slug=project_slug)
+        group = group_query.first()
+    else:
+        group = group_query.first()
 
     return f"/organizations/{org.slug}/issues/{group.id}/?project={group.project_id}"
 
