@@ -12,3 +12,7 @@ class ResolvedActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "resolved_activity_email"
+
+    @property
+    def is_message_issue_unfurl(self) -> bool:
+        return True

@@ -3,8 +3,8 @@
         "tags": [
             "SCIM"
         ],
-        "description": "Query an individual organization member with a SCIM User GET Request.\n- The `name` object will contain fields `firstName` and `lastName` with the values of `N/A`. Sentry's SCIM API does not currently support these fields but returns them for compatibility purposes.",
-        "operationId": "Query an Individual Organization Member",
+        "description": "Query an individual team with a SCIM Group GET Request.\n- Note that the members field will only contain up to 10000 members.",
+        "operationId": "Query an Individual Team",
         "parameters": [
             {
                 "name": "organization_slug",
@@ -16,10 +16,10 @@
                 }
             },
             {
-                "name": "member_id",
+                "name": "team_id",
                 "in": "path",
                 "required": true,
-                "description": "The id of the member you'd like to query.",
+                "description": "The id of the team you'd like to query.",
                 "schema": {
                     "type": "integer"
                 }
@@ -31,28 +31,17 @@
                 "content": {
                     "application/json": {
                         "schema": {
-                            "$ref": "../../components/schemas/scim/user.json#/User"
+                            "$ref": "../../components/schemas/scim/group.json#/Group"
                         },
                         "example": {
                             "schemas": [
-                                "urn:ietf:params:scim:schemas:core:2.0:User"
+                                "urn:ietf:params:scim:schemas:core:2.0:Group"
                             ],
-                            "id": "102",
-                            "userName": "test.user@okta.local",
-                            "emails": [
-                                {
-                                    "primary": true,
-                                    "value": "test.user@okta.local",
-                                    "type": "work"
-                                }
-                            ],
-                            "name": {
-                                "familyName": "N/A",
-                                "givenName": "N/A"
-                            },
-                            "active": true,
+                            "id": "23232",
+                            "displayName": "test-scimv2",
+                            "members": [],
                             "meta": {
-                                "resourceType": "User"
+                                "resourceType": "Group"
                             }
                         }
                     }
@@ -68,7 +57,7 @@
         "security": [
             {
                 "auth_token": [
-                    "member:read"
+                    "team: read"
                 ]
             }
         ]
@@ -77,8 +66,8 @@
         "tags": [
             "SCIM"
         ],
-        "description": "Update an organization member's attributes with a SCIM PATCH Request. The only supported attribute is `active`. After setting `active` to false Sentry will permanently delete the Organization Member.",
-        "operationId": "Update an Organization Member's Attributes",
+        "description": "Update a team's attributes with a SCIM Group PATCH Request. Valid Operations are:\n* Renaming a team: \n```json\n{\n    \"op\": \"replace\",\n    \"value\": {\n        \"id\": 23,\n        \"displayName\": \"newName\"\n    }\n}\n```\n* Adding a member to a team: \n```json\n{\n    \"op\": \"add\",\n    \"path\": \"members\",\n    \"value\": [\n        {\n            \"value\": 23,\n            \"display\": \"testexample@example.com\"\n        }\n    ]\n}\n```\n* Removing a member from a team: \n```json\n{\n    \"op\": \"remove\",\n    \"path\": \"members[value eq \\\"23\\\"]\"\n}\n``` \n*  Replacing an entire member set of a team: \n```json\n{\n    \"op\": \"replace\",\n    \"path\": \"members\",\n    \"value\": [\n        {\n            \"value\": 23,\n            \"display\": \"testexample2@sentry.io\"\n        },\n        {\n            \"value\": 24,\n            \"display\": \"testexample3@sentry.io\"\n        }\n    ]\n}\n```",
+        "operationId": "Update a Team's Attributes",
         "parameters": [
             {
                 "name": "organization_slug",
@@ -90,10 +79,10 @@
                 }
             },
             {
-                "name": "member_id",
+                "name": "team_id",
                 "in": "path",
                 "required": true,
-                "description": "The id of the member you'd like to update.",
+                "description": "The id of the team you'd like to query.",
                 "schema": {
                     "type": "integer"
                 }
@@ -104,8 +93,7 @@
                 "application/json": {
                     "schema": {
                         "required": [
-                            "schemas",
-                            "Operations"
+                            "schemas","Operations"
                         ],
                         "type": "object",
                         "properties": {
@@ -113,11 +101,9 @@
                                 "$ref": "../../components/schemas/scim/user.json#/definitions/schemas"
                             },
                             "Operations": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object"
-                                }
+                                "type": "array"
                             }
+
                         }
                     },
                     "example": {
@@ -138,7 +124,7 @@
             "required": true
         },
         "responses": {
-            "204": {
+            "200": {
                 "description": "Success"
             },
             "401": {
@@ -154,7 +140,7 @@
         "security": [
             {
                 "auth_token": [
-                    "member:write"
+                    "team:write"
                 ]
             }
         ]
@@ -163,8 +149,8 @@
         "tags": [
             "SCIM"
         ],
-        "description": "Delete an organization member with a SCIM User DELETE Request.",
-        "operationId": "Delete an Organization Member",
+        "description": "Delete a team with a SCIM Group DELETE Request.",
+        "operationId": "Delete an Individual Team",
         "parameters": [
             {
                 "name": "organization_slug",
@@ -176,10 +162,10 @@
                 }
             },
             {
-                "name": "member_id",
+                "name": "team_id",
                 "in": "path",
                 "required": true,
-                "description": "The id of the member you'd like to delete.",
+                "description": "The id of the team you'd like to delete.",
                 "schema": {
                     "type": "integer"
                 }
@@ -189,20 +175,14 @@
             "204": {
                 "description": "Success"
             },
-            "401": {
-                "description": "Unauthorized"
-            },
-            "403": {
-                "description": "Forbidden"
-            },
             "404": {
-                "description": "Not Found."
+                "description": "Not Found"
             }
         },
         "security": [
             {
                 "auth_token": [
-                    "member:admin"
+                    "team: admin"
                 ]
             }
         ]
