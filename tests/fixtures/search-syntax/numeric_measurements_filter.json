@@ -2,6 +2,7 @@
   {
     "query": "measurements.size:3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
@@ -21,6 +22,7 @@
   {
     "query": "measurements.size:>3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
@@ -40,6 +42,7 @@
   {
     "query": "measurements.size:<3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",

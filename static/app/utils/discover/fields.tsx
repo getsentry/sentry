@@ -83,27 +83,27 @@ export type Alignments = 'left' | 'right';
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   {
-    label: 'equal =',
+    label: 'is equal to',
     value: 'equals',
   },
   {
-    label: 'not equal !=',
+    label: 'is not equal to',
     value: 'notEquals',
   },
   {
-    label: 'less <',
+    label: 'is less than',
     value: 'less',
   },
   {
-    label: 'greater >',
+    label: 'is greater than',
     value: 'greater',
   },
   {
-    label: 'less or equals <=',
+    label: 'is less than or equal to',
     value: 'lessOrEquals',
   },
   {
-    label: 'greater or equals >=',
+    label: 'is greater than or equal to',
     value: 'greaterOrEquals',
   },
 ];
@@ -603,6 +603,21 @@ export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
 );
 
+export const SEMVER_TAGS = {
+  'release.version': {
+    key: 'release.version',
+    name: 'release.version',
+  },
+  'release.build': {
+    key: 'release.build',
+    name: 'release.build',
+  },
+  'release.package': {
+    key: 'release.package',
+    name: 'release.package',
+  },
+};
+
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
@@ -737,6 +752,9 @@ export function parseArguments(functionText: string, columnText: string): string
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (i === j && columnText[j] === ' ') {
+      // argument has leading spaces, skip over them
+      i += 1;
     } else if (quoted && !escaped && columnText[j] === '\\') {
       // when we see a slash inside a quoted string,
       // the next character is an escape character

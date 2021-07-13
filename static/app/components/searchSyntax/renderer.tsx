@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {Fragment, useEffect, useRef, useState} from 'react';
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useReducedMotion} from 'framer-motion';
 
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
@@ -67,6 +68,16 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
   }
 }
 
+// XXX(epurkhiser): We have to animate `left` here instead of `transform` since
+// inline elements cannot be transformed. The filter _must_ be inline to
+// support text wrapping.
+const shakeAnimation = keyframes`
+  ${new Array(4)
+    .fill(0)
+    .map((_, i) => `${i * (100 / 4)}% { left: ${3 * (i % 2 === 0 ? 1 : -1)}px; }`)
+    .join('\n')}
+`;
+
 const FilterToken = ({
   filter,
   cursor,
@@ -81,6 +92,9 @@ const FilterToken = ({
   // cursor initally being in it.
   const [hasLeft, setHasLeft] = useState(!isActive);
 
+  // Used to trigger the shake animation when the element becomes invalid
+  const filterElementRef = useRef<HTMLSpanElement>(null);
+
   // Trigger the effect when isActive changes to updated whether the cursor has
   // left the token.
   useEffect(() => {
@@ -92,14 +106,35 @@ const FilterToken = ({
   const showInvalid = hasLeft && !!filter.invalid;
   const showTooltip = showInvalid && isActive;
 
+  const reduceMotion = useReducedMotion();
+
+  // Trigger the shakeAnimation when showInvalid is set to true. We reset the
+  // animation by clearing the style, set it to running, and re-applying the
+  // animation
+  useEffect(() => {
+    if (!filterElementRef.current || !showInvalid || reduceMotion) {
+      return;
+    }
+
+    const style = filterElementRef.current.style;
+
+    style.animation = 'none';
+    void filterElementRef.current.offsetTop;
+
+    window.requestAnimationFrame(
+      () => (style.animation = `${shakeAnimation.name} 300ms`)
+    );
+  }, [showInvalid]);
+
   return (
     <Tooltip
       disabled={!showTooltip}
       title={filter.invalid?.reason}
       popperStyle={{maxWidth: '350px'}}
       forceShow
+      skipWrapper
     >
-      <Filter active={isActive} invalid={showInvalid}>
+      <Filter ref={filterElementRef} active={isActive} invalid={showInvalid}>
         {filter.negated && <Negation>!</Negation>}
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}
@@ -163,6 +198,9 @@ const Filter = styled('span')<FilterProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p => (p.invalid ? p.theme.red300 : p.theme.blue300)};
+
+  position: relative;
+  animation-name: ${shakeAnimation};
 `;
 
 const filterCss = css`
