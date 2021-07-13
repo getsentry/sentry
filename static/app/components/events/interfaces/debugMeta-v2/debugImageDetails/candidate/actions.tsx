@@ -147,7 +147,7 @@ export default Actions;
 const StyledDropdownLink = styled(DropdownLink)`
   display: none;
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[4]}) {
     display: flex;
     align-items: center;
     transition: none;
@@ -155,7 +155,7 @@ const StyledDropdownLink = styled(DropdownLink)`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[4]}) {
     display: none;
   }
 `;
