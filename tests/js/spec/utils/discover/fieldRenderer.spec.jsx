@@ -1,12 +1,14 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import ConfigStore from 'app/stores/configStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'app/utils/discover/fields';
 
 describe('getFieldRenderer', function () {
   let location, context, project, organization, data, user;
+
   beforeEach(function () {
     context = initializeOrg({
       project: TestStubs.Project(),
@@ -39,6 +41,7 @@ describe('getFieldRenderer', function () {
       'spans.resource': 20,
       'spans.total.time': 75,
       'transaction.duration': 75,
+      'timestamp.to_day': '2021-09-05T00:00:00+00:00',
     };
 
     MockApiClient.addMockResponse({
@@ -97,6 +100,21 @@ describe('getFieldRenderer', function () {
     const value = wrapper.find('StyledDateTime');
     expect(value).toHaveLength(0);
     expect(wrapper.text()).toEqual('n/a');
+  });
+
+  it('can render timestamp.to_day', function () {
+    // Set timezone
+    ConfigStore.loadInitialData({
+      user: {
+        options: {
+          timezone: 'America/Los_Angeles',
+        },
+      },
+    });
+    const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    const text = wrapper.find('Container');
+    expect(text.text()).toEqual('September 5, 2021');
   });
 
   it('can render error.handled values', function () {

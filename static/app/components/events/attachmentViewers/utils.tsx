@@ -6,6 +6,7 @@ export type ViewerProps = {
   orgId: string;
   projectId: string;
   attachment: EventAttachment;
+  className?: string;
 };
 
 export function getAttachmentUrl(props: ViewerProps, withPrefix?: boolean): string {

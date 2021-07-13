@@ -1,5 +1,7 @@
 import {Location, Query} from 'history';
 
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 
 export function generateTagsRoute({orgSlug}: {orgSlug: String}): string {
@@ -8,6 +10,14 @@ export function generateTagsRoute({orgSlug}: {orgSlug: String}): string {
 
 export function decodeSelectedTagKey(location: Location): string | undefined {
   return decodeScalar(location.query.tagKey);
+}
+
+export function trackTagPageInteraction(organization: Organization) {
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.tags.interaction',
+    eventName: 'Performance Views: Tag Page - Interaction',
+    organization_id: parseInt(organization.id, 10),
+  });
 }
 
 export function tagsRouteWithQuery({
