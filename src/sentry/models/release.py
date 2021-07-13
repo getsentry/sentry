@@ -457,17 +457,17 @@ class Release(Model):
         return self.package is not None
 
     @staticmethod
-    def is_semver_version(release):
+    def is_semver_version(version):
         """
         Method that checks if a version follows semantic versioning
         """
-        if not Release.is_valid_version(release):
+        if not Release.is_valid_version(version):
             return False
 
         # Release name has to contain package_name to be parsed correctly by parse_release
-        release = release if "@" in release else f"{SEMVER_FAKE_PACKAGE}@{release}"
+        version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
         try:
-            version_info = parse_release(release)
+            version_info = parse_release(version)
             version_parsed = version_info.get("version_parsed")
             return version_parsed is not None and all(
                 ReleaseModelManager.validate_bigint(version_parsed[field])
@@ -1061,15 +1061,38 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     Returns:
         Boolean that indicates if we should follow semantic version or not
     """
-    # ToDo(ahmed): Replace check for lastest 10 releases by check for project_options once it is
-    #  implemented & move function else where to be easily accessible for re-use
+    # ToDo(ahmed): Move this function else where to be easily accessible for re-use
     follows_semver = True
 
     # Check if the latest ten releases are semver compliant
     releases_list = Release.objects.filter(
         organization=org_id, projects__id__in=[project_id]
     ).order_by("-date_added")[:10]
-    follows_semver = follows_semver and all(release.is_semver_release for release in releases_list)
+
+    # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
+    # A project is said to be following semver versioning schemes if it satisfies the following
+    # conditions:-
+    # 1: Atleast one semver compliant in the most recent 3 releases
+    # 2: Atleast 3 semver compliant releases in the most recent 10 releases
+    if len(releases_list) <= 2:
+        # Most recent release is considered to decide if project follows semver
+        follows_semver = follows_semver and releases_list[0].is_semver_release
+    elif len(releases_list) < 10:
+        # We forego condition 2 and it is enough if condition 1 is satisfied to consider this
+        # project to have semver compliant releases
+        follows_semver = follows_semver and any(
+            release.is_semver_release for release in releases_list[0:3]
+        )
+    else:
+        semver_release_counter = 0
+        for release in releases_list:
+            if release.is_semver_release:
+                semver_release_counter += 1
+            if semver_release_counter == 3:
+                break
+        atleast_three_in_last_ten = semver_release_counter == 3
+        atleast_one_in_last_three = any(release.is_semver_release for release in releases_list[0:3])
+        follows_semver = follows_semver and atleast_one_in_last_three and atleast_three_in_last_ten
 
     # Check release_version that is passed is semver compliant
     if release_version:
