@@ -536,7 +536,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         response_per_group = make_request(
             {
                 "statsPeriod": "1d",
-                "interval": "1d",
+                "interval": "1h",
                 "field": ["sum(times_seen)"],
                 "groupBy": ["project"],
                 "category": ["error", "transaction"],
