@@ -51,7 +51,7 @@ class RegisteredFeatureManager:
         for handler in self._handler_registry[feature.name]:
             rv = handler(feature, actor)
             if rv is not None:
-                return bool(rv)
+                return rv
         return None
 
     def _get_feature_class(self, name: str) -> Type[Feature]:
