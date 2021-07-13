@@ -1,5 +1,6 @@
 __all__ = ["FeatureManager"]
 
+import abc
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -54,7 +55,13 @@ class RegisteredFeatureManager:
                 return rv
         return None
 
+    @abc.abstractmethod
     def _get_feature_class(self, name: str) -> Type[Feature]:
+        """
+        We need this abstract method on this class because the `has_for_batch()`
+        method instantiates a `FeatureCheckBatch` and sets `manager` as `self`
+        as a `RegisteredFeatureManager`.
+        """
         raise NotImplementedError
 
     def has_for_batch(

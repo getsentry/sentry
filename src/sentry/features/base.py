@@ -1,13 +1,13 @@
 __all__ = ["Feature", "OrganizationFeature", "ProjectFeature", "ProjectPluginFeature"]
 
-from abc import ABC
+import abc
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project
 
 
-class Feature(ABC):
+class Feature(abc.ABC):
     def __init__(self, name: str, *args: Any, **kwargs: Any) -> None:
         """
         `FeatureManager.get()` and `FeatureCheckBatch.get_feature_objects()`
@@ -15,6 +15,7 @@ class Feature(ABC):
         """
         self.name = name
 
+    @abc.abstractmethod
     def get_organization(self) -> "Organization":
         raise NotImplementedError
 
