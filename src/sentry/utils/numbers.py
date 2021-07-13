@@ -92,3 +92,7 @@ def format_grouped_length(length: int, steps: Optional[List[int]] = None) -> str
             return f"<{step}"
 
     return f">{steps[-1]}"
+
+
+def validate_bigint(value):
+    return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
