@@ -1084,14 +1084,12 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
             release.is_semver_release for release in releases_list[0:3]
         )
     else:
-        semver_release_counter = 0
-        for release in releases_list:
-            if release.is_semver_release:
-                semver_release_counter += 1
-            if semver_release_counter == 3:
-                break
-        atleast_three_in_last_ten = semver_release_counter == 3
+        # Count number of semver releases in the last ten
+        semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
+
+        atleast_three_in_last_ten = semver_matches >= 3
         atleast_one_in_last_three = any(release.is_semver_release for release in releases_list[0:3])
+
         follows_semver = follows_semver and atleast_one_in_last_three and atleast_three_in_last_ten
 
     # Check release_version that is passed is semver compliant
