@@ -14,17 +14,28 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
   alerts: {
     name: 'alerts',
     type: 'select',
-    label: t('Issue Alert Notifications'),
+    label: t('Issue Alerts'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Enable this to receive notifications sent from project alerts.'),
+    help: t('Notifications sent from Alert rules that your team has set up.'),
+  },
+  workflow: {
+    name: 'workflow',
+    type: 'select',
+    label: t('Issue Workflow'),
+    choices: [
+      ['always', t('On')],
+      ['subscribe_only', t('Only Subscribed Issues')],
+      ['never', t('Off')],
+    ],
+    help: t('Changes in issue assignment, resolution status, and comments.'),
   },
   deploy: {
     name: 'deploy',
     type: 'select',
-    label: t('Deploy Notifications'),
+    label: t('Deploys'),
     choices: [
       ['always', t('On')],
       ['committed_only', t('Only Committed Issues')],
@@ -42,17 +53,6 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
       ['email+slack', t('Send to Email and Slack')],
     ],
   },
-  workflow: {
-    name: 'workflow',
-    type: 'select',
-    label: t('Workflow Notifications'),
-    choices: [
-      ['always', t('On')],
-      ['subscribe_only', t('Only Subscribed Issues')],
-      ['never', t('Off')],
-    ],
-    help: t('Changes in issue assignment, resolution status, and comments.'),
-  },
   reports: {
     name: 'weekly reports',
     type: 'blank',
@@ -63,18 +63,18 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
     name: 'email routing',
     type: 'blank',
     label: t('Email Routing'),
-    help: t('Select which email address should receive notifications per project.'),
+    help: t('Change the email address that receives notifications.'),
   },
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
     type: 'boolean',
-    label: t('Notify Me About My Own Activity'),
-    help: t('Enable this to receive notifications about your own actions on Sentry.'),
+    label: t('My Own Activity'),
+    help: t('Notifications about your own actions on Sentry.'),
   },
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
     type: 'boolean',
-    label: t("Claim Unassigned Issues I've Resolved"),
-    help: t("You'll receive notifications about any changes that happen afterwards."),
+    label: t('Claim Unassigned Issues I’ve Resolved'),
+    help: t('You’ll receive notifications about any changes that happen afterwards.'),
   },
 };

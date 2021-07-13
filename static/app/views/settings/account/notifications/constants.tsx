@@ -22,8 +22,8 @@ export type NotificationSettingsObject = {
 
 export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',
-  'deploy',
   'workflow',
+  'deploy',
   'reports',
   'email',
 ];

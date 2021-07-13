@@ -112,7 +112,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader title="Notifications" />
-        <TextBlock>Control alerts that you receive.</TextBlock>
+        <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
         <FeedbackAlert />
         <Form
           saveOnBlur

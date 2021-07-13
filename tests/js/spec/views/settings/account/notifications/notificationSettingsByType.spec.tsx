@@ -28,7 +28,7 @@ describe('NotificationSettingsByType', function () {
     // There is only one field and it is the default and it is set to "off".
     const fields = wrapper.find('Field');
     expect(fields).toHaveLength(1);
-    expect(fields.at(0).find('FieldLabel').text()).toEqual('Issue Alert Notifications');
+    expect(fields.at(0).find('FieldLabel').text()).toEqual('Issue Alerts');
     expect(fields.at(0).find('Select').text()).toEqual('Off');
   });
 });
