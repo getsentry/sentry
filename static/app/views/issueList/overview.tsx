@@ -227,8 +227,11 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      if (this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: DEFAULT_DISPLAY});
+      // Reset display when selecting multiple projects
+      const projects = this.props.selection.projects ?? [];
+      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
+      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
+        this.transitionTo({display: undefined});
       }
     }
 

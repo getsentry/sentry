@@ -89,7 +89,9 @@ class IssueListFilters extends React.Component<Props> {
                 onDisplayChange={onDisplayChange}
                 display={display}
                 hasSessions={hasSessions}
-                hasMultipleProjectsSelected={selectedProjects.length !== 1}
+                hasMultipleProjectsSelected={
+                  selectedProjects.length !== 1 || selectedProjects[0] === -1
+                }
               />
             </Feature>
             <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
