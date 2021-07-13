@@ -1,51 +1,60 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {cleanup, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'app/components/button';
 
 describe('Button', function () {
+  // @ts-expect-error
   const routerContext = TestStubs.routerContext();
 
+  afterEach(cleanup);
+
   it('renders', function () {
-    const component = mountWithTheme(<Button priority="primary">Button</Button>);
-    expect(component).toSnapshot();
+    const {container} = mountWithTheme(<Button priority="primary">Button</Button>);
+    expect(container).toSnapshot();
   });
 
   it('renders react-router link', function () {
-    const component = mountWithTheme(
-      <Button to="/some/route">Router Link</Button>,
-      routerContext
-    );
-    expect(component).toSnapshot();
+    const {container} = mountWithTheme(<Button to="/some/route">Router Link</Button>, {
+      context: routerContext,
+    });
+    expect(container).toSnapshot();
   });
 
   it('renders normal link', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <Button href="/some/relative/url">Normal Link</Button>,
-      routerContext
+      {context: routerContext}
     );
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders disabled normal link', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <Button href="/some/relative/url">Normal Link</Button>,
-      routerContext
+      {context: routerContext}
     );
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('calls `onClick` callback', function () {
     const spy = jest.fn();
-    const component = mountWithTheme(<Button onClick={spy} />, routerContext);
-    component.simulate('click');
+    const {getByText} = mountWithTheme(<Button onClick={spy}>Click me</Button>, {
+      context: routerContext,
+    });
+    fireEvent.click(getByText('Click me'));
 
     expect(spy).toHaveBeenCalled();
   });
 
   it('does not call `onClick` on disabled buttons', function () {
     const spy = jest.fn();
-    const component = mountWithTheme(<Button onClick={spy} disabled />, routerContext);
-    component.simulate('click');
+    const {getByText} = mountWithTheme(
+      <Button onClick={spy} disabled>
+        Click me
+      </Button>,
+      {context: routerContext}
+    );
+    fireEvent.click(getByText('Click me'));
 
     expect(spy).not.toHaveBeenCalled();
   });
