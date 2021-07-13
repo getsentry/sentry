@@ -168,6 +168,15 @@ class EventSerializer(Serializer):
             user_report = None
         return serialize(user_report, user)
 
+    @staticmethod
+    def _get_tags(obj):
+        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
+        for tag in tags:
+            query = convert_user_tag_to_query(tag["key"], tag["value"])
+            if query:
+                tag["query"] = query
+        return tags
+
     def get_attrs(self, item_list, user, is_public=False):
         crash_files = get_crash_files(item_list)
         serialized_files = {
@@ -356,12 +365,6 @@ class SimpleEventSerializer(EventSerializer):
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
     def serialize(self, obj, attrs, user):
-        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
-        for tag in tags:
-            query = convert_user_tag_to_query(tag["key"], tag["value"])
-            if query:
-                tag["query"] = query
-
         user = obj.get_minimal_user()
 
         return {
@@ -377,7 +380,7 @@ class SimpleEventSerializer(EventSerializer):
             "location": obj.location,
             "culprit": obj.culprit,
             "user": user and user.get_api_context(),
-            "tags": tags,
+            "tags": self._get_tags(obj),
             "platform": obj.platform,
             "dateCreated": obj.datetime,
             # Needed to generate minidump links in UI
@@ -392,12 +395,6 @@ class ExternalEventSerializer(EventSerializer):
     """
 
     def serialize(self, obj, attrs, user):
-        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
-        for tag in tags:
-            query = convert_user_tag_to_query(tag["key"], tag["value"])
-            if query:
-                tag["query"] = query
-
         user = obj.get_minimal_user()
 
         return {
@@ -411,7 +408,7 @@ class ExternalEventSerializer(EventSerializer):
             "location": obj.location,
             "culprit": obj.culprit,
             "user": user and user.get_api_context(),
-            "tags": tags,
+            "tags": self._get_tags(obj),
             "platform": obj.platform,
             "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         }
