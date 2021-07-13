@@ -16,7 +16,9 @@ import {BaseGroup, Group, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import RangeSlider, {
+  Slider,
+} from 'app/views/settings/components/forms/controls/rangeSlider';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
@@ -313,9 +315,22 @@ const SliderWrapper = styled('div')`
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  input {
+  ${Slider} {
+    background: transparent;
     margin-top: 0;
     margin-bottom: 0;
+
+    ::-ms-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
+
+    ::-moz-range-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
+
+    ::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
   }
 
   position: absolute;
