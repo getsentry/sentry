@@ -1,9 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {cleanup, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 
 describe('ButtonBar', function () {
+  afterEach(cleanup);
+
   const createWrapper = () =>
     mountWithTheme(
       <ButtonBar active="2" merged>
@@ -15,12 +17,8 @@ describe('ButtonBar', function () {
     );
 
   it('has "Second Button" as the active button in the bar', function () {
-    const wrapper = createWrapper();
-    expect(wrapper.find('Button').at(1).prop('priority')).toBe('primary');
-  });
-
-  it('does not pass `barId` down to the button', function () {
-    const wrapper = createWrapper();
-    expect(wrapper.find('Button').at(1).prop('barId')).toBeUndefined();
+    const {getByLabelText} = createWrapper();
+    expect(getByLabelText('First Button')).not.toHaveClass('active');
+    expect(getByLabelText('Second Button')).toHaveClass('active');
   });
 });
