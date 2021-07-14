@@ -7,13 +7,12 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
+from typing import List, Mapping
 
 from sentry.lang.native import appconnect
-from sentry.models import AppConnectBuild, Project, debugfile
-from sentry.models.projectoption import ProjectOption
+from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json
-from sentry.utils.sdk import configure_scope
+from sentry.utils import json, sdk
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     # TODO(flub): we should only run one task ever for a project.  Is
     # sentry.cache.default_cache the right thing to put a "mutex" into?  See how
     # sentry.tasks.assemble uses this.
-    with configure_scope() as scope:
+    with sdk.configure_scope() as scope:
         scope.set_tag("project", project_id)
 
     project = Project.objects.get(pk=project_id)
@@ -81,10 +80,22 @@ def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
             logger.debug("Created %r for project %s", proj_debug_file, project.id)
 
 
-@instrumented_task(
+# Untyped decorator would stop type-checking of entire function, split into an inner
+# function instead which can be type checked.
+@instrumented_task(  # type: ignore
     name="sentry.tasks.app_store_connect.refresh_all_builds", queue="appstoreconnect"
-)  # type: ignore
+)
 def refresh_all_builds() -> None:
+    inner_refresh_all_builds()
+
+
+def inner_refresh_all_builds() -> None:
+    """Refreshes all AppStoreConnect builds for all projects.
+
+    This iterates over all the projects configured in Sentry and for any which has an
+    AppStoreConnect symbol source configured will poll the AppStoreConnect API to check if
+    there are new builds.
+    """
     # We have no way to query for AppStore Connect symbol sources directly, but
     # getting all of the project options that have custom symbol sources
     # configured is a reasonable compromise, as the number of those should be
@@ -95,11 +106,21 @@ def refresh_all_builds() -> None:
     # setup, but have not yet published any kind of build to AppStore.
     options = ProjectOption.objects.filter(key=appconnect.SYMBOL_SOURCES_PROP_NAME)
     for option in options:
-        try:
-            all_sources = json.loads(option.value)
-            for source in all_sources:
-                source_id = source.get("id")
-                if source.get("type") == appconnect.SYMBOL_SOURCE_TYPE_NAME and id is not None:
-                    inner_dsym_download(option.project_id, source_id)
-        except Exception as exc:
-            logger.exception(f"{exc}")
+        with sdk.push_scope() as scope:
+            scope.set_tag("project", option.project_id)
+            try:
+                # We are parsing JSON thus all types are Any, so give the type-checker some
+                # extra help.  We are maybe slightly lying about the type, but the
+                # attributes we do access are all string values.
+                all_sources: List[Mapping[str, str]] = json.loads(option.value)
+                for source in all_sources:
+                    try:
+                        source_id = source["id"]
+                        source_type = source["type"]
+                    except KeyError:
+                        logger.exception("Malformed symbol source")
+                        continue
+                    if source_type == appconnect.SYMBOL_SOURCE_TYPE_NAME:
+                        inner_dsym_download(option.project_id, source_id)
+            except Exception:
+                logger.exception("Failed to refresh AppStoreConnect builds")
