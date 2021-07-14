@@ -173,6 +173,7 @@
     "mockdate": "3.0.5",
     "prettier": "2.3.2",
     "react-refresh": "^0.8.3",
+    "react-select-event": "5.3.0",
     "react-test-renderer": "17.0.2",
     "size-limit": "^4.5.6",
     "speed-measure-webpack-plugin": "^1.5.0",
