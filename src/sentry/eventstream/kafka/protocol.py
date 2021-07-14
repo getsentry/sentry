@@ -1,7 +1,4 @@
 import logging
-from datetime import datetime
-
-import pytz
 
 from sentry import options
 from sentry.eventstore.models import Event
@@ -22,10 +19,6 @@ def basic_protocol_handler(unsupported_operations):
     def get_task_kwargs_for_insert(operation, event_data, task_state=None):
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
-
-        event_data["datetime"] = datetime.strptime(
-            event_data["datetime"], "%Y-%m-%dT%H:%M:%S.%fZ"
-        ).replace(tzinfo=pytz.utc)
 
         # This data is already normalized as we're currently in the
         # ingestion pipeline and the event was in store
