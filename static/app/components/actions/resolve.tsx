@@ -27,7 +27,6 @@ const defaultProps = {
   isResolved: false,
   isAutoResolved: false,
   confirmLabel: t('Resolve'),
-  hasInbox: false,
 };
 
 type Props = {
@@ -42,7 +41,6 @@ type Props = {
   disabled?: boolean;
   disableDropdown?: boolean;
   projectFetchError?: boolean;
-  hasInbox?: boolean;
 } & Partial<typeof defaultProps>;
 
 class ResolveActions extends React.Component<Props> {
@@ -131,7 +129,6 @@ class ResolveActions extends React.Component<Props> {
       disabled,
       confirmLabel,
       disableDropdown,
-      hasInbox,
     } = this.props;
 
     if (isResolved) {
@@ -152,20 +149,15 @@ class ResolveActions extends React.Component<Props> {
     return (
       <DropdownLink
         customTitle={
-          !hasInbox && (
-            <ActionButton
-              label={t('More resolve options')}
-              disabled={!projectSlug ? disabled : disableDropdown}
-              icon={<IconChevron direction="down" size="xs" />}
-            />
-          )
+          <ActionButton
+            label={t('More resolve options')}
+            disabled={!projectSlug ? disabled : disableDropdown}
+            icon={<IconChevron direction="down" size="xs" />}
+          />
         }
         caret={false}
-        title={hasInbox && t('Resolve In\u2026')}
         alwaysRenderMenu
         disabled={!projectSlug ? disabled : disableDropdown}
-        anchorRight={hasInbox}
-        isNestedDropdown={hasInbox}
       >
         <MenuHeader>{t('Resolved In')}</MenuHeader>
 
@@ -229,7 +221,6 @@ class ResolveActions extends React.Component<Props> {
       disabled,
       confirmLabel,
       projectFetchError,
-      hasInbox,
     } = this.props;
 
     if (isResolved) {
@@ -245,26 +236,18 @@ class ResolveActions extends React.Component<Props> {
 
     return (
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-        {hasInbox ? (
-          <div style={{width: '100%'}}>
-            <div className="dropdown-submenu flex expand-left">
-              {this.renderDropdownMenu()}
-            </div>
-          </div>
-        ) : (
-          <ButtonBar merged>
-            <ActionLink
-              {...actionLinkProps}
-              type="button"
-              title={t('Resolve')}
-              icon={<IconCheckmark size="xs" />}
-              onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
-            >
-              {t('Resolve')}
-            </ActionLink>
-            {this.renderDropdownMenu()}
-          </ButtonBar>
-        )}
+        <ButtonBar merged>
+          <ActionLink
+            {...actionLinkProps}
+            type="button"
+            title={t('Resolve')}
+            icon={<IconCheckmark size="xs" />}
+            onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+          >
+            {t('Resolve')}
+          </ActionLink>
+          {this.renderDropdownMenu()}
+        </ButtonBar>
       </Tooltip>
     );
   }

@@ -205,7 +205,7 @@ function ActionSet({
 
 export default ActionSet;
 
-const Wrapper = styled('div')<{hasInbox?: boolean}>`
+const Wrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     width: 66.66%;
   }

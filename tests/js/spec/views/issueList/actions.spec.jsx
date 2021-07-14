@@ -365,7 +365,7 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('with inbox feature', function () {
+  describe('mark reviewed', function () {
     let issuesApiMock;
     beforeEach(async () => {
       SelectedGroupStore.records = {};
@@ -387,7 +387,6 @@ describe('IssueListActions', function () {
           statsPeriod="24h"
           queryCount={100}
           displayCount="3 of 3"
-          hasInbox
         />,
         TestStubs.routerContext()
       );
