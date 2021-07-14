@@ -176,26 +176,17 @@ def get_one_release(org: Organization, project_slug: Optional[str]):
 
 def get_one_issue(org: Organization, project_slug: Optional[str], error_type: Optional[str]):
     group_query = Group.objects.filter(project__organization=org)
-
-    if project_slug and error_type:
+    error_type = error_type.lower()
+    if project_slug:
         group_query = group_query.filter(project__slug=project_slug)
-
-        for group in group_query:
-            if (
-                group.data["metadata"].get("type") == error_type
-                or group.data["metadata"].get("title") == error_type
-            ):
-                break
+        if error_type:
+            for group in group_query:
+                if check_strings_similar(error_type, group):
+                    break
         else:
             group = group_query.first()
-
-    elif project_slug:
-        group_query = group_query.filter(project__slug=project_slug)
-        group = group_query.first()
-
     else:
         group = group_query.first()
-
     return f"/organizations/{org.slug}/issues/{group.id}/?project={group.project_id}"
 
 
@@ -268,3 +259,13 @@ def _get_one_transaction_name(project: Project):
         referrer="sandbox.demo_start._get_one_transaction_name",
     )
     return result["data"][0]["transaction"]
+
+
+def check_strings_similar(error_type, group):
+    type = group.data["metadata"].get("type")
+    title = group.data["metadata"].get("title")
+
+    error = type or title
+    error = error.lower()
+
+    return error_type in error or error_type == error
