@@ -434,7 +434,6 @@ let appConfig: Configuration = {
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',
-    runtimeChunk: {name: 'runtime'},
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our

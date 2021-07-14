@@ -53,9 +53,6 @@
   {% endscript %}
 
   {% block scripts %}
-  {% unversioned_asset_url "sentry" "entrypoints/runtime.js" as asset_url %}
-  {% script src=asset_url %}{% endscript %}
-
   {% block scripts_main_entrypoint %}
     {% unversioned_asset_url "sentry" "entrypoints/app.js" as asset_url %}
     {% script src=asset_url data-entry="true" %}{% endscript %}
