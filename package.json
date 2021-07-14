@@ -41,7 +41,7 @@
     "@types/jest": "^26.0.24",
     "@types/jquery": "^2.0.53",
     "@types/js-cookie": "^2.2.7",
-    "@types/lodash": "^4.14.170",
+    "@types/lodash": "^4.14.171",
     "@types/marked": "^0.7.2",
     "@types/mini-css-extract-plugin": "^1.4.3",
     "@types/papaparse": "^5.2.5",
