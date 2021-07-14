@@ -527,6 +527,10 @@ def single_exception(exception, context, **meta):
             #
             # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
             # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
+            #
+            # Do not update type component of system variant, such that regex
+            # can be continuously modified without unnecessarily creating new
+            # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = GroupingComponent(
