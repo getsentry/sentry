@@ -119,9 +119,9 @@ class JiraConfigView(BaseJiraWidgetView):
     @transaction_start("JiraConfigView.post")
     def post(self, request, *args, **kwargs):
         try:
-            jira_auth = get_jira_auth_from_request(request)
+            jira_auth = self.get_jira_auth()
         except CATCHABLE_AUTH_ERRORS:
-            self.get_response("error.html")
+            return self.get_response("error.html")
 
         if request.user.is_anonymous:
             return self.get_response("signin.html")
