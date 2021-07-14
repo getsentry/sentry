@@ -234,8 +234,18 @@ class Frame(Interface):
             )
             if is_url(self.data["sourcemap"]):
                 data["mapUrl"] = self.data["sourcemap"]
-        if self.data and "symbolicator_status" in self.data:
-            data["symbolicatorStatus"] = self.data["symbolicator_status"]
+        if self.data:
+            if "symbolicator_status" in self.data:
+                data["symbolicatorStatus"] = self.data["symbolicator_status"]
+
+            if self.data.get("is_sentinel"):
+                data["isSentinel"] = True
+
+            if self.data.get("is_prefix"):
+                data["isPrefix"] = True
+
+            if "min_grouping_level" in self.data:
+                data["minGroupingLevel"] = self.data["min_grouping_level"]
 
         return data
 
