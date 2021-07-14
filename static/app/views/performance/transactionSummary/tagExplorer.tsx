@@ -583,12 +583,11 @@ const AlignRight = styled('div')`
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  grid-column-gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0;
+  margin: 0 0 0 ${space(1)};
 `;
 
 export const TagExplorer = _TagExplorer;
