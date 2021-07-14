@@ -1,10 +1,10 @@
 ---
-created: '2021-07-08T10:36:07.502100Z'
+created: '2021-07-14T08:53:02.485751Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "e2ea2eb86d26407f06b59beb3a444c91"
+  hash: "da08cf2fb11fdf446806e0434c67596e"
   component:
     app*
       exception*
@@ -46,7 +46,7 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -60,12 +60,12 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame (non app frame)
             function*
               "stripped_application_code"
@@ -73,7 +73,7 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -84,27 +84,27 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function)"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function)"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -127,7 +127,7 @@ app:
           2
 --------------------------------------------------------------------------
 system:
-  hash: "d23d0dfeac5f1349ceb624b330670b25"
+  hash: "f4428ee799b94243a5745fa6cb74afe5"
   component:
     system*
       exception*
@@ -169,7 +169,7 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -183,12 +183,12 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -196,7 +196,7 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -207,27 +207,27 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function)"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function)"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "@callee_guaranteed"
+              "thunk/partial apply for anonymous function"
           frame*
             function*
               "stripped_application_code"
