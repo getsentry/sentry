@@ -9,7 +9,12 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import (
+    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1709,6 +1714,7 @@ class QueryTransformTest(TestCase):
                                 [
                                     "indexOf",
                                     [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                 ],
                                 0,
                             ],
@@ -1721,6 +1727,7 @@ class QueryTransformTest(TestCase):
                                 [
                                     "indexOf",
                                     [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                 ],
                             ],
                         ],
@@ -1813,6 +1820,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                                 0,
                             ],
@@ -1839,6 +1847,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                             ],
                         ],
@@ -1938,6 +1947,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                                 0,
                             ],
@@ -1954,6 +1964,7 @@ class QueryTransformTest(TestCase):
                                                 ["array", [["toUInt64", [self.project.id]]]],
                                                 "project_id",
                                             ],
+                                            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                         ],
                                         0,
                                     ],
@@ -1969,6 +1980,7 @@ class QueryTransformTest(TestCase):
                                                 ["array", [["toUInt64", [self.project.id]]]],
                                                 "project_id",
                                             ],
+                                            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                         ],
                                     ],
                                 ],
@@ -1995,6 +2007,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                             ],
                         ],
