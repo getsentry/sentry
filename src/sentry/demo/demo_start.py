@@ -131,13 +131,15 @@ def get_redirect_url(request, org):
         # with project slug
         project_slug = request.POST.get("projectSlug")
 
+        error_type = request.POST.get("errorType")
+
         # issue details
         if scenario == "oneIssue":
-            return get_one_issue(org, project_slug)
+            return get_one_issue(org, project_slug, error_type)
         if scenario == "oneBreadcrumb":
-            return get_one_breadcrumb(org, project_slug)
+            return get_one_breadcrumb(org, project_slug, error_type)
         if scenario == "oneStackTrace":
-            return get_one_stack_trace(org, project_slug)
+            return get_one_stack_trace(org, project_slug, error_type)
 
         # performance and discover
         if scenario == "oneTransaction":
@@ -172,33 +174,37 @@ def get_one_release(org: Organization, project_slug: Optional[str]):
     return f"/organizations/{org.slug}/releases/{version}/?project={project.id}"
 
 
-def get_one_issue(org: Organization, project_slug: Optional[str]):
+def get_one_issue(org: Organization, project_slug: Optional[str], error_type: Optional[str]):
     group_query = Group.objects.filter(project__organization=org)
-    if project_slug == "react-native":
+
+    if project_slug and error_type:
         group_query = group_query.filter(project__slug=project_slug)
+
         for group in group_query:
-            if "Promise" in group.message:
+            if (
+                group.data["metadata"].get("type") == error_type
+                or group.data["metadata"].get("title") == error_type
+            ):
                 break
-    elif project_slug == "ios":
-        group_query = group_query.filter(project__slug=project_slug)
-        for group in group_query:
-            if "BAD" in group.message:
-                break
+        else:
+            group = group_query.first()
+
     elif project_slug:
         group_query = group_query.filter(project__slug=project_slug)
         group = group_query.first()
+
     else:
         group = group_query.first()
 
     return f"/organizations/{org.slug}/issues/{group.id}/?project={group.project_id}"
 
 
-def get_one_breadcrumb(org: Organization, project_slug: Optional[str]):
-    return get_one_issue(org, project_slug) + "#breadcrumbs"
+def get_one_breadcrumb(org: Organization, project_slug: Optional[str], error_type: Optional[str]):
+    return get_one_issue(org, project_slug, error_type) + "#breadcrumbs"
 
 
-def get_one_stack_trace(org: Organization, project_slug: Optional[str]):
-    return get_one_issue(org, project_slug) + "#exception"
+def get_one_stack_trace(org: Organization, project_slug: Optional[str], error_type: Optional[str]):
+    return get_one_issue(org, project_slug, error_type) + "#exception"
 
 
 def get_one_transaction(org: Organization, project_slug: Optional[str]):
