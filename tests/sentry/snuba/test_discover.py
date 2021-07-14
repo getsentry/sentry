@@ -483,6 +483,37 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 r[1] for r in expected_project_threshold_config
             ]
 
+        ProjectTransactionThreshold.objects.filter(
+            project=project2,
+            organization=project2.organization,
+        ).delete()
+
+        expected_transaction = ["e" * 10]
+        expected_project_threshold_config = [["duration", 300]]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "transaction", "project_threshold_config"],
+                query="",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project2.id],
+                    "organization_id": self.organization.id,
+                },
+            )
+
+            # assert len(result["data"]) == 1
+            # sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
+
+            # assert [row["transaction"] for row in sorted_data] == expected_transaction
+            # assert [row["project_threshold_config"][0] for row in sorted_data] == [
+            #     r[0] for r in expected_project_threshold_config
+            # ]
+            # assert [row["project_threshold_config"][1] for row in sorted_data] == [
+            #     r[1] for r in expected_project_threshold_config
+            # ]
+
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/test_transaction/success"

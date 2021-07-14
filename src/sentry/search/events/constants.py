@@ -76,6 +76,7 @@ SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 # Allow list of fields that are compatible with the Snql Query Builder.
 # Once we reach a certain threshold of fields handled should turn this into a denylist
