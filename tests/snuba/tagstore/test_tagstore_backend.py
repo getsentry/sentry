@@ -4,7 +4,12 @@ import pytest
 from django.utils import timezone
 
 from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment
-from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import (
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -876,3 +881,30 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
 
         self.run_test("adopted", [], environment=env_2)
         self.run_test("adopted", [], project=project_2)
+
+
+class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, SnubaTestCase):
+    KEY = SEMVER_BUILD_ALIAS
+
+    def test_semver_package(self):
+        env_2 = self.create_environment()
+        project_2 = self.create_project()
+        self.create_release(version="test@1.0.0.0+123", additional_projects=[project_2])
+        self.create_release(version="test@1.0.0.0+456")
+        self.create_release(version="test@1.2.0.0", environments=[self.environment])
+        self.create_release(version="test@1.2.1.0+124", environments=[self.environment])
+        self.create_release(version="test@2.0.0.0+456", environments=[self.environment, env_2])
+        self.create_release(version="test@2.0.1.0+457a", additional_projects=[project_2])
+        self.create_release(version="test@2.0.1.0+789", additional_projects=[project_2])
+
+        self.run_test(None, ["123", "124", "456", "457a", "789"])
+        self.run_test("", ["123", "124", "456", "457a", "789"])
+
+        self.run_test("1", ["123", "124"])
+        self.run_test("123", ["123"])
+        self.run_test("4", ["456", "457a"])
+
+        self.run_test("1", ["123"], project=project_2)
+        self.run_test("1", ["124"], self.environment)
+        self.run_test("4", ["456", "457a"])
+        self.run_test("4", ["456"], env_2)
