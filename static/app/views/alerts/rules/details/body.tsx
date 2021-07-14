@@ -16,6 +16,8 @@ import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import {parseSearch} from 'app/components/searchSyntax/parser';
+import HighlightQuery from 'app/components/searchSyntax/renderer';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
@@ -107,11 +109,11 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
+    const eventType = extractEventTypeFilterFromRule(rule);
+    const parsedQuery = parseSearch([eventType, rule.query].join(' '));
+
     return (
-      <Filters>
-        <code>{extractEventTypeFilterFromRule(rule)}</code>&nbsp;&nbsp;
-        {rule.query && <code>{rule.query}</code>}
-      </Filters>
+      <Filters>{parsedQuery && <HighlightQuery parsedQuery={parsedQuery} />}</Filters>
     );
   }
 
@@ -512,11 +514,13 @@ const RuleText = styled('div')`
 `;
 
 const Filters = styled('span')`
-  width: 100%;
   overflow-wrap: break-word;
-  word-break: break-all;
-  font-size: ${p => p.theme.fontSizeMedium};
-  gap: ${space(1)};
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  line-height: 25px;
+  font-family: 'IBM Plex', Monaco, Consolas, 'Courier New', monospace;
 `;
 
 const TriggerCondition = styled('div')`
