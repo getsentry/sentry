@@ -514,6 +514,7 @@ const RuleText = styled('div')`
 const Filters = styled('span')`
   width: 100%;
   overflow-wrap: break-word;
+  word-break: break-all;
   font-size: ${p => p.theme.fontSizeMedium};
   gap: ${space(1)};
 `;
