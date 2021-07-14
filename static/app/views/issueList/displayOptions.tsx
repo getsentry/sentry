@@ -65,7 +65,9 @@ const IssueListDisplayOptions = ({
       disabled={!hasSessions || hasMultipleProjectsSelected}
     >
       <StyledDropdownControl
-        buttonProps={{prefix: t('Display')}}
+        buttonProps={{
+          prefix: t('Display'),
+        }}
         buttonTooltipTitle={
           display === IssueDisplayOptions.SESSIONS
             ? t(
@@ -94,6 +96,10 @@ const StyledTooltip = styled(Tooltip)`
 
 const StyledDropdownControl = styled(DropdownControl)`
   z-index: ${p => p.theme.zIndex.issuesList.displayOptions};
+
+  button {
+    width: 100%;
+  }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     order: 1;

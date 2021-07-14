@@ -54,10 +54,9 @@ class IssueListFilters extends React.Component<Props> {
       tags,
     } = this.props;
     const isAssignedQuery = /\bassigned:/.test(query);
-    const hasIssuePercent = organization.features.includes('issue-percent-display');
 
     return (
-      <SearchContainer hasIssuePercent={hasIssuePercent}>
+      <SearchContainer>
         <ClassNames>
           {({css}) => (
             <GuideAnchor
@@ -100,15 +99,14 @@ class IssueListFilters extends React.Component<Props> {
   }
 }
 
-const SearchContainer = styled('div')<{hasIssuePercent?: boolean}>`
+const SearchContainer = styled('div')`
   display: inline-grid;
-  grid-gap: ${space(2)};
+  grid-gap: ${space(1)};
   margin-bottom: ${space(2)};
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr ${p =>
-        p.hasIssuePercent ? `repeat(2, auto)` : `repeat(1, auto)`};
+    grid-template-columns: 1fr repeat(1, auto);
   }
 `;
 
