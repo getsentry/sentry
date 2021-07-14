@@ -1,3 +1,4 @@
+from typing import Any, Mapping, MutableMapping, Optional
 from urllib.parse import urlparse
 
 from django.forms.utils import ErrorList
@@ -7,6 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from jwt.exceptions import ExpiredSignatureError
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.models import Organization
@@ -26,19 +28,21 @@ CATCHABLE_AUTH_ERRORS = (ApiError, JiraTenant.DoesNotExist, ExpiredSignatureErro
 class BaseJiraWidgetView(View):
     jira_auth = None
 
-    def get_jira_auth(self):
+    def get_jira_auth(self) -> JiraTenant:
         if self.jira_auth is None:
             self.jira_auth = get_jira_auth_from_request(self.request)
         return self.jira_auth
 
-    def get_context(self):
+    def get_context(self) -> MutableMapping[str, str]:
         return {
             "ac_js_src": "https://connect-cdn.atl-paas.net/all.js",
             "login_url": absolute_uri(reverse("sentry-login")),
             "body_class": "",
         }
 
-    def get_response(self, template, context=None):
+    def get_response(
+        self, template: str, context: Optional[Mapping[str, Any]] = None
+    ) -> HttpResponse:
         context = context or self.get_context()
         res = render_to_response(template, context, self.request)
 
@@ -54,7 +58,7 @@ class BaseJiraWidgetView(View):
 
 class JiraUIWidgetView(BaseJiraWidgetView):
     @transaction_start("JiraUIWidgetView.get")
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         with configure_scope() as scope:
             try:
                 # make sure this exists and is valid
@@ -89,13 +93,13 @@ class JiraUIWidgetView(BaseJiraWidgetView):
 
 
 class JiraConfigView(BaseJiraWidgetView):
-    def get_context(self):
+    def get_context(self) -> MutableMapping[str, str]:
         context = super().get_context()
         context["body_class"] = "aui-page-focused aui-page-size-medium"
         return context
 
     @transaction_start("JiraConfigView.get")
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         try:
             jira_auth = self.get_jira_auth()
         except CATCHABLE_AUTH_ERRORS:
@@ -117,7 +121,7 @@ class JiraConfigView(BaseJiraWidgetView):
         return self.get_response("config.html", context)
 
     @transaction_start("JiraConfigView.post")
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         try:
             jira_auth = self.get_jira_auth()
         except CATCHABLE_AUTH_ERRORS:
@@ -148,7 +152,7 @@ class JiraConfigView(BaseJiraWidgetView):
 
 class JiraDescriptorView(View):
     @transaction_start("JiraDescriptorView.get")
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         return HttpResponse(
             json.dumps(
                 {
@@ -184,12 +188,12 @@ class JiraDescriptorView(View):
 
 class JiraInstalledCallback(View):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
     @transaction_start("JiraInstalledCallback.post")
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         registration_info = json.loads(request.body)
         JiraTenant.objects.create_or_update(
             client_key=registration_info["clientKey"],
