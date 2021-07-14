@@ -334,17 +334,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
                         )
-                return results
+                serializedResult = results
             elif len(query_columns) > 1:
-                return self.serialize_multiple_axis(
+                serializedResult = self.serialize_multiple_axis(
                     serializer, result, columns, query_columns, allow_partial_buckets
                 )
             else:
-                return serializer.serialize(
+                serializedResult = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
                 )
+            serializedResult["start"] = result.start
+            serializedResult["end"] = result.end
+
+            return serializedResult
 
     def serialize_multiple_axis(
         self, serializer, event_result, columns, query_columns, allow_partial_buckets

@@ -329,7 +329,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             rv.append((k, row))
 
         res = {
-            "data": zerofill(
+            "data": format(
                 rv,
                 result.start,
                 result.end,

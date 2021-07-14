@@ -512,7 +512,7 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
         op="discover.discover", description="timeseries.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+        result = format(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 

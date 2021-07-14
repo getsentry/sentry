@@ -117,29 +117,6 @@ class DurationChart extends Component<Props> {
       period: statsPeriod,
     };
 
-    const chartOptions = {
-      grid: {
-        left: '10px',
-        right: '10px',
-        top: '40px',
-        bottom: '0px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis' as const,
-        valueFormatter: tooltipFormatter,
-      },
-      yAxis: {
-        axisLabel: {
-          color: theme.chartLabel,
-          // p50() coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-        },
-      },
-    };
-
     const headerTitle =
       currentFilter === SpanOperationBreakdownFilter.None
         ? t('Duration Breakdown')
@@ -182,7 +159,7 @@ class DurationChart extends Component<Props> {
               yAxis={generateYAxisValues(currentFilter)}
               partial
             >
-              {({results, errored, loading, reloading}) => {
+              {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -190,6 +167,36 @@ class DurationChart extends Component<Props> {
                     </ErrorPanel>
                   );
                 }
+
+                const chartOptions = {
+                  grid: {
+                    left: '10px',
+                    right: '10px',
+                    top: '40px',
+                    bottom: '0px',
+                  },
+                  seriesOptions: {
+                    showSymbol: false,
+                  },
+                  tooltip: {
+                    trigger: 'axis' as const,
+                    valueFormatter: tooltipFormatter,
+                  },
+                  xAxis: timeframe
+                    ? {
+                        min: timeframe.start,
+                        max: timeframe.end,
+                      }
+                    : {},
+                  yAxis: {
+                    axisLabel: {
+                      color: theme.chartLabel,
+                      // p50() coerces the axis to be time based
+                      formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+                    },
+                  },
+                };
+
                 const colors =
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
 

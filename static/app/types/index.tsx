@@ -451,10 +451,17 @@ export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
+  start?: string;
+  end?: string;
 };
 
 // API response format for multiple series
-export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
+export type MultiSeriesEventsStats = {
+  [seriesName: string]: EventsStats;
+} & {
+  start?: string;
+  end?: string;
+};
 
 /**
  * Avatars are a more primitive version of User.
