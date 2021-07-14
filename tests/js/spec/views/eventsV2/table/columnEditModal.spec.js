@@ -108,8 +108,10 @@ describe('EventsV2 -> ColumnEditModal', function () {
         funcRow.find('SelectControl[name="field"] [data-test-id="label"]').text()
       ).toBe('count_unique(\u2026)');
       expect(
-        funcRow.find('SelectControl[name="parameter"] SingleValue SingleValue').text()
-      ).toBe('user-definedtag');
+        funcRow
+          .find('SelectControl[name="parameter"] SingleValue span[data-test-id="label"]')
+          .text()
+      ).toBe('user-defined');
 
       const fieldRow = wrapper.find('QueryField').last();
       expect(
@@ -215,8 +217,8 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('QueryField SelectControl[name="parameter"]');
-      expect(field.find('SingleValue SingleValue').text()).toBe(
-        'transaction.durationfield'
+      expect(field.find('SingleValue span[data-test-id="label"]').text()).toBe(
+        'transaction.duration'
       );
 
       // Input should show and have default value.
