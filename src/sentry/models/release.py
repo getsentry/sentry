@@ -470,7 +470,7 @@ class Release(Model):
             version_info = parse_release(version)
             version_parsed = version_info.get("version_parsed")
             return version_parsed is not None and all(
-                ReleaseModelManager.validate_bigint(version_parsed[field])
+                validate_bigint(version_parsed[field])
                 for field in ("major", "minor", "patch", "revision")
             )
         except RelayError:
