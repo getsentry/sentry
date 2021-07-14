@@ -750,6 +750,7 @@ const MenuItemCount = styled(({value, ...p}) => (
   </div>
 ))`
   ${menuItemStatStyles};
+  color: ${p => p.theme.subText};
 `;
 
 const MenuItemPercent = styled('div')`
@@ -761,6 +762,7 @@ const MenuItemText = styled('div')`
   font-weight: normal;
   text-align: left;
   padding-right: ${space(1)};
+  color: ${p => p.theme.textColor};
 `;
 
 const ChartWrapper = styled('div')`
