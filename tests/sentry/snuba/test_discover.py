@@ -503,16 +503,16 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 },
             )
 
-            # assert len(result["data"]) == 1
-            # sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
+            assert len(result["data"]) == 1
+            sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
 
-            # assert [row["transaction"] for row in sorted_data] == expected_transaction
-            # assert [row["project_threshold_config"][0] for row in sorted_data] == [
-            #     r[0] for r in expected_project_threshold_config
-            # ]
-            # assert [row["project_threshold_config"][1] for row in sorted_data] == [
-            #     r[1] for r in expected_project_threshold_config
-            # ]
+            assert [row["transaction"] for row in sorted_data] == expected_transaction
+            assert [row["project_threshold_config"][0] for row in sorted_data] == [
+                r[0] for r in expected_project_threshold_config
+            ]
+            assert [row["project_threshold_config"][1] for row in sorted_data] == [
+                r[1] for r in expected_project_threshold_config
+            ]
 
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
