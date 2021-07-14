@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 
 import pytest
+from django.utils import timezone
 
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
+from sentry.models import ProjectTransactionThreshold, ReleaseProjectEnvironment
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
@@ -12,6 +13,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+    RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
@@ -674,6 +676,79 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+
+    def test_release_stage_condition(self):
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        adopted_release_e_1 = self.store_event(
+            data={"release": adopted_release.version},
+            project_id=self.project.id,
+        ).event_id
+        adopted_release_e_2 = self.store_event(
+            data={"release": adopted_release.version},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_1 = self.store_event(
+            data={"release": replaced_release.version},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_2 = self.store_event(
+            data={"release": replaced_release.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{RELEASE_STAGE_ALIAS}:adopted",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+        }
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"!{RELEASE_STAGE_ALIAS}:not_adopted",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{RELEASE_STAGE_ALIAS}:[adopted, replaced]",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
 
     def test_semver_package_condition(self):
         release_1 = self.create_release(version="test@1.2.3")

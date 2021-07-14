@@ -36,7 +36,7 @@ const ADOPTION_STAGE_LABELS = {
     type: 'warning',
   },
   adopted: {
-    name: t('High Adoption'),
+    name: t('Adopted'),
     type: 'success',
   },
   replaced: {
@@ -54,11 +54,13 @@ type Props = {
   showPlaceholders: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  showAdoptionStageLabels: boolean;
   adoptionStages?: Release['adoptionStages'];
 };
 
 const Content = ({
   projects,
+  showAdoptionStageLabels,
   adoptionStages,
   releaseVersion,
   location,
@@ -68,7 +70,8 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
-  const hasAdoptionStages: boolean = adoptionStages !== undefined;
+  const hasAdoptionStages: boolean =
+    showAdoptionStageLabels && adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
@@ -83,7 +86,7 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
-          {adoptionStages && (
+          {hasAdoptionStages && (
             <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
           )}
           <CountColumn>
@@ -148,9 +151,9 @@ const Content = ({
               timeSeries[0].data.some(item => item.value > 0);
 
             const adoptionStage =
-              adoptionStages &&
-              adoptionStages[project.slug] &&
-              adoptionStages[project.slug].stage;
+              hasAdoptionStages &&
+              adoptionStages?.[project.slug] &&
+              adoptionStages?.[project.slug].stage;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -177,9 +180,9 @@ const Content = ({
                     )}
                   </AdoptionColumn>
 
-                  {adoptionStages && (
+                  {hasAdoptionStages && (
                     <AdoptionStageColumn>
-                      {adoptionStages[project.slug] ? (
+                      {adoptionStages?.[project.slug] ? (
                         <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
                           {ADOPTION_STAGE_LABELS[adoptionStage].name}
                         </Tag>
