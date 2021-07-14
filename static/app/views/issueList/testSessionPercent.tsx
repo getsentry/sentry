@@ -10,7 +10,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Input from 'app/components/forms/input';
 import * as Layout from 'app/components/layouts/thirds';
 import Link from 'app/components/links/link';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import {
   GlobalSelection,
   Group,
@@ -151,7 +151,7 @@ function SessionPercent({params, api, selection, organization}: Props) {
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Layout.Title>Session Threshold Percent</Layout.Title>
+          <Layout.Title>{t('Session Threshold Percent')}</Layout.Title>
           <StyledInput
             type="text"
             value={threshold}
@@ -169,9 +169,9 @@ function SessionPercent({params, api, selection, organization}: Props) {
 
             return (
               <Fragment key={idx}>
-                <h4>{period} hours</h4>
+                <h4>{tn('%s hour', '%s hours', period)}</h4>
                 <ul>
-                  {isLoading && t('Loading...')}
+                  {isLoading && t('Loading\u2026')}
                   {!isLoading &&
                     stats
                       .filter(({percent}) => percent > parseFloat(threshold))
