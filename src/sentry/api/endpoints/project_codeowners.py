@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Mapping, MutableMapping, Sequence, Union
+from typing import Any, Mapping, MutableMapping, Sequence, Union
 
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -18,9 +18,8 @@ from sentry.models import (
     ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
-    actor_type_to_string,
 )
-from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
+from sentry.ownership.grammar import convert_codeowners_syntax
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -31,22 +30,14 @@ def validate_association(
     associations: Sequence[Union[UserEmail, ExternalActor]],
     type: str,
 ) -> Sequence[str]:
+    raw_items_set = {str(item) for item in raw_items}
     if type == "emails":
         # associations are UserEmail objects
-        sentry_items = [item.email for item in associations]
+        sentry_items = {item.email for item in associations}
     else:
         # associations are ExternalActor objects
-        sentry_items = [item.external_name for item in associations]
-
-    diff = [str(item) for item in raw_items if item not in sentry_items]
-    unique_diff = list(dict.fromkeys(diff).keys())
-
-    if len(unique_diff):
-        return [
-            f'The following {type} do not have an association in Sentry: {", ".join(unique_diff)}.'
-        ]
-
-    return []
+        sentry_items = {item.external_name for item in associations}
+    return list(raw_items_set.difference(sentry_items))
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
@@ -70,48 +61,11 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         if not attrs.get("raw", "").strip():
             return attrs
 
-        external_association_err: List[str] = []
-        # Get list of team/user names from CODEOWNERS file
-        team_names, usernames, emails = parse_code_owners(attrs["raw"])
-
-        # Check if there exists Sentry users with the emails listed in CODEOWNERS
-        user_emails = UserEmail.objects.filter(
-            email__in=emails,
-            user__sentry_orgmember_set__organization=self.context["project"].organization,
+        # Ignore association errors and continue parsing CODEOWNERS for valid lines.
+        # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.
+        associations, _ = ProjectCodeOwners.validate_codeowners_associations(
+            attrs, self.context["project"]
         )
-
-        user_emails_diff = validate_association(emails, user_emails, "emails")
-        external_association_err.extend(user_emails_diff)
-
-        # Check if the usernames have an association
-        external_actors = ExternalActor.objects.filter(
-            external_name__in=usernames + team_names,
-            organization=self.context["project"].organization,
-        )
-
-        external_users_diff = validate_association(usernames, external_actors, "usernames")
-        external_association_err.extend(external_users_diff)
-
-        external_teams_diff = validate_association(team_names, external_actors, "team names")
-        external_association_err.extend(external_teams_diff)
-
-        if len(external_association_err):
-            raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
-
-        # Convert CODEOWNERS into IssueOwner syntax
-        users_dict = {}
-        teams_dict = {}
-        for external_actor in external_actors:
-            type = actor_type_to_string(external_actor.actor.type)
-            if type == "user":
-                user = external_actor.actor.resolve()
-                users_dict[external_actor.external_name] = user.email
-            elif type == "team":
-                team = external_actor.actor.resolve()
-                teams_dict[external_actor.external_name] = f"#{team.slug}"
-
-        emails_dict = {email: email for email in emails}
-        associations = {**users_dict, **teams_dict, **emails_dict}
 
         issue_owner_rules = convert_codeowners_syntax(
             attrs["raw"], associations, attrs["code_mapping_id"]
@@ -193,6 +147,8 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
             raise PermissionDenied
 
         expand = request.GET.getlist("expand", [])
+        expand.append("errors")
+
         codeowners = list(ProjectCodeOwners.objects.filter(project=project))
 
         return Response(
@@ -206,7 +162,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
 
     def post(self, request: Request, project: Project) -> Response:
         """
-        Upload a CODEWONERS for project
+        Upload a CODEOWNERS for project
         `````````````
 
         :pparam string organization_slug: the slug of the organization.
@@ -220,9 +176,13 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
             raise PermissionDenied
 
         serializer = ProjectCodeOwnerSerializer(
-            context={"ownership": self.get_ownership(project), "project": project},
+            context={
+                "ownership": self.get_ownership(project),
+                "project": project,
+            },
             data={**request.data},
         )
+
         if serializer.is_valid():
             project_codeowners = serializer.save()
             self.track_response_code("create", status.HTTP_201_CREATED)
@@ -238,7 +198,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
                     project_codeowners,
                     request.user,
                     serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(
-                        expand=["ownershipSyntax"]
+                        expand=["ownershipSyntax", "errors"]
                     ),
                 ),
                 status=status.HTTP_201_CREATED,

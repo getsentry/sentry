@@ -15,7 +15,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     autoAssignment = serializers.BooleanField()
 
     def validate(self, attrs):
-        if not attrs.get("raw", "").strip():
+        if "raw" not in attrs:
             return attrs
         try:
             rules = parse_rules(attrs["raw"])
