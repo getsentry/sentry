@@ -55,7 +55,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Workspace"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Slack%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
     aspects={"alerts": [setup_alert]},
 )
@@ -87,6 +87,14 @@ class SlackIntegrationProvider(IntegrationProvider):
             "im:history",
             "chat:write.public",
             "chat:write.customize",
+            "commands",
+        ]
+    )
+    user_scopes = frozenset(
+        [
+            "links:read",
+            "users:read",
+            "users:read.email",
         ]
     )
 
@@ -95,7 +103,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
-            "user_scopes": frozenset(["links:read"]),
+            "user_scopes": self.user_scopes,
             "redirect_url": absolute_uri("/extensions/slack/setup/"),
         }
 

@@ -6,7 +6,7 @@ import {Client} from 'app/api';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import {Organization, TagCollection} from 'app/types';
-import {metric} from 'app/utils/analytics';
+import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import Measurements from 'app/utils/measurements/measurements';
@@ -145,12 +145,22 @@ class Table extends PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
+
+        trackAnalyticsEvent({
+          eventKey: 'discover_search.failed',
+          eventName: 'Discover Search: Failed',
+          organization_id: this.props.organization.id,
+          search_type: 'events',
+          search_source: 'discover_search',
+          error: message,
+        });
+
         setError(message, err.status);
       });
   };
 
   render() {
-    const {eventView, tags} = this.props;
+    const {eventView, organization, tags} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
     const tagKeys = Object.values(tags).map(({key}) => key);
 
@@ -160,7 +170,7 @@ class Table extends PureComponent<TableProps, TableState> {
 
     return (
       <Container>
-        <Measurements>
+        <Measurements organization={organization}>
           {({measurements}) => {
             const measurementKeys = Object.values(measurements).map(({key}) => key);
 

@@ -3,16 +3,20 @@ import styled from '@emotion/styled';
 
 import ErrorPanel from 'app/components/charts/errorPanel';
 import IdBadge from 'app/components/idBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import {SettingsIconLink} from 'app/components/organizations/headerItem';
 import {Panel} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
 import {IconSettings, IconWarning} from 'app/icons';
-import space from 'app/styles/space';
+import {t, tct} from 'app/locale';
 import {DataCategory, Project} from 'app/types';
 import theme from 'app/utils/theme';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import {formatUsageWithUnits} from '../utils';
+
+const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
 type Props = {
   isLoading?: boolean;
@@ -45,6 +49,23 @@ class UsageTable extends React.Component<Props> {
       useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
     };
   }
+
+  getErrorMessage = errorMessage => {
+    if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
+      return (
+        <EmptyMessage
+          icon={<IconWarning color="gray300" size="48" />}
+          title={t(
+            "You don't have access to any projects, or your organization has no projects."
+          )}
+          description={tct('Learn more about [link:Project Access]', {
+            link: <ExternalLink href={DOCS_URL} />,
+          })}
+        />
+      );
+    }
+    return <IconWarning color="gray300" size="48" />;
+  };
 
   renderTableRow(stat: TableStat & {project: Project}) {
     const {dataCategory} = this.props;
@@ -86,13 +107,7 @@ class UsageTable extends React.Component<Props> {
     if (isError) {
       return (
         <Panel>
-          <ErrorPanel height="256px">
-            <IconWarning color="gray300" size="lg" />
-            <ErrorMessages>
-              {errors &&
-                Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
-            </ErrorMessages>
-          </ErrorPanel>
+          <ErrorPanel height="256px">{this.getErrorMessage(errors)}</ErrorPanel>
         </Panel>
       );
     }
@@ -134,12 +149,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const ErrorMessages = styled('div')`
-  display: flex;
-  flex-direction: column;
-
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;

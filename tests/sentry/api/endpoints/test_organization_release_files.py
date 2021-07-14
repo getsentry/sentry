@@ -14,7 +14,7 @@ class ReleaseFilesListTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )
@@ -65,7 +65,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 201, response.content
 
-        releasefile = ReleaseFile.objects.get(release=release)
+        releasefile = ReleaseFile.objects.get(release_id=release.id)
         assert releasefile.name == "http://example.com/application.js"
         assert releasefile.ident == ReleaseFile.get_ident("http://example.com/application.js")
         assert releasefile.file.headers == {
@@ -213,7 +213,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 201, response.content
 
-        releasefile = ReleaseFile.objects.get(release=release)
+        releasefile = ReleaseFile.objects.get(release_id=release.id)
         assert releasefile.name == "http://example.com/application.js"
         assert releasefile.file.headers == {
             "Content-Type": "application/javascript",

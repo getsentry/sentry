@@ -371,6 +371,17 @@ export type Team = {
 
 export type TeamWithProjects = Team & {projects: Project[]};
 
+export type TreeLabelPart =
+  | string
+  | {
+      function?: string;
+      package?: string;
+      type?: string;
+      datapath?: (string | number)[];
+      is_sentinel?: boolean;
+      is_prefix?: boolean;
+    };
+
 // This type is incomplete
 export type EventMetadata = {
   value?: string;
@@ -383,8 +394,8 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
-  current_tree_label?: string[];
-  finest_tree_label?: string[];
+  current_tree_label?: TreeLabelPart[];
+  finest_tree_label?: TreeLabelPart[];
 };
 
 export type EventAttachment = {
@@ -768,14 +779,15 @@ export const DataCategoryName = {
   [DataCategory.ATTACHMENTS]: 'Attachments',
 };
 
-export type EventOrGroupType =
-  | 'error'
-  | 'csp'
-  | 'hpkp'
-  | 'expectct'
-  | 'expectstaple'
-  | 'default'
-  | 'transaction';
+export enum EventOrGroupType {
+  ERROR = 'error',
+  CSP = 'csp',
+  HPKP = 'hpkp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  DEFAULT = 'default',
+  TRANSACTION = 'transaction',
+}
 
 export type InboxReasonDetails = {
   until?: string | null;
@@ -2103,6 +2115,9 @@ export enum ReleaseComparisonChartType {
   CRASH_FREE_SESSIONS = 'crashFreeSessions',
   SESSION_COUNT = 'sessionCount',
   USER_COUNT = 'userCount',
+  ERROR_COUNT = 'errorCount',
+  TRANSACTION_COUNT = 'transactionCount',
+  FAILURE_RATE = 'failureRate',
 }
 
 export enum HealthStatsPeriodOption {

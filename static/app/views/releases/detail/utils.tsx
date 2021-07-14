@@ -1,5 +1,6 @@
 import {Location} from 'history';
 import pick from 'lodash/pick';
+import moment from 'moment';
 
 import MarkLine from 'app/components/charts/components/markLine';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -11,6 +12,7 @@ import {
   GlobalSelection,
   LightWeightOrganization,
   ReleaseComparisonChartType,
+  ReleaseWithHealth,
   Repository,
 } from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
@@ -142,6 +144,9 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free Users'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
+  [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
+  [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
+  [ReleaseComparisonChartType.FAILURE_RATE]: t('Failure Rate'),
 };
 
 export const releaseComparisonChartHelp = {
@@ -155,17 +160,32 @@ export const releaseComparisonChartHelp = {
   [ReleaseComparisonChartType.USER_COUNT]: t('The number of users in a given period.'),
 };
 
-export function generateReleaseMarkLine(title: string, position: number, theme: Theme) {
+type GenerateReleaseMarklineOptions = {
+  hideLabel?: boolean;
+  axisIndex?: number;
+};
+
+function generateReleaseMarkLine(
+  title: string,
+  position: number,
+  theme: Theme,
+  options?: GenerateReleaseMarklineOptions
+) {
+  const {hideLabel, axisIndex} = options || {};
+
   return {
     seriesName: title,
     type: 'line',
-    data: [],
+    data: [{name: position, value: null as any}], // TODO(ts): echart types
+    yAxisIndex: axisIndex ?? undefined,
+    xAxisIndex: axisIndex ?? undefined,
+    color: theme.gray300,
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: theme.gray300, type: 'solid'},
       label: {
         position: 'insideEndBottom',
-        formatter: title,
+        formatter: hideLabel ? '' : title,
         font: 'Rubik',
         fontSize: 11,
       } as any, // TODO(ts): weird echart types,
@@ -176,4 +196,52 @@ export function generateReleaseMarkLine(title: string, position: number, theme: 
       ] as any, // TODO(ts): weird echart types
     }),
   };
+}
+
+export const releaseMarkLinesLabels = {
+  created: t('Release Created'),
+  adopted: t('Adopted'),
+  unadopted: t('Unadopted'),
+};
+
+export function generateReleaseMarkLines(
+  release: ReleaseWithHealth,
+  projectSlug: string,
+  theme: Theme,
+  options?: GenerateReleaseMarklineOptions
+) {
+  const adoptionStages = release.adoptionStages?.[projectSlug];
+
+  const markLines = [
+    generateReleaseMarkLine(
+      releaseMarkLinesLabels.created,
+      moment(release.dateCreated).valueOf(),
+      theme,
+      options
+    ),
+  ];
+
+  if (adoptionStages?.adopted) {
+    markLines.push(
+      generateReleaseMarkLine(
+        releaseMarkLinesLabels.adopted,
+        moment(adoptionStages.adopted).valueOf(),
+        theme,
+        options
+      )
+    );
+  }
+
+  if (adoptionStages?.unadopted) {
+    markLines.push(
+      generateReleaseMarkLine(
+        releaseMarkLinesLabels.unadopted,
+        moment(adoptionStages.unadopted).valueOf(),
+        theme,
+        options
+      )
+    );
+  }
+
+  return markLines;
 }

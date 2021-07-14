@@ -59,7 +59,9 @@ from sentry.utils.safe import get_path
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
 
 _SHOULD_DELETE_DATA = os.environ.get("SENTRY_TEST_GROUPING_DELETE_USELESS_DATA") == "1"
-_DELETE_KEYWORDS = os.environ.get("SENTRY_TEST_GROUPING_DELETE_KEYWORDS", "").lower().split(",")
+_DELETE_KEYWORDS = [
+    x for x in os.environ.get("SENTRY_TEST_GROUPING_DELETE_KEYWORDS", "").lower().split(",") if x
+]
 
 
 class CategorizationInput:
@@ -227,13 +229,13 @@ def track_enhancers_coverage():
                 # they should not be written back, but we should also not
                 # count removing them as modification
                 category = None
-                if frame["data"]:
+                if frame.get("data"):
                     category = frame["data"].pop("category", None)
                     frame.pop("in_app", None)
                     frame["data"].pop("orig_in_app", None)
 
-                if not frame["data"]:
-                    del frame["data"]
+                if not frame.get("data"):
+                    frame.pop("data", None)
 
                 modified |= _strip_sensitive_keys(
                     frame, ["package", "filename", "function", "abs_path", "module"]

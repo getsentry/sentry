@@ -13,6 +13,7 @@ describe('ReleasesList', function () {
     organization,
     selection: {
       projects: [],
+      environments: [],
       datetime: {
         period: '14d',
       },
@@ -368,7 +369,7 @@ describe('ReleasesList', function () {
       ],
     });
     const healthSection = mountWithTheme(
-      <ReleasesList {...props} selection={{projects: [2]}} />,
+      <ReleasesList {...props} selection={{...props.selection, projects: [2]}} />,
       routerContext
     ).find('ReleaseHealth');
     const hiddenProjectsMessage = healthSection.find('HiddenProjectsMessage');
@@ -388,7 +389,7 @@ describe('ReleasesList', function () {
       body: [TestStubs.Release({version: '2.0.0'})],
     });
     const healthSection = mountWithTheme(
-      <ReleasesList {...props} selection={{projects: [-1]}} />,
+      <ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />,
       routerContext
     ).find('ReleaseHealth');
 
@@ -399,12 +400,12 @@ describe('ReleasesList', function () {
 
   it('autocompletes semver search tag', async function () {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/sentry.semver/values/',
+      url: '/organizations/org-slug/tags/release.version/values/',
       body: [
         {
           count: null,
           firstSeen: null,
-          key: 'sentry.semver',
+          key: 'release.version',
           lastSeen: null,
           name: 'sentry@0.5.3',
           value: 'sentry@0.5.3',
@@ -423,12 +424,13 @@ describe('ReleasesList', function () {
     wrapper.update();
 
     expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'sentry.semver:'
+      'release.version:'
     );
 
+    wrapper.find('SmartSearchBar textarea').simulate('focus');
     wrapper
       .find('SmartSearchBar textarea')
-      .simulate('change', {target: {value: 'sentry.semver:'}});
+      .simulate('change', {target: {value: 'release.version:'}});
 
     await tick();
     wrapper.update();

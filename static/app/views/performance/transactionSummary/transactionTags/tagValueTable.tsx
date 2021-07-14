@@ -15,6 +15,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView, {isFieldSortable} from 'app/utils/discover/eventView';
+import {fieldAlignment} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import {
   TableData,
@@ -27,6 +28,8 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {PerformanceDuration} from '../../utils';
 import {TagValue} from '../tagExplorer';
+
+import {trackTagPageInteraction} from './utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -100,6 +103,7 @@ const COLUMN_ORDER: TagColumn[] = [
 type Props = {
   location: Location;
   organization: Organization;
+  aggregateColumn: string;
   projects: Project[];
   transactionName: string;
   tagKey: string;
@@ -123,6 +127,7 @@ export class TagValueTable extends Component<Props, State> {
     columnInfo: TagColumn
   ): React.ReactNode {
     const {location} = this.props;
+    const align = fieldAlignment(column.key, column.type, tableMeta);
     const field = {field: column.key, width: column.width};
 
     function generateSortLink(): LocationDescriptorObject | undefined {
@@ -145,7 +150,7 @@ export class TagValueTable extends Component<Props, State> {
 
     return (
       <SortLink
-        align="left"
+        align={align}
         title={columnInfo.name}
         direction={currentSortKind}
         canSort={canSort}
@@ -186,7 +191,8 @@ export class TagValueTable extends Component<Props, State> {
     actionRow: any
   ) => {
     return (action: Actions) => {
-      const {eventView, location} = this.props;
+      const {eventView, location, organization} = this.props;
+      trackTagPageInteraction(organization);
 
       const searchConditions = tokenizeSearch(eventView.query);
 
@@ -211,7 +217,7 @@ export class TagValueTable extends Component<Props, State> {
     dataRow: TableDataRow
   ): React.ReactNode => {
     const value = dataRow[column.key];
-    const {location, eventView} = parentProps;
+    const {location, eventView, organization} = parentProps;
 
     if (column.key === 'key') {
       return dataRow.tags_key;
@@ -234,7 +240,7 @@ export class TagValueTable extends Component<Props, State> {
     }
 
     if (column.key === 'frequency') {
-      return formatPercentage(dataRow.frequency, 0);
+      return <AlignRight>{formatPercentage(dataRow.frequency, 0)}</AlignRight>;
     }
 
     if (column.key === 'action') {
@@ -244,12 +250,14 @@ export class TagValueTable extends Component<Props, State> {
         <Link
           disabled={disabled}
           to=""
-          onClick={() =>
-            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
-          }
+          onClick={() => {
+            trackTagPageInteraction(organization);
+            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value);
+          }}
         >
           <LinkContainer>
-            <IconAdd isCircled /> {t('Add to filter')}
+            <IconAdd isCircled />
+            {t('Add to filter')}
           </LinkContainer>
         </Link>
       );
@@ -262,12 +270,25 @@ export class TagValueTable extends Component<Props, State> {
     }
 
     if (column.key === 'aggregate') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />
+        </AlignRight>
+      );
     }
 
     if (column.key === 'sumdelta') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />
+        </AlignRight>
+      );
     }
+
+    if (column.key === 'count') {
+      return <AlignRight>{value}</AlignRight>;
+    }
+
     return value;
   };
 
@@ -285,38 +306,62 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, tagKey, location, isLoading, tableData} = this.props;
+    const {eventView, tagKey, location, isLoading, tableData, aggregateColumn} =
+      this.props;
 
     const newColumns = [...COLUMN_ORDER].map(c => {
       const newColumn = {...c};
       if (c.key === 'tagValue') {
         newColumn.name = tagKey;
       }
+      if (c.key === 'aggregate') {
+        if (aggregateColumn === 'measurements.lcp') {
+          newColumn.name = 'Avg LCP';
+        }
+      }
       return newColumn;
     });
 
     return (
-      <GridEditable
-        isLoading={isLoading}
-        data={tableData && tableData.data ? tableData.data : []}
-        columnOrder={newColumns}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell: this.renderHeadCellWithMeta(eventView, {}, newColumns) as any,
-          renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-          onResizeColumn: this.handleResizeColumn as any,
-        }}
-        location={location}
-      />
+      <StyledPanelTable>
+        <GridEditable
+          isLoading={isLoading}
+          data={tableData && tableData.data ? tableData.data : []}
+          columnOrder={newColumns}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: this.renderHeadCellWithMeta(
+              eventView,
+              tableData ? tableData.meta : {},
+              newColumns
+            ) as any,
+            renderBodyCell: this.renderBodyCellWithData(this.props) as any,
+            onResizeColumn: this.handleResizeColumn as any,
+          }}
+          location={location}
+        />
+      </StyledPanelTable>
     );
   }
 }
+
+const StyledPanelTable = styled('div')`
+  > div {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+`;
+
+const AlignRight = styled('div')`
+  text-align: right;
+`;
+
 const LinkContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(0.5)};
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
-  grid-gap: ${space(1)};
-  width: 100px;
 `;
 
 export default TagValueTable;

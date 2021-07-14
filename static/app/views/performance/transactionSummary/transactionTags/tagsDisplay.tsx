@@ -2,6 +2,7 @@ import React from 'react';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
+import Placeholder from 'app/components/placeholder';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import SegmentExplorerQuery from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
@@ -19,10 +20,10 @@ type Props = {
   organization: Organization;
   projects: Project[];
   transactionName: string;
-  tagKey: string;
+  tagKey?: string;
 };
 
-const TAG_VALUE_LIMIT = 10;
+const HISTOGRAM_TAG_KEY_LIMIT = 8;
 const HISTOGRAM_BUCKET_LIMIT = 20;
 
 const TagsDisplay = (props: Props) => {
@@ -32,38 +33,58 @@ const TagsDisplay = (props: Props) => {
     projects,
     eventView
   );
-  if (!tagKey) {
-    return null;
-  }
   return (
     <React.Fragment>
-      <TagKeyHistogramQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
-        location={location}
-        aggregateColumn={aggregateColumn}
-        limit={HISTOGRAM_BUCKET_LIMIT}
-        tagKey={tagKey}
-        sort="-frequency"
-      >
-        {({isLoading, tableData}) => {
-          return <TagsHeatMap {...props} tableData={tableData} isLoading={isLoading} />;
-        }}
-      </TagKeyHistogramQuery>
-      <SegmentExplorerQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
-        location={location}
-        aggregateColumn={aggregateColumn}
-        tagKey={tagKey}
-        limit={TAG_VALUE_LIMIT}
-        sort="-frequency"
-        allTagKeys
-      >
-        {({isLoading, tableData}) => {
-          return <TagValueTable {...props} tableData={tableData} isLoading={isLoading} />;
-        }}
-      </SegmentExplorerQuery>
+      {tagKey ? (
+        <React.Fragment>
+          <TagKeyHistogramQuery
+            eventView={eventView}
+            orgSlug={organization.slug}
+            location={location}
+            aggregateColumn={aggregateColumn}
+            tagKeyLimit={HISTOGRAM_TAG_KEY_LIMIT}
+            numBucketsPerKey={HISTOGRAM_BUCKET_LIMIT}
+            tagKey={tagKey}
+            sort="-frequency"
+          >
+            {({isLoading, tableData}) => {
+              return (
+                <TagsHeatMap
+                  {...props}
+                  tagKey={tagKey}
+                  aggregateColumn={aggregateColumn}
+                  tableData={tableData}
+                  isLoading={isLoading}
+                />
+              );
+            }}
+          </TagKeyHistogramQuery>
+          <SegmentExplorerQuery
+            eventView={eventView}
+            orgSlug={organization.slug}
+            location={location}
+            aggregateColumn={aggregateColumn}
+            tagKey={tagKey}
+            limit={HISTOGRAM_TAG_KEY_LIMIT}
+            sort="-frequency"
+            allTagKeys
+          >
+            {({isLoading, tableData}) => {
+              return (
+                <TagValueTable
+                  {...props}
+                  tagKey={tagKey}
+                  aggregateColumn={aggregateColumn}
+                  tableData={tableData}
+                  isLoading={isLoading}
+                />
+              );
+            }}
+          </SegmentExplorerQuery>
+        </React.Fragment>
+      ) : (
+        <Placeholder height="290" />
+      )}
     </React.Fragment>
   );
 };

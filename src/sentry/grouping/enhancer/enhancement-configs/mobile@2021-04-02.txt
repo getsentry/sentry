@@ -92,6 +92,7 @@ family:native package:IOKit category=system
 family:native package:QuartzCore category=system
 family:native package:IOMobileFramebuffer category=system
 family:native package:libobjc* category=system
+family:native package:libsystem* category=system
 family:native package:/system/** category=system
 family:native package:/vendor/** category=system
 module:dalvik.system.* category=system
@@ -137,6 +138,8 @@ family:native package:libAudioToolboxUtility.dylib category=av
 family:native function:std::_* category=internals
 
 family:native package:/usr/lib/system/** function:start category=threadbase
+family:native package:libdyld.dylib function:start category=threadbase
+family:native package:UIKitCore function:UIApplicationMain category=threadbase
 family:native function:wWinMain category=threadbase
 family:native function:invoke_main category=threadbase
 family:native function:BaseThreadInitThunk category=threadbase
@@ -158,10 +161,8 @@ module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=thre
 module:android.os.* function:call category=threadbase
 module:android.app.ActivityThread function:main category=threadbase
 
-family:native package:"/usr/lib/system/libsystem_malloc.dylib" category=malloc
+family:native package:"**/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
-family:native function:malloc_report category=oom
-family:native function:malloc_vreport category=oom
 family:native function:malloc_base category=malloc
 family:native function:RtlpAllocateHeapInternal category=malloc
 family:native function:std::*::allocator_traits* category=malloc
@@ -177,7 +178,7 @@ module:java.lang.reflect.* category=indirection
 module:java.lang.Class function:getMethod category=indirection
 module:androidx.work.impl.utils.ForceStopRunnable category=indirection
 
-family:native function:"*::\{dtor\}" category=dtor
+family:native function:"*::\\{dtor\\}" category=dtor
 family:native function:"destructor'" category=dtor
 
 family:native function:exit category=shutdown
@@ -215,7 +216,7 @@ family:native package:AGXGLDriver category=driver
 family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
 family:native function:std::_Deallocate category=free
-family:native category:system function:free category=free
+family:native function:free category=free
 
 family:native package:C:/Windows/SYSTEM32/OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
@@ -239,6 +240,7 @@ module:cn.gundam.sdk.* category=telemetry
 # entirely sure if any of that is linked into the app, it's probably something
 # preinstalled on Lenovo devices.
 module:com.lenovo.payplus.analytics.* category=telemetry
+package:"**/libBugly.so" category=telemetry
 
 family:native function:dlopen category=load
 family:native package:/system/lib/libnativeloader.so function:android::OpenNativeLibrary category=load
@@ -249,8 +251,8 @@ family:native function:pthread_mutex_lock category=lock
 
 # Semi-interesting frames
 category:driver +sentinel +prefix
-category:free +sentinel +prefix
-category:malloc +sentinel +prefix
+category:free +prefix
+category:malloc +prefix
 category:lock +sentinel +prefix
 category:load +sentinel +prefix
 category:gl +sentinel
@@ -273,7 +275,7 @@ category:driver | [ category:driver ] category=internals
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
-category:throw +sentinel +prefix ^-group
+category:throw +prefix ^-group
 
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
@@ -307,6 +309,9 @@ category:threadbase v-group -group
 family:native category:system function:_* !function:_purecall category=internals
 family:native category:system function:"<unknown>" category=internals
 family:native function:_INTERNAL* category=internals
+
+# Seen in iOS
+path:"<compiler-generated>" category=internals
 
 # frames with .cold.1 are probably hotpaths vs slow paths but not relevant for grouping
 # e.g., two callstacks that should group together:

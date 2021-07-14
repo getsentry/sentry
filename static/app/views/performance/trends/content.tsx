@@ -231,6 +231,7 @@ class TrendsContent extends React.Component<Props, State> {
             <DefaultTrends location={location} eventView={eventView}>
               <StyledSearchContainer>
                 <StyledSearchBar
+                  searchSource="trends"
                   organization={organization}
                   projectIds={trendView.project}
                   query={query}
@@ -240,7 +241,7 @@ class TrendsContent extends React.Component<Props, State> {
                 />
                 <TrendsDropdown>
                   <DropdownControl
-                    buttonProps={{prefix: t('Display')}}
+                    buttonProps={{prefix: t('Percentile')}}
                     label={currentTrendFunction.label}
                   >
                     {TRENDS_FUNCTIONS.map(({label, field}) => (

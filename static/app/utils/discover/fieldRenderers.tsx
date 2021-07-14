@@ -426,7 +426,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <StyledDateTime date={data['timestamp.to_day']} format="MMM D, YYYY" />,
+          value: <StyledDateTime date={data['timestamp.to_day']} dateOnly utc />,
           fixed: 'timestamp.to_day',
         })}
       </Container>

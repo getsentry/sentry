@@ -12,12 +12,13 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.models import Repository
+from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
+from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient
 from .issues import GitHubIssueBasic
@@ -63,7 +64,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitHub%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=GitHub%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github",
     aspects={},
 )
@@ -256,7 +257,29 @@ class GitHubInstallationRedirect(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
-            pipeline.bind_state("installation_id", request.GET["installation_id"])
-            return pipeline.next_step()
+            try:
+                # We want to limit GitHub integrations to 1 organization
+                installations_exist = OrganizationIntegration.objects.filter(
+                    integration=Integration.objects.get(external_id=request.GET["installation_id"])
+                ).exists()
+
+                if installations_exist:
+                    context = {
+                        "payload": {
+                            "success": False,
+                            "data": {
+                                "error": _("Github installed on another Sentry organization.")
+                            },
+                        }
+                    }
+                    return render_to_response(
+                        "sentry/integrations/github-integration-exists-on-another-org.html",
+                        context=context,
+                        request=request,
+                    )
+
+            except Integration.DoesNotExist:
+                pipeline.bind_state("installation_id", request.GET["installation_id"])
+                return pipeline.next_step()
 
         return self.redirect(self.get_app_url())

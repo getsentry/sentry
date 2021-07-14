@@ -2,6 +2,7 @@
   {
     "query": "release:\"a\nrelease\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

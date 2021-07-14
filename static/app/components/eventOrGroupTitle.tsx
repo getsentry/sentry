@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -8,70 +8,59 @@ import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 
+import EventTitleTreeLabel from './eventTitleTreeLabel';
 import StacktracePreview from './stacktracePreview';
 
 type Props = Partial<DefaultProps> & {
   data: Event | BaseGroup | GroupTombstone;
   organization: Organization;
-  style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
   guideAnchorName?: string;
+  className?: string;
 };
 
 type DefaultProps = {
   guideAnchorName: string;
 };
 
-class EventOrGroupTitle extends React.Component<Props> {
-  static defaultProps: DefaultProps = {
-    guideAnchorName: 'issue_title',
-  };
-  render() {
-    const {hasGuideAnchor, data, organization, withStackTracePreview, guideAnchorName} =
-      this.props;
-    const {title, subtitle} = getTitle(data as Event, organization);
-    const {id, eventID, groupID, projectID} = data as Event;
+function EventOrGroupTitle({
+  guideAnchorName = 'issue_title',
+  organization,
+  data,
+  withStackTracePreview,
+  hasGuideAnchor,
+  className,
+}: Props) {
+  const event = data as Event;
+  const {id, eventID, groupID, projectID} = event;
 
-    const titleWithHoverStacktrace = (
-      <StacktracePreview
-        organization={organization}
-        issueId={groupID ? groupID : id}
-        // we need eventId and projectSlug only when hovering over Event, not Group
-        // (different API call is made to get the stack trace then)
-        eventId={eventID}
-        projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
-        disablePreview={!withStackTracePreview}
-      >
-        {title}
-      </StacktracePreview>
-    );
+  const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
 
-    return subtitle ? (
-      <span style={this.props.style}>
-        <GuideAnchor
-          disabled={!hasGuideAnchor}
-          target={guideAnchorName}
-          position="bottom"
+  return (
+    <span className={className}>
+      <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
+        <StacktracePreview
+          organization={organization}
+          issueId={groupID ? groupID : id}
+          // we need eventId and projectSlug only when hovering over Event, not Group
+          // (different API call is made to get the stack trace then)
+          eventId={eventID}
+          projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
+          disablePreview={!withStackTracePreview}
         >
-          <span>{titleWithHoverStacktrace}</span>
-        </GuideAnchor>
-        <Spacer />
-        <Subtitle title={subtitle}>{subtitle}</Subtitle>
-        <br />
-      </span>
-    ) : (
-      <span style={this.props.style}>
-        <GuideAnchor
-          disabled={!hasGuideAnchor}
-          target={guideAnchorName}
-          position="bottom"
-        >
-          {titleWithHoverStacktrace}
-        </GuideAnchor>
-      </span>
-    );
-  }
+          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
+        </StacktracePreview>
+      </GuideAnchor>
+      {subtitle && (
+        <Fragment>
+          <Spacer />
+          <Subtitle title={subtitle}>{subtitle}</Subtitle>
+          <br />
+        </Fragment>
+      )}
+    </span>
+  );
 }
 
 export default withOrganization(EventOrGroupTitle);
