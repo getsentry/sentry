@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T10:32:46.022081Z'
+created: '2021-07-14T13:42:17.898103Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -17,21 +17,21 @@ source: tests/sentry/grouping/test_categorization.py
                            libdispatch.dylib  _dispatch_main_queue_callback_4CF category=internals
                            libdispatch.dylib  _dispatch_client_callout category=threadbase
                            libdispatch.dylib  _dispatch_call_block_and_release category=internals
-                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  <anonymous function> category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-                   stripped_application_code  @callee_guaranteed category=internals
-                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  <anonymous function> category=internals
+                   stripped_application_code  <anonymous function> category=internals
                                               stripped_application_code
-                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  <anonymous function> category=internals
                                               stripped_application_code
                                               stripped_application_code
-                   stripped_application_code  @callee_guaranteed category=internals
-                   stripped_application_code  @callee_guaranteed category=internals
-                   stripped_application_code  @callee_guaranteed category=internals
-                   stripped_application_code  @callee_guaranteed category=internals
-                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  <anonymous function> category=internals
+                   stripped_application_code  <anonymous function> category=internals
+                   stripped_application_code  <anonymous function> category=internals
+                   stripped_application_code  <anonymous function> category=internals
+                   stripped_application_code  <anonymous function> category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

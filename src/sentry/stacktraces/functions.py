@@ -30,7 +30,6 @@ _anon_namespace_re = re.compile(
     \?A0x[a-f0-9]{8}::
     """
 )
-_swift_attribute_re = re.compile(r"@\w+(\([^\)]+\))? ")
 
 
 PAIRS = {"(": ")", "{": "}", "[": "]", "<": ">"}
