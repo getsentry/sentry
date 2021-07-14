@@ -25,6 +25,7 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
+    DURATION_PATTERN,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
@@ -39,6 +40,7 @@ from sentry.search.events.constants import (
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.types import SelectType
+from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
@@ -377,10 +379,17 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     condition = args["condition"]
     value = args["value"]
     if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
-        try:
-            normalized_value = float(value.strip("'"))
-        except Exception:
-            raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
+        duration_match = DURATION_PATTERN.match(value.strip("'"))
+        if duration_match:
+            try:
+                normalized_value = parse_duration(*duration_match.groups())
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+        else:
+            try:
+                normalized_value = float(value.strip("'"))
+            except Exception:
+                raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
     elif column == "transaction.status":
         code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
         if code is None:
