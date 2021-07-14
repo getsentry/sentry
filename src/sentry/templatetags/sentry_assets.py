@@ -88,7 +88,7 @@ class ScriptNode(template.Node):
             content = self.nodelist.render(context).strip()
             content = self._unwrap_content(content)
         else:
-            if '?' in self.attrs["src"]:
+            if "?" in self.attrs["src"]:
                 self.attrs["src"] = self.attrs["src"] + "&12345"
             else:
                 self.attrs["src"] = self.attrs["src"] + "?12345"
