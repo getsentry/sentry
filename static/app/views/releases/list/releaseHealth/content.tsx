@@ -36,7 +36,7 @@ const ADOPTION_STAGE_LABELS = {
     type: 'warning',
   },
   adopted: {
-    name: t('High Adoption'),
+    name: t('Adopted'),
     type: 'success',
   },
   replaced: {
