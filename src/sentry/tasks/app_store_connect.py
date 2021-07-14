@@ -7,7 +7,6 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
-from typing import Optional
 
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, debugfile
@@ -24,14 +23,11 @@ logger = logging.getLogger(__name__)
 # around this.
 # Since all these args must be pickled we keep them to built-in types as well.
 @instrumented_task(name="sentry.tasks.app_store_connect.dsym_download", queue="appstoreconnect")  # type: ignore
-def dsym_download(project_id: int, config_id: Optional[str]) -> None:
+def dsym_download(project_id: int, config_id: str) -> None:
     inner_dsym_download(project_id=project_id, config_id=config_id)
 
 
-def inner_dsym_download(
-    project_id: int,
-    config_id: Optional[str],
-) -> None:
+def inner_dsym_download(project_id: int, config_id: str) -> None:
     """Downloads the dSYMs from App Store Connect and stores them in the Project's debug files."""
     # TODO(flub): we should only run one task ever for a project.  Is
     # sentry.cache.default_cache the right thing to put a "mutex" into?  See how

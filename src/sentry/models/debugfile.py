@@ -23,10 +23,8 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.lang.native.appconnect import AppStoreConnectConfig
 from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
-from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
@@ -302,6 +300,11 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     # downloads the AppStore Connect builds / dSYMs, assuming the bcsymbolmap
     # belongs to a newly uploaded build.
     if meta.file_format == "bcsymbolmap":
+        # these imports are done inline, as they would otherwise lead to
+        # circular imports originating in `sentry.models` and fail
+        from sentry.lang.native.appconnect import AppStoreConnectConfig
+        from sentry.tasks.app_store_connect import dsym_download
+
         sources = AppStoreConnectConfig.all_for_project(project)
         for config in sources:
             dsym_download.apply_async(
