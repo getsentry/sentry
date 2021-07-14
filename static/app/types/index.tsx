@@ -378,6 +378,8 @@ export type TreeLabelPart =
       package?: string;
       type?: string;
       datapath?: (string | number)[];
+      is_sentinel?: boolean;
+      is_prefix?: boolean;
     };
 
 // This type is incomplete
