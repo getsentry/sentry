@@ -5,6 +5,7 @@ import {Location, LocationDescriptorObject, Query} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
 import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -440,7 +441,8 @@ class _TagExplorer extends React.Component<Props> {
   };
 
   render() {
-    const {eventView, organization, location, currentFilter, projects} = this.props;
+    const {eventView, organization, location, currentFilter, projects, transactionName} =
+      this.props;
 
     const tagSort = decodeScalar(location.query?.tagSort);
     const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
@@ -485,7 +487,12 @@ class _TagExplorer extends React.Component<Props> {
           return (
             <React.Fragment>
               <GuideAnchor target="tag_explorer">
-                <TagsHeader organization={organization} pageLinks={pageLinks} />
+                <TagsHeader
+                  transactionName={transactionName}
+                  location={location}
+                  organization={organization}
+                  pageLinks={pageLinks}
+                />
               </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
@@ -513,10 +520,12 @@ class _TagExplorer extends React.Component<Props> {
 
 type HeaderProps = {
   organization: Organization;
+  transactionName: string;
+  location: Location;
   pageLinks: string | null;
 };
 function TagsHeader(props: HeaderProps) {
-  const {pageLinks, organization} = props;
+  const {pageLinks, organization, location, transactionName} = props;
   const handleCursor = (cursor: string, pathname: string, query: Query) => {
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.tag_explorer.change_page',
@@ -530,6 +539,21 @@ function TagsHeader(props: HeaderProps) {
     });
   };
 
+  const handleViewAllTagsClick = () => {
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.change_page',
+      eventName: 'Performance Views: Tag Explorer Change Page',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
+  const viewAllTarget = tagsRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: transactionName,
+    projectID: decodeScalar(location.query.project),
+    query: {...location.query},
+  });
+
   return (
     <Header>
       <SectionHeading>
@@ -538,6 +562,16 @@ function TagsHeader(props: HeaderProps) {
           <FeatureBadge type="beta" noTooltip />
         </div>
       </SectionHeading>
+      <Feature features={['performance-tag-page']} organization={organization}>
+        <Button
+          onClick={handleViewAllTagsClick}
+          to={viewAllTarget}
+          size="small"
+          data-test-id="tags-explorer-open-tags"
+        >
+          {t('View All Tags')}
+        </Button>
+      </Feature>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
     </Header>
   );
