@@ -24,7 +24,7 @@ rule = _ matcher owners
 
 matcher      = _ matcher_tag any_identifier
 matcher_tag  = (matcher_type sep)?
-matcher_type = "url" / "path" / "module" / event_tag
+matcher_type = "url" / "path" / "module" / "codeowners" / event_tag
 
 event_tag   = ~r"tags.[^:]+"
 

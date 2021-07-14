@@ -26,6 +26,9 @@ tags.foo:"bar baz"       tagperson@sentry.io
 
 module:foo.bar  #workflow
 module:"foo bar"  meow@sentry.io
+
+codeowners:/src/components/  githubuser@sentry.io
+codeowners:frontend/*.ts     githubmod@sentry.io
 """
 
 codeowners_fixture_data = """
@@ -49,6 +52,8 @@ def test_parse_rules():
         Rule(Matcher("tags.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]),
         Rule(Matcher("module", "foo.bar"), [Owner("team", "workflow")]),
         Rule(Matcher("module", "foo bar"), [Owner("user", "meow@sentry.io")]),
+        Rule(Matcher("codeowners", "/src/components/"), [Owner("user", "githubuser@sentry.io")]),
+        Rule(Matcher("codeowners", "frontend/*.ts"), [Owner("user", "githubmod@sentry.io")]),
     ]
 
 
@@ -184,6 +189,137 @@ def test_matcher_test_module():
 def test_matcher_test_tags_without_tag_data(data):
     assert not Matcher("tags.foo", "foo_value").test(data)
     assert not Matcher("tags.bar", "barval").test(data)
+
+
+def _assert_matcher(matcher: Matcher, path_details, expected):
+    """Helper function to reduce repeated code"""
+    frames = {"stacktrace": {"frames": [path_details]}}
+    assert matcher.test(frames) == expected
+
+
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ({"filename": "test.py", "abs_path": "/usr/local/src/foo/test.py"}, True),
+        ({"filename": "baz.txt", "abs_path": "/usr/local/src/config/subdir/baz.txt"}, True),
+        ({"filename": "not_in_repo.py", "abs_path": "/root/not_in_repo.py"}, False),
+    ],
+)
+def test_codeowners_match_any_file(path_details, expected):
+    """* should match to any file in the repo"""
+    _assert_matcher(Matcher("codeowners", "*"), path_details, expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ({"filename": "test.py", "abs_path": "/usr/local/src/foo/test.py"}, True),
+        ({"filename": "baz.txt", "abs_path": "/usr/local/src/config/subdir/baz.txt"}, False),
+        ({"filename": "baz.py", "abs_path": "/usr/local/src/config/subdir/baz.py"}, True),
+        ({"filename": "not_in_repo.py", "abs_path": "/root/not_in_repo.py"}, False),
+    ],
+)
+def test_codeowners_match_extension(path_details, expected):
+    """*.py should match to any .py files in the repo"""
+    _assert_matcher(Matcher("codeowners", "*.py"), path_details, expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ({"filename": "test.py", "abs_path": "/usr/local/src/foo/test.py"}, True),
+        ({"filename": "baz.py", "abs_path": "/usr/local/src/config/subdir/baz.py"}, False),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/subdir/test.py"}, True),
+    ],
+)
+def test_codeowners_match_specific_filename(path_details, expected):
+    """test.py should match to any test.py files in the repo"""
+    _assert_matcher(Matcher("codeowners", "test.py"), path_details, expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ({"filename": "test.py", "abs_path": "/usr/local/src/foo/test.py"}, True),
+        ({"filename": "baz.py", "abs_path": "/usr/local/src/config/subdir/baz.py"}, False),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/subdir/test.py"}, False),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/foo/test.py"}, True),
+    ],
+)
+def test_codeowners_match_file_in_directory(path_details, expected):
+    """foo/test.py should match to any test.py files in a directory 'foo'"""
+    _assert_matcher(Matcher("codeowners", "foo/test.py"), path_details, expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ({"filename": "test.py", "abs_path": "/usr/local/src/foo/test.py"}, True),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/foo/test.py"}, False),
+    ],
+)
+def test_codeowners_match_specific_path(path_details, expected):
+    """/src/foo/test.py should match only one file in the repo"""
+    _assert_matcher(Matcher("codeowners", "/src/foo/test.py"), path_details, expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, strict_expected, loose_expected",
+    [
+        ({"filename": "test.py", "abs_path": "/usr/local/src/foo/test.py"}, True, True),
+        ({"filename": "baz.py", "abs_path": "/usr/local/src/foo/subdir/baz.py"}, True, True),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/subdir/test.py"}, False, False),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/src/foo/test.py"}, False, True),
+        (
+            {"filename": "test.py", "abs_path": "/usr/local/src/config/src/foo/subdir/test.py"},
+            False,
+            True,
+        ),
+    ],
+)
+def test_codeowners_match_recursive_directory(path_details, strict_expected, loose_expected):
+    """
+    /src/foo/ should match recursively to any file within the /src/foo directory"
+    src/foo/ should match recursively to any file under any src/foo directories
+    """
+    _assert_matcher(Matcher("codeowners", "/src/foo/"), path_details, strict_expected)
+    _assert_matcher(Matcher("codeowners", "src/foo/"), path_details, loose_expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, strict_expected, loose_expected",
+    [
+        ({"filename": "test.py", "abs_path": "/usr/local/src/foo/test.py"}, True, True),
+        ({"filename": "baz.py", "abs_path": "/usr/local/src/foo/subdir/baz.py"}, False, False),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/subdir/test.py"}, False, False),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/src/foo/test.py"}, False, True),
+        (
+            {"filename": "test.py", "abs_path": "/usr/local/src/config/src/foo/subdir/test.py"},
+            False,
+            False,
+        ),
+    ],
+)
+def test_codeowners_match_nonrecursive_directory(path_details, strict_expected, loose_expected):
+    """
+    /src/foo/* should match to any file directly within the /src/foo directory
+    src/foo/* should match to any file directly withing any src/foo directory
+    """
+    _assert_matcher(Matcher("codeowners", "/src/foo/*"), path_details, strict_expected)
+    _assert_matcher(Matcher("codeowners", "src/foo/*"), path_details, loose_expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ({"filename": "\\", "abs_path": "/usr/local/src/foo/\\"}, True),
+        ({"filename": "\\filename", "abs_path": "/usr/local/src/foo/subdir/\\filename"}, False),
+        ({"filename": "test.py", "abs_path": "/usr/local/src/config/subdir/test.py"}, False),
+    ],
+)
+def test_codeowners_match_backslash(path_details, expected):
+    """\\ should ignore anything after the backslash and only match with files named '\'"""
+    _assert_matcher(Matcher("codeowners", "\\filename"), path_details, expected)
 
 
 def test_parse_code_owners():
