@@ -9,8 +9,8 @@ import EventView from 'app/utils/discover/eventView';
 import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'app/views/performance/transactionSummary/tagExplorer';
 
-function initialize(projects, query) {
-  const features = ['transaction-event', 'performance-view'];
+function initialize(projects, query, additionalFeatures = []) {
+  const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
     features,
     projects,
@@ -157,6 +157,55 @@ describe('TagExplorer', function () {
         }),
       })
     );
+  });
+
+  it('Tag explorer view all tags button links to tags page', async function () {
+    const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
+    const {
+      organization,
+      location,
+      eventView,
+      api,
+      spanOperationBreakdownFilter,
+      transactionName,
+    } = initialize(
+      projects,
+      {
+        project: '123',
+      },
+      ['performance-tag-page']
+    );
+
+    const wrapper = mountWithTheme(
+      <TagExplorer
+        api={api}
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        projects={projects}
+        transactionName={transactionName}
+        currentFilter={spanOperationBreakdownFilter}
+      />
+    );
+
+    await tick();
+    wrapper.update();
+
+    const button = wrapper.find('Button[data-test-id="tags-explorer-open-tags"]');
+    expect(button).toHaveLength(1);
+    expect(button.prop('to')).toEqual({
+      pathname: '/organizations/org-slug/performance/summary/tags/',
+      query: {
+        transaction: 'example-transaction',
+        project: '123',
+        tagKey: undefined,
+        start: undefined,
+        end: undefined,
+        environment: undefined,
+        query: undefined,
+        statsPeriod: undefined,
+      },
+    });
   });
 
   it('Tag explorer uses the operation breakdown as a column', async function () {
