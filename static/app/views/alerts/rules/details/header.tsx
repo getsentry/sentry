@@ -21,7 +21,7 @@ type Props = {
 
 function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
   const isRuleReady = !!rule && !hasIncidentRuleDetailsError;
-  const project = rule && rule.projects && rule.projects[0];
+  const project = rule?.projects?.[0];
   const settingsLink =
     rule &&
     `/organizations/${params.orgId}/alerts/${
@@ -45,7 +45,7 @@ function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
       </BreadCrumbBar>
       <Details>
         <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
-          {rule && !hasIncidentRuleDetailsError ? rule.name : 'Loading'}
+          {rule && !hasIncidentRuleDetailsError ? rule.name : t('Loading')}
         </RuleTitle>
       </Details>
     </Header>
