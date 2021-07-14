@@ -234,6 +234,22 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state().query).toEqual('two ');
     });
 
+    it('should update state.query if props.query is updated to null/undefined from outside', function () {
+      const searchBar = mountWithTheme(
+        <SmartSearchBar
+          organization={organization}
+          location={location}
+          supportedTags={supportedTags}
+          query="one"
+        />,
+        options
+      );
+
+      searchBar.setProps({query: null});
+
+      expect(searchBar.state().query).toEqual('');
+    });
+
     it('should not reset user textarea if a noop props change happens', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar

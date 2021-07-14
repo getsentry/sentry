@@ -45,6 +45,7 @@ export const mobile = [
   'apple-ios',
   'cordova',
   'javascript-cordova',
+  'javascript-capacitor',
   'react-native',
   'flutter',
   'dart-flutter',
