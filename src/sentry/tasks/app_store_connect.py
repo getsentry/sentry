@@ -83,7 +83,7 @@ def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
 
 @instrumented_task(
     name="sentry.tasks.app_store_connect.refresh_all_builds", queue="appstoreconnect"
-)
+)  # type: ignore
 def refresh_all_builds() -> None:
     # We have no way to query for AppStore Connect symbol sources directly, but
     # getting all of the project options that have custom symbol sources

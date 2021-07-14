@@ -165,9 +165,7 @@ class AppStoreConnectConfig:
         return sources
 
     @classmethod
-    def from_project_config(
-        cls, project: Project, config_id: str = None
-    ) -> "AppStoreConnectConfig":
+    def from_project_config(cls, project: Project, config_id: str) -> "AppStoreConnectConfig":
         """Creates a new instance from the symbol source configured in the project.
 
         :raises KeyError: if the config is not found.
