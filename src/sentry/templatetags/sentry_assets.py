@@ -87,6 +87,11 @@ class ScriptNode(template.Node):
         if "src" not in self.attrs:
             content = self.nodelist.render(context).strip()
             content = self._unwrap_content(content)
+        else:
+            if '?' in self.attrs["src"]:
+                self.attrs["src"] = self.attrs["src"] + "&12345"
+            else:
+                self.attrs["src"] = self.attrs["src"] + "?12345"
         return f"<script{attrs}>{content}</script>"
 
     def _render_attrs(self, context):
