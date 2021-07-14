@@ -972,7 +972,7 @@ def histogram_query(
         conditions=conditions,
         query=user_query,
         params=params,
-        orderby=orderby,
+        orderby=(order_by if order_by else []) + [histogram_alias],
         functions_acl=["array_join", "histogram"],
     )
 
