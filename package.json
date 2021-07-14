@@ -48,7 +48,7 @@
     "@types/pegjs": "^0.10.3",
     "@types/react": "~17.0.13",
     "@types/react-date-range": "^1.1.4",
-    "@types/react-document-title": "^2.0.4",
+    "@types/react-document-title": "^2.0.5",
     "@types/react-dom": "~17.0.9",
     "@types/react-mentions": "4.1.1",
     "@types/react-router": "^3.0.22",
