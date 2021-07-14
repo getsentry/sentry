@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.models import ProjectCodeOwners
 
 from .project_codeowners import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
@@ -67,7 +68,16 @@ class ProjectCodeOwnersDetailsEndpoint(
                 codeowners_id=updated_codeowners.id,
             )
             self.track_response_code("update", status.HTTP_200_OK)
-            return Response(serialize(updated_codeowners, request.user), status=status.HTTP_200_OK)
+            return Response(
+                serialize(
+                    updated_codeowners,
+                    request.user,
+                    serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(
+                        expand=["ownershipSyntax", "errors"]
+                    ),
+                ),
+                status=status.HTTP_200_OK,
+            )
 
         self.track_response_code("update", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
