@@ -5,6 +5,7 @@ need to keep track of which builds have already been downloaded.
 """
 
 from django.db import models
+from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model
 
@@ -48,6 +49,12 @@ class AppConnectBuild(Model):
 
     # Whether we already fetched the dSYMs for this build.
     fetched = models.BooleanField(default=False)
+
+    # When the build was uploaded to AppStore.
+    uploaded_to_appstore = models.DateTimeField(default=timezone.now)
+
+    # When sentry first saw the build on AppStore Connect.
+    first_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "sentry_appconnectbuild"

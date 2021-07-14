@@ -92,7 +92,7 @@ class AppStoreConnectConfig:
     # easily to retrieve via an HTTP request to iTunes.
     itunesPersonId: str
 
-    # The iTuness session cookie.
+    # The iTunes session cookie.
     #
     # Loading this cookie into ``requests.Session`` (see
     # ``sentry.utils.appleconnect.itunes_connect.load_session_cookie``) will allow this
