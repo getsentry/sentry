@@ -12,14 +12,15 @@ def atomic_transaction(using, savepoint=True):
     Usage:
 
     >>> atomic_transaction(using=router.db_for_write(File))
-    >>> atomic_transaction(using={router.db_for_write(Release), router.db_for_write(ReleaseFile)})
+    >>> atomic_transaction(using=(router.db_for_write(Release), router.db_for_write(ReleaseFile)))
 
     """
     if isinstance(using, str):
         return transaction.atomic(using=using, savepoint=savepoint)
 
     stack = ExitStack()
-    for db in set(using):
+    # dict.fromkeys -> deduplicate while preserving order
+    for db in dict.fromkeys(using):
         stack.enter_context(transaction.atomic(using=db, savepoint=savepoint))
     return stack
 

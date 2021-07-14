@@ -310,11 +310,11 @@ def merge_export_blobs(data_export_id, **kwargs):
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
             with atomic_transaction(
-                using={
+                using=(
                     router.db_for_write(File),
                     router.db_for_write(FileBlobIndex),
                     router.db_for_write(ExportedData),
-                }
+                )
             ):
                 file = File.objects.create(
                     name=data_export.file_name,
