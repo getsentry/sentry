@@ -286,7 +286,7 @@ def query_top_tags(
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
 
         if not orderby:
-            orderby = "-count"
+            orderby = ["-count"]
 
         if len(orderby) >= 1:
             orderby = orderby[0]
