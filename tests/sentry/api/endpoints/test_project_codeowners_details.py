@@ -83,12 +83,12 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["codeMappingId"] == str(self.code_mapping.id)
-        assert response.data["errors"] == {
+        assert {
             "missing_external_teams": ["@getsentry/frontend", "@getsentry/docs"],
             "missing_external_users": ["@AnotherUser"],
             "missing_user_emails": [],
             "teams_without_access": [],
-        }
+        }.items() <= response.data["errors"].items()
 
     def test_invalid_code_mapping_id_update(self):
         with self.feature({"organizations:integrations-codeowners": True}):
