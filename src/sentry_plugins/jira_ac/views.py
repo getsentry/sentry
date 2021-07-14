@@ -20,6 +20,7 @@ from sentry_plugins.jira_ac.models import JiraTenant
 from sentry_plugins.jira_ac.utils import ApiError, get_jira_auth_from_request
 
 JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira_ac"
+CATCHABLE_AUTH_ERRORS = (ApiError, JiraTenant.DoesNotExist, ExpiredSignatureError)
 
 
 class BaseJiraWidgetView(View):
@@ -58,7 +59,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
             try:
                 # make sure this exists and is valid
                 jira_auth = self.get_jira_auth()
-            except (ApiError, JiraTenant.DoesNotExist, ExpiredSignatureError) as e:
+            except CATCHABLE_AUTH_ERRORS as e:
                 scope.set_tag("result", f"error.{e.__class__.__name__}")
                 return self.get_response("error.html")
 
@@ -97,7 +98,7 @@ class JiraConfigView(BaseJiraWidgetView):
     def get(self, request, *args, **kwargs):
         try:
             jira_auth = self.get_jira_auth()
-        except (ApiError, JiraTenant.DoesNotExist):
+        except CATCHABLE_AUTH_ERRORS:
             return self.get_response("error.html")
 
         if request.user.is_anonymous:
@@ -119,7 +120,7 @@ class JiraConfigView(BaseJiraWidgetView):
     def post(self, request, *args, **kwargs):
         try:
             jira_auth = get_jira_auth_from_request(request)
-        except (ApiError, JiraTenant.DoesNotExist):
+        except CATCHABLE_AUTH_ERRORS:
             self.get_response("error.html")
 
         if request.user.is_anonymous:
