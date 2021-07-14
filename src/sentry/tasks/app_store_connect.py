@@ -46,10 +46,10 @@ def inner_dsym_download(
     for build in client.list_builds():
         build_state = get_or_create_persisted_build(project, config, build)
         if not build_state.fetched:
-            builds.append(build_state)
+            builds.append((build, build_state))
 
     itunes_client = client.itunes_client()
-    for build_state in builds:
+    for (build, build_state) in builds:
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
                 itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
@@ -82,10 +82,12 @@ def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
 def get_or_create_persisted_build(
     project: Project, config: appconnect.AppStoreConnectConfig, build: appconnect.BuildInfo
 ) -> AppConnectBuild:
-    """Fetches the sentry-internal :class:`AppConnectBuild` corresponding
-    to the provided :class:`appconnect.BuildInfo` as returned by the
-    AppStore Connect API. If no build exists yet, a new "pending" build is
-    created."""
+    """
+    Fetches the sentry-internal :class:`AppConnectBuild`.
+
+    The build corresponds to the :class:`appconnect.BuildInfo` as returned by the
+    AppStore Connect API. If no build exists yet, a new "pending" build is created.
+    """
     try:
         build_state = AppConnectBuild.objects.get(
             project=project,
