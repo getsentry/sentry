@@ -876,6 +876,16 @@ class AuthHelper:
             skip_internal=False,
             sample_rate=1.0,
         )
+        logger.warning(
+            "sso.login-pipeline.error",
+            extra={
+                "flow": self.state.flow,
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": self.request.user.id,
+                "error_message": message,
+            },
+        )
 
         messages.add_message(self.request, messages.ERROR, f"Authentication error: {message}")
 
