@@ -17,7 +17,7 @@ def get_unversioned_asset_url(module, key, cache_bust=False):
       =>  "/_static/dist/sentry/sentry.css"
 
       {% unversioned_asset_url 'sentry' 'sentry.css' cache_bust=True %}
-      =>  "/_static/dist/sentry/sentry.css?bust=xxx"
+      =>  "/_static/dist/sentry/sentry.css?v=xxx"
     """
     args = (settings.STATIC_UNVERSIONED_URL.rstrip("/"), module, key.lstrip("/"))
 
