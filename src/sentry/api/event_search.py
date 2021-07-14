@@ -15,6 +15,7 @@ from sentry.search.events.constants import (
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
@@ -992,7 +993,7 @@ class SearchVisitor(NodeVisitor):
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
     percentage_keys={"percentage", "failure_rate"},
-    text_operator_keys={SEMVER_ALIAS},
+    text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     numeric_keys={
         "project_id",
         "project.id",

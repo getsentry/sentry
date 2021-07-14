@@ -13,11 +13,13 @@ from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     SEMVER_EMPTY_RELEASE,
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
 from sentry.search.events.filter import (
+    _semver_build_filter_converter,
     _semver_filter_converter,
     _semver_package_filter_converter,
     get_filter,
@@ -1672,7 +1674,7 @@ class SemverPackageFilterConverterTest(TestCase):
         self, operator, version, expected_operator, expected_releases, organization_id=None
     ):
         organization_id = organization_id if organization_id else self.organization.id
-        key = SEMVER_ALIAS
+        key = SEMVER_PACKAGE_ALIAS
         filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
         converted = _semver_package_filter_converter(
             filter, key, {"organization_id": organization_id}
@@ -1699,6 +1701,41 @@ class SemverPackageFilterConverterTest(TestCase):
         self.run_test("=", "test", "IN", [release.version, release_2.version])
         self.run_test("=", "test2", "IN", [release_3.version])
         self.run_test("=", "test3", "IN", [SEMVER_EMPTY_RELEASE])
+
+
+class SemverBuildFilterConverterTest(TestCase):
+    def run_test(
+        self, operator, version, expected_operator, expected_releases, organization_id=None
+    ):
+        organization_id = organization_id if organization_id else self.organization.id
+        key = SEMVER_BUILD_ALIAS
+        filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
+        converted = _semver_build_filter_converter(
+            filter, key, {"organization_id": organization_id}
+        )
+        assert converted[0] == "release"
+        assert converted[1] == expected_operator
+        assert set(converted[2]) == set(expected_releases)
+
+    def test_invalid_params(self):
+        key = SEMVER_BUILD_ALIAS
+        filter = SearchFilter(SearchKey(key), "=", SearchValue("sentry"))
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            _semver_filter_converter(filter, key, None)
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            _semver_filter_converter(filter, key, {"something": 1})
+
+    def test_empty(self):
+        self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
+
+    def test(self):
+        release = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test@1.2.4+123")
+        release_3 = self.create_release(version="test2@1.2.5+124")
+        self.run_test("=", "123", "IN", [release.version, release_2.version])
+        self.run_test("=", "124", "IN", [release_3.version])
+        self.run_test("=", "125", "IN", [SEMVER_EMPTY_RELEASE])
+        self.run_test("<", "125", "IN", [release.version, release_2.version, release_3.version])
 
 
 class ParseSemverTest(unittest.TestCase):
