@@ -77,7 +77,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         response = self.do_request()
         assert response.status_code == 200, response.content
 
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 2
         assert data[0] == {
             "aggregate": 4000000.0,
@@ -101,7 +101,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         )
         assert response.status_code == 200, response.content
 
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 2
 
         # The first set of generated is the most frequent since the 14 transactions are excluded because of 1000 duration
@@ -124,7 +124,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
             }
         )
 
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 2
         assert data[0]["count"] == 1
         assert data[0]["tags_key"] == "color"
@@ -145,7 +145,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
             }
         )
 
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 1
         assert data[0]["count"] == 5
         assert data[0]["tags_key"] == "color"
@@ -185,7 +185,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         }
         # No feature access
         response = self.do_request(request)
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 1
         assert data[0]["count"] == 5
         assert data[0]["tags_key"] == "color"
@@ -195,7 +195,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         response = self.do_request(
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 5
         assert data[0]["count"] == 19
         assert data[0]["tags_key"] == "application"
@@ -211,7 +211,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         }
         # No feature access
         response = self.do_request(request)
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 2
         assert data[0]["count"] == 5
         assert data[0]["tags_key"] == "color"
@@ -221,7 +221,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         response = self.do_request(
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
-        data = response.data["data"]
+        data = response.data["histogram"]["data"]
         assert len(data) == 3
         assert data[0]["count"] == 14
         assert data[0]["tags_key"] == "color"

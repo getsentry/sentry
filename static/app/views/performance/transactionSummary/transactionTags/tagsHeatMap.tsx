@@ -116,17 +116,30 @@ const TagsHeatMap = (
   const columnNames = new Set();
   const xValues = new Set();
 
-  const rowKey =
-    tableData && tableData.data && tableData.data.length && findRowKey(tableData.data[0]);
+  const histogramData =
+    tableData &&
+    tableData.histogram &&
+    tableData.histogram.data &&
+    tableData.histogram.data.length
+      ? tableData.histogram.data
+      : undefined;
+  const tagData =
+    tableData && tableData.tags && tableData.tags.data ? tableData.tags.data : undefined;
+
+  const rowKey = histogramData && findRowKey(histogramData[0]);
+
+  if (tagData) {
+    tagData.forEach(tag => columnNames.add(tag.tags_value));
+  }
+
   let maxCount = 0;
 
   const _data =
-    rowKey && tableData && tableData.data
-      ? tableData.data.map(row => {
+    rowKey && histogramData
+      ? histogramData.map(row => {
           const rawDuration = row[rowKey] as number;
           const x = getPerformanceDuration(rawDuration);
           const y = row.tags_value;
-          columnNames.add(y);
           xValues.add(x);
 
           maxCount = Math.max(maxCount, row.count);
@@ -238,11 +251,7 @@ const TagsHeatMap = (
     return false;
   };
 
-  const histogramBucketInfo =
-    tableData &&
-    tableData.data &&
-    tableData.data.length &&
-    parseHistogramBucketInfo(tableData.data[0]);
+  const histogramBucketInfo = histogramData && parseHistogramBucketInfo(histogramData[0]);
 
   return (
     <StyledPanel>
@@ -277,8 +286,8 @@ const TagsHeatMap = (
               newTransactionEventView.fields = [{field: aggregateColumn}];
               const [_, tagValue] = bucket.value;
 
-              if (histogramBucketInfo && tableData && tableData.data) {
-                const row = tableData.data[bucket.dataIndex];
+              if (histogramBucketInfo && histogramData) {
+                const row = histogramData[bucket.dataIndex];
                 const currentBucketStart = parseInt(
                   `${row[histogramBucketInfo.histogramField]}`,
                   10
