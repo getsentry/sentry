@@ -53,19 +53,25 @@ export function getLocation(event: Event | BaseGroup | GroupTombstone) {
   return undefined;
 }
 
-export function formatTreeLabelPart(part: TreeLabelPart): string {
+export function getTreeLabelPartDetails(part: TreeLabelPart) {
   if (typeof part === 'string') {
-    return part;
-  } else {
-    return part?.function || part?.package || part?.type || '<unknown>';
+    return {
+      label: part,
+      highlight: false,
+    };
   }
+
+  return {
+    label: part?.function || part?.package || part?.type || '<unknown>',
+    highlight: !!part.is_sentinel,
+  };
 }
 
 function computeTitleWithTreeLabel(metadata: EventMetadata) {
   const {type, current_tree_label, finest_tree_label} = metadata;
   const treeLabel = current_tree_label || finest_tree_label;
   const formattedTreeLabel = treeLabel
-    ? treeLabel.map(formatTreeLabelPart).join(' | ')
+    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart).label).join(' | ')
     : undefined;
 
   if (!type) {
