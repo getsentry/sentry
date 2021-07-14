@@ -30,6 +30,9 @@ _anon_namespace_re = re.compile(
     \?A0x[a-f0-9]{8}::
     """
 )
+_swift_attribute_re = re.compile(r"@\w+(\([^\)]+\))? ")
+_swift_lambda_re = re.compile(r"\([^\)]*\) -> \([^\)]*\)")
+_swift_prefix_re = re.compile(r"(?:partial apply)|(?:thunk) for ")
 
 
 PAIRS = {"(": ")", "{": "}", "[": "]", "<": ">"}
@@ -91,6 +94,20 @@ def split_func_tokens(s):
     return ["".join(x) for x in rv]
 
 
+def simplify_cocoa_function_name(function):
+    """Remove clutter from cocoa function name."""
+    # 1) Remove attributes, e.g. @objc, @callee_guaranteed, ...
+    function = _swift_attribute_re.sub("", function)
+
+    # 2) Replace anonymous functions, e.g. () -> ()
+    function = _swift_lambda_re.sub("anonymous·function", function)
+
+    # 3) Keep "thunk for..." prefix by substituting spaces
+    function = _swift_prefix_re.sub("thunk/partial·apply·for·", function)
+
+    return function
+
+
 def trim_function_name(function, platform, normalize_lambdas=True):
     """Given a function value from the frame's function attribute this returns
     a trimmed version that can be stored in `function_name`.  This is only used
@@ -98,6 +115,8 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     """
     if platform == "csharp":
         return trim_csharp_function_name(function)
+    if platform in ("cocoa", "swift"):
+        function = simplify_cocoa_function_name(function)
     if get_behavior_family_for_platform(platform) == "native":
         return trim_native_function_name(function, normalize_lambdas=normalize_lambdas)
     return function
@@ -219,6 +238,7 @@ def trim_native_function_name(function, normalize_lambdas=True):
             .replace("◯", "()")
             .replace(" ⟿ ", " -> ")
             .replace("〔anonymousnamespace〕", "`anonymous namespace'")
+            .replace("·", " ")
         )
 
     # This really should never happen
