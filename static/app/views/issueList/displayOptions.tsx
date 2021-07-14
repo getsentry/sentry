@@ -73,7 +73,11 @@ const IssueListDisplayOptions = ({
               )
             : null
         }
-        label={getDisplayLabel(display)}
+        label={
+          !hasSessions || hasMultipleProjectsSelected
+            ? getDisplayLabel(IssueDisplayOptions.EVENTS)
+            : getDisplayLabel(display)
+        }
       >
         <React.Fragment>
           {getMenuItem(IssueDisplayOptions.EVENTS)}

@@ -242,6 +242,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             {({onChange, onBlur, onKeyDown, initialData, model}) => (
               <SearchContainer>
                 <StyledSearchBar
+                  searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
                   omitTags={['event.type']}
                   disabled={disabled}

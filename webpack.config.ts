@@ -1,20 +1,31 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-const fs = require('fs');
-const path = require('path');
 
-const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
-const webpack = require('webpack');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CompressionPlugin = require('compression-webpack-plugin');
-const FixStyleOnlyEntriesPlugin = require('webpack-remove-empty-scripts');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+import fs from 'fs';
+import path from 'path';
 
-const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
-const SentryInstrumentation = require('./build-utils/sentry-instrumentation');
-const LastBuiltPlugin = require('./build-utils/last-built-plugin');
-const babelConfig = require('./babel.config');
+import {CleanWebpackPlugin} from 'clean-webpack-plugin';
+import CompressionPlugin from 'compression-webpack-plugin';
+import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import webpack from 'webpack';
+import {Configuration as DevServerConfig} from 'webpack-dev-server';
+import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
+
+import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
+import LastBuiltPlugin from './build-utils/last-built-plugin';
+import SentryInstrumentation from './build-utils/sentry-instrumentation';
+import babelConfig from './babel.config';
+
+/**
+ * Merges the devServer config into the webpack config
+ *
+ * See: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/43232
+ */
+interface Configuration extends webpack.Configuration {
+  devServer?: DevServerConfig;
+}
 
 const {env} = process;
 
@@ -22,12 +33,14 @@ const {env} = process;
  * Environment configuration
  */
 const IS_PRODUCTION = env.NODE_ENV === 'production';
-const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
+const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
+
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
 // this should not happen in local
 const IS_CI = !!env.CI;
+
 // We intentionally build in production mode for acceptance tests, so we explicitly use an env var to
 // say that the bundle will be used in acceptance tests. This affects webpack plugins and components
 // with dynamic data that render differently statically in tests.
@@ -38,7 +51,7 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
+const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 
 /**
  * Environment variables that are used by other tooling and should
@@ -48,9 +61,11 @@ const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
+
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
-const HAS_WEBPACK_DEV_SERVER_CONFIG = SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
+const HAS_WEBPACK_DEV_SERVER_CONFIG =
+  !!SENTRY_BACKEND_PORT && !!SENTRY_WEBPACK_PROXY_PORT;
 
 /**
  * User/tooling configurable environment variables
@@ -72,7 +87,7 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 // deploy previews are served standalone. Otherwise fallback to the environment
 // configuration.
 const SENTRY_EXPERIMENTAL_SPA =
-  !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? env.SENTRY_EXPERIMENTAL_SPA : true;
+  !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? !!env.SENTRY_EXPERIMENTAL_SPA : true;
 
 // We should only read from the SENTRY_SPA_DSN env variable if SENTRY_EXPERIMENTAL_SPA
 // is true. This is to make sure we can validate that the experimental SPA mode is
@@ -89,7 +104,7 @@ const staticPrefix = path.join(__dirname, 'static');
  * Locale file extraction build step
  */
 if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelConfig.plugins.push([
+  babelConfig.plugins?.push([
     'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
@@ -129,7 +144,13 @@ const localeCatalogPath = path.join(
   'catalogs.json'
 );
 
-const localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
+type LocaleCatalog = {
+  supported_locales: string[];
+};
+
+const localeCatalog: LocaleCatalog = JSON.parse(
+  fs.readFileSync(localeCatalogPath, 'utf8')
+);
 
 // Translates a locale name to a language code.
 //
@@ -137,12 +158,22 @@ const localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 // * moment.js locales are stored as language code files
 //
 // [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
-const localeToLanguage = locale => locale.toLowerCase().replace('_', '-');
+const localeToLanguage = (locale: string) => locale.toLowerCase().replace('_', '-');
 const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
+type CacheGroups = Exclude<
+  NonNullable<Configuration['optimization']>['splitChunks'],
+  false | undefined
+>['cacheGroups'];
+
+type CacheGroupTest = (
+  module: webpack.Module,
+  context: Parameters<webpack.optimize.SplitChunksPlugin['options']['getCacheGroups']>[1]
+) => boolean;
+
 // A mapping of chunk groups used for locale code splitting
-const localeChunkGroups = {};
+const localeChunkGroups: CacheGroups = {};
 
 supportedLocales
   // No need to split the english locale out as it will be completely empty and
@@ -162,9 +193,9 @@ supportedLocales
     // multiple expressions.
     //
     // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
-    const groupTest = (module, {chunkGraph}) =>
+    const groupTest: CacheGroupTest = (module, {chunkGraph}) =>
       localeGroupTests.some(pattern =>
-        module.nameForCondition && pattern.test(module.nameForCondition())
+        pattern.test(module?.nameForCondition?.() ?? '')
           ? true
           : chunkGraph.getModuleChunks(module).some(c => c.name && pattern.test(c.name))
       );
@@ -191,7 +222,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-let appConfig = {
+let appConfig: Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -320,6 +351,10 @@ let appConfig = {
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
 
+    /**
+     * Adds build time measurement instrumentation, which will be reported back
+     * to sentry
+     */
     new SentryInstrumentation(),
 
     ...(SHOULD_FORK_TS
@@ -399,7 +434,6 @@ let appConfig = {
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',
-    runtimeChunk: {name: 'runtime'},
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
@@ -420,18 +454,18 @@ let appConfig = {
 };
 
 if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
-  appConfig.resolve.alias['integration-docs-platforms'] = path.join(
+  appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
     'tests/fixtures/integration-docs/_platforms.json'
   );
 } else {
   const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  appConfig.plugins.push(plugin);
-  appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
+  appConfig.plugins?.push(plugin);
+  appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
 }
 
 if (IS_ACCEPTANCE_TEST) {
-  appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
+  appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
 }
 
 // Dev only! Hot module reloading
@@ -445,7 +479,7 @@ if (
     // We include the library here as to not break docker/google cloud builds
     // since we do not install devDeps there.
     const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-    appConfig.plugins.push(new ReactRefreshWebpackPlugin());
+    appConfig.plugins?.push(new ReactRefreshWebpackPlugin());
   }
 
   appConfig.devServer = {
@@ -460,7 +494,7 @@ if (
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,
-    port: SENTRY_WEBPACK_PROXY_PORT,
+    port: Number(SENTRY_WEBPACK_PROXY_PORT),
     stats: 'errors-only',
     overlay: false,
     watchOptions: {
@@ -529,7 +563,7 @@ if (IS_UI_DEV_ONLY) {
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
-  appConfig.output.publicPath = '/_assets/';
+  appConfig.output!.publicPath = '/_assets/';
 
   /**
    * Generate a index.html file used for running the app in pure client mode.
@@ -537,7 +571,7 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
    * is deployed.
    */
   const HtmlWebpackPlugin = require('html-webpack-plugin');
-  appConfig.plugins.push(
+  appConfig.plugins?.push(
     new HtmlWebpackPlugin({
       // Local dev vs vercel slightly differs...
       ...(IS_UI_DEV_ONLY
@@ -556,19 +590,20 @@ const minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
+  //
+  // TODO(ts): The current @types/compression-webpack-plugin is still targeting
+  //           webpack@4, for now we just as any it.
   new CompressionPlugin({
     algorithm: 'gzip',
     test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }),
+  }) as any,
   // NOTE: In production mode webpack will automatically minify javascript
   // using the TerserWebpackPlugin.
 ];
 
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
-  minificationPlugins.forEach(function (plugin) {
-    appConfig.plugins.push(plugin);
-  });
+  minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
 }
 
 // Cache webpack builds
@@ -590,4 +625,4 @@ if (env.MEASURE) {
   appConfig = smp.wrap(appConfig);
 }
 
-module.exports = appConfig;
+export default appConfig;
