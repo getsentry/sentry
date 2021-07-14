@@ -227,6 +227,17 @@
     "validate-api-examples": "yarn install-api-docs && cd api-docs && yarn openapi-examples-validator ./openapi.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost"
   },
+  "browserslist": {
+    "production": [
+      "defaults"
+    ],
+    "development": [
+      "defaults"
+    ],
+    "test": [
+      "current node"
+    ]
+  },
   "volta": {
     "node": "12.19.0",
     "yarn": "1.22.5"
