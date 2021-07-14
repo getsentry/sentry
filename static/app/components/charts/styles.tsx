@@ -20,7 +20,6 @@ export const SectionHeading = styled('h4')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
-  line-height: 1.3;
 `;
 
 export const SectionValue = styled('span')`

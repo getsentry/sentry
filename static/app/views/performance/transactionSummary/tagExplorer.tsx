@@ -6,6 +6,7 @@ import {Location, LocationDescriptorObject, Query} from 'history';
 import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
 import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -556,12 +557,10 @@ function TagsHeader(props: HeaderProps) {
 
   return (
     <Header>
-      <SectionHeading>
-        <div>
-          {t('Suspect Tags')}
-          <FeatureBadge type="beta" noTooltip />
-        </div>
-      </SectionHeading>
+      <div>
+        <SectionHeading>{t('Suspect Tags')}</SectionHeading>
+        <FeatureBadge type="beta" />
+      </div>
       <Feature features={['performance-tag-page']} organization={organization}>
         <Button
           onClick={handleViewAllTagsClick}
@@ -577,17 +576,6 @@ function TagsHeader(props: HeaderProps) {
   );
 }
 
-export const SectionHeading = styled('h4')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
-  line-height: 1.3;
-`;
-
 const AlignRight = styled('div')`
   text-align: right;
 `;
@@ -597,6 +585,7 @@ const Header = styled('div')`
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
 `;
+
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
