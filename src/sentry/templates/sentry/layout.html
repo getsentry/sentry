@@ -54,7 +54,7 @@
 
   {% block scripts %}
   {% block scripts_main_entrypoint %}
-    {% unversioned_asset_url "sentry" "entrypoints/app.js" as asset_url %}
+    {% unversioned_asset_url "sentry" "entrypoints/app2.js" as asset_url %}
     {% script src=asset_url data-entry="true" %}{% endscript %}
   {% endblock %}
 

@@ -230,7 +230,7 @@ let appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['app/utils/statics-setup', 'app'],
+    app2: ['app/utils/statics-setup', 'app'],
 
     /**
      * Pipeline View for integrations
