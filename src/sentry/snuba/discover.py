@@ -963,10 +963,6 @@ def histogram_query(
     columns = [] if key_column is None else [key_column]
     limit = len(fields) * num_buckets
 
-    orderby = [histogram_alias]
-    if order_by:
-        orderby.insert(0, order_by)
-
     histogram_query = prepare_discover_query(
         selected_columns=columns + [histogram_column, "count()"],
         conditions=conditions,
