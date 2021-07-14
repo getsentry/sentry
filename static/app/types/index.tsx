@@ -2115,6 +2115,9 @@ export enum ReleaseComparisonChartType {
   CRASH_FREE_SESSIONS = 'crashFreeSessions',
   SESSION_COUNT = 'sessionCount',
   USER_COUNT = 'userCount',
+  ERROR_COUNT = 'errorCount',
+  TRANSACTION_COUNT = 'transactionCount',
+  FAILURE_RATE = 'failureRate',
 }
 
 export enum HealthStatsPeriodOption {

@@ -324,6 +324,10 @@ export type EventsChartProps = {
   chartHeader?: React.ReactNode;
   releaseQueryExtra?: Query;
   preserveReleaseQueryParams?: boolean;
+  /**
+   * Chart zoom will change 'pageStart' instead of 'start'
+   */
+  usePageZoom?: boolean;
 } & Pick<
   ChartProps,
   | 'currentSeriesName'
@@ -381,6 +385,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       releaseQueryExtra,
       disableableSeries,
       chartComponent,
+      usePageZoom,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -471,6 +476,7 @@ class EventsChart extends React.Component<EventsChartProps> {
         start={start}
         end={end}
         utc={utc}
+        usePageDate={usePageZoom}
         {...props}
       >
         {zoomRenderProps => (
