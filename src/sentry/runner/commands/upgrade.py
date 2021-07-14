@@ -24,7 +24,9 @@ def _check_history():
 
     # If we haven't run all the migration up to the latest squash abort.
     # As we squash more history this should be updated.
-    cursor.execute("SELECT 1 FROM django_migrations WHERE name = '0200_release_indices'")
+    cursor.execute(
+        "SELECT 1 FROM django_migrations WHERE name in ('0200_release_indices', '0001_squashed_0200_release_indices')"
+    )
     row = cursor.fetchone()
     if not row or not row[0]:
         raise click.ClickException(
