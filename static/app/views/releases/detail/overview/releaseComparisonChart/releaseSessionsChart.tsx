@@ -35,7 +35,7 @@ type Props = {
   utc?: boolean;
 } & WithRouterProps;
 
-class SessionsChart extends React.Component<Props> {
+class ReleaseSessionsChart extends React.Component<Props> {
   formatTooltipValue = (value: string | number | null, label?: string) => {
     if (label && Object.values(releaseMarkLinesLabels).includes(label)) {
       return '';
@@ -166,4 +166,4 @@ class SessionsChart extends React.Component<Props> {
   }
 }
 
-export default withTheme(withRouter(SessionsChart));
+export default withTheme(withRouter(ReleaseSessionsChart));
