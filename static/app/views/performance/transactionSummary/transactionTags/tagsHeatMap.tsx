@@ -113,7 +113,6 @@ const TagsHeatMap = (
   // TODO(k-fish): Replace with actual theme colors.
   const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
 
-  const columnNames = new Set();
   const xValues = new Set();
 
   const histogramData =
@@ -128,9 +127,8 @@ const TagsHeatMap = (
 
   const rowKey = histogramData && findRowKey(histogramData[0]);
 
-  if (tagData) {
-    tagData.forEach(tag => columnNames.add(tag.tags_value));
-  }
+  // Reverse since e-charts takes the axis labels in the opposite order.
+  const columnNames = tagData ? tagData.map(tag => tag.tags_value).reverse() : [];
 
   let maxCount = 0;
 
