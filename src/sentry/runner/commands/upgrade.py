@@ -12,7 +12,8 @@ def _check_history():
     try:
         # If this query fails because there are no tables we're good to go.
         cursor.execute("SELECT COUNT(*) FROM django_migrations")
-        if cursor.fetchone()[0] == 0:
+        row = cursor.fetchone()
+        if not row or row[0] == 0:
             return
     except ProgrammingError as e:
         # Having no migrations table is ok, as we're likely operating on a new install.
@@ -23,8 +24,11 @@ def _check_history():
 
     # If we haven't run all the migration up to the latest squash abort.
     # As we squash more history this should be updated.
-    cursor.execute("SELECT 1 FROM django_migrations WHERE name = '0200_release_indices'")
-    if not cursor.fetchone()[0]:
+    cursor.execute(
+        "SELECT 1 FROM django_migrations WHERE name in ('0200_release_indices', '0001_squashed_0200_release_indices')"
+    )
+    row = cursor.fetchone()
+    if not row or not row[0]:
         raise click.ClickException(
             "It looks like you've skipped a hard stop in our upgrade process. "
             "Please follow the upgrade process here: https://develop.sentry.dev/self-hosted/#hard-stops"

@@ -23,6 +23,7 @@
     "@emotion/styled": "^11.3.0",
     "@sentry-internal/global-search": "^0.0.43",
     "@sentry/integrations": "6.8.0",
+    "@sentry/node": "6.8.0",
     "@sentry/react": "6.8.0",
     "@sentry/release-parser": "^1.1.4",
     "@sentry/rrweb": "^0.3.1",
@@ -31,7 +32,9 @@
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
     "@types/color": "^3.0.2",
+    "@types/compression-webpack-plugin": "^6.0.5",
     "@types/create-react-class": "^15.6.2",
+    "@types/css-minimizer-webpack-plugin": "^3.0.1",
     "@types/diff": "5.0.1",
     "@types/dompurify": "^2.2.3",
     "@types/echarts": "^4.9.3",
@@ -40,6 +43,7 @@
     "@types/js-cookie": "^2.2.7",
     "@types/lodash": "^4.14.170",
     "@types/marked": "^0.7.2",
+    "@types/mini-css-extract-plugin": "^1.4.3",
     "@types/papaparse": "^5.2.5",
     "@types/pegjs": "^0.10.3",
     "@types/react": "~17.0.13",
@@ -53,6 +57,7 @@
     "@types/react-virtualized": "^9.21.12",
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.1",
+    "@types/webpack-dev-server": "^3.11.4",
     "ansicolor": "^1.1.95",
     "babel-loader": "^8.1.0",
     "babel-plugin-add-react-displayname": "^0.0.5",
@@ -137,7 +142,6 @@
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.14.5",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.4.2",
-    "@sentry/node": "6.8.0",
     "@size-limit/preset-small-lib": "^4.10.2",
     "@storybook/addon-a11y": "6.3.4",
     "@storybook/addon-actions": "6.3.4",
@@ -169,6 +173,7 @@
     "mockdate": "3.0.5",
     "prettier": "2.3.2",
     "react-refresh": "^0.8.3",
+    "react-select-event": "5.3.0",
     "react-test-renderer": "17.0.2",
     "size-limit": "^4.5.6",
     "speed-measure-webpack-plugin": "^1.5.0",
@@ -215,13 +220,24 @@
     "install-api-docs": "cd api-docs && yarn install",
     "build-derefed-docs": "yarn install-api-docs && node api-docs/index.js api-docs/openapi.json",
     "watch-api-docs": "sane 'yarn build-derefed-docs' api-docs",
-    "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.js",
-    "build-chartcuterie-config": "NODE_ENV=production yarn webpack --config=config/webpack.chartcuterie.config.js",
+    "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.ts",
+    "build-chartcuterie-config": "NODE_ENV=production yarn webpack --config=config/webpack.chartcuterie.config.ts",
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "NODE_ENV=production yarn webpack --mode production",
     "build": "yarn build-production --output-path=public",
     "validate-api-examples": "yarn install-api-docs && cd api-docs && yarn openapi-examples-validator ./openapi.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost"
+  },
+  "browserslist": {
+    "production": [
+      "defaults"
+    ],
+    "development": [
+      "defaults"
+    ],
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "node": "12.19.0",

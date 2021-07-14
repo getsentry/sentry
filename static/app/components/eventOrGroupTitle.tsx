@@ -14,10 +14,10 @@ import StacktracePreview from './stacktracePreview';
 type Props = Partial<DefaultProps> & {
   data: Event | BaseGroup | GroupTombstone;
   organization: Organization;
-  style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
   guideAnchorName?: string;
+  className?: string;
 };
 
 type DefaultProps = {
@@ -30,7 +30,7 @@ function EventOrGroupTitle({
   data,
   withStackTracePreview,
   hasGuideAnchor,
-  style,
+  className,
 }: Props) {
   const event = data as Event;
   const {id, eventID, groupID, projectID} = event;
@@ -38,7 +38,7 @@ function EventOrGroupTitle({
   const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
 
   return (
-    <span style={style}>
+    <span className={className}>
       <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
         <StacktracePreview
           organization={organization}

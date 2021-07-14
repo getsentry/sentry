@@ -39,6 +39,7 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
+import withExperiment from 'app/utils/withExperiment';
 import withOrganization from 'app/utils/withOrganization';
 
 import {ActionButton} from './actions';
@@ -233,6 +234,10 @@ type Props = WithRouterProps & {
    * trigger re-renders.
    */
   members?: User[];
+  /**
+   * Tracks whether the experiment for improved search is active or not
+   */
+  experimentAssignment: 0 | 1;
 };
 
 type State = {
@@ -318,9 +323,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     const {query} = this.props;
     const {query: lastQuery} = prevProps;
 
-    if (query !== lastQuery && defined(query)) {
+    if (query !== lastQuery && (defined(query) || defined(lastQuery))) {
       // eslint-disable-next-line react/no-did-update-set-state
-      this.setState(makeQueryState(addSpace(query)));
+      this.setState(makeQueryState(addSpace(query ?? undefined)));
     }
   }
 
@@ -333,7 +338,10 @@ class SmartSearchBar extends React.Component<Props, State> {
   }
 
   get hasImprovedSearch() {
-    return this.props.organization.features.includes('improved-search');
+    return (
+      this.props.organization.features.includes('improved-search') ||
+      !!this.props.experimentAssignment
+    );
   }
 
   get initialQuery() {
@@ -1469,7 +1477,14 @@ class SmartSearchBarContainer extends React.Component<Props, ContainerState> {
   }
 }
 
-export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
+const SmartSearchBarContainerWithExperiment = withExperiment(SmartSearchBarContainer, {
+  experiment: 'ImprovedSearchExperiment',
+});
+
+export default withApi(
+  withRouter(withOrganization(SmartSearchBarContainerWithExperiment))
+);
+
 export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
