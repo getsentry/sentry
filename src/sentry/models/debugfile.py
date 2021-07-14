@@ -296,24 +296,6 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     resolve_processing_issue(project=project, scope="native", object="dsym:%s" % meta.debug_id)
 
-    # When uploading a new bcsymbolmap, we trigger a new task to enumerate and
-    # downloads the AppStore Connect builds / dSYMs, assuming the bcsymbolmap
-    # belongs to a newly uploaded build.
-    if meta.file_format == "bcsymbolmap":
-        # these imports are done inline, as they would otherwise lead to
-        # circular imports originating in `sentry.models` and fail
-        from sentry.lang.native.appconnect import AppStoreConnectConfig
-        from sentry.tasks.app_store_connect import dsym_download
-
-        sources = AppStoreConnectConfig.all_for_project(project)
-        for config in sources:
-            dsym_download.apply_async(
-                kwargs={
-                    "project_id": project.id,
-                    "config_id": config.id,
-                }
-            )
-
     return dif, True
 
 
