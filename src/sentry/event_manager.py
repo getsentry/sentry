@@ -2,7 +2,6 @@ import copy
 import ipaddress
 import logging
 import random
-import re
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -30,6 +29,7 @@ from sentry.grouping.api import (
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
+    detect_synthetic_exception,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
@@ -86,26 +86,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
-
-
-# Synthetic exceptions should be marked by the SDK, but
-# are also detected here as a fallback
-_synthetic_exception_type_re = re.compile(
-    r"""
-    ^
-    (
-        EXC_ |
-        EXCEPTION_ |
-        SIG |
-        KERN_ |
-        ILL_
-
-    # e.g. "EXC_BAD_ACCESS / 0x00000032"
-    ) [A-Z0-9_ /x]+
-    $
-    """,
-    re.X,
-)
 
 
 def pop_tag(data, key):
@@ -369,8 +349,6 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        detect_synthetic_exception(job["event"])
-
         do_background_grouping_before = options.get("store.background-grouping-before")
         if do_background_grouping_before:
             _run_background_grouping(project, job)
@@ -631,17 +609,6 @@ def _pull_out_data(jobs, projects):
         job["received_timestamp"] = job["event"].data.get("received") or float(
             job["event"].datetime.strftime("%s")
         )
-
-
-def detect_synthetic_exception(event):
-    """synthetic flag should be set by SDK, but can be autodetected as a fallback"""
-    for exception in get_path(event.data, "exception", "values", filter=True, default=[]):
-        mechanism = get_path(exception, "mechanism")
-        # Only detect if undecided:
-        if mechanism is not None and mechanism.get("synthetic") is None:
-            exception_type = exception.get("type")
-            if exception_type and _synthetic_exception_type_re.match(exception_type):
-                mechanism["synthetic"] = True
 
 
 @metrics.wraps("save_event.get_or_create_release_many")
@@ -1666,10 +1633,12 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
             event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+
+    # Detect & set synthetic marker if necessary
+    detect_synthetic_exception(event.data, grouping_config)
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the

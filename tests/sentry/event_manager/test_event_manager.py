@@ -1636,6 +1636,10 @@ class EventManagerTest(TestCase):
             project=self.project,
         )
         manager.normalize()
+
+        manager.get_data()["grouping_config"] = {
+            "id": "mobile:2021-02-12",
+        }
         event = manager.save(1)
 
         mechanism = event.interfaces["exception"].values[0].mechanism
