@@ -1,16 +1,37 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
+
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
+
+import webpack from 'webpack';
 
 const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
 const DOCS_INDEX_PATH = 'src/sentry/integration-docs/_platforms.json';
 
-const alphaSortFromKey = keyExtractor => (a, b) =>
-  keyExtractor(a).localeCompare(keyExtractor(b));
+const alphaSortFromKey =
+  <T>(keyExtractor: (key: T) => string) =>
+  (a: T, b: T) =>
+    keyExtractor(a).localeCompare(keyExtractor(b));
 
-const transformPlatformsToList = ({platforms}) =>
+type Platform = {
+  key: string;
+  type: 'language' | 'framework';
+  details: string;
+  doc_link: string;
+  name: string;
+  aliases: string[];
+  categories: string[];
+};
+
+type PlatformItem = {_self: Platform} & Record<string, Platform>;
+
+type PlatformsData = {
+  platforms: Record<string, PlatformItem>;
+};
+
+const transformPlatformsToList = ({platforms}: PlatformsData) =>
   Object.keys(platforms)
     .map(platformId => {
       const integrationMap = platforms[platformId];
@@ -31,29 +52,10 @@ const transformPlatformsToList = ({platforms}) =>
     })
     .sort(alphaSortFromKey(item => item.name));
 
-function fetch(_compilation, callback) {
-  https
-    .get(PLATFORMS_URL, res => {
-      res.setEncoding('utf8');
-      let buffer = '';
-      res
-        .on('data', data => {
-          buffer += data;
-        })
-        .on('end', () =>
-          fs.writeFile(
-            this.modulePath,
-            JSON.stringify({
-              platforms: transformPlatformsToList(JSON.parse(buffer)),
-            }),
-            callback
-          )
-        );
-    })
-    .on('error', callback);
-}
-
 class IntegrationDocsFetchPlugin {
+  modulePath: string;
+  hasRun: boolean;
+
   constructor({basePath}) {
     this.modulePath = path.join(basePath, DOCS_INDEX_PATH);
     this.hasRun = false;
@@ -63,8 +65,32 @@ class IntegrationDocsFetchPlugin {
     }
   }
 
-  apply(compiler) {
-    compiler.hooks.beforeRun.tapAsync('IntegrationDocsFetchPlugin', fetch.bind(this));
+  fetch: Parameters<webpack.Compiler['hooks']['beforeRun']['tapAsync']>[1] = (
+    _compilation,
+    callback
+  ) =>
+    https
+      .get(PLATFORMS_URL, res => {
+        res.setEncoding('utf8');
+        let buffer = '';
+        res
+          .on('data', data => {
+            buffer += data;
+          })
+          .on('end', () =>
+            fs.writeFile(
+              this.modulePath,
+              JSON.stringify({
+                platforms: transformPlatformsToList(JSON.parse(buffer)),
+              }),
+              callback
+            )
+          );
+      })
+      .on('error', callback);
+
+  apply(compiler: webpack.Compiler) {
+    compiler.hooks.beforeRun.tapAsync('IntegrationDocsFetchPlugin', this.fetch);
 
     compiler.hooks.watchRun.tapAsync(
       'IntegrationDocsFetchPlugin',
@@ -75,11 +101,11 @@ class IntegrationDocsFetchPlugin {
           return;
         }
 
-        fetch.call(this, compilation, callback);
+        this.fetch(compilation, callback);
         this.hasRun = true;
       }
     );
   }
 }
 
-module.exports = IntegrationDocsFetchPlugin;
+export default IntegrationDocsFetchPlugin;

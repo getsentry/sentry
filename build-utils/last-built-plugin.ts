@@ -1,15 +1,25 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-const path = require('path');
-const fs = require('fs');
+
+import fs from 'fs';
+import path from 'path';
+
+import webpack from 'webpack';
+
+type Options = {
+  basePath: string;
+};
 
 class LastBuiltPlugin {
-  constructor({basePath}) {
+  basePath: string;
+  isWatchMode: boolean;
+
+  constructor({basePath}: Options) {
     this.basePath = basePath;
     this.isWatchMode = false;
   }
 
-  apply(compiler) {
+  apply(compiler: webpack.Compiler) {
     compiler.hooks.watchRun.tapAsync('LastBuiltPlugin', (_, callback) => {
       this.isWatchMode = true;
       callback();
@@ -35,4 +45,5 @@ class LastBuiltPlugin {
     });
   }
 }
-module.exports = LastBuiltPlugin;
+
+export default LastBuiltPlugin;
