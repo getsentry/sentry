@@ -225,9 +225,9 @@ class OrganizationAuthSettingsView(OrganizationView):
                 return HttpResponse("Provider is not enabled", status=401)
 
             if request.POST.get("init"):
-                helper.init_pipeline()
+                helper.initialize()
 
-            if not helper.pipeline_is_valid():
+            if not helper.is_valid():
                 return helper.error("Something unexpected happened during authentication.")
 
             # render first time setup view

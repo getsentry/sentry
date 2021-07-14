@@ -1,10 +1,12 @@
 import logging
 from dataclasses import dataclass
 from types import LambdaType
-from typing import Optional
+from typing import Any, Dict, Optional, Sequence
+
+from django.views import View
 
 from sentry import analytics
-from sentry.models import Organization
+from sentry.models import Model, Organization
 from sentry.utils import json
 from sentry.utils.hashlib import md5_text
 from sentry.utils.session_store import RedisSessionStore, redis_property
@@ -21,6 +23,9 @@ class PipelineProvider:
     views that the Pipeline will traverse through.
     """
 
+    def __init__(self):
+        self.config = {}
+
     def get_pipeline_views(self):
         """
         Returns a list of instantiated views which implement the PipelineView
@@ -29,13 +34,13 @@ class PipelineProvider:
         """
         raise NotImplementedError
 
-    def set_config(self, config):
+    def update_config(self, config):
         """
-        Use set_config to allow additional provider configuration be assigned to
+        Use update_config to allow additional provider configuration be assigned to
         the provider instance. This is useful for example when nesting
         pipelines and the provider needs to be configured differently.
         """
-        self.config = config
+        self.config.update(config)
 
     def set_pipeline(self, pipeline):
         """
@@ -120,6 +125,16 @@ class PipelineSessionStore(RedisSessionStore):
 
 
 @dataclass
+class PipelineRequestState:
+    """Initial pipeline attributes from a request."""
+
+    state: PipelineSessionStore
+    provider_model: Model
+    organization: Organization
+    provider_key: str
+
+
+@dataclass
 class PipelineAnalyticsEntry:
     """Attributes to describe a pipeline in analytics records."""
 
@@ -150,16 +165,32 @@ class Pipeline:
     A object that specifies additional pipeline and provider runtime
     configurations. An example of usage is for OAuth Identity providers, for
     overriding the scopes. The config object will be passed into the provider
-    using the ``set_config`` method.
+    using the ``update_config`` method.
     """
 
     pipeline_name = None
     provider_manager = None
     provider_model_cls = None
+    session_store_cls = PipelineSessionStore
 
     @classmethod
     def get_for_request(cls, request):
-        state = PipelineSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
+        req_state = cls.unpack_state(request)
+        if not req_state:
+            return None
+
+        config = req_state.state.config
+        return cls(
+            request,
+            organization=req_state.organization,
+            provider_key=req_state.provider_key,
+            provider_model=req_state.provider_model,
+            config=config,
+        )
+
+    @classmethod
+    def unpack_state(cls, request) -> Optional[PipelineRequestState]:
+        state = cls.session_store_cls(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         if not state.is_valid():
             return None
 
@@ -172,31 +203,24 @@ class Pipeline:
             organization = Organization.objects.get(id=state.org_id)
 
         provider_key = state.provider_key
-        config = state.config
 
-        return cls(
-            request,
-            organization=organization,
-            provider_key=provider_key,
-            provider_model=provider_model,
-            config=config,
-        )
+        return PipelineRequestState(state, provider_model, organization, provider_key)
+
+    def get_provider(self, provider_key: str):
+        return self.provider_manager.get(provider_key)
 
     def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
-        if config is None:
-            config = {}
-
         self.request = request
         self.organization = organization
-        self.state = PipelineSessionStore(
+        self.state = self.session_store_cls(
             request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL
         )
-        self.provider = self.provider_manager.get(provider_key)
         self.provider_model = provider_model
+        self.provider = self.get_provider(provider_key)
 
-        self.config = config
+        self.config = config or {}
         self.provider.set_pipeline(self)
-        self.provider.set_config(config)
+        self.provider.update_config(self.config)
 
         self.pipeline_views = self.get_pipeline_views()
 
@@ -206,7 +230,7 @@ class Pipeline:
         pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[View]:
         """
         Retrieve the pipeline views from the provider.
 
@@ -216,22 +240,23 @@ class Pipeline:
         """
         return self.provider.get_pipeline_views()
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return self.state.is_valid() and self.state.signature == self.signature
 
-    def initialize(self):
-        self.state.regenerate(
-            {
-                "uid": self.request.user.id if self.request.user.is_authenticated else None,
-                "provider_model_id": self.provider_model.id if self.provider_model else None,
-                "provider_key": self.provider.key,
-                "org_id": self.organization.id if self.organization else None,
-                "step_index": 0,
-                "signature": self.signature,
-                "config": self.config,
-                "data": {},
-            }
-        )
+    def initialize(self) -> None:
+        self.state.regenerate(self.get_initial_state())
+
+    def get_initial_state(self) -> Dict[str, Any]:
+        return {
+            "uid": self.request.user.id if self.request.user.is_authenticated else None,
+            "provider_model_id": self.provider_model.id if self.provider_model else None,
+            "provider_key": self.provider.key,
+            "org_id": self.organization.id if self.organization else None,
+            "step_index": 0,
+            "signature": self.signature,
+            "config": self.config,
+            "data": {},
+        }
 
     def clear_session(self):
         self.state.clear()
@@ -251,6 +276,13 @@ class Pipeline:
         if isinstance(step, LambdaType):
             step = step()
 
+        return self.dispatch_to(step)
+
+    def dispatch_to(self, step: View):
+        """Dispatch to a view expected by this pipeline.
+
+        A subclass may override this if its views take other parameters.
+        """
         return step.dispatch(request=self.request, pipeline=self)
 
     def error(self, message):
@@ -295,7 +327,7 @@ class Pipeline:
         raise NotImplementedError
 
     def bind_state(self, key, value):
-        data = self.state.data
+        data = self.state.data or {}
         data[key] = value
 
         self.state.data = data

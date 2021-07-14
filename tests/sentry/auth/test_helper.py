@@ -4,7 +4,12 @@ from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 
-from sentry.auth.helper import OK_LINK_IDENTITY, AuthHelper, AuthIdentityHandler, RedisBackedState
+from sentry.auth.helper import (
+    OK_LINK_IDENTITY,
+    AuthHelper,
+    AuthHelperSessionStore,
+    AuthIdentityHandler,
+)
 from sentry.auth.provider import Provider
 from sentry.models import (
     AuditLogEntry,
@@ -33,8 +38,6 @@ class AuthIdentityHandlerTest(TestCase):
         self.provider = "dummy"
         self.provider_obj = Provider(self.provider)
         self.request = _set_up_request()
-        self.request.user = AnonymousUser()
-        self.request.session = Client().session
 
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider=self.provider
@@ -50,7 +53,7 @@ class AuthIdentityHandlerTest(TestCase):
             self.auth_provider, Provider(self.provider), self.organization, self.request
         )
 
-        self.state = RedisBackedState(self.request)
+        self.state = AuthHelperSessionStore(self.request, "pipeline")
 
     def set_up_user(self):
         """Set up a persistent user and associate it to the request.
@@ -302,15 +305,15 @@ class AuthHelperTest(TestCase):
         initial_state = {
             "org_id": self.organization.id,
             "flow": flow,
-            "auth_provider": self.auth_provider.id,
+            "provider_model_id": self.auth_provider.id,
             "provider_key": None,
         }
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
-        helper.init_pipeline()
-        assert helper.pipeline_is_valid()
+        helper.initialize()
+        assert helper.is_valid()
 
         first_step = helper.current_step()
         assert first_step.status_code == 200

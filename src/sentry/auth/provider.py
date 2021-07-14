@@ -3,6 +3,8 @@ from collections import namedtuple
 
 from django.utils.encoding import force_text, python_2_unicode_compatible
 
+from sentry.pipeline import PipelineProvider
+
 from .view import ConfigureView
 
 
@@ -20,7 +22,7 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
         return force_text(self.id)
 
 
-class Provider:
+class Provider(PipelineProvider):
     """
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
@@ -56,6 +58,9 @@ class Provider:
 
         Defaults to the defined authentication pipeline.
         """
+        return self.get_auth_pipeline()
+
+    def get_pipeline_views(self):
         return self.get_auth_pipeline()
 
     def build_config(self, state):

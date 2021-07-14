@@ -124,7 +124,7 @@ class SAML2AcceptACSView(BaseView):
             flow=AuthHelper.FLOW_LOGIN,
         )
 
-        helper.init_pipeline()
+        helper.initialize()
         return helper.current_step()
 
 
