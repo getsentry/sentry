@@ -89,7 +89,7 @@ describe('ProjectAlertsCreate', function () {
     },
   ];
 
-  beforeEach(async function () {
+  beforeEach(function () {
     memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
@@ -222,9 +222,7 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
-
-      const filterRuleNode = getByText('The issue is').parentElement;
-      fireEvent.change(filterRuleNode.querySelector('input[type="number"]'), {
+      fireEvent.change(getByPlaceholderText('10'), {
         target: {value: '12'},
       });
 
