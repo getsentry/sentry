@@ -15,6 +15,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.snuba import discover
@@ -784,6 +785,47 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
         }
+
+    def test_semver_build_condition(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test2@1.2.4+124")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_BUILD_ALIAS}:123",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_BUILD_ALIAS}:124",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_2_e_1,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_BUILD_ALIAS}:>=123",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2, release_2_e_1}
 
     def test_latest_release_condition(self):
         result = discover.query(

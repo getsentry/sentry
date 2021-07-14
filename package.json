@@ -173,6 +173,7 @@
     "mockdate": "3.0.5",
     "prettier": "2.3.2",
     "react-refresh": "^0.8.3",
+    "react-select-event": "5.3.0",
     "react-test-renderer": "17.0.2",
     "size-limit": "^4.5.6",
     "speed-measure-webpack-plugin": "^1.5.0",
@@ -223,9 +224,20 @@
     "build-chartcuterie-config": "NODE_ENV=production yarn webpack --config=config/webpack.chartcuterie.config.ts",
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "NODE_ENV=production yarn webpack --mode production",
-    "build": "yarn build-production --output-path=public",
+    "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
     "validate-api-examples": "yarn install-api-docs && cd api-docs && yarn openapi-examples-validator ./openapi.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost"
+  },
+  "browserslist": {
+    "production": [
+      "defaults"
+    ],
+    "development": [
+      "defaults"
+    ],
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "node": "12.19.0",
