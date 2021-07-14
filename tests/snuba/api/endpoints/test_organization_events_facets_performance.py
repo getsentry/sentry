@@ -67,17 +67,17 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
 
-    def do_request(self, query=None, feature_list=None):
+    def do_request(self, query=None):
         query = query if query is not None else {"aggregateColumn": "transaction.duration"}
         query["project"] = query["project"] if "project" in query else [self.project.id]
-        with self.feature(feature_list or self.feature_list):
+        with self.feature(self.feature_list):
             return self.client.get(self.url, query, format="json")
 
     def test_basic_request(self):
         response = self.do_request()
         assert response.status_code == 200, response.content
 
-        data = response.data["histogram"]["data"]
+        data = response.data["data"]
         assert len(data) == 2
         assert data[0] == {
             "aggregate": 4000000.0,
@@ -101,7 +101,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         )
         assert response.status_code == 200, response.content
 
-        data = response.data["histogram"]["data"]
+        data = response.data["data"]
         assert len(data) == 2
 
         # The first set of generated is the most frequent since the 14 transactions are excluded because of 1000 duration
@@ -124,7 +124,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
             }
         )
 
-        data = response.data["histogram"]["data"]
+        data = response.data["data"]
         assert len(data) == 2
         assert data[0]["count"] == 1
         assert data[0]["tags_key"] == "color"
@@ -145,7 +145,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
             }
         )
 
-        data = response.data["histogram"]["data"]
+        data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count"] == 5
         assert data[0]["tags_key"] == "color"
@@ -173,56 +173,3 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "'abc' is not a supported tags column."}
-
-    def test_all_tag_keys(self):
-        request = {
-            "aggregateColumn": "transaction.duration",
-            "sort": "-frequency",
-            "per_page": 5,
-            "statsPeriod": "14d",
-            "query": "(color:red or color:blue)",
-            "allTagKeys": True,
-        }
-        # No feature access
-        response = self.do_request(request)
-        data = response.data["histogram"]["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 5
-        assert data[0]["tags_key"] == "color"
-        assert data[0]["tags_value"] == "blue"
-
-        # With feature access
-        response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
-        data = response.data["histogram"]["data"]
-        assert len(data) == 5
-        assert data[0]["count"] == 19
-        assert data[0]["tags_key"] == "application"
-        assert data[0]["tags_value"] == "countries"
-
-    def test_tag_key_values(self):
-        request = {
-            "aggregateColumn": "transaction.duration",
-            "sort": "-frequency",
-            "per_page": 5,
-            "statsPeriod": "14d",
-            "tagKey": "color",
-        }
-        # No feature access
-        response = self.do_request(request)
-        data = response.data["histogram"]["data"]
-        assert len(data) == 2
-        assert data[0]["count"] == 5
-        assert data[0]["tags_key"] == "color"
-        assert data[0]["tags_value"] == "blue"
-
-        # With feature access
-        response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
-        data = response.data["histogram"]["data"]
-        assert len(data) == 3
-        assert data[0]["count"] == 14
-        assert data[0]["tags_key"] == "color"
-        assert data[0]["tags_value"] == "red"
