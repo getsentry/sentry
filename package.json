@@ -44,7 +44,7 @@
     "@types/lodash": "^4.14.170",
     "@types/marked": "^0.7.2",
     "@types/mini-css-extract-plugin": "^1.4.3",
-    "@types/papaparse": "^5.2.5",
+    "@types/papaparse": "^5.2.6",
     "@types/pegjs": "^0.10.3",
     "@types/react": "~17.0.13",
     "@types/react-date-range": "^1.1.4",
