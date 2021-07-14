@@ -45,7 +45,8 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 
         if isinstance(self.notification, ReleaseActivityNotification):
             return self._build(
-                text=self.notification.get_message_description(),
+                text="",
+                actions=self.notification.get_message_description(),
                 footer=build_notification_footer(self.notification, self.recipient),
             )
 
@@ -56,6 +57,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
             ),
             text=self.notification.get_message_description(),
             footer=build_notification_footer(self.notification, self.recipient),
+            color="info",
         )
 
 
