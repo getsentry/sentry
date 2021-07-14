@@ -31,8 +31,6 @@ _anon_namespace_re = re.compile(
     """
 )
 _swift_attribute_re = re.compile(r"@\w+(\([^\)]+\))? ")
-_swift_lambda_re = re.compile(r"\([^\)]*\) -> \([^\)]*\)")
-_swift_prefix_re = re.compile(r"(?:partial apply)|(?:thunk) for ")
 
 
 PAIRS = {"(": ")", "{": "}", "[": "]", "<": ">"}
@@ -94,20 +92,6 @@ def split_func_tokens(s):
     return ["".join(x) for x in rv]
 
 
-def simplify_cocoa_function_name(function):
-    """Remove clutter from cocoa function name."""
-    # 1) Remove attributes, e.g. @objc, @callee_guaranteed, ...
-    function = _swift_attribute_re.sub("", function)
-
-    # 2) Replace anonymous functions, e.g. () -> ()
-    function = _swift_lambda_re.sub("anonymous·function", function)
-
-    # 3) Keep "thunk for..." prefix by substituting spaces
-    function = _swift_prefix_re.sub("thunk/partial·apply·for·", function)
-
-    return function
-
-
 def trim_function_name(function, platform, normalize_lambdas=True):
     """Given a function value from the frame's function attribute this returns
     a trimmed version that can be stored in `function_name`.  This is only used
@@ -115,10 +99,8 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     """
     if platform == "csharp":
         return trim_csharp_function_name(function)
-    if platform in ("cocoa", "swift"):
-        function = simplify_cocoa_function_name(function)
     if get_behavior_family_for_platform(platform) == "native":
-        return trim_native_function_name(function, normalize_lambdas=normalize_lambdas)
+        return trim_native_function_name(function, platform, normalize_lambdas=normalize_lambdas)
     return function
 
 
@@ -135,7 +117,7 @@ def trim_csharp_function_name(function):
     return function.split(" (", 1)[0]
 
 
-def trim_native_function_name(function, normalize_lambdas=True):
+def trim_native_function_name(function, platform, normalize_lambdas=True):
     if function in ("<redacted>", "<unknown>"):
         return function
 
@@ -233,12 +215,15 @@ def trim_native_function_name(function, normalize_lambdas=True):
             func_token = None
 
     if func_token:
+        if func_token.startswith("@") and platform in ("cocoa", "swift"):
+            # Found a Swift attribute instead of a function name, must be an
+            # anonymous function
+            func_token = "<anonymous function>"
         function = (
             func_token.replace("⟨", "<")
             .replace("◯", "()")
             .replace(" ⟿ ", " -> ")
             .replace("〔anonymousnamespace〕", "`anonymous namespace'")
-            .replace("·", " ")
         )
 
     # This really should never happen
