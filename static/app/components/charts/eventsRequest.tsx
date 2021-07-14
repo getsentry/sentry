@@ -409,7 +409,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         .sort((a, b) => a[0] - b[0])
         .map(item => item[1]);
 
-      const timeframe = {start: timeseriesData.start, end: timeseriesData.end};
+      const timeframe =
+        timeseriesData.start && timeseriesData.end
+          ? {start: timeseriesData.start, end: timeseriesData.end}
+          : undefined;
 
       return children({
         loading,

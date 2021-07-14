@@ -57,6 +57,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 params=params,
                 rollup=rollup,
                 referrer="api.organization-event-stats",
+                zerofill_results=False
+                if self.has_chart_interpolation(organization, request)
+                else True,
             )
 
         return Response(

@@ -458,7 +458,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     return snuba_filter, translated_columns
 
 
-def timeseries_query(selected_columns, query, params, rollup, referrer=None):
+def timeseries_query(selected_columns, query, params, rollup, referrer=None, zerofill_results=True):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -512,7 +512,8 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
         op="discover.discover", description="timeseries.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = format(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+        format_func = zerofill if zerofill_results else format
+        result = format_func(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 

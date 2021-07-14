@@ -38,6 +38,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_arithmetic(self, organization, request):
         return features.has("organizations:discover-arithmetic", organization, actor=request.user)
 
+    def has_chart_interpolation(self, organization, request):
+        return features.has(
+            "organizations:performance-chart-interpolation", organization, actor=request.user
+        )
+
     def get_equation_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         if self.has_arithmetic(organization, request):
@@ -325,7 +330,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 for key, event_result in result.items():
                     if len(query_columns) > 1:
                         results[key] = self.serialize_multiple_axis(
-                            serializer, event_result, columns, query_columns, allow_partial_buckets
+                            serializer,
+                            event_result,
+                            columns,
+                            query_columns,
+                            allow_partial_buckets,
+                            zerofill_results=False
+                            if self.has_chart_interpolation(organization, request)
+                            else True,
                         )
                     else:
                         # Need to get function alias if count is a field, but not the axis
@@ -333,17 +345,30 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             event_result,
                             column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
+                            zerofill_results=False
+                            if self.has_chart_interpolation(organization, request)
+                            else True,
                         )
                 serializedResult = results
             elif len(query_columns) > 1:
                 serializedResult = self.serialize_multiple_axis(
-                    serializer, result, columns, query_columns, allow_partial_buckets
+                    serializer,
+                    result,
+                    columns,
+                    query_columns,
+                    allow_partial_buckets,
+                    zerofill_results=False
+                    if self.has_chart_interpolation(organization, request)
+                    else True,
                 )
             else:
                 serializedResult = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
+                    zerofill_results=False
+                    if self.has_chart_interpolation(organization, request)
+                    else True,
                 )
             serializedResult["start"] = result.start
             serializedResult["end"] = result.end
@@ -351,7 +376,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             return serializedResult
 
     def serialize_multiple_axis(
-        self, serializer, event_result, columns, query_columns, allow_partial_buckets
+        self,
+        serializer,
+        event_result,
+        columns,
+        query_columns,
+        allow_partial_buckets,
+        zerofill_results=True,
     ):
         # Return with requested yAxis as the key
         result = {
@@ -360,6 +391,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 resolve_axis_column(query_column, index),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
+                zerofill_results=zerofill_results,
             )
             for index, query_column in enumerate(query_columns)
         }
