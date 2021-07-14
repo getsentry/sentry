@@ -11,7 +11,9 @@ from typing import Optional
 
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, debugfile
+from sentry.models.projectoption import ProjectOption
 from sentry.tasks.base import instrumented_task
+from sentry.utils import json
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger(__name__)
@@ -87,8 +89,21 @@ def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
     name="sentry.tasks.app_store_connect.refresh_all_builds", queue="appstoreconnect"
 )
 def refresh_all_builds() -> None:
-    # TODO: well, we want to refresh *ALL* the projects that have an appstore
-    # connect symbol source, so how can I efficiently enumerate those and page
-    # through them without completely overloading the task system?
-    # inner_dsym_download(project_id=project_id)
-    pass
+    # We have no way to query for AppStore Connect symbol sources directly, but
+    # getting all of the project options that have custom symbol sources
+    # configured is a reasonable compromise, as the number of those should be
+    # low enough to traverse every hour.
+    # Another alternative would be to get a list of projects that have had a
+    # previous successful import, as indicated by existing `AppConnectBuild`
+    # objects. But that would miss projects that have a valid AppStore Connect
+    # setup, but have not yet published any kind of build to AppStore.
+    options = ProjectOption.objects.filter(key=appconnect.SYMBOL_SOURCES_PROP_NAME)
+    for option in options:
+        try:
+            all_sources = json.loads(option.value)
+            for source in all_sources:
+                source_id = source.get("id")
+                if source.get("type") == appconnect.SYMBOL_SOURCE_TYPE_NAME and id is not None:
+                    inner_dsym_download(option.project_id, source_id)
+        except Exception as exc:
+            logger.exception(f"{exc}")

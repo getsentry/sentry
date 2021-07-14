@@ -9,7 +9,7 @@ import io
 import logging
 import pathlib
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import dateutil
 import jsonschema
@@ -155,8 +155,18 @@ class AppStoreConnectConfig:
         return cls(**data)
 
     @classmethod
+    def all_for_project(cls, project: Project) -> "List[AppStoreConnectConfig]":
+        sources = []
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
+        all_sources = json.loads(raw)
+        for source in all_sources:
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
+                sources.append(cls.from_json(source))
+        return sources
+
+    @classmethod
     def from_project_config(
-        cls, project: Project, config_id: Optional[str] = None
+        cls, project: Project, config_id: str = None
     ) -> "AppStoreConnectConfig":
         """Creates a new instance from the symbol source configured in the project.
 
@@ -166,9 +176,7 @@ class AppStoreConnectConfig:
         raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
         all_sources = json.loads(raw)
         for source in all_sources:
-            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (
-                config_id is None or source.get("id") == config_id
-            ):
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
                 return cls.from_json(source)
         else:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
