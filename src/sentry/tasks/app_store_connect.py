@@ -53,9 +53,6 @@ def inner_dsym_download(
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
                 itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
-
-                create_difs_from_dsyms_zip(dsyms_zip.name, project)
-                logger.debug("Uploaded dSYMs for build %s", build)
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
             except ITunesSessionExpiredException:
@@ -65,6 +62,9 @@ def inner_dsym_download(
                 # we also swallow the error and not report it because this is
                 # a totally expected error and not actionable.
                 return
+            else:
+                create_difs_from_dsyms_zip(dsyms_zip.name, project)
+                logger.debug("Uploaded dSYMs for build %s", build)
 
         # If we either downloaded, or didn't need to download the dSYMs
         # (there was no dSYM url), we check off this build.
