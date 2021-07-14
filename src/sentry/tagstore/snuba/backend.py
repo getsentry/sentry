@@ -20,6 +20,7 @@ from sentry.search.events.constants import (
     PROJECT_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     USER_DISPLAY_ALIAS,
@@ -823,6 +824,32 @@ class SnubaTagStorage(TagStorage):
             ]
         )
 
+    def _get_tag_values_for_semver_build(self, projects, environments, build):
+        from sentry.api.paginator import SequencePaginator
+
+        build = build if build else ""
+        if not build.endswith("*"):
+            build += "*"
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        builds = Release.objects.filter_by_semver_build(organization_id, "exact", build, projects)
+
+        if environments:
+            builds = builds.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        packages = (
+            builds.values_list("build_code", flat=True).distinct().order_by("build_code")[:1000]
+        )
+        return SequencePaginator(
+            [(i, TagValue(SEMVER_BUILD_ALIAS, v, None, None, None)) for i, v in enumerate(packages)]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -899,6 +926,9 @@ class SnubaTagStorage(TagStorage):
 
         if key == RELEASE_STAGE_ALIAS:
             return self._get_tag_values_for_release_stages(projects, environments, query)
+
+        if key == SEMVER_BUILD_ALIAS:
+            return self._get_tag_values_for_semver_build(projects, environments, query)
 
         conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes
