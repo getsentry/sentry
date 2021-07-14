@@ -114,11 +114,11 @@ const RulesHeader = styled('div')`
   grid-template-columns: 2fr 1fr;
   grid-template-rows: 45px 1fr 1fr 1fr 1fr;
   grid-template-areas: 'title tag' 'repository repository' '. .' '. .' 'detail detail';
-  border: 1px solid #c6becf;
+  border: 1px solid ${p => p.theme.border};
   border-radius: 4px 0 0 4px;
   border-right: none;
   box-shadow: 0 2px 0 rgb(37 11 54 / 4%);
-  background-color: #ffffff;
+  background-color: ${p => p.theme.background};
 `;
 const TitleContainer = styled('div')`
   grid-area: title;
@@ -141,14 +141,14 @@ const ReadOnlyTag = styled(Tag)`
 const Repository = styled('div')`
   grid-area: repository;
   padding-left: calc(${space(2)} + ${space(3)});
-  color: #9386a0;
+  color: ${p => p.theme.textColor};
   font-size: 14px;
 `;
 const Detail = styled('div')`
   grid-area: detail;
   align-self: end;
   padding: 0 ${space(2)} ${space(2)} ${space(2)};
-  color: #9386a0;
+  color: ${p => p.theme.textColor};
   font-size: 14px;
   line-height: 1.4;
 `;
