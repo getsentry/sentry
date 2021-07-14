@@ -266,7 +266,7 @@ def query_top_tags(
     tag_key: str,
     limit: int,
     referrer: str,
-    orderby: Optional[str] = None,
+    orderby: Optional[List[str]],
     filter_query: Optional[str] = None,
 ) -> Optional[List[Any]]:
     """
