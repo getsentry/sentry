@@ -1,4 +1,4 @@
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Set
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set
 
 from sentry.models import Activity, CommitFileChange, Project, User
 from sentry.notifications.utils import (
@@ -119,7 +119,7 @@ class ReleaseActivityNotification(ActivityNotification):
     def fine_tuning_key(self) -> str:
         return "deploy/"
 
-    def get_message_description(self) -> str:
+    def get_message_description(self) -> List[Dict[str, Any]]:
         buttons = []
         if self.release:
             for project in self.projects:
