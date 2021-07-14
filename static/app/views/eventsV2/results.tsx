@@ -435,6 +435,7 @@ class Results extends React.Component<Props, State> {
               <Top fullWidth>
                 {this.renderError(error)}
                 <StyledSearchBar
+                  searchSource="eventsv2"
                   organization={organization}
                   projectIds={eventView.project}
                   query={query}

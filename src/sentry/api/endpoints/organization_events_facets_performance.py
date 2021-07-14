@@ -22,6 +22,8 @@ ALLOWED_AGGREGATE_COLUMNS = {
     "spans.resource",
 }
 
+TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
+
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
@@ -66,6 +68,9 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
         if self.has_tag_page_feature(organization, request):
             all_tag_keys = request.GET.get("allTagKeys")
             tag_key = request.GET.get("tagKey")
+
+        if tag_key in TAG_ALIASES:
+            tag_key = TAG_ALIASES.get(tag_key)
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
@@ -152,6 +157,9 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         if not tag_key:
             raise ParseError(detail="'tagKey' must be provided when using histograms.")
 
+        if tag_key in TAG_ALIASES:
+            tag_key = TAG_ALIASES.get(tag_key)
+
         def data_fn():
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
@@ -189,10 +197,11 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
 
                 return results
 
-        results = data_fn()
-        return Response(
-            self.handle_results_with_meta(request, organization, params["project_id"], results)
-        )
+        with self.handle_query_errors():
+            results = data_fn()
+            return Response(
+                self.handle_results_with_meta(request, organization, params["project_id"], results)
+            )
 
 
 def query_tag_data(

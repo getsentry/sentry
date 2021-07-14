@@ -39,7 +39,7 @@ from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
 from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snql import SNQLOption, should_use_snql
+from sentry.utils.snql import should_use_snql
 
 logger = logging.getLogger(__name__)
 
@@ -648,13 +648,13 @@ def raw_query(
         **kwargs,
     )
 
-    snql_option = should_use_snql(referrer)
+    use_snql = should_use_snql(referrer)
 
     return bulk_raw_query(
         [snuba_params],
         referrer=referrer,
         use_cache=use_cache,
-        snql_option=snql_option,
+        use_snql=use_snql,
     )[0]
 
 
@@ -691,11 +691,11 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    snql_option: Optional[SNQLOption] = None,
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     params = map(_prepare_query_params, snuba_param_list)
     return _apply_cache_and_build_results(
-        params, referrer=referrer, use_cache=use_cache, snql_option=snql_option
+        params, referrer=referrer, use_cache=use_cache, use_snql=use_snql
     )
 
 
@@ -703,7 +703,7 @@ def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    snql_option: Optional[SNQLOption] = None,
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -731,7 +731,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers, snql_option)
+        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers, use_snql)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -746,7 +746,7 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
-    snql_option: Optional[SNQLOption] = None,
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
@@ -757,21 +757,15 @@ def _bulk_snuba_query(
         # but we still want to know a general sense of how referrers impact performance
         span.set_tag("query.referrer", query_referrer)
         sentry_sdk.set_tag("query.referrer", query_referrer)
-        # This is confusing because this function is overloaded right now with four cases:
+        # This is confusing because this function is overloaded right now with three cases:
         # 1. A legacy JSON query (_snuba_query)
-        # 2. A dryrun SnQL query of a legacy query (_snql_dryrun_query)
-        # 3. A SnQL query of a legacy query (_legacy_snql_query)
-        # 4. A direct SnQL query using the new SDK (_snql_query)
+        # 2. A SnQL query of a legacy query (_legacy_snql_query)
+        # 3. A direct SnQL query using the new SDK (_snql_query)
         query_fn = _snuba_query
         if isinstance(snuba_param_list[0][0], Query):
             query_fn = _snql_query
-        elif snql_option is not None:
-            if snql_option.dryrun:
-                query_fn = _snql_dryrun_query
-            else:
-                query_fn = _legacy_snql_query
-            # hack to pass this value in for now
-            headers["snql_entity"] = snql_option.entity
+        elif use_snql:
+            query_fn = _legacy_snql_query
 
         if len(snuba_param_list) > 1:
             query_results = list(
@@ -870,14 +864,9 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
     query_data, thread_hub, headers = params
     query_params, forward, reverse = query_data
     referrer = headers.get("referer", "<unknown>")
-    snql_entity = None
-    if "snql_entity" in headers:
-        snql_entity = headers["snql_entity"] or None
-        del headers["snql_entity"]
 
     try:
-        if snql_entity is None or snql_entity == "auto":
-            snql_entity = query_params["dataset"]
+        snql_entity = query_params["dataset"]
 
         metrics.incr("snuba.snql.legacy.incoming", tags={"referrer": referrer})
         query = json_to_snql(query_params, snql_entity)
@@ -894,6 +883,9 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
 
     try:
         result = _raw_snql_query(query, Hub(thread_hub), headers)
+        if result.status != 200:  # Trigger a retry with the legacy endpoint
+            raise SnubaError("error sending snql query")
+
     except Exception as e:
         logger.warning(
             "snuba.snql.sending.error",
@@ -912,116 +904,6 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
     return result, forward, reverse
 
 
-def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
-    # Run the SnQL query in debug/dry_run mode
-    # Run the legacy query in debug mode
-    # Log any errors in SnQL execution and log if the returned SQL is not the same
-    query_data, thread_hub, headers = params
-    query_params, forward, reverse = query_data
-    og_debug = query_params.get("debug", False)
-    referrer = headers.get("referer", "<unknown>")
-    snql_entity = None
-    if "snql_entity" in headers:
-        snql_entity = headers["snql_entity"] or None
-        del headers["snql_entity"]
-
-    try:
-        if snql_entity is None or snql_entity == "auto":
-            snql_entity = query_params["dataset"]
-
-        metrics.incr("snuba.snql.dryrun.incoming", tags={"referrer": referrer})
-        query = json_to_snql(query_params, snql_entity)
-        query.validate()  # Call this here just avoid it happening in the async all
-    except Exception as e:
-        logger.warning(
-            "snuba.snql.parsing.error",
-            extra={"error": str(e), "params": json.dumps(query_params), "referrer": referrer},
-        )
-        metrics.incr(
-            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "parsing.error"}
-        )
-        return _snuba_query(params)
-
-    query = query.set_dry_run(True).set_debug(True)
-    query_params["debug"] = True
-
-    snql_future = _query_thread_pool.submit(_raw_snql_query, query, Hub(thread_hub), headers)
-    # If this fails then there's no point doing anything else, so let any exception get reraised
-    legacy_result = _snuba_query(params)
-
-    query_params["debug"] = og_debug
-    legacy_resp = legacy_result[0]
-
-    try:
-        snql_resp = snql_future.result()
-    except Exception as e:
-        logger.warning(
-            "snuba.snql.dryrun.sending.error",
-            extra={
-                "error": str(e),
-                "params": json.dumps(query_params),
-                "query": str(query),
-                "referrer": referrer,
-            },
-        )
-        metrics.incr(
-            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "sending.error"}
-        )
-        return legacy_result
-
-    legacy_data = json.loads(legacy_resp.data)
-    try:
-        snql_data = json.loads(snql_resp.data)
-    except Exception as e:
-        logger.warning(
-            "snuba.snql.dryrun.json.error",
-            extra={
-                "error": str(e),
-                "params": json.dumps(query_params),
-                "query": str(query),
-                "resp": snql_resp.data,
-                "referrer": referrer,
-            },
-        )
-        metrics.incr(
-            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "json.error"}
-        )
-        return legacy_result
-
-    if "sql" not in snql_data or "sql" not in legacy_data:
-        logger.warning(
-            "snuba.snql.dryrun.nosql",
-            extra={
-                "params": json.dumps(query_params),
-                "query": str(query),
-                "snql": "sql" in snql_data,
-                "legacy": "sql" in legacy_data,
-                "referrer": referrer,
-            },
-        )
-        metrics.incr("snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "nosql"})
-        return legacy_result
-
-    if snql_data["sql"] != legacy_data["sql"]:
-        logger.warning(
-            "snuba.snql.dryrun.mismatch.error",
-            extra={
-                "params": json.dumps(query_params),
-                "query": str(query),
-                "snql": snql_data["sql"],
-                "legacy": legacy_data["sql"],
-                "referrer": referrer,
-            },
-        )
-        metrics.incr(
-            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "mismatch.error"}
-        )
-    else:
-        metrics.incr("snuba.snql.dryrun.success", tags={"referrer": referrer})
-
-    return legacy_result
-
-
 def _raw_snql_query(
     query: Query, thread_hub: Hub, headers: Mapping[str, str]
 ) -> urllib3.response.HTTPResponse:
@@ -1034,7 +916,7 @@ def _raw_snql_query(
         body = query.snuba()
         with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
             span.set_tag("referrer", referrer)
-            span.set_tag("snql", str(query))
+            span.set_data("snql", str(query))
             return _snuba_pool.urlopen("POST", f"/{query.dataset}/snql", body=body, headers=headers)
 
 

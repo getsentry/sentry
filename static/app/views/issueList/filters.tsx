@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
 
@@ -81,16 +82,19 @@ class IssueListFilters extends React.Component<Props> {
             </GuideAnchor>
           )}
         </ClassNames>
-
-        <Feature features={['issue-percent-display']} organization={organization}>
-          <IssueListDisplayOptions
-            onDisplayChange={onDisplayChange}
-            display={display}
-            hasSessions={hasSessions}
-            hasMultipleProjectsSelected={selectedProjects.length !== 1}
-          />
-        </Feature>
-        <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+        <ButtonBar gap={1}>
+          <Feature features={['issue-percent-display']} organization={organization}>
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasSessions={hasSessions}
+              hasMultipleProjectsSelected={
+                selectedProjects.length !== 1 || selectedProjects[0] === -1
+              }
+            />
+          </Feature>
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+        </ButtonBar>
       </SearchContainer>
     );
   }

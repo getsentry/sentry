@@ -28,18 +28,22 @@ from sentry.search.events.constants import (
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
+    MAX_SEARCH_RELEASES,
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     SEMVER_EMPTY_RELEASE,
     SEMVER_FAKE_PACKAGE,
-    SEMVER_MAX_SEARCH_RELEASES,
+    SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
@@ -339,6 +343,39 @@ def _flip_field_sort(field: str):
     return field[1:] if field.startswith("-") else f"-{field}"
 
 
+def _release_stage_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Parses a release stage search and returns a snuba condition to filter to the
+    requested releases.
+    """
+    # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
+    # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    qs = (
+        Release.objects.filter_by_stage(
+            organization_id, search_filter.operator, search_filter.value.value
+        )
+        .values_list("version", flat=True)
+        .order_by("date_added")[:MAX_SEARCH_RELEASES]
+    )
+    versions = list(qs)
+    final_operator = "IN"
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", final_operator, versions]
+
+
 def _semver_filter_converter(
     search_filter: SearchFilter,
     name: str,
@@ -376,11 +413,11 @@ def _semver_filter_converter(
     qs = (
         Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
         .values_list("version", flat=True)
-        .order_by(*order_by)[:SEMVER_MAX_SEARCH_RELEASES]
+        .order_by(*order_by)[:MAX_SEARCH_RELEASES]
     )
     versions = list(qs)
     final_operator = "IN"
-    if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
+    if len(versions) == MAX_SEARCH_RELEASES:
         # We want to limit how many versions we pass through to Snuba. If we've hit
         # the limit, make an extra query and see whether the inverse has fewer ids.
         # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
@@ -392,7 +429,7 @@ def _semver_filter_converter(
         qs_flipped = (
             Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
             .order_by(*map(_flip_field_sort, order_by))
-            .values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
+            .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
 
         exclude_versions = list(qs_flipped)
@@ -406,6 +443,62 @@ def _semver_filter_converter(
         versions = [SEMVER_EMPTY_RELEASE]
 
     return ["release", final_operator, versions]
+
+
+def _semver_package_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Applies a semver package filter to the search. Note that if the query returns more than
+    `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    package: str = search_filter.value.raw_value
+
+    versions = list(
+        Release.objects.filter_by_semver(
+            organization_id, SemverFilter("exact", [], package)
+        ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+    )
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", "IN", versions]
+
+
+def _semver_build_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Applies a semver build filter to the search. Note that if the query returns more than
+    `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    build: str = search_filter.value.raw_value
+
+    versions = list(
+        Release.objects.filter_by_semver_build(
+            organization_id, OPERATOR_TO_DJANGO[search_filter.operator], build
+        ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+    )
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", "IN", versions]
 
 
 def parse_semver(version, operator) -> Optional[SemverFilter]:
@@ -466,14 +559,17 @@ key_conversion_map: Mapping[
 ] = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
-    "transaction.status": _transaction_status_filter_converter,
+    TRANSACTION_STATUS_ALIAS: _transaction_status_filter_converter,
     "issue.id": _issue_id_filter_converter,
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
     KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
+    RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,
+    SEMVER_PACKAGE_ALIAS: _semver_package_filter_converter,
+    SEMVER_BUILD_ALIAS: _semver_build_filter_converter,
 }
 
 
@@ -923,6 +1019,8 @@ class QueryFilter(QueryBase):
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
+            TRANSACTION_STATUS_ALIAS: self._transaction_status_filter_converter,
+            ISSUE_ID_ALIAS: self._issue_id_filter_converter,
         }
 
     def resolve_where(self, query: Optional[str]) -> List[WhereType]:
@@ -1129,3 +1227,46 @@ class QueryFilter(QueryBase):
                 SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
             )
         )
+
+    def _transaction_status_filter_converter(
+        self, search_filter: SearchFilter
+    ) -> Optional[WhereType]:
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return Condition(
+                self.resolve_field_alias(search_filter.key.name),
+                Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
+            )
+        if search_filter.is_in_filter:
+            internal_value = [
+                translate_transaction_status(val) for val in search_filter.value.raw_value
+            ]
+        else:
+            internal_value = translate_transaction_status(search_filter.value.raw_value)
+        return Condition(
+            self.resolve_field_alias(search_filter.key.name),
+            Op(search_filter.operator),
+            internal_value,
+        )
+
+    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        value = search_filter.value.value
+
+        lhs = self.column(name)
+        rhs = value
+
+        # Handle "has" queries
+        if (
+            search_filter.value.raw_value == ""
+            or search_filter.is_in_filter
+            and [v for v in value if not v]
+        ):
+            if search_filter.is_in_filter:
+                rhs = [v if v else 0 for v in value]
+            else:
+                rhs = 0
+
+        # Skip isNull check on group_id value as we want to
+        # allow snuba's prewhere optimizer to find this condition.
+        return Condition(lhs, Op(search_filter.operator), rhs)

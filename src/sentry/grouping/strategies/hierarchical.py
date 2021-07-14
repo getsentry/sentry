@@ -78,8 +78,14 @@ def _compute_tree_label(components: Iterable[GroupingComponent]):
     tree_label = []
 
     for frame in components:
-        if frame.tree_label:
-            tree_label.append(frame.tree_label)
+        if frame.contributes and frame.tree_label:
+            lbl = dict(frame.tree_label)
+            if frame.is_sentinel_frame:
+                lbl["is_sentinel"] = True
+            if frame.is_prefix_frame:
+                lbl["is_prefix"] = True
+
+            tree_label.append(lbl)
 
     # We assume all components are always sorted in the way frames appear in
     # the event (threadbase -> crashing frame). Then we want to show the
@@ -95,6 +101,13 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
             blaming_frame_idx = idx
             if inverted_hierarchy:
                 break
+
+    if blaming_frame_idx is None:
+        for idx, (component, frame) in enumerate(zip(components, frames)):
+            if component.contributes and not component.is_prefix_frame:
+                blaming_frame_idx = idx
+                if inverted_hierarchy:
+                    break
 
     if blaming_frame_idx is None:
         for idx, (component, frame) in enumerate(zip(components, frames)):

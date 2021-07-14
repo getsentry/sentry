@@ -21,6 +21,7 @@ const selectFirstAutocompleteItem = async el => {
 };
 
 const setQuery = async (el, query) => {
+  el.find('textarea').simulate('focus');
   el.find('textarea')
     .simulate('change', {target: {value: query}})
     .getDOMNode()
@@ -89,6 +90,26 @@ describe('Events > SearchBar', function () {
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('fcp');
     expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
       'measurements.fcp:'
+    );
+  });
+
+  it('autocompletes release semver queries', async function () {
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['semver'],
+      },
+    });
+    props.organization = initializationObj.organization;
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+    setQuery(wrapper, 'release.');
+
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('release.');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+      'release.version:'
     );
   });
 

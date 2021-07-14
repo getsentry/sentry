@@ -10,6 +10,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import FeatureBadge from 'app/components/featureBadge';
 import SelectControl from 'app/components/forms/selectControl';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -20,6 +21,8 @@ import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
+
+import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum TransactionThresholdMetric {
   TRANSACTION_DURATION = 'duration',
@@ -219,6 +222,8 @@ class TransactionThresholdModal extends React.Component<Props, State> {
               this.handleFieldChange('threshold')(event.target.value);
             }}
             value={this.state.threshold}
+            step={100}
+            min={100}
           />
         </Field>
       </React.Fragment>
@@ -226,20 +231,32 @@ class TransactionThresholdModal extends React.Component<Props, State> {
   }
 
   render() {
-    const {Header, Body, Footer, organization} = this.props;
+    const {Header, Body, Footer, organization, transactionName, eventView} = this.props;
 
     const project = this.getProject();
+
+    const summaryView = eventView.clone();
+    summaryView.query = summaryView.getQueryWithAdditionalConditions();
+    const target = transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      query: summaryView.generateQueryStringObject(),
+      projectID: project?.id,
+    });
 
     return (
       <React.Fragment>
         <Header closeButton>
-          <h4>{t('Transaction Settings')}</h4>
+          <h4>
+            {t('Transaction Settings')} <FeatureBadge type="beta" />
+          </h4>
         </Header>
         <Body>
           <Instruction>
             {tct(
-              'The changes below will only be applied to this Transaction. To set it at a more global level, go to [projectSettings: Project Settings].',
+              'The changes below will only be applied to [transaction]. To set it at a more global level, go to [projectSettings: Project Settings].',
               {
+                transaction: <Link to={target}>{transactionName}</Link>,
                 projectSettings: (
                   <Link
                     to={`/settings/${organization.slug}/projects/${project?.slug}/performance/`}

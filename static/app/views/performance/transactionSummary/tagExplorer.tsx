@@ -5,6 +5,8 @@ import {Location, LocationDescriptorObject, Query} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
 import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -19,6 +21,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'app/utils/discover/eventView';
+import {fieldAlignment} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import SegmentExplorerQuery, {
   TableData,
@@ -228,6 +231,7 @@ class _TagExplorer extends React.Component<Props> {
     columnInfo: TagColumn
   ): React.ReactNode {
     const {location} = this.props;
+    const align = fieldAlignment(column.key, column.type, tableMeta);
     const field = {field: column.key, width: column.width};
 
     function generateSortLink(): LocationDescriptorObject | undefined {
@@ -251,7 +255,7 @@ class _TagExplorer extends React.Component<Props> {
 
     return (
       <SortLink
-        align="left"
+        align={align}
         title={columnInfo.name}
         direction={currentSortKind}
         canSort={canSort}
@@ -324,6 +328,15 @@ class _TagExplorer extends React.Component<Props> {
     };
   };
 
+  onTagKeyClick() {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.visit_tag_key',
+      eventName: 'Performance Views: Tag Explorer - Visit Tag Key',
+      organization_id: parseInt(organization.id, 10),
+    });
+  }
+
   renderBodyCell = (
     parentProps: Props,
     column: TableColumn<ColumnKeys>,
@@ -343,7 +356,11 @@ class _TagExplorer extends React.Component<Props> {
         <Feature features={['performance-tag-page']} organization={organization}>
           {({hasFeature}) => {
             if (hasFeature) {
-              return <Link to={target}>{dataRow.tags_key}</Link>;
+              return (
+                <Link to={target} onClick={() => this.onTagKeyClick()}>
+                  {dataRow.tags_key}
+                </Link>
+              );
             }
             return dataRow.tags_key;
           }}
@@ -388,21 +405,33 @@ class _TagExplorer extends React.Component<Props> {
     }
 
     if (column.key === 'frequency') {
-      return formatPercentage(dataRow.frequency, 0);
+      return <AlignRight>{formatPercentage(dataRow.frequency, 0)}</AlignRight>;
     }
 
     if (column.key === 'comparison') {
       const localValue = dataRow.comparison;
       const pct = formatPercentage(localValue - 1, 0);
-      return localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct);
+      return (
+        <AlignRight>
+          {localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct)}
+        </AlignRight>
+      );
     }
 
     if (column.key === 'aggregate') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />
+        </AlignRight>
+      );
     }
 
     if (column.key === 'sumdelta') {
-      return <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />;
+      return (
+        <AlignRight>
+          <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />
+        </AlignRight>
+      );
     }
     return value;
   };
@@ -413,7 +442,8 @@ class _TagExplorer extends React.Component<Props> {
   };
 
   render() {
-    const {eventView, organization, location, currentFilter, projects} = this.props;
+    const {eventView, organization, location, currentFilter, projects, transactionName} =
+      this.props;
 
     const tagSort = decodeScalar(location.query?.tagSort);
     const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
@@ -458,7 +488,12 @@ class _TagExplorer extends React.Component<Props> {
           return (
             <React.Fragment>
               <GuideAnchor target="tag_explorer">
-                <TagsHeader organization={organization} pageLinks={pageLinks} />
+                <TagsHeader
+                  transactionName={transactionName}
+                  location={location}
+                  organization={organization}
+                  pageLinks={pageLinks}
+                />
               </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
@@ -486,10 +521,12 @@ class _TagExplorer extends React.Component<Props> {
 
 type HeaderProps = {
   organization: Organization;
+  transactionName: string;
+  location: Location;
   pageLinks: string | null;
 };
 function TagsHeader(props: HeaderProps) {
-  const {pageLinks, organization} = props;
+  const {pageLinks, organization, location, transactionName} = props;
   const handleCursor = (cursor: string, pathname: string, query: Query) => {
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.tag_explorer.change_page',
@@ -503,28 +540,44 @@ function TagsHeader(props: HeaderProps) {
     });
   };
 
+  const handleViewAllTagsClick = () => {
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.change_page',
+      eventName: 'Performance Views: Tag Explorer Change Page',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
+  const viewAllTarget = tagsRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: transactionName,
+    projectID: decodeScalar(location.query.project),
+    query: {...location.query},
+  });
+
   return (
     <Header>
-      <SectionHeading>
-        <div>
-          {t('Suspect Tags')}
-          <FeatureBadge type="beta" noTooltip />
-        </div>
-      </SectionHeading>
+      <div>
+        <SectionHeading>{t('Suspect Tags')}</SectionHeading>
+        <FeatureBadge type="beta" />
+      </div>
+      <Feature features={['performance-tag-page']} organization={organization}>
+        <Button
+          onClick={handleViewAllTagsClick}
+          to={viewAllTarget}
+          size="small"
+          data-test-id="tags-explorer-open-tags"
+        >
+          {t('View All Tags')}
+        </Button>
+      </Feature>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
     </Header>
   );
 }
 
-export const SectionHeading = styled('h4')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
-  line-height: 1.3;
+const AlignRight = styled('div')`
+  text-align: right;
 `;
 
 const Header = styled('div')`
@@ -532,6 +585,7 @@ const Header = styled('div')`
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
 `;
+
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;

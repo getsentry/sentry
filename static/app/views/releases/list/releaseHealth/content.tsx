@@ -36,7 +36,7 @@ const ADOPTION_STAGE_LABELS = {
     type: 'warning',
   },
   adopted: {
-    name: t('High Adoption'),
+    name: t('Adopted'),
     type: 'success',
   },
   replaced: {
@@ -54,11 +54,13 @@ type Props = {
   showPlaceholders: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  showAdoptionStageLabels: boolean;
   adoptionStages?: Release['adoptionStages'];
 };
 
 const Content = ({
   projects,
+  showAdoptionStageLabels,
   adoptionStages,
   releaseVersion,
   location,
@@ -68,7 +70,8 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
-  const hasAdoptionStages: boolean = adoptionStages !== undefined;
+  const hasAdoptionStages: boolean =
+    showAdoptionStageLabels && adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
@@ -83,12 +86,14 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
-          {adoptionStages && <Column>{t('Adoption Stage')}</Column>}
-          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
+          {hasAdoptionStages && (
+            <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
+          )}
           <CountColumn>
             <span>{t('Count')}</span>
             <HealthStatsPeriod location={location} />
           </CountColumn>
+          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
           <ViewColumn />
@@ -145,7 +150,10 @@ const Content = ({
               timeSeries?.[0].data.length > 7 &&
               timeSeries[0].data.some(item => item.value > 0);
 
-            const adoptionStage = adoptionStages && adoptionStages[project.slug].stage;
+            const adoptionStage =
+              hasAdoptionStages &&
+              adoptionStages?.[project.slug] &&
+              adoptionStages?.[project.slug].stage;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -156,7 +164,7 @@ const Content = ({
 
                   <AdoptionColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder width="150px" />
+                      <StyledPlaceholder width="100px" />
                     ) : get24hCountByProject ? (
                       <AdoptionWrapper>
                         <ReleaseAdoption
@@ -172,27 +180,17 @@ const Content = ({
                     )}
                   </AdoptionColumn>
 
-                  {adoptionStages && (
-                    <Column>
-                      {adoptionStages[project.slug] ? (
+                  {hasAdoptionStages && (
+                    <AdoptionStageColumn>
+                      {adoptionStages?.[project.slug] ? (
                         <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
                           {ADOPTION_STAGE_LABELS[adoptionStage].name}
                         </Tag>
                       ) : (
                         <NotAvailable />
                       )}
-                    </Column>
+                    </AdoptionStageColumn>
                   )}
-
-                  <CrashFreeRateColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeRate) ? (
-                      <CrashFree percent={crashFreeRate} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeRateColumn>
 
                   <CountColumn>
                     {showPlaceholders ? (
@@ -209,6 +207,16 @@ const Content = ({
                       <NotAvailable />
                     )}
                   </CountColumn>
+
+                  <CrashFreeRateColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="60px" />
+                    ) : defined(crashFreeRate) ? (
+                      <CrashFree percent={crashFreeRate} />
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </CrashFreeRateColumn>
 
                   <CrashesColumn>
                     {showPlaceholders ? (
@@ -310,39 +318,18 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   display: grid;
-  ${p =>
-    p.hasAdoptionStages
-      ? `
-      grid-template-columns: 1fr 1.4fr 0.5fr 0.6fr 0.7fr;
-    `
-      : `
-      grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
-    `}
+  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    ${p =>
-      p.hasAdoptionStages
-        ? `
-      grid-template-columns: 1fr 1fr 0.5fr 1fr 0.5fr 0.5fr 0.5fr;
-    `
-        : `
-      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-    `}
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    ${p =>
-      p.hasAdoptionStages
-        ? `
-      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 0.5fr 0.5fr 0.6fr;
-    `
-        : `
-      grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
-    `}
+    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -377,6 +364,16 @@ const AdoptionColumn = styled(Column)`
   }
 `;
 
+const AdoptionStageColumn = styled(Column)`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    display: flex;
+
+    /* Need to show the edges of the tags */
+    overflow: visible;
+  }
+`;
+
 const AdoptionWrapper = styled('span')`
   display: inline-grid;
   grid-template-columns: 70px 1fr;
@@ -391,6 +388,10 @@ const CrashFreeRateColumn = styled(Column)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: center;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    text-align: right;
+  }
 `;
 
 const CountColumn = styled(Column)`
@@ -400,6 +401,7 @@ const CountColumn = styled(Column)`
     display: flex;
     /* Chart tooltips need overflow */
     overflow: visible;
+    margin-left: ${space(3)};
   }
 `;
 

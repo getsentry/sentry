@@ -1,0 +1,64 @@
+{
+    "platform": "native",
+    "exception": {
+        "values": [
+            {
+                "type": "SIGSEGV",
+                "value": "Segfault",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "in_app": false
+                        },
+                        {
+                            "package": "/apex/com.android.runtime/lib64/bionic/libc.so",
+                            "in_app": false
+                        },
+                        {
+                            "package": "/apex/com.android.runtime/lib64/bionic/libc.so",
+                            "in_app": false
+                        },
+                        {
+                            "function": "stripped_application_code"
+                        },
+                        {
+                            "function": "__kernel_rt_sigreturn",
+                            "package": "[vdso]",
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "min_grouping_level": 2,
+                                "symbolicator_status": "unknown_image"
+                            },
+                            "symbol_addr": "0x7a715f363c"
+                        },
+                        {
+                            "package": "/system/bin/app_process64",
+                            "in_app": false
+                        },
+                        {
+                            "package": "/lib/arm64/libBugly.so",
+                            "in_app": false
+                        },
+                        {
+                            "function": "kill",
+                            "package": "/apex/com.android.runtime/lib64/bionic/libc.so",
+                            "in_app": false
+                        }
+                    ]
+                },
+                "mechanism": {
+                    "type": "signalhandler",
+                    "synthetic": true,
+                    "handled": false,
+                    "meta": {
+                        "signal": {
+                            "number": 11,
+                            "name": "SIGSEGV"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}

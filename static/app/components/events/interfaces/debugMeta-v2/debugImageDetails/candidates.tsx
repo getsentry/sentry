@@ -331,7 +331,7 @@ class Candidates extends React.Component<Props, State> {
             />
           </Title>
           {!!candidates.length && (
-            <SearchBarAction
+            <StyledSearchBarAction
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search debug file candidates')}
@@ -397,7 +397,12 @@ const Title = styled('div')`
   align-items: center;
   font-weight: 600;
   color: ${p => p.theme.gray400};
-  margin-bottom: ${space(2)};
+  height: 32px;
+  flex: 1;
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -406,7 +411,11 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[4]}) {
     overflow: visible;
   }
+`;
+
+const StyledSearchBarAction = styled(SearchBarAction)`
+  margin-bottom: ${space(1.5)};
 `;
