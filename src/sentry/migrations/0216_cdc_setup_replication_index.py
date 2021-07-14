@@ -12,8 +12,7 @@ def set_replication_identity(schema_editor, model, column_names):
 
     if not unique_constraint_names:
         # Create a unique index since there is no unique index on the columns we want.
-        # NOTE(joshuarli): Changed to pass model._meta.db_table instead of model for Django 2.0.
-        index = schema_editor._create_index_name(model._meta.db_table, column_names, "_uniq")
+        index = schema_editor._create_index_name(model, column_names, "_uniq")
         cursor.execute(
             f'CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS {schema_editor.quote_name(index)} ON {schema_editor.quote_name(model._meta.db_table)} ({", ".join(schema_editor.quote_name(col) for col in column_names)});'
         )
