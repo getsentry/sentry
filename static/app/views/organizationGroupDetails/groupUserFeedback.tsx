@@ -6,7 +6,6 @@ import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import {Panel} from 'app/components/panels';
 import {Group, Organization, Project, UserReport} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
@@ -110,11 +109,7 @@ class GroupUserFeedback extends Component<Props, State> {
       );
     }
 
-    return (
-      <Panel>
-        <UserFeedbackEmpty projectIds={[group.project.id]} />
-      </Panel>
-    );
+    return <UserFeedbackEmpty projectIds={[group.project.id]} />;
   }
 }
 

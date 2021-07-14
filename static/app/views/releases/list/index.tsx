@@ -549,6 +549,7 @@ class ReleasesList extends AsyncView<Props, State> {
             <SortAndFilterWrapper>
               {hasSemver ? (
                 <SmartSearchBar
+                  searchSource="releases"
                   query={this.getQuery()}
                   placeholder={t('Search by release version')}
                   maxSearchItems={5}

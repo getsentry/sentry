@@ -22,6 +22,8 @@ import withProjects from 'app/utils/withProjects';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
+import {transactionSummaryRouteWithQuery} from './utils';
+
 export enum TransactionThresholdMetric {
   TRANSACTION_DURATION = 'duration',
   LARGEST_CONTENTFUL_PAINT = 'lcp',
@@ -229,9 +231,18 @@ class TransactionThresholdModal extends React.Component<Props, State> {
   }
 
   render() {
-    const {Header, Body, Footer, organization} = this.props;
+    const {Header, Body, Footer, organization, transactionName, eventView} = this.props;
 
     const project = this.getProject();
+
+    const summaryView = eventView.clone();
+    summaryView.query = summaryView.getQueryWithAdditionalConditions();
+    const target = transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      query: summaryView.generateQueryStringObject(),
+      projectID: project?.id,
+    });
 
     return (
       <React.Fragment>
@@ -243,8 +254,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
         <Body>
           <Instruction>
             {tct(
-              'The changes below will only be applied to this Transaction. To set it at a more global level, go to [projectSettings: Project Settings].',
+              'The changes below will only be applied to [transaction]. To set it at a more global level, go to [projectSettings: Project Settings].',
               {
+                transaction: <Link to={target}>{transactionName}</Link>,
                 projectSettings: (
                   <Link
                     to={`/settings/${organization.slug}/projects/${project?.slug}/performance/`}
