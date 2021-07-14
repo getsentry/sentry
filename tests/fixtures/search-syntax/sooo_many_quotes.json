@@ -2,6 +2,7 @@
   {
     "query": "device.family:\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

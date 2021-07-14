@@ -2,6 +2,7 @@ import * as React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {EChartOption} from 'echarts/lib/echarts';
 import moment from 'moment';
+import * as qs from 'query-string';
 
 import {updateDateTime} from 'app/actionCreators/globalSelection';
 import DataZoomInside from 'app/components/charts/components/dataZoomInside';
@@ -14,7 +15,7 @@ import {
   EChartRestoreHandler,
 } from 'app/types/echarts';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {getUtcDateString, getUtcToLocalDateObject} from 'app/utils/dates';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -59,6 +60,7 @@ type Props = {
   onFinished?: EChartFinishedHandler;
   onRestore?: EChartRestoreHandler;
   onZoom?: (period: Period) => void;
+  usePageDate?: boolean;
 };
 
 /**
@@ -116,7 +118,7 @@ class ChartZoom extends React.Component<Props> {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}, saveHistory = false) => {
-    const {router, onZoom} = this.props;
+    const {router, onZoom, usePageDate} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -138,16 +140,33 @@ class ChartZoom extends React.Component<Props> {
     });
 
     this.zooming = () => {
-      updateDateTime(
-        {
-          period,
-          start: startFormatted
-            ? getUtcToLocalDateObject(startFormatted)
-            : startFormatted,
-          end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
-        },
-        router
-      );
+      if (usePageDate && router) {
+        const newQuery = {
+          ...router.location.query,
+          pageStart: start ? getUtcDateString(start) : undefined,
+          pageEnd: end ? getUtcDateString(end) : undefined,
+          pageStatsPeriod: period ?? undefined,
+        };
+
+        // Only push new location if query params has changed because this will cause a heavy re-render
+        if (qs.stringify(newQuery) !== qs.stringify(router.location.query)) {
+          router.push({
+            pathname: router.location.pathname,
+            query: newQuery,
+          });
+        }
+      } else {
+        updateDateTime(
+          {
+            period,
+            start: startFormatted
+              ? getUtcToLocalDateObject(startFormatted)
+              : startFormatted,
+            end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
+          },
+          router
+        );
+      }
 
       this.saveCurrentPeriod({period, start, end});
     };

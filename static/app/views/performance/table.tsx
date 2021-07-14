@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
 import {fetchLegacyKeyTransactionsCount} from 'app/actionCreators/performance';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -11,6 +12,7 @@ import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
+import {tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -126,6 +128,11 @@ class Table extends React.Component<Props, State> {
                     transactionThresholdMetric: metric,
                   });
                 }
+                addSuccessMessage(
+                  tct('[transactionName] updated successfully', {
+                    transactionName,
+                  })
+                );
               }}
             />
           ),

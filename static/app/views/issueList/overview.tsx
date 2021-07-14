@@ -227,8 +227,11 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      if (this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: DEFAULT_DISPLAY});
+      // Reset display when selecting multiple projects
+      const projects = this.props.selection.projects ?? [];
+      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
+      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
+        this.transitionTo({display: undefined});
       }
     }
 
@@ -417,6 +420,7 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
+      this.setState({hasSessions: false});
       return;
     }
     const requestParams: StatEndpointParams = {
@@ -625,6 +629,15 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
+        trackAnalyticsEvent({
+          eventKey: 'issue_search.failed',
+          eventName: 'Issue Search: Failed',
+          organization_id: this.props.organization.id,
+          search_type: 'issues',
+          search_source: 'main_search',
+          error: parseApiError(err),
+        });
+
         this.setState({
           error: parseApiError(err),
           issuesLoading: false,
@@ -917,7 +930,6 @@ class IssueListOverview extends React.Component<Props, State> {
       eventKey: 'organization_saved_search.selected',
       eventName: 'Organization Saved Search: Selected saved search',
       organization_id: this.props.organization.id,
-      query: savedSearch.query,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
     });
@@ -1030,11 +1042,19 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
-    // TODO(workflow): When organization:semver flag is removed add 'sentry.semver' to tagStore
-    if (organization.features.includes('semver') && !tags['sentry.semver']) {
-      tags['sentry.semver'] = {
-        key: 'sentry.semver',
-        name: 'sentry.semver',
+    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
+    if (organization.features.includes('semver') && !tags['release.version']) {
+      tags['release.version'] = {
+        key: 'release.version',
+        name: 'release.version',
+      };
+      tags['release.build'] = {
+        key: 'release.build',
+        name: 'release.build',
+      };
+      tags['release.package'] = {
+        key: 'release.package',
+        name: 'release.package',
       };
     }
 

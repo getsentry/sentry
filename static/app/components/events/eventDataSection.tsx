@@ -20,11 +20,11 @@ const defaultProps = {
 type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
-  className?: string;
   title: React.ReactNode;
   type: string;
   toggleRaw?: (enable: boolean) => void;
   actions?: React.ReactNode;
+  className?: string;
 } & DefaultProps;
 
 class EventDataSection extends React.Component<Props> {
@@ -191,7 +191,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 `;
 
-const SectionContents = styled('div')`
+export const SectionContents = styled('div')`
   position: relative;
 `;
 

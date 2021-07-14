@@ -54,8 +54,8 @@ const BookmarkStar = ({
 
   return (
     <Star
-      isSolid
       isBookmarked={isBookmarked}
+      isSolid={isBookmarked}
       onClick={toggleProjectBookmark}
       className={className}
     />
@@ -66,10 +66,7 @@ const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
   isBookmarked: boolean;
 }>`
   color: ${p => (p.isBookmarked ? p.theme.yellow300 : p.theme.gray200)};
-
-  &:hover {
-    color: ${p => (p.isBookmarked ? p.theme.yellow200 : p.theme.gray300)};
-  }
+  cursor: pointer;
 `;
 
 export default withApi(BookmarkStar);

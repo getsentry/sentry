@@ -5,9 +5,17 @@ import {Tag} from 'app/types';
 import {TagValueLoader} from '../issueList/types';
 
 const supportedTags = {
-  'sentry.semver': {
-    key: 'sentry.semver',
-    name: 'sentry.semver',
+  'release.version': {
+    key: 'release.version',
+    name: 'release.version',
+  },
+  'release.build': {
+    key: 'release.build',
+    name: 'release.build',
+  },
+  'release.package': {
+    key: 'release.package',
+    name: 'release.package',
   },
   release: {
     key: 'release',
@@ -29,6 +37,7 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
 
   return (
     <SmartSearchBar
+      searchSource="project_filters"
       query={query}
       placeholder={t('Search by release version')}
       maxSearchItems={5}

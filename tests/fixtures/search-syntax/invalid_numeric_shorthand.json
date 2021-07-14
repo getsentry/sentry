@@ -2,6 +2,7 @@
   {
     "query": "stack.colno:>3s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
