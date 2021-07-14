@@ -26,7 +26,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES
-from sentry.search.events.filter import parse_semver
+from sentry.search.events.filter import _flip_field_sort, parse_semver
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
@@ -746,9 +746,8 @@ class SnubaTagStorage(TagStorage):
                 ).values_list("release_id", flat=True)
             )
 
-        versions = versions.order_by(*Release.SEMVER_COLS, "package").values_list(
-            "version", flat=True
-        )[:1000]
+        order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
+        versions = versions.order_by(*order_by).values_list("version", flat=True)[:1000]
 
         seen = set()
         formatted_versions = []
