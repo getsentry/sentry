@@ -374,7 +374,6 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     eg. duration = numeric_value, and not duration = string_value
     """
     column = args["column"]
-    condition = args["condition"]
     value = args["value"]
     if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
         try:
@@ -392,9 +391,6 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     # TODO: not supporting field aliases or arrays yet
     elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
-    # At this point only string or tag columns are left
-    elif condition not in ["equals", "notEquals"]:
-        raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
     else:
         normalized_value = value
 
