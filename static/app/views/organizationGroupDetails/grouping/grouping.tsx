@@ -27,7 +27,7 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   organization: Organization;
-  groupId: Group['id'];
+  group: Group;
   location: Location<{level?: number; cursor?: string}>;
   api: Client;
   router: InjectedRouter;
@@ -40,12 +40,13 @@ type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
 };
 
 type GroupingLevel = {
-  id: string;
+  id: number;
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization, router}: Props) {
+function Grouping({api, group, location, organization, router}: Props) {
   const {cursor, level} = location.query;
+  const groupId = group.id;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
     useState(false);
@@ -155,11 +156,11 @@ function Grouping({api, groupId, location, organization, router}: Props) {
     }
 
     if (groupingLevels.length > 1) {
-      setActiveGroupingLevel(Number(groupingLevels[1].id));
+      setActiveGroupingLevel(groupingLevels[1].id);
       return;
     }
 
-    setActiveGroupingLevel(Number(groupingLevels[0].id));
+    setActiveGroupingLevel(groupingLevels[0].id);
   }
 
   if (isLoading) {
@@ -212,6 +213,7 @@ function Grouping({api, groupId, location, organization, router}: Props) {
                     }}
                     eventCount={eventCount}
                     organization={organization}
+                    group={group}
                   />
                 );
               }

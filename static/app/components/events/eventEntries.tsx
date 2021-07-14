@@ -316,7 +316,7 @@ const EventEntries = memo(
         >
           <EventEntry
             projectSlug={projectSlug}
-            groupId={group?.id}
+            group={group}
             organization={organization}
             event={definedEvent}
             entry={entry}

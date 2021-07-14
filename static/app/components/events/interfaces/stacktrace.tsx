@@ -6,7 +6,7 @@ import CrashActions from 'app/components/events/interfaces/crashHeader/crashActi
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {Project} from 'app/types';
+import {Group, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
@@ -42,6 +42,8 @@ type Props = {
   type: string;
   data: StackTrace;
   projectId: Project['id'];
+  hasGroupingTreeUI: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 } & typeof defaultProps;
 
@@ -75,7 +77,15 @@ class StacktraceInterface extends React.Component<Props, State> {
   };
 
   render() {
-    const {projectId, event, data, hideGuide, type} = this.props;
+    const {
+      projectId,
+      event,
+      data,
+      hideGuide,
+      type,
+      groupingCurrentLevel,
+      hasGroupingTreeUI,
+    } = this.props;
     const {stackView, newestFirst} = this.state;
 
     const stackTraceNotFound = !(data.frames ?? []).length;
@@ -97,6 +107,7 @@ class StacktraceInterface extends React.Component<Props, State> {
               stackView={stackView}
               platform={event.platform}
               stacktrace={data}
+              hasGroupingTreeUI={hasGroupingTreeUI}
               onChange={this.handleChangeStackView}
             />
           )
@@ -113,6 +124,8 @@ class StacktraceInterface extends React.Component<Props, State> {
             newestFirst={newestFirst}
             stacktrace={data}
             stackType={STACK_TYPE.ORIGINAL}
+            groupingCurrentLevel={groupingCurrentLevel}
+            hasGroupingTreeUI={hasGroupingTreeUI}
           />
         )}
       </EventDataSection>

@@ -6,7 +6,10 @@ import scrollToElement from 'scroll-to-element';
 import Button from 'app/components/button';
 import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import PackageLink from 'app/components/events/interfaces/packageLink';
+import PackageLink, {
+  Package,
+  PackageName,
+} from 'app/components/events/interfaces/packageLink';
 import PackageStatus, {
   PackageStatusIcon,
 } from 'app/components/events/interfaces/packageStatus';
@@ -21,22 +24,41 @@ import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
+import {
+  Frame,
+  FrameCategory,
+  Organization,
+  PlatformType,
+  SentryAppComponent,
+} from 'app/types';
 import {Event} from 'app/types/event';
-import {defined, objectIsEmpty} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
+import Category from './category';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
-import {getPlatform, isDotnet} from './utils';
+import {
+  getPlatform,
+  hasAssembly,
+  hasContextRegisters,
+  hasContextSource,
+  hasContextVars,
+  isDotnet,
+  isExpandable,
+} from './utils';
 
 type Props = {
   data: Frame;
   event: Event;
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
+  hasGroupingTreeUI?: boolean;
+  hasAtLeastOneExpandableFrame?: boolean;
+  isPrefix?: boolean;
+  isSentinel?: boolean;
+  isUsedForGrouping?: boolean;
   nextFrame?: Frame;
   prevFrame?: Frame;
   platform?: PlatformType;
@@ -98,32 +120,6 @@ export class Line extends React.Component<Props, State> {
     });
   };
 
-  hasContextSource() {
-    return defined(this.props.data.context) && !!this.props.data.context.length;
-  }
-
-  hasContextVars() {
-    return !objectIsEmpty(this.props.data.vars || {});
-  }
-
-  hasContextRegisters() {
-    return !objectIsEmpty(this.props.registers);
-  }
-
-  hasAssembly() {
-    return isDotnet(this.getPlatform()) && defined(this.props.data.package);
-  }
-
-  isExpandable() {
-    return (
-      (!this.props.isOnlyFrame && this.props.emptySourceNotation) ||
-      this.hasContextSource() ||
-      this.hasContextVars() ||
-      this.hasContextRegisters() ||
-      this.hasAssembly()
-    );
-  }
-
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
     // of the stack trace / exception
@@ -136,6 +132,17 @@ export class Line extends React.Component<Props, State> {
       this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
       this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
     );
+  }
+
+  isExpandable() {
+    const {registers, platform, emptySourceNotation, isOnlyFrame, data} = this.props;
+    return isExpandable({
+      frame: data,
+      registers,
+      platform,
+      emptySourceNotation,
+      isOnlyFrame,
+    });
   }
 
   shouldShowLinkToImage() {
@@ -289,6 +296,24 @@ export class Line extends React.Component<Props, State> {
     );
   }
 
+  renderGroupingCategory() {
+    const {isPrefix, isSentinel, isUsedForGrouping} = this.props;
+
+    if (isSentinel) {
+      return <Category category={FrameCategory.SENTINEL} />;
+    }
+
+    if (isPrefix) {
+      return <Category category={FrameCategory.PREFIX} />;
+    }
+
+    if (isUsedForGrouping) {
+      return <Category category={FrameCategory.GROUPING} />;
+    }
+
+    return undefined;
+  }
+
   renderNativeLine() {
     const {
       data,
@@ -301,10 +326,65 @@ export class Line extends React.Component<Props, State> {
       isFrameAfterLastNonApp,
       showCompleteFunctionName,
       isHoverPreviewed,
+      hasGroupingTreeUI,
+      hasAtLeastOneExpandableFrame,
     } = this.props;
 
     const leadHint = this.renderLeadHint();
     const packageStatus = this.packageStatus();
+
+    if (hasGroupingTreeUI) {
+      return (
+        <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
+          <FrameLine
+            className="title as-table"
+            hasAtLeastOneExpandableFrame={hasAtLeastOneExpandableFrame}
+          >
+            <FramePackageInfo>
+              {leadHint}
+              <PackageLink
+                includeSystemFrames={!!includeSystemFrames}
+                withLeadHint={leadHint !== null}
+                packagePath={data.package}
+                onClick={this.scrollToImage}
+                isClickable={this.shouldShowLinkToImage()}
+                isHoverPreviewed={isHoverPreviewed}
+              >
+                {!isHoverPreviewed && (
+                  <PackageStatus
+                    status={packageStatus}
+                    tooltip={t('Go to Images Loaded')}
+                  />
+                )}
+              </PackageLink>
+            </FramePackageInfo>
+            {data.instructionAddr && (
+              <StyledTogglableAddress
+                address={data.instructionAddr}
+                startingAddress={image ? image.image_addr : null}
+                isAbsolute={!!showingAbsoluteAddress}
+                isFoundByStackScanning={this.isFoundByStackScanning()}
+                isInlineFrame={!!this.isInlineFrame()}
+                onToggle={onAddressToggle}
+                relativeAddressMaxlength={maxLengthOfRelativeAddress}
+                isHoverPreviewed={isHoverPreviewed}
+              />
+            )}
+            <StyledSymbol
+              frame={data}
+              showCompleteFunctionName={!!showCompleteFunctionName}
+              onFunctionNameToggle={onFunctionNameToggle}
+              isHoverPreviewed={isHoverPreviewed}
+            />
+            <FrameCategories>
+              {data.inApp && <Category category={FrameCategory.IN_APP} />}
+              {this.renderGroupingCategory()}
+            </FrameCategories>
+            {this.renderExpander()}
+          </FrameLine>
+        </StrictClick>
+      );
+    }
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
@@ -388,11 +468,11 @@ export class Line extends React.Component<Props, State> {
           event={this.props.event}
           registers={this.props.registers}
           components={this.props.components}
-          hasContextSource={this.hasContextSource()}
-          hasContextVars={this.hasContextVars()}
-          hasContextRegisters={this.hasContextRegisters()}
+          hasContextSource={hasContextSource(data)}
+          hasContextVars={hasContextVars(data)}
+          hasContextRegisters={hasContextRegisters(this.props.registers)}
           emptySourceNotation={this.props.emptySourceNotation}
-          hasAssembly={this.hasAssembly()}
+          hasAssembly={hasAssembly(data, this.props.platform)}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
         />
@@ -404,6 +484,83 @@ export class Line extends React.Component<Props, State> {
 export default withOrganization(
   withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
 );
+
+const FrameCategories = styled('div')`
+  display: grid;
+  grid-gap: ${space(0.5)};
+  justify-content: flex-end;
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    grid-auto-flow: column;
+  }
+`;
+
+const FrameLine = styled('div')<{hasAtLeastOneExpandableFrame?: boolean}>`
+  display: grid;
+  grid-template-columns: ${p =>
+    p.hasAtLeastOneExpandableFrame
+      ? '1fr 0.8fr 0.5fr minmax(24px, auto);'
+      : '1fr 0.8fr 0.5fr'};
+  grid-gap: ${space(0.75)};
+  padding: ${space(0.5)} 15px !important;
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    grid-template-columns: ${p =>
+      p.hasAtLeastOneExpandableFrame
+        ? '150px minmax(117px, auto) 1fr 0.5fr minmax(24px, auto)'
+        : '150px minmax(117px, auto) 1fr 0.5fr'};
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
+      props.theme.breakpoints[3]}) {
+    grid-template-columns: ${p =>
+      p.hasAtLeastOneExpandableFrame
+        ? '140px minmax(117px, auto) 1fr 0.5fr minmax(24px, auto)'
+        : '140px minmax(117px, auto) 1fr 0.5fr'};
+  }
+`;
+
+const FramePackageInfo = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: flex-start;
+
+  ${PackageName} {
+    max-width: 100%;
+  }
+
+  ${Package} {
+    overflow: hidden;
+    max-width: 100%;
+    padding: 0;
+  }
+`;
+
+const StyledTogglableAddress = styled(TogglableAddress)`
+  order: 0;
+  align-items: flex-start;
+`;
+
+const StyledSymbol = styled(Symbol)`
+  order: 0;
+  ${FunctionNameToggleIcon} {
+    display: block;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-row-start: 2;
+  }
+`;
+
+const PackageInfo = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  order: 2;
+  align-items: flex-start;
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    order: 0;
+  }
+`;
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
@@ -425,16 +582,6 @@ const VertCenterWrapper = styled('div')`
 
 const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
-`;
-
-const PackageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  order: 2;
-  align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    order: 0;
-  }
 `;
 
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
@@ -487,6 +634,8 @@ const ToggleContextButton = styled(Button)`
 `;
 
 const StyledLi = styled('li')`
+  overflow: hidden;
+
   ${PackageStatusIcon} {
     flex-shrink: 0;
   }

@@ -5,7 +5,7 @@ import CrashActions from 'app/components/events/interfaces/crashHeader/crashActi
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {t} from 'app/locale';
-import {Project} from 'app/types';
+import {Group, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
@@ -28,6 +28,8 @@ type Props = {
   data: {
     values?: Array<Thread>;
   };
+  hasGroupingTreeUI: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
 } & typeof defaultProps;
 
 type State = {
@@ -91,7 +93,15 @@ class Threads extends Component<Props, State> {
   };
 
   render() {
-    const {data, event, projectId, hideGuide, type} = this.props;
+    const {
+      data,
+      event,
+      projectId,
+      hideGuide,
+      type,
+      hasGroupingTreeUI,
+      groupingCurrentLevel,
+    } = this.props;
 
     if (!data.values) {
       return null;
@@ -150,6 +160,7 @@ class Threads extends Component<Props, State> {
               thread={hasMoreThanOneThread ? activeThread : undefined}
               exception={exception}
               onChange={this.handleChangeStackView}
+              hasGroupingTreeUI={hasGroupingTreeUI}
             />
           )
         }
@@ -165,7 +176,9 @@ class Threads extends Component<Props, State> {
           event={event}
           newestFirst={newestFirst}
           projectId={projectId}
+          groupingCurrentLevel={groupingCurrentLevel}
           stackTraceNotFound={stackTraceNotFound}
+          hasGroupingTreeUI={hasGroupingTreeUI}
         />
       </EventDataSection>
     );

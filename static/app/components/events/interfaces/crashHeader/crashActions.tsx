@@ -14,6 +14,7 @@ type NotifyOptions = {
 };
 
 type Props = {
+  hasGroupingTreeUI: boolean;
   stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
   platform?: string;
@@ -31,6 +32,7 @@ const CrashActions = ({
   exception,
   platform,
   onChange,
+  hasGroupingTreeUI,
 }: Props) => {
   const hasSystemFrames: boolean =
     stacktrace?.hasSystemFrames ||
@@ -72,15 +74,24 @@ const CrashActions = ({
   return (
     <ButtonGroupWrapper>
       <ButtonBar active={stackView} merged>
-        {hasSystemFrames && (
-          <Button
-            barId={STACK_VIEW.APP}
-            size="xsmall"
-            onClick={setStackView(STACK_VIEW.APP)}
-          >
-            {t('App Only')}
-          </Button>
-        )}
+        {hasSystemFrames &&
+          (hasGroupingTreeUI ? (
+            <Button
+              barId={STACK_VIEW.APP}
+              size="xsmall"
+              onClick={setStackView(STACK_VIEW.APP)}
+            >
+              {t('Relevant Only')}
+            </Button>
+          ) : (
+            <Button
+              barId={STACK_VIEW.APP}
+              size="xsmall"
+              onClick={setStackView(STACK_VIEW.APP)}
+            >
+              {t('App Only')}
+            </Button>
+          ))}
         <Button
           barId={STACK_VIEW.FULL}
           size="xsmall"

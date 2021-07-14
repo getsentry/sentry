@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {ExceptionType, ExceptionValue, PlatformType} from 'app/types';
+import {ExceptionType, ExceptionValue, Group, PlatformType} from 'app/types';
 
 import Exception from './exception';
 import Stacktrace from './stacktrace';
@@ -10,6 +10,8 @@ type Props = Pick<
   ExceptionProps,
   'stackType' | 'stackView' | 'projectId' | 'event' | 'newestFirst'
 > & {
+  hasGroupingTreeUI: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   exception?: ExceptionType;
   stacktrace?: ExceptionValue['stacktrace'];
 };
@@ -20,6 +22,8 @@ const CrashContent = ({
   stackType,
   newestFirst,
   projectId,
+  groupingCurrentLevel,
+  hasGroupingTreeUI,
   exception,
   stacktrace,
 }: Props) => {
@@ -35,6 +39,8 @@ const CrashContent = ({
         event={event}
         platform={platform}
         values={exception.values}
+        hasGroupingTreeUI={hasGroupingTreeUI}
+        groupingCurrentLevel={groupingCurrentLevel}
       />
     );
   }
@@ -47,6 +53,8 @@ const CrashContent = ({
         newestFirst={newestFirst}
         event={event}
         platform={platform}
+        hasGroupingTreeUI={hasGroupingTreeUI}
+        groupingCurrentLevel={groupingCurrentLevel}
       />
     );
   }

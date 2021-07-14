@@ -396,6 +396,7 @@ export type EventMetadata = {
   stripped_crash?: boolean;
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
+  current_level?: number;
 };
 
 export type EventAttachment = {
@@ -1981,7 +1982,17 @@ export type Frame = {
   origAbsPath?: string | null;
   mapUrl?: string | null;
   map?: string | null;
+  isSentinel?: boolean;
+  isPrefix?: boolean;
+  minGroupingLevel?: number;
 };
+
+export enum FrameCategory {
+  SENTINEL = 'sentinel',
+  PREFIX = 'prefix',
+  GROUPING = 'grouping',
+  IN_APP = 'in_app',
+}
 
 /**
  * Note used in Group Activity and Alerts for users to comment

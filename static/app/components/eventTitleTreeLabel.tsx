@@ -82,9 +82,11 @@ const PriorityLabel = styled(Label)`
 `;
 
 const RemainingLabels = styled('div')`
-  ${overflowEllipsis}
-  display: inline-block;
-  min-width: 50px;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+  align-items: center;
+  overflow: hidden;
 `;
 
 export const Divider = styled('div')`

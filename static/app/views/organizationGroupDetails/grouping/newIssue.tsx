@@ -6,21 +6,28 @@ import TimeSince from 'app/components/timeSince';
 import {IconClock} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Group, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 
 type Props = {
   sampleEvent: Event;
   eventCount: number;
   organization: Organization;
+  group?: Group;
 };
 
-function NewIssue({sampleEvent, eventCount, organization}: Props) {
+function NewIssue({sampleEvent, eventCount, organization, group}: Props) {
   return (
     <Fragment>
       <EventDetails>
         <EventOrGroupHeader
-          data={sampleEvent}
+          data={{
+            ...sampleEvent,
+            metadata: {
+              ...sampleEvent.metadata,
+              current_level: group?.metadata?.current_level,
+            },
+          }}
           organization={organization}
           hideIcons
           hideLevel

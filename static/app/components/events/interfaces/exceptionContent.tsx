@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
 import Annotated from 'app/components/events/meta/annotated';
 import space from 'app/styles/space';
-import {ExceptionType} from 'app/types';
+import {ExceptionType, Group} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE} from 'app/types/stacktrace';
 
@@ -19,6 +19,8 @@ type Props = {
   event: Event;
   type: STACK_TYPE;
   platform: ExceptionStacktraceContentProps['platform'];
+  hasGroupingTreeUI: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: ExceptionStacktraceContentProps['stackView'];
   newestFirst?: boolean;
 } & Pick<ExceptionType, 'values'>;
@@ -27,6 +29,8 @@ const ExceptionContent = ({
   newestFirst,
   event,
   stackView,
+  groupingCurrentLevel,
+  hasGroupingTreeUI,
   platform,
   values,
   type,
@@ -55,6 +59,8 @@ const ExceptionContent = ({
         newestFirst={newestFirst}
         event={event}
         chainedException={values.length > 1}
+        hasGroupingTreeUI={hasGroupingTreeUI}
+        groupingCurrentLevel={groupingCurrentLevel}
       />
     </div>
   ));

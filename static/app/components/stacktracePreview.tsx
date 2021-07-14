@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import StacktraceContentV2 from 'app/components/events/interfaces/stacktraceContentV2';
 import Hovercard, {Body} from 'app/components/hovercard';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
@@ -27,6 +28,7 @@ type Props = {
   organization: Organization;
   api: Client;
   theme: Theme;
+  groupingCurrentLevel?: number;
   disablePreview?: boolean;
   eventId?: string;
   projectSlug?: string;
@@ -136,18 +138,38 @@ class StacktracePreview extends React.Component<Props, State> {
       );
     }
 
+    const {organization, groupingCurrentLevel} = this.props;
+
     if (event) {
+      const platform = (event.platform ?? 'other') as PlatformType;
+      const stackTracePlatform =
+        ((stacktrace?.frames ?? []).find(frame => frame.platform) || platform) ?? 'other';
+
       return (
         <div onClick={this.handleStacktracePreviewClick}>
-          <StacktraceContent
-            data={stacktrace}
-            expandFirstFrame={false}
-            includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
-            platform={(event.platform ?? 'other') as PlatformType}
-            newestFirst={isStacktraceNewestFirst()}
-            event={event}
-            isHoverPreviewed
-          />
+          {!!organization.features?.includes('grouping-tree-ui') &&
+          (stackTracePlatform === 'native' || stackTracePlatform === 'cocoa') ? (
+            <StacktraceContentV2
+              data={stacktrace}
+              expandFirstFrame={false}
+              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
+              platform={platform}
+              newestFirst={isStacktraceNewestFirst()}
+              event={event}
+              groupingCurrentLevel={groupingCurrentLevel}
+              isHoverPreviewed
+            />
+          ) : (
+            <StacktraceContent
+              data={stacktrace}
+              expandFirstFrame={false}
+              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
+              platform={platform}
+              newestFirst={isStacktraceNewestFirst()}
+              event={event}
+              isHoverPreviewed
+            />
+          )}
         </div>
       );
     }
