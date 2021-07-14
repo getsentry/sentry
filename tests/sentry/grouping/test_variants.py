@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.event_manager import detect_synthetic_exception
 from sentry.eventtypes.base import format_title_from_tree_label
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import GroupingComponent
@@ -60,6 +61,9 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     # Make sure we don't need to touch the DB here because this would
     # break stuff later on.
     evt.project = None
+
+    # Set the synthetic marker if detected
+    detect_synthetic_exception(evt)
 
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):

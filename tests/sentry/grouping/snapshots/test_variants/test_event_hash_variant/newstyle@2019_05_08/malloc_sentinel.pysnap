@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T15:46:23.885265Z'
+created: '2021-07-14T12:39:36.089480Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -93,13 +93,13 @@ app:
           frame (non app frame)
             function*
               "__pthread_kill"
-        type*
+        type (ignored because exception is synthetic)
           "SIGABRT"
         value*
           "<redacted>"
 --------------------------------------------------------------------------
 system:
-  hash: "2f4ae73b88dbbc7e1cee4f86e270c4b4"
+  hash: "0331c536421626fc316b7756789d7b20"
   component:
     system*
       exception*
@@ -188,7 +188,7 @@ system:
           frame*
             function*
               "__pthread_kill"
-        type*
+        type (ignored because exception is synthetic)
           "SIGABRT"
         value (ignored because stacktrace takes precedence)
           "<redacted>"

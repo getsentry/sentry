@@ -369,7 +369,7 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        _detect_synthetic_exception(job["event"])
+        detect_synthetic_exception(job["event"])
 
         do_background_grouping_before = options.get("store.background-grouping-before")
         if do_background_grouping_before:
@@ -633,7 +633,7 @@ def _pull_out_data(jobs, projects):
         )
 
 
-def _detect_synthetic_exception(event):
+def detect_synthetic_exception(event):
     """synthetic flag should be set by SDK, but can be autodetected as a fallback"""
     for exception in get_path(event.data, "exception", "values", filter=True, default=[]):
         mechanism = get_path(exception, "mechanism")
