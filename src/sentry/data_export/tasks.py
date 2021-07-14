@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import capture_exception
 
 from .base import (
@@ -308,8 +309,13 @@ def merge_export_blobs(data_export_id, **kwargs):
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
-            assert router.db_for_write(File) == router.db_for_write(FileBlobIndex)
-            with transaction.atomic(using=router.db_for_write(File)):
+            with atomic_transaction(
+                using={
+                    router.db_for_write(File),
+                    router.db_for_write(FileBlobIndex),
+                    router.db_for_write(ExportedData),
+                }
+            ):
                 file = File.objects.create(
                     name=data_export.file_name,
                     type="export.csv",

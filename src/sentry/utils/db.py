@@ -1,7 +1,27 @@
+from contextlib import ExitStack
 import sentry_sdk
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
 from sentry_sdk.integrations import Integration
+
+
+def atomic_transaction(using, savepoint=True):
+    """
+    Open transaction to one or multiple databases.
+
+    Usage:
+
+    >>> atomic_transaction(using=router.db_for_write(File))
+    >>> atomic_transaction(using={router.db_for_write(Release), router.db_for_write(ReleaseFile)})
+
+    """
+    if isinstance(using, str):
+        return transaction.atomic(using=using, savepoint=savepoint)
+
+    stack = ExitStack()
+    for db in set(using):
+        stack.enter_context(transaction.atomic(using=db, savepoint=savepoint))
+    return stack
 
 
 class DjangoAtomicIntegration(Integration):
