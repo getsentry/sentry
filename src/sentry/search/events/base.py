@@ -1,4 +1,4 @@
-from typing import Callable, List, Mapping, Set
+from typing import Callable, List, Mapping, Optional, Set
 
 from django.utils.functional import cached_property
 from snuba_sdk.column import Column
@@ -6,7 +6,14 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
+from sentry.models.transaction_threshold import (
+    TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
+    ProjectTransactionThresholdOverride,
+)
 from sentry.search.events.constants import (
+    DEFAULT_PROJECT_THRESHOLD,
+    DEFAULT_PROJECT_THRESHOLD_METRIC,
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
@@ -14,6 +21,8 @@ from sentry.search.events.constants import (
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
+    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     SNQL_FIELD_ALLOWLIST,
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
@@ -53,11 +62,11 @@ class QueryBase:
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
             TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
+            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
             # TODO: implement these
             ERROR_UNHANDLED_ALIAS: self._resolve_unimplemented_alias,
             KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
-            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_unimplemented_alias,
         }
 
     @cached_property
@@ -130,6 +139,147 @@ class QueryBase:
         return Function(
             "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
         )
+
+    def _resolve_project_threshold_config(self, _: str) -> SelectType:
+        org_id = self.params.get("organization_id")
+        project_ids = self.params.get("project_id")
+
+        project_threshold_configs = (
+            ProjectTransactionThreshold.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values("project_id", "threshold", "metric")
+        )
+
+        transaction_threshold_configs = (
+            ProjectTransactionThresholdOverride.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values("transaction", "project_id", "threshold", "metric")
+        )
+
+        project_threshold_config_index: SelectType = Function(
+            "indexOf",
+            [
+                Function(
+                    "array",
+                    [
+                        Function("toUInt64", [config["project_id"]])
+                        for config in project_threshold_configs
+                    ],
+                ),
+                self.column("project_id"),
+            ],
+            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+        )
+
+        project_threshold_override_config_index: SelectType = Function(
+            "indexOf",
+            [
+                Function(
+                    "array",
+                    [
+                        Function(
+                            "tuple",
+                            [
+                                Function("toUInt64", [config["project_id"]]),
+                                "{}".format(config["transaction"]),
+                            ],
+                        )
+                        for config in transaction_threshold_configs
+                    ],
+                ),
+                Function("tuple", [self.column("project_id"), self.column("transaction")]),
+            ],
+            PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+        )
+
+        def project_threshold_config(alias: Optional[str] = None) -> SelectType:
+            return (
+                Function(
+                    "if",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                project_threshold_config_index,
+                                0,
+                            ],
+                        ),
+                        Function(
+                            "tuple",
+                            [f"{DEFAULT_PROJECT_THRESHOLD_METRIC}", DEFAULT_PROJECT_THRESHOLD],
+                        ),
+                        Function(
+                            "arrayElement",
+                            [
+                                Function(
+                                    "array",
+                                    [
+                                        Function(
+                                            "tuple",
+                                            [
+                                                "{}".format(TRANSACTION_METRICS[config["metric"]]),
+                                                config["threshold"],
+                                            ],
+                                        )
+                                        for config in project_threshold_configs
+                                    ],
+                                ),
+                                project_threshold_config_index,
+                            ],
+                        ),
+                    ],
+                    alias,
+                )
+                if project_threshold_configs
+                else Function(
+                    "tuple",
+                    [f"{DEFAULT_PROJECT_THRESHOLD_METRIC}", DEFAULT_PROJECT_THRESHOLD],
+                    alias,
+                )
+            )
+
+        if transaction_threshold_configs:
+            return Function(
+                "if",
+                [
+                    Function(
+                        "equals",
+                        [
+                            project_threshold_override_config_index,
+                            0,
+                        ],
+                    ),
+                    project_threshold_config(),
+                    Function(
+                        "arrayElement",
+                        [
+                            Function(
+                                "array",
+                                [
+                                    Function(
+                                        "tuple",
+                                        [
+                                            "{}".format(TRANSACTION_METRICS[config["metric"]]),
+                                            config["threshold"],
+                                        ],
+                                    )
+                                    for config in transaction_threshold_configs
+                                ],
+                            ),
+                            project_threshold_override_config_index,
+                        ],
+                    ),
+                ],
+                PROJECT_THRESHOLD_CONFIG_ALIAS,
+            )
+
+        return project_threshold_config(PROJECT_THRESHOLD_CONFIG_ALIAS)
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.

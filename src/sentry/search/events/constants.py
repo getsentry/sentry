@@ -4,6 +4,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
+PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
+PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
@@ -82,6 +84,7 @@ SNQL_FIELD_ALLOWLIST = {
     "environment",
     "message",
     "project",
+    "transaction",
     "project.id",
     "release",
     USER_DISPLAY_ALIAS,
