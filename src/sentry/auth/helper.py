@@ -883,7 +883,7 @@ class AuthHelper:
                 "provider": self.provider.key,
                 "organization_id": self.organization.id,
                 "user_id": self.request.user.id,
-                "message": message,
+                "error_message": message,
             },
         )
 
