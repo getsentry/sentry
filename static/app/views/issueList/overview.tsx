@@ -227,8 +227,11 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      if (this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: DEFAULT_DISPLAY});
+      // Reset display when selecting multiple projects
+      const projects = this.props.selection.projects ?? [];
+      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
+      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
+        this.transitionTo({display: undefined});
       }
     }
 
@@ -626,6 +629,15 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
+        trackAnalyticsEvent({
+          eventKey: 'issue_search.failed',
+          eventName: 'Issue Search: Failed',
+          organization_id: this.props.organization.id,
+          search_type: 'issues',
+          search_source: 'main_search',
+          error: parseApiError(err),
+        });
+
         this.setState({
           error: parseApiError(err),
           issuesLoading: false,
@@ -918,7 +930,6 @@ class IssueListOverview extends React.Component<Props, State> {
       eventKey: 'organization_saved_search.selected',
       eventName: 'Organization Saved Search: Selected saved search',
       organization_id: this.props.organization.id,
-      query: savedSearch.query,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
     });
