@@ -1,9 +1,8 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconCheckmark, IconInfo, IconNot, IconWarning} from 'app/icons';
+import {IconCheckmark, IconInfo, IconLightning, IconNot, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 
 export default {
@@ -94,6 +93,48 @@ System.parameters = {
     description: {
       story:
         'System-level alert messages that appear at the top of the viewport, or embedded in a panel',
+    },
+  },
+};
+
+export const Expandable = () => {
+  return (
+    <Grid>
+      <Alert
+        type="info"
+        icon={<IconInfo size="md" />}
+        expand={[<div key="1">Here is some details</div>]}
+      >
+        Expandable Alert
+      </Alert>
+
+      <Alert
+        type="success"
+        icon={<IconCheckmark size="md" />}
+        expand={[<div key="1">Here is some details</div>]}
+        expandIcon={<IconLightning size="md" />}
+      >
+        Expandable Alert with Custom Expand Icon
+      </Alert>
+
+      <Alert
+        type="warning"
+        icon={<IconWarning size="md" />}
+        expand={[<div key="1">Here is some details</div>]}
+        expandIcon={<IconCheckmark size="md" />}
+        onExpandIconClick={() => {}}
+      >
+        Expandable Alert with Custom Expand Icon behaviour
+      </Alert>
+    </Grid>
+  );
+};
+
+Expandable.storyName = 'Expandable';
+Expandable.parameters = {
+  docs: {
+    description: {
+      story: 'Expand with details',
     },
   },
 };

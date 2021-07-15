@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:52.987233Z'
+created: '2021-07-14T12:39:41.823825Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -253,7 +253,7 @@ app-depth-max:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "a12f03cf6be0c16305a3c6c5c69538e8"
+  hash: "ef1b58eb2e70ff452c576019ee8481bd"
   tree_label: "something | sentry | sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start | _main"
   component:
     system*
@@ -323,7 +323,7 @@ system:
               "<redacted>"
             package* (used as fallback because function name is not available)
               "something"
-        type (ignored because exception is synthetic)
+        type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
