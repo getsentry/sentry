@@ -219,19 +219,22 @@ class KafkaEventStream(SnubaProtocolEventStream):
             use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
 
             if use_kafka_headers is True:
-                with metrics.timer(
-                    "eventstream.duration", instance="get_task_kwargs_for_message_from_headers"
-                ):
-                    task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
-            else:
-                with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
-                    task_kwargs = get_task_kwargs_for_message(message.value())
+                try:
+                    with metrics.timer(
+                        "eventstream.duration", instance="get_task_kwargs_for_message_from_headers"
+                    ):
+                        task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
 
-            if task_kwargs is not None:
-                with metrics.timer(
-                    "eventstream.duration", instance="dispatch_post_process_group_task"
-                ):
-                    self._dispatch_post_process_group_task(**task_kwargs)
+                    with metrics.timer(
+                        "eventstream.duration", instance="dispatch_post_process_group_task"
+                    ):
+                        self._dispatch_post_process_group_task(**task_kwargs)
+
+                except Exception:
+                    self._get_task_kwargs_and_dispatch(message)
+
+            else:
+                self._get_task_kwargs_and_dispatch(message)
 
             if i % commit_batch_size == 0:
                 commit_offsets()
@@ -240,3 +243,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
         commit_offsets()
 
         consumer.close()
+
+    def _get_task_kwargs_and_dispatch(self, message) -> None:
+        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
+            task_kwargs = get_task_kwargs_for_message(message.value())
+
+        if task_kwargs is not None:
+            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
+                self._dispatch_post_process_group_task(**task_kwargs)
