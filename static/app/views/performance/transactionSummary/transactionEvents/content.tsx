@@ -6,6 +6,7 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
@@ -258,7 +259,7 @@ const Search = (props: Props) => {
         fields={eventView.fields}
         onSearch={handleSearch}
       />
-      <LatencyDropdown>
+      <SearchRowMenuItem>
         <DropdownControl
           buttonProps={{prefix: t('Percentile')}}
           label={eventsFilterOptions[eventsDisplayFilterName].label}
@@ -277,7 +278,12 @@ const Search = (props: Props) => {
             );
           })}
         </DropdownControl>
-      </LatencyDropdown>
+      </SearchRowMenuItem>
+      <SearchRowMenuItem>
+        <Button to={eventView.getResultsViewUrlTarget(organization.slug)}>
+          {t('Open in Discover')}
+        </Button>
+      </SearchRowMenuItem>
     </SearchWrapper>
   );
 };
@@ -307,7 +313,7 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   }
 `;
 
-const LatencyDropdown = styled('div')`
+const SearchRowMenuItem = styled('div')`
   margin-left: ${space(1)};
   flex-grow: 0;
 `;
