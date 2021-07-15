@@ -29,7 +29,7 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
   width: 100%;
   border-left: ${p => {
     if (p.hasCollapsedSpanGroup) {
-      return 'none';
+      return '1px solid transparent';
     }
 
     return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border}`;
