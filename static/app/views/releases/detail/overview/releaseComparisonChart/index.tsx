@@ -219,7 +219,7 @@ function ReleaseComparisonChart({
 
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
-      ? eventsTotals?.releaseFailureRate - eventsTotals?.allFailureRate
+      ? eventsTotals.releaseFailureRate - eventsTotals.allFailureRate
       : null;
 
   // TODO(release-comparison): conditional based on sessions/transactions/discover existence
