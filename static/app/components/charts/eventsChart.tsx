@@ -58,6 +58,7 @@ type ChartProps = {
     | React.ComponentType<BarChart['props']>
     | React.ComponentType<AreaChart['props']>
     | React.ComponentType<LineChart['props']>;
+  height?: number;
 };
 
 type State = {
@@ -155,6 +156,7 @@ class Chart extends React.Component<ChartProps, State> {
       previousSeriesName,
       seriesTransformer,
       colors,
+      height,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -237,6 +239,7 @@ class Chart extends React.Component<ChartProps, State> {
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : undefined}
+        height={height}
       />
     );
   }
@@ -324,6 +327,10 @@ export type EventsChartProps = {
   chartHeader?: React.ReactNode;
   releaseQueryExtra?: Query;
   preserveReleaseQueryParams?: boolean;
+  /**
+   * Chart zoom will change 'pageStart' instead of 'start'
+   */
+  usePageZoom?: boolean;
 } & Pick<
   ChartProps,
   | 'currentSeriesName'
@@ -334,6 +341,7 @@ export type EventsChartProps = {
   | 'legendOptions'
   | 'chartOptions'
   | 'chartComponent'
+  | 'height'
 >;
 
 type ChartDataProps = {
@@ -381,6 +389,8 @@ class EventsChart extends React.Component<EventsChartProps> {
       releaseQueryExtra,
       disableableSeries,
       chartComponent,
+      usePageZoom,
+      height,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -416,7 +426,11 @@ class EventsChart extends React.Component<EventsChartProps> {
       const seriesData = results ? results : timeseriesData;
 
       return (
-        <TransitionChart loading={loading} reloading={reloading}>
+        <TransitionChart
+          loading={loading}
+          reloading={reloading}
+          height={height ? `${height}px` : undefined}
+        >
           <TransparentLoadingMask visible={reloading} />
 
           {React.isValidElement(chartHeader) && chartHeader}
@@ -440,6 +454,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             chartOptions={chartOptions}
             disableableSeries={disableableSeries}
             chartComponent={chartComponent}
+            height={height}
           />
         </TransitionChart>
       );
@@ -471,6 +486,7 @@ class EventsChart extends React.Component<EventsChartProps> {
         start={start}
         end={end}
         utc={utc}
+        usePageDate={usePageZoom}
         {...props}
       >
         {zoomRenderProps => (

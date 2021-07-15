@@ -3,6 +3,7 @@
     "desc": "Numeric format should still return a string if field isn't allowed",
     "query": "random_field:>500",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -17,6 +18,7 @@
   {
     "query": "project_id:-500",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",

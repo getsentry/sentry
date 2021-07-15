@@ -12,7 +12,6 @@ type Props = {
   statsPeriod: string;
   onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
-  hasInbox?: boolean;
   anySelected?: boolean;
 };
 
@@ -21,7 +20,6 @@ function Headers({
   statsPeriod,
   onSelectStatsPeriod,
   isReprocessingQuery,
-  hasInbox,
 }: Props) {
   return (
     <Fragment>
@@ -33,9 +31,7 @@ function Headers({
         </Fragment>
       ) : (
         <Fragment>
-          <GraphHeaderWrapper
-            className={`hidden-xs hidden-sm ${hasInbox ? 'hidden-md' : ''}`}
-          >
+          <GraphHeaderWrapper className="hidden-xs hidden-sm hidden-md">
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               {selection.datetime.period !== '24h' && (

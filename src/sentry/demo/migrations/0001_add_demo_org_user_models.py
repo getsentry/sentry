@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("sentry", "0173_remove_demo_flag"),
+        ("sentry", "0001_squashed_0200_release_indices"),
     ]
 
     operations = [

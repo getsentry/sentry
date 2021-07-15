@@ -1,8 +1,6 @@
 import logging
-from datetime import datetime
 
-import pytz
-
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.models import EventDict
 from sentry.utils import json, metrics
@@ -21,10 +19,6 @@ def basic_protocol_handler(unsupported_operations):
     def get_task_kwargs_for_insert(operation, event_data, task_state=None):
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
-
-        event_data["datetime"] = datetime.strptime(
-            event_data["datetime"], "%Y-%m-%dT%H:%M:%S.%fZ"
-        ).replace(tzinfo=pytz.utc)
 
         # This data is already normalized as we're currently in the
         # ingestion pipeline and the event was in store
@@ -98,7 +92,8 @@ def get_task_kwargs_for_message(value):
     """
 
     metrics.timing("eventstream.events.size.data", len(value))
-    payload = json.loads(value)
+    use_rapid_json = options.get("post-process-forwarder:rapidjson")
+    payload = json.loads(value, use_rapid_json=use_rapid_json)
 
     try:
         version = payload[0]

@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {withTheme} from '@emotion/react';
@@ -9,8 +8,6 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import Count from 'app/components/count';
-import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconWarning} from 'app/icons';
@@ -21,12 +18,11 @@ import {
   SessionApiResponse,
   SessionField,
 } from 'app/types';
-import {percent} from 'app/utils';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 
 import {getReleaseBounds, getReleaseParams} from '../../utils';
-import {generateReleaseMarkLines} from '../utils';
+import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../utils';
 
 import {SectionHeading} from './styles';
 
@@ -105,15 +101,6 @@ function ReleaseComparisonChart({
     return series;
   }
 
-  function getSummary(field: SessionField) {
-    const allSessionsCount = getCount(allSessions?.groups, field);
-    const releaseSessionsCount = getCount(releaseSessions?.groups, field);
-
-    const adoptionPercent = Math.round(percent(releaseSessionsCount, allSessionsCount));
-
-    return {adoptionPercent, allSessionsCount, releaseSessionsCount};
-  }
-
   const colors = theme.charts.getColorPalette(2);
 
   const axisLineConfig = {
@@ -135,16 +122,16 @@ function ReleaseComparisonChart({
   };
 
   const chartOptions = {
-    height: hasUsers ? 320 : 160,
+    height: hasUsers ? 280 : 140,
     grid: [
       {
-        top: '60px',
+        top: '40px',
         left: '10px',
         right: '10px',
         height: '100px',
       },
       {
-        top: '220px',
+        top: '180px',
         left: '10px',
         right: '10px',
         height: '100px',
@@ -178,12 +165,11 @@ function ReleaseComparisonChart({
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
-      valueFormatter: (value: number) => `${value}%`,
+      valueFormatter: (value: number, label?: string) =>
+        label && Object.values(releaseMarkLinesLabels).includes(label) ? '' : `${value}%`,
     },
   };
 
-  const sessionsSummary = getSummary(SessionField.SESSIONS);
-  const usersSummary = getSummary(SessionField.USERS);
   const {
     statsPeriod: period,
     start,
@@ -209,23 +195,10 @@ function ReleaseComparisonChart({
             size="sm"
           />
         </ChartTitle>
-        <ChartSummaryValue
-          isLoading={loading}
-          error={errored}
-          value={
-            <Fragment>
-              {`${sessionsSummary.adoptionPercent}%`}
-              <ChartTotal>
-                <Count value={sessionsSummary.releaseSessionsCount} />/
-                <Count value={sessionsSummary.allSessionsCount} />
-              </ChartTotal>
-            </Fragment>
-          }
-        />
       </ChartLabel>
 
       {hasUsers && (
-        <ChartLabel top="160px">
+        <ChartLabel top="140px">
           <ChartTitle>
             {t('Users Adopted')}
             <QuestionTooltip
@@ -236,29 +209,15 @@ function ReleaseComparisonChart({
               size="sm"
             />
           </ChartTitle>
-
-          <ChartSummaryValue
-            isLoading={loading}
-            error={errored}
-            value={
-              <Fragment>
-                {`${usersSummary.adoptionPercent}%`}
-                <ChartTotal>
-                  <Count value={usersSummary.releaseSessionsCount} />/
-                  <Count value={usersSummary.allSessionsCount} />
-                </ChartTotal>
-              </Fragment>
-            }
-          />
         </ChartLabel>
       )}
 
       {errored ? (
-        <ErrorPanel height="320px">
+        <ErrorPanel height="280px">
           <IconWarning color="gray300" size="lg" />
         </ErrorPanel>
       ) : (
-        <TransitionChart loading={loading} reloading={reloading} height="320px">
+        <TransitionChart loading={loading} reloading={reloading} height="280px">
           <TransparentLoadingMask visible={reloading} />
           <ChartZoom
             router={router}
@@ -294,33 +253,5 @@ const ChartLabel = styled('div')<{top: string}>`
   left: 0;
   right: 0;
 `;
-
-const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const ChartTotal = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-`;
-
-type ChartValueProps = {
-  isLoading: boolean;
-  error: string | null | boolean;
-  value: React.ReactNode;
-};
-
-function ChartSummaryValue({error, isLoading, value}: ChartValueProps) {
-  if (error) {
-    return <div>{'\u2014'}</div>;
-  } else if (isLoading) {
-    return <Placeholder height="24px" />;
-  } else {
-    return <ChartValue>{value}</ChartValue>;
-  }
-}
 
 export default withTheme(withRouter(ReleaseComparisonChart));
