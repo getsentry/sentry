@@ -332,11 +332,12 @@ class ReleaseSerializer(Serializer):
         if with_health_data and no_snuba:
             raise TypeError("health data requires snuba")
 
+        adoption_stages = {}
+        release_project_envs = None
         if self.with_adoption_stages:
             release_project_envs = self._get_release_project_envs(item_list, environments, project)
             adoption_stages = self._get_release_adoption_stages(release_project_envs)
-        else:
-            release_project_envs = None
+
         if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list
@@ -432,7 +433,7 @@ class ReleaseSerializer(Serializer):
                 "first_seen": first_seen.get(item.version),
                 "last_seen": last_seen.get(item.version),
             }
-            if self.with_adoption_stages:
+            if adoption_stages:
                 p.update(
                     {
                         "adoption_stages": adoption_stages.get(item.version),
