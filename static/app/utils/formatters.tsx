@@ -196,7 +196,11 @@ export function formatPercentage(value: number, places: number = 2) {
   if (value === 0) {
     return '0%';
   }
-  return (value * 100).toFixed(places) + '%';
+  return (
+    round(value * 100, places).toLocaleString(undefined, {
+      maximumFractionDigits: places,
+    }) + '%'
+  );
 }
 
 const numberFormats = [
