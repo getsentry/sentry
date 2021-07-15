@@ -137,7 +137,9 @@ class QueryBase:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
 
     def _resolve_error_handled_alias(self, _: str) -> SelectType:
-        return Function("isHandled", [], ERROR_HANDLED_ALIAS)
+        # Columns in snuba doesn't support aliasing right now like Function does.
+        # Adding a no-op here to get the alias.
+        return Function("coalesce", [self.column("error.handled"), []], ERROR_HANDLED_ALIAS)
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.

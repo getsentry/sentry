@@ -957,8 +957,8 @@ class QueryFilter(QueryBase):
             ISSUE_ALIAS: self._issue_filter_converter,
             TRANSACTION_STATUS_ALIAS: self._transaction_status_filter_converter,
             ISSUE_ID_ALIAS: self._issue_id_filter_converter,
-            ERROR_UNHANDLED_ALIAS: self._error_handled_unhandled_filter_converter,
-            ERROR_HANDLED_ALIAS: self._error_handled_unhandled_filter_converter,
+            ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
+            ERROR_HANDLED_ALIAS: self._error_handled_filter_converter,
         }
 
     def resolve_where(self, query: Optional[str]) -> List[WhereType]:
@@ -1209,21 +1209,36 @@ class QueryFilter(QueryBase):
         # allow snuba's prewhere optimizer to find this condition.
         return Condition(lhs, Op(search_filter.operator), rhs)
 
-    def _error_handled_unhandled_filter_converter(
+    def _error_handled_filter_converter(
         self,
         search_filter: SearchFilter,
     ) -> Optional[WhereType]:
-        name = search_filter.key.name
         value = search_filter.value.value
-        lhs = self.resolve_field_alias(name)
-
-        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
             output = 1 if search_filter.operator == "!=" else 0
-            return Condition(lhs, Op.EQ, output)
+            return Condition(Function("isHandled", []), Op.EQ, output)
+        if value in ("1", 1):
+            return Condition(Function("isHandled", []), Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(Function("notHandled", []), Op.EQ, 1)
+        raise InvalidSearchQuery(
+            "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
 
-        if value not in ("0", 0, "1", 1):
-            raise InvalidSearchQuery(
-                f"Invalid value {value} for error.handled condition. Accepted values are 1, 0."
-            )
-
-        return Condition(lhs, Op(search_filter.operator), value)
+    def _error_unhandled_filter_converter(
+        self,
+        search_filter: SearchFilter,
+    ) -> Optional[WhereType]:
+        value = search_filter.value.value
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
+            output = 0 if search_filter.operator == "!=" else 1
+            return Condition(Function("isHandled", []), Op.EQ, output)
+        if value in ("1", 1):
+            return [Function("notHandled", []), "=", 1]
+        if value in ("0", 0):
+            return [Function("isHandled", []), "=", 1]
+        raise InvalidSearchQuery(
+            "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )

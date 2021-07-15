@@ -25,7 +25,6 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
-    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
@@ -407,7 +406,6 @@ FIELD_ALIASES = {
             "timestamp.to_day", "timestamp.to_day", expression=["toStartOfDay", ["timestamp"]]
         ),
         PseudoField(ERROR_UNHANDLED_ALIAS, ERROR_UNHANDLED_ALIAS, expression=["notHandled", []]),
-        PseudoField(ERROR_HANDLED_ALIAS, ERROR_HANDLED_ALIAS, expression=["isHandled", []]),
         PseudoField(
             USER_DISPLAY_ALIAS,
             USER_DISPLAY_ALIAS,

@@ -504,16 +504,16 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             self.store_event(data=data, project_id=self.project.id)
 
         queries = [
-            ("error.handled:true", ["b" * 32, "c" * 32], [1, 1]),
-            ("!error.handled:true", ["a" * 32], [0]),
-            ("!error.handled:true", ["a" * 32], [0]),
-            ("has:error.handled", ["b" * 32, "c" * 32], [1, 1]),
-            ("has:error.handled error.handled:true", ["b" * 32, "c" * 32], [1, 1]),
-            ("error.handled:false", ["a" * 32], [0]),
-            ("has:error.handled error.handled:false", [], []),
+            ("", [[0], [1], [None]]),
+            ("error.handled:true", [[1], [None]]),
+            ("!error.handled:true", [[0]]),
+            ("has:error.handled", [[1], [None]]),
+            ("has:error.handled error.handled:true", [[1], [None]]),
+            ("error.handled:false", [[0]]),
+            ("has:error.handled error.handled:false", []),
         ]
 
-        for query, expected_events, error_handled in queries:
+        for query, expected_data in queries:
             for query_fn in [discover.query, discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=["error.handled"],
@@ -525,10 +525,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                         "end": before_now(minutes=8),
                     },
                 )
-                data = result["data"]
 
-                assert len(data) == len(expected_events), query_fn
-                assert [item["error.handled"] for item in data] == error_handled
+                data = result["data"]
+                data = sorted(
+                    data, key=lambda k: (k["error.handled"][0] is None, k["error.handled"][0])
+                )
+
+                assert len(data) == len(expected_data), query_fn
+                assert [item["error.handled"] for item in data] == expected_data
 
     def test_error_unhandled_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
