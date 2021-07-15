@@ -58,6 +58,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
+import {MeasurementMarker} from './styles';
 import {
   FetchEmbeddedChildrenState,
   ParsedTraceType,
@@ -973,22 +974,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 }
-
-const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
-  position: absolute;
-  top: 0;
-  height: ${ROW_HEIGHT}px;
-  user-select: none;
-  width: 1px;
-  background: repeating-linear-gradient(
-      to bottom,
-      transparent 0 4px,
-      ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
-    )
-    80%/2px 100% no-repeat;
-  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
-  color: ${p => p.theme.textColor};
-`;
 
 const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};
