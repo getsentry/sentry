@@ -368,6 +368,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         "pendingDownloads": 123,
         "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
         "latestBuildVersion: "9.8.7",
+        "latestBuildNumber": "987000",
     }
     ```
 
@@ -415,11 +416,11 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             .first()
         )
         if latest_build is None:
-            latestBundleVersion = None
-            latestBundleShortVersion = None
+            latestBuildVersion = None
+            latestBuildNumber = None
         else:
-            latestBundleVersion = latest_build.bundle_version
-            latestBundleShortVersion = latest_build.bundle_short_version
+            latestBuildVersion = latest_build.bundle_short_version
+            latestBuildNumber = latest_build.bundle_version
 
         return Response(
             {
@@ -427,8 +428,8 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "itunesSessionValid": itunes_session_info is not None,
                 "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
                 "pendingDownloads": pending_downloads,
-                "latestBundleVersion": latestBundleVersion,
-                "latestBundleShortVersion": latestBundleShortVersion,
+                "latestBuildVersion": latestBuildVersion,
+                "latestBuildNumber": latestBuildNumber,
             },
             status=200,
         )

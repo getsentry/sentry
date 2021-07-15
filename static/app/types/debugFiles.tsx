@@ -45,11 +45,11 @@ export type AppStoreConnectValidationData = {
    * The version of the latest build recognized by sentry. The contents of this string is just a
    * number. This will be null if no builds can be found.
    */
-  latestBundleVersion: string | null;
+  latestBuildNumber: string | null;
   /**
    * A human-readable string representing the latest build recognized by sentry. i.e. 3.4.0.
    * This will be null if no builds can be found.
    */
-  latestBundleShortVersion: string | null;
+  latestBuildVersion: string | null;
   updateAlertMessage?: string;
 };
