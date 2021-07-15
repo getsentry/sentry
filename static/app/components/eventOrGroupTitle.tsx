@@ -43,7 +43,7 @@ function EventOrGroupTitle({
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
       <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
-        <StacktracePreview
+        <StyledStacktracePreview
           organization={organization}
           issueId={groupID ? groupID : id}
           // we need eventId and projectSlug only when hovering over Event, not Group
@@ -51,9 +51,10 @@ function EventOrGroupTitle({
           eventId={eventID}
           projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
           disablePreview={!withStackTracePreview}
+          hasGroupingTreeUI={hasGroupingTreeUI}
         >
           {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
-        </StacktracePreview>
+        </StyledStacktracePreview>
       </GuideAnchor>
       {subtitle && (
         <Fragment>
@@ -80,17 +81,26 @@ const Subtitle = styled('em')`
   font-style: normal;
 `;
 
+const StyledStacktracePreview = styled(StacktracePreview)<{hasGroupingTreeUI: boolean}>`
+  ${p =>
+    p.hasGroupingTreeUI &&
+    `
+      display: inline-flex;
+      > span:first-child {
+        display: inline-flex;
+      }
+    `}
+`;
+
 const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
     `
-      display: inline-grid;
-      grid-template-columns: auto min-content 1fr;
-      align-items: flex-end;
 
-      > *: first-child   {
-        line-height: 1;
-      }
+      display: inline-grid;
+      grid-template-columns: auto max-content 1fr max-content;
+      align-items: flex-end;
+      line-height: 100%;
 
       ${Subtitle} {
         ${overflowEllipsis};
