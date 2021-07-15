@@ -41,5 +41,7 @@ export type AppStoreConnectValidationData = {
   itunesSessionRefreshAt: string | null;
   /** Indicates if the itunesSession is actually *needed* to complete any downloads that are pending. */
   pendingDownloads: number;
+  /** The version of the latest build recognized by sentry. Human-readable. */
+  latestBuildVersion: string | null;
   updateAlertMessage?: string;
 };
