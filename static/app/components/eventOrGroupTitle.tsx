@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ProjectsStore from 'app/stores/projectsStore';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {BaseGroup, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
@@ -33,12 +34,14 @@ function EventOrGroupTitle({
   className,
 }: Props) {
   const event = data as Event;
+
+  const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
   const {id, eventID, groupID, projectID} = event;
 
   const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
 
   return (
-    <span className={className}>
+    <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
       <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
         <StacktracePreview
           organization={organization}
@@ -59,7 +62,7 @@ function EventOrGroupTitle({
           <br />
         </Fragment>
       )}
-    </span>
+    </Wrapper>
   );
 }
 
@@ -75,4 +78,23 @@ const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</
 const Subtitle = styled('em')`
   color: ${p => p.theme.gray300};
   font-style: normal;
+`;
+
+const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
+  ${p =>
+    p.hasGroupingTreeUI &&
+    `
+      display: inline-grid;
+      grid-template-columns: auto min-content 1fr;
+      align-items: flex-end;
+
+      > *: first-child   {
+        line-height: 1;
+      }
+
+      ${Subtitle} {
+        ${overflowEllipsis};
+        display: inline-block;
+      }
+    `}
 `;
