@@ -29,13 +29,18 @@ import {
   toPercent,
 } from 'app/components/performance/waterfall/utils';
 import {t} from 'app/locale';
+import {EventTransaction} from 'app/types/event';
+import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
+import {MeasurementMarker} from './styles';
 import {EnhancedSpan, ProcessedSpanType, SpanGroupProps, TreeDepthType} from './types';
 import {
+  getMeasurementBounds,
+  getMeasurements,
   getSpanOperation,
   isOrphanSpan,
   isOrphanTreeDepth,
@@ -48,6 +53,7 @@ import {
 const MARGIN_LEFT = 0;
 
 type Props = {
+  event: Readonly<EventTransaction>;
   treeDepth: number;
   span: Readonly<ProcessedSpanType>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -255,6 +261,36 @@ class SpanGroupBar extends React.Component<Props> {
     );
   }
 
+  renderMeasurements() {
+    const {event, generateBounds} = this.props;
+
+    const measurements = getMeasurements(event);
+
+    return (
+      <React.Fragment>
+        {Array.from(measurements).map(([timestamp, verticalMark]) => {
+          const bounds = getMeasurementBounds(timestamp, generateBounds);
+
+          const shouldDisplay = defined(bounds.left) && defined(bounds.width);
+
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
+            return null;
+          }
+
+          return (
+            <MeasurementMarker
+              key={String(timestamp)}
+              style={{
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+              }}
+              failedThreshold={verticalMark.failedThreshold}
+            />
+          );
+        })}
+      </React.Fragment>
+    );
+  }
+
   renderCursorGuide() {
     // TODO: move this into its own component
     return (
@@ -372,6 +408,7 @@ class SpanGroupBar extends React.Component<Props> {
                           {durationString}
                         </DurationPill>
                       </RowRectangle>
+                      {this.renderMeasurements()}
                       {this.renderCursorGuide()}
                     </RowCell>
                     <DividerLineGhostContainer

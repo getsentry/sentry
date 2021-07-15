@@ -218,6 +218,7 @@ class SpanTree extends React.Component<PropType> {
           acc.spanTree.push(
             <SpanGroupBar
               key={`${key}-span-group`}
+              event={waterfallModel.event}
               span={span}
               generateBounds={generateBounds}
               treeDepth={treeDepth}
