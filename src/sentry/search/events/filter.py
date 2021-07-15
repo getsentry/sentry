@@ -25,6 +25,7 @@ from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
+    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
@@ -1021,6 +1022,8 @@ class QueryFilter(QueryBase):
             ISSUE_ALIAS: self._issue_filter_converter,
             TRANSACTION_STATUS_ALIAS: self._transaction_status_filter_converter,
             ISSUE_ID_ALIAS: self._issue_id_filter_converter,
+            ERROR_HANDLED_ALIAS: self._error_handled_filter_converter,
+            ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
         }
 
     def resolve_where(self, query: Optional[str]) -> List[WhereType]:
@@ -1270,3 +1273,37 @@ class QueryFilter(QueryBase):
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
         return Condition(lhs, Op(search_filter.operator), rhs)
+
+    def _error_unhandled_filter_converter(
+        self,
+        search_filter: SearchFilter,
+    ) -> Optional[WhereType]:
+        value = search_filter.value.value
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
+            output = 0 if search_filter.operator == "!=" else 1
+            return Condition(Function("isHandled", []), Op.EQ, output)
+        if value in ("1", 1):
+            return Condition(Function("notHandled", []), Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(Function("isHandled", []), Op.EQ, 1)
+        raise InvalidSearchQuery(
+            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
+        )
+
+    def _error_handled_filter_converter(
+        self,
+        search_filter: SearchFilter,
+    ) -> Optional[WhereType]:
+        value = search_filter.value.value
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
+            output = 1 if search_filter.operator == "!=" else 0
+            return Condition(Function("isHandled", []), Op.EQ, output)
+        if value in ("1", 1):
+            return Condition(Function("isHandled", []), Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(Function("notHandled", []), Op.EQ, 1)
+        raise InvalidSearchQuery(
+            "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
