@@ -28,7 +28,12 @@ from sentry.models import (
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import (
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
@@ -156,17 +161,19 @@ class OrganizationReleaseListTest(APITestCase):
     def test_release_list_order_by_semver(self):
         self.login_as(user=self.user)
         release_1 = self.create_release(version="test@2.2")
-        release_2 = self.create_release(version="test@10.0")
+        release_2 = self.create_release(version="test@10.0+122")
         release_3 = self.create_release(version="test@2.2-alpha")
         release_4 = self.create_release(version="test@2.2.3")
         release_5 = self.create_release(version="test@2.20.3")
         release_6 = self.create_release(version="test@2.20.3.3")
+        release_7 = self.create_release(version="test@10.0+123")
         self.create_release(version="test@some_thing")
         self.create_release(version="random_junk")
 
         response = self.get_valid_response(self.organization.slug, sort="semver")
         assert [r["version"] for r in response.data] == [
             release_2.version,
+            release_7.version,
             release_6.version,
             release_5.version,
             release_4.version,
@@ -252,9 +259,9 @@ class OrganizationReleaseListTest(APITestCase):
     def test_semver_filter(self):
         self.login_as(user=self.user)
 
-        release_1 = self.create_release(version="test@1.2.4")
-        release_2 = self.create_release(version="test@1.2.3")
-        release_3 = self.create_release(version="test2@1.2.5")
+        release_1 = self.create_release(version="test@1.2.4+124")
+        release_2 = self.create_release(version="test@1.2.3+123")
+        release_3 = self.create_release(version="test2@1.2.5+125")
         self.create_release(version="some.release")
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
@@ -275,16 +282,6 @@ class OrganizationReleaseListTest(APITestCase):
         ]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
-        )
-        assert [r["version"] for r in response.data] == [release_3.version]
-
-        response = self.get_valid_response(
-            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
-        )
-        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
-
-        response = self.get_valid_response(
             self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
         )
         assert [r["version"] for r in response.data] == [
@@ -295,6 +292,26 @@ class OrganizationReleaseListTest(APITestCase):
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
         assert [r["version"] for r in response.data] == []
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
+        )
+        assert [r["version"] for r in response.data] == [release_3.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
+        )
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:>124"
+        )
+        assert [r["version"] for r in response.data] == [release_3.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:<125"
+        )
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
 
     def test_release_stage_filter(self):
         self.login_as(user=self.user)

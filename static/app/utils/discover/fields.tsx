@@ -381,7 +381,10 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['string', 'duration'],
+        columnTypes: validateDenyListColumns(
+          ['string', 'duration'],
+          ['id', 'issue', 'user.display']
+        ),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -1004,6 +1007,15 @@ function validateForNumericAggregate(
     }
 
     return validColumnTypes.includes(dataType);
+  };
+}
+
+function validateDenyListColumns(
+  validColumnTypes: ColumnType[],
+  deniedColumns: string[]
+): ValidateColumnValueFunction {
+  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+    return validColumnTypes.includes(dataType) && !deniedColumns.includes(name);
   };
 }
 

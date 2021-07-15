@@ -65,17 +65,41 @@ class BaseModel(models.Model):
         if django.VERSION[:2] < (2, 0):
             setattr(self, f"_{field_name}_cache", value)
             return
+
         self._meta.get_field(field_name).set_cached_value(self, value)
+
+    def get_cached_field_value(self, field_name):
+        # Django 1.11 + at least 2.0 compatible method
+        # to get a relational field's cached value.
+        # It's recommended to only use this in testing code,
+        # for when you would like to inspect the cache.
+        # In production, you should guard `model.field` with an
+        # `if model.is_field_cached`.
+        if django.VERSION[:2] < (2, 0):
+            return getattr(self, f"_{field_name}_cache", None)
+
+        name = self._meta.get_field(field_name).get_cache_name()
+        return self._state.fields_cache.get(name, None)
+
+    def delete_cached_field_value(self, field_name):
+        if django.VERSION[:2] < (2, 0):
+            setattr(self, f"_{field_name}_cache", None)
+            return
+
+        name = self._meta.get_field(field_name).get_cache_name()
+        if name in self._state.fields_cache:
+            del self._state.fields_cache[name]
 
     def is_field_cached(self, field_name):
         # Django 1.11 + at least 2.0 compatible method
-        # to ask if a field has a cached value.
-        # See set_cached_field_value for more information.
+        # to ask if a relational field has a cached value.
         if django.VERSION[:2] < (2, 0):
             if not getattr(self, f"_{field_name}_cache", False):
                 return False
             return True
-        return self._meta.get_field(field_name).get_cache_name() in self._state.fields_cache
+
+        name = self._meta.get_field(field_name).get_cache_name()
+        return name in self._state.fields_cache
 
 
 class Model(BaseModel):
