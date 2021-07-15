@@ -4,6 +4,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
+PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
+PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
@@ -16,6 +18,7 @@ RELEASE_ALIAS = "release"
 RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "release.version"
 SEMVER_PACKAGE_ALIAS = "release.package"
+SEMVER_BUILD_ALIAS = "release.build"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
@@ -32,6 +35,9 @@ ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
     fr"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
 )
+
+DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
+
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])

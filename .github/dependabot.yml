@@ -1,6 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
+    open-pull-requests-limit: 10
     directory: "/"
     schedule:
       # Going to start with a high interval, and then tone it back
