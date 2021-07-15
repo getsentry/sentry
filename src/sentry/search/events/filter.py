@@ -1219,11 +1219,11 @@ class QueryFilter(QueryBase):
             output = 0 if search_filter.operator == "!=" else 1
             return Condition(Function("isHandled", []), Op.EQ, output)
         if value in ("1", 1):
-            return [Function("notHandled", []), "=", 1]
+            return Condition(Function("notHandled", []), Op.EQ, 1)
         if value in ("0", 0):
-            return [Function("isHandled", []), "=", 1]
+            return Condition(Function("isHandled", []), Op.EQ, 1)
         raise InvalidSearchQuery(
-            "Invalid value for error.handled condition. Accepted values are 1, 0"
+            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
         )
 
     def _error_handled_filter_converter(
