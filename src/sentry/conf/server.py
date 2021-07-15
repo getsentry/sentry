@@ -740,6 +740,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=5),
         "options": {"expires": 3600},
     },
+    "fetch-appstore-builds": {
+        "task": "sentry.tasks.app_store_connect.refresh_all_builds",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
+    },
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
