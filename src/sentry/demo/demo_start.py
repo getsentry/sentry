@@ -176,13 +176,17 @@ def get_one_release(org: Organization, project_slug: Optional[str]):
 
 def get_one_issue(org: Organization, project_slug: Optional[str], error_type: Optional[str]):
     group_query = Group.objects.filter(project__organization=org)
-    error_type = error_type.lower()
+    if error_type:
+        error_type = error_type.lower()
+    similar_groups = []
     if project_slug:
         group_query = group_query.filter(project__slug=project_slug)
         if error_type:
-            for group in group_query:
-                if check_strings_similar(error_type, group):
-                    break
+            similar_groups = [
+                group for group in group_query if check_strings_similar(error_type, group)
+            ]
+        if similar_groups:
+            group = similar_groups[0]
         else:
             group = group_query.first()
     else:
