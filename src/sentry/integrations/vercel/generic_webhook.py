@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from typing import Any, Mapping, Tuple
 
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
@@ -50,7 +51,9 @@ def safe_json_parse(resp):
     return None
 
 
-def get_payload_and_token(payload, organization_id, sentry_project_id):
+def get_payload_and_token(
+    payload: Mapping[str, Any], organization_id: int, sentry_project_id: int
+) -> Tuple[Mapping[str, Any], str]:
     meta = payload["deployment"]["meta"]
 
     # look up the project so we can get the slug
@@ -97,7 +100,7 @@ def get_payload_and_token(payload, organization_id, sentry_project_id):
         "projects": [project.slug],
         "refs": [{"repository": repository, "commit": commit_sha}],
     }
-    return [release_payload, sentry_app_installation_token.api_token.token]
+    return release_payload, sentry_app_installation_token.api_token.token
 
 
 class VercelGenericWebhookEndpoint(Endpoint):
@@ -287,7 +290,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
                 logging_params["project_id"] = sentry_project_id
 
                 try:
-                    [release_payload, token] = get_payload_and_token(
+                    release_payload, token = get_payload_and_token(
                         payload, organization.id, sentry_project_id
                     )
                 except Project.DoesNotExist:
