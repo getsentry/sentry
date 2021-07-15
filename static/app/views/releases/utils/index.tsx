@@ -48,6 +48,14 @@ export const displayCrashFreePercent = (
   return `${rounded}\u0025`;
 };
 
+export const getSessionStatusPercent = (percent: number): number => {
+  return round(percent, 3);
+};
+
+export const displaySessionStatusPercent = (percent: number): string => {
+  return `${getSessionStatusPercent(percent).toLocaleString()}\u0025`;
+};
+
 export const displayCrashFreeDiff = (
   diffPercent: number,
   crashFreePercent?: number | null
