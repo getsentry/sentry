@@ -1,10 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
-import round from 'lodash/round';
 
+import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
@@ -21,16 +22,19 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {
+  Organization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
   SessionField,
 } from 'app/types';
-import {defined, percent} from 'app/utils';
-import {decodeScalar} from 'app/utils/queryString';
+import {defined} from 'app/utils';
+import {formatPercentage} from 'app/utils/formatters';
+import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
 import {Color, Theme} from 'app/utils/theme';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import {
   displayCrashFreeDiff,
   displayCrashFreePercent,
@@ -44,7 +48,8 @@ import {
   initSessionsBreakdownChartData,
 } from '../chart/utils';
 
-import SessionsChart from './sessionsChart';
+import ReleaseEventsChart from './releaseEventsChart';
+import ReleaseSessionsChart from './releaseSessionsChart';
 
 type ComparisonRow = {
   type: ReleaseComparisonChartType;
@@ -66,7 +71,18 @@ type Props = {
   reloading: boolean;
   errored: boolean;
   theme: Theme;
+  api: Client;
+  organization: Organization;
 };
+
+type EventsTotals = {
+  allErrorCount: number;
+  releaseErrorCount: number;
+  allTransactionCount: number;
+  releaseTransactionCount: number;
+  releaseFailureRate: number;
+  allFailureRate: number;
+} | null;
 
 function ReleaseComparisonChart({
   release,
@@ -79,7 +95,94 @@ function ReleaseComparisonChart({
   reloading,
   errored,
   theme,
+  api,
+  organization,
 }: Props) {
+  const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
+
+  const {
+    statsPeriod: period,
+    start,
+    end,
+    utc,
+  } = getReleaseParams({
+    location,
+    releaseBounds: getReleaseBounds(release),
+    defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
+    allowEmptyPeriod: true,
+  });
+
+  useEffect(() => {
+    fetchEventsTotals();
+  }, [period, start, end, organization.slug, location]);
+
+  async function fetchEventsTotals() {
+    const url = `/organizations/${organization.slug}/eventsv2/`;
+    const commonQuery = {
+      environment: decodeList(location.query.environment),
+      project: decodeList(location.query.project),
+      start,
+      end,
+      ...(period ? {statsPeriod: period} : {}),
+    };
+
+    try {
+      const [
+        releaseTransactionTotals,
+        allTransactionTotals,
+        releaseErrorTotals,
+        allErrorTotals,
+      ] = await Promise.all([
+        api.requestPromise(url, {
+          query: {
+            field: ['failure_rate()', 'count()'],
+            query: new QueryResults([
+              'event.type:transaction',
+              `release:${release.version}`,
+            ]).formatString(),
+            ...commonQuery,
+          },
+        }),
+        api.requestPromise(url, {
+          query: {
+            field: ['failure_rate()', 'count()'],
+            query: new QueryResults(['event.type:transaction']).formatString(),
+            ...commonQuery,
+          },
+        }),
+        api.requestPromise(url, {
+          query: {
+            field: ['count()'],
+            query: new QueryResults([
+              'event.type:error',
+              `release:${release.version}`,
+            ]).formatString(),
+            ...commonQuery,
+          },
+        }),
+        api.requestPromise(url, {
+          query: {
+            field: ['count()'],
+            query: new QueryResults(['event.type:error']).formatString(),
+            ...commonQuery,
+          },
+        }),
+      ]);
+
+      setEventsTotals({
+        allErrorCount: allErrorTotals.data[0].count,
+        releaseErrorCount: releaseErrorTotals.data[0].count,
+        allTransactionCount: allTransactionTotals.data[0].count,
+        releaseTransactionCount: releaseTransactionTotals.data[0].count,
+        releaseFailureRate: releaseTransactionTotals.data[0].failure_rate,
+        allFailureRate: allTransactionTotals.data[0].failure_rate,
+      });
+    } catch (err) {
+      setEventsTotals(null);
+      Sentry.captureException(err);
+    }
+  }
+
   const activeChart = decodeScalar(
     location.query.chart,
     ReleaseComparisonChartType.CRASH_FREE_SESSIONS
@@ -110,18 +213,16 @@ function ReleaseComparisonChart({
 
   const releaseSessionsCount = getCount(releaseSessions?.groups, SessionField.SESSIONS);
   const allSessionsCount = getCount(allSessions?.groups, SessionField.SESSIONS);
-  const diffSessionsCount =
-    defined(releaseSessions) && defined(allSessions)
-      ? percent(releaseSessionsCount - allSessionsCount, allSessionsCount)
-      : null;
 
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
-  const diffUsersCount =
-    defined(releaseUsersCount) && defined(allUsersCount)
-      ? percent(releaseUsersCount - allUsersCount, allUsersCount)
+
+  const diffFailure =
+    eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
+      ? eventsTotals.releaseFailureRate - eventsTotals.allFailureRate
       : null;
 
+  // TODO(release-comparison): conditional based on sessions/transactions/discover existence
   const charts: ComparisonRow[] = [
     {
       type: ReleaseComparisonChartType.CRASH_FREE_SESSIONS,
@@ -164,19 +265,25 @@ function ReleaseComparisonChart({
         : null,
     },
     {
+      type: ReleaseComparisonChartType.FAILURE_RATE,
+      thisRelease: eventsTotals?.releaseFailureRate
+        ? formatPercentage(eventsTotals?.releaseFailureRate)
+        : null,
+      allReleases: eventsTotals?.allFailureRate
+        ? formatPercentage(eventsTotals?.allFailureRate)
+        : null,
+      diff: diffFailure ? formatPercentage(Math.abs(diffFailure)) : null,
+      diffDirection: diffFailure ? (diffFailure > 0 ? 'up' : 'down') : null,
+      diffColor: diffFailure ? (diffFailure > 0 ? 'red300' : 'green300') : null,
+    },
+    {
       type: ReleaseComparisonChartType.SESSION_COUNT,
       thisRelease: defined(releaseSessionsCount) ? (
         <Count value={releaseSessionsCount} />
       ) : null,
       allReleases: defined(allSessionsCount) ? <Count value={allSessionsCount} /> : null,
-      diff: defined(diffSessionsCount)
-        ? `${Math.abs(round(diffSessionsCount, 0))}%`
-        : null,
-      diffDirection: defined(diffSessionsCount)
-        ? diffSessionsCount > 0
-          ? 'up'
-          : 'down'
-        : null,
+      diff: null,
+      diffDirection: null,
       diffColor: null,
     },
     {
@@ -185,12 +292,32 @@ function ReleaseComparisonChart({
         <Count value={releaseUsersCount} />
       ) : null,
       allReleases: defined(allUsersCount) ? <Count value={allUsersCount} /> : null,
-      diff: defined(diffUsersCount) ? `${Math.abs(round(diffUsersCount, 0))}%` : null,
-      diffDirection: defined(diffUsersCount)
-        ? diffUsersCount > 0
-          ? 'up'
-          : 'down'
-        : null,
+      diff: null,
+      diffDirection: null,
+      diffColor: null,
+    },
+    {
+      type: ReleaseComparisonChartType.ERROR_COUNT,
+      thisRelease: defined(eventsTotals?.releaseErrorCount) ? (
+        <Count value={eventsTotals?.releaseErrorCount!} />
+      ) : null,
+      allReleases: defined(eventsTotals?.allErrorCount) ? (
+        <Count value={eventsTotals?.allErrorCount!} />
+      ) : null,
+      diff: null,
+      diffDirection: null,
+      diffColor: null,
+    },
+    {
+      type: ReleaseComparisonChartType.TRANSACTION_COUNT,
+      thisRelease: defined(eventsTotals?.releaseTransactionCount) ? (
+        <Count value={eventsTotals?.releaseTransactionCount!} />
+      ) : null,
+      allReleases: defined(eventsTotals?.allTransactionCount) ? (
+        <Count value={eventsTotals?.allTransactionCount!} />
+      ) : null,
+      diff: null,
+      diffDirection: null,
       diffColor: null,
     },
   ];
@@ -305,45 +432,52 @@ function ReleaseComparisonChart({
     );
   }
 
-  const {
-    statsPeriod: period,
-    start,
-    end,
-    utc,
-  } = getReleaseParams({
-    location,
-    releaseBounds: getReleaseBounds(release),
-    defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-    allowEmptyPeriod: true,
-  });
+  const chartDiff = chart.diff ? (
+    <Change color={defined(chart.diffColor) ? chart.diffColor : undefined}>
+      {chart.diff}{' '}
+      {defined(chart.diffDirection) && (
+        <IconArrow direction={chart.diffDirection} size="xs" />
+      )}
+    </Change>
+  ) : null;
 
   return (
     <Fragment>
       <ChartPanel>
         <ChartContainer>
-          <TransitionChart loading={loading} reloading={reloading}>
-            <TransparentLoadingMask visible={reloading} />
-
-            <SessionsChart
-              series={[...(series ?? []), ...(markLines ?? [])]}
-              previousSeries={previousSeries ?? []}
+          {[
+            ReleaseComparisonChartType.ERROR_COUNT,
+            ReleaseComparisonChartType.TRANSACTION_COUNT,
+            ReleaseComparisonChartType.FAILURE_RATE,
+          ].includes(activeChart) ? (
+            <ReleaseEventsChart
+              version={release.version}
               chartType={activeChart}
-              platform={platform}
               period={period ?? undefined}
               start={start}
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={
-                <Change color={defined(chart.diffColor) ? chart.diffColor : undefined}>
-                  {chart.diff}{' '}
-                  {defined(chart.diffDirection) && (
-                    <IconArrow direction={chart.diffDirection} size="xs" />
-                  )}
-                </Change>
-              }
+              diff={chartDiff}
             />
-          </TransitionChart>
+          ) : (
+            <TransitionChart loading={loading} reloading={reloading}>
+              <TransparentLoadingMask visible={reloading} />
+
+              <ReleaseSessionsChart
+                series={[...(series ?? []), ...(markLines ?? [])]}
+                previousSeries={previousSeries ?? []}
+                chartType={activeChart}
+                platform={platform}
+                period={period ?? undefined}
+                start={start}
+                end={end}
+                utc={utc === 'true'}
+                value={chart.thisRelease}
+                diff={chartDiff}
+              />
+            </TransitionChart>
+          )}
         </ChartContainer>
       </ChartPanel>
       <ChartTable

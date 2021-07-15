@@ -2,6 +2,7 @@
   {
     "query": "spans.browser:1.5s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "duration",
@@ -16,6 +17,7 @@
   {
     "query": "spans.browser:>1.5s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "duration",
@@ -30,6 +32,7 @@
   {
     "query": "spans.browser:<1.5s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "duration",

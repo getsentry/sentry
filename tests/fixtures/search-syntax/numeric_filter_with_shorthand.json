@@ -2,6 +2,7 @@
   {
     "query": "stack.colno:>3k",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
@@ -16,6 +17,7 @@
   {
     "query": "stack.colno:>3m",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
@@ -30,6 +32,7 @@
   {
     "query": "stack.colno:>3b",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",

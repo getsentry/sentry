@@ -381,7 +381,10 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['string', 'duration'],
+        columnTypes: validateDenyListColumns(
+          ['string', 'duration'],
+          ['id', 'issue', 'user.display']
+        ),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -603,6 +606,21 @@ export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
 );
 
+export const SEMVER_TAGS = {
+  'release.version': {
+    key: 'release.version',
+    name: 'release.version',
+  },
+  'release.build': {
+    key: 'release.build',
+    name: 'release.build',
+  },
+  'release.package': {
+    key: 'release.package',
+    name: 'release.package',
+  },
+};
+
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
@@ -737,6 +755,9 @@ export function parseArguments(functionText: string, columnText: string): string
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (i === j && columnText[j] === ' ') {
+      // argument has leading spaces, skip over them
+      i += 1;
     } else if (quoted && !escaped && columnText[j] === '\\') {
       // when we see a slash inside a quoted string,
       // the next character is an escape character
@@ -986,6 +1007,15 @@ function validateForNumericAggregate(
     }
 
     return validColumnTypes.includes(dataType);
+  };
+}
+
+function validateDenyListColumns(
+  validColumnTypes: ColumnType[],
+  deniedColumns: string[]
+): ValidateColumnValueFunction {
+  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+    return validColumnTypes.includes(dataType) && !deniedColumns.includes(name);
   };
 }
 

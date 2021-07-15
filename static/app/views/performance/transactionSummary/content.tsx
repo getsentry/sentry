@@ -342,6 +342,7 @@ class SummaryContent extends React.Component<Props, State> {
                 onChangeFilter={onChangeFilter}
               />
               <StyledSearchBar
+                searchSource="transaction_summary"
                 organization={organization}
                 projectIds={eventView.project}
                 query={query}

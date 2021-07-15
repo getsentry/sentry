@@ -9,6 +9,7 @@ from sentry.search.events.fields import (
     FunctionDetails,
     InvalidSearchQuery,
     get_json_meta_type,
+    parse_arguments,
     parse_function,
     resolve_field_list,
 )
@@ -168,6 +169,25 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected):
 )
 def test_parse_function(function, expected):
     assert parse_function(function) == expected
+
+
+@pytest.mark.parametrize(
+    "function,columns,result",
+    [
+        # pretty straight forward since its effectively a split on `,`
+        ("func", "a,b,c", ["a", "b", "c"]),
+        ("func", "a, b, c", ["a", "b", "c"]),
+        # to_other and count_if support quotes so have special handling
+        ("to_other", "a,b", ["a", "b"]),
+        ("to_other", "a, b", ["a", "b"]),
+        ("count_if", 'a, b, "c"', ["a", "b", '"c"']),
+        ("count_if", 'a, b, "\\""', ["a", "b", '"\\""']),
+        ("count_if", 'a, b, "\\test"', ["a", "b", '"\\test"']),
+        ("count_if", 'a, b,","', ["a", "b", '","']),
+    ],
+)
+def test_parse_arguments(function, columns, result):
+    assert parse_arguments(function, columns) == result
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -958,7 +978,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_count_if(self):
         fields = [
             "count_if(event.type,equals,transaction)",
-            "count_if(event.type,notEquals,transaction)",
+            'count_if(event.type,notEquals,"transaction")',
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -970,7 +990,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "countIf",
                 [["notEquals", ["event.type", "'transaction'"]]],
-                "count_if_event_type_notEquals_transaction",
+                "count_if_event_type_notEquals__transaction",
             ],
         ]
 
@@ -1478,6 +1498,20 @@ class ResolveFieldListTest(unittest.TestCase):
                 "count_if_spans_http_lessOrEquals_100",
             ],
         ]
+        fields = ["count_if(measurements.lcp, lessOrEquals, 10d)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "lessOrEquals",
+                        ["measurements.lcp", 864000000],
+                    ],
+                ],
+                "count_if_measurements_lcp_lessOrEquals_10d",
+            ],
+        ]
 
     def test_count_if_field_with_tag(self):
         fields = ["count_if(http.status_code, equals, 200)"]
@@ -1510,6 +1544,39 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_count_if_with_transaction_status(self):
+        result = resolve_field_list(
+            ["count_if(transaction.status, equals, ok)"], eventstore.Filter()
+        )
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "equals",
+                        ["transaction.status", 0],
+                    ],
+                ],
+                "count_if_transaction_status_equals_ok",
+            ],
+        ]
+
+        result = resolve_field_list(
+            ["count_if(transaction.status, notEquals, ok)"], eventstore.Filter()
+        )
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "notEquals",
+                        ["transaction.status", 0],
+                    ],
+                ],
+                "count_if_transaction_status_notEquals_ok",
+            ],
+        ]
+
     def test_invalid_count_if_fields(self):
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(
@@ -1519,6 +1586,12 @@ class ResolveFieldListTest(unittest.TestCase):
             str(query_error.exception)
             == "'sentry' is not a valid value to compare with transaction.duration"
         )
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.duration, equals, 10wow)"], eventstore.Filter()
+            )
+        assert str(query_error.exception).startswith("wow is not a valid duration type")
 
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
@@ -1531,3 +1604,11 @@ class ResolveFieldListTest(unittest.TestCase):
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(http.status_code, greater, test)"], eventstore.Filter())
         assert str(query_error.exception) == "greater is not compatible with http.status_code"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.status, equals, fakestatus)"], eventstore.Filter()
+            )
+        assert (
+            str(query_error.exception) == "'fakestatus' is not a valid value for transaction.status"
+        )

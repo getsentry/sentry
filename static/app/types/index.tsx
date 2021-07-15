@@ -378,6 +378,8 @@ export type TreeLabelPart =
       package?: string;
       type?: string;
       datapath?: (string | number)[];
+      is_sentinel?: boolean;
+      is_prefix?: boolean;
     };
 
 // This type is incomplete
@@ -2120,6 +2122,9 @@ export enum ReleaseComparisonChartType {
   CRASH_FREE_SESSIONS = 'crashFreeSessions',
   SESSION_COUNT = 'sessionCount',
   USER_COUNT = 'userCount',
+  ERROR_COUNT = 'errorCount',
+  TRANSACTION_COUNT = 'transactionCount',
+  FAILURE_RATE = 'failureRate',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2142,7 +2147,13 @@ export type CodeOwners = {
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
-  codeMapping?: RepositoryProjectPathConfig[];
+  codeMapping?: RepositoryProjectPathConfig;
+  errors: {
+    missing_external_teams: string[];
+    missing_external_users: string[];
+    missing_user_emails: string[];
+    teams_without_access: string[];
+  };
 };
 
 export type KeyValueListData = {

@@ -464,6 +464,8 @@ class ReleaseOverview extends AsyncView<Props> {
                               reloading={reloading}
                               errored={errored}
                               project={project}
+                              organization={organization}
+                              api={api}
                             />
                           </Fragment>
                         ) : (

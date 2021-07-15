@@ -31,3 +31,13 @@ class ResolvedInReleaseActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "resolved_in_release_activity_email"
+
+    @property
+    def is_message_issue_unfurl(self) -> bool:
+        return True
+
+    def get_notification_title(self) -> str:
+        data = self.activity.data
+        author = self.activity.user.get_display_name()
+        release = data["version"] if data.get("version") else "an upcoming release"
+        return f"Issue marked as resolved in {release} by {author}"
