@@ -2,11 +2,14 @@ import * as React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {withTheme} from '@emotion/react';
+import round from 'lodash/round';
 
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'app/components/charts/styles';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
 import {ReleaseComparisonChartType} from 'app/types';
@@ -17,7 +20,7 @@ import {displayCrashFreePercent} from 'app/views/releases/utils';
 
 import {
   releaseComparisonChartHelp,
-  releaseComparisonChartLabels,
+  releaseComparisonChartTitles,
   releaseMarkLinesLabels,
 } from '../../utils';
 
@@ -29,6 +32,8 @@ type Props = {
   platform: PlatformKey;
   value: React.ReactNode;
   diff: React.ReactNode;
+  loading: boolean;
+  reloading: boolean;
   period?: string;
   start?: string;
   end?: string;
@@ -48,7 +53,15 @@ class ReleaseSessionsChart extends React.Component<Props> {
 
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
+      case ReleaseComparisonChartType.HEALTHY_SESSIONS:
+      case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
+      case ReleaseComparisonChartType.ERRORED_SESSIONS:
+      case ReleaseComparisonChartType.CRASHED_SESSIONS:
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
+      case ReleaseComparisonChartType.HEALTHY_USERS:
+      case ReleaseComparisonChartType.ABNORMAL_USERS:
+      case ReleaseComparisonChartType.ERRORED_USERS:
+      case ReleaseComparisonChartType.CRASHED_USERS:
         return defined(value) ? `${value}%` : '\u2015';
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
@@ -70,6 +83,21 @@ class ReleaseSessionsChart extends React.Component<Props> {
             color: theme.chartLabel,
           },
         };
+      case ReleaseComparisonChartType.HEALTHY_SESSIONS:
+      case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
+      case ReleaseComparisonChartType.ERRORED_SESSIONS:
+      case ReleaseComparisonChartType.CRASHED_SESSIONS:
+      case ReleaseComparisonChartType.HEALTHY_USERS:
+      case ReleaseComparisonChartType.ABNORMAL_USERS:
+      case ReleaseComparisonChartType.ERRORED_USERS:
+      case ReleaseComparisonChartType.CRASHED_USERS:
+        return {
+          scale: true,
+          axisLabel: {
+            formatter: (value: number) => `${round(value, 2)}%`,
+            color: theme.chartLabel,
+          },
+        };
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
@@ -83,12 +111,51 @@ class ReleaseSessionsChart extends React.Component<Props> {
     const {chartType} = this.props;
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
+      case ReleaseComparisonChartType.HEALTHY_SESSIONS:
+      case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
+      case ReleaseComparisonChartType.ERRORED_SESSIONS:
+      case ReleaseComparisonChartType.CRASHED_SESSIONS:
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
+      case ReleaseComparisonChartType.HEALTHY_USERS:
+      case ReleaseComparisonChartType.ABNORMAL_USERS:
+      case ReleaseComparisonChartType.ERRORED_USERS:
+      case ReleaseComparisonChartType.CRASHED_USERS:
       default:
         return AreaChart;
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
         return StackedAreaChart;
+    }
+  }
+
+  getColors() {
+    const {theme, chartType} = this.props;
+    const colors = theme.charts.getColorPalette(14);
+    switch (chartType) {
+      case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
+        return [colors[0]];
+      case ReleaseComparisonChartType.HEALTHY_SESSIONS:
+        return [theme.green300];
+      case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
+        return [colors[15]];
+      case ReleaseComparisonChartType.ERRORED_SESSIONS:
+        return [colors[12]];
+      case ReleaseComparisonChartType.CRASHED_SESSIONS:
+        return [theme.red300];
+      case ReleaseComparisonChartType.CRASH_FREE_USERS:
+        return [colors[6]];
+      case ReleaseComparisonChartType.HEALTHY_USERS:
+        return [theme.green300];
+      case ReleaseComparisonChartType.ABNORMAL_USERS:
+        return [colors[15]];
+      case ReleaseComparisonChartType.ERRORED_USERS:
+        return [colors[12]];
+      case ReleaseComparisonChartType.CRASHED_USERS:
+        return [theme.red300];
+      case ReleaseComparisonChartType.SESSION_COUNT:
+      case ReleaseComparisonChartType.USER_COUNT:
+      default:
+        return undefined;
     }
   }
 
@@ -104,6 +171,8 @@ class ReleaseSessionsChart extends React.Component<Props> {
       utc,
       value,
       diff,
+      loading,
+      reloading,
     } = this.props;
 
     const Chart = this.getChart();
@@ -118,9 +187,10 @@ class ReleaseSessionsChart extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <TransitionChart loading={loading} reloading={reloading} height="240px">
+        <TransparentLoadingMask visible={reloading} />
         <HeaderTitleLegend>
-          {releaseComparisonChartLabels[chartType]}
+          {releaseComparisonChartTitles[chartType]}
           {releaseComparisonChartHelp[chartType] && (
             <QuestionTooltip
               size="sm"
@@ -156,12 +226,13 @@ class ReleaseSessionsChart extends React.Component<Props> {
               }}
               yAxis={this.configureYAxis()}
               tooltip={{valueFormatter: this.formatTooltipValue}}
+              colors={this.getColors()}
               transformSinglePointToBar
               height={240}
             />
           )}
         </ChartZoom>
-      </React.Fragment>
+      </TransitionChart>
     );
   }
 }

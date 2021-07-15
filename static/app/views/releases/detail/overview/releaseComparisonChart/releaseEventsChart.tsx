@@ -15,7 +15,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
-import {releaseComparisonChartLabels} from '../../utils';
+import {releaseComparisonChartTitles} from '../../utils';
 
 type Props = WithRouterProps & {
   version: string;
@@ -140,7 +140,7 @@ function ReleaseEventsChart({
       chartHeader={
         <Fragment>
           <HeaderTitleLegend>
-            {releaseComparisonChartLabels[chartType]}
+            {releaseComparisonChartTitles[chartType]}
             {getHelp() && <QuestionTooltip size="sm" position="top" title={getHelp()} />}
           </HeaderTitleLegend>
 
@@ -152,9 +152,9 @@ function ReleaseEventsChart({
       legendOptions={{right: 10, top: 0}}
       chartOptions={{
         grid: {left: '10px', right: '10px', top: '70px', bottom: '0px'},
-        ['height' as any]: 240, // TODO(ts): echart types
       }}
       usePageZoom
+      height={240}
     />
   );
 }

@@ -8,8 +8,6 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import Count from 'app/components/count';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
@@ -28,16 +26,24 @@ import {
   ReleaseWithHealth,
   SessionApiResponse,
   SessionField,
+  SessionStatus,
 } from 'app/types';
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
+import {
+  getCount,
+  getCrashFreeRate,
+  getCrashFreeRateSeries,
+  getSessionStatusRate,
+  getSessionStatusRateSeries,
+} from 'app/utils/sessions';
 import {Color, Theme} from 'app/utils/theme';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 import {
   displayCrashFreeDiff,
   displayCrashFreePercent,
+  displaySessionStatusPercent,
   getReleaseBounds,
   getReleaseParams,
 } from 'app/views/releases/utils';
@@ -201,6 +207,66 @@ function ReleaseComparisonChart({
       ? releaseCrashFreeSessions - allCrashFreeSessions
       : null;
 
+  const releaseHealthySessions = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.HEALTHY
+  );
+  const allHealthySessions = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.HEALTHY
+  );
+  const diffHealthySessions =
+    defined(releaseHealthySessions) && defined(allHealthySessions)
+      ? releaseHealthySessions - allHealthySessions
+      : null;
+
+  const releaseAbnormalSessions = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.ABNORMAL
+  );
+  const allAbnormalSessions = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.ABNORMAL
+  );
+  const diffAbnormalSessions =
+    defined(releaseAbnormalSessions) && defined(allAbnormalSessions)
+      ? releaseAbnormalSessions - allAbnormalSessions
+      : null;
+
+  const releaseErroredSessions = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.ERRORED
+  );
+  const allErroredSessions = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.ERRORED
+  );
+  const diffErroredSessions =
+    defined(releaseErroredSessions) && defined(allErroredSessions)
+      ? releaseErroredSessions - allErroredSessions
+      : null;
+
+  const releaseCrashedSessions = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.CRASHED
+  );
+  const allCrashedSessions = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.SESSIONS,
+    SessionStatus.CRASHED
+  );
+  const diffCrashedSessions =
+    defined(releaseCrashedSessions) && defined(allCrashedSessions)
+      ? releaseCrashedSessions - allCrashedSessions
+      : null;
+
   const releaseCrashFreeUsers = getCrashFreeRate(
     releaseSessions?.groups,
     SessionField.USERS
@@ -209,6 +275,66 @@ function ReleaseComparisonChart({
   const diffCrashFreeUsers =
     defined(releaseCrashFreeUsers) && defined(allCrashFreeUsers)
       ? releaseCrashFreeUsers - allCrashFreeUsers
+      : null;
+
+  const releaseHealthyUsers = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.HEALTHY
+  );
+  const allHealthyUsers = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.HEALTHY
+  );
+  const diffHealthyUsers =
+    defined(releaseHealthyUsers) && defined(allHealthyUsers)
+      ? releaseHealthyUsers - allHealthyUsers
+      : null;
+
+  const releaseAbnormalUsers = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.ABNORMAL
+  );
+  const allAbnormalUsers = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.ABNORMAL
+  );
+  const diffAbnormalUsers =
+    defined(releaseAbnormalUsers) && defined(allAbnormalUsers)
+      ? releaseAbnormalUsers - allAbnormalUsers
+      : null;
+
+  const releaseErroredUsers = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.ERRORED
+  );
+  const allErroredUsers = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.ERRORED
+  );
+  const diffErroredUsers =
+    defined(releaseErroredUsers) && defined(allErroredUsers)
+      ? releaseErroredUsers - allErroredUsers
+      : null;
+
+  const releaseCrashedUsers = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.CRASHED
+  );
+  const allCrashedUsers = getSessionStatusRate(
+    allSessions?.groups,
+    SessionField.USERS,
+    SessionStatus.CRASHED
+  );
+  const diffCrashedUsers =
+    defined(releaseCrashedUsers) && defined(allCrashedUsers)
+      ? releaseCrashedUsers - allCrashedUsers
       : null;
 
   const releaseSessionsCount = getCount(releaseSessions?.groups, SessionField.SESSIONS);
@@ -247,6 +373,94 @@ function ReleaseComparisonChart({
         : null,
     },
     {
+      type: ReleaseComparisonChartType.HEALTHY_SESSIONS,
+      thisRelease: defined(releaseHealthySessions)
+        ? displaySessionStatusPercent(releaseHealthySessions)
+        : null,
+      allReleases: defined(allHealthySessions)
+        ? displaySessionStatusPercent(allHealthySessions)
+        : null,
+      diff: defined(diffHealthySessions)
+        ? displaySessionStatusPercent(diffHealthySessions)
+        : null,
+      diffDirection: diffHealthySessions
+        ? diffHealthySessions > 0
+          ? 'up'
+          : 'down'
+        : null,
+      diffColor: diffHealthySessions
+        ? diffHealthySessions > 0
+          ? 'green300'
+          : 'red300'
+        : null,
+    },
+    {
+      type: ReleaseComparisonChartType.ABNORMAL_SESSIONS,
+      thisRelease: defined(releaseAbnormalSessions)
+        ? displaySessionStatusPercent(releaseAbnormalSessions)
+        : null,
+      allReleases: defined(allAbnormalSessions)
+        ? displaySessionStatusPercent(allAbnormalSessions)
+        : null,
+      diff: defined(diffAbnormalSessions)
+        ? displaySessionStatusPercent(diffAbnormalSessions)
+        : null,
+      diffDirection: diffAbnormalSessions
+        ? diffAbnormalSessions > 0
+          ? 'up'
+          : 'down'
+        : null,
+      diffColor: diffAbnormalSessions
+        ? diffAbnormalSessions > 0
+          ? 'red300'
+          : 'green300'
+        : null,
+    },
+    {
+      type: ReleaseComparisonChartType.ERRORED_SESSIONS,
+      thisRelease: defined(releaseErroredSessions)
+        ? displaySessionStatusPercent(releaseErroredSessions)
+        : null,
+      allReleases: defined(allErroredSessions)
+        ? displaySessionStatusPercent(allErroredSessions)
+        : null,
+      diff: defined(diffErroredSessions)
+        ? displaySessionStatusPercent(diffErroredSessions)
+        : null,
+      diffDirection: diffErroredSessions
+        ? diffErroredSessions > 0
+          ? 'up'
+          : 'down'
+        : null,
+      diffColor: diffErroredSessions
+        ? diffErroredSessions > 0
+          ? 'red300'
+          : 'green300'
+        : null,
+    },
+    {
+      type: ReleaseComparisonChartType.CRASHED_SESSIONS,
+      thisRelease: defined(releaseCrashedSessions)
+        ? displaySessionStatusPercent(releaseCrashedSessions)
+        : null,
+      allReleases: defined(allCrashedSessions)
+        ? displaySessionStatusPercent(allCrashedSessions)
+        : null,
+      diff: defined(diffCrashedSessions)
+        ? displaySessionStatusPercent(diffCrashedSessions)
+        : null,
+      diffDirection: diffCrashedSessions
+        ? diffCrashedSessions > 0
+          ? 'up'
+          : 'down'
+        : null,
+      diffColor: diffCrashedSessions
+        ? diffCrashedSessions > 0
+          ? 'red300'
+          : 'green300'
+        : null,
+    },
+    {
       type: ReleaseComparisonChartType.CRASH_FREE_USERS,
       thisRelease: defined(releaseCrashFreeUsers)
         ? displayCrashFreePercent(releaseCrashFreeUsers)
@@ -263,6 +477,66 @@ function ReleaseComparisonChart({
           ? 'green300'
           : 'red300'
         : null,
+    },
+    {
+      type: ReleaseComparisonChartType.HEALTHY_USERS,
+      thisRelease: defined(releaseHealthyUsers)
+        ? displaySessionStatusPercent(releaseHealthyUsers)
+        : null,
+      allReleases: defined(allHealthyUsers)
+        ? displaySessionStatusPercent(allHealthyUsers)
+        : null,
+      diff: defined(diffHealthyUsers)
+        ? displaySessionStatusPercent(diffHealthyUsers)
+        : null,
+      diffDirection: diffHealthyUsers ? (diffHealthyUsers > 0 ? 'up' : 'down') : null,
+      diffColor: diffHealthyUsers ? (diffHealthyUsers > 0 ? 'green300' : 'red300') : null,
+    },
+    {
+      type: ReleaseComparisonChartType.ABNORMAL_USERS,
+      thisRelease: defined(releaseAbnormalUsers)
+        ? displaySessionStatusPercent(releaseAbnormalUsers)
+        : null,
+      allReleases: defined(allAbnormalUsers)
+        ? displaySessionStatusPercent(allAbnormalUsers)
+        : null,
+      diff: defined(diffAbnormalUsers)
+        ? displaySessionStatusPercent(diffAbnormalUsers)
+        : null,
+      diffDirection: diffAbnormalUsers ? (diffAbnormalUsers > 0 ? 'up' : 'down') : null,
+      diffColor: diffAbnormalUsers
+        ? diffAbnormalUsers > 0
+          ? 'red300'
+          : 'green300'
+        : null,
+    },
+    {
+      type: ReleaseComparisonChartType.ERRORED_USERS,
+      thisRelease: defined(releaseErroredUsers)
+        ? displaySessionStatusPercent(releaseErroredUsers)
+        : null,
+      allReleases: defined(allErroredUsers)
+        ? displaySessionStatusPercent(allErroredUsers)
+        : null,
+      diff: defined(diffErroredUsers)
+        ? displaySessionStatusPercent(diffErroredUsers)
+        : null,
+      diffDirection: diffErroredUsers ? (diffErroredUsers > 0 ? 'up' : 'down') : null,
+      diffColor: diffErroredUsers ? (diffErroredUsers > 0 ? 'red300' : 'green300') : null,
+    },
+    {
+      type: ReleaseComparisonChartType.CRASHED_USERS,
+      thisRelease: defined(releaseCrashedUsers)
+        ? displaySessionStatusPercent(releaseCrashedUsers)
+        : null,
+      allReleases: defined(allCrashedUsers)
+        ? displaySessionStatusPercent(allCrashedUsers)
+        : null,
+      diff: defined(diffCrashedUsers)
+        ? displaySessionStatusPercent(diffCrashedUsers)
+        : null,
+      diffDirection: diffCrashedUsers ? (diffCrashedUsers > 0 ? 'up' : 'down') : null,
+      diffColor: diffCrashedUsers ? (diffCrashedUsers > 0 ? 'red300' : 'green300') : null,
     },
     {
       type: ReleaseComparisonChartType.FAILURE_RATE,
@@ -336,7 +610,7 @@ function ReleaseComparisonChart({
             {
               seriesName: t('This Release'),
               connectNulls: true,
-              data: getCrashFreeSeries(
+              data: getCrashFreeRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
                 SessionField.SESSIONS
@@ -346,10 +620,118 @@ function ReleaseComparisonChart({
           previousSeries: [
             {
               seriesName: t('All Releases'),
-              data: getCrashFreeSeries(
+              data: getCrashFreeRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
                 SessionField.SESSIONS
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.HEALTHY_SESSIONS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.HEALTHY
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.HEALTHY
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.ABNORMAL
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.ABNORMAL
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.ERRORED_SESSIONS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.ERRORED
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.ERRORED
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.CRASHED_SESSIONS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.CRASHED
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.SESSIONS,
+                SessionStatus.CRASHED
               ),
             },
           ],
@@ -361,7 +743,7 @@ function ReleaseComparisonChart({
             {
               seriesName: t('This Release'),
               connectNulls: true,
-              data: getCrashFreeSeries(
+              data: getCrashFreeRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
                 SessionField.USERS
@@ -371,10 +753,118 @@ function ReleaseComparisonChart({
           previousSeries: [
             {
               seriesName: t('All Releases'),
-              data: getCrashFreeSeries(
+              data: getCrashFreeRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
                 SessionField.USERS
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.HEALTHY_USERS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.HEALTHY
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.HEALTHY
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.ABNORMAL_USERS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.ABNORMAL
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.ABNORMAL
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.ERRORED_USERS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.ERRORED
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.ERRORED
+              ),
+            },
+          ],
+          markLines,
+        };
+      case ReleaseComparisonChartType.CRASHED_USERS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.CRASHED
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.USERS,
+                SessionStatus.CRASHED
               ),
             },
           ],
@@ -461,22 +951,20 @@ function ReleaseComparisonChart({
               diff={chartDiff}
             />
           ) : (
-            <TransitionChart loading={loading} reloading={reloading}>
-              <TransparentLoadingMask visible={reloading} />
-
-              <ReleaseSessionsChart
-                series={[...(series ?? []), ...(markLines ?? [])]}
-                previousSeries={previousSeries ?? []}
-                chartType={activeChart}
-                platform={platform}
-                period={period ?? undefined}
-                start={start}
-                end={end}
-                utc={utc === 'true'}
-                value={chart.thisRelease}
-                diff={chartDiff}
-              />
-            </TransitionChart>
+            <ReleaseSessionsChart
+              series={[...(series ?? []), ...(markLines ?? [])]}
+              previousSeries={previousSeries ?? []}
+              chartType={activeChart}
+              platform={platform}
+              period={period ?? undefined}
+              start={start}
+              end={end}
+              utc={utc === 'true'}
+              value={chart.thisRelease}
+              diff={chartDiff}
+              loading={loading}
+              reloading={reloading}
+            />
           )}
         </ChartContainer>
       </ChartPanel>
