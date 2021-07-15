@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -184,11 +185,22 @@ function GenericCards(props: GenericCardsProps) {
 
             return (
               <VitalsContainer>
-                {eventView.getFields().map(fn => {
-                  const {title, tooltip, formatter} = details[fn];
-                  const alias = getAggregateAlias(fn);
+                {eventView.getFields().map(fieldName => {
+                  if (fieldName.includes('apdex')) {
+                    // Replace apdex with explicit thresholds with a generic one for lookup
+                    fieldName = 'apdex()';
+                  }
+
+                  const cardDetail = details[fieldName];
+                  if (!cardDetail) {
+                    Sentry.captureMessage(`Missing field '${fieldName}' in vital cards.`);
+                    return null;
+                  }
+
+                  const {title, tooltip, formatter} = cardDetail;
+                  const alias = getAggregateAlias(fieldName);
                   const rawValue = tableData?.data?.[0]?.[alias];
-                  const data = series?.[fn];
+                  const data = series?.[fieldName];
                   const value =
                     isSummaryLoading || rawValue === undefined
                       ? '\u2014'
@@ -196,7 +208,7 @@ function GenericCards(props: GenericCardsProps) {
                   const chart = <SparklineChart data={data} />;
                   return (
                     <VitalCard
-                      key={fn}
+                      key={fieldName}
                       title={title}
                       tooltip={tooltip}
                       value={value}
@@ -393,7 +405,7 @@ const EmptyVitalBar = styled(EmptyStateWarning)`
 type VitalCardProps = {
   title: string;
   tooltip: string;
-  value: string;
+  value: string | number;
   chart: React.ReactNode;
   minHeight?: number;
   horizontal?: boolean;

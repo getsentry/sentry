@@ -105,7 +105,15 @@ export function getDefaultDisplayFieldForPlatform(
   return landingField;
 }
 
-export const vitalCardDetails = (organization: LightWeightOrganization) => {
+type VitalCardDetail = {
+  title: string;
+  tooltip: string;
+  formatter: (value: number) => string | number;
+};
+
+export const vitalCardDetails = (
+  organization: LightWeightOrganization
+): {[key: string]: VitalCardDetail | undefined} => {
   return {
     'p75(transaction.duration)': {
       title: t('Duration (p75)'),
