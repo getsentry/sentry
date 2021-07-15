@@ -369,6 +369,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
         "latestBuildVersion: "9.8.7" | null,
         "latestBuildNumber": "987000" | null,
+        "lastCheckedBuilds": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
     }
     ```
 
@@ -377,6 +378,11 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     downloads, and an indicator if we do need the session to fetch new builds.
     ``latestBuildVersion`` and ``latestBuildNumber`` together form a unique
     identifier for the latest build recognized by Sentry.
+
+    ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
+    of whether there were any or no builds in App Store Connect at the time, or
+    if the check failed due to an expired iTunes session. In other words, this
+    date may represent a failed check.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -410,6 +416,8 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
 
         pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
 
+        last_checked_builds = project.get_option("sentry:last_checked_appstore")
+
         latest_build = (
             AppConnectBuild.objects.filter(project=project)
             .order_by("-uploaded_to_appstore")
@@ -430,6 +438,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
+                "lastCheckedBuilds": last_checked_builds,
             },
             status=200,
         )
