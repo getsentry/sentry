@@ -167,6 +167,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     tag_key=tag_key,
                     limit=tag_key_limit,
                     filter_query=filter_query,
+                    aggregate_column=aggregate_column,
                     params=params,
                     orderby=self.get_orderby(request),
                     referrer=referrer,
@@ -267,6 +268,7 @@ def query_top_tags(
     limit: int,
     referrer: str,
     orderby: Optional[List[str]],
+    aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
 ) -> Optional[List[Any]]:
     """
@@ -282,6 +284,8 @@ def query_top_tags(
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
+
+    translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
 
@@ -302,7 +306,10 @@ def query_top_tags(
             query=filter_query,
             params=params,
             orderby=orderby,
-            conditions=[["tags_key", "IN", [tag_key]]],
+            conditions=[
+                [translated_aggregate_column, "IS NOT NULL", None],
+                ["tags_key", "IN", [tag_key]],
+            ],
             functions_acl=["array_join"],
             referrer=f"{referrer}.top_tags",
             limit=limit,
