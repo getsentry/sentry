@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Union
+from typing import Any, Dict, List, Mapping, Union
 from urllib.parse import urljoin
 
 from sentry.integrations.slack.message_builder import SlackBody
@@ -11,12 +11,31 @@ from sentry.integrations.slack.message_builder.issues import (
 from sentry.models import Team, User
 from sentry.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.base import BaseNotification
+from sentry.utils.http import absolute_uri
 
 from ..utils import build_notification_footer, get_referrer_qstring
 
 
 def get_group_url(notification: BaseNotification) -> str:
     return str(urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification)))
+
+
+def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, Any]]:
+    projects, release = notification.get_release_projects()
+    buttons = []
+    if release:
+        for project in projects:
+            project_url = absolute_uri(
+                f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+            )
+            buttons.append(
+                {
+                    "text": project.slug,
+                    "type": "button",
+                    "url": project_url,
+                },
+            )
+    return buttons
 
 
 class SlackNotificationsMessageBuilder(SlackMessageBuilder):
@@ -46,7 +65,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         if isinstance(self.notification, ReleaseActivityNotification):
             return self._build(
                 text="",
-                actions=self.notification.get_message_description(),
+                actions=build_deploy_buttons(self.notification),
                 footer=build_notification_footer(self.notification, self.recipient),
             )
 
