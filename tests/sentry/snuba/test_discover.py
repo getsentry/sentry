@@ -489,6 +489,51 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         run_query("!has:transaction.status", [], "status nonexistant")
 
+    def test_error_handled_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("", [[0], [1], [None]]),
+            ("error.handled:true", [[1], [None]]),
+            ("!error.handled:true", [[0]]),
+            ("has:error.handled", [[1], [None]]),
+            ("has:error.handled error.handled:true", [[1], [None]]),
+            ("error.handled:false", [[0]]),
+            ("has:error.handled error.handled:false", []),
+        ]
+
+        for query, expected_data in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["error.handled"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+
+                data = result["data"]
+                data = sorted(
+                    data, key=lambda k: (k["error.handled"][0] is None, k["error.handled"][0])
+                )
+
+                assert len(data) == len(expected_data), query_fn
+                assert [item["error.handled"] for item in data] == expected_data
+
     def test_error_unhandled_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
