@@ -9,6 +9,7 @@ PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_conf
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
+ERROR_HANDLED_ALIAS = "error.handled"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
