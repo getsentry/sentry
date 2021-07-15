@@ -16,7 +16,6 @@ import jsonschema
 import requests
 import sentry_sdk
 from django.db import transaction
-from django.db.models import DateTimeField
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
@@ -259,7 +258,7 @@ class BuildInfo:
     build_number: str
 
     # The date and time the build was uploaded to App Store Connect.
-    uploaded_date: DateTimeField
+    uploaded_date: datetime
 
 
 class ITunesClient:
