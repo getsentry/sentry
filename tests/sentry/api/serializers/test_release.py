@@ -159,7 +159,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["pre"] == "a"
         assert result["versionInfo"]["version"]["buildCode"] == "20200101100"
         assert result["versionInfo"]["buildHash"] is None
-        assert result["versionInfo"]["description"] == "1.0-a (20200101100)"
+        assert result["versionInfo"]["description"] == "1.0a (20200101100)"
         assert result["versionInfo"]["version"]["components"] == 2
 
     def test_no_tag_data(self):
