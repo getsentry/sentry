@@ -10,6 +10,7 @@ import tempfile
 from typing import List, Mapping
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
@@ -108,6 +109,8 @@ def get_or_create_persisted_build(
             platform=build.platform,
             bundle_short_version=build.version,
             bundle_version=build.build_number,
+            uploaded_to_appstore=build.uploaded_date,
+            first_seen=timezone.now(),
             fetched=False,
             # TODO: persist the `uploadedDate` attribute as well.
         )

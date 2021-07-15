@@ -16,6 +16,7 @@ import jsonschema
 import requests
 import sentry_sdk
 from django.db import transaction
+from django.db.models import DateTimeField
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
@@ -241,9 +242,9 @@ class BuildInfo:
     # The app ID
     app_id: str
 
-    # A platform identifying e.g. iOS, TvOS etc.
+    # A platform identifier, e.g. iOS, TvOS etc.
     #
-    # These are not always human readable but some opaque string supplied by apple.
+    # These are not always human-readable and can be some opaque string supplied by Apple.
     platform: str
 
     # The human-readable version, e.g. "7.2.0".
@@ -256,6 +257,9 @@ class BuildInfo:
     #
     # Apple naming calls this the "bundle_version".
     build_number: str
+
+    # The date and time the build was uploaded to App Store Connect.
+    uploaded_date: DateTimeField
 
 
 class ITunesClient:
@@ -359,6 +363,7 @@ class AppConnectClient:
                     platform=build["platform"],
                     version=build["version"],
                     build_number=build["build_number"],
+                    uploaded_date=build["uploaded_date"],
                 )
             )
 
