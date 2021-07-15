@@ -156,10 +156,17 @@ class AppStoreConnectConfig:
         return cls(**data)
 
     @classmethod
-    def all_for_project(cls, project: Project) -> "List[AppStoreConnectConfig]":
+    def from_option(cls, raw_sources_option: str) -> "List[AppStoreConnectConfig]":
+        """Creates a list of new instances from a raw serialized JSON list of symbol sources,
+        typically fetched directly from a project's ``sentry:symbol_sources`` option. Useful when
+        App Store Connect symbol sources need to be updated across multiple projects.
+
+        :raises InvalidConfigError: if the data does not contain a valid App Store Connect
+           symbol source configuration.
+        """
+
         sources = []
-        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
-        all_sources = json.loads(raw)
+        all_sources = json.loads(raw_sources_option)
         for source in all_sources:
             if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
                 sources.append(cls.from_json(source))
