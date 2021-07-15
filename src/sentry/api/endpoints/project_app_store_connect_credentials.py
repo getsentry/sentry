@@ -66,7 +66,7 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
-from sentry.models import AuditLogEntryEvent, Project
+from sentry.models import AppConnectBuild, AuditLogEntryEvent, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
@@ -365,11 +365,14 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     {
         "appstoreCredentialsValid": true,
         "itunesSessionValid": true,
+        "pendingDownloads": 123,
         "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
     }
     ```
 
-    Here the ``itunesSessionRefreshAt`` is when we recommend to refresh the iTunes session.
+    Here the ``itunesSessionRefreshAt`` is when we recommend to refresh the
+    iTunes session, and ``pendingDownloads`` is the number of pending downloads,
+    and an indicator if we do need the session to fetch new builds.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -401,11 +404,14 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         itunes_connect.load_session_cookie(session, symbol_source_cfg.itunesSession)
         itunes_session_info = itunes_connect.get_session_info(session)
 
+        pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
+
         return Response(
             {
                 "appstoreCredentialsValid": apps is not None,
                 "itunesSessionValid": itunes_session_info is not None,
                 "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
+                "pendingDownloads": pending_downloads,
             },
             status=200,
         )

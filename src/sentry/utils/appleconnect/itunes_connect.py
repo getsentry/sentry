@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 SESSION_COOKIE_NAME = "myacinfo"
 
 
+class ITunesSessionExpiredException(Exception):
+    """The iTunes Session is expired."""
+
+    pass
+
+
 def load_session_cookie(session: Session, session_cookie_value: str) -> None:
     """Loads the itunes session cookie in the current session.
 
@@ -315,20 +321,23 @@ def get_dsym_url(
         f"{bundle_version}/details"
     )
 
-    logger.debug(f" GET {details_url}")
+    logger.debug(f"GET {details_url}")
 
     details_response = session.get(details_url)
 
+    # A non-OK status code will probably mean an expired token/session
+    if details_response.status_code == HTTPStatus.UNAUTHORIZED:
+        raise ITunesSessionExpiredException
     if details_response.status_code == HTTPStatus.OK:
         try:
             data = details_response.json()
             dsym_url = safe.get_path(data, "data", "dsymurl")
             return dsym_url  # type: ignore
-        except Exception:
+        except Exception as e:
             logger.info(
-                f"Could not obtain dsms info for app id={app_id}, bundle_short={bundle_short_version}, "
+                f"Could not obtain dSYM info for app id={app_id}, bundle_short={bundle_short_version}, "
                 f"bundle={bundle_version}, platform={platform}",
                 exc_info=True,
             )
-            return None
+            raise e
     return None

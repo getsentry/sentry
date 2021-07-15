@@ -139,7 +139,7 @@ class AppStoreConnectConfig:
 
         This will include the JSON schema validation.  It accepts both a str or a datetime
         for the ``itunesCreated``.  Thus you can safely use this to create and validate the
-        config as desrialised by both plain JSON deserialiser or by Django Rest Framework's
+        config as deserialised by both plain JSON deserialiser or by Django Rest Framework's
         deserialiser.
 
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
