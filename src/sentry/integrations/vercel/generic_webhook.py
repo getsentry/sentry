@@ -230,7 +230,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
         if configuration_id == integration.metadata["installation_id"]:
             # if we are uninstalling a primary configuration, and there are
             # multiple orgs connected to this integration we must update
-            # the crendentials (access_token, webhook_id etc)
+            # the credentials (access_token, webhook_id etc).
             next_config_id, next_config = list(integration.metadata["configurations"].items())[0]
 
             integration.metadata["access_token"] = next_config["access_token"]
@@ -270,7 +270,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
 
     def _deployment_created(self, external_id, request):
         payload = request.data["payload"]
-        # Only create releases for production deloys for now
+        # Only create releases for production deploys for now
         if payload["target"] != "production":
             logger.info(
                 "Ignoring deployment for environment: %s" % payload["target"],
