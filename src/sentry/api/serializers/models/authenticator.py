@@ -22,6 +22,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
             "isEnrolled": obj.is_enrolled(),
             "canValidateOtp": obj.can_validate_otp,
             "allowMultiEnrollment": obj.allow_multi_enrollment,
+            "allowRotationInPlace": obj.allow_rotation_in_place,
         }
 
         # authenticator is enrolled

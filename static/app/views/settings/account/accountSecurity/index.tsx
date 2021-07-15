@@ -136,6 +136,7 @@ class AccountSecurity extends AsyncView<Props> {
                   description,
                   isBackupInterface,
                   isEnrolled,
+                  allowRotationInPlace,
                   configureButton,
                   name,
                 } = auth;
@@ -179,7 +180,7 @@ class AccountSecurity extends AsyncView<Props> {
                           </Button>
                         )}
 
-                        {!isBackupInterface && isEnrolled && (
+                        {!isBackupInterface && isEnrolled && !allowRotationInPlace && (
                           <Tooltip
                             title={t(
                               `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
@@ -196,6 +197,23 @@ class AccountSecurity extends AsyncView<Props> {
                                 icon={<IconDelete />}
                               />
                             </RemoveConfirm>
+                          </Tooltip>
+                        )}
+
+                        {!isBackupInterface && isEnrolled && allowRotationInPlace && (
+                          <Tooltip
+                            title={t(
+                              `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
+                            )}
+                          >
+                            <Button
+                              to={`/settings/account/security/mfa/${id}/enroll/`}
+                              size="small"
+                              priority="primary"
+                              className="enroll-button"
+                            >
+                              {t('Rotate')}
+                            </Button>
                           </Tooltip>
                         )}
                       </Actions>
