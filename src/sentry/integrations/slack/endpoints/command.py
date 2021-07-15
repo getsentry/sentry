@@ -56,6 +56,10 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
     permission_classes = ()
 
     def send_ephemeral_notification(self, message: str) -> Response:
+        print("here in send ephemeral")
+        print(message)
+        # import pdb; pdb.set_trace()
+        print("self: ", self)
         return self.respond(
             {
                 "response_type": "ephemeral",

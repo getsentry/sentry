@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
+from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
@@ -14,6 +15,9 @@ from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
+from rest_framework import status
+from urllib.parse import urlencode
+import json
 
 from ..utils import logger, parse_link
 
@@ -115,6 +119,7 @@ class SlackEventEndpoint(Endpoint):  # type: ignore
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
+
         try:
             slack_request = SlackEventRequest(request)
             slack_request.validate()
@@ -136,12 +141,39 @@ class SlackEventEndpoint(Endpoint):  # type: ignore
                 return resp
 
         if slack_request.type == "message":
-            resp = self.on_message(
-                request,
-                slack_request.integration,
-                slack_request.data.get("token"),
-                slack_request.data.get("event"),
-            )
+            COMMANDS = ["link", "unlink"]
+            data = slack_request.data.get("event")
+            message = data["text"]
+
+            if message in COMMANDS:
+                from .command import SlackCommandsEndpoint
+
+                # do some data massaging to get it in the right format
+                formatted_body = json.loads(request.body)
+                formatted_body["user_id"] = formatted_body["event"]["user"]
+                formatted_body = urlencode(formatted_body)
+                request.body = formatted_body.encode('utf-8')
+                try:
+                    command_request = SlackCommandRequest(request)
+                    command_request.validate()
+                except SlackRequestError:
+                    if e.status == status.HTTP_403_FORBIDDEN:
+                        return self.respond(SlackDisconnectedMessageBuilder().build())
+                    return self.respond(status=e.status)
+
+                slack_commands_endpoint = SlackCommandsEndpoint()
+                if message == "link":
+                    resp = slack_commands_endpoint.link_user(command_request)
+                    print("resp: ", resp)
+                if message == "unlink":
+                    resp = slack_commands_endpoint.unlink_user(command_request)             
+            else:
+                resp = self.on_message(
+                    request,
+                    slack_request.integration,
+                    slack_request.data.get("token"),
+                    slack_request.data.get("event"),
+                )
 
             if resp:
                 return resp
