@@ -74,6 +74,7 @@ DEPLOYMENT_WEBHOOK_NO_COMMITS = """
 
 MINIMAL_WEBHOOK = """
     {
+        "type": "deployment",
         "payload": {
             "project": "nextjsblog-demo",
             "url": "nextjsblog-demo-gogovbsz1.vercel.app",

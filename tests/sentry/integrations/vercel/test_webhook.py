@@ -260,6 +260,11 @@ class VercelReleasesTest(APITestCase):
         assert "No commit found" == response.data["detail"]
         assert len(responses.calls) == 0
 
+    def test_empty_payload(self):
+        response = self._get_response("{}")
+
+        assert response.status_code == 400
+
     def test_missing_repository(self):
         response = self._get_response(MINIMAL_WEBHOOK)
 
