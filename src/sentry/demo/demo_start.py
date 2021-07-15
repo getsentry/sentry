@@ -268,8 +268,11 @@ def _get_one_transaction_name(project: Project):
 def check_strings_similar(error_type, group):
     type = group.data["metadata"].get("type")
     title = group.data["metadata"].get("title")
-
-    error = type or title
-    error = error.lower()
-
-    return error_type in error or error_type == error
+    checks = []
+    if type:
+        type = type.lower()
+        checks.append(error_type in type or error_type == type)
+    if title:
+        title = title.lower()
+        checks.append(error_type in title or error_type == title)
+    return any(checks)
