@@ -206,6 +206,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
+  background: transparent;
   margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * (p.hasLabel ? 2 : 1)}px;
 
   &::-webkit-slider-runnable-track {

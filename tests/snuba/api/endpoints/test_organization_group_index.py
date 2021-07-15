@@ -35,7 +35,12 @@ from sentry.models import (
     add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import (
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1337,6 +1342,48 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
         )
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            release_2_g_1,
+        ]
+
+    def test_semver_build(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test2@1.2.4+124")
+
+        release_1_g_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        release_1_g_2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=2)),
+                "fingerprint": ["group-2"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        release_2_g_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=3)),
+                "fingerprint": ["group-3"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:123")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            release_1_g_1,
+            release_1_g_2,
+        ]
+
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:124")
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
             release_2_g_1,

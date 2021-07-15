@@ -225,7 +225,7 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         },
         enabled: true,
         id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-        label: 'An issue is {comparison_type} than {value} {time}',
+        label: 'The issue is {comparison_type} than {value} {time}',
       },
       {
         formFields: {
