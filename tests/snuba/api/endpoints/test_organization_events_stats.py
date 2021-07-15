@@ -1494,6 +1494,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data
+
         assert len(data) == 3
 
         results = data[""]

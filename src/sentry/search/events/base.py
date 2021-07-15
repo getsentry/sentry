@@ -7,6 +7,7 @@ from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
 from sentry.search.events.constants import (
+    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
@@ -53,8 +54,9 @@ class QueryBase:
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
             TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
+            ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
+            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             # TODO: implement these
-            ERROR_UNHANDLED_ALIAS: self._resolve_unimplemented_alias,
             KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
             PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_unimplemented_alias,
@@ -129,6 +131,16 @@ class QueryBase:
         # TODO: Remove the `toUInt8` once Column supports aliases
         return Function(
             "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
+        )
+
+    def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
+        return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
+
+    def _resolve_error_handled_alias(self, _: str) -> SelectType:
+        # Columns in snuba doesn't support aliasing right now like Function does.
+        # Adding a no-op here to get the alias.
+        return Function(
+            "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
         )
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
