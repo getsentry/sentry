@@ -407,11 +407,12 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         itunes_connect.load_session_cookie(session, symbol_source_cfg.itunesSession)
         itunes_session_info = itunes_connect.get_session_info(session)
 
-        builds = AppConnectBuild.objects.filter(project=project)
-        pending_downloads = builds.filter(fetched=False).count()
-        sorted_builds = builds.sort(key=lambda b: b["uploaded_to_appstore"])
-        latest_build_version = (
-            sorted_builds[-1]["bundle_short_version"] if sorted_builds.len > 0 else None
+        pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
+
+        latest_build = (
+            AppConnectBuild.objects.filter(project=project)
+            .order_by("-uploaded_to_appstore")
+            .first()
         )
 
         return Response(
@@ -420,7 +421,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "itunesSessionValid": itunes_session_info is not None,
                 "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
                 "pendingDownloads": pending_downloads,
-                "latestBuildVersion": latest_build_version,
+                "latestBuildVersion": latest_build["build_version"] if latest_build else None,
             },
             status=200,
         )
