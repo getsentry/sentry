@@ -21,24 +21,17 @@ def get_group_url(notification: BaseNotification) -> str:
     return str(urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification)))
 
 
-def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, Any]]:
-    project_release = getattr(notification, "release", None)
-    if project_release:
-        projects = set(project_release.projects.all())
-        release = get_release(notification.activity, notification.project.organization)
+def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, str]]:
     buttons = []
-    if release and projects:
-        for project in projects:
-            project_url = absolute_uri(
-                f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
-            )
-            buttons.append(
-                {
-                    "text": project.slug,
-                    "type": "button",
-                    "url": project_url,
-                },
-            )
+    if notification.release:
+        release = get_release(notification.activity, notification.project.organization)
+        if release:
+            for project in notification.release.projects.all():
+                project_url = absolute_uri(
+                    f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                )
+                buttons.append({"text": project.slug, "type": "button", "url": project_url})
+
     return buttons
 
 
