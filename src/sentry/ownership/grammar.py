@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from typing import List, Tuple
+from typing import List, Pattern, Tuple
 
 from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -97,6 +97,8 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return self.test_frames(data, ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
+        elif self.type.startswith("codeowners"):
+            return self.test_codeowners(data)
         return False
 
     def test_url(self, data):
@@ -123,6 +125,26 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         for k, v in get_path(data, "tags", filter=True) or ():
             if k == tag and glob_match(v, self.pattern):
                 return True
+        return False
+
+    def test_codeowners(self, data):
+        """
+        Codeowners has a slightly different syntax compared to issue owners
+        As such we need to match it using gitignore logic.
+        See sytax documentation here:
+        https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
+        """
+        spec = _path_to_regex(self.pattern)
+        keys = ["abs_path"]
+        for frame in _iter_frames(data):
+            value = next((frame.get(key) for key in keys if frame.get(key)), None)
+
+            if not value:
+                continue
+
+            if spec.search(value):
+                return True
+
         return False
 
 
@@ -199,6 +221,92 @@ class OwnershipVisitor(NodeVisitor):
 
     def generic_visit(self, node, children):
         return children or node
+
+
+def _path_to_regex(pattern: str) -> Pattern[str]:
+    """
+    ported from https://github.com/hmarr/codeowners/blob/d0452091447bd2a29ee508eebc5a79874fb5d4ff/match.go#L33
+    ported from https://github.com/sbdchd/codeowners/blob/6c5e8563f4c675abb098df704e19f4c6b95ff9aa/codeowners/__init__.py#L16
+
+    MIT License
+
+    Copyright (c) 2020 Harry Marr
+    Copyright (c) 2019-2020 Steve Dignam
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+    """
+    regex = ""
+
+    slash_pos = pattern.find("/")
+    anchored = slash_pos > -1 and slash_pos != len(pattern) - 1
+
+    regex += r"\A" if anchored else r"(?:\A|/)"
+
+    matches_dir = pattern[-1] == "/"
+    pattern_trimmed = pattern.strip("/")
+
+    in_char_class = False
+    escaped = False
+
+    iterator = enumerate(pattern_trimmed)
+    for i, ch in iterator:
+
+        if escaped:
+            regex += re.escape(ch)
+            escaped = False
+            continue
+
+        if ch == "\\":
+            escaped = True
+        elif ch == "*":
+            if i + 1 < len(pattern_trimmed) and pattern_trimmed[i + 1] == "*":
+                left_anchored = i == 0
+                leading_slash = i > 0 and pattern_trimmed[i - 1] == "/"
+                right_anchored = i + 2 == len(pattern_trimmed)
+                trailing_slash = i + 2 < len(pattern_trimmed) and pattern_trimmed[i + 2] == "/"
+
+                if (left_anchored or leading_slash) and (right_anchored or trailing_slash):
+                    regex += ".*"
+
+                    next(iterator, None)
+                    next(iterator, None)
+                    continue
+            regex += "[^/]*"
+        elif ch == "?":
+            regex += "[^/]"
+        elif ch == "[":
+            in_char_class = True
+            regex += ch
+        elif ch == "]":
+            if in_char_class:
+                regex += ch
+                in_char_class = False
+            else:
+                regex += re.escape(ch)
+        else:
+            regex += re.escape(ch)
+
+    if in_char_class:
+        raise ValueError(f"unterminated character class in pattern {pattern}")
+
+    regex += "/" if matches_dir else r"(?:\Z|/)"
+    return re.compile(regex)
 
 
 def _iter_frames(data):
