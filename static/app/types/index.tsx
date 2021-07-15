@@ -2110,9 +2110,24 @@ export enum SessionField {
   USERS = 'count_unique(user)',
 }
 
+export enum SessionStatus {
+  HEALTHY = 'healthy',
+  ABNORMAL = 'abnormal',
+  ERRORED = 'errored',
+  CRASHED = 'crashed',
+}
+
 export enum ReleaseComparisonChartType {
   CRASH_FREE_USERS = 'crashFreeUsers',
+  HEALTHY_USERS = 'healthyUsers',
+  ABNORMAL_USERS = 'abnormalUsers',
+  ERRORED_USERS = 'erroredUsers',
+  CRASHED_USERS = 'crashedUsers',
   CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  HEALTHY_SESSIONS = 'healthySessions',
+  ABNORMAL_SESSIONS = 'abnormalSessions',
+  ERRORED_SESSIONS = 'erroredSessions',
+  CRASHED_SESSIONS = 'crashedSessions',
   SESSION_COUNT = 'sessionCount',
   USER_COUNT = 'userCount',
   ERROR_COUNT = 'errorCount',
