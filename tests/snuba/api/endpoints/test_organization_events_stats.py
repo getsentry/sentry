@@ -1485,7 +1485,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
-                    "field": ["count()", "error.unhandled"],
+                    "field": ["count()", "error.handled"],
                     "topEvents": 5,
                     "query": "!event.type:transaction",
                 },
@@ -1495,13 +1495,17 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data
 
-        assert len(data) == 2
+        assert len(data) == 3
+
+        results = data[""]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 19}], [{"count": 6}]]
+        assert results["order"] == 0
 
         results = data["1"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
         results = data["0"]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 20}], [{"count": 6}]]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
     def test_top_events_with_aggregate_condition(self):
         with self.feature(self.enabled_features):

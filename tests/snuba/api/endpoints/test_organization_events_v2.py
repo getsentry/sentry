@@ -594,7 +594,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 1 == len(response.data["data"])
-            assert 0 == response.data["data"][0]["error.handled"]
+            assert [0] == response.data["data"][0]["error.handled"]
 
         with self.feature("organizations:discover-basic"):
             query = {
@@ -605,8 +605,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 2 == len(response.data["data"])
-            assert 1 == response.data["data"][0]["error.handled"]
-            assert 1 == response.data["data"][1]["error.handled"]
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert [1] == response.data["data"][1]["error.handled"]
 
     def test_error_unhandled_condition(self):
         self.login_as(user=self.user)
@@ -634,7 +634,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 1 == len(response.data["data"])
-            assert 0 == response.data["data"][0]["error.handled"]
+            assert [0] == response.data["data"][0]["error.handled"]
             assert 1 == response.data["data"][0]["error.unhandled"]
 
         with self.feature("organizations:discover-basic"):
@@ -646,9 +646,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 2 == len(response.data["data"])
-            assert 1 == response.data["data"][0]["error.handled"]
+            assert [None] == response.data["data"][0]["error.handled"]
             assert 0 == response.data["data"][0]["error.unhandled"]
-            assert 1 == response.data["data"][1]["error.handled"]
+            assert [1] == response.data["data"][1]["error.handled"]
             assert 0 == response.data["data"][1]["error.unhandled"]
 
     def test_implicit_groupby(self):
