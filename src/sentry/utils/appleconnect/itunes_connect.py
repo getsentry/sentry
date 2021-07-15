@@ -8,6 +8,7 @@ from collections import namedtuple
 from http import HTTPStatus
 from typing import Any, NewType, Optional
 
+import sentry_sdk
 from requests import Session
 
 from sentry.utils import safe
@@ -315,29 +316,36 @@ def get_dsym_url(
     Returns the url for a dsyms bundle. The session must be logged in.
     :return: The url to use for downloading the dsyms bundle
     """
-    details_url = (
-        f"https://appstoreconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/"
-        f"{app_id}/platforms/{platform}/trains/{bundle_short_version}/builds/"
-        f"{bundle_version}/details"
-    )
+    with sentry_sdk.start_span(
+        op="itunes-dsym-url", description="Request iTunes dSYM download URL"
+    ):
+        details_url = (
+            f"https://appstoreconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/"
+            f"{app_id}/platforms/{platform}/trains/{bundle_short_version}/builds/"
+            f"{bundle_version}/details"
+        )
 
-    logger.debug(f"GET {details_url}")
+        logger.debug(f"GET {details_url}")
 
-    details_response = session.get(details_url)
+        details_response = session.get(details_url)
 
-    # A non-OK status code will probably mean an expired token/session
-    if details_response.status_code == HTTPStatus.UNAUTHORIZED:
-        raise ITunesSessionExpiredException
-    if details_response.status_code == HTTPStatus.OK:
-        try:
-            data = details_response.json()
-            dsym_url = safe.get_path(data, "data", "dsymurl")
-            return dsym_url  # type: ignore
-        except Exception as e:
-            logger.info(
-                f"Could not obtain dSYM info for app id={app_id}, bundle_short={bundle_short_version}, "
-                f"bundle={bundle_version}, platform={platform}",
-                exc_info=True,
-            )
-            raise e
-    return None
+        # A non-OK status code will probably mean an expired token/session
+        if details_response.status_code == HTTPStatus.UNAUTHORIZED:
+            raise ITunesSessionExpiredException
+        if details_response.status_code == HTTPStatus.OK:
+            try:
+                data = details_response.json()
+                dsym_url: Optional[str] = safe.get_path(data, "data", "dsymurl")
+                return dsym_url
+            except Exception as e:
+                logger.info(
+                    "Could not obtain dSYM info for "
+                    "app id=%s, bundle_short=%s, bundle=%s, platform=%s",
+                    app_id,
+                    bundle_short_version,
+                    bundle_version,
+                    platform,
+                    exc_info=True,
+                )
+                raise e
+        return None
