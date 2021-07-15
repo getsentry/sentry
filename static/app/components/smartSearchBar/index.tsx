@@ -1017,10 +1017,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     if (cursorToken.type === Token.FreeText) {
-      const autocompleteGroups = [
-        await this.generateTagAutocompleteGroup(cursorToken.text),
-      ];
-      this.setState({searchTerm: cursorToken.text});
+      const lastToken = cursorToken.text.trim().split(' ').pop() ?? '';
+      const keyText = lastToken.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
+      const autocompleteGroups = [await this.generateTagAutocompleteGroup(keyText)];
+      this.setState({searchTerm: keyText});
       this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
       return;
     }
