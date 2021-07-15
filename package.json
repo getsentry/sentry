@@ -230,19 +230,19 @@
   },
   "browserslist": {
     "production": [
-      "last 2 Chrome version",
-      "last 2 Firefox version",
+      "last 2 Chrome versions",
+      "last 2 Firefox versions",
       "last 2 Edge major versions",
       "last 2 Safari major versions",
-      "last 2 iOS major versions",
+      "last 3 iOS major versions",
       "Firefox ESR"
     ],
     "development": [
-      "last 2 Chrome version",
-      "last 2 Firefox version",
+      "last 2 Chrome versions",
+      "last 2 Firefox versions",
       "last 2 Edge major versions",
       "last 2 Safari major versions",
-      "last 2 iOS major versions",
+      "last 3 iOS major versions",
       "Firefox ESR"
     ],
     "test": [
