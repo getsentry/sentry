@@ -8,7 +8,13 @@ from django.utils import timezone
 from sentry_sdk import capture_exception
 from snuba_sdk import Column, Condition, Direction, Entity, Granularity, Op, OrderBy, Query
 
-from sentry.models import Environment, Release, ReleaseProjectEnvironment
+from sentry.models import (
+    Environment,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 
@@ -124,7 +130,10 @@ def sum_sessions_and_releases(org_id, project_ids):
                             Condition(Column("project_id"), Op.IN, project_ids),
                         ],
                         granularity=Granularity(21600),
-                        orderby=[OrderBy(Column("org_id"), Direction.ASC)],
+                        orderby=[
+                            OrderBy(Column("org_id"), Direction.ASC),
+                            OrderBy(Column("project_id"), Direction.ASC),
+                        ],
                     )
                     .set_limit(CHUNK_SIZE + 1)
                     .set_offset(offset)
@@ -191,13 +200,23 @@ def adopt_releases(org_id, totals):
                                     name=environment, organization_id=org_id
                                 )
                                 rel = Release.objects.get(organization=org_id, version=release)
-                                ReleaseProjectEnvironment.objects.create(
-                                    project_id=project_id,
-                                    release_id=rel.id,
-                                    environment=env,
-                                    adopted=timezone.now(),
-                                )
-                            except (Environment.DoesNotExist, Release.DoesNotExist) as exc:
+                                if ReleaseProject.objects.get(
+                                    project_id=project_id, release=rel
+                                ) and ReleaseEnvironment.objects.get(
+                                    environment=env, organization_id=org_id, release=rel
+                                ):
+                                    ReleaseProjectEnvironment.objects.create(
+                                        project_id=project_id,
+                                        release_id=rel.id,
+                                        environment=env,
+                                        adopted=timezone.now(),
+                                    )
+                            except (
+                                Environment.DoesNotExist,
+                                Release.DoesNotExist,
+                                ReleaseEnvironment.DoesNotExist,
+                                ReleaseProject.DoesNotExist,
+                            ) as exc:
                                 metrics.incr(
                                     "sentry.tasks.process_projects_with_sessions.skipped_update"
                                 )

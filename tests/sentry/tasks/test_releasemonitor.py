@@ -4,7 +4,13 @@ from uuid import uuid4
 from django.db.models import F
 from django.utils import timezone
 
-from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
+from sentry.models import (
+    GroupRelease,
+    Project,
+    ReleaseEnvironment,
+    ReleaseProjectEnvironment,
+    Repository,
+)
 from sentry.tasks.releasemonitor import monitor_release_adoption, process_projects_with_sessions
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -422,8 +428,6 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         ).exists()
 
     def test_monitor_release_adoption(self):
-        # Temporarily commented out since org data is hardcoded for early release.
-        # Create a second org for this test (I think this org needs permissions, the last test fails because we don't get session data for this org from snuba)
         now = timezone.now()
         self.org2 = self.create_organization(
             name="Yet Another Test Org",
@@ -528,9 +532,12 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             release_id=self.release2.id,
             environment__name="",
         ).exists()
-        self.create_environment(name="somenvname", project=self.project1)
-
-        # Will create because env exists
+        env = self.create_environment(name="somenvname", project=self.project1)
+        self.release2.add_project(self.project1)
+        ReleaseEnvironment.objects.create(
+            organization=self.project1.organization, release=self.release2, environment=env
+        )
+        # Will create because proper models exist
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
