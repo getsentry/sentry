@@ -48,11 +48,11 @@ export const displayCrashFreePercent = (
   return `${rounded}\u0025`;
 };
 
-export const getSessionStatusPercent = (percent: number): number => {
+export const getSessionStatusPercent = (percent: number) => {
   return round(percent, 3);
 };
 
-export const displaySessionStatusPercent = (percent: number): string => {
+export const displaySessionStatusPercent = (percent: number) => {
   return `${getSessionStatusPercent(percent).toLocaleString()}\u0025`;
 };
 
