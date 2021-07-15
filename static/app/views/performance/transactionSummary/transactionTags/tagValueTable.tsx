@@ -14,7 +14,7 @@ import {IconAdd} from 'app/icons/iconAdd';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import EventView, {isFieldSortable} from 'app/utils/discover/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {fieldAlignment} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import {
@@ -144,7 +144,6 @@ export class TagValueTable extends Component<Props, State> {
       };
     }
     const currentSort = sortedEventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
 
@@ -153,7 +152,7 @@ export class TagValueTable extends Component<Props, State> {
         align={align}
         title={columnInfo.name}
         direction={currentSortKind}
-        canSort={canSort}
+        canSort={false}
         generateSortLink={generateSortLink}
         onClick={() => {}} // TODO(k-fish): Implement sorting
       />

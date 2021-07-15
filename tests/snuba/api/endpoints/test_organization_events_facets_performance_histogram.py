@@ -168,7 +168,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
 
-        histogram_data = data_response.data["data"]
+        histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 2
         assert histogram_data[0]["count"] == 14
         assert histogram_data[0]["histogram_transaction_duration_50000_1000000_1"] == 1000000.0
@@ -178,6 +178,11 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         assert histogram_data[1]["histogram_transaction_duration_50000_1000000_1"] == 4000000.0
         assert histogram_data[1]["tags_value"] == "blue"
         assert histogram_data[1]["tags_key"] == "color"
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 2
+        assert tag_data[0]["tags_value"] == "red"
+        assert tag_data[1]["tags_value"] == "blue"
 
     def test_tag_key_histogram_buckets(self):
         request = {
@@ -195,7 +200,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
 
-        histogram_data = data_response.data["data"]
+        histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 1
         assert histogram_data[0]["count"] == 14
         assert histogram_data[0]["histogram_transaction_duration_2500000_0_1"] == 0.0
@@ -207,7 +212,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
 
-        histogram_data = data_response.data["data"]
+        histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 3
         assert histogram_data[0]["count"] == 14
         assert histogram_data[0]["histogram_transaction_duration_750000_750000_1"] == 750000.0

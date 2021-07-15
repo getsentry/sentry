@@ -168,6 +168,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     limit=tag_key_limit,
                     filter_query=filter_query,
                     params=params,
+                    orderby=self.get_orderby(request),
                     referrer=referrer,
                 )
 
@@ -180,7 +181,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
                     referrer=referrer,
-                    orderby=self.get_orderby(request),
                     params=params,
                     limit=tag_key_limit,
                     num_buckets_per_key=num_buckets_per_key,
@@ -195,12 +195,19 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     )
                     row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
 
-                return results
+                return results, top_tags
 
         with self.handle_query_errors():
-            results = data_fn()
+            results, top_tags = data_fn()
             return Response(
-                self.handle_results_with_meta(request, organization, params["project_id"], results)
+                {
+                    "tags": self.handle_results_with_meta(
+                        request, organization, params["project_id"], {"data": top_tags}
+                    ),
+                    "histogram": self.handle_results_with_meta(
+                        request, organization, params["project_id"], results
+                    ),
+                }
             )
 
 
@@ -259,6 +266,7 @@ def query_top_tags(
     tag_key: str,
     limit: int,
     referrer: str,
+    orderby: Optional[List[str]],
     filter_query: Optional[str] = None,
 ) -> Optional[List[Any]]:
     """
@@ -277,6 +285,14 @@ def query_top_tags(
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
 
+        if not orderby:
+            orderby = ["-count"]
+
+        for i, sort in enumerate(orderby):
+            if "frequency" in sort:
+                # Replacing frequency as it's the same underlying data dimension, this way we don't have to modify the existing histogram query.
+                orderby[i] = sort.replace("frequency", "count")
+
         # Get the average and count to use to filter the next request to facets
         tag_data = discover.query(
             selected_columns=[
@@ -285,7 +301,7 @@ def query_top_tags(
             ],
             query=filter_query,
             params=params,
-            orderby=["-count"],
+            orderby=orderby,
             conditions=[["tags_key", "IN", [tag_key]]],
             functions_acl=["array_join"],
             referrer=f"{referrer}.top_tags",
@@ -420,7 +436,6 @@ def query_facet_performance_key_histogram(
     referrer: str,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
-    orderby: Optional[str] = None,
 ) -> Dict:
     precision = 0
 
@@ -429,18 +444,20 @@ def query_facet_performance_key_histogram(
     num_buckets = num_buckets_per_key * limit
 
     results = discover.histogram_query(
-        [aggregate_column],
-        filter_query,
-        params,
-        num_buckets,
-        precision,
-        referrer="api.organization-events-facets-performance-histogram",
+        fields=[
+            aggregate_column,
+        ],
+        user_query=filter_query,
+        params=params,
+        num_buckets=num_buckets,
+        precision=precision,
         group_by=["tags_value", "tags_key"],
         limit_by=[num_buckets_per_key, "tags_value"],
         extra_conditions=[
             ["tags_key", "IN", [tag_key]],
             ["tags_value", "IN", tag_values],
         ],
+        referrer="api.organization-events-facets-performance-histogram",
         normalize_results=False,
     )
     return results
