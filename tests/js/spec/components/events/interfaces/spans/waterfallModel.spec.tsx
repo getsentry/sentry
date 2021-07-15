@@ -2,6 +2,7 @@ import {ActiveFilter, noFilter} from 'app/components/events/interfaces/spans/fil
 import {EnhancedProcessedSpanType} from 'app/components/events/interfaces/spans/types';
 import WaterfallModel from 'app/components/events/interfaces/spans/waterfallModel';
 import {EntryType, EventTransaction} from 'app/types/event';
+import {assert} from 'app/types/utils';
 
 describe('WaterfallModel', () => {
   const event = {
@@ -495,5 +496,181 @@ describe('WaterfallModel', () => {
     });
 
     expect(spans).toEqual(fullWaterfall);
+  });
+
+  it('span grouping - only child parent-child chain - root is not grouped', () => {
+    const event2 = {
+      ...event,
+      entries: [],
+    };
+
+    const waterfallModel = new WaterfallModel(event2);
+
+    const spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual([
+      {
+        ...fullWaterfall[0],
+        numOfSpanChildren: 0,
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
+      },
+    ]);
+  });
+
+  it('span grouping - only child parent-child chain - 2 spans are not grouped', () => {
+    const event2: EventTransaction = {
+      ...event,
+      entries: [
+        {
+          data: [event.entries[0].data[0]],
+          type: EntryType.SPANS,
+        },
+      ],
+    };
+
+    const waterfallModel = new WaterfallModel(event2);
+
+    const spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual([
+      {
+        ...fullWaterfall[0],
+        numOfSpanChildren: 1,
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
+      },
+      {
+        ...fullWaterfall[1],
+        isLastSibling: true,
+        numOfSpanChildren: 0,
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
+      },
+    ]);
+  });
+
+  it('span grouping - only child parent-child chain - 3 or more spans are grouped', () => {
+    const event2: EventTransaction = {
+      ...event,
+      entries: [
+        {
+          data: [
+            event.entries[0].data[0],
+            {
+              ...event.entries[0].data[0],
+              parent_span_id: event.entries[0].data[0].span_id,
+              span_id: 'something',
+            },
+          ],
+          type: EntryType.SPANS,
+        },
+      ],
+    };
+    const waterfallModel = new WaterfallModel(event2);
+
+    let spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    // 1 or more spans are grouped
+    expect(spans).toHaveLength(2);
+
+    expect(spans).toEqual([
+      {
+        ...fullWaterfall[0],
+        numOfSpanChildren: 1,
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
+      },
+      {
+        ...fullWaterfall[1],
+        span: {
+          ...fullWaterfall[1].span,
+          parent_span_id: event.entries[0].data[0].span_id,
+          span_id: 'something',
+        },
+        isLastSibling: true,
+        numOfSpanChildren: 0,
+        treeDepth: 1,
+        spanGrouping: [
+          {
+            ...fullWaterfall[1],
+            isLastSibling: true,
+            numOfSpanChildren: 1,
+            spanGrouping: undefined,
+            showSpanGroup: false,
+            toggleSpanGroup: undefined,
+          },
+        ],
+        showSpanGroup: false,
+        toggleSpanGroup: expect.any(Function),
+      },
+    ]);
+
+    // Expand span group
+    assert(spans[1].type === 'span' && spans[1].toggleSpanGroup);
+    spans[1].toggleSpanGroup();
+
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    // 1 or more spans are grouped
+    expect(spans).toHaveLength(3);
+
+    expect(spans).toEqual([
+      {
+        ...fullWaterfall[0],
+        numOfSpanChildren: 1,
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
+      },
+      {
+        ...fullWaterfall[1],
+        isLastSibling: true,
+        numOfSpanChildren: 1,
+        treeDepth: 1,
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
+      },
+      {
+        ...fullWaterfall[1],
+        span: {
+          ...fullWaterfall[1].span,
+          parent_span_id: event.entries[0].data[0].span_id,
+          span_id: 'something',
+        },
+        isLastSibling: true,
+        numOfSpanChildren: 0,
+        treeDepth: 2,
+        spanGrouping: [
+          {
+            ...fullWaterfall[1],
+            isLastSibling: true,
+            numOfSpanChildren: 1,
+            spanGrouping: undefined,
+            showSpanGroup: false,
+            toggleSpanGroup: undefined,
+          },
+        ],
+        showSpanGroup: true,
+        toggleSpanGroup: expect.any(Function),
+      },
+    ]);
   });
 });
