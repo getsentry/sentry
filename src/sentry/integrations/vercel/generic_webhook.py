@@ -30,6 +30,10 @@ class NoCommitFoundError(IntegrationError):
     pass
 
 
+class MissingRepositoryError(IntegrationError):
+    pass
+
+
 def verify_signature(request):
     # TODO(meredith): Pretty sure they always send both, but once we
     # get rid of old webhooks can update to just check VERCEL_SIGNATURE
@@ -49,6 +53,40 @@ def safe_json_parse(resp):
     if resp.headers.get("content-type") == "application/json":
         return resp.json()
     return None
+
+
+def get_commit_sha(meta: Mapping[str, str]) -> str:
+    """Find the commit SHA so we can use it as as the release."""
+    commit_sha = (
+        meta.get("githubCommitSha") or meta.get("gitlabCommitSha") or meta.get("bitbucketCommitSha")
+    )
+
+    if not commit_sha:
+        # This can happen with manual builds.
+        raise NoCommitFoundError("No commit found")
+
+    return commit_sha
+
+
+def get_repository(meta: Mapping[str, str]) -> str:
+    """Construct the repository string depending what provider we use."""
+
+    try:
+        if meta.get("githubCommitSha"):
+            # We use these instead of githubOrg and githubRepo since it's the repo the user has access to.
+            return f'{meta["githubCommitOrg"]}/{meta["githubCommitRepo"]}'
+
+        if meta.get("gitlabCommitSha"):
+            # GitLab repos are formatted with a space for some reason.
+            return f'{meta["gitlabProjectNamespace"]} / {meta["gitlabProjectName"]}'
+
+        if meta.get("bitbucketCommitSha"):
+            return f'{meta["bitbucketRepoOwner"]}/{meta["bitbucketRepoName"]}'
+
+    except KeyError:
+        pass
+
+    raise MissingRepositoryError("Could not determine repository")
 
 
 def get_payload_and_token(
@@ -74,26 +112,8 @@ def get_payload_and_token(
     if not sentry_app_installation_token:
         raise SentryAppInstallationToken.DoesNotExist()
 
-    # find the commmit sha so we can  use it as as the release
-    commit_sha = (
-        meta.get("githubCommitSha") or meta.get("gitlabCommitSha") or meta.get("bitbucketCommitSha")
-    )
-
-    # contruct the repo depeding what provider we use
-    if meta.get("githubCommitSha"):
-        # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-        repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])
-    elif meta.get("gitlabCommitSha"):
-        # gitlab repos are formatted with a space for some reason
-        repository = "{} / {}".format(
-            meta["gitlabProjectNamespace"],
-            meta["gitlabProjectName"],
-        )
-    elif meta.get("bitbucketCommitSha"):
-        repository = "{}/{}".format(meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
-    else:
-        # this can happen with manual builds
-        raise NoCommitFoundError("No commit found")
+    commit_sha = get_commit_sha(meta)
+    repository = get_repository(meta)
 
     release_payload = {
         "version": commit_sha,
@@ -305,6 +325,9 @@ class VercelGenericWebhookEndpoint(Endpoint):
                 except NoCommitFoundError:
                     logger.info("No commit found", extra=logging_params)
                     return self.respond({"detail": "No commit found"}, status=404)
+                except MissingRepositoryError:
+                    logger.info("Could not determine repository", extra=logging_params)
+                    return self.respond({"detail": "Could not determine repository"}, status=400)
 
                 url = absolute_uri(f"/api/0/organizations/{organization.slug}/releases/")
                 headers = {
