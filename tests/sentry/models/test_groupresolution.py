@@ -13,6 +13,12 @@ class GroupResolutionTest(TestCase):
         self.old_release.update(date_added=timezone.now() - timedelta(minutes=30))
         self.new_release = self.create_release(version="b", project=self.project)
         self.group = self.create_group()
+        self.old_semver_release = self.create_release(
+            version="foo_package@1.0", project=self.project
+        )
+        self.new_semver_release = self.create_release(
+            version="foo_package@2.0", project=self.project
+        )
 
     def test_in_next_release_with_new_release(self):
         GroupResolution.objects.create(
@@ -31,6 +37,33 @@ class GroupResolutionTest(TestCase):
             release=self.new_release, group=self.group, type=GroupResolution.Type.in_next_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
+
+    def test_in_next_semver_release_with_new_semver_release(self):
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            current_release_version=self.old_semver_release.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+        assert GroupResolution.has_resolution(self.group, self.new_semver_release)
+
+    def test_in_next_semver_release_with_same_release(self):
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            current_release_version=self.old_semver_release.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+        assert not GroupResolution.has_resolution(self.group, self.old_semver_release)
+
+    def test_in_next_semver_release_with_old_semver_release(self):
+        GroupResolution.objects.create(
+            release=self.new_semver_release,
+            current_release_version=self.new_semver_release.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+        assert not GroupResolution.has_resolution(self.group, self.old_semver_release)
 
     def test_in_release_with_new_release(self):
         GroupResolution.objects.create(
