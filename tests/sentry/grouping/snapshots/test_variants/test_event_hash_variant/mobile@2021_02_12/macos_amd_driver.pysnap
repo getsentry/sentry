@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T17:38:05.319276Z'
+created: '2021-07-14T12:39:40.800371Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -213,7 +213,7 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "0a16eff3ac6acb7f1b7926d65019e155"
+  hash: "0f52b0518d354484f5f1eb00ec484ab9"
   tree_label: "abort | amdradeonx5000gldriver | glTexSubImage2D | code | -[NSRunLoop(NSRunLoop) runMode:beforeDate:] | code"
   component:
     system*
@@ -396,7 +396,7 @@ system:
               "__pthread_kill"
             package (ignored because function takes precedence)
               "libsystem_kernel.dylib"
-        type (ignored because exception is synthetic)
+        type*
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"

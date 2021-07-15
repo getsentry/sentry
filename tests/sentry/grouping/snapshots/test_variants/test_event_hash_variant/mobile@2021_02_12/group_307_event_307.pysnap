@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:53.404252Z'
+created: '2021-07-14T12:39:40.603945Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
@@ -79,13 +79,13 @@ app-depth-max:
               "__dynamic_cast"
             package (ignored because function takes precedence)
               "libc++abi.dylib"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
 --------------------------------------------------------------------------
 system:
-  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  hash: "d15c861b1efab5fb699db80c83460b68"
   tree_label: "stripped_application_code"
   component:
     system*
@@ -145,7 +145,7 @@ system:
               "__dynamic_cast"
             package (ignored because function takes precedence)
               "libc++abi.dylib"
-        type (ignored because exception is synthetic)
+        type*
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

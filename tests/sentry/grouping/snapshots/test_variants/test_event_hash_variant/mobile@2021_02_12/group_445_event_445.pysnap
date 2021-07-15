@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T17:38:04.688810Z'
+created: '2021-07-14T12:39:39.654871Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -292,7 +292,7 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
+  hash: "6ca70b05afe6f28addb3923c2e247b70"
   tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
   component:
     system*
@@ -447,7 +447,7 @@ system:
               "crashpad_client_win.cc"
             function*
               "crashpad::`anonymous namespace'::HandleAbortSignal"
-        type (ignored because exception is synthetic)
+        type*
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"

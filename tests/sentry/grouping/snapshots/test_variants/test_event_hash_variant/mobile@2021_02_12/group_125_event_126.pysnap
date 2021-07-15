@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:52.648481Z'
+created: '2021-07-14T12:39:39.776234Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app-depth-1:
               "dlopen"
             package (ignored because function takes precedence)
               "libdyld.dylib"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / 0x00000032"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"
@@ -180,13 +180,13 @@ app-depth-max:
               "ImageLoaderMachOCompressed::rebase"
             package (ignored because function takes precedence)
               "dyld"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / 0x00000032"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "3da34e8c72dbcd4a490ac36eb7130638"
+  hash: "ce2c54a64a92925680d18a24c0c88bda"
   tree_label: "dlopen | stripped_application_code | stripped_application_code"
   component:
     system*
@@ -342,7 +342,7 @@ system:
               "ImageLoaderMachOCompressed::rebase"
             package (ignored because function takes precedence)
               "dyld"
-        type (ignored because exception is synthetic)
+        type*
           "EXC_BAD_ACCESS / 0x00000032"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"

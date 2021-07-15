@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T17:38:04.749059Z'
+created: '2021-07-14T12:39:41.938457Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,7 +15,7 @@ app-depth-1:
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -47,7 +47,7 @@ app-depth-2:
               "RtlFreeHeap"
             package (ignored because function takes precedence)
               "ntdll.dll"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -84,7 +84,7 @@ app-depth-3:
               "RtlFreeHeap"
             package (ignored because function takes precedence)
               "ntdll.dll"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -216,13 +216,13 @@ app-depth-max:
               "RtlpOptimizeWaitOnAddressWaitList"
             package (ignored because function takes precedence)
               "ntdll.dll"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "6b9106347534a0018fe5f3d9993b3bb5"
+  hash: "10146d13e5c34b7cf85e040908fedbe2"
   tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
   component:
     system*
@@ -348,7 +348,7 @@ system:
               "RtlpOptimizeWaitOnAddressWaitList"
             package (ignored because function takes precedence)
               "ntdll.dll"
-        type (ignored because exception is synthetic)
+        type*
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T17:38:05.386260Z'
+created: '2021-07-14T12:39:42.549221Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -294,7 +294,7 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "a3681449b8f66e38697bba72bab32569"
+  hash: "f015c2afd879c0988173d4acfcf47a9d"
   tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
@@ -470,7 +470,7 @@ system:
               "__pthread_kill"
             package (ignored because function takes precedence)
               "libsystem_kernel.dylib"
-        type (ignored because exception is synthetic)
+        type*
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
