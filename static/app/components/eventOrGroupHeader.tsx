@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import ErrorBoundary from 'app/components/errorBoundary';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Tooltip from 'app/components/tooltip';
@@ -14,6 +15,8 @@ import {Event} from 'app/types/event';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandledTag';
+
+import EventTitleError from './eventTitleError';
 
 type DefaultProps = {
   includeLink: boolean;
@@ -42,8 +45,9 @@ class EventOrGroupHeader extends Component<Props> {
   };
 
   getTitleChildren() {
-    const {hideIcons, hideLevel, data, index} = this.props;
+    const {hideIcons, hideLevel, data, index, organization} = this.props;
     const {level, status, isBookmarked, hasSeen} = data as Group;
+    const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
     return (
       <Fragment>
@@ -64,13 +68,16 @@ class EventOrGroupHeader extends Component<Props> {
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <EventOrGroupTitle
-          {...this.props}
-          style={{fontWeight: hasSeen ? 400 : 600}}
-          withStackTracePreview
-          hasGuideAnchor={index === 0}
-          guideAnchorName="issue_stream_title"
-        />
+
+        <ErrorBoundary customComponent={<EventTitleError />} mini>
+          <StyledEventOrGroupTitle
+            {...this.props}
+            hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
+            withStackTracePreview
+            hasGuideAnchor={index === 0}
+            guideAnchorName="issue_stream_title"
+          />
+        </ErrorBoundary>
       </Fragment>
     );
   }
@@ -214,3 +221,9 @@ const GroupLevel = styled('div')<{level: Level}>`
 `;
 
 export default withRouter(withOrganization(EventOrGroupHeader));
+
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
+  hasSeen: boolean;
+}>`
+  font-weight: ${p => (p.hasSeen ? 400 : 600)};
+`;
