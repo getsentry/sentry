@@ -22,10 +22,12 @@ def get_group_url(notification: BaseNotification) -> str:
 
 
 def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, Any]]:
-    projects = set(notification.release.projects.all())
-    release = get_release(notification.activity, notification.project.organization)
+    project_release = getattr(notification, "release", None)
+    if project_release:
+        projects = set(project_release.projects.all())
+        release = get_release(notification.activity, notification.project.organization)
     buttons = []
-    if release:
+    if release and projects:
         for project in projects:
             project_url = absolute_uri(
                 f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
