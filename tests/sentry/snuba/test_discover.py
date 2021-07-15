@@ -3896,6 +3896,23 @@ class TimeseriesQueryTest(TimeseriesBase):
             val["count"] for val in result.data["data"] if "count" in val
         ], result.data["data"]
 
+    def test_nonzerofilling(self):
+        result = discover.timeseries_query(
+            selected_columns=["count()"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=3),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            zerofill_results=False,
+        )
+        assert len(result.data["data"]) == 2, "Should only have non empty results"
+        assert [2, 1] == [
+            val["count"] for val in result.data["data"] if "count" in val
+        ], result.data["data"]
+
     def test_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         project3 = self.create_project(organization=self.organization)
@@ -4309,6 +4326,13 @@ def test_zerofill():
 
     assert results[0]["time"] == 1546387200
     assert results[7]["time"] == 1546992000
+
+
+def test_format():
+    results = discover.format(
+        {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "time"
+    )
+    assert len(results) == 0
 
 
 class ArithmeticTest(SnubaTestCase, TestCase):

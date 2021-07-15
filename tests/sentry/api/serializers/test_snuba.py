@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.api.serializers.snuba import zerofill
+from sentry.api.serializers.snuba import format, zerofill
 from sentry.utils.dates import to_timestamp
 
 
@@ -69,5 +69,58 @@ class ZeroFillTest(unittest.TestCase):
             (to_timestamp(start - timedelta(minutes=5)), []),
             (to_timestamp(start + timedelta(minutes=1)), [9]),
             (to_timestamp(start + timedelta(minutes=5)), []),
+            (to_timestamp(start + timedelta(minutes=16)), [3]),
+        ]
+
+
+class NonZeroFillTest(unittest.TestCase):
+    def run_test(self, filled_buckets, irregular_buckets, start, end, rollup):
+        filled_buckets = [(start + (rollup * bucket), val) for bucket, val in filled_buckets]
+        buckets = [(to_timestamp(date), val) for date, val in filled_buckets + irregular_buckets]
+        sort_key = lambda row: row[0]
+        buckets.sort(key=sort_key)
+        expected = buckets
+        expected.sort(key=sort_key)
+        assert format(buckets, start, end, int(rollup.total_seconds())) == expected
+
+    def test_missing_buckets(self):
+        start = timezone.now().replace(minute=0, second=0, microsecond=0)
+        rollup = timedelta(minutes=10)
+        self.run_test([(0, [0]), (1, [1])], [], start, start + timedelta(minutes=60), rollup)
+        self.run_test(
+            [(0, [0]), (2, [1]), (4, [4])], [], start, start + timedelta(minutes=60), rollup
+        )
+
+    def test_non_rollup_buckets(self):
+        start = timezone.now().replace(minute=0, second=0, microsecond=0)
+        rollup = timedelta(minutes=10)
+        self.run_test(
+            filled_buckets=[(0, [0]), (1, [1])],
+            irregular_buckets=[
+                (start + timedelta(minutes=5), [5]),
+                (start + timedelta(minutes=32), [8]),
+            ],
+            start=start,
+            end=start + timedelta(minutes=60),
+            rollup=rollup,
+        )
+
+    def test_misaligned_last_bucket(self):
+        # the start does NOT align the first bucket due to the zerofill
+        start = timezone.now().replace(minute=5, second=0, microsecond=0)
+        rollup = timedelta(minutes=10)
+        buckets = [
+            (to_timestamp(start + timedelta(minutes=1)), [9]),
+            (to_timestamp(start + timedelta(minutes=16)), [3]),
+        ]
+        non_zerofilled_buckets = format(
+            buckets,
+            start,
+            start + timedelta(minutes=20),
+            int(rollup.total_seconds()),
+            allow_partial_buckets=True,
+        )
+        assert non_zerofilled_buckets == [
+            (to_timestamp(start + timedelta(minutes=1)), [9]),
             (to_timestamp(start + timedelta(minutes=16)), [3]),
         ]
