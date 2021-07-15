@@ -7,7 +7,6 @@ from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
 from sentry.search.events.constants import (
-    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
@@ -55,7 +54,6 @@ class QueryBase:
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
             TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
-            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             # TODO: implement these
             KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
@@ -135,11 +133,6 @@ class QueryBase:
 
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
-
-    def _resolve_error_handled_alias(self, _: str) -> SelectType:
-        # Columns in snuba doesn't support aliasing right now like Function does.
-        # Adding a no-op here to get the alias.
-        return Function("coalesce", [self.column("error.handled"), []], ERROR_HANDLED_ALIAS)
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
