@@ -54,13 +54,13 @@ function EventTitleTreeLabel({treeLabel}: Props) {
 export default EventTitleTreeLabel;
 
 const Wrapper = styled('div')`
-  display: grid;
+  display: inline-grid;
   grid-template-columns: auto 1fr;
   align-items: center;
 `;
 
 const FirstFourParts = styled('div')`
-  display: grid;
+  display: inline-grid;
   grid-auto-flow: column;
   align-items: center;
 `;
