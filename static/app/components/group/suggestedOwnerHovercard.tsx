@@ -49,7 +49,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
     const modalData = {
       initialData: [
         {
-          emails: (actor.email && new Set([actor.email])) || undefined,
+          emails: actor.email ? new Set([actor.email]) : new Set([]),
         },
       ],
       source: 'suggested_assignees',
