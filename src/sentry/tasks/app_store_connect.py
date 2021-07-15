@@ -12,8 +12,8 @@ from typing import List, Mapping
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
 from sentry.tasks.base import instrumented_task
-from sentry.utils.appleconnect.itunes_connect import ITunesSessionExpiredException
 from sentry.utils import json, sdk
+from sentry.utils.appleconnect.itunes_connect import ITunesSessionExpiredException
 
 logger = logging.getLogger(__name__)
 
