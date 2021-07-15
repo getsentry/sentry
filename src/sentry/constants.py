@@ -36,6 +36,9 @@ MAX_VERSION_LENGTH = 200
 MAX_COMMIT_LENGTH = 64
 COMMIT_RANGE_DELIMITER = ".."
 
+# semver constants
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"
+
 SORT_OPTIONS = OrderedDict(
     (
         ("priority", _("Priority")),

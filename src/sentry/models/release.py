@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
 from sentry.app import locks
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, SEMVER_FAKE_PACKAGE
 from sentry.db.models import (
     ArrayField,
     BoundedBigIntegerField,
@@ -451,6 +451,31 @@ class Release(Model):
             or value in (".", "..")
             or value.lower() == "latest"
         )
+
+    @property
+    def is_semver_release(self):
+        return self.package is not None
+
+    @staticmethod
+    def is_semver_version(version):
+        """
+        Method that checks if a version follows semantic versioning
+        """
+        if not Release.is_valid_version(version):
+            return False
+
+        # Release name has to contain package_name to be parsed correctly by parse_release
+        version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
+        try:
+            version_info = parse_release(version)
+            version_parsed = version_info.get("version_parsed")
+            return version_parsed is not None and all(
+                validate_bigint(version_parsed[field])
+                for field in ("major", "minor", "patch", "revision")
+            )
+        except RelayError:
+            # This can happen on invalid legacy releases
+            return False
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -1021,3 +1046,53 @@ def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
     )
     qs.query.group_by = ["release_id"]
     return dict(qs)
+
+
+def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
+    """
+    Checks if we should follow semantic versioning scheme for ordering based on
+    1. Latest ten releases of the project_id passed in all follow semver
+    2. provided release version argument is a valid semver version
+
+    Inputs:
+        * org_id
+        * project_id
+        * release_version
+    Returns:
+        Boolean that indicates if we should follow semantic version or not
+    """
+    # ToDo(ahmed): Move this function else where to be easily accessible for re-use
+    follows_semver = True
+
+    # Check if the latest ten releases are semver compliant
+    releases_list = Release.objects.filter(
+        organization=org_id, projects__id__in=[project_id]
+    ).order_by("-date_added")[:10]
+
+    # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
+    # A project is said to be following semver versioning schemes if it satisfies the following
+    # conditions:-
+    # 1: Atleast one semver compliant in the most recent 3 releases
+    # 2: Atleast 3 semver compliant releases in the most recent 10 releases
+    if len(releases_list) <= 2:
+        # Most recent release is considered to decide if project follows semver
+        follows_semver = follows_semver and releases_list[0].is_semver_release
+    elif len(releases_list) < 10:
+        # We forego condition 2 and it is enough if condition 1 is satisfied to consider this
+        # project to have semver compliant releases
+        follows_semver = follows_semver and any(
+            release.is_semver_release for release in releases_list[0:3]
+        )
+    else:
+        # Count number of semver releases in the last ten
+        semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
+
+        atleast_three_in_last_ten = semver_matches >= 3
+        atleast_one_in_last_three = any(release.is_semver_release for release in releases_list[0:3])
+
+        follows_semver = follows_semver and atleast_one_in_last_three and atleast_three_in_last_ten
+
+    # Check release_version that is passed is semver compliant
+    if release_version:
+        follows_semver = follows_semver and Release.is_semver_version(release_version)
+    return follows_semver
