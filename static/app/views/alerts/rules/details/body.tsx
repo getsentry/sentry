@@ -520,7 +520,7 @@ const Filters = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 
   line-height: 25px;
-  font-family: 'IBM Plex', Monaco, Consolas, 'Courier New', monospace;
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const TriggerCondition = styled('div')`
