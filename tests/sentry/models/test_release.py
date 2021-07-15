@@ -26,11 +26,40 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Repository,
     add_group_to_inbox,
+    follows_semver_versioning_scheme,
 )
 from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
+
+
+@pytest.mark.parametrize(
+    "release_version",
+    [
+        "1.0.0",
+        "1.0.0-alpha",
+        "1.0.0-alpha.1",
+        "1.0.0-alpha.beta",
+        "1.0.0-rc.1+43",
+        "org.example.FooApp@1.0+whatever",
+    ],
+)
+def test_version_is_semver_valid(release_version):
+    assert Release.is_semver_version(release_version) is True
+
+
+@pytest.mark.parametrize(
+    "release_version",
+    [
+        "helloworld",
+        "alpha@helloworld",
+        "alpha@helloworld-1.0",
+        "org.example.FooApp@9223372036854775808.1.2.3-r1+12345",
+    ],
+)
+def test_version_is_semver_invalid(release_version):
+    assert Release.is_semver_version(release_version) is False
 
 
 class MergeReleasesTest(TestCase):
@@ -937,3 +966,179 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123a*", [release_3])
         self.run_test("exact", "123ab", [])
         self.run_test("exact", "123abc", [release_3])
+
+
+class FollowsSemverVersioningSchemeTestCase(TestCase):
+    def setUp(self):
+        self.org = self.create_organization()
+        self.fake_package = "_fake_package_prj_"
+
+        # Project with 10 semver releases
+        self.proj_1 = self.create_project(organization=self.org)
+        for i in range(10):
+            self.create_release(version=f"fake_package-ahmed@1.1.{i}", project=self.proj_1)
+
+    def test_follows_semver_with_all_releases_semver_and_semver_release_version(self):
+        """
+        Test that ensures that when the last 10 releases and the release version passed in as an arg
+        follow semver versioning, then True should be returned
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org, project_id=self.proj_1.id, release_version="fake_package@2.0.0"
+            )
+            is True
+        )
+
+    def test_follows_semver_with_all_releases_semver_and_no_release_version(self):
+        """
+        Test that ensures that when the last 10 releases follow semver versioning and no release
+        version is passed in as an argument, then True should be returned
+        """
+        assert follows_semver_versioning_scheme(org_id=self.org, project_id=self.proj_1.id) is True
+
+    def test_follows_semver_with_all_releases_semver_and_non_semver_release_version(self):
+        """
+        Test that ensures that even if the last 10 releases follow semver but the passed in
+        release_version doesn't then we should return False because we should not follow semver
+        versioning in this case
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org, project_id=self.proj_1.id, release_version="fizbuzz"
+            )
+            is False
+        )
+
+    def test_follows_semver_user_accidentally_stopped_using_semver_a_few_times(self):
+        """
+        Test that ensures that when a user accidentally stops using semver versioning for a few
+        times but there exists atleast one semver compliant release in the last 3 releases and
+        atleast 3 releases that are semver compliant in the last 10 then we still consider
+        project to be following semantic versioning
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(2):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+        for i in range(7):
+            self.create_release(version=f"foo release {i}", project=proj)
+        self.create_release(version=f"{self.fake_package}{proj.id}@1.9", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+    def test_follows_semver_user_stops_using_semver(self):
+        """
+        Test that ensures that if a user stops using semver and so the last 3 releases in the last
+        10 releases are all non-semver releases, then the project does not follow semver anymore
+        since 1st condition of atleast one semver release in the last 3 has to be a semver
+        release is not satisfied
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(7):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+        for i in range(3):
+            self.create_release(version=f"helloworld {i}", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org,
+                project_id=proj.id,
+            )
+            is False
+        )
+
+    def test_follows_semver_user_accidentally_uses_semver_a_few_times(self):
+        """
+        Test that ensures that if user accidentally uses semver compliant versions for a few
+        times then the project will not be considered to be using semver
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(8):
+            self.create_release(version=f"foo release {i}", project=proj)
+        for i in range(2):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org,
+                project_id=proj.id,
+            )
+            is False
+        )
+
+    def test_follows_semver_user_starts_using_semver(self):
+        """
+        Test that ensures if a user starts using semver by having atleast the last 3 releases
+        using semver then we consider the project to be using semver
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(7):
+            self.create_release(version=f"foo release {i}", project=proj)
+        for i in range(3):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+    def test_follows_semver_user_starts_using_semver_with_less_than_10_recent_releases(self):
+        """
+        Test that ensures that a project with only 5 (<10) releases and atleast one semver
+        release in the most recent releases is considered to be following semver
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(4):
+            self.create_release(version=f"helloworld {i}", project=proj)
+        self.create_release(version=f"{self.fake_package}{proj.id}@1.0", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+    def test_follows_semver_check_when_project_only_has_two_releases(self):
+        """
+        Test that ensures that when a project has only two releases, then we consider project to
+        be semver or not based on if the most recent release follows semver or not
+        """
+        # Case: User just started using semver
+        proj = self.create_project(organization=self.org)
+        self.create_release(version="helloworld 0", project=proj)
+        self.create_release(version=f"{self.fake_package}{proj.id}@1.0", project=proj)
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+        # Case: User just stopped using semver
+        proj_2 = self.create_project(organization=self.org)
+        self.create_release(version=f"{self.fake_package}{proj_2.id}@1.0", project=proj_2)
+        self.create_release(version="helloworld 1", project=proj_2)
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org,
+                project_id=proj_2.id,
+            )
+            is False
+        )

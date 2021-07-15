@@ -2,12 +2,14 @@ from datetime import timedelta
 from distutils.version import LooseVersion
 from itertools import chain, groupby
 
+import sentry_sdk
 from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 from sentry.snuba import discover
+from sentry.utils.numbers import format_grouped_length
 
 
 def by_sdk_name(sdk):
@@ -63,6 +65,11 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
 
         project_ids = self.get_requested_project_ids(request)
         projects = self.get_projects(request, organization, project_ids)
+
+        len_projects = len(project_ids)
+        sentry_sdk.set_tag("query.num_projects", len_projects)
+        sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
+
         if len(projects) == 0:
             return Response([])
 

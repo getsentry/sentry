@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:52.401949Z'
+created: '2021-07-14T12:39:40.293938Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -58,7 +58,7 @@ app-depth-max:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
+  hash: "d6125002ce075cab3755011dddefe9e1"
   tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent | Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
     system*
@@ -73,7 +73,7 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "<lambda>::operator()"
-        type (ignored because exception is synthetic)
+        type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"

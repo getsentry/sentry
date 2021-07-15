@@ -58,7 +58,8 @@ class StaticMediaTest(TestCase):
 
         try:
             with open(os.path.join(dist_path, "test.js"), "a"):
-                url = get_unversioned_asset_url("sentry", "test.js")
+                url = get_unversioned_asset_url("sentry", "test.js", cache_bust=True)
+                assert "?v=" in url
 
                 response = self.client.get(url)
                 assert response.status_code == 200, response

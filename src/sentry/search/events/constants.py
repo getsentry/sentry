@@ -35,6 +35,9 @@ ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
     fr"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
 )
+
+DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
+
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
@@ -108,5 +111,4 @@ OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exac
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
-SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 SEMVER_WILDCARDS = frozenset(["X", "*"])

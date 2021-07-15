@@ -1498,6 +1498,20 @@ class ResolveFieldListTest(unittest.TestCase):
                 "count_if_spans_http_lessOrEquals_100",
             ],
         ]
+        fields = ["count_if(measurements.lcp, lessOrEquals, 10d)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "lessOrEquals",
+                        ["measurements.lcp", 864000000],
+                    ],
+                ],
+                "count_if_measurements_lcp_lessOrEquals_10d",
+            ],
+        ]
 
     def test_count_if_field_with_tag(self):
         fields = ["count_if(http.status_code, equals, 200)"]
@@ -1572,6 +1586,12 @@ class ResolveFieldListTest(unittest.TestCase):
             str(query_error.exception)
             == "'sentry' is not a valid value to compare with transaction.duration"
         )
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.duration, equals, 10wow)"], eventstore.Filter()
+            )
+        assert str(query_error.exception).startswith("wow is not a valid duration type")
 
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
