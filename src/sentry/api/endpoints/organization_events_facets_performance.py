@@ -288,9 +288,10 @@ def query_top_tags(
         if not orderby:
             orderby = ["-count"]
 
-        if "frequency" in orderby:
-            # Replacing frequency as it's the same underlying data dimension, this way we don't have to modify the existing histogram query.
-            orderby = orderby.replace("frequency", "count")
+        for i, sort in enumerate(orderby):
+            if "frequency" in sort:
+                # Replacing frequency as it's the same underlying data dimension, this way we don't have to modify the existing histogram query.
+                orderby[i] = sort.replace("frequency", "count")
 
         # Get the average and count to use to filter the next request to facets
         tag_data = discover.query(
