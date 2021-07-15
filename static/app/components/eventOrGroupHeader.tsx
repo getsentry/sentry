@@ -17,7 +17,6 @@ import withOrganization from 'app/utils/withOrganization';
 import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
-import {Divider} from './eventTitleTreeLabel';
 
 type DefaultProps = {
   includeLink: boolean;
@@ -46,7 +45,7 @@ class EventOrGroupHeader extends Component<Props> {
   };
 
   getTitleChildren() {
-    const {hideIcons, hideLevel, data, index, organization, includeLink} = this.props;
+    const {hideIcons, hideLevel, data, index, organization} = this.props;
     const {level, status, isBookmarked, hasSeen} = data as Group;
     const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
@@ -74,8 +73,6 @@ class EventOrGroupHeader extends Component<Props> {
           <StyledEventOrGroupTitle
             {...this.props}
             hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
-            hasGroupingTreeUI={hasGroupingTreeUI}
-            includeLink={!!includeLink}
             withStackTracePreview
             hasGuideAnchor={index === 0}
             guideAnchorName="issue_stream_title"
@@ -227,19 +224,6 @@ export default withRouter(withOrganization(EventOrGroupHeader));
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasSeen: boolean;
-  hasGroupingTreeUI: boolean;
-  includeLink: boolean;
 }>`
   font-weight: ${p => (p.hasSeen ? 400 : 600)};
-  ${p =>
-    p.hasGroupingTreeUI &&
-    `
-      color: ${p.theme.textColor};
-      :hover {
-        color: inherit;
-        ${Divider}{
-          color: inherit;
-        }
-      }
-    `}
 `;
