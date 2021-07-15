@@ -414,6 +414,12 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             .order_by("-uploaded_to_appstore")
             .first()
         )
+        if latest_build is None:
+            latestBundleVersion = None
+            latestBundleShortVersion = None
+        else:
+            latestBundleVersion = latest_build.bundle_version
+            latestBundleShortVersion = latest_build.bundle_short_version
 
         return Response(
             {
@@ -421,10 +427,8 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "itunesSessionValid": itunes_session_info is not None,
                 "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
                 "pendingDownloads": pending_downloads,
-                "latestBuildVersion": latest_build["build_version"] if latest_build else None,
-                "latestBundleVersion": latest_build["bundle_short_version"]
-                if latest_build
-                else None,
+                "latestBundleVersion": latestBundleVersion,
+                "latestBundleShortVersion": latestBundleShortVersion,
             },
             status=200,
         )

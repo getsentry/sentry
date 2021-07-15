@@ -112,7 +112,6 @@ def get_or_create_persisted_build(
             uploaded_to_appstore=build.uploaded_date,
             first_seen=timezone.now(),
             fetched=False,
-            # TODO: persist the `uploadedDate` attribute as well.
         )
         build_state.save()
     return build_state
