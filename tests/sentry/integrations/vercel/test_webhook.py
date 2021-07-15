@@ -21,6 +21,7 @@ from sentry.utils.http import absolute_uri
 from .testutils import (
     DEPLOYMENT_WEBHOOK_NO_COMMITS,
     EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
+    MINIMAL_WEBHOOK,
     SECRET,
     SIGNATURE,
 )
@@ -258,6 +259,12 @@ class VercelReleasesTest(APITestCase):
         assert response.status_code == 404
         assert "No commit found" == response.data["detail"]
         assert len(responses.calls) == 0
+
+    def test_missing_repository(self):
+        response = self._get_response(MINIMAL_WEBHOOK)
+
+        assert response.status_code == 400
+        assert "Could not determine repository" == response.data["detail"]
 
 
 class VercelReleasesNewTest(VercelReleasesTest):
