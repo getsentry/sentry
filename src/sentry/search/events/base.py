@@ -191,13 +191,10 @@ class QueryBase:
         project_threshold_config_index: SelectType = Function(
             "indexOf",
             [
-                Function(
-                    "array",
-                    [
-                        Function("toUInt64", [config["project_id"]])
-                        for config in project_threshold_configs
-                    ],
-                ),
+                [
+                    Function("toUInt64", [config["project_id"]])
+                    for config in project_threshold_configs
+                ],
                 self.column("project_id"),
             ],
             PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
@@ -206,20 +203,11 @@ class QueryBase:
         project_threshold_override_config_index: SelectType = Function(
             "indexOf",
             [
-                Function(
-                    "array",
-                    [
-                        Function(
-                            "tuple",
-                            [
-                                Function("toUInt64", [config["project_id"]]),
-                                config["transaction"],
-                            ],
-                        )
-                        for config in transaction_threshold_configs
-                    ],
-                ),
-                Function("tuple", [self.column("project_id"), self.column("transaction")]),
+                [
+                    (Function("toUInt64", [config["project_id"]]), config["transaction"])
+                    for config in transaction_threshold_configs
+                ],
+                (self.column("project_id"), self.column("transaction")),
             ],
             PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
         )
@@ -236,26 +224,14 @@ class QueryBase:
                                 0,
                             ],
                         ),
-                        Function(
-                            "tuple",
-                            [DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD],
-                        ),
+                        (DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD),
                         Function(
                             "arrayElement",
                             [
-                                Function(
-                                    "array",
-                                    [
-                                        Function(
-                                            "tuple",
-                                            [
-                                                TRANSACTION_METRICS[config["metric"]],
-                                                config["threshold"],
-                                            ],
-                                        )
-                                        for config in project_threshold_configs
-                                    ],
-                                ),
+                                [
+                                    (TRANSACTION_METRICS[config["metric"]], config["threshold"])
+                                    for config in project_threshold_configs
+                                ],
                                 project_threshold_config_index,
                             ],
                         ),
@@ -285,19 +261,10 @@ class QueryBase:
                     Function(
                         "arrayElement",
                         [
-                            Function(
-                                "array",
-                                [
-                                    Function(
-                                        "tuple",
-                                        [
-                                            TRANSACTION_METRICS[config["metric"]],
-                                            config["threshold"],
-                                        ],
-                                    )
-                                    for config in transaction_threshold_configs
-                                ],
-                            ),
+                            [
+                                (TRANSACTION_METRICS[config["metric"]], config["threshold"])
+                                for config in transaction_threshold_configs
+                            ],
                             project_threshold_override_config_index,
                         ],
                     ),
