@@ -30,6 +30,7 @@ type Props = {
   disablePreview?: boolean;
   eventId?: string;
   projectSlug?: string;
+  className?: string;
 };
 
 type State = {
@@ -155,7 +156,7 @@ class StacktracePreview extends React.Component<Props, State> {
   }
 
   render() {
-    const {children, disablePreview, theme} = this.props;
+    const {children, disablePreview, theme, className} = this.props;
 
     const {loading, loadingVisible} = this.state;
     const stacktrace = this.getStacktrace();
@@ -165,7 +166,7 @@ class StacktracePreview extends React.Component<Props, State> {
     }
 
     return (
-      <span onMouseEnter={this.fetchData}>
+      <span className={className} onMouseEnter={this.fetchData}>
         <StyledHovercard
           body={this.renderHovercardBody(stacktrace)}
           position="right"
