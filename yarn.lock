@@ -5798,6 +5798,20 @@ css-loader@^3.6.0, css-loader@^5.0.1, css-loader@^5.2.0, css-loader@^5.2.6:
     schema-utils "^3.0.0"
     semver "^7.3.5"
 
+css-loader@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/css-loader/-/css-loader-6.0.0.tgz#e3f9131229df43e081876f434dc2f4605be9d5ae"
+  integrity sha512-xi3iTbHekvk5dWWdqfQKNsEm2g3Vr20uRwHzfXF+pHsaFGMuxTrqR1y8PY+st5G7wqid4/pBSiaqZsO6iaGN5g==
+  dependencies:
+    icss-utils "^5.1.0"
+    postcss "^8.2.15"
+    postcss-modules-extract-imports "^3.0.0"
+    postcss-modules-local-by-default "^4.0.0"
+    postcss-modules-scope "^3.0.0"
+    postcss-modules-values "^4.0.0"
+    postcss-value-parser "^4.1.0"
+    semver "^7.3.5"
+
 css-minimizer-webpack-plugin@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/css-minimizer-webpack-plugin/-/css-minimizer-webpack-plugin-3.0.2.tgz#8fadbdf10128cb40227bff275a4bb47412534245"
