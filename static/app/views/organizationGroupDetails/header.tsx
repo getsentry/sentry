@@ -212,7 +212,7 @@ class GroupHeader extends React.Component<Props, State> {
                         )}
                         position="bottom"
                       >
-                        <ExternalLink href="https://docs.sentry.io/product/integrations/github/#resolve-via-commit-or-pull-request">
+                        <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/#resolve-via-commit-or-pull-request">
                           {t('Issue #')}
                         </ExternalLink>
                       </Tooltip>

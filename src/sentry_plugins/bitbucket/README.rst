@@ -1,4 +1,4 @@
-**Note**: This plugin has been deprecated in favor of the `Bitbucket Global Integration <https://docs.sentry.io/product/integrations/bitbucket/>`_.
+**Note**: This plugin has been deprecated in favor of the `Bitbucket Global Integration <https://docs.sentry.io/product/integrations/source-code-mgmt/bitbucket/>`_.
 
 Go to https://bitbucket.org/account/user/**YOUR_USERNAME**/api
 
