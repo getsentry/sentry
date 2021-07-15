@@ -191,6 +191,7 @@ class QueryField extends React.Component<Props> {
             // field does not fit within new function requirements, use the default.
             fieldValue.function[i + 1] = param.defaultValue || '';
             fieldValue.function[i + 2] = undefined;
+            fieldValue.function[i + 3] = undefined;
           }
         } else {
           fieldValue.function[i + 1] = param.defaultValue || '';
@@ -202,6 +203,7 @@ class QueryField extends React.Component<Props> {
           fieldValue.function = [fieldValue.function[0], '', undefined, undefined];
         } else if (value.meta.parameters.length === 1) {
           fieldValue.function[2] = undefined;
+          fieldValue.function[3] = undefined;
         }
       }
     }
@@ -459,6 +461,7 @@ class QueryField extends React.Component<Props> {
       if (descriptor.kind === 'dropdown') {
         return (
           <SelectControl
+            key="dropdown"
             name="dropdown"
             placeholder={t('Select value')}
             options={descriptor.options}
