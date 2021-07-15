@@ -14,6 +14,7 @@ from typing import Any, Dict, List
 import dateutil
 import jsonschema
 import requests
+import sentry_sdk
 from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
@@ -272,17 +273,18 @@ class ITunesClient:
         # itunes_connect.set_provider(self._session, itunes_org)
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
-        url = itunes_connect.get_dsym_url(
-            self._session, build.app_id, build.version, build.build_number, build.platform
-        )
-        if not url:
-            raise NoDsymsError
-        logger.debug("Fetching dSYM from: %s", url)
-        with requests.get(url, stream=True) as req:
-            req.raise_for_status()
-            with open(path, "wb") as fp:
-                for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
-                    fp.write(chunk)
+        with sentry_sdk.start_span(op="dsyms", description="Download dSYMs"):
+            url = itunes_connect.get_dsym_url(
+                self._session, build.app_id, build.version, build.build_number, build.platform
+            )
+            if not url:
+                raise NoDsymsError
+            logger.debug("Fetching dSYM from: %s", url)
+            with requests.get(url, stream=True) as req:
+                req.raise_for_status()
+                with open(path, "wb") as fp:
+                    for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        fp.write(chunk)
 
 
 class AppConnectClient:
@@ -346,7 +348,6 @@ class AppConnectClient:
 
     def list_builds(self) -> List[BuildInfo]:
         """Returns the available AppStore builds."""
-
         builds = []
         all_results = appstore_connect.get_build_info(
             self._session, self._api_credentials, self._app_id
