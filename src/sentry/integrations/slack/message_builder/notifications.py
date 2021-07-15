@@ -11,6 +11,7 @@ from sentry.integrations.slack.message_builder.issues import (
 from sentry.models import Team, User
 from sentry.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.base import BaseNotification
+from sentry.notifications.utils import get_release
 from sentry.utils.http import absolute_uri
 
 from ..utils import build_notification_footer, get_referrer_qstring
@@ -21,7 +22,8 @@ def get_group_url(notification: BaseNotification) -> str:
 
 
 def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, Any]]:
-    projects, release = notification.get_release_projects()
+    projects = set(notification.release.projects.all())
+    release = get_release(notification.activity, notification.project.organization)
     buttons = []
     if release:
         for project in projects:

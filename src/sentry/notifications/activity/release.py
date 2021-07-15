@@ -118,6 +118,3 @@ class ReleaseActivityNotification(ActivityNotification):
     @property
     def fine_tuning_key(self) -> str:
         return "deploy/"
-
-    def get_release_projects(self) -> Any:
-        return self.projects, self.release
