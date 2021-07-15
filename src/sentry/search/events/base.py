@@ -154,7 +154,7 @@ class QueryBase:
                 project_id__in=project_ids,
             )
             .order_by("project_id")
-            .values("project_id", "threshold", "metric")
+            .values_list("project_id", "threshold", "metric")
         )
 
         transaction_threshold_configs = (
@@ -163,7 +163,7 @@ class QueryBase:
                 project_id__in=project_ids,
             )
             .order_by("project_id")
-            .values("transaction", "project_id", "threshold", "metric")
+            .values_list("transaction", "project_id", "threshold", "metric")
         )
 
         num_project_thresholds = project_threshold_configs.count()
@@ -188,13 +188,26 @@ class QueryBase:
                 f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
             )
 
+        project_threshold_config_keys = []
+        project_threshold_config_values = []
+        for project_id, threshold, metric in project_threshold_configs:
+            project_threshold_config_keys.append(Function("toUInt64", [project_id]))
+            project_threshold_config_values.append((TRANSACTION_METRICS[metric], threshold))
+
+        project_threshold_override_config_keys = []
+        project_threshold_override_config_values = []
+        for transaction, project_id, threshold, metric in transaction_threshold_configs:
+            project_threshold_override_config_keys.append(
+                (Function("toUInt64", [project_id]), transaction)
+            )
+            project_threshold_override_config_values.append(
+                (TRANSACTION_METRICS[metric], threshold)
+            )
+
         project_threshold_config_index: SelectType = Function(
             "indexOf",
             [
-                [
-                    Function("toUInt64", [config["project_id"]])
-                    for config in project_threshold_configs
-                ],
+                project_threshold_config_keys,
                 self.column("project_id"),
             ],
             PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
@@ -203,10 +216,7 @@ class QueryBase:
         project_threshold_override_config_index: SelectType = Function(
             "indexOf",
             [
-                [
-                    (Function("toUInt64", [config["project_id"]]), config["transaction"])
-                    for config in transaction_threshold_configs
-                ],
+                project_threshold_override_config_keys,
                 (self.column("project_id"), self.column("transaction")),
             ],
             PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
@@ -228,10 +238,7 @@ class QueryBase:
                         Function(
                             "arrayElement",
                             [
-                                [
-                                    (TRANSACTION_METRICS[config["metric"]], config["threshold"])
-                                    for config in project_threshold_configs
-                                ],
+                                project_threshold_config_values,
                                 project_threshold_config_index,
                             ],
                         ),
@@ -261,10 +268,7 @@ class QueryBase:
                     Function(
                         "arrayElement",
                         [
-                            [
-                                (TRANSACTION_METRICS[config["metric"]], config["threshold"])
-                                for config in transaction_threshold_configs
-                            ],
+                            project_threshold_override_config_values,
                             project_threshold_override_config_index,
                         ],
                     ),
