@@ -1,5 +1,4 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 import countBy from 'lodash/countBy';
 
 import Count from 'app/components/count';
@@ -33,9 +32,9 @@ import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 
-import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
+import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
 import {EnhancedSpan, ProcessedSpanType, SpanGroupProps, TreeDepthType} from './types';
 import {
@@ -291,33 +290,6 @@ class SpanGroupBar extends React.Component<Props> {
     );
   }
 
-  renderCursorGuide() {
-    // TODO: move this into its own component
-    return (
-      <CursorGuideHandler.Consumer>
-        {({
-          showCursorGuide,
-          traceViewMouseLeft,
-        }: {
-          showCursorGuide: boolean;
-          traceViewMouseLeft: number | undefined;
-        }) => {
-          if (!showCursorGuide || !traceViewMouseLeft) {
-            return null;
-          }
-
-          return (
-            <CursorGuide
-              style={{
-                left: toPercent(traceViewMouseLeft),
-              }}
-            />
-          );
-        }}
-      </CursorGuideHandler.Consumer>
-    );
-  }
-
   render() {
     return (
       <ScrollbarManager.Consumer>
@@ -409,7 +381,7 @@ class SpanGroupBar extends React.Component<Props> {
                         </DurationPill>
                       </RowRectangle>
                       {this.renderMeasurements()}
-                      {this.renderCursorGuide()}
+                      <SpanBarCursorGuide />
                     </RowCell>
                     <DividerLineGhostContainer
                       style={{
@@ -454,15 +426,5 @@ export function isCollapsedSpanGroup({
     typeof toggleSpanGroup === 'function'
   );
 }
-
-// TODO: move this
-const CursorGuide = styled('div')`
-  position: absolute;
-  top: 0;
-  width: 1px;
-  background-color: ${p => p.theme.red300};
-  transform: translateX(-50%);
-  height: 100%;
-`;
 
 export default SpanGroupBar;
