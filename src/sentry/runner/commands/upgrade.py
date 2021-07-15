@@ -22,11 +22,13 @@ def _check_history():
         click.echo(f"Checking migration state failed with: {e}")
         raise click.ClickException("Could not determine migration state. Aborting")
 
+    # Either of these migrations need to have been run for us to proceed.
+    # The first migration is 'pre-squash' and the second is the new squash
+    migration_heads = ("0200_release_indices", "0001_squashed_0200_release_indices")
+
     # If we haven't run all the migration up to the latest squash abort.
     # As we squash more history this should be updated.
-    cursor.execute(
-        "SELECT 1 FROM django_migrations WHERE name in ('0200_release_indices', '0001_squashed_0200_release_indices')"
-    )
+    cursor.execute("SELECT 1 FROM django_migrations WHERE name in %s", [migration_heads])
     row = cursor.fetchone()
     if not row or not row[0]:
         raise click.ClickException(
