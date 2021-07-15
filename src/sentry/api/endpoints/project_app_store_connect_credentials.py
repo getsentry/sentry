@@ -375,8 +375,8 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     Here the ``itunesSessionRefreshAt`` is when we recommend to refresh the
     iTunes session, and ``pendingDownloads`` is the number of pending build
     downloads, and an indicator if we do need the session to fetch new builds.
-    ``latestBuildVersion`` is a human-readable string representing the latest
-    build from App Store Connect recognized by Sentry.
+    ``latestBuildVersion`` is a human-readable equivalent of ``latestBuildNumber``,
+    which is specifically for the latest build that Sentry recognizes.
     """
 
     permission_classes = [StrictProjectPermission]
