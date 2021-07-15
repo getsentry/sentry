@@ -370,8 +370,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     if self.has_chart_interpolation(organization, request)
                     else True,
                 )
-            serializedResult["start"] = result.start
-            serializedResult["end"] = result.end
+            if hasattr(result, "start") and hasattr(result, "end"):
+                serializedResult["start"] = result.start
+                serializedResult["end"] = result.end
 
             return serializedResult
 
