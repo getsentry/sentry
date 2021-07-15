@@ -209,7 +209,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 1
         assert histogram_data[0]["count"] == 14
-        assert histogram_data[0]["histogram_transaction_duration_5000000_0_1"] == 0.0
+        assert histogram_data[0]["histogram_transaction_duration_2500000_0_1"] == 0.0
         assert histogram_data[0]["tags_value"] == "red"
         assert histogram_data[0]["tags_key"] == "color"
 
