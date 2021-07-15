@@ -152,9 +152,9 @@ function ReleaseEventsChart({
       legendOptions={{right: 10, top: 0}}
       chartOptions={{
         grid: {left: '10px', right: '10px', top: '70px', bottom: '0px'},
-        ['height' as any]: 240, // TODO(ts): echart types
       }}
       usePageZoom
+      height={240}
     />
   );
 }

@@ -187,7 +187,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
     };
 
     return (
-      <TransitionChart loading={loading} reloading={reloading}>
+      <TransitionChart loading={loading} reloading={reloading} height="240px">
         <TransparentLoadingMask visible={reloading} />
         <HeaderTitleLegend>
           {releaseComparisonChartTitles[chartType]}
