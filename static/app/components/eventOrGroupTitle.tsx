@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ProjectsStore from 'app/stores/projectsStore';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {BaseGroup, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
@@ -33,14 +34,16 @@ function EventOrGroupTitle({
   className,
 }: Props) {
   const event = data as Event;
+
+  const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
   const {id, eventID, groupID, projectID} = event;
 
   const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
 
   return (
-    <span className={className}>
+    <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
       <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
-        <StacktracePreview
+        <StyledStacktracePreview
           organization={organization}
           issueId={groupID ? groupID : id}
           // we need eventId and projectSlug only when hovering over Event, not Group
@@ -48,9 +51,10 @@ function EventOrGroupTitle({
           eventId={eventID}
           projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
           disablePreview={!withStackTracePreview}
+          hasGroupingTreeUI={hasGroupingTreeUI}
         >
           {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
-        </StacktracePreview>
+        </StyledStacktracePreview>
       </GuideAnchor>
       {subtitle && (
         <Fragment>
@@ -59,7 +63,7 @@ function EventOrGroupTitle({
           <br />
         </Fragment>
       )}
-    </span>
+    </Wrapper>
   );
 }
 
@@ -75,4 +79,32 @@ const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</
 const Subtitle = styled('em')`
   color: ${p => p.theme.gray300};
   font-style: normal;
+`;
+
+const StyledStacktracePreview = styled(StacktracePreview)<{hasGroupingTreeUI: boolean}>`
+  ${p =>
+    p.hasGroupingTreeUI &&
+    `
+      display: inline-flex;
+      > span:first-child {
+        display: inline-flex;
+      }
+    `}
+`;
+
+const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
+  ${p =>
+    p.hasGroupingTreeUI &&
+    `
+
+      display: inline-grid;
+      grid-template-columns: auto max-content 1fr max-content;
+      align-items: flex-end;
+      line-height: 100%;
+
+      ${Subtitle} {
+        ${overflowEllipsis};
+        display: inline-block;
+      }
+    `}
 `;

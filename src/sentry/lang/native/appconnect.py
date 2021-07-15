@@ -92,7 +92,7 @@ class AppStoreConnectConfig:
     # easily to retrieve via an HTTP request to iTunes.
     itunesPersonId: str
 
-    # The iTuness session cookie.
+    # The iTunes session cookie.
     #
     # Loading this cookie into ``requests.Session`` (see
     # ``sentry.utils.appleconnect.itunes_connect.load_session_cookie``) will allow this
@@ -139,7 +139,7 @@ class AppStoreConnectConfig:
 
         This will include the JSON schema validation.  It accepts both a str or a datetime
         for the ``itunesCreated``.  Thus you can safely use this to create and validate the
-        config as desrialised by both plain JSON deserialiser or by Django Rest Framework's
+        config as deserialised by both plain JSON deserialiser or by Django Rest Framework's
         deserialiser.
 
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
@@ -155,6 +155,16 @@ class AppStoreConnectConfig:
         return cls(**data)
 
     @classmethod
+    def all_for_project(cls, project: Project) -> "List[AppStoreConnectConfig]":
+        sources = []
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
+        all_sources = json.loads(raw)
+        for source in all_sources:
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
+                sources.append(cls.from_json(source))
+        return sources
+
+    @classmethod
     def from_project_config(cls, project: Project, config_id: str) -> "AppStoreConnectConfig":
         """Creates a new instance from the symbol source configured in the project.
 
@@ -164,7 +174,7 @@ class AppStoreConnectConfig:
         raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
         all_sources = json.loads(raw)
         for source in all_sources:
-            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and source.get("id") == config_id:
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
                 return cls.from_json(source)
         else:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
