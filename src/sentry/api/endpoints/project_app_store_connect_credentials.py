@@ -422,6 +422,9 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latest_build["build_version"] if latest_build else None,
+                "latestBundleVersion": latest_build["bundle_short_version"]
+                if latest_build
+                else None,
             },
             status=200,
         )
