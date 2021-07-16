@@ -12,8 +12,9 @@ import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
+import OrganizationAccessRequests from '../organizationTeams/organizationAccessRequests';
+
 import InviteRequestRow from './inviteRequestRow';
-import OrganizationAccessRequests from './organizationAccessRequests';
 
 type DefaultProps = {
   inviteRequests: Member[];

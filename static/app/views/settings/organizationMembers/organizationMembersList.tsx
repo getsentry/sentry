@@ -15,10 +15,12 @@ import {MEMBER_ROLES} from 'app/constants';
 import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {Member, MemberRole, Organization} from 'app/types';
+import {Member, MemberRole, Organization, Team} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
+import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
 import {
   RenderSearch,
@@ -27,21 +29,24 @@ import {
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import MembersFilter from './components/membersFilter';
+import InviteRequestRow from './inviteRequestRow';
 import OrganizationMemberRow from './organizationMemberRow';
 
 type Props = {
   organization: Organization;
+  teams: Team[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
+  inviteRequests: Member[];
 };
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',
-  defaultComponent: () => <PanelHeader>{t('Members')}</PanelHeader>,
+  defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
 });
 
 class OrganizationMembersList extends AsyncView<Props, State> {
@@ -70,6 +75,8 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         {},
         {allowError: error => error.status === 403},
       ],
+
+      ['inviteRequests', `/organizations/${orgId}/invite-requests/`],
     ];
   }
 
@@ -140,9 +147,98 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     this.setState(state => ({invited: {...state.invited, [id]: 'success'}}));
   };
 
+  updateInviteRequest = (id: string, data: Partial<Member>) =>
+    this.setState(state => {
+      const inviteRequests = [...state.inviteRequests];
+      const inviteIndex = inviteRequests.findIndex(request => request.id === id);
+
+      inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
+
+      return {inviteRequests};
+    });
+
+  removeInviteRequest = (id: string) =>
+    this.setState(state => ({
+      inviteRequests: state.inviteRequests.filter(request => request.id !== id),
+    }));
+
+  handleInviteRequestAction = async ({
+    inviteRequest,
+    method,
+    data,
+    successMessage,
+    errorMessage,
+    eventKey,
+    eventName,
+  }) => {
+    const {params, organization} = this.props;
+
+    this.setState(state => ({
+      inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: true},
+    }));
+
+    try {
+      await this.api.requestPromise(
+        `/organizations/${params.orgId}/invite-requests/${inviteRequest.id}/`,
+        {
+          method,
+          data,
+        }
+      );
+
+      this.removeInviteRequest(inviteRequest.id);
+      addSuccessMessage(successMessage);
+      trackAnalyticsEvent({
+        eventKey,
+        eventName,
+        organization_id: organization.id,
+        member_id: parseInt(inviteRequest.id, 10),
+        invite_status: inviteRequest.inviteStatus,
+      });
+    } catch {
+      addErrorMessage(errorMessage);
+    }
+
+    this.setState(state => ({
+      inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: false},
+    }));
+  };
+
+  handleInviteRequestApprove = (inviteRequest: Member) => {
+    this.handleInviteRequestAction({
+      inviteRequest,
+      method: 'PUT',
+      data: {
+        role: inviteRequest.role,
+        teams: inviteRequest.teams,
+        approve: 1,
+      },
+      successMessage: tct('[email] has been invited', {email: inviteRequest.email}),
+      errorMessage: tct('Error inviting [email]', {email: inviteRequest.email}),
+      eventKey: 'invite_request.approved',
+      eventName: 'Invite Request Approved',
+    });
+  };
+
+  handleInviteRequestDeny = (inviteRequest: Member) => {
+    this.handleInviteRequestAction({
+      inviteRequest,
+      method: 'DELETE',
+      data: {},
+      successMessage: tct('Invite request for [email] denied', {
+        email: inviteRequest.email,
+      }),
+      errorMessage: tct('Error denying invite request for [email]', {
+        email: inviteRequest.email,
+      }),
+      eventKey: 'invite_request.denied',
+      eventName: 'Invite Request Denied',
+    });
+  };
+
   renderBody() {
-    const {params, organization, routes} = this.props;
-    const {membersPageLinks, members, member: currentMember} = this.state;
+    const {params, organization, routes, teams} = this.props;
+    const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
     const {name: orgName, access} = organization;
 
     const canAddMembers = access.includes('member:write');
@@ -195,6 +291,29 @@ class OrganizationMembersList extends AsyncView<Props, State> {
             })
           }
         </ClassNames>
+        {inviteRequests && inviteRequests.length > 0 && (
+          <Panel>
+            <PanelHeader>{t('Pending Invite Requests')}</PanelHeader>
+            <PanelBody>
+              {inviteRequests.map(inviteRequest => (
+                <InviteRequestRow
+                  key={inviteRequest.id}
+                  organization={organization}
+                  inviteRequest={inviteRequest}
+                  inviteRequestBusy={{}}
+                  allTeams={teams}
+                  allRoles={currentMember?.roles ?? MEMBER_ROLES}
+                  onApprove={this.handleInviteRequestApprove}
+                  onDeny={this.handleInviteRequestDeny}
+                  onUpdate={data => this.updateInviteRequest(inviteRequest.id, data)}
+                />
+              ))}
+              {inviteRequests.length === 0 && (
+                <EmptyMessage>{t('No requests found.')}</EmptyMessage>
+              )}
+            </PanelBody>
+          </Panel>
+        )}
         <Panel data-test-id="org-member-list">
           <MemberListHeader members={members} organization={organization} />
           <PanelBody>
@@ -260,4 +379,4 @@ const StyledMembersFilter = styled(MembersFilter)`
   }
 `;
 
-export default withOrganization(OrganizationMembersList);
+export default withTeams(withOrganization(OrganizationMembersList));
