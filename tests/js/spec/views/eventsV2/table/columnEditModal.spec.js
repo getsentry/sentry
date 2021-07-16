@@ -25,11 +25,11 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view'],
+      features: ['performance-view', 'discover-arithmetic'],
       apdexThreshold: 400,
     },
   });
-  const tagKeys = ['browser.name', 'custom-field'];
+  const tagKeys = ['browser.name', 'custom-field', 'user'];
   const columns = [
     {
       kind: 'field',
@@ -276,6 +276,56 @@ describe('EventsV2 -> ColumnEditModal', function () {
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
+      ]);
+    });
+
+    it('clears all unused parameters with count_if to two parameter function', function () {
+      // Choose percentile, then failure_rate which has no parameters.
+      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'user', {name: 'parameter', at: 0, control: true});
+      selectByLabel(wrapper, 'count_miserable(\u2026)', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count_miserable', 'user', '400', undefined]},
+      ]);
+    });
+
+    it('clears all unused parameters with count_if to one parameter function', function () {
+      // Choose percentile, then failure_rate which has no parameters.
+      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'user', {name: 'parameter', at: 0, control: true});
+      selectByLabel(wrapper, 'count_unique(\u2026)', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+      ]);
+    });
+
+    it('clears all unused parameters with count_if to parameterless function', function () {
+      // Choose percentile, then failure_rate which has no parameters.
+      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'count()', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count', '', undefined, undefined]},
       ]);
     });
   });
