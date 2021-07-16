@@ -380,9 +380,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     identifier for the latest build recognized by Sentry.
 
     ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
-    of whether there were any or no builds in App Store Connect at the time, or
-    if the check failed due to an expired iTunes session. In other words, this
-    date may represent a failed check.
+    of whether there were any or no builds in App Store Connect at the time.
     """
 
     permission_classes = [StrictProjectPermission]

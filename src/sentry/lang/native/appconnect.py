@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 # The key in the project options under which all symbol sources are stored.
 SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
+# The key in the project options under which all refresh dates for symbol sources are stored.
+SYMBOL_SOURCE_REFRESH_PROP_NAME = "sentry:symbol_source_refresh_dates"
 
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
@@ -166,11 +168,16 @@ class AppStoreConnectConfig:
         """
 
         sources = []
-        all_sources = json.loads(raw_sources_option)
-        for source in all_sources:
-            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
-                sources.append(cls.from_json(source))
-        return sources
+        try:
+            all_sources = json.loads(raw_sources_option)
+        except json.JSONDecodeError:
+            return sources
+
+        return [
+            cls.from_json(source)
+            for source in all_sources
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME
+        ]
 
     @classmethod
     def from_project_config(cls, project: Project, config_id: str) -> "AppStoreConnectConfig":

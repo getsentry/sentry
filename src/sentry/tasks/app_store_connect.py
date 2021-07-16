@@ -8,6 +8,7 @@ import logging
 import pathlib
 import tempfile
 from datetime import datetime
+from typing import List, Mapping
 
 import sentry_sdk
 from django.utils import timezone
@@ -15,7 +16,7 @@ from django.utils import timezone
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
 from sentry.tasks.base import instrumented_task
-from sentry.utils import sdk
+from sentry.utils import json, sdk
 from sentry.utils.appleconnect.itunes_connect import ITunesSessionExpiredException
 
 logger = logging.getLogger(__name__)
@@ -40,19 +41,9 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
 
     project = Project.objects.get(pk=project_id)
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
-    project.update_option("sentry:last_checked_appstore", datetime.now())
-
-    download_dsym_for_project(project, config)
-
-
-# This does most of the actual work related to checking App Store Connect, constructing the client,
-# downloading the dSYMs, etc. This could probably be broken up further into two parts: one that
-# syncs the builds, and another that downloads dSYMs for some given list of builds.
-def download_dsym_for_project(project: Project, config: appconnect.AppStoreConnectConfig) -> None:
-    with sdk.configure_scope() as scope:
-        scope.set_tag("project", project.id)
-
     client = appconnect.AppConnectClient.from_config(config)
+
+    build_refresh_dates = project.get_option(appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, default={})
 
     # persist all fetched builds into the database as "pending"
     builds = []
@@ -64,6 +55,9 @@ def download_dsym_for_project(project: Project, config: appconnect.AppStoreConne
             build_state = get_or_create_persisted_build(project, config, build)
             if not build_state.fetched:
                 builds.append((build, build_state))
+
+    build_refresh_dates[config_id] = datetime.now()
+    project.update_option(appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, build_refresh_dates)
 
     itunes_client = client.itunes_client()
     for (build, build_state) in builds:
@@ -160,14 +154,18 @@ def inner_refresh_all_builds() -> None:
         with sdk.push_scope() as scope:
             scope.set_tag("project", option.project_id)
             try:
-                asc_configs = appconnect.AppStoreConnectConfig.from_option(option)
-                # Set the project option just once in case there are multiple App Store Connect
-                # sources to avoid redundant updates to the project option.
-                if len(asc_configs) > 0:
-                    project = Project.objects.get(pk=option.project_id)
-                    project.update_option("sentry:last_checked_appstore", datetime.now())
-                    for config in asc_configs:
-                        download_dsym_for_project(project, config)
-
+                # We are parsing JSON thus all types are Any, so give the type-checker some
+                # extra help.  We are maybe slightly lying about the type, but the
+                # attributes we do access are all string values.
+                all_sources: List[Mapping[str, str]] = json.loads(option.value)
+                for source in all_sources:
+                    try:
+                        source_id = source["id"]
+                        source_type = source["type"]
+                    except KeyError:
+                        logger.exception("Malformed symbol source")
+                        continue
+                    if source_type == appconnect.SYMBOL_SOURCE_TYPE_NAME:
+                        inner_dsym_download(option.project_id, source_id)
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")
