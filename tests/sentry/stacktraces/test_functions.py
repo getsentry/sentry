@@ -114,19 +114,19 @@ def test_trim_csharp_function_name(input, output):
     [
         [
             "thunk for @escaping @callee_guaranteed () -> ()",
-            "<anonymous function>",
+            "thunk for anonymous function",
         ],
         [
             "specialized thunk for @callee_guaranteed (@guaranteed [T1]) -> (@owned [T2])",
-            "<anonymous function>",
+            "thunk for anonymous function",
         ],
         [
             "partial apply for thunk for @callee_guaranteed () -> (@error @owned Error)",
-            "<anonymous function>",
+            "thunk for anonymous function",
         ],
         [
             "partial apply for thunk for @escaping @callee_guaranteed (@guaranteed SomeType, @guaranteed [String : SomeType2], @guaranteed SomeType3) -> ()",
-            "<anonymous function>",
+            "thunk for anonymous function",
         ],
         [  # "closure ... in ..." functions are converted to containing
             # function. We might want to change this in the future

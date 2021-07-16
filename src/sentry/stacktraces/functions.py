@@ -189,6 +189,8 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
 
     function = replace_enclosed_string(function, "<", ">", process_generics)
 
+    is_thunk = "thunk for " in function  # swift
+
     tokens = split_func_tokens(function)
 
     # MSVC demangles generic operator functions with a space between the
@@ -217,7 +219,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         if func_token.startswith("@") and platform in ("cocoa", "swift"):
             # Found a Swift attribute instead of a function name, must be an
             # anonymous function
-            func_token = "<anonymous function>"
+            func_token = ("thunk for " if is_thunk else "") + "anonymous function"
         function = (
             func_token.replace("⟨", "<")
             .replace("◯", "()")

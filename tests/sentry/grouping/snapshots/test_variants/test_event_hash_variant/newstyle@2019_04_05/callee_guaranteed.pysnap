@@ -1,10 +1,10 @@
 ---
-created: '2021-07-14T13:08:21.630114Z'
+created: '2021-07-16T11:23:11.140198Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "57fdb8f2216e8701e8ea901a0196e8a8"
+  hash: "a17e91d52c4534eb1759f81dacddbfee"
   component:
     app*
       exception*
@@ -46,7 +46,7 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -60,12 +60,12 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (non app frame)
             function*
               "stripped_application_code"
@@ -73,7 +73,7 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -84,27 +84,27 @@ app:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -127,7 +127,7 @@ app:
           2
 --------------------------------------------------------------------------
 system:
-  hash: "91f45862fffcb85801da4c37041ecee6"
+  hash: "9261eb11b2f8016bc339c61e786cc3c7"
   component:
     system*
       exception*
@@ -169,7 +169,7 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -183,12 +183,12 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -196,7 +196,7 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame*
             function*
               "stripped_application_code"
@@ -207,27 +207,27 @@ system:
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function* (isolated function)
-              "<anonymous function>"
+              "thunk for anonymous function"
           frame*
             function*
               "stripped_application_code"
