@@ -380,7 +380,6 @@ class ActivityNotificationTest(APITestCase):
         attachment, text = get_attachment()
 
         assert attachment["title"] == "Hello world"
-        assert attachment["text"] == ""
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
