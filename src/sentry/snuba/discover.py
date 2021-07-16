@@ -94,10 +94,6 @@ def resolve_discover_aliases(snuba_filter, function_translations=None):
 
 
 def zerofill(data, start, end, rollup, orderby):
-    return format(data, start, end, rollup, orderby, zerofill=True)
-
-
-def format(data, start, end, rollup, orderby, zerofill=False):
     rv = []
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
     end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
@@ -113,7 +109,7 @@ def format(data, start, end, rollup, orderby, zerofill=False):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv = rv + data_by_time[key]
             data_by_time[key] = []
-        elif zerofill:
+        else:
             rv.append({"time": key})
 
     if "-time" in orderby:
@@ -512,8 +508,11 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None, zer
         op="discover.discover", description="timeseries.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        format_func = zerofill if zerofill_results else format
-        result = format_func(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+        result = (
+            zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+            if zerofill_results
+            else result["data"]
+        )
 
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 

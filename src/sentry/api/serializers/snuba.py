@@ -122,10 +122,6 @@ def value_from_row(row, tagkey):
 
 
 def zerofill(data, start, end, rollup, allow_partial_buckets=False):
-    return format(data, start, end, rollup, allow_partial_buckets, zerofill=True)
-
-
-def format(data, start, end, rollup, allow_partial_buckets=False, zerofill=False):
     rv = []
     end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
@@ -149,8 +145,7 @@ def format(data, start, end, rollup, allow_partial_buckets=False, zerofill=False
                 continue
         except IndexError:
             pass
-        if zerofill:
-            rv.append((key, []))
+        rv.append((key, []))
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
@@ -330,15 +325,16 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
                 row.append(item)
             rv.append((k, row))
 
-        format_func = zerofill if zerofill_results else format
         res = {
-            "data": format_func(
+            "data": zerofill(
                 rv,
                 result.start,
                 result.end,
                 result.rollup,
                 allow_partial_buckets=allow_partial_buckets,
             )
+            if zerofill_results
+            else rv
         }
 
         if result.data.get("totals"):
