@@ -3403,10 +3403,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react-mentions@4.1.2":
-  version "4.1.2"
-  resolved "https://registry.yarnpkg.com/@types/react-mentions/-/react-mentions-4.1.2.tgz#00d29feb42ec69566495efb8a6ea08b443ef8af8"
-  integrity sha512-71I9/pkz7u7SwpZdF2dL744p7GnukOsHf10wKG8ahxPkU2kM8EnU7DrIdsjbD95ins35o6S3CUe/+KblXc8Kyg==
+"@types/react-mentions@4.1.3":
+  version "4.1.3"
+  resolved "https://registry.yarnpkg.com/@types/react-mentions/-/react-mentions-4.1.3.tgz#3291ab9efca214dafd721306faa46312d465251f"
+  integrity sha512-Kfmw8OBydSHEWmPwBxHwM2CrN9DNvJJ4DhJ6DTC1p4kDGxs3BCLf0uVMpLBM1kpLglQhZxaI3B1lryss74I6aw==
   dependencies:
     "@types/react" "*"
 
