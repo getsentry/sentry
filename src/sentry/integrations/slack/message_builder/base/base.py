@@ -14,7 +14,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
 
     @staticmethod
     def _build(
-        text: str,
+        text: Optional[str] = None,
         title: Optional[str] = None,
         footer: Optional[str] = None,
         color: Optional[str] = None,
