@@ -986,7 +986,7 @@ function ReleaseComparisonChart({
       </ChartPanel>
       <ChartTable
         headers={[
-          <DescriptionCell key="stability">{t('Stability')}</DescriptionCell>,
+          <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
           <Cell key="releases">{t('All Releases')}</Cell>,
           <Cell key="release">{t('This Release')}</Cell>,
           <Cell key="change">{t('Change')}</Cell>,
