@@ -426,8 +426,10 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
 
-        builds_check_dates = project.get_option("sentry:last_checked_appstore", default={})
-        last_checked_builds = builds_check_dates[symbol_source_cfg.id]
+        build_refresh_dates = project.get_option(
+            appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, default={}
+        )
+        last_checked_builds = build_refresh_dates[symbol_source_cfg.id]
 
         return Response(
             {
