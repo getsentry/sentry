@@ -178,7 +178,7 @@ class DurationChart extends Component<Props> {
                         min: timeframe.start,
                         max: timeframe.end,
                       }
-                    : {},
+                    : undefined,
                   yAxis: {
                     axisLabel: {
                       color: theme.chartLabel,

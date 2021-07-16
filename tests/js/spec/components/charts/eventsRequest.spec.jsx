@@ -517,4 +517,32 @@ describe('EventsRequest', function () {
       );
     });
   });
+
+  describe('timeframe', function () {
+    beforeEach(function () {
+      doEventsRequest.mockClear();
+    });
+
+    it('passes query timeframe start and end to the child if supplied by timeseriesData', async function () {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          start: 1,
+          end: 2,
+        })
+      );
+      wrapper = mountWithTheme(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
+
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeframe: {
+            start: 1,
+            end: 2,
+          },
+        })
+      );
+    });
+  });
 });
