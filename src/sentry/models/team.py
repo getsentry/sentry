@@ -1,8 +1,10 @@
 import warnings
 from collections import defaultdict
+from typing import Mapping, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
+from django.db.models import Count
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -15,6 +17,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.models import InviteStatus
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -84,6 +87,19 @@ class TeamManager(BaseManager):
                 results[idx] = (team, team_projects)
 
         return results
+
+    def get_member_totals(self, team_list: Sequence["Team"]) -> Mapping[str, int]:
+        """Get the total number of members in each team."""
+        query = (
+            self.filter(
+                id__in=[t.pk for t in team_list],
+                organizationmember__invite_status=InviteStatus.APPROVED.value,
+            )
+            .annotate(member_count=Count("organizationmemberteam"))
+            .values("id", "member_count")
+        )
+
+        return {item["id"]: item["member_count"] for item in query}
 
 
 # TODO(dcramer): pull in enum library

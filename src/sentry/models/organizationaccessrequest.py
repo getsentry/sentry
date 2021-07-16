@@ -1,10 +1,22 @@
+from typing import TYPE_CHECKING, AbstractSet, Sequence
+
 from django.conf import settings
 from django.db.models import Q
 from django.urls import reverse
 
 from sentry import roles
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.models import Team, User
+
+
+class OrganizationAccessRequestManager(BaseManager):
+    def get_access_requests(self, team_list: Sequence["Team"], user: "User") -> AbstractSet["Team"]:
+        return frozenset(
+            self.filter(team__in=team_list, member__user=user).values_list("team", flat=True)
+        )
 
 
 class OrganizationAccessRequest(Model):
@@ -14,6 +26,8 @@ class OrganizationAccessRequest(Model):
     member = FlexibleForeignKey("sentry.OrganizationMember")
     # access request from a different user than the member
     requester = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+
+    objects = OrganizationAccessRequestManager()
 
     class Meta:
         app_label = "sentry"

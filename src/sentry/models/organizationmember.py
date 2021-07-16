@@ -1,6 +1,7 @@
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
+from typing import TYPE_CHECKING, Mapping, Set
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -16,6 +17,7 @@ from bitfield import BitField
 from sentry import roles
 from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DEFAULT
 from sentry.db.models import (
+    BaseManager,
     BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
@@ -25,6 +27,11 @@ from sentry.db.models import (
 )
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
+from sentry.utils.types import Sequence
+
+if TYPE_CHECKING:
+    from sentry.models import Team, User
+
 
 INVITE_DAYS_VALID = 30
 
@@ -42,6 +49,14 @@ invite_status_names = {
 }
 
 
+class OrganizationMemberTeamManager(BaseManager):
+    def get_team_memberships(self, team_list: Sequence["Team"], user: "User") -> Sequence[int]:
+        """Get memberships the user has in the provided team list."""
+        return self.filter(organizationmember__user=user, team__in=team_list).values_list(
+            "team", flat=True
+        )
+
+
 class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.
@@ -55,6 +70,8 @@ class OrganizationMemberTeam(BaseModel):
     # an inactive membership simply removes the team from the default list
     # but still allows them to re-join without request
     is_active = models.BooleanField(default=True)
+
+    objects = OrganizationMemberTeamManager()
 
     class Meta:
         app_label = "sentry"
@@ -70,6 +87,16 @@ class OrganizationMemberTeam(BaseModel):
             "email": self.organizationmember.get_email(),
             "is_active": self.is_active,
         }
+
+
+class OrganizationMemberManager(BaseManager):
+    def get_org_roles(self, org_ids: Set[int], user: "User") -> Mapping[int, str]:
+        """Get the role the user has in each org"""
+        query = self.filter(user=user, organization__in=set(org_ids)).values(
+            "role", "organization_id"
+        )
+
+        return {om["organization_id"]: om["role"] for om in query}
 
 
 class OrganizationMember(Model):
@@ -127,6 +154,8 @@ class OrganizationMember(Model):
 
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
+
+    objects = OrganizationMemberManager
 
     class Meta:
         app_label = "sentry"

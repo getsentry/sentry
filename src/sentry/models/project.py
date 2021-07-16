@@ -1,7 +1,7 @@
 import logging
 import warnings
 from collections import defaultdict
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 from uuid import uuid1
 
 import sentry_sdk
@@ -32,8 +32,29 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 
+if TYPE_CHECKING:
+    from sentry.models import Team
+
+
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
+
+
+class ProjectTeamManager(BaseManager):
+    def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> Sequence["ProjectTeam"]:
+        project_teams = (
+            self.filter(team__in=teams, project__status=ProjectStatus.VISIBLE)
+            .order_by("project__name", "project__slug")
+            .select_related("project")
+        )
+
+        # TODO(dcramer): we should query in bulk for ones we're missing here
+        orgs = {i.organization_id: i.organization for i in teams}
+
+        for project_team in project_teams:
+            project_team.project._organization_cache = orgs[project_team.project.organization_id]
+
+        return project_teams
 
 
 class ProjectTeam(Model):
@@ -41,6 +62,8 @@ class ProjectTeam(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     team = FlexibleForeignKey("sentry.Team")
+
+    objects = ProjectTeamManager()
 
     class Meta:
         app_label = "sentry"
