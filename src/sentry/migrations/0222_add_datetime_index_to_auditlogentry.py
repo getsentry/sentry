@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not.
     # By default we prefer to run in a transaction, but for migrations where you want
@@ -22,15 +22,30 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0221_add_appconnect_upload_dates"),
     ]
 
     operations = [
-        migrations.AlterIndexTogether(
-            name="auditlogentry",
-            index_together={("organization", "datetime")},
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    CREATE INDEX CONCURRENTLY "sentry_auditlogentry_organization_id_datetime_0d01db03_idx" ON "sentry_auditlogentry" ("organization_id", "datetime");
+                    """,
+                    reverse_sql="""
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_auditlogentry_organization_id_datetime_0d01db03_idx;
+                    """,
+                    hints={"tables": ["sentry_auditlogentry"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AlterIndexTogether(
+                    name="auditlogentry",
+                    index_together={("organization", "datetime")},
+                ),
+            ],
+        )
     ]
