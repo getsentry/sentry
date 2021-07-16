@@ -78,14 +78,7 @@ class OnboardingWelcome extends Component<Props> {
               <PositionedFallingError>{fallingError}</PositionedFallingError>
             </CTAContainer>
             <SecondaryAction {...fadeAway}>
-              {tct('[flavorText][br][exitLink:Skip onboarding].', {
-                br: <br />,
-                exitLink: <Button priority="link" href="/" />,
-                flavorText:
-                  fallCount > 0
-                    ? easterEggText[fallCount - 1]
-                    : t("Really, this again? I've used Sentry before."),
-              })}
+              {fallCount > 0 ? easterEggText[fallCount - 1] : <br />}
             </SecondaryAction>
           </Wrapper>
         )}
