@@ -1,7 +1,6 @@
 import logging
 from typing import Optional, Sequence, Tuple
 
-from sentry import options
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -83,8 +82,7 @@ def get_task_kwargs_for_message(value):
     """
 
     metrics.timing("eventstream.events.size.data", len(value))
-    use_rapid_json = options.get("post-process-forwarder:rapidjson")
-    payload = json.loads(value, use_rapid_json=use_rapid_json)
+    payload = json.loads(value, use_rapid_json=True)
 
     try:
         version = payload[0]

@@ -29,6 +29,7 @@ from sentry.grouping.api import (
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
+    detect_synthetic_exception,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
@@ -1632,10 +1633,12 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
             event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+
+    # Detect & set synthetic marker if necessary
+    detect_synthetic_exception(event.data, grouping_config)
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the

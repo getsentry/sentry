@@ -411,6 +411,116 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1, query_fn
             assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
+    def test_snql_wip_project_threshold_config(self):
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        project2 = self.create_project()
+        ProjectTransactionThreshold.objects.create(
+            project=project2,
+            organization=project2.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        events = [
+            ("a" * 10, 300),
+            ("b" * 10, 300),
+            ("c" * 10, 3000),
+            ("d" * 10, 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(3 + idx)),
+                start_timestamp=before_now(minutes=(3 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = event[0]
+            self.store_event(data, project_id=self.project.id)
+
+            if idx % 2:
+                ProjectTransactionThresholdOverride.objects.create(
+                    transaction=event[0],
+                    project=self.project,
+                    organization=self.organization,
+                    threshold=1000,
+                    metric=TransactionMetric.DURATION.value,
+                )
+
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=3), start_timestamp=before_now(minutes=4)
+        )
+        data["transaction"] = "e" * 10
+        self.store_event(data, project_id=project2.id)
+
+        expected_transaction = ["a" * 10, "b" * 10, "c" * 10, "d" * 10, "e" * 10]
+        expected_project_threshold_config = [
+            ["duration", 100],
+            ["duration", 1000],
+            ["duration", 100],
+            ["duration", 1000],
+            ["lcp", 600],
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "transaction", "project_threshold_config"],
+                query="",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id, project2.id],
+                    "organization_id": self.organization.id,
+                },
+            )
+
+            assert len(result["data"]) == 5
+            sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
+
+            assert [row["transaction"] for row in sorted_data] == expected_transaction
+            assert [row["project_threshold_config"][0] for row in sorted_data] == [
+                r[0] for r in expected_project_threshold_config
+            ]
+            assert [row["project_threshold_config"][1] for row in sorted_data] == [
+                r[1] for r in expected_project_threshold_config
+            ]
+
+        ProjectTransactionThreshold.objects.filter(
+            project=project2,
+            organization=project2.organization,
+        ).delete()
+
+        expected_transaction = ["e" * 10]
+        expected_project_threshold_config = [["duration", 300]]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "transaction", "project_threshold_config"],
+                query="",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project2.id],
+                    "organization_id": self.organization.id,
+                },
+            )
+
+            assert len(result["data"]) == 1
+            sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
+
+            assert [row["transaction"] for row in sorted_data] == expected_transaction
+            assert [row["project_threshold_config"][0] for row in sorted_data] == [
+                r[0] for r in expected_project_threshold_config
+            ]
+            assert [row["project_threshold_config"][1] for row in sorted_data] == [
+                r[1] for r in expected_project_threshold_config
+            ]
+
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/test_transaction/success"
@@ -496,6 +606,92 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             "status not 'ok' and not 'already_exists'",
         )
         run_query("!has:transaction.status", [], "status nonexistant")
+
+    def test_error_handled_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("", [[0], [1], [None]]),
+            ("error.handled:true", [[1], [None]]),
+            ("!error.handled:true", [[0]]),
+            ("has:error.handled", [[1], [None]]),
+            ("has:error.handled error.handled:true", [[1], [None]]),
+            ("error.handled:false", [[0]]),
+            ("has:error.handled error.handled:false", []),
+        ]
+
+        for query, expected_data in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["error.handled"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+
+                data = result["data"]
+                data = sorted(
+                    data, key=lambda k: (k["error.handled"][0] is None, k["error.handled"][0])
+                )
+
+                assert len(data) == len(expected_data), query_fn
+                assert [item["error.handled"] for item in data] == expected_data
+
+    def test_error_unhandled_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("error.unhandled:true", ["a" * 32], [1]),
+            ("!error.unhandled:true", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled", ["a" * 32], [1]),
+            ("!has:error.unhandled", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled error.unhandled:true", ["a" * 32], [1]),
+            ("error.unhandled:false", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled error.unhandled:false", [], []),
+        ]
+
+        for query, expected_events, error_handled in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["error.unhandled"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+                data = result["data"]
+
+                assert len(data) == len(expected_events), query_fn
+                assert [item["error.unhandled"] for item in data] == error_handled
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
