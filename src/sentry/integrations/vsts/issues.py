@@ -30,6 +30,7 @@ class VstsIssueSync(IssueSyncMixin):
         try:
             projects = client.get_projects(self.instance)
         except (ApiError, ApiUnauthorized, KeyError) as e:
+            # TODO MARCOS
             self.raise_error(e)
 
         project_choices = [(project["id"], project["name"]) for project in projects]
@@ -103,6 +104,7 @@ class VstsIssueSync(IssueSyncMixin):
             fields = super().get_create_issue_config(group, user, **kwargs)
             # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
             # Workitems (issues) are associated with the project not the repository.
+        # TODO MARCOS
         default_project, project_choices = self.get_project_choices(group, **kwargs)
 
         work_item_choices = []

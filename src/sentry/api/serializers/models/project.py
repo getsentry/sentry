@@ -11,7 +11,6 @@ from sentry import features, options, projectoptions
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.organization import has_access
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
@@ -23,6 +22,8 @@ from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
     NotificationSetting,
+    OrganizationMember,
+    OrganizationMemberTeam,
     Project,
     ProjectAvatar,
     ProjectBookmark,
@@ -69,12 +70,17 @@ def get_access_by_project(
     project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
 
     project_team_map = defaultdict(list)
-
     for pt in project_teams:
         project_team_map[pt.project_id].append(pt.team)
 
-    team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
-    org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    if user.is_authenticated:
+        org_ids = {t.organization_id for t in projects}
+        team_list = [pt.team for pt in project_teams]
+        org_roles = OrganizationMember.objects.get_org_roles(org_ids, user)
+        team_memberships = OrganizationMemberTeam.objects.get_team_memberships(team_list, user)
+    else:
+        org_roles = {}
+        team_memberships = []
 
     is_superuser = request and is_active_superuser(request) and request.user == user
 

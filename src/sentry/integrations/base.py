@@ -335,6 +335,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
+    # TODO MARCOS
     def raise_error(self, exc, identity=None):
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
@@ -350,6 +351,7 @@ class IntegrationInstallation:
         elif isinstance(exc, IntegrationError):
             raise
         else:
+            # TODO MARCOS
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 

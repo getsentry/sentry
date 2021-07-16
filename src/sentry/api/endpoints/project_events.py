@@ -31,6 +31,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
+        # TODO MARCOS 3
         full = request.GET.get("full", False)
 
         data_fn = partial(

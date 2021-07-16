@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional, Sequence
 
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
@@ -71,6 +72,23 @@ def get_tags_with_meta(event):
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(["user", "sdk", "device", "contexts"])
+
+    def __init__(
+        self, collapse: Optional[Sequence[str]] = None, expand: Optional[Sequence[str]] = None
+    ) -> None:
+        self.collapse = collapse or []
+        self.expand = expand or []
+
+    def _expand(self, key: str) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key: str) -> bool:
+        if self.collapse is None:
+            return False
+        return key in self.collapse
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
@@ -177,6 +195,9 @@ class EventSerializer(Serializer):
                 tag["query"] = query
         return tags
 
+    def _get_sdk_updates(self, obj):
+        return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
+
     def get_attrs(self, item_list, user, is_public=False):
         crash_files = get_crash_files(item_list)
         serialized_files = {
@@ -196,9 +217,6 @@ class EventSerializer(Serializer):
 
             results[item] = {
                 "entries": entries,
-                "user": user_data,
-                "contexts": contexts_data or {},
-                "sdk": sdk_data,
                 "crash_file": serialized_files.get(item.event_id),
                 "_meta": {
                     "entries": entries_meta,
@@ -207,6 +225,17 @@ class EventSerializer(Serializer):
                     "sdk": sdk_meta,
                 },
             }
+
+            # Collapsable attributes.
+            if not self._collapse("contexts"):
+                results[item]["contexts"] = contexts_data or {}
+
+            if not self._collapse("sdk"):
+                results[item]["sdk"] = sdk_data
+
+            if not self._collapse("user"):
+                results[item]["user"] = user_data
+
         return results
 
     def should_display_error(self, error):
@@ -245,29 +274,22 @@ class EventSerializer(Serializer):
                 received = None
 
         d = {
-            "id": obj.event_id,
-            "groupID": str(obj.group_id) if obj.group_id else None,
+            "dateReceived": received,
+            "dist": obj.dist,
+            "entries": attrs["entries"],
             "eventID": obj.event_id,
+            "groupID": str(obj.group_id) if obj.group_id else None,
+            "id": obj.event_id,
+            "location": obj.location,
+            # See https://github.com/getsentry/sentry/issues/3248.
+            "message": message,
+            "metadata": obj.get_event_metadata(),
+            "packages": packages,
+            "platform": obj.platform,
             "projectID": str(obj.project_id),
             "size": obj.size,
-            "entries": attrs["entries"],
-            "dist": obj.dist,
-            # See GH-3248
-            "message": message,
             "title": obj.title,
-            "location": obj.location,
-            "user": attrs["user"],
-            "contexts": attrs["contexts"],
-            "sdk": attrs["sdk"],
-            # TODO(dcramer): move into contexts['extra']
-            "context": context,
-            "packages": packages,
             "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
-            "tags": tags,
-            "platform": obj.platform,
-            "dateReceived": received,
-            "errors": errors,
             "_meta": {
                 "entries": attrs["_meta"]["entries"],
                 "message": message_meta,
@@ -279,6 +301,37 @@ class EventSerializer(Serializer):
                 "tags": tags_meta,
             },
         }
+
+        # Collapsable attributes.
+        if not self._collapse("context"):
+            # TODO(dcramer): move into contexts['extra']
+            d["context"] = context
+
+        if not self._collapse("contexts"):
+            d["contexts"] = attrs["contexts"]
+
+        if not self._collapse("errors"):
+            d["errors"] = errors
+
+        if not self._collapse("sdk"):
+            d["sdk"] = (attrs["sdk"],)
+
+        if not self._collapse("tags"):
+            d["tags"] = tags
+
+        if not self._collapse("user"):
+            d["user"] = (attrs["user"],)
+
+        # Expandable attributes.
+        if self._expand("release"):
+            d["release"] = self._get_release_info(user, obj)
+
+        if self._expand("userReport"):
+            d["userReport"] = self._get_user_report(user, obj)
+
+        if self._expand("sdkUpdates"):
+            d["sdkUpdates"] = self._get_sdk_updates(obj)
+
         # Serialize attributes that are specific to different types of events.
         if obj.get_event_type() == "transaction":
             d.update(self.__serialize_transaction_attrs(attrs, obj))
@@ -311,37 +364,26 @@ class EventSerializer(Serializer):
 
 
 class DetailedEventSerializer(EventSerializer):
-    """
-    Adds release and user report info to the serialized event.
-    """
+    """Adds release and user report info to the serialized event."""
 
-    def _get_sdk_updates(self, obj):
-        return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
-
-    def serialize(self, obj, attrs, user):
-        result = super().serialize(obj, attrs, user)
-        result["release"] = self._get_release_info(user, obj)
-        result["userReport"] = self._get_user_report(user, obj)
-        result["sdkUpdates"] = self._get_sdk_updates(obj)
-        return result
+    def __init__(self) -> None:
+        super().__init__(expand=["release", "sdkUpdates", "userReport"])
 
 
 class SharedEventSerializer(EventSerializer):
+    def __init__(self) -> None:
+        super().__init__(collapse=["context", "contexts", "errors", "sdk", "tags", "user"])
+
     def get_attrs(self, item_list, user):
         return super().get_attrs(item_list, user, is_public=True)
 
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
-        del result["context"]
-        del result["contexts"]
-        del result["user"]
-        del result["tags"]
-        del result["sdk"]
-        del result["errors"]
         result["entries"] = [e for e in result["entries"] if e["type"] != "breadcrumbs"]
         return result
 
 
+# TODO MARCOS 3 this doesn't look easy
 class SimpleEventSerializer(EventSerializer):
     """
     Simple event serializer that renders a basic outline of an event without
@@ -394,6 +436,7 @@ class ExternalEventSerializer(EventSerializer):
     should be used for Integrations that need to include event data.
     """
 
+    # TODO MARCOS 4
     def serialize(self, obj, attrs, user):
         user = obj.get_minimal_user()
 

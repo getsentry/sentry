@@ -34,10 +34,13 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         ``````````````````````
 
         This endpoint lists an issue's events.
-        :qparam bool full: if this is set to true then the event payload will
+        :qparam list collapse: An optional list of strings to opt out of certain
+            pieces of data. Supports `TODO MARCOS`.
+        :qparam list expand: An optional list of strings to opt in to additional
+            data. Supports `TODO MARCOS`.
+        :qparam bool full: Deprecated. if this is set to true then the event payload will
                            include the full event body, including the stacktrace.
                            Set to 1 to enable.
-
         :pparam string issue_id: the ID of the issue to retrieve.
 
         :auth: required
@@ -78,6 +81,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         if environments:
             params["environment"] = [env.name for env in environments]
 
+        collapse = request.GET.getlist("collapse", [])
+        expand = request.GET.getlist("expand", [])
         full = request.GET.get("full", False)
         try:
             snuba_filter = get_filter(request.GET.get("query", None), params)
@@ -90,7 +95,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
-            on_results=lambda results: serialize(results, request.user, serializer),
+            on_results=lambda results: serialize(
+                results, request.user, serializer, collapse=collapse, expand=expand
+            ),
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
