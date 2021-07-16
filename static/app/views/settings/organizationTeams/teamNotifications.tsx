@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Integration, LightWeightOrganization, Team} from 'app/types';
 import {toTitleCase} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
@@ -76,8 +76,10 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
         <EmptyMessage>
           <div>{t('No External Teams have been linked yet.')}</div>
           <NotDisabledSubText>
-            Head over to Slack and type <code>/sentry link team</code> to get started.{' '}
-            <a href="">Learn more</a>
+            {tct('Head over to Slack and type [code] to get started. [link].', {
+              code: <code>/sentry link team</code>,
+              link: <a>{t('Learn more')}</a>,
+            })}
           </NotDisabledSubText>
         </EmptyMessage>
       );
@@ -98,8 +100,10 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
               {integrationsById[externalTeam.integrationId].name}
             </NotDisabledText>
             <NotDisabledSubText>
-              Unlink this channel in Slack with <code>/sentry unlink team</code>.{' '}
-              <a href="">Learn more</a>
+              {tct('Unlink this channel in Slack with [code]. [link].', {
+                code: <code>/sentry unlink team</code>,
+                link: <a>{t('Learn more')}</a>,
+              })}
             </NotDisabledSubText>
           </div>
         }
