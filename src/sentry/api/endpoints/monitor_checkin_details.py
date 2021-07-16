@@ -80,7 +80,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         :pparam string checkin_id: the id of the check-in.
         :auth: required
         """
-        # we dont allow read permission with DSNs
+        # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 

@@ -287,7 +287,7 @@ class Frame(Interface):
         return is_url(self.abs_path)
 
     def is_caused_by(self):
-        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
+        # XXX(dcramer): don't compute hash using frames containing the 'Caused by'
         # text as it contains an exception value which may may contain dynamic
         # values (see raven-java#125)
         return self.filename.startswith("Caused by: ")
