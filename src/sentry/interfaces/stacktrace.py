@@ -386,7 +386,7 @@ class Stacktrace(Interface):
       code in this stacktrace. For example, the frames that might power the
       framework's webserver of your app are probably not relevant, however calls
       to the framework's library once you start handling code likely are. See
-      notes below on implicity ``in_app`` behavior.
+      notes below on implicit ``in_app`` behavior.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
     ``package``
@@ -417,7 +417,7 @@ class Stacktrace(Interface):
     >>>     "frames_omitted": [13, 56]
     >>> }
 
-    Implicity ``in_app`` behavior exists when the value is not specified on all
+    Implicit ``in_app`` behavior exists when the value is not specified on all
     frames within a stacktrace (or collectively within an exception if this is
     part of a chain).
 

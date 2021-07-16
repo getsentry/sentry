@@ -213,7 +213,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_projects(self, instance):
         def gen_params(page_number, page_size):
             # ADO supports a continuation token in the response but only in the newer API version (https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1)
-            # the token comes as a repsponse header instead of the body and our API clients currently only return the body
+            # the token comes as a response header instead of the body and our API clients currently only return the body
             # we can use count, $skip, and $top to get the same result
             offset = self.page_size * page_number
             return {"stateFilter": "WellFormed", "$skip": offset, "$top": page_size}
