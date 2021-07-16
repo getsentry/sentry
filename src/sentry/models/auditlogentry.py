@@ -190,7 +190,7 @@ class AuditLogEntry(Model):
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
-    datetime = models.DateTimeField(default=timezone.now, db_index=True)
+    datetime = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
