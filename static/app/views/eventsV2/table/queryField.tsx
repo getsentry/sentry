@@ -204,6 +204,8 @@ class QueryField extends React.Component<Props> {
         } else if (value.meta.parameters.length === 1) {
           fieldValue.function[2] = undefined;
           fieldValue.function[3] = undefined;
+        } else if (value.meta.parameters.length === 2) {
+          fieldValue.function[3] = undefined;
         }
       }
     }
