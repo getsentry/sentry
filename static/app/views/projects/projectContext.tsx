@@ -1,7 +1,6 @@
+import {Component, createRef} from 'react';
 import DocumentTitle from 'react-document-title';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
@@ -14,7 +13,7 @@ import SentryTypes from 'app/sentryTypes';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import space from 'app/styles/space';
-import {Member, Organization, Project} from 'app/types';
+import {Organization, Project, User} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -43,7 +42,7 @@ type Props = {
 };
 
 type State = {
-  memberList: Member[];
+  memberList: User[];
   project: Project | null;
   loading: boolean;
   error: boolean;
@@ -57,19 +56,14 @@ type State = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-const ProjectContext = createReactClass<Props, State>({
-  displayName: 'ProjectContext',
-
-  childContextTypes: {
+class ProjectContext extends Component<Props, State> {
+  static childContextTypes = {
     project: SentryTypes.Project,
-  },
+  };
 
-  mixins: [
-    Reflux.connect(MemberListStore, 'memberList') as any,
-    Reflux.listenTo(ProjectsStore, 'onProjectChange') as any,
-  ],
+  state = this.getInitialState();
 
-  getInitialState() {
+  getInitialState(): State {
     return {
       loading: true,
       error: false,
@@ -77,17 +71,17 @@ const ProjectContext = createReactClass<Props, State>({
       memberList: [],
       project: null,
     };
-  },
+  }
 
   getChildContext() {
     return {
       project: this.state.project,
     };
-  },
+  }
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps: Props) {
     if (nextProps.projectId === this.props.projectId) {
@@ -97,7 +91,7 @@ const ProjectContext = createReactClass<Props, State>({
     if (!nextProps.skipReload) {
       this.remountComponent();
     }
-  },
+  }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     if (prevProps.projectId !== this.props.projectId) {
@@ -125,23 +119,38 @@ const ProjectContext = createReactClass<Props, State>({
 
     // intentionally shallow comparing references
     if (prevState.project !== this.state.project) {
-      if (!this.docTitle) {
+      const docTitle = this.docTitleRef.current;
+      if (!docTitle) {
         return;
       }
-      const docTitle = this.docTitleRef.docTitle;
-      if (docTitle) {
-        docTitle.forceUpdate();
-      }
+      docTitle.forceUpdate();
     }
-  },
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeMembers();
+    this.unsubscribeProjects();
+  }
+
+  docTitleRef = createRef<DocumentTitle>();
+
+  unsubscribeProjects = ProjectsStore.listen(
+    (projectIds: Set<string>) => this.onProjectChange(projectIds),
+    undefined
+  );
+
+  unsubscribeMembers = MemberListStore.listen(
+    (memberList: MemberListStore['state']) => this.setState({memberList}),
+    undefined
+  );
 
   remountComponent() {
-    this.setState(this.getInitialState!());
-  },
+    this.setState(this.getInitialState());
+  }
 
   getTitle() {
     return this.state.project?.slug ?? 'Sentry';
-  },
+  }
 
   onProjectChange(projectIds: Set<string>) {
     if (!this.state.project) {
@@ -150,17 +159,16 @@ const ProjectContext = createReactClass<Props, State>({
     if (!projectIds.has(this.state.project.id)) {
       return;
     }
-
     this.setState({
-      project: {...ProjectsStore.getById(this.state.project.id)},
+      project: {...ProjectsStore.getById(this.state.project.id)} as Project,
     });
-  },
+  }
 
   identifyProject() {
     const {projects, projectId} = this.props;
     const projectSlug = projectId;
     return projects.find(({slug}) => slug === projectSlug) || null;
-  },
+  }
 
   async fetchData() {
     const {orgId, projectId, skipReload} = this.props;
@@ -200,7 +208,7 @@ const ProjectContext = createReactClass<Props, State>({
         });
       }
 
-      fetchOrgMembers(this.props.api, orgId, activeProject.id);
+      fetchOrgMembers(this.props.api, orgId, [activeProject.id]);
 
       return;
     }
@@ -228,10 +236,11 @@ const ProjectContext = createReactClass<Props, State>({
         errorType: ErrorTypes.PROJECT_NOT_FOUND,
       });
     }
-  },
+  }
 
   renderBody() {
-    if (this.state.loading) {
+    const {error, errorType, loading, project} = this.state;
+    if (loading) {
       return (
         <div className="loading-full-layout">
           <LoadingIndicator />
@@ -239,15 +248,13 @@ const ProjectContext = createReactClass<Props, State>({
       );
     }
 
-    if (!this.state.error) {
+    if (!error && project) {
       const {children} = this.props;
 
-      return typeof children === 'function'
-        ? children({project: this.state.project})
-        : children;
+      return typeof children === 'function' ? children({project}) : children;
     }
 
-    switch (this.state.errorType) {
+    switch (errorType) {
       case ErrorTypes.PROJECT_NOT_FOUND:
         // TODO(chrissy): use scale for margin values
         return (
@@ -264,23 +271,23 @@ const ProjectContext = createReactClass<Props, State>({
           <ErrorWrapper>
             <MissingProjectMembership
               organization={this.props.organization}
-              projectSlug={this.state.project.slug}
+              projectSlug={project?.slug}
             />
           </ErrorWrapper>
         );
       default:
         return <LoadingError onRetry={this.remountComponent} />;
     }
-  },
+  }
 
   render() {
     return (
-      <DocumentTitle ref={ref => (this.docTitleRef = ref)} title={this.getTitle()}>
+      <DocumentTitle ref={this.docTitleRef} title={this.getTitle()}>
         {this.renderBody()}
       </DocumentTitle>
     );
-  },
-});
+  }
+}
 
 export {ProjectContext};
 
