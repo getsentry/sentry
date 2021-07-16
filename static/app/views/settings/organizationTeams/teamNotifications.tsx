@@ -31,7 +31,11 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, team} = this.props;
     return [
-      ['teamDetails', `/teams/${organization.slug}/${team.slug}/`, {query: {full: true}}],
+      [
+        'teamDetails',
+        `/teams/${organization.slug}/${team.slug}/`,
+        {query: {expand: ['externalTeams']}},
+      ],
       [
         'integrations',
         `/organizations/${organization.slug}/integrations/`,
