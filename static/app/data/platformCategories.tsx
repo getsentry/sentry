@@ -44,6 +44,7 @@ export const mobile = [
   'android',
   'apple-ios',
   'cordova',
+  'capacitor',
   'javascript-cordova',
   'javascript-capacitor',
   'react-native',

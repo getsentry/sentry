@@ -14,6 +14,7 @@ from typing import Any, Dict, List
 import dateutil
 import jsonschema
 import requests
+import sentry_sdk
 from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
@@ -92,7 +93,7 @@ class AppStoreConnectConfig:
     # easily to retrieve via an HTTP request to iTunes.
     itunesPersonId: str
 
-    # The iTuness session cookie.
+    # The iTunes session cookie.
     #
     # Loading this cookie into ``requests.Session`` (see
     # ``sentry.utils.appleconnect.itunes_connect.load_session_cookie``) will allow this
@@ -139,7 +140,7 @@ class AppStoreConnectConfig:
 
         This will include the JSON schema validation.  It accepts both a str or a datetime
         for the ``itunesCreated``.  Thus you can safely use this to create and validate the
-        config as desrialised by both plain JSON deserialiser or by Django Rest Framework's
+        config as deserialised by both plain JSON deserialiser or by Django Rest Framework's
         deserialiser.
 
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
@@ -155,6 +156,16 @@ class AppStoreConnectConfig:
         return cls(**data)
 
     @classmethod
+    def all_for_project(cls, project: Project) -> "List[AppStoreConnectConfig]":
+        sources = []
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
+        all_sources = json.loads(raw)
+        for source in all_sources:
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
+                sources.append(cls.from_json(source))
+        return sources
+
+    @classmethod
     def from_project_config(cls, project: Project, config_id: str) -> "AppStoreConnectConfig":
         """Creates a new instance from the symbol source configured in the project.
 
@@ -164,7 +175,7 @@ class AppStoreConnectConfig:
         raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
         all_sources = json.loads(raw)
         for source in all_sources:
-            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and source.get("id") == config_id:
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
                 return cls.from_json(source)
         else:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
@@ -262,17 +273,18 @@ class ITunesClient:
         # itunes_connect.set_provider(self._session, itunes_org)
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
-        url = itunes_connect.get_dsym_url(
-            self._session, build.app_id, build.version, build.build_number, build.platform
-        )
-        if not url:
-            raise NoDsymsError
-        logger.debug("Fetching dSYM from: %s", url)
-        with requests.get(url, stream=True) as req:
-            req.raise_for_status()
-            with open(path, "wb") as fp:
-                for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
-                    fp.write(chunk)
+        with sentry_sdk.start_span(op="dsyms", description="Download dSYMs"):
+            url = itunes_connect.get_dsym_url(
+                self._session, build.app_id, build.version, build.build_number, build.platform
+            )
+            if not url:
+                raise NoDsymsError
+            logger.debug("Fetching dSYM from: %s", url)
+            with requests.get(url, stream=True) as req:
+                req.raise_for_status()
+                with open(path, "wb") as fp:
+                    for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        fp.write(chunk)
 
 
 class AppConnectClient:
@@ -336,7 +348,6 @@ class AppConnectClient:
 
     def list_builds(self) -> List[BuildInfo]:
         """Returns the available AppStore builds."""
-
         builds = []
         all_results = appstore_connect.get_build_info(
             self._session, self._api_credentials, self._app_id

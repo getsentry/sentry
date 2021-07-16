@@ -25,12 +25,15 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
+    DURATION_PATTERN,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
+    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     RESULT_TYPES,
     SEARCH_MAP,
     TAG_KEY_RE,
@@ -39,6 +42,7 @@ from sentry.search.events.constants import (
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.types import SelectType
+from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
@@ -184,6 +188,39 @@ def project_threshold_config_expression(organization_id, project_ids):
             f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
         )
 
+    project_threshold_config_index = [
+        "indexOf",
+        [
+            [
+                "array",
+                [["toUInt64", [config["project_id"]]] for config in project_threshold_configs],
+            ],
+            "project_id",
+        ],
+        PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+    ]
+
+    project_transaction_override_config_index = [
+        "indexOf",
+        [
+            [
+                "array",
+                [
+                    [
+                        "tuple",
+                        [
+                            ["toUInt64", [config["project_id"]]],
+                            "'{}'".format(config["transaction"]),
+                        ],
+                    ]
+                    for config in transaction_threshold_configs
+                ],
+            ],
+            ["tuple", ["project_id", "transaction"]],
+        ],
+        PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+    ]
+
     project_config_query = (
         [
             "if",
@@ -191,19 +228,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                 [
                     "equals",
                     [
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        ["toUInt64", [config["project_id"]]]
-                                        for config in project_threshold_configs
-                                    ],
-                                ],
-                                "project_id",
-                            ],
-                        ],
+                        project_threshold_config_index,
                         0,
                     ],
                 ],
@@ -224,19 +249,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                                 for config in project_threshold_configs
                             ],
                         ],
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        ["toUInt64", [config["project_id"]]]
-                                        for config in project_threshold_configs
-                                    ],
-                                ],
-                                "project_id",
-                            ],
-                        ],
+                        project_threshold_config_index,
                     ],
                 ],
             ],
@@ -252,25 +265,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                 [
                     "equals",
                     [
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        [
-                                            "tuple",
-                                            [
-                                                ["toUInt64", [config["project_id"]]],
-                                                "'{}'".format(config["transaction"]),
-                                            ],
-                                        ]
-                                        for config in transaction_threshold_configs
-                                    ],
-                                ],
-                                ["tuple", ["project_id", "transaction"]],
-                            ],
-                        ],
+                        project_transaction_override_config_index,
                         0,
                     ],
                 ],
@@ -291,25 +286,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                                 for config in transaction_threshold_configs
                             ],
                         ],
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        [
-                                            "tuple",
-                                            [
-                                                ["toUInt64", [config["project_id"]]],
-                                                "'{}'".format(config["transaction"]),
-                                            ],
-                                        ]
-                                        for config in transaction_threshold_configs
-                                    ],
-                                ],
-                                ["tuple", ["project_id", "transaction"]],
-                            ],
-                        ],
+                        project_transaction_override_config_index,
                     ],
                 ],
             ],
@@ -374,13 +351,19 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     eg. duration = numeric_value, and not duration = string_value
     """
     column = args["column"]
-    condition = args["condition"]
     value = args["value"]
     if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
-        try:
-            normalized_value = float(value.strip("'"))
-        except Exception:
-            raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
+        duration_match = DURATION_PATTERN.match(value.strip("'"))
+        if duration_match:
+            try:
+                normalized_value = parse_duration(*duration_match.groups())
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+        else:
+            try:
+                normalized_value = float(value.strip("'"))
+            except Exception:
+                raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
     elif column == "transaction.status":
         code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
         if code is None:
@@ -392,9 +375,6 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     # TODO: not supporting field aliases or arrays yet
     elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
-    # At this point only string or tag columns are left
-    elif condition not in ["equals", "notEquals"]:
-        raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
     else:
         normalized_value = value
 

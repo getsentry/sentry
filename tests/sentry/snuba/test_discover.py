@@ -10,7 +10,14 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS, SEMVER_PACKAGE_ALIAS
+from sentry.search.events.constants import (
+    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -600,6 +607,92 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         run_query("!has:transaction.status", [], "status nonexistant")
 
+    def test_error_handled_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("", [[0], [1], [None]]),
+            ("error.handled:true", [[1], [None]]),
+            ("!error.handled:true", [[0]]),
+            ("has:error.handled", [[1], [None]]),
+            ("has:error.handled error.handled:true", [[1], [None]]),
+            ("error.handled:false", [[0]]),
+            ("has:error.handled error.handled:false", []),
+        ]
+
+        for query, expected_data in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["error.handled"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+
+                data = result["data"]
+                data = sorted(
+                    data, key=lambda k: (k["error.handled"][0] is None, k["error.handled"][0])
+                )
+
+                assert len(data) == len(expected_data), query_fn
+                assert [item["error.handled"] for item in data] == expected_data
+
+    def test_error_unhandled_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("error.unhandled:true", ["a" * 32], [1]),
+            ("!error.unhandled:true", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled", ["a" * 32], [1]),
+            ("!has:error.unhandled", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled error.unhandled:true", ["a" * 32], [1]),
+            ("error.unhandled:false", ["b" * 32, "c" * 32], [0, 0]),
+            ("has:error.unhandled error.unhandled:false", [], []),
+        ]
+
+        for query, expected_events, error_handled in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["error.unhandled"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+                data = result["data"]
+
+                assert len(data) == len(expected_events), query_fn
+                assert [item["error.unhandled"] for item in data] == error_handled
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
@@ -888,6 +981,47 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
         }
+
+    def test_semver_build_condition(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test2@1.2.4+124")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version},
+            project_id=self.project.id,
+        ).event_id
+
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_BUILD_ALIAS}:123",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_BUILD_ALIAS}:124",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            release_2_e_1,
+        }
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"{SEMVER_BUILD_ALIAS}:>=123",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2, release_2_e_1}
 
     def test_latest_release_condition(self):
         result = discover.query(
@@ -1893,6 +2027,7 @@ class QueryTransformTest(TestCase):
                                 [
                                     "indexOf",
                                     [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                 ],
                                 0,
                             ],
@@ -1905,6 +2040,7 @@ class QueryTransformTest(TestCase):
                                 [
                                     "indexOf",
                                     [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                 ],
                             ],
                         ],
@@ -1997,6 +2133,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                                 0,
                             ],
@@ -2023,6 +2160,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                             ],
                         ],
@@ -2122,6 +2260,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                                 0,
                             ],
@@ -2138,6 +2277,7 @@ class QueryTransformTest(TestCase):
                                                 ["array", [["toUInt64", [self.project.id]]]],
                                                 "project_id",
                                             ],
+                                            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                         ],
                                         0,
                                     ],
@@ -2153,6 +2293,7 @@ class QueryTransformTest(TestCase):
                                                 ["array", [["toUInt64", [self.project.id]]]],
                                                 "project_id",
                                             ],
+                                            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
                                         ],
                                     ],
                                 ],
@@ -2179,6 +2320,7 @@ class QueryTransformTest(TestCase):
                                         ],
                                         ["tuple", ["project_id", "transaction"]],
                                     ],
+                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
                                 ],
                             ],
                         ],
