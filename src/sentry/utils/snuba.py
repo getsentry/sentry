@@ -855,7 +855,7 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
     assert isinstance(query, Query)
     try:
         return _raw_snql_query(query, thread_hub, headers), forward, reverse
-    except Exception as err:
+    except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
 
 
@@ -863,43 +863,13 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
     # Run the SnQL query and if something fails try the legacy version.
     query_data, thread_hub, headers = params
     query_params, forward, reverse = query_data
-    referrer = headers.get("referer", "<unknown>")
 
     try:
         snql_entity = query_params["dataset"]
-
-        metrics.incr("snuba.snql.legacy.incoming", tags={"referrer": referrer})
         query = json_to_snql(query_params, snql_entity)
-        query.validate()
-    except Exception as e:
-        logger.warning(
-            "snuba.snql.parsing.error",
-            extra={"error": str(e), "params": json.dumps(query_params), "referrer": referrer},
-        )
-        metrics.incr(
-            "snuba.snql.legacy.failure", tags={"referrer": referrer, "reason": "parsing.error"}
-        )
-        return _snuba_query(params)
-
-    try:
         result = _raw_snql_query(query, Hub(thread_hub), headers)
-        if result.status != 200:  # Trigger a retry with the legacy endpoint
-            raise SnubaError("error sending snql query")
-
-    except Exception as e:
-        logger.warning(
-            "snuba.snql.sending.error",
-            extra={
-                "error": str(e),
-                "params": json.dumps(query_params),
-                "query": str(query),
-                "referrer": referrer,
-            },
-        )
-        metrics.incr(
-            "snuba.snql.legacy.failure", tags={"referrer": referrer, "reason": "sending.error"}
-        )
-        return _snuba_query(params)
+    except urllib3.exceptions.HTTPError as err:
+        raise SnubaError(err)
 
     return result, forward, reverse
 
