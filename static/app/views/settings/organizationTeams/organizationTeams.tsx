@@ -6,9 +6,10 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import {Organization, Team} from 'app/types';
+import { Organization, Team, AccessRequest } from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import OrganizationAccessRequests from './organizationAccessRequests';
 
 import AllTeamsList from './allTeamsList';
 
@@ -18,6 +19,7 @@ type Props = {
   allTeams: Team[];
   activeTeams: Team[];
   organization: Organization;
+  requestList: AccessRequest[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function OrganizationTeams({
@@ -28,6 +30,7 @@ function OrganizationTeams({
   features,
   routes,
   params,
+  requestList,
 }: Props) {
   if (!organization) {
     return null;
@@ -66,6 +69,12 @@ function OrganizationTeams({
     <div data-test-id="team-list">
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
       <SettingsPageHeader title={title} action={action} />
+
+      <OrganizationAccessRequests
+        orgId={params.orgId}
+        requestList={requestList}
+        onRemoveAccessRequest={(_: string) => { }}
+      />
       <Panel>
         <PanelHeader>{t('Your Teams')}</PanelHeader>
         <PanelBody>
