@@ -13,8 +13,8 @@ from typing import (
 
 from django.db.models import Count
 
-from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.organization import has_access
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -120,24 +120,14 @@ class TeamSerializer(Serializer):  # type: ignore
 
         is_superuser = request and is_active_superuser(request) and request.user == user
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
-
         for team in item_list:
             is_member = team.id in memberships
-            org_role = org_roles.get(team.organization_id)
-            if is_member:
-                has_access = True
-            elif is_superuser:
-                has_access = True
-            elif team.organization.flags.allow_joinleave:
-                has_access = True
-            elif org_role and roles.get(org_role).is_global:
-                has_access = True
-            else:
-                has_access = False
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
-                "has_access": has_access,
+                "has_access": has_access(
+                    team.organization, org_roles, is_member=is_member, is_superuser=is_superuser
+                ),
                 "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
             }

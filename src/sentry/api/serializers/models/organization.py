@@ -1,3 +1,5 @@
+from collections import Mapping
+
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -39,6 +41,18 @@ from sentry.models import (
 )
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
+
+
+def has_access(
+    organization: Organization, org_roles: Mapping[int, str], is_member: bool, is_superuser: bool
+) -> bool:
+    org_role = org_roles.get(organization.id)
+    return (
+        is_member
+        or is_superuser
+        or organization.flags.allow_joinleave
+        or (org_role and roles.get(org_role).is_global)
+    )
 
 
 class TrustedRelaySerializer(serializers.Serializer):

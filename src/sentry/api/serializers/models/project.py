@@ -7,8 +7,9 @@ from django.db import connection
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, roles
+from sentry import features, options, projectoptions
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.organization import has_access
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
 from sentry.app import env
@@ -76,21 +77,16 @@ def get_access_by_project(
     org_roles = get_org_roles({i.organization_id for i in projects}, user)
 
     is_superuser = request and is_active_superuser(request) and request.user == user
+
     result = {}
     for project in projects:
         is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
-        org_role = org_roles.get(project.organization_id)
-        if is_member:
-            has_access = True
-        elif is_superuser:
-            has_access = True
-        elif project.organization.flags.allow_joinleave:
-            has_access = True
-        elif org_role and roles.get(org_role).is_global:
-            has_access = True
-        else:
-            has_access = False
-        result[project] = {"is_member": is_member, "has_access": has_access}
+        result[project] = {
+            "is_member": is_member,
+            "has_access": has_access(
+                project.organization, org_roles, is_member=is_member, is_superuser=is_superuser
+            ),
+        }
     return result
 
 
