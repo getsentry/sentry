@@ -24,8 +24,14 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    create_incident,
 )
-from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+    IncidentStatus,
+    IncidentType,
+)
 from sentry.interfaces.user import User as UserInterface
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -77,6 +83,7 @@ org_users = [
     ("aj", "AJ Jindal"),
     ("zac.propersi", "Zac Propersi"),
     ("roggenkemper", "Richard Roggenkemper"),
+    ("neozhang", "Neo Zhang"),
 ]
 
 logger = logging.getLogger(__name__)
@@ -551,6 +558,34 @@ def populate_org_members(org, team):
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
 
+def generate_incidents(timestamps, timeperiod, max_days, warning, critical):
+    start_time = (
+        timezone.now().replace(second=0, microsecond=0)
+        - timedelta(days=max_days)
+        - timedelta(minutes=timezone.now().minute % 30)
+    )
+    counter = {}
+
+    timestamps.sort()
+    for timestamp in timestamps:
+        while timestamp > start_time + timedelta(minutes=timeperiod):
+            start_time = start_time + timedelta(minutes=timeperiod)
+        if start_time in counter:
+            counter[start_time] += 1
+        else:
+            counter[start_time] = 1
+
+    warning_time = []
+    critical_time = []
+    for timestamp in counter:
+        if counter[timestamp] >= warning and counter[timestamp] < critical:
+            warning_time.append(timestamp)
+        elif counter[timestamp] >= critical:
+            critical_time.append(timestamp)
+
+    return warning_time, critical_time
+
+
 class DataPopulation:
     """
     This class is used to populate data for a single organization
@@ -559,6 +594,7 @@ class DataPopulation:
     def __init__(self, org: Organization, quick: bool):
         self.org = org
         self.quick = quick
+        self.timestamps_by_project = {}
 
     def get_config(self):
         """
@@ -739,15 +775,19 @@ class DataPopulation:
     def generate_metric_alert(self, project):
         org = project.organization
         team = Team.objects.filter(organization=org).first()
+        time_interval = 30
         alert_rule = create_alert_rule(
             org,
             [project],
             f"High Error Rate - {project.name} ",
             "level:error",
             "count()",
-            10,
+            time_interval,
             AlertRuleThresholdType.ABOVE,
             1,
+        )
+        alert_rule.update(
+            date_modified=timezone.now(), date_added=timezone.now() - timedelta(days=2)
         )
         critical_trigger = create_alert_rule_trigger(alert_rule, "critical", 10)
         warning_trigger = create_alert_rule_trigger(alert_rule, "warning", 7)
@@ -758,6 +798,26 @@ class DataPopulation:
                 AlertRuleTriggerAction.TargetType.TEAM,
                 target_identifier=str(team.id),
             )
+
+        warning_time, critical_time = generate_incidents(
+            self.timestamps_by_project[project.slug],
+            time_interval,
+            self.get_config_var("MAX_DAYS"),
+            7,
+            10,
+        )
+
+        incident = create_incident(
+            organization=org,
+            type_=IncidentType.ALERT_TRIGGERED,
+            title="7 Errors",
+            date_started=timezone.now() - timedelta(hours=7),
+            projects=[project],
+            alert_rule=alert_rule,
+        )
+        incident.update(
+            status=IncidentStatus.WARNING.value, date_closed=timezone.now() - timedelta(hours=6)
+        )
 
     def generate_issue_alert(self, project):
         org = project.organization
@@ -1228,6 +1288,12 @@ class DataPopulation:
             update_context(local_event, platform=project.platform)
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
+
+            if project.slug not in self.timestamps_by_project:
+                self.timestamps_by_project[project.slug] = [timestamp]
+            else:
+                self.timestamps_by_project[project.slug].append(timestamp)
+
         self.log_info("populate_generic_error.finished")
 
     def populate_generic_transaction(
@@ -1416,7 +1482,6 @@ class DataPopulation:
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="pre_event_setup"
         ):
-            self.generate_alerts(python_project)
             self.generate_saved_query(react_project, "/productstore", "Product Store by Browser")
 
         if not self.get_config_var("DISABLE_SESSIONS"):
@@ -1449,12 +1514,13 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
+        self.generate_alerts(python_project)
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
     ):
-        with sentry_sdk.start_span(op="handle_mobile_scenario", description="pre_event_setup"):
-            self.generate_alerts(android_project)
+        # with sentry_sdk.start_span(op="handle_mobile_scenario", description="pre_event_setup"):
+        #     self.generate_alerts(android_project)
         if not self.get_config_var("DISABLE_SESSIONS"):
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
