@@ -1532,6 +1532,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.get_valid_response(sort_by="date", limit=1, status_code=429)
 
+    def test_filter_not_unresolved(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.RESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="!is:unresolved", expand="inbox", collapse="stats"
+        )
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event.group.id]
+
     def test_collapse_stats(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
