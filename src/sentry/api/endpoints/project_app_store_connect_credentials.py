@@ -414,10 +414,8 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
 
         pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
 
-        last_checked_builds = project.get_option("sentry:last_checked_appstore")
-
         latest_build = (
-            AppConnectBuild.objects.filter(project=project)
+            AppConnectBuild.objects.filter(project=project, bundle_id=symbol_source_cfg.bundleId)
             .order_by("-uploaded_to_appstore")
             .first()
         )
@@ -427,6 +425,9 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         else:
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
+
+        builds_check_dates = project.get_option("sentry:last_checked_appstore", default={})
+        last_checked_builds = builds_check_dates[symbol_source_cfg.id]
 
         return Response(
             {
