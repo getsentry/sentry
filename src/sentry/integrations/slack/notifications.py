@@ -146,6 +146,8 @@ def send_notification_as_slack(
                 "token": token,
                 "channel": channel,
                 "link_names": 1,
+                "unfurl_links": False,
+                "unfurl_media": False,
                 "text": notification.get_notification_title(),
                 "attachments": json.dumps(attachment),
             }
