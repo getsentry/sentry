@@ -199,7 +199,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         )}
 
         <Wrapper>
-          <TextBlock noMargin>{t('Uploaded debug information files')}:</TextBlock>
+          <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
 
           <Filters>
             <Label>

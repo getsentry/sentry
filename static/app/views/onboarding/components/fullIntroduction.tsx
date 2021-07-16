@@ -37,7 +37,9 @@ export default function FullIntroduction({currentPlatform}: Props) {
               <Button
                 priority="link"
                 data-test-id="onboarding-getting-started-invite-members"
-                onClick={openInviteMembersModal}
+                onClick={() => {
+                  openInviteMembersModal();
+                }}
               />
             ),
           }
