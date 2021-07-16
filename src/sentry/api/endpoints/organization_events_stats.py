@@ -73,8 +73,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 get_event_stats,
                 top_events,
                 allow_partial_buckets=allow_partial_buckets,
-                zerofill_results=request.GET.get("withoutZerofill") != "1"
-                and has_chart_interpolation(self, organization, request),
+                zerofill_results=not (
+                    request.GET.get("withoutZerofill") == "1"
+                    and has_chart_interpolation(self, organization, request)
+                ),
             ),
             status=200,
         )
