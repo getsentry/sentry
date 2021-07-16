@@ -35,6 +35,7 @@ from sentry.models import (
     GroupStatus,
     Project,
 )
+from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import (
     EventsDatasetSnubaSearchBackend,
     assigned_or_suggested_filter,
@@ -333,7 +334,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         status = [
             search_filter
             for search_filter in query_kwargs.get("search_filters", [])
-            if search_filter.key.name == "status"
+            if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
         ]
         if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
