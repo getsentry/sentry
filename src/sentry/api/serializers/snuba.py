@@ -145,6 +145,7 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False):
                 continue
         except IndexError:
             pass
+
         rv.append((key, []))
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
