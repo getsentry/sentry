@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Optional, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -26,8 +26,11 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DURATION_PATTERN,
+    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
+    ISSUE_ALIAS,
+    ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
@@ -38,14 +41,18 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_TO_DAY_ALIAS,
+    TIMESTAMP_TO_HOUR_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
-from sentry.search.events.types import SelectType
+from sentry.search.events.types import ParamsType, SelectType
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
+    Dataset,
     get_json_type,
     is_duration_measurement,
     is_measurement,
@@ -2036,6 +2043,28 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
+    def __init__(self, dataset: Dataset, params: ParamsType):
+        super().__init__(dataset, params)
+
+        self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
+            # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
+            # is required to insert the true issue short id into the response.
+            ISSUE_ALIAS: self._resolve_issue_id_alias,
+            ISSUE_ID_ALIAS: self._resolve_issue_id_alias,
+            PROJECT_ALIAS: self._resolve_project_slug_alias,
+            PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
+            TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
+            USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
+            TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
+            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
+            ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
+            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
+            # TODO: implement these
+            KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
+            TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
+        }
+
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
         if selected_columns is None:
             return []
@@ -2110,3 +2139,214 @@ class QueryFields(QueryBase):
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
         # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+
+    def is_field_alias(self, alias: str) -> bool:
+        return alias in self.field_alias_converter
+
+    def resolve_field_alias(self, alias: str) -> SelectType:
+        converter = self.field_alias_converter.get(alias)
+        if not converter:
+            raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
+        return converter(alias)
+
+    def _resolve_issue_id_alias(self, _: str) -> SelectType:
+        """The state of having no issues is represented differently on transactions vs
+        other events. On the transactions table, it is represented by 0 whereas it is
+        represented by NULL everywhere else. We use coalesce here so we can treat this
+        consistently
+        """
+        return SnqlFunction("coalesce", [self.column("issue.id"), 0], ISSUE_ID_ALIAS)
+
+    def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        project_ids = {
+            project_id
+            for project_id in self.params.get("project_id", [])
+            if isinstance(project_id, int)
+        }
+
+        # Try to reduce the size of the transform by using any existing conditions on projects
+        if len(self.projects_to_filter) > 0:
+            project_ids &= self.projects_to_filter
+
+        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
+
+        return SnqlFunction(
+            "transform",
+            [
+                self.column("project.id"),
+                [project["id"] for project in projects],
+                [project["slug"] for project in projects],
+                "",
+            ],
+            alias,
+        )
+
+    def _resolve_timestamp_to_hour_alias(self, _: str) -> SelectType:
+        return SnqlFunction("toStartOfHour", [self.column("timestamp")], TIMESTAMP_TO_HOUR_ALIAS)
+
+    def _resolve_timestamp_to_day_alias(self, _: str) -> SelectType:
+        return SnqlFunction("toStartOfDay", [self.column("timestamp")], TIMESTAMP_TO_DAY_ALIAS)
+
+    def _resolve_user_display_alias(self, _: str) -> SelectType:
+        columns = ["user.email", "user.username", "user.ip"]
+        return SnqlFunction(
+            "coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS
+        )
+
+    def _resolve_transaction_status(self, _: str) -> SelectType:
+        # TODO: Remove the `toUInt8` once Column supports aliases
+        return SnqlFunction(
+            "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
+        )
+
+    def _resolve_project_threshold_config(self, _: str) -> SelectType:
+        org_id = self.params.get("organization_id")
+        project_ids = self.params.get("project_id")
+
+        project_threshold_configs = (
+            ProjectTransactionThreshold.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values_list("project_id", "threshold", "metric")
+        )
+
+        transaction_threshold_configs = (
+            ProjectTransactionThresholdOverride.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values_list("transaction", "project_id", "threshold", "metric")
+        )
+
+        num_project_thresholds = project_threshold_configs.count()
+        sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
+        sentry_sdk.set_tag(
+            "project_threshold.count.grouped",
+            format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
+        )
+
+        num_transaction_thresholds = transaction_threshold_configs.count()
+        sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
+        sentry_sdk.set_tag(
+            "txn_threshold.count.grouped",
+            format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
+        )
+
+        if (
+            num_project_thresholds + num_transaction_thresholds
+            > MAX_QUERYABLE_TRANSACTION_THRESHOLDS
+        ):
+            raise InvalidSearchQuery(
+                f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
+            )
+
+        # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
+        # that can store listed argument types, which means the comparison will fail because of mismatched types
+        project_threshold_config_keys = []
+        project_threshold_config_values = []
+        for project_id, threshold, metric in project_threshold_configs:
+            project_threshold_config_keys.append(SnqlFunction("toUInt64", [project_id]))
+            project_threshold_config_values.append((TRANSACTION_METRICS[metric], threshold))
+
+        project_threshold_override_config_keys = []
+        project_threshold_override_config_values = []
+        for transaction, project_id, threshold, metric in transaction_threshold_configs:
+            project_threshold_override_config_keys.append(
+                (SnqlFunction("toUInt64", [project_id]), transaction)
+            )
+            project_threshold_override_config_values.append(
+                (TRANSACTION_METRICS[metric], threshold)
+            )
+
+        project_threshold_config_index: SelectType = SnqlFunction(
+            "indexOf",
+            [
+                project_threshold_config_keys,
+                self.column("project_id"),
+            ],
+            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+        )
+
+        project_threshold_override_config_index: SelectType = SnqlFunction(
+            "indexOf",
+            [
+                project_threshold_override_config_keys,
+                (self.column("project_id"), self.column("transaction")),
+            ],
+            PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+        )
+
+        def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
+            return (
+                SnqlFunction(
+                    "if",
+                    [
+                        SnqlFunction(
+                            "equals",
+                            [
+                                project_threshold_config_index,
+                                0,
+                            ],
+                        ),
+                        (DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD),
+                        SnqlFunction(
+                            "arrayElement",
+                            [
+                                project_threshold_config_values,
+                                project_threshold_config_index,
+                            ],
+                        ),
+                    ],
+                    alias,
+                )
+                if project_threshold_configs
+                else SnqlFunction(
+                    "tuple",
+                    [DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD],
+                    alias,
+                )
+            )
+
+        if transaction_threshold_configs:
+            return SnqlFunction(
+                "if",
+                [
+                    SnqlFunction(
+                        "equals",
+                        [
+                            project_threshold_override_config_index,
+                            0,
+                        ],
+                    ),
+                    _project_threshold_config(),
+                    SnqlFunction(
+                        "arrayElement",
+                        [
+                            project_threshold_override_config_values,
+                            project_threshold_override_config_index,
+                        ],
+                    ),
+                ],
+                PROJECT_THRESHOLD_CONFIG_ALIAS,
+            )
+
+        return _project_threshold_config(PROJECT_THRESHOLD_CONFIG_ALIAS)
+
+    def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
+        return SnqlFunction("notHandled", [], ERROR_UNHANDLED_ALIAS)
+
+    def _resolve_error_handled_alias(self, _: str) -> SelectType:
+        # Columns in snuba doesn't support aliasing right now like Function does.
+        # Adding a no-op here to get the alias.
+        return SnqlFunction(
+            "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
+        )
+
+    def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
+        """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
+        Can be deleted once all field aliases have been implemented.
+        """
+        raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
