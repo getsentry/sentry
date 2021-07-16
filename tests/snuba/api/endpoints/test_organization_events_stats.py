@@ -789,6 +789,48 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
             assert len(mock_quantize.mock_calls) == 2
 
+    def test_with_zerofill(self):
+        response = self.client.get(
+            self.url,
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "30m",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 1}],
+            [{"count": 0}],
+            [{"count": 2}],
+            [{"count": 0}],
+        ]
+
+    def test_without_zerofill(self):
+        self.enabled_features = {
+            "organizations:performance-chart-interpolation": True,
+            "organizations:discover-basic": True,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "30m",
+                    "withoutZerofill": "1",
+                },
+                format="json",
+            )
+
+            assert response.status_code == 200, response.content
+            assert [attrs for time, attrs in response.data["data"]] == [
+                [{"count": 1}],
+                [{"count": 2}],
+            ]
+
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
