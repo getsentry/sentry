@@ -171,7 +171,6 @@ class TransactionSummaryCharts extends Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               currentFilter={currentFilter}
-              withoutZerofill={withoutZerofill}
             />
           )}
           {display === DisplayModes.DURATION && (
@@ -199,7 +198,6 @@ class TransactionSummaryCharts extends Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               currentFilter={currentFilter}
-              withoutZerofill={withoutZerofill}
             />
           )}
           {display === DisplayModes.TREND && (

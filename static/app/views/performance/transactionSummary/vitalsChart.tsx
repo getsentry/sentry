@@ -85,6 +85,7 @@ class VitalsChart extends Component<Props> {
       statsPeriod,
       router,
       queryExtra,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -171,6 +172,7 @@ class VitalsChart extends Component<Props> {
               includePrevious={false}
               yAxis={YAXIS_VALUES}
               partial
+              withoutZerofill={withoutZerofill}
             >
               {({results, errored, loading, reloading}) => {
                 if (errored) {

@@ -41,7 +41,6 @@ type Props = AsyncComponent['props'] &
     organization: OrganizationSummary;
     location: Location;
     currentFilter: SpanOperationBreakdownFilter;
-    withoutZerofill: boolean;
   };
 
 type State = AsyncComponent['state'] & {

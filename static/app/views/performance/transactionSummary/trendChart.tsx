@@ -80,6 +80,7 @@ class TrendChart extends Component<Props> {
       router,
       trendDisplay,
       queryExtra,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -155,6 +156,7 @@ class TrendChart extends Component<Props> {
               yAxis={trendDisplay}
               currentSeriesName={trendDisplay}
               partial
+              withoutZerofill={withoutZerofill}
             >
               {({errored, loading, reloading, timeseriesData}) => {
                 if (errored) {
