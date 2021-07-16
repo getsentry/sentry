@@ -167,11 +167,10 @@ class AppStoreConnectConfig:
            symbol source configuration.
         """
 
-        sources = []
         try:
             all_sources = json.loads(raw_sources_option)
         except json.JSONDecodeError:
-            return sources
+            return []
 
         return [
             cls.from_json(source)
