@@ -9,6 +9,7 @@ PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_conf
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
+ERROR_HANDLED_ALIAS = "error.handled"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
@@ -80,6 +81,7 @@ SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 # Allow list of fields that are compatible with the Snql Query Builder.
 # Once we reach a certain threshold of fields handled should turn this into a denylist
@@ -88,6 +90,7 @@ SNQL_FIELD_ALLOWLIST = {
     "environment",
     "message",
     "project",
+    "transaction",
     "project.id",
     "release",
     USER_DISPLAY_ALIAS,
@@ -97,6 +100,7 @@ SNQL_FIELD_ALLOWLIST = {
     TIMESTAMP_TO_HOUR_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TRANSACTION_STATUS_ALIAS,
+    ERROR_UNHANDLED_ALIAS,
 }
 
 OPERATOR_NEGATION_MAP = {

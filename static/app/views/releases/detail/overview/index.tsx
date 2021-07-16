@@ -454,19 +454,22 @@ class ReleaseOverview extends AsyncView<Props> {
                               }}
                               defaultPeriod={RELEASE_PERIOD_KEY}
                             />
-                            <ReleaseComparisonChart
-                              release={release}
-                              releaseSessions={thisRelease}
-                              allSessions={allReleases}
-                              platform={project.platform}
-                              location={location}
-                              loading={loading}
-                              reloading={reloading}
-                              errored={errored}
-                              project={project}
-                              organization={organization}
-                              api={api}
-                            />
+                            {(hasDiscover || hasPerformance || hasHealthData) && (
+                              <ReleaseComparisonChart
+                                release={release}
+                                releaseSessions={thisRelease}
+                                allSessions={allReleases}
+                                platform={project.platform}
+                                location={location}
+                                loading={loading}
+                                reloading={reloading}
+                                errored={errored}
+                                project={project}
+                                organization={organization}
+                                api={api}
+                                hasHealthData={hasHealthData}
+                              />
+                            )}
                           </Fragment>
                         ) : (
                           (hasDiscover || hasPerformance || hasHealthData) && (
@@ -538,15 +541,17 @@ class ReleaseOverview extends AsyncView<Props> {
                       isHealthLoading={isHealthLoading}
                     />
                     <Feature features={['release-comparison']}>
-                      <ReleaseAdoption
-                        releaseSessions={thisRelease}
-                        allSessions={allReleases}
-                        loading={loading}
-                        reloading={reloading}
-                        errored={errored}
-                        release={release}
-                        project={project}
-                      />
+                      {hasHealthData && (
+                        <ReleaseAdoption
+                          releaseSessions={thisRelease}
+                          allSessions={allReleases}
+                          loading={loading}
+                          reloading={reloading}
+                          errored={errored}
+                          release={release}
+                          project={project}
+                        />
+                      )}
                     </Feature>
                     <ProjectReleaseDetails
                       release={release}
