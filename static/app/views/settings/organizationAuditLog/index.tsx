@@ -100,11 +100,10 @@ class OrganizationAuditLog extends AsyncView<Props, State> {
 
   renderBody() {
     const currentEventType = this.props.location.query.event;
-
     return (
       <AuditLogList
         entries={this.state.entryList}
-        pageLinks={this.state.pageLinks}
+        pageLinks={this.state.entryListPageLinks}
         eventType={currentEventType}
         eventTypes={EVENT_TYPES}
         onEventSelect={this.handleEventSelect}
