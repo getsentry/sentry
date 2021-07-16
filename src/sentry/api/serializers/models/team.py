@@ -210,7 +210,7 @@ class TeamSerializer(Serializer):  # type: ignore
 class TeamWithProjectsSerializer(TeamSerializer):
     """@deprecated Use `expand` instead."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(expand=["projects", "externalTeams"])
 
 
