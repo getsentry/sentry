@@ -108,7 +108,14 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       <Button
         priority="primary"
         size="small"
-        onClick={() => openInviteMembersModal({source: 'members_settings'})}
+        onClick={() =>
+          openInviteMembersModal({
+            onClose: () => {
+              this.fetchData();
+            },
+            source: 'members_settings',
+          })
+        }
         data-test-id="email-invite"
         icon={<IconMail />}
       >

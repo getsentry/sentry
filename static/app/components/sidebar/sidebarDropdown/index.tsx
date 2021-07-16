@@ -140,9 +140,8 @@ const SidebarDropdown = ({
                 </Fragment>
               )}
 
-              {hasOrganization && user && <Divider />}
-
               <DemoModeGate>
+                {hasOrganization && user && <Divider />}
                 {!!user && (
                   <Fragment>
                     <UserSummary to="/settings/account/details/">

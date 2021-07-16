@@ -140,8 +140,34 @@ export function getReleaseEventView(
 }
 
 export const releaseComparisonChartLabels = {
-  [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
-  [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free Users'),
+  [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]: t('Crash Free Session Rate'),
+  [ReleaseComparisonChartType.HEALTHY_SESSIONS]: t('Healthy'),
+  [ReleaseComparisonChartType.ABNORMAL_SESSIONS]: t('Abnormal'),
+  [ReleaseComparisonChartType.ERRORED_SESSIONS]: t('Errored'),
+  [ReleaseComparisonChartType.CRASHED_SESSIONS]: t('Crashed Session Rate'),
+  [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free User Rate'),
+  [ReleaseComparisonChartType.HEALTHY_USERS]: t('Healthy'),
+  [ReleaseComparisonChartType.ABNORMAL_USERS]: t('Abnormal'),
+  [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored'),
+  [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
+  [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
+  [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
+  [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
+  [ReleaseComparisonChartType.FAILURE_RATE]: t('Failure Rate'),
+};
+
+export const releaseComparisonChartTitles = {
+  [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]: t('Crash Free Session Rate'),
+  [ReleaseComparisonChartType.HEALTHY_SESSIONS]: t('Healthy Session Rate'),
+  [ReleaseComparisonChartType.ABNORMAL_SESSIONS]: t('Abnormal Session Rate'),
+  [ReleaseComparisonChartType.ERRORED_SESSIONS]: t('Errored Session Rate'),
+  [ReleaseComparisonChartType.CRASHED_SESSIONS]: t('Crashed Session Rate'),
+  [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free User Rate'),
+  [ReleaseComparisonChartType.HEALTHY_USERS]: t('Healthy User Rate'),
+  [ReleaseComparisonChartType.ABNORMAL_USERS]: t('Abnormal User Rate'),
+  [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored User Rate'),
+  [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
@@ -208,9 +234,19 @@ export function generateReleaseMarkLines(
   release: ReleaseWithHealth,
   projectSlug: string,
   theme: Theme,
+  location: Location,
   options?: GenerateReleaseMarklineOptions
 ) {
   const adoptionStages = release.adoptionStages?.[projectSlug];
+
+  if (
+    location.query.pageStart ||
+    location.query.pageEnd ||
+    location.query.pageStatsPeriod
+  ) {
+    // for now want to show marklines only on default time period "Entire Release Period"
+    return [];
+  }
 
   const markLines = [
     generateReleaseMarkLine(
