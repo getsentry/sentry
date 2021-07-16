@@ -257,6 +257,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
           onBlur={this.handleBlur}
           onFocus={this.handleFocus}
           onKeyDown={this.handleKeyDown}
+          spellCheck={false}
         />
         <TermDropdown
           isOpen={dropdownVisible}
