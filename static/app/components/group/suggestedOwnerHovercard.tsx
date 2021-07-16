@@ -46,6 +46,14 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
   render() {
     const {actor, commits, rules, ...props} = this.props;
     const {commitsExpanded, rulesExpanded} = this.state;
+    const modalData = {
+      initialData: [
+        {
+          emails: actor.email ? new Set([actor.email]) : new Set([]),
+        },
+      ],
+      source: 'suggested_assignees',
+    };
 
     return (
       <Hovercard
@@ -62,20 +70,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                   {
                     actorEmail: <strong>{actor.email}</strong>,
                     accountSettings: <Link to="/settings/account/emails/" />,
-                    inviteUser: (
-                      <a
-                        onClick={() =>
-                          openInviteMembersModal({
-                            initialData: [
-                              {
-                                emails: new Set([actor.email]),
-                              },
-                            ],
-                            source: 'suggested_assignees',
-                          })
-                        }
-                      />
-                    ),
+                    inviteUser: <a onClick={() => openInviteMembersModal(modalData)} />,
                   }
                 )}
               </EmailAlert>

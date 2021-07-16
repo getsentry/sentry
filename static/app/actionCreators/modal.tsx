@@ -3,6 +3,7 @@ import * as React from 'react';
 import ModalActions from 'app/actions/modalActions';
 import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
+import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {
@@ -49,6 +50,12 @@ type emailVerificationModalOptions = {
   onClose?: () => void;
   emailVerified?: boolean;
   actionMessage?: string;
+};
+
+type inviteMembersModalOptions = {
+  onClose?: () => void;
+  initialData?: Partial<InviteRow>[];
+  source?: string;
 };
 
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
@@ -217,11 +224,14 @@ export async function openDebugFileSourceModal({
   });
 }
 
-export async function openInviteMembersModal(options = {}) {
+export async function openInviteMembersModal({
+  onClose,
+  ...args
+}: inviteMembersModalOptions = {}) {
   const mod = await import('app/components/modals/inviteMembersModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {

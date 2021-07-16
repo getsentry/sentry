@@ -150,7 +150,14 @@ class IntegrationSetup extends Component<Props, State> {
           {tct(
             "Don't have have permissions to create a Cloudformation stack? [link:Invite your team instead].",
             {
-              link: <Button priority="link" onClick={openInviteMembersModal} />,
+              link: (
+                <Button
+                  priority="link"
+                  onClick={() => {
+                    openInviteMembersModal();
+                  }}
+                />
+              ),
             }
           )}
         </motion.p>
