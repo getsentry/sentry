@@ -188,5 +188,8 @@ describe('ArithmeticInput', function () {
     const value = 'foo + bar';
     input.simulate('change', {target: {value}});
     input.simulate('keydown', {key: 'ArrowDown'});
+
+    const option = wrapper.find('DropdownListItem');
+    expect(option).toHaveLength(0);
   });
 });
