@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -64,6 +64,7 @@ type ComparisonRow = {
   diff: React.ReactNode;
   diffDirection: 'up' | 'down' | null;
   diffColor: Color | null;
+  role: 'parent' | 'children' | 'default';
 };
 
 type Props = {
@@ -352,6 +353,7 @@ function ReleaseComparisonChart({
   const charts: ComparisonRow[] = [
     {
       type: ReleaseComparisonChartType.CRASH_FREE_SESSIONS,
+      role: 'parent',
       thisRelease: defined(releaseCrashFreeSessions)
         ? displayCrashFreePercent(releaseCrashFreeSessions)
         : null,
@@ -374,6 +376,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.HEALTHY_SESSIONS,
+      role: 'children',
       thisRelease: defined(releaseHealthySessions)
         ? displaySessionStatusPercent(releaseHealthySessions)
         : null,
@@ -396,6 +399,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.ABNORMAL_SESSIONS,
+      role: 'children',
       thisRelease: defined(releaseAbnormalSessions)
         ? displaySessionStatusPercent(releaseAbnormalSessions)
         : null,
@@ -418,6 +422,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.ERRORED_SESSIONS,
+      role: 'children',
       thisRelease: defined(releaseErroredSessions)
         ? displaySessionStatusPercent(releaseErroredSessions)
         : null,
@@ -440,6 +445,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.CRASHED_SESSIONS,
+      role: 'default',
       thisRelease: defined(releaseCrashedSessions)
         ? displaySessionStatusPercent(releaseCrashedSessions)
         : null,
@@ -462,6 +468,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.CRASH_FREE_USERS,
+      role: 'parent',
       thisRelease: defined(releaseCrashFreeUsers)
         ? displayCrashFreePercent(releaseCrashFreeUsers)
         : null,
@@ -480,6 +487,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.HEALTHY_USERS,
+      role: 'children',
       thisRelease: defined(releaseHealthyUsers)
         ? displaySessionStatusPercent(releaseHealthyUsers)
         : null,
@@ -494,6 +502,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.ABNORMAL_USERS,
+      role: 'children',
       thisRelease: defined(releaseAbnormalUsers)
         ? displaySessionStatusPercent(releaseAbnormalUsers)
         : null,
@@ -512,6 +521,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.ERRORED_USERS,
+      role: 'children',
       thisRelease: defined(releaseErroredUsers)
         ? displaySessionStatusPercent(releaseErroredUsers)
         : null,
@@ -526,6 +536,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.CRASHED_USERS,
+      role: 'default',
       thisRelease: defined(releaseCrashedUsers)
         ? displaySessionStatusPercent(releaseCrashedUsers)
         : null,
@@ -540,6 +551,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.FAILURE_RATE,
+      role: 'default',
       thisRelease: eventsTotals?.releaseFailureRate
         ? formatPercentage(eventsTotals?.releaseFailureRate)
         : null,
@@ -552,6 +564,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.SESSION_COUNT,
+      role: 'default',
       thisRelease: defined(releaseSessionsCount) ? (
         <Count value={releaseSessionsCount} />
       ) : null,
@@ -562,6 +575,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.USER_COUNT,
+      role: 'default',
       thisRelease: defined(releaseUsersCount) ? (
         <Count value={releaseUsersCount} />
       ) : null,
@@ -572,6 +586,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.ERROR_COUNT,
+      role: 'default',
       thisRelease: defined(eventsTotals?.releaseErrorCount) ? (
         <Count value={eventsTotals?.releaseErrorCount!} />
       ) : null,
@@ -584,6 +599,7 @@ function ReleaseComparisonChart({
     },
     {
       type: ReleaseComparisonChartType.TRANSACTION_COUNT,
+      role: 'default',
       thisRelease: defined(eventsTotals?.releaseTransactionCount) ? (
         <Count value={eventsTotals?.releaseTransactionCount!} />
       ) : null,
@@ -970,25 +986,17 @@ function ReleaseComparisonChart({
       </ChartPanel>
       <ChartTable
         headers={[
-          <Cell key="stability" align="left">
-            {t('Stability')}
-          </Cell>,
-          <Cell key="releases" align="right">
-            {t('All Releases')}
-          </Cell>,
-          <Cell key="release" align="right">
-            {t('This Release')}
-          </Cell>,
-          <Cell key="change" align="right">
-            {t('Change')}
-          </Cell>,
+          <DescriptionCell key="stability">{t('Stability')}</DescriptionCell>,
+          <Cell key="releases">{t('All Releases')}</Cell>,
+          <Cell key="release">{t('This Release')}</Cell>,
+          <Cell key="change">{t('Change')}</Cell>,
         ]}
       >
         {charts.map(
-          ({type, thisRelease, allReleases, diff, diffDirection, diffColor}) => {
+          ({type, role, thisRelease, allReleases, diff, diffDirection, diffColor}) => {
             return (
               <Fragment key={type}>
-                <Cell align="left">
+                <DescriptionCell role={role}>
                   <ChartToggle htmlFor={type}>
                     <Radio
                       id={type}
@@ -998,22 +1006,22 @@ function ReleaseComparisonChart({
                     />
                     {releaseComparisonChartLabels[type]}
                   </ChartToggle>
-                </Cell>
-                <Cell align="right">
+                </DescriptionCell>
+                <Cell role={role}>
                   {loading ? <Placeholder height="20px" /> : allReleases}
                 </Cell>
-                <Cell align="right">
+                <Cell role={role}>
                   {loading ? <Placeholder height="20px" /> : thisRelease}
                 </Cell>
-                <Cell align="right">
+                <Cell role={role}>
                   {loading ? (
                     <Placeholder height="20px" />
                   ) : defined(diff) ? (
                     <Change color={defined(diffColor) ? diffColor : undefined}>
+                      {diff}{' '}
                       {defined(diffDirection) && (
                         <IconArrow direction={diffDirection} size="xs" />
-                      )}{' '}
-                      {diff}
+                      )}
                     </Change>
                   ) : (
                     <NotAvailable />
@@ -1040,13 +1048,41 @@ const ChartTable = styled(PanelTable)`
   border-top-right-radius: 0;
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: min-content 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(min-content, 1fr));
   }
 `;
 
-const Cell = styled('div')<{align: 'left' | 'right'}>`
-  text-align: ${p => p.align};
+const Cell = styled('div')<{role?: ComparisonRow['role']}>`
+  text-align: right;
   ${overflowEllipsis}
+  ${p =>
+    p.role &&
+    ['parent', 'children'].includes(p.role) &&
+    css`
+      border-bottom: 0 !important;
+      padding-bottom: 0;
+    `}
+`;
+
+const DescriptionCell = styled(Cell)`
+  text-align: left;
+  overflow: visible;
+  ${p =>
+    p.role === 'children' &&
+    css`
+      padding-left: 50px;
+      position: relative;
+      &:before {
+        content: '';
+        width: 15px;
+        height: 40px;
+        position: absolute;
+        top: -11px;
+        left: 27px;
+        border-bottom: 1px solid ${p.theme.border};
+        border-left: 1px solid ${p.theme.border};
+      }
+    `}
 `;
 
 const ChartToggle = styled('label')`
@@ -1054,6 +1090,10 @@ const ChartToggle = styled('label')`
   align-items: center;
   font-weight: 400;
   margin-bottom: 0;
+  position: relative;
+  z-index: 1;
+  background: ${p => p.theme.background};
+
   input {
     flex-shrink: 0;
     margin-right: ${space(1)} !important;
