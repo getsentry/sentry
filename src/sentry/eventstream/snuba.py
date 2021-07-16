@@ -345,5 +345,12 @@ class SnubaEventStream(SnubaProtocolEventStream):
             skip_consume,
         )
         self._dispatch_post_process_group_task(
-            event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
+            event.event_id,
+            event.project_id,
+            event.group_id,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            skip_consume,
         )
