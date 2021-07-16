@@ -38,11 +38,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_arithmetic(self, organization, request):
         return features.has("organizations:discover-arithmetic", organization, actor=request.user)
 
-    def has_chart_interpolation(self, organization, request):
-        return features.has(
-            "organizations:performance-chart-interpolation", organization, actor=request.user
-        )
-
     def get_equation_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         if self.has_arithmetic(organization, request):
@@ -338,9 +333,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             columns,
                             query_columns,
                             allow_partial_buckets,
-                            zerofill_results=False
-                            if self.has_chart_interpolation(organization, request)
-                            else True,
+                            zerofill_results=zerofill_results,
                         )
                     else:
                         # Need to get function alias if count is a field, but not the axis
@@ -348,9 +341,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             event_result,
                             column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
-                            zerofill_results=False
-                            if self.has_chart_interpolation(organization, request)
-                            else True,
+                            zerofill_results=zerofill_results,
                         )
                 serializedResult = results
             elif len(query_columns) > 1:
@@ -360,18 +351,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     columns,
                     query_columns,
                     allow_partial_buckets,
-                    zerofill_results=False
-                    if self.has_chart_interpolation(organization, request)
-                    else True,
+                    zerofill_results=zerofill_results,
                 )
             else:
                 serializedResult = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
-                    zerofill_results=False
-                    if self.has_chart_interpolation(organization, request)
-                    else True,
+                    zerofill_results=zerofill_results,
                 )
             if hasattr(result, "start") and hasattr(result, "end"):
                 serializedResult["start"] = result.start

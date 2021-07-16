@@ -1,6 +1,7 @@
 import sentry_sdk
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.snuba import discover
@@ -36,6 +37,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             # the start of the bucket does not align with the rollup.
             allow_partial_buckets = request.GET.get("partial") == "1"
 
+        def has_chart_interpolation(self, organization, request):
+            return features.has(
+                "organizations:performance-chart-interpolation", organization, actor=request.user
+            )
+
         def get_event_stats(query_columns, query, params, rollup, zerofill_results):
             if top_events > 0:
                 return discover.top_events_timeseries(
@@ -67,7 +73,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 get_event_stats,
                 top_events,
                 allow_partial_buckets=allow_partial_buckets,
-                zerofill_results=request.GET.get("withoutZerofill") != "1",
+                zerofill_results=request.GET.get("withoutZerofill") != "1"
+                and has_chart_interpolation(self, organization, request),
             ),
             status=200,
         )
