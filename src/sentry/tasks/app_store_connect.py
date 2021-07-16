@@ -54,9 +54,11 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             if not build_state.fetched:
                 builds.append((build, build_state))
 
-    build_refresh_dates = project.get_option(appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, default={})
+    build_refresh_dates = project.get_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default={}
+    )
     build_refresh_dates[config_id] = datetime.now()
-    project.update_option(appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, build_refresh_dates)
+    project.update_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, build_refresh_dates)
 
     itunes_client = client.itunes_client()
     for (build, build_state) in builds:
