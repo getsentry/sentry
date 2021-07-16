@@ -27,6 +27,7 @@ from sentry.db.models import (
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
@@ -160,7 +161,7 @@ class FileBlob(Model):
             if organization is None:
                 return
             try:
-                with transaction.atomic(using=router.db_for_write(FileBlobOwner)):
+                with atomic_transaction(using=router.db_for_write(FileBlobOwner)):
                     FileBlobOwner.objects.create(organization_id=organization.id, blob=blob)
             except IntegrityError:
                 pass
@@ -420,8 +421,12 @@ class File(Model):
         contents.
         """
         tf = tempfile.NamedTemporaryFile()
-        assert router.db_for_write(FileBlob) == router.db_for_write(FileBlobIndex)
-        with transaction.atomic(using=router.db_for_write(FileBlob)):
+        with atomic_transaction(
+            using=(
+                router.db_for_write(FileBlob),
+                router.db_for_write(FileBlobIndex),
+            )
+        ):
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
 
             # Ensure blobs are in the order and duplication as provided
@@ -460,7 +465,8 @@ class File(Model):
         transaction.on_commit(
             lambda: delete_unreferenced_blobs.apply_async(
                 kwargs={"blob_ids": blob_ids}, countdown=60 * 5
-            )
+            ),
+            using=router.db_for_write(type(self)),
         )
 
 

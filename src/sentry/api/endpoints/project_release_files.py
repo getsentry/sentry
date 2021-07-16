@@ -2,7 +2,7 @@ import logging
 import re
 from typing import List, Optional, Tuple
 
-from django.db import IntegrityError, router, transaction
+from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils.functional import cached_property
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.models.releasefile import read_artifact_index
+from sentry.utils.db import atomic_transaction
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -144,7 +145,7 @@ class ReleaseFilesMixin:
         file.putfile(fileobj, logger=logger)
 
         try:
-            with transaction.atomic(using=router.db_for_write(ReleaseFile)):
+            with atomic_transaction(using=router.db_for_write(ReleaseFile)):
                 releasefile = ReleaseFile.objects.create(
                     organization_id=release.organization_id,
                     release_id=release.id,
