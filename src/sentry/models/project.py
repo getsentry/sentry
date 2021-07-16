@@ -1,7 +1,7 @@
 import logging
 import warnings
 from collections import defaultdict
-from typing import Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 from uuid import uuid1
 
 import sentry_sdk
