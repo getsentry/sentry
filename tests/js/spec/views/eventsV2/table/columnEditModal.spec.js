@@ -326,6 +326,38 @@ describe('EventsV2 -> ColumnEditModal', function () {
         wrapper.find('RowContainer button[aria-label="Drag to reorder"]')
       ).toHaveLength(0);
     });
+    it('does not count equations towards the count of rows', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            columns[0],
+            columns[1],
+            {
+              kind: 'equation',
+              field: '5 + 5',
+            },
+          ],
+          onApply: () => void 0,
+          tagKeys,
+        },
+        initialData
+      );
+      expect(newWrapper.find('QueryField')).toHaveLength(3);
+      newWrapper
+        .find('RowContainer button[aria-label="Remove column"]')
+        .first()
+        .simulate('click');
+
+      expect(newWrapper.find('QueryField')).toHaveLength(2);
+
+      // Last row cannot be removed or dragged.
+      expect(
+        newWrapper.find('RowContainer button[aria-label="Remove column"]')
+      ).toHaveLength(0);
+      expect(
+        newWrapper.find('RowContainer button[aria-label="Drag to reorder"]')
+      ).toHaveLength(0);
+    });
   });
 
   describe('apply action', function () {
