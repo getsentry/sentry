@@ -234,9 +234,19 @@ export function generateReleaseMarkLines(
   release: ReleaseWithHealth,
   projectSlug: string,
   theme: Theme,
+  location: Location,
   options?: GenerateReleaseMarklineOptions
 ) {
   const adoptionStages = release.adoptionStages?.[projectSlug];
+
+  if (
+    location.query.pageStart ||
+    location.query.pageEnd ||
+    location.query.pageStatsPeriod
+  ) {
+    // for now want to show marklines only on default time period "Entire Release Period"
+    return [];
+  }
 
   const markLines = [
     generateReleaseMarkLine(

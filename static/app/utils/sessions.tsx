@@ -10,7 +10,7 @@ import {
 import {SessionApiResponse, SessionField, SessionStatus} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
-import {getCrashFreePercent} from 'app/views/releases/utils';
+import {getCrashFreePercent, getSessionStatusPercent} from 'app/views/releases/utils';
 
 export function getCount(groups: SessionApiResponse['groups'] = [], field: SessionField) {
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
@@ -103,7 +103,7 @@ export function getSessionStatusRateSeries(
 
       return {
         name: interval,
-        value: statusSessionsPercent,
+        value: getSessionStatusPercent(statusSessionsPercent),
       };
     })
   );
