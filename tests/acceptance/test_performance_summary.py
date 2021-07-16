@@ -40,7 +40,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         # Create a transaction
-        event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
+        event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
         self.store_event(data=event, project_id=self.project.id)
 
         self.store_event(
@@ -71,7 +71,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         event = make_event(
             load_data(
-                "transaction", timestamp=before_now(minutes=1), trace="a" * 32, span_id="ab" * 8
+                "transaction", timestamp=before_now(minutes=3), trace="a" * 32, span_id="ab" * 8
             )
         )
         self.store_event(data=event, project_id=self.project.id)
@@ -95,7 +95,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         # Create a transaction
-        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data = load_data("transaction", timestamp=before_now(minutes=3))
         # only frontend pageload transactions can be shown on the vitals tab
         event_data["contexts"]["trace"]["op"] = "pageload"
         event_data["measurements"]["fp"]["value"] = 5000
@@ -125,7 +125,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         # Create transactions
         for seconds in range(3):
-            event_data = load_data("transaction", timestamp=before_now(minutes=2))
+            event_data = load_data("transaction", timestamp=before_now(minutes=3))
             event_data["contexts"]["trace"]["op"] = "pageload"
             event_data["contexts"]["trace"]["id"] = ("c" * 31) + hex(seconds)[2:]
             event_data["event_id"] = ("c" * 31) + hex(seconds)[2:]
@@ -137,7 +137,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.store_event(data=event_data, project_id=self.project.id)
 
         # add anchor point
-        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data = load_data("transaction", timestamp=before_now(minutes=2))
         event_data["contexts"]["trace"]["op"] = "pageload"
         event_data["contexts"]["trace"]["id"] = "a" * 32
         event_data["event_id"] = "a" * 32
@@ -149,7 +149,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.store_event(data=event_data, project_id=self.project.id)
 
         # add outlier
-        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data = load_data("transaction", timestamp=before_now(minutes=2))
         event_data["contexts"]["trace"]["op"] = "pageload"
         event_data["contexts"]["trace"]["id"] = "b" * 32
         event_data["event_id"] = "b" * 32
@@ -177,7 +177,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         # Create a transaction
-        event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
+        event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
         self.store_event(data=event, project_id=self.project.id)
 
         self.store_event(
@@ -185,7 +185,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
                 "transaction": "/country_by_code/",
                 "message": "This is bad",
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": iso_format(before_now(minutes=3)),
             },
             project_id=self.project.id,
         )
