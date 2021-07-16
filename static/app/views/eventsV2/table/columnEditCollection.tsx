@@ -358,7 +358,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   render() {
     const {className, columns, organization} = this.props;
-    const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
+    const canDelete =
+      columns.filter(
+        field =>
+          field.kind === 'function' || (field.kind === 'field' && field.field !== '')
+      ).length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
       ? undefined
