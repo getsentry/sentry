@@ -474,10 +474,19 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             notification.send()
 
         attachment, text = get_attachment()
-        assert text == f"Version {release.version} deployed to {self.environment.name}"
         assert (
-            attachment["text"]
-            == f"* <http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/|{self.project.slug}>\n* <http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={project2.id}&unselectedSeries=Healthy/|{project2.slug}>"
+            text
+            == f"Release {release.version[:12]} deployed to {self.environment.name} for these projects"
+        )
+        assert attachment["actions"][0]["text"] == self.project.slug
+        assert (
+            attachment["actions"][0]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/"
+        )
+        assert attachment["actions"][1]["text"] == project2.slug
+        assert (
+            attachment["actions"][1]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={project2.id}&unselectedSeries=Healthy/"
         )
         assert (
             attachment["footer"]
@@ -516,7 +525,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         attachment, text = get_attachment()
 
         assert attachment["title"] == "Hello world"
-        assert attachment["text"] == ""
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
@@ -593,7 +601,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
-        assert attachments[0]["text"] == ""
         assert (
             attachments[0]["footer"]
             == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlack|Notification Settings>"
@@ -674,7 +681,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
-        assert attachments[0]["text"] == ""
         assert (
             attachments[0]["footer"]
             == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlack|Notification Settings>"
@@ -777,7 +783,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
-        assert attachments[0]["text"] == ""
         assert (
             attachments[0]["footer"]
             == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
@@ -790,7 +795,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         attachments = json.loads(data2["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
-        assert attachments[0]["text"] == ""
         assert (
             attachments[0]["footer"]
             == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"

@@ -25,7 +25,7 @@ CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.i
 def list_commands(commands: Mapping[str, str]) -> str:
     return "\n".join(
         (
-            f"• `/sentry {command}`: {description}"
+            f"`/sentry {command}`: {description}"
             for command, description in sorted(tuple(commands.items()))
         )
     )

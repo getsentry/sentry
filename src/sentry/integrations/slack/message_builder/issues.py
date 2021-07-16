@@ -21,6 +21,7 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.base import BaseNotification
+from sentry.notifications.rules import AlertRuleNotification
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -275,7 +276,10 @@ def get_timestamp(group: Group, event: Optional[Event]) -> float:
     return to_timestamp(max(ts, event.datetime) if event else ts)
 
 
-def get_color(event_for_tags: Optional[Event]) -> str:
+def get_color(event_for_tags: Optional[Event], notification: Optional[BaseNotification]) -> str:
+    if notification:
+        if not isinstance(notification, AlertRuleNotification):
+            return "info"
     if event_for_tags:
         color: Optional[str] = event_for_tags.get_tag("level")
         if color and color in LEVEL_TO_COLOR.keys():
@@ -316,7 +320,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        color = get_color(event_for_tags)
+        color = get_color(event_for_tags, self.notification)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
             build_notification_footer(self.notification, self.recipient)
