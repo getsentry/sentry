@@ -43,8 +43,6 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
     client = appconnect.AppConnectClient.from_config(config)
 
-    build_refresh_dates = project.get_option(appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, default={})
-
     # persist all fetched builds into the database as "pending"
     builds = []
     listed_builds = client.list_builds()
@@ -56,6 +54,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             if not build_state.fetched:
                 builds.append((build, build_state))
 
+    build_refresh_dates = project.get_option(appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, default={})
     build_refresh_dates[config_id] = datetime.now()
     project.update_option(appconnect.SYMBOL_SOURCE_REFRESH_PROP_NAME, build_refresh_dates)
 
