@@ -171,7 +171,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
   render() {
     return (
       <Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" />
         <Wrapper>
           {this.state.submitting ? this.renderLoadingScreen() : this.renderCore()}
         </Wrapper>
