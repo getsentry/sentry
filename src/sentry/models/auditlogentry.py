@@ -195,7 +195,7 @@ class AuditLogEntry(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_auditlogentry"
-        index_together = (("organization", "datetime"),)
+        indexes = [models.Index(fields=["organization", "datetime"])]
 
     __repr__ = sane_repr("organization_id", "type")
 
