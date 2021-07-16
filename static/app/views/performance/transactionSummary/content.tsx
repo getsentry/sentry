@@ -357,6 +357,7 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               totalValues={totalCount}
               currentFilter={spanOperationBreakdownFilter}
+              withoutZerofill
             />
             <TransactionsList
               location={location}

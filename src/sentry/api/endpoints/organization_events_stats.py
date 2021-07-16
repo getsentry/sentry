@@ -36,7 +36,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             # the start of the bucket does not align with the rollup.
             allow_partial_buckets = request.GET.get("partial") == "1"
 
-        def get_event_stats(query_columns, query, params, rollup):
+        def get_event_stats(query_columns, query, params, rollup, zerofill_results):
             if top_events > 0:
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -57,9 +57,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 params=params,
                 rollup=rollup,
                 referrer="api.organization-event-stats",
-                zerofill_results=False
-                if self.has_chart_interpolation(organization, request)
-                else True,
+                zerofill_results=zerofill_results,
             )
 
         return Response(
@@ -69,6 +67,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 get_event_stats,
                 top_events,
                 allow_partial_buckets=allow_partial_buckets,
+                zerofill_results=request.GET.get("withoutZerofill") != "1",
             ),
             status=200,
         )

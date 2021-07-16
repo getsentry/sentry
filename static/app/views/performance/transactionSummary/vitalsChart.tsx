@@ -47,6 +47,7 @@ type Props = ReactRouter.WithRouterProps &
     location: Location;
     organization: OrganizationSummary;
     queryExtra: object;
+    withoutZerofill: boolean;
   };
 
 const YAXIS_VALUES = [

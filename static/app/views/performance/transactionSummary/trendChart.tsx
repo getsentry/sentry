@@ -48,6 +48,7 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
     queryExtra: Query;
     trendDisplay: string;
+    withoutZerofill: boolean;
   };
 
 class TrendChart extends Component<Props> {

@@ -79,6 +79,7 @@ type Props = {
   eventView: EventView;
   totalValues: number | null;
   currentFilter: SpanOperationBreakdownFilter;
+  withoutZerofill: boolean;
 };
 
 class TransactionSummaryCharts extends Component<Props> {
@@ -110,7 +111,14 @@ class TransactionSummaryCharts extends Component<Props> {
   };
 
   render() {
-    const {totalValues, eventView, organization, location, currentFilter} = this.props;
+    const {
+      totalValues,
+      eventView,
+      organization,
+      location,
+      currentFilter,
+      withoutZerofill,
+    } = this.props;
 
     const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = getTrendsParameters({
       canSeeSpanOpTrends: organization.features.includes('performance-ops-breakdown'),
@@ -163,6 +171,7 @@ class TransactionSummaryCharts extends Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               currentFilter={currentFilter}
+              withoutZerofill={withoutZerofill}
             />
           )}
           {display === DisplayModes.DURATION && (
@@ -176,6 +185,7 @@ class TransactionSummaryCharts extends Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               currentFilter={currentFilter}
+              withoutZerofill={withoutZerofill}
             />
           )}
           {display === DisplayModes.DURATION_PERCENTILE && (
@@ -189,6 +199,7 @@ class TransactionSummaryCharts extends Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               currentFilter={currentFilter}
+              withoutZerofill={withoutZerofill}
             />
           )}
           {display === DisplayModes.TREND && (
@@ -202,6 +213,7 @@ class TransactionSummaryCharts extends Component<Props> {
               start={eventView.start}
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
+              withoutZerofill={withoutZerofill}
             />
           )}
           {display === DisplayModes.VITALS && (
@@ -214,6 +226,7 @@ class TransactionSummaryCharts extends Component<Props> {
               start={eventView.start}
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
+              withoutZerofill={withoutZerofill}
             />
           )}
         </ChartContainer>

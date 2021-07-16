@@ -159,6 +159,10 @@ type EventsRequestPartialProps = {
    * Hide error toast (used for pages which also query eventsV2)
    */
   hideError?: boolean;
+  /**
+   * Whether or not to zerofill results
+   */
+  withoutZerofill?: boolean;
 };
 
 type TimeAggregationProps =

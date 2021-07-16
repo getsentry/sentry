@@ -41,6 +41,7 @@ type Props = ViewProps & {
   organization: OrganizationSummary;
   location: Location;
   currentFilter: SpanOperationBreakdownFilter;
+  withoutZerofill: boolean;
 };
 
 type State = {

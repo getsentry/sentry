@@ -48,6 +48,7 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
     queryExtra: Query;
     currentFilter: SpanOperationBreakdownFilter;
+    withoutZerofill: boolean;
   };
 
 function generateYAxisValues(filter: SpanOperationBreakdownFilter) {
@@ -99,6 +100,7 @@ class DurationChart extends Component<Props> {
       router,
       queryExtra,
       currentFilter,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -158,6 +160,7 @@ class DurationChart extends Component<Props> {
               includePrevious={false}
               yAxis={generateYAxisValues(currentFilter)}
               partial
+              withoutZerofill={withoutZerofill}
             >
               {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {
