@@ -91,8 +91,6 @@ const Wrapper = styled('div')`
 `;
 
 const InnerWrapper = styled('div')`
-  background-color: ${p => p.theme.white};
-
   animation: pop 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
   box-shadow: var(--box-shadow-picked-up);
   opacity: 1;
