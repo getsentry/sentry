@@ -22,7 +22,6 @@ type Props = {
   showPlaceholders: boolean;
   selection: GlobalSelection;
   reloading: boolean;
-  isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
@@ -44,7 +43,6 @@ class ReleaseHealth extends Component<Props> {
       location,
       showPlaceholders,
       selection,
-      isTopRelease,
       getHealthData,
     } = this.props;
 
@@ -81,7 +79,6 @@ class ReleaseHealth extends Component<Props> {
           projects={projectsToShow}
           location={location}
           showPlaceholders={showPlaceholders}
-          isTopRelease={isTopRelease}
           getHealthData={getHealthData}
         />
 

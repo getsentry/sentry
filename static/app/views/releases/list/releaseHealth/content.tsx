@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
@@ -24,11 +23,9 @@ import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest'
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod from '../healthStatsPeriod';
-import ReleaseAdoption from '../releaseAdoption';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
-import ProjectLink from './projectLink';
 
 const ADOPTION_STAGE_LABELS = {
   not_adopted: {
@@ -52,7 +49,6 @@ type Props = {
   activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
-  isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   showAdoptionStageLabels: boolean;
   adoptionStages?: Release['adoptionStages'];
@@ -67,7 +63,6 @@ const Content = ({
   organization,
   activeDisplay,
   showPlaceholders,
-  isTopRelease,
   getHealthData,
 }: Props) => {
   const hasAdoptionStages: boolean =
@@ -77,26 +72,16 @@ const Content = ({
       <Header>
         <Layout hasAdoptionStages={hasAdoptionStages}>
           <Column>{t('Project Name')}</Column>
-          <AdoptionColumn>
-            <GuideAnchor
-              target="release_adoption"
-              position="bottom"
-              disabled={!(isTopRelease && window.innerWidth >= 800)}
-            >
-              {t('Adoption')}
-            </GuideAnchor>
-          </AdoptionColumn>
           {hasAdoptionStages && (
             <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
           )}
-          <CountColumn>
-            <span>{t('Count')}</span>
+          <AdoptionColumn>
+            <span>{t('Adoption')}</span>
             <HealthStatsPeriod location={location} />
-          </CountColumn>
+          </AdoptionColumn>
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-          <ViewColumn />
         </Layout>
       </Header>
 
@@ -117,7 +102,7 @@ const Content = ({
             </CollapseButtonWrapper>
           )}
         >
-          {projects.map((project, index) => {
+          {projects.map(project => {
             const {id, slug, newGroups} = project;
 
             const crashCount = getHealthData.getCrashCount(
@@ -127,15 +112,6 @@ const Content = ({
             );
             const crashFreeRate = getHealthData.getCrashFreeRate(
               releaseVersion,
-              id,
-              activeDisplay
-            );
-            const get24hCountByRelease = getHealthData.get24hCountByRelease(
-              releaseVersion,
-              id,
-              activeDisplay
-            );
-            const get24hCountByProject = getHealthData.get24hCountByProject(
               id,
               activeDisplay
             );
@@ -162,24 +138,6 @@ const Content = ({
                     <ProjectBadge project={project} avatarSize={16} />
                   </Column>
 
-                  <AdoptionColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="100px" />
-                    ) : get24hCountByProject ? (
-                      <AdoptionWrapper>
-                        <ReleaseAdoption
-                          adoption={adoption ?? 0}
-                          releaseCount={get24hCountByRelease ?? 0}
-                          projectCount={get24hCountByProject ?? 0}
-                          displayOption={activeDisplay}
-                        />
-                        <Count value={get24hCountByRelease ?? 0} />
-                      </AdoptionWrapper>
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </AdoptionColumn>
-
                   {hasAdoptionStages && (
                     <AdoptionStageColumn>
                       {adoptionStages?.[project.slug] ? (
@@ -192,21 +150,22 @@ const Content = ({
                     </AdoptionStageColumn>
                   )}
 
-                  <CountColumn>
+                  <AdoptionColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder />
-                    ) : hasCountHistogram ? (
-                      <ChartWrapper>
+                      <StyledPlaceholder width="100px" />
+                    ) : adoption && hasCountHistogram ? (
+                      <AdoptionWrapper>
+                        <span>{Math.round(adoption)}%</span>
                         <HealthStatsChart
                           data={timeSeries}
                           height={20}
                           activeDisplay={activeDisplay}
                         />
-                      </ChartWrapper>
+                      </AdoptionWrapper>
                     ) : (
                       <NotAvailable />
                     )}
-                  </CountColumn>
+                  </AdoptionColumn>
 
                   <CrashFreeRateColumn>
                     {showPlaceholders ? (
@@ -251,20 +210,6 @@ const Content = ({
                       </GlobalSelectionLink>
                     </Tooltip>
                   </NewIssuesColumn>
-
-                  <ViewColumn>
-                    <GuideAnchor
-                      disabled={!isTopRelease || index !== 0}
-                      target="view_release"
-                    >
-                      <ProjectLink
-                        orgSlug={organization.slug}
-                        project={project}
-                        releaseVersion={releaseVersion}
-                        location={location}
-                      />
-                    </GuideAnchor>
-                  </ViewColumn>
                 </Layout>
               </ProjectRow>
             );
@@ -318,28 +263,28 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
+  grid-template-columns: 1fr 1.4fr 0.6fr;
 
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    grid-template-columns: 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     ${p =>
       p.hasAdoptionStages
         ? `
-      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 0.5fr 1fr 1fr 0.5fr 0.5fr;
     `
         : `
-      grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr;
     `}
   }
 `;
@@ -375,13 +320,14 @@ const AdoptionStageColumn = styled(Column)`
 `;
 
 const AdoptionWrapper = styled('span')`
+  flex: 1;
   display: inline-grid;
-  grid-template-columns: 70px 1fr;
+  grid-template-columns: 30px 1fr;
   grid-gap: ${space(1)};
   align-items: center;
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 90px 1fr;
-  }
+
+  /* Chart tooltips need overflow */
+  overflow: visible;
 `;
 
 const CrashFreeRateColumn = styled(Column)`
@@ -394,35 +340,12 @@ const CrashFreeRateColumn = styled(Column)`
   }
 `;
 
-const CountColumn = styled(Column)`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    display: flex;
-    /* Chart tooltips need overflow */
-    overflow: visible;
-    margin-left: ${space(3)};
-  }
-`;
-
 const CrashesColumn = styled(Column)`
   display: none;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
     text-align: right;
-  }
-`;
-
-const ViewColumn = styled(Column)`
-  text-align: right;
-`;
-
-const ChartWrapper = styled('div')`
-  flex: 1;
-  g > .barchart-rect {
-    background: ${p => p.theme.gray200};
-    fill: ${p => p.theme.gray200};
   }
 `;
 
