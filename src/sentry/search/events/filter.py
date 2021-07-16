@@ -21,7 +21,6 @@ from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, Release, SemverFilter
 from sentry.models.group import Group
-from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -47,7 +46,7 @@ from sentry.search.events.constants import (
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, QueryFields, resolve_field
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
@@ -1007,7 +1006,7 @@ def format_search_filter(term, params):
     return conditions, projects_to_filter, group_ids
 
 
-class QueryFilter(QueryBase):
+class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
     def __init__(self, dataset: Dataset, params: ParamsType):
