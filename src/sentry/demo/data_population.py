@@ -789,8 +789,11 @@ class DataPopulation:
         alert_rule.update(
             date_modified=timezone.now(), date_added=timezone.now() - timedelta(days=2)
         )
-        critical_trigger = create_alert_rule_trigger(alert_rule, "critical", 10)
-        warning_trigger = create_alert_rule_trigger(alert_rule, "warning", 7)
+
+        warning_threshold = 7
+        critical_threshold = 10
+        critical_trigger = create_alert_rule_trigger(alert_rule, "critical", critical_threshold)
+        warning_trigger = create_alert_rule_trigger(alert_rule, "warning", warning_threshold)
         for trigger in [critical_trigger, warning_trigger]:
             create_alert_rule_trigger_action(
                 trigger,
@@ -803,8 +806,8 @@ class DataPopulation:
             self.timestamps_by_project[project.slug],
             time_interval,
             self.get_config_var("MAX_DAYS"),
-            7,
-            10,
+            warning_threshold,
+            critical_threshold,
         )
 
         incident = create_incident(
