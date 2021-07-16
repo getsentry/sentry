@@ -979,6 +979,9 @@ export function aggregateFunctionOutputType(
  * Get the multi-series chart type for an aggregate function.
  */
 export function aggregateMultiPlotType(field: string): PlotType {
+  if (isEquation(field)) {
+    return 'line';
+  }
   const result = parseFunction(field);
   // Handle invalid data.
   if (!result) {
