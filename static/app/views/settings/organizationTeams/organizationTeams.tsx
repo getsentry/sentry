@@ -20,6 +20,7 @@ type Props = {
   activeTeams: Team[];
   organization: Organization;
   requestList: AccessRequest[];
+  onRemoveAccessRequest: (id: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function OrganizationTeams({
@@ -31,6 +32,7 @@ function OrganizationTeams({
   routes,
   params,
   requestList,
+  onRemoveAccessRequest,
 }: Props) {
   if (!organization) {
     return null;
@@ -73,7 +75,7 @@ function OrganizationTeams({
       <OrganizationAccessRequests
         orgId={params.orgId}
         requestList={requestList}
-        onRemoveAccessRequest={(_: string) => { }}
+        onRemoveAccessRequest={onRemoveAccessRequest}
       />
       <Panel>
         <PanelHeader>{t('Your Teams')}</PanelHeader>

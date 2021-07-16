@@ -47,6 +47,12 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
     });
   }
 
+
+  removeAccessRequest = (id: string) =>
+    this.setState(state => ({
+      requestList: state.requestList.filter(request => request.id !== id),
+    }));
+
   renderBody() {
     const {organization, teams} = this.props;
 
@@ -65,6 +71,7 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
         allTeams={allTeams}
         activeTeams={activeTeams}
         requestList={this.state.requestList}
+        onRemoveAccessRequest={this.removeAccessRequest}
       />
     );
   }
