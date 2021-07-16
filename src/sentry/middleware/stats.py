@@ -26,7 +26,7 @@ class ResponseCodeMiddleware(MiddlewareMixin):
 
 
 class RequestTimingMiddleware(MiddlewareMixin):
-    allowed_methods = ("POST", "GET", "PUT")
+    allowed_methods = ("POST", "GET", "PUT", "DELETE")
     allowed_paths = getattr(
         settings, "SENTRY_REQUEST_METRIC_ALLOWED_PATHS", ("sentry.web.api", "sentry.api.endpoints")
     )  # Store endpoints
