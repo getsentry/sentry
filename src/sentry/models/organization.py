@@ -4,7 +4,7 @@ from enum import IntEnum
 from typing import Sequence
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
@@ -352,12 +352,12 @@ class Organization(Model):
         def do_update(queryset, params):
             model_name = queryset.model.__name__.lower()
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(queryset.model)):
                     queryset.update(**params)
             except IntegrityError:
                 for instance in queryset:
                     try:
-                        with transaction.atomic():
+                        with transaction.atomic(using=router.db_for_write(queryset.model)):
                             instance.update(**params)
                     except IntegrityError:
                         logger.info(
