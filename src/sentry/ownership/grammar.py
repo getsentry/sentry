@@ -228,6 +228,8 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     ported from https://github.com/hmarr/codeowners/blob/d0452091447bd2a29ee508eebc5a79874fb5d4ff/match.go#L33
     ported from https://github.com/sbdchd/codeowners/blob/6c5e8563f4c675abb098df704e19f4c6b95ff9aa/codeowners/__init__.py#L16
 
+    There are some special cases like backslash that was added
+
     MIT License
 
     Copyright (c) 2020 Harry Marr
@@ -253,33 +255,40 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     """
     regex = ""
 
+    # Special case backslash can match a backslash file or directory
+    if pattern[0] == "\\":
+        return re.compile(r"\\(?:\Z|/)")
+
     slash_pos = pattern.find("/")
     anchored = slash_pos > -1 and slash_pos != len(pattern) - 1
 
     regex += r"\A" if anchored else r"(?:\A|/)"
 
     matches_dir = pattern[-1] == "/"
-    pattern_trimmed = pattern.strip("/")
+    if matches_dir:
+        pattern = pattern.rstrip("/")
 
-    in_char_class = False
-    escaped = False
+    # patterns ending with "/*" are special. They only match items directly in the directory
+    # not deeper
+    trailing_slash_star = pattern[-1] == "*" and len(pattern) > 1 and pattern[-2] == "/"
 
-    iterator = enumerate(pattern_trimmed)
+    iterator = enumerate(pattern)
+
+    # Anchored paths may or may not start with a slash
+    if anchored and pattern[0] == "/":
+        next(iterator, None)
+        regex += r"/?"
+
     for i, ch in iterator:
 
-        if escaped:
-            regex += re.escape(ch)
-            escaped = False
-            continue
+        if ch == "*":
 
-        if ch == "\\":
-            escaped = True
-        elif ch == "*":
-            if i + 1 < len(pattern_trimmed) and pattern_trimmed[i + 1] == "*":
+            # Handle double star (**) case properly
+            if i + 1 < len(pattern) and pattern[i + 1] == "*":
                 left_anchored = i == 0
-                leading_slash = i > 0 and pattern_trimmed[i - 1] == "/"
-                right_anchored = i + 2 == len(pattern_trimmed)
-                trailing_slash = i + 2 < len(pattern_trimmed) and pattern_trimmed[i + 2] == "/"
+                leading_slash = i > 0 and pattern[i - 1] == "/"
+                right_anchored = i + 2 == len(pattern)
+                trailing_slash = i + 2 < len(pattern) and pattern[i + 2] == "/"
 
                 if (left_anchored or leading_slash) and (right_anchored or trailing_slash):
                     regex += ".*"
@@ -290,22 +299,15 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
             regex += "[^/]*"
         elif ch == "?":
             regex += "[^/]"
-        elif ch == "[":
-            in_char_class = True
-            regex += ch
-        elif ch == "]":
-            if in_char_class:
-                regex += ch
-                in_char_class = False
-            else:
-                regex += re.escape(ch)
         else:
             regex += re.escape(ch)
 
-    if in_char_class:
-        raise ValueError(f"unterminated character class in pattern {pattern}")
-
-    regex += "/" if matches_dir else r"(?:\Z|/)"
+    if matches_dir:
+        regex += "/"
+    elif trailing_slash_star:
+        regex += r"\Z"
+    else:
+        regex += r"(?:\Z|/)"
     return re.compile(regex)
 
 
