@@ -99,6 +99,14 @@ const organizationNavigation: NavigationSection[] = [
         recordAnalytics: true,
       },
       {
+        path: `${pathPrefix}/git-helpers/`,
+        title: t('Git helpers'),
+        description: t(
+          'Configure git helpers. It is only available if there is a github, gitlab or bitbucket integration'
+        ),
+        id: 'git-helpers',
+      },
+      {
         path: `${pathPrefix}/developer-settings/`,
         title: t('Developer Settings'),
         description: t('Manage developer applications'),

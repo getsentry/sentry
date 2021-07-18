@@ -65,4 +65,5 @@ const ActionColumn = styled(Column)`
 
 const StyledButton = styled(Button)`
   height: 20px;
+  width: 16px;
 `;

@@ -17,7 +17,7 @@ function Status({state, merged, draft}: Props) {
     if (draft) {
       return (
         <Tooltip title={t('Pull Request open - draft')}>
-          <IconGitPullRequestDraft color="gray400" size="md" />
+          <IconGitPullRequestDraft color="gray300" size="md" />
         </Tooltip>
       );
     }
