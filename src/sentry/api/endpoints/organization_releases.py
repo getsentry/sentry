@@ -88,10 +88,16 @@ def _filter_releases_by_query(queryset, organization, query):
 
         if search_filter.key.name == RELEASE_ALIAS:
             if search_filter.value.is_wildcard():
-                raw_value = search_filter.value.raw_value.replace("*", "")
-                query_q = Q(version__icontains=raw_value)
+                raw_value = search_filter.value.raw_value
+                if raw_value.endswith("*") and raw_value.startswith("*"):
+                    query_q = Q(version__contains=raw_value[1:-1])
+                elif raw_value.endswith("*"):
+                    query_q = Q(version__startswith=raw_value[:-1])
+                elif raw_value.startswith("*"):
+                    query_q = Q(version__endswith=raw_value[1:])
             else:
                 query_q = Q(version=search_filter.value.value)
+
             queryset = queryset.filter(query_q)
 
         if search_filter.key.name == SEMVER_ALIAS:
