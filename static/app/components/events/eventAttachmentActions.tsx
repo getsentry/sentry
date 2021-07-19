@@ -22,22 +22,6 @@ type Props = {
 };
 
 class EventAttachmentActions extends Component<Props> {
-  handleDelete = async () => {
-    const {api, url, onDelete, attachmentId} = this.props;
-
-    if (url) {
-      try {
-        await api.requestPromise(url, {
-          method: 'DELETE',
-        });
-
-        onDelete(attachmentId);
-      } catch (_err) {
-        // TODO: Error-handling
-      }
-    }
-  };
-
   handlePreview() {
     const {onPreview, attachmentId} = this.props;
     if (onPreview) {
@@ -46,7 +30,8 @@ class EventAttachmentActions extends Component<Props> {
   }
 
   render() {
-    const {url, withPreviewButton, hasPreview, previewIsOpen} = this.props;
+    const {url, withPreviewButton, hasPreview, previewIsOpen, onDelete, attachmentId} =
+      this.props;
 
     return (
       <ButtonBar gap={1}>
@@ -54,7 +39,7 @@ class EventAttachmentActions extends Component<Props> {
           confirmText={t('Delete')}
           message={t('Are you sure you wish to delete this file?')}
           priority="danger"
-          onConfirm={this.handleDelete}
+          onConfirm={() => onDelete(attachmentId)}
           disabled={!url}
         >
           <Button
