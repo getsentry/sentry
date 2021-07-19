@@ -89,6 +89,7 @@ export type CustomizationHooks = {
 export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:track-event': AnalyticsTrackEvent;
+  'analytics:track-event-v2': AnalyticsTrackEventV2;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'metrics:event': MetricsEvent;
@@ -241,6 +242,42 @@ type AnalyticsTrackEvent = (opts: {
    */
   [key: string]: any;
 }) => void;
+
+/**
+ * Trigger analytics tracking in the hook store.
+ */
+type AnalyticsTrackEventV2 = (
+  data: {
+    /**
+     * The Reload event key.
+     */
+    eventKey: string;
+    /**
+     * The Amplitude event name
+     */
+    eventName: string | null;
+
+    organization: Organization | null;
+    /**
+     * Arbitrary data to track
+     */
+    [key: string]: any;
+  },
+  options: {
+    /**
+     * Sends the event to marketing analytics
+     */
+    sendMarketing?: boolean;
+    /**
+     * If true, starts an analytics session
+     */
+    startSession?: boolean;
+    /**
+     * An arbitrary function to map the parameters to new paraameters
+     */
+    mapValuesFn?: (params: Record<string, any>) => Record<string, any>;
+  }
+) => void;
 
 /**
  * Trigger ad hoc analytics tracking in the hook store.
