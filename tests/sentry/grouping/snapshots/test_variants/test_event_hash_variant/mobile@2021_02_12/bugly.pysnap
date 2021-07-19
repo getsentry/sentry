@@ -1,5 +1,5 @@
 ---
-created: '2021-07-12T13:55:48.048376Z'
+created: '2021-07-14T12:39:40.877390Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,7 +15,7 @@ app-depth-1:
               "kill"
             package (ignored because function takes precedence)
               "libc.so"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "SIGSEGV"
         value (ignored because stacktrace takes precedence)
           "Segfault"
@@ -37,7 +37,7 @@ app-depth-2:
               "kill"
             package (ignored because function takes precedence)
               "libc.so"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "SIGSEGV"
         value (ignored because stacktrace takes precedence)
           "Segfault"
@@ -62,7 +62,7 @@ app-depth-3:
               "kill"
             package (ignored because function takes precedence)
               "libc.so"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "SIGSEGV"
         value (ignored because stacktrace takes precedence)
           "Segfault"
@@ -100,13 +100,13 @@ app-depth-max:
               "kill"
             package (ignored because function takes precedence)
               "libc.so"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "SIGSEGV"
         value (ignored because stacktrace takes precedence)
           "Segfault"
 --------------------------------------------------------------------------
 system:
-  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
+  hash: "5d36f5363b3d4125907c15b93f85bbd8"
   tree_label: "kill | __kernel_rt_sigreturn | stripped_application_code"
   component:
     system*
@@ -138,7 +138,7 @@ system:
               "kill"
             package (ignored because function takes precedence)
               "libc.so"
-        type (ignored because exception is synthetic)
+        type*
           "SIGSEGV"
         value (ignored because stacktrace takes precedence)
           "Segfault"

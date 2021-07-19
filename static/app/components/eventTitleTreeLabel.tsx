@@ -22,15 +22,15 @@ function EventTitleTreeLabel({treeLabel}: Props) {
           if (index !== firstFourParts.length - 1) {
             return (
               <Fragment key={index}>
-                <PriorityPart highlight={highlight}>{label}</PriorityPart>
+                <PriorityLabel highlight={highlight}>{label}</PriorityLabel>
                 <Divider>{'|'}</Divider>
               </Fragment>
             );
           }
           return (
-            <PriorityPart key={index} highlight={highlight}>
+            <PriorityLabel key={index} highlight={highlight}>
               {label}
-            </PriorityPart>
+            </PriorityLabel>
           );
         })}
       </FirstFourParts>
@@ -53,40 +53,42 @@ function EventTitleTreeLabel({treeLabel}: Props) {
 
 export default EventTitleTreeLabel;
 
-const Wrapper = styled('span')`
+const Wrapper = styled('div')`
   display: inline-grid;
   grid-template-columns: auto 1fr;
   align-items: center;
 `;
 
-const FirstFourParts = styled('span')`
-  display: grid;
+const FirstFourParts = styled('div')`
+  display: inline-grid;
   grid-auto-flow: column;
   align-items: center;
 `;
 
-const Label = styled('span')<{highlight: boolean}>`
-  padding: ${space(0.25)} 0;
+const Label = styled('div')<{highlight: boolean}>`
   ${p =>
     p.highlight &&
     `
       background: ${p.theme.alert.info.backgroundLight};
       border-radius: ${p.theme.borderRadius};
-      padding: ${space(0.25)} ${space(0.5)};
+      padding: 0 ${space(0.5)};
     `}
+  display: inline-block;
 `;
 
-const PriorityPart = styled(Label)`
+const PriorityLabel = styled(Label)`
   ${overflowEllipsis}
+  display: inline-block;
 `;
 
 const RemainingLabels = styled('div')`
   ${overflowEllipsis}
+  display: inline-block;
   min-width: 50px;
 `;
 
-export const Divider = styled('span')`
+export const Divider = styled('div')`
   color: ${p => p.theme.gray200};
   display: inline-block;
-  margin: 0 ${space(1)};
+  padding: 0 ${space(1)};
 `;

@@ -25,6 +25,8 @@ class VercelWebhookEndpoint(VercelGenericWebhookEndpoint):
             logger.error("vercel.webhook.invalid-signature")
             return self.respond(status=401)
 
-        external_id = request.data.get("teamId") or request.data["userId"]
+        external_id = request.data.get("teamId") or request.data.get("userId")
+        if not external_id:
+            return self.respond({"detail": "Either teamId or userId must be defined"}, status=400)
 
         return self._deployment_created(external_id, request)

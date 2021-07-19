@@ -3,6 +3,8 @@ import time
 from collections import namedtuple
 from typing import Any, Dict, Generator, List, Mapping, Optional, Union
 
+import sentry_sdk
+from dateutil.parser import parse as parse_date
 from requests import Session
 
 from sentry.utils import jwt, safe
@@ -27,17 +29,18 @@ def _get_authorization_header(
     """
     if expiry_sec is None:
         expiry_sec = 60 * 10  # default to 10 mins
-    token = jwt.encode(
-        {
-            "iss": credentials.issuer_id,
-            "exp": int(time.time()) + expiry_sec,
-            "aud": "appstoreconnect-v1",
-        },
-        credentials.key,
-        algorithm="ES256",
-        headers={"kid": credentials.key_id, "alg": "ES256", "typ": "JWT"},
-    )
-    return jwt.authorization_header(token)
+    with sentry_sdk.start_span(op="jwt", description="Generating AppStoreConnect JWT token"):
+        token = jwt.encode(
+            {
+                "iss": credentials.issuer_id,
+                "exp": int(time.time()) + expiry_sec,
+                "aud": "appstoreconnect-v1",
+            },
+            credentials.key,
+            algorithm="ES256",
+            headers={"kid": credentials.key_id, "alg": "ES256", "typ": "JWT"},
+        )
+        return jwt.authorization_header(token)
 
 
 def _get_appstore_json(
@@ -52,25 +55,27 @@ def _get_appstore_json(
     :raises ValueError: if the request failed or the response body could not be parsed as
        JSON.
     """
-    headers = _get_authorization_header(credentials)
+    with sentry_sdk.start_span(op="appconnect-request", description="AppStoreConnect API request"):
+        headers = _get_authorization_header(credentials)
 
-    if not url.startswith("https://"):
-        full_url = "https://api.appstoreconnect.apple.com"
-        if url[0] != "/":
-            full_url += "/"
-    else:
-        full_url = ""
-    full_url += url
-    logger.debug(f"GET {full_url}")
-    response = session.get(full_url, headers=headers)
-    if not response.ok:
-        raise ValueError("Request failed", full_url, response.status_code, response.text)
-    try:
-        return response.json()  # type: ignore
-    except Exception as e:
-        raise ValueError(
-            "Response body not JSON", full_url, response.status_code, response.text
-        ) from e
+        if not url.startswith("https://"):
+            full_url = "https://api.appstoreconnect.apple.com"
+            if url[0] != "/":
+                full_url += "/"
+        else:
+            full_url = ""
+        full_url += url
+        logger.debug(f"GET {full_url}")
+        with sentry_sdk.start_span(op="http", description="AppStoreConnect request"):
+            response = session.get(full_url, headers=headers)
+        if not response.ok:
+            raise ValueError("Request failed", full_url, response.status_code, response.text)
+        try:
+            return response.json()  # type: ignore
+        except Exception as e:
+            raise ValueError(
+                "Response body not JSON", full_url, response.status_code, response.text
+            ) from e
 
 
 def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
@@ -115,88 +120,98 @@ def get_build_info(
     version: str - the short version build info ( e.g. '1.0.1'), also called "train"
        in starship documentation
     build_number: str - the version of the build (e.g. '101'), looks like the build number
+    uploaded_date: datetime - when the build was uploaded to App Store Connect
     """
-    # https://developer.apple.com/documentation/appstoreconnectapi/list_builds
-    url = (
-        f"v1/builds?filter[app]={app_id}"
-        # we can fetch a maximum of 200 builds at once, so do that
-        "&limit=200"
-        # include related AppStore/PreRelease versions with the response
-        # NOTE: the `iris` web API has related `buildBundles` objects,
-        # which have very useful `includesSymbols` and `dSYMUrl` attributes,
-        # but this is sadly not available in the official API. :-(
-        # Open this in your browser when you are signed into AppStoreConnect:
-        # https://appstoreconnect.apple.com/iris/v1/builds?filter[processingState]=VALID&include=appStoreVersion,preReleaseVersion,buildBundles&limit=1&filter[app]=XYZ
-        "&include=appStoreVersion,preReleaseVersion"
-        # sort newer releases first
-        "&sort=-uploadedDate"
-        # only include valid builds
-        "&filter[processingState]=VALID"
-        # and builds that have not expired yet
-        "&filter[expired]=false"
-    )
-    pages = _get_appstore_info_paged(session, credentials, url)
-    result = []
+    with sentry_sdk.start_span(
+        op="appconnect-list-builds", description="List all AppStoreConnect builds"
+    ):
+        # https://developer.apple.com/documentation/appstoreconnectapi/list_builds
+        url = (
+            f"v1/builds?filter[app]={app_id}"
+            # we can fetch a maximum of 200 builds at once, so do that
+            "&limit=200"
+            # include related AppStore/PreRelease versions with the response
+            # NOTE: the `iris` web API has related `buildBundles` objects,
+            # which have very useful `includesSymbols` and `dSYMUrl` attributes,
+            # but this is sadly not available in the official API. :-(
+            # Open this in your browser when you are signed into AppStoreConnect:
+            # https://appstoreconnect.apple.com/iris/v1/builds?filter[processingState]=VALID&include=appStoreVersion,preReleaseVersion,buildBundles&limit=1&filter[app]=XYZ
+            "&include=appStoreVersion,preReleaseVersion"
+            # sort newer releases first
+            "&sort=-uploadedDate"
+            # only include valid builds
+            "&filter[processingState]=VALID"
+            # and builds that have not expired yet
+            "&filter[expired]=false"
+        )
+        pages = _get_appstore_info_paged(session, credentials, url)
+        result = []
 
-    for page in pages:
+        for page in pages:
 
-        # Collect the related data sent in this page so we can look it up by (type, id).
-        included_relations = {}
-        for relation in page["included"]:
-            rel_type = relation["type"]
-            rel_id = relation["id"]
-            included_relations[(rel_type, rel_id)] = relation
+            # Collect the related data sent in this page so we can look it up by (type, id).
+            included_relations = {}
+            for relation in page["included"]:
+                rel_type = relation["type"]
+                rel_id = relation["id"]
+                included_relations[(rel_type, rel_id)] = relation
 
-        def get_related(data: JSONData, relation: str) -> Union[None, JSONData]:
-            """Returns related data by looking it up in all the related data included in the page.
+            def get_related(data: JSONData, relation: str) -> Union[None, JSONData]:
+                """Returns related data by looking it up in all the related data included in the page.
 
-            This first looks up the related object in the data provided under the
-            `relationships` key.  Then it uses the `type` and `id` of this key to look up
-            the actual data in `included_relations` which is an index of all related data
-            returned with the page.
+                This first looks up the related object in the data provided under the
+                `relationships` key.  Then it uses the `type` and `id` of this key to look up
+                the actual data in `included_relations` which is an index of all related data
+                returned with the page.
 
-            If the `relation` does not exist in `data` then `None` is returned.
-            """
-            rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
-            if rel_ptr_data is None:
-                # The query asks for both the appStoreVersion and preReleaseVersion
-                # relations to be included.  However for each build there could be only one
-                # of these that will have the data with type and id, the other will have
-                # None for data.
-                return None
-            rel_type = rel_ptr_data["type"]
-            rel_id = rel_ptr_data["id"]
-            return included_relations[(rel_type, rel_id)]
+                If the `relation` does not exist in `data` then `None` is returned.
+                """
+                rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
+                if rel_ptr_data is None:
+                    # The query asks for both the appStoreVersion and preReleaseVersion
+                    # relations to be included.  However for each build there could be only one
+                    # of these that will have the data with type and id, the other will have
+                    # None for data.
+                    return None
+                rel_type = rel_ptr_data["type"]
+                rel_id = rel_ptr_data["id"]
+                return included_relations[(rel_type, rel_id)]
 
-        for build in page["data"]:
-            try:
-                related_appstore_version = get_related(build, "appStoreVersion")
-                related_prerelease_version = get_related(build, "preReleaseVersion")
+            for build in page["data"]:
+                try:
+                    related_appstore_version = get_related(build, "appStoreVersion")
+                    related_prerelease_version = get_related(build, "preReleaseVersion")
 
-                # Normally release versions also have a matching prerelease version, the
-                # platform and version number for them should be identical.  Nevertheless
-                # because we would likely see the build first with a prerelease version
-                # before it also has a release version we prefer to stick with that one if
-                # it is available.
-                if related_prerelease_version:
-                    version = related_prerelease_version["attributes"]["version"]
-                    platform = related_prerelease_version["attributes"]["platform"]
-                elif related_appstore_version:
-                    version = related_appstore_version["attributes"]["versionString"]
-                    platform = related_appstore_version["attributes"]["platform"]
-                else:
-                    raise KeyError("missing related version")
-                build_number = build["attributes"]["version"]
+                    # Normally release versions also have a matching prerelease version, the
+                    # platform and version number for them should be identical.  Nevertheless
+                    # because we would likely see the build first with a prerelease version
+                    # before it also has a release version we prefer to stick with that one if
+                    # it is available.
+                    if related_prerelease_version:
+                        version = related_prerelease_version["attributes"]["version"]
+                        platform = related_prerelease_version["attributes"]["platform"]
+                    elif related_appstore_version:
+                        version = related_appstore_version["attributes"]["versionString"]
+                        platform = related_appstore_version["attributes"]["platform"]
+                    else:
+                        raise KeyError("missing related version")
+                    build_number = build["attributes"]["version"]
+                    uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
-                result.append(
-                    {"platform": platform, "version": version, "build_number": build_number}
-                )
-            except Exception:
-                logger.error(
-                    "Failed to process AppStoreConnect build from API: %s", build, exc_info=True
-                )
+                    result.append(
+                        {
+                            "platform": platform,
+                            "version": version,
+                            "build_number": build_number,
+                            "uploaded_date": uploaded_date,
+                        }
+                    )
+                except Exception:
+                    logger.error(
+                        "Failed to process AppStoreConnect build from API: %s", build, exc_info=True
+                    )
 
-    return result
+        return result
 
 
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
