@@ -31,6 +31,7 @@ from sentry.models import (
 )
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
+    RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
@@ -83,6 +84,13 @@ def _filter_releases_by_query(queryset, organization, query):
             if suffix_match is not None:
                 query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
 
+            queryset = queryset.filter(query_q)
+
+        if search_filter.key.name == RELEASE_ALIAS:
+            if search_filter.value.is_wildcard():
+                query_q = Q(version__icontains=search_filter.value.raw_value)
+            else:
+                query_q = Q(version=search_filter.value.value)
             queryset = queryset.filter(query_q)
 
         if search_filter.key.name == SEMVER_ALIAS:
