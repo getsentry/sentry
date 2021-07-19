@@ -32,7 +32,7 @@ from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
-    MEASUREMENTS_STALL_RATE,
+    MEASUREMENTS_STALL_PERCENTAGE,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -468,8 +468,8 @@ FIELD_ALIASES = {
             result_type="percentage",
         ),
         PseudoField(
-            MEASUREMENTS_STALL_RATE,
-            MEASUREMENTS_STALL_RATE,
+            MEASUREMENTS_STALL_PERCENTAGE,
+            MEASUREMENTS_STALL_PERCENTAGE,
             expression=[
                 "if",
                 [
@@ -1190,7 +1190,7 @@ class NumericColumnNoLookup(NumericColumn):
     measurement_aliases = {
         MEASUREMENTS_FRAMES_SLOW_RATE,
         MEASUREMENTS_FRAMES_FROZEN_RATE,
-        MEASUREMENTS_STALL_RATE,
+        MEASUREMENTS_STALL_PERCENTAGE,
     }
 
     def __init__(self, name, allow_array_value=False):

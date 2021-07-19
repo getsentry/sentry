@@ -4584,7 +4584,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "measurements.stall_count",
                 "measurements.stall_total_time",
                 "measurements.stall_longest_time",
-                "measurements.stall_rate",
+                "measurements.stall_percentage",
             ],
             "query": "",
             "project": [self.project.id],
@@ -4601,7 +4601,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["measurements.stall_count"] == 2
         assert data[0]["measurements.stall_total_time"] == 12
         assert data[0]["measurements.stall_longest_time"] == 7
-        assert data[0]["measurements.stall_rate"] == 0.004
+        assert data[0]["measurements.stall_percentage"] == 0.004
         meta = response.data["meta"]
         assert meta["measurements.frames_total"] == "number"
         assert meta["measurements.frames_slow"] == "number"
@@ -4611,7 +4611,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["measurements.stall_count"] == "number"
         assert meta["measurements.stall_total_time"] == "number"
         assert meta["measurements.stall_longest_time"] == "number"
-        assert meta["measurements.stall_rate"] == "percentage"
+        assert meta["measurements.stall_percentage"] == "percentage"
 
         query = {
             "field": [
@@ -4619,8 +4619,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "p75(measurements.frames_frozen_rate)",
                 "percentile(measurements.frames_slow_rate,0.5)",
                 "percentile(measurements.frames_frozen_rate,0.5)",
-                "p75(measurements.stall_rate)",
-                "percentile(measurements.stall_rate,0.5)",
+                "p75(measurements.stall_percentage)",
+                "percentile(measurements.stall_percentage,0.5)",
             ],
             "query": "",
             "project": [self.project.id],
@@ -4631,13 +4631,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["p75_measurements_frames_slow_rate"] == 0.1
         assert data[0]["p75_measurements_frames_frozen_rate"] == 0.05
-        assert data[0]["p75_measurements_stall_rate"] == 0.004
+        assert data[0]["p75_measurements_stall_percentage"] == 0.004
         assert data[0]["percentile_measurements_frames_slow_rate_0_5"] == 0.1
         assert data[0]["percentile_measurements_frames_frozen_rate_0_5"] == 0.05
-        assert data[0]["percentile_measurements_stall_rate_0_5"] == 0.004
+        assert data[0]["percentile_measurements_stall_percentage"] == 0.004
         meta = response.data["meta"]
         assert meta["p75_measurements_frames_slow_rate"] == "percentage"
         assert meta["p75_measurements_frames_frozen_rate"] == "percentage"
-        assert meta["p75_measurements_stall_rate"] == "percentage"
+        assert meta["p75_measurements_stall_percentage"] == "percentage"
         assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
-        assert meta["percentile_measurements_stall_rate_0_5"] == "percentage"
+        assert meta["percentile_measurements_stall_percentage"] == "percentage"
