@@ -272,6 +272,8 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 
   transformSessionCountData(responseData: SessionApiResponse) {
+    const {theme} = this.props;
+
     const totalSessions = getTotalsFromSessionsResponse({
       response: responseData,
       field: 'sum(session)',
@@ -281,7 +283,7 @@ class SessionsRequest extends React.Component<Props, State> {
       response: responseData,
       field: 'sum(session)',
       groupBy: 'session.status',
-      chartData: initSessionsBreakdownChartData(),
+      chartData: initSessionsBreakdownChartData(theme),
     });
 
     return {

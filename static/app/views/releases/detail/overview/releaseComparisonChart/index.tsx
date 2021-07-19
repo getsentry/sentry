@@ -9,14 +9,16 @@ import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
 import Count from 'app/components/count';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import Radio from 'app/components/radio';
+import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {IconArrow, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {
@@ -37,7 +39,9 @@ import {QueryResults} from 'app/utils/tokenizeSearch';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,
+  getReleaseHandledIssuesUrl,
   getReleaseParams,
+  getReleaseUnhandledIssuesUrl,
 } from 'app/views/releases/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
@@ -53,6 +57,7 @@ type ComparisonRow = {
   diffDirection: 'up' | 'down' | null;
   diffColor: Color | null;
   role: 'parent' | 'children' | 'default';
+  drilldown: React.ReactNode;
 };
 
 type Props = {
@@ -79,6 +84,11 @@ type EventsTotals = {
   allFailureRate: number;
 } | null;
 
+type IssuesTotals = {
+  handled: number;
+  unhandled: number;
+} | null;
+
 function ReleaseComparisonChart({
   release,
   project,
@@ -93,6 +103,7 @@ function ReleaseComparisonChart({
   organization,
   hasHealthData,
 }: Props) {
+  const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
   const charts: ComparisonRow[] = [];
@@ -118,6 +129,7 @@ function ReleaseComparisonChart({
   useEffect(() => {
     if (hasDiscover || hasPerformance) {
       fetchEventsTotals();
+      fetchIssuesTotals();
     }
   }, [period, start, end, organization.slug, location]);
 
@@ -190,6 +202,35 @@ function ReleaseComparisonChart({
     } catch (err) {
       setEventsTotals(null);
       setEventsLoading(false);
+      Sentry.captureException(err);
+    }
+  }
+
+  async function fetchIssuesTotals() {
+    const UNHANDLED_QUERY = `release:${release.version} error.handled:0`;
+    const HANDLED_QUERY = `release:${release.version} error.handled:1`;
+
+    try {
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/issues-count/`,
+        {
+          query: {
+            project: project.id,
+            environment: decodeList(location.query.environment),
+            start,
+            end,
+            ...(period ? {statsPeriod: period} : {}),
+            query: [UNHANDLED_QUERY, HANDLED_QUERY],
+          },
+        }
+      );
+
+      setIssuesTotals({
+        handled: response[HANDLED_QUERY] ?? 0,
+        unhandled: response[UNHANDLED_QUERY] ?? 0,
+      });
+    } catch (err) {
+      setIssuesTotals(null);
       Sentry.captureException(err);
     }
   }
@@ -362,6 +403,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.CRASH_FREE_SESSIONS,
         role: 'parent',
+        drilldown: null,
         thisRelease: defined(releaseCrashFreeSessions)
           ? displaySessionStatusPercent(releaseCrashFreeSessions)
           : null,
@@ -385,6 +427,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.HEALTHY_SESSIONS,
         role: 'children',
+        drilldown: null,
         thisRelease: defined(releaseHealthySessions)
           ? displaySessionStatusPercent(releaseHealthySessions)
           : null,
@@ -408,6 +451,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.ABNORMAL_SESSIONS,
         role: 'children',
+        drilldown: null,
         thisRelease: defined(releaseAbnormalSessions)
           ? displaySessionStatusPercent(releaseAbnormalSessions)
           : null,
@@ -431,6 +475,23 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.ERRORED_SESSIONS,
         role: 'children',
+        drilldown: defined(issuesTotals?.handled) ? (
+          <Tooltip title={t('Open in Issues')}>
+            <GlobalSelectionLink
+              to={getReleaseHandledIssuesUrl(
+                organization.slug,
+                project.id,
+                release.version,
+                {start, end, period: period ?? undefined}
+              )}
+            >
+              {tct('([count] handled [issues])', {
+                count: <Count value={issuesTotals?.handled ?? 0} />,
+                issues: tn('issue', 'issues', issuesTotals?.handled),
+              })}
+            </GlobalSelectionLink>
+          </Tooltip>
+        ) : null,
         thisRelease: defined(releaseErroredSessions)
           ? displaySessionStatusPercent(releaseErroredSessions)
           : null,
@@ -454,6 +515,23 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.CRASHED_SESSIONS,
         role: 'default',
+        drilldown: defined(issuesTotals?.unhandled) ? (
+          <Tooltip title={t('Open in Issues')}>
+            <GlobalSelectionLink
+              to={getReleaseUnhandledIssuesUrl(
+                organization.slug,
+                project.id,
+                release.version,
+                {start, end, period: period ?? undefined}
+              )}
+            >
+              {tct('([count] unhandled [issues])', {
+                count: <Count value={issuesTotals?.unhandled ?? 0} />,
+                issues: tn('issue', 'issues', issuesTotals?.unhandled),
+              })}
+            </GlobalSelectionLink>
+          </Tooltip>
+        ) : null,
         thisRelease: defined(releaseCrashedSessions)
           ? displaySessionStatusPercent(releaseCrashedSessions)
           : null,
@@ -477,6 +555,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.CRASH_FREE_USERS,
         role: 'parent',
+        drilldown: null,
         thisRelease: defined(releaseCrashFreeUsers)
           ? displaySessionStatusPercent(releaseCrashFreeUsers)
           : null,
@@ -500,6 +579,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.HEALTHY_USERS,
         role: 'children',
+        drilldown: null,
         thisRelease: defined(releaseHealthyUsers)
           ? displaySessionStatusPercent(releaseHealthyUsers)
           : null,
@@ -519,6 +599,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.ABNORMAL_USERS,
         role: 'children',
+        drilldown: null,
         thisRelease: defined(releaseAbnormalUsers)
           ? displaySessionStatusPercent(releaseAbnormalUsers)
           : null,
@@ -538,6 +619,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.ERRORED_USERS,
         role: 'children',
+        drilldown: null,
         thisRelease: defined(releaseErroredUsers)
           ? displaySessionStatusPercent(releaseErroredUsers)
           : null,
@@ -557,6 +639,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.CRASHED_USERS,
         role: 'default',
+        drilldown: null,
         thisRelease: defined(releaseCrashedUsers)
           ? displaySessionStatusPercent(releaseCrashedUsers)
           : null,
@@ -580,6 +663,7 @@ function ReleaseComparisonChart({
     charts.push({
       type: ReleaseComparisonChartType.FAILURE_RATE,
       role: 'default',
+      drilldown: null,
       thisRelease: eventsTotals?.releaseFailureRate
         ? formatPercentage(eventsTotals?.releaseFailureRate)
         : null,
@@ -597,6 +681,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.SESSION_COUNT,
         role: 'default',
+        drilldown: null,
         thisRelease: defined(releaseSessionsCount) ? (
           <Count value={releaseSessionsCount} />
         ) : null,
@@ -610,6 +695,7 @@ function ReleaseComparisonChart({
       {
         type: ReleaseComparisonChartType.USER_COUNT,
         role: 'default',
+        drilldown: null,
         thisRelease: defined(releaseUsersCount) ? (
           <Count value={releaseUsersCount} />
         ) : null,
@@ -625,6 +711,7 @@ function ReleaseComparisonChart({
     charts.push({
       type: ReleaseComparisonChartType.ERROR_COUNT,
       role: 'default',
+      drilldown: null,
       thisRelease: defined(eventsTotals?.releaseErrorCount) ? (
         <Count value={eventsTotals?.releaseErrorCount!} />
       ) : null,
@@ -641,6 +728,7 @@ function ReleaseComparisonChart({
     charts.push({
       type: ReleaseComparisonChartType.TRANSACTION_COUNT,
       role: 'default',
+      drilldown: null,
       thisRelease: defined(eventsTotals?.releaseTransactionCount) ? (
         <Count value={eventsTotals?.releaseTransactionCount!} />
       ) : null,
@@ -736,7 +824,16 @@ function ReleaseComparisonChart({
         ]}
       >
         {charts.map(
-          ({type, role, thisRelease, allReleases, diff, diffDirection, diffColor}) => {
+          ({
+            type,
+            role,
+            drilldown,
+            thisRelease,
+            allReleases,
+            diff,
+            diffDirection,
+            diffColor,
+          }) => {
             return (
               <Fragment key={type}>
                 <DescriptionCell role={role}>
@@ -747,7 +844,7 @@ function ReleaseComparisonChart({
                       checked={type === activeChart}
                       onChange={() => handleChartChange(type)}
                     />
-                    {releaseComparisonChartLabels[type]}
+                    {releaseComparisonChartLabels[type]}&nbsp;{drilldown}
                   </ChartToggle>
                 </DescriptionCell>
                 <Cell role={role}>
@@ -796,6 +893,8 @@ const ChartPanel = styled(Panel)`
 const ChartTable = styled(PanelTable)`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+
+  grid-template-columns: minmax(424px, auto) repeat(3, minmax(min-content, 1fr));
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr));

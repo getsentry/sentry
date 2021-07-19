@@ -6,12 +6,15 @@ import space from 'app/styles/space';
 import Screenshot from './screenshot';
 import Tags from './tags';
 
-type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug'> & {
-  projectId: string;
-  isShare: boolean;
-  hasContext: boolean;
-  isBorderless: boolean;
-};
+type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
+
+type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug'> &
+  Pick<ScreenshotProps, 'attachments'> & {
+    projectId: string;
+    isShare: boolean;
+    isBorderless: boolean;
+    onDeleteScreenshot: ScreenshotProps['onDelete'];
+  };
 
 function EventTagsAndScreenshots({
   projectId: projectSlug,
@@ -21,6 +24,8 @@ function EventTagsAndScreenshots({
   location,
   isBorderless,
   event,
+  attachments,
+  onDeleteScreenshot,
   ...props
 }: Props) {
   const {tags = []} = event;
@@ -31,7 +36,15 @@ function EventTagsAndScreenshots({
 
   return (
     <Wrapper isBorderless={isBorderless}>
-      {!isShare && <Screenshot {...props} event={event} projectSlug={projectSlug} />}
+      {!isShare && !!attachments.length && (
+        <Screenshot
+          {...props}
+          event={event}
+          projectSlug={projectSlug}
+          attachments={attachments}
+          onDelete={onDeleteScreenshot}
+        />
+      )}
       <Tags
         {...props}
         event={event}
