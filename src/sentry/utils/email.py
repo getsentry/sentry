@@ -38,12 +38,12 @@ FAKE_EMAIL_TLD = ".sentry-fake"
 logger = logging.getLogger("sentry.mail")
 
 
-def inline_css(value):
+def inline_css(value: str) -> str:
     tree = lxml.html.document_fromstring(value)
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
-    return lxml.html.tostring(tree, doctype="<!DOCTYPE html>")
+    return lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding="unicode")
 
 
 class _CaseInsensitiveSigner(Signer):
