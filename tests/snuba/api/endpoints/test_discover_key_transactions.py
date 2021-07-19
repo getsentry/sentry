@@ -1,11 +1,6 @@
 from django.urls import reverse
 
-from sentry.discover.models import (
-    MAX_KEY_TRANSACTIONS,
-    MAX_TEAM_KEY_TRANSACTIONS,
-    KeyTransaction,
-    TeamKeyTransaction,
-)
+from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, KeyTransaction, TeamKeyTransaction
 from sentry.models import ProjectTeam
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
