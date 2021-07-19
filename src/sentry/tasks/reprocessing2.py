@@ -153,7 +153,7 @@ def handle_remaining_events(
     reuse for reprocessed events. An event ID that is once tombstoned cannot be
     inserted over in eventstream.
 
-    See doccomment in sentry.reprocessing2.
+    See doc comment in sentry.reprocessing2.
     """
 
     from sentry import buffer
