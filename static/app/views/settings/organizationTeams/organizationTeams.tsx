@@ -6,12 +6,12 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import { Organization, Team, AccessRequest } from 'app/types';
+import {AccessRequest, Organization, Team} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import OrganizationAccessRequests from './organizationAccessRequests';
 
 import AllTeamsList from './allTeamsList';
+import OrganizationAccessRequests from './organizationAccessRequests';
 
 type Props = {
   access: Set<string>;
