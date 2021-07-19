@@ -3,7 +3,6 @@ import {Location} from 'history';
 import {t} from 'app/locale';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {AggregationKey, Column} from 'app/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatFloat,
@@ -86,36 +85,6 @@ export function getChartWidth(chartData: HistogramData, refPixelRect: Rectangle 
   };
 }
 
-export function getBackendFunction(
-  functionName: AggregationKey,
-  organization: Organization
-): Column {
-  switch (functionName) {
-    case 'p75':
-      return {
-        kind: 'function',
-        function: ['p75', 'transaction.duration', undefined, undefined],
-      };
-    case 'tpm':
-      return {kind: 'function', function: ['tpm', '', undefined, undefined]};
-    case 'failure_rate':
-      return {kind: 'function', function: ['failure_rate', '', undefined, undefined]};
-    case 'apdex':
-      if (organization.features.includes('project-transaction-threshold')) {
-        return {
-          kind: 'function',
-          function: ['apdex' as AggregationKey, '', undefined, undefined],
-        };
-      }
-      return {
-        kind: 'function',
-        function: ['apdex', `${organization.apdexThreshold}`, undefined, undefined],
-      };
-    default:
-      throw new Error(`Unsupported backend function: ${functionName}`);
-  }
-}
-
 export function getDefaultDisplayFieldForPlatform(
   projects: Project[],
   eventView?: EventView
@@ -136,29 +105,57 @@ export function getDefaultDisplayFieldForPlatform(
   return landingField;
 }
 
-export const backendCardDetails = (organization: LightWeightOrganization) => {
+type VitalCardDetail = {
+  title: string;
+  tooltip: string;
+  formatter: (value: number) => string | number;
+};
+
+export const vitalCardDetails = (
+  organization: LightWeightOrganization
+): {[key: string]: VitalCardDetail | undefined} => {
   return {
-    p75: {
+    'p75(transaction.duration)': {
       title: t('Duration (p75)'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
-    tpm: {
+    'tpm()': {
       title: t('Throughput'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.THROUGHPUT),
       formatter: formatAbbreviatedNumber,
     },
-    failure_rate: {
+    'failure_rate()': {
       title: t('Failure Rate'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
       formatter: value => formatPercentage(value, 2),
     },
-    apdex: {
+    'apdex()': {
       title: t('Apdex'),
       tooltip: organization.features.includes('project-transaction-threshold')
         ? getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)
         : getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       formatter: value => formatFloat(value, 4),
+    },
+    'p75(measurements.frames_slow_rate)': {
+      title: t('Slow Frames (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
+      formatter: value => formatPercentage(value, 2),
+    },
+    'p75(measurements.frames_frozen_rate)': {
+      title: t('Frozen Frames (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
+      formatter: value => formatPercentage(value, 2),
+    },
+    'p75(measurements.app_start_cold)': {
+      title: t('Cold Start (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
+    },
+    'p75(measurements.app_start_warm)': {
+      title: t('Warm Start (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
   };
 };

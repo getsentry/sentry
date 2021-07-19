@@ -46,7 +46,7 @@ import {
   LEFT_AXIS_QUERY_KEY,
   RIGHT_AXIS_QUERY_KEY,
 } from './utils';
-import {BackendCards, FrontendCards} from './vitalsCards';
+import {BackendCards, FrontendCards, MobileCards} from './vitalsCards';
 
 type Props = {
   organization: Organization;
@@ -209,6 +209,11 @@ class LandingContent extends Component<Props, State> {
 
     return (
       <Fragment>
+        <MobileCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
         <DoubleAxisDisplay
           eventView={eventView}
           organization={organization}
