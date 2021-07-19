@@ -4564,17 +4564,27 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
 
-    def test_measurements_frame_rates(self):
+    def test_mobile_measurements(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["measurements"]["frames_total"] = {"value": 100}
         data["measurements"]["frames_slow"] = {"value": 10}
         data["measurements"]["frames_frozen"] = {"value": 5}
+        data["measurements"]["stall_count"] = {"value": 2}
+        data["measurements"]["stall_total_time"] = {"value": 12}
+        data["measurements"]["stall_longest_time"] = {"value": 7}
         self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": [
+                "measurements.frames_total",
+                "measurements.frames_slow",
+                "measurements.frames_frozen",
                 "measurements.frames_slow_rate",
                 "measurements.frames_frozen_rate",
+                "measurements.stall_count",
+                "measurements.stall_total_time",
+                "measurements.stall_longest_time",
+                "measurements.stall_rate",
             ],
             "query": "",
             "project": [self.project.id],
@@ -4583,11 +4593,25 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         data = response.data["data"]
         assert len(data) == 1
+        assert data[0]["measurements.frames_total"] == 100
+        assert data[0]["measurements.frames_slow"] == 10
+        assert data[0]["measurements.frames_frozen"] == 5
         assert data[0]["measurements.frames_slow_rate"] == 0.1
         assert data[0]["measurements.frames_frozen_rate"] == 0.05
+        assert data[0]["measurements.stall_count"] == 2
+        assert data[0]["measurements.stall_total_time"] == 12
+        assert data[0]["measurements.stall_longest_time"] == 7
+        assert data[0]["measurements.stall_rate"] == 0.004
         meta = response.data["meta"]
+        assert meta["measurements.frames_total"] == "number"
+        assert meta["measurements.frames_slow"] == "number"
+        assert meta["measurements.frames_frozen"] == "number"
         assert meta["measurements.frames_slow_rate"] == "percentage"
         assert meta["measurements.frames_frozen_rate"] == "percentage"
+        assert meta["measurements.stall_count"] == "number"
+        assert meta["measurements.stall_total_time"] == "number"
+        assert meta["measurements.stall_longest_time"] == "number"
+        assert meta["measurements.stall_rate"] == "percentage"
 
         query = {
             "field": [
@@ -4595,6 +4619,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "p75(measurements.frames_frozen_rate)",
                 "percentile(measurements.frames_slow_rate,0.5)",
                 "percentile(measurements.frames_frozen_rate,0.5)",
+                "p75(measurements.stall_rate)",
+                "percentile(measurements.stall_rate,0.5)",
             ],
             "query": "",
             "project": [self.project.id],
@@ -4605,10 +4631,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["p75_measurements_frames_slow_rate"] == 0.1
         assert data[0]["p75_measurements_frames_frozen_rate"] == 0.05
+        assert data[0]["p75_measurements_stall_rate"] == 0.004
         assert data[0]["percentile_measurements_frames_slow_rate_0_5"] == 0.1
         assert data[0]["percentile_measurements_frames_frozen_rate_0_5"] == 0.05
+        assert data[0]["percentile_measurements_stall_rate_0_5"] == 0.004
         meta = response.data["meta"]
         assert meta["p75_measurements_frames_slow_rate"] == "percentage"
         assert meta["p75_measurements_frames_frozen_rate"] == "percentage"
+        assert meta["p75_measurements_stall_rate"] == "percentage"
         assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
-        assert meta["percentile_measurements_frames_frozen_rate_0_5"] == "percentage"
+        assert meta["percentile_measurements_stall_rate_0_5"] == "percentage"

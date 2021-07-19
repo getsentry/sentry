@@ -32,6 +32,7 @@ from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
+    MEASUREMENTS_STALL_RATE,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -461,6 +462,19 @@ FIELD_ALIASES = {
                 [
                     ["greater", ["measurements.frames_total", 0]],
                     ["divide", ["measurements.frames_frozen", "measurements.frames_total"]],
+                    None,
+                ],
+            ],
+            result_type="percentage",
+        ),
+        PseudoField(
+            MEASUREMENTS_STALL_RATE,
+            MEASUREMENTS_STALL_RATE,
+            expression=[
+                "if",
+                [
+                    ["greater", ["transaction.duration", 0]],
+                    ["divide", ["measurements.stall_total_time", "transaction.duration"]],
                     None,
                 ],
             ],
@@ -1173,6 +1187,12 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
+    measurement_aliases = {
+        MEASUREMENTS_FRAMES_SLOW_RATE,
+        MEASUREMENTS_FRAMES_FROZEN_RATE,
+        MEASUREMENTS_STALL_RATE,
+    }
+
     def __init__(self, name, allow_array_value=False):
         super().__init__(name)
         self.allow_array_value = allow_array_value
@@ -1186,7 +1206,7 @@ class NumericColumnNoLookup(NumericColumn):
             if value in {"measurements_value", "span_op_breakdowns_value"}:
                 return ["arrayJoin", [value]]
 
-        if value in {MEASUREMENTS_FRAMES_SLOW_RATE, MEASUREMENTS_FRAMES_FROZEN_RATE}:
+        if value in self.measurement_aliases:
             field = FIELD_ALIASES[value]
             return field.get_expression(params)
 
@@ -1198,7 +1218,7 @@ class NumericColumnNoLookup(NumericColumn):
         # to a percentage value, since they are expressions rather than columns, we special
         # case them here
         if isinstance(value, list):
-            for name in {MEASUREMENTS_FRAMES_SLOW_RATE, MEASUREMENTS_FRAMES_FROZEN_RATE}:
+            for name in self.measurement_aliases:
                 field = FIELD_ALIASES[name]
                 expression = field.get_expression(None)
                 if expression == value:
