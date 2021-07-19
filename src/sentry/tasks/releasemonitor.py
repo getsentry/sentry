@@ -67,7 +67,10 @@ def monitor_release_adoption(**kwargs):
             more_results = count > CHUNK_SIZE
             offset += CHUNK_SIZE
 
-            for row in data[:-1]:
+            if more_results:
+                data = data[:-1]
+
+            for row in data:
                 aggregated_projects[row["org_id"]].append(row["project_id"])
 
             if not more_results:
@@ -146,8 +149,12 @@ def sum_sessions_and_releases(org_id, project_ids):
                     query, referrer="tasks.process_projects_with_sessions.session_count"
                 )["data"]
                 count = len(data)
-                more_results = count >= CHUNK_SIZE
-                offset += count
+                more_results = count > CHUNK_SIZE
+                offset += CHUNK_SIZE
+
+                if more_results:
+                    data = data[:-1]
+
                 for row in data:
                     row_totals = totals[row["project_id"]].setdefault(
                         row["environment"], {"total_sessions": 0, "releases": defaultdict(int)}
