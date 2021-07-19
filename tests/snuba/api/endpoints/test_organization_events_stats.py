@@ -640,6 +640,31 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 0.02}],
         ]
 
+    def test_equation_mixed_multi_yaxis(self):
+        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": ["count()", "equation|count() * 100"],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count()"]["order"] == 0
+        assert [attrs for time, attrs in response.data["count()"]["data"]] == [
+            [{"count": 1}],
+            [{"count": 2}],
+        ]
+        assert response.data["equation|count() * 100"]["order"] == 1
+        assert [attrs for time, attrs in response.data["equation|count() * 100"]["data"]] == [
+            [{"count": 100}],
+            [{"count": 200}],
+        ]
+
     def test_equation_multi_yaxis(self):
         with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
             response = self.client.get(
