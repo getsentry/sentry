@@ -598,6 +598,14 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route
+            path="notifications/"
+            name="Notifications"
+            componentPromise={() =>
+              import('app/views/settings/organizationTeams/teamNotifications')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="projects/"
             name="Projects"
             componentPromise={() =>
@@ -607,7 +615,7 @@ function routes() {
           />
           <Route
             path="settings/"
-            name="settings"
+            name="Settings"
             componentPromise={() =>
               import('app/views/settings/organizationTeams/teamSettings')
             }
@@ -1326,7 +1334,7 @@ function routes() {
 
           {/*
         TODO(mark) Long term this /queries route should go away and /discover should be the
-        canoncial route for discover2. We have a redirect right now as /discover was for
+        canonical route for discover2. We have a redirect right now as /discover was for
         discover 1 and most of the application is linking to /discover/queries and not /discover
         */}
           <Redirect
