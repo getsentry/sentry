@@ -56,7 +56,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
         else:
             expand.append("organization")
 
-        return Response(serialize(team, request.user, ModelTeamSerializer(collapse=collapse, expand=expand)))
+        return Response(
+            serialize(team, request.user, ModelTeamSerializer(collapse=collapse, expand=expand))
+        )
 
     def put(self, request, team):
         """
