@@ -17,7 +17,7 @@ const EXAMPLE_INTEGRATION = {
   },
 };
 
-describe('TeamSettings', () => {
+describe('TeamNotificationSettings', () => {
   let team;
 
   beforeEach(() => {
