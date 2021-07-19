@@ -2255,8 +2255,8 @@ class QueryFields(QueryBase):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
         name, arguments, alias = self.parse_function(match)
-        discover_func = self.function_converter.get(name)
-        return discover_func.snql_transform(arguments, alias)
+        snql_function = self.function_converter.get(name)
+        return snql_function.snql_transform(arguments, alias)
 
     def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
         function = match.group("function")
