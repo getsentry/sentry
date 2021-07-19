@@ -128,6 +128,7 @@ class StacktraceContent extends React.Component<Props, State> {
 
     return `${className} traceback in-app-traceback`;
   }
+
   render() {
     const {
       data,

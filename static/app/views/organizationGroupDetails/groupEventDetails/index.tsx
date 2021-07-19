@@ -70,6 +70,7 @@ export class GroupEventDetailsContainer extends Component<Props, State> {
     if (!this.state.environments) {
       return <LoadingIndicator />;
     }
+
     const {selection, ...otherProps} = this.props;
     const environments: Environment[] = this.state.environments.filter(env =>
       selection.environments.includes(env.name)

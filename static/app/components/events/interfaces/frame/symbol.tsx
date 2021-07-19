@@ -20,6 +20,7 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  className?: string;
 };
 
 const Symbol = ({
@@ -27,6 +28,7 @@ const Symbol = ({
   onFunctionNameToggle,
   showCompleteFunctionName,
   isHoverPreviewed,
+  className,
 }: Props) => {
   const hasFunctionNameHiddenDetails =
     defined(frame.rawFunction) &&
@@ -51,7 +53,7 @@ const Symbol = ({
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       <FunctionNameToggleTooltip
         title={functionNameTooltipTitle}
         containerDisplayMode="inline-flex"
@@ -140,7 +142,7 @@ const Filename = styled('span')`
   color: ${p => p.theme.purple300};
 `;
 
-const FunctionNameToggleIcon = styled(IconFilter, {
+export const FunctionNameToggleIcon = styled(IconFilter, {
   shouldForwardProp: prop => prop !== 'hasFunctionNameHiddenDetails',
 })<{
   hasFunctionNameHiddenDetails: boolean;
@@ -158,7 +160,9 @@ const FunctionNameToggleTooltip = styled(Tooltip)`
   height: 16px;
   align-items: center;
   margin-right: ${space(0.75)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 export default Symbol;
-export {FunctionNameToggleIcon};

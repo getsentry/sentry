@@ -6,7 +6,7 @@ import CrashActions from 'app/components/events/interfaces/crashHeader/crashActi
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {t} from 'app/locale';
-import {ExceptionType} from 'app/types';
+import {ExceptionType, Group} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
@@ -15,10 +15,20 @@ type Props = {
   type: string;
   data: ExceptionType;
   projectId: string;
+  hasGroupingTreeUI: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
-function Exception({event, type, data, projectId, hideGuide = false}: Props) {
+function Exception({
+  event,
+  type,
+  data,
+  projectId,
+  hasGroupingTreeUI,
+  groupingCurrentLevel,
+  hideGuide = false,
+}: Props) {
   const [stackView, setStackView] = useState<STACK_VIEW>(
     data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
   );
@@ -72,6 +82,7 @@ function Exception({event, type, data, projectId, hideGuide = false}: Props) {
           stackView={stackView}
           platform={event.platform}
           exception={data}
+          hasGroupingTreeUI={hasGroupingTreeUI}
           {...commonCrashHeaderProps}
         />
       }
@@ -84,6 +95,8 @@ function Exception({event, type, data, projectId, hideGuide = false}: Props) {
         stackView={stackView}
         newestFirst={newestFirst}
         exception={data}
+        hasGroupingTreeUI={hasGroupingTreeUI}
+        groupingCurrentLevel={groupingCurrentLevel}
       />
     </EventDataSection>
   );

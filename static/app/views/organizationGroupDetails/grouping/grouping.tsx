@@ -40,7 +40,7 @@ type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
 };
 
 type GroupingLevel = {
-  id: string;
+  id: number;
   isCurrent: boolean;
 };
 
@@ -155,11 +155,11 @@ function Grouping({api, groupId, location, organization, router}: Props) {
     }
 
     if (groupingLevels.length > 1) {
-      setActiveGroupingLevel(Number(groupingLevels[1].id));
+      setActiveGroupingLevel(groupingLevels[1].id);
       return;
     }
 
-    setActiveGroupingLevel(Number(groupingLevels[0].id));
+    setActiveGroupingLevel(groupingLevels[0].id);
   }
 
   if (isLoading) {

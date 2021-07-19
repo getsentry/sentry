@@ -20,14 +20,26 @@ type Props = {
   projectSlug: Project['slug'];
   event: Event;
   organization: SharedViewOrganization | Organization;
-  groupId?: Group['id'];
+  group?: Group;
 };
 
-function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
+function EventEntry({entry, projectSlug, event, organization, group}: Props) {
+  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
+  const groupingCurrentLevel = group?.metadata?.current_level;
+
   switch (entry.type) {
     case EntryType.EXCEPTION: {
       const {data, type} = entry;
-      return <Exception type={type} event={event} data={data} projectId={projectSlug} />;
+      return (
+        <Exception
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasGroupingTreeUI={hasGroupingTreeUI}
+        />
+      );
     }
     case EntryType.MESSAGE: {
       const {data} = entry;
@@ -39,7 +51,16 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
     }
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
-      return <Stacktrace type={type} event={event} data={data} projectId={projectSlug} />;
+      return (
+        <Stacktrace
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasGroupingTreeUI={hasGroupingTreeUI}
+        />
+      );
     }
     case EntryType.TEMPLATE: {
       const {data, type} = entry;
@@ -68,7 +89,16 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
     }
     case EntryType.THREADS: {
       const {data, type} = entry;
-      return <Threads type={type} event={event} data={data} projectId={projectSlug} />;
+      return (
+        <Threads
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasGroupingTreeUI={hasGroupingTreeUI}
+        />
+      );
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
@@ -80,7 +110,7 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
           <DebugMetaV2
             event={event}
             projectId={projectSlug}
-            groupId={groupId}
+            groupId={group?.id}
             organization={organization as Organization}
             data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
           />
