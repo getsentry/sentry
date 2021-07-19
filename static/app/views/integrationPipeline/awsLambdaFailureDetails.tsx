@@ -20,7 +20,8 @@ export default function AwsLambdaFailureDetails({
   lambdaFunctionFailures,
   successCount,
 }: Props) {
-  const baseDocsUrl = 'https://docs.sentry.io/product/integrations/aws-lambda/';
+  const baseDocsUrl =
+    'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
   return (
     <Fragment>
       <HeaderWithHelp docsUrl={baseDocsUrl} />
