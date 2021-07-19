@@ -210,9 +210,9 @@ def adopt_releases(org_id, totals):
                                     name=environment, organization_id=org_id
                                 )
                                 rel = Release.objects.get(organization=org_id, version=release)
-                                if ReleaseProject.objects.get(
+                                if ReleaseProject.objects.get_or_create(
                                     project_id=project_id, release=rel
-                                ) and ReleaseEnvironment.objects.get(
+                                ) and ReleaseEnvironment.objects.get_or_create(
                                     environment=env, organization_id=org_id, release=rel
                                 ):
                                     ReleaseProjectEnvironment.objects.create(
