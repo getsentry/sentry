@@ -96,14 +96,14 @@ class TeamManager(BaseManager):
             }
         ),
 
-    # def post_delete(self, instance, **kwargs):
-    #     update_code_owners_schema.apply_async(
-    #         kwargs={
-    #             "organization": instance.organization,
-    #             "integration": None,
-    #             "projects": instance.get_projects(),
-    #         }
-    #     ),
+    def post_delete(self, instance, **kwargs):
+        update_code_owners_schema.apply_async(
+            kwargs={
+                "organization": instance.organization,
+                "integration": None,
+                "projects": instance.get_projects(),
+            }
+        ),
 
 
 # TODO(dcramer): pull in enum library
@@ -270,3 +270,12 @@ class Team(Model):
         from sentry.models import Project
 
         return Project.objects.get_for_team_ids({self.id})
+
+    def delete(self, **kwargs):
+        from sentry.models import Actor, ExternalActor
+
+        # There is no foreign key relationship so we have to manually cascade.
+        ExternalActor.objects.filter(actor=self.actor).delete()
+        Actor.objects.filter(id=self.actor_id).delete()
+
+        return super().delete(**kwargs)
