@@ -30,8 +30,14 @@ def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict
                 project_url = absolute_uri(
                     f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
                 )
-                buttons.append({"text": project.slug, "type": "button", "url": project_url})
-
+                buttons.append(
+                    {
+                        "text": project.slug,
+                        "name": project.slug,
+                        "type": "button",
+                        "url": project_url,
+                    }
+                )
     return buttons
 
 
@@ -61,6 +67,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 
         if isinstance(self.notification, ReleaseActivityNotification):
             return self._build(
+                text=" ",
                 actions=build_deploy_buttons(self.notification),
                 footer=build_notification_footer(self.notification, self.recipient),
             )
