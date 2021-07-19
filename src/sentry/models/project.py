@@ -8,7 +8,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import QuerySet
-from django.db.models.signals import pre_delete
+from django.db.models.signals import post_delete, post_save, pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
@@ -26,6 +26,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -435,3 +436,17 @@ class Project(Model, PendingDeletionMixin):
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
+post_save.connect(
+    lambda instance, **kwargs: update_code_owners_schema.apply_async(
+        kwargs={"organization": None, "integration": None, "projects": [instance.project]}
+    ),
+    sender=ProjectTeam,
+    weak=False,
+)
+post_delete.connect(
+    lambda instance, **kwargs: update_code_owners_schema.apply_async(
+        kwargs={"organization": None, "integration": None, "projects": [instance.project]}
+    ),
+    sender=ProjectTeam,
+    weak=False,
+)

@@ -15,6 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -84,6 +85,25 @@ class TeamManager(BaseManager):
                 results[idx] = (team, team_projects)
 
         return results
+
+    def post_save(self, instance, **kwargs):
+
+        update_code_owners_schema.apply_async(
+            kwargs={
+                "organization": instance.organization,
+                "integration": None,
+                "projects": instance.get_projects(),
+            }
+        ),
+
+    # def post_delete(self, instance, **kwargs):
+    #     update_code_owners_schema.apply_async(
+    #         kwargs={
+    #             "organization": instance.organization,
+    #             "integration": None,
+    #             "projects": instance.get_projects(),
+    #         }
+    #     ),
 
 
 # TODO(dcramer): pull in enum library
