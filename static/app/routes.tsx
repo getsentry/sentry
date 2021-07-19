@@ -510,15 +510,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-
-          <Route
-            path="requests/"
-            name="Requests"
-            componentPromise={() =>
-              import('app/views/settings/organizationMembers/organizationRequestsView')
-            }
-            component={errorHandler(LazyLoad)}
-          />
         </Route>
 
         <Route

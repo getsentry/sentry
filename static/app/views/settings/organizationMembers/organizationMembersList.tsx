@@ -367,6 +367,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 const SearchWrapperWithFilter = styled(SearchWrapper)`
   display: grid;
   grid-template-columns: max-content 1fr;
+  margin-top: 0;
 `;
 
 const FilterWrapper = styled('div')`
