@@ -88,7 +88,8 @@ def _filter_releases_by_query(queryset, organization, query):
 
         if search_filter.key.name == RELEASE_ALIAS:
             if search_filter.value.is_wildcard():
-                query_q = Q(version__icontains=search_filter.value.raw_value)
+                raw_value = search_filter.value.raw_value.replace("*", "")
+                query_q = Q(version__icontains=raw_value)
             else:
                 query_q = Q(version=search_filter.value.value)
             queryset = queryset.filter(query_q)
