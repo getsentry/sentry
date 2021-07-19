@@ -68,6 +68,7 @@ from sentry.api.exceptions import (
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, Project
 from sentry.tasks.app_store_connect import dsym_download
+from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
@@ -426,9 +427,12 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
 
-        build_check_dates = project.get_option(
-            appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default={}
+        serialized_check_dates = project.get_option(
+            appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
         )
+        build_check_dates = json.loads(serialized_check_dates)
+        # This is sent over as a part of a JSON response already, so there's no need to parse this
+        # only to have it serialized again
         last_checked_builds = build_check_dates[symbol_source_cfg.id]
 
         return Response(

@@ -58,7 +58,10 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
         appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default={}
     )
     build_refresh_dates[config_id] = datetime.now()
-    project.update_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, build_refresh_dates)
+    serialized_refresh_dates = json.dumps(build_refresh_dates)
+    project.update_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
+    )
 
     itunes_client = client.itunes_client()
     for (build, build_state) in builds:
