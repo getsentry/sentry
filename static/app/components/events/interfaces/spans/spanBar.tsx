@@ -54,9 +54,9 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
-import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
+import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {
   FetchEmbeddedChildrenState,
@@ -624,32 +624,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   }
 
-  renderCursorGuide() {
-    return (
-      <CursorGuideHandler.Consumer>
-        {({
-          showCursorGuide,
-          traceViewMouseLeft,
-        }: {
-          showCursorGuide: boolean;
-          traceViewMouseLeft: number | undefined;
-        }) => {
-          if (!showCursorGuide || !traceViewMouseLeft) {
-            return null;
-          }
-
-          return (
-            <CursorGuide
-              style={{
-                left: toPercent(traceViewMouseLeft),
-              }}
-            />
-          );
-        }}
-      </CursorGuideHandler.Consumer>
-    );
-  }
-
   renderDivider(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
@@ -870,7 +844,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             </RowRectangle>
           )}
           {this.renderMeasurements()}
-          {this.renderCursorGuide()}
+          <SpanBarCursorGuide />
         </RowCell>
         {!this.state.showDetail && (
           <DividerLineGhostContainer
@@ -970,15 +944,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 }
-
-const CursorGuide = styled('div')`
-  position: absolute;
-  top: 0;
-  width: 1px;
-  background-color: ${p => p.theme.red300};
-  transform: translateX(-50%);
-  height: 100%;
-`;
 
 const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
   position: absolute;
