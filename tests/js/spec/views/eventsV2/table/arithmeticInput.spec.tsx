@@ -180,4 +180,16 @@ describe('ArithmeticInput', function () {
     input.simulate('blur');
     expect(query).toEqual(`transaction.duration + measurements.lcp `);
   });
+
+  it('handles autocomplete on invalid term', function () {
+    const input = wrapper.find('input');
+    input.simulate('focus');
+
+    const value = 'foo + bar';
+    input.simulate('change', {target: {value}});
+    input.simulate('keydown', {key: 'ArrowDown'});
+
+    const option = wrapper.find('DropdownListItem');
+    expect(option).toHaveLength(0);
+  });
 });
