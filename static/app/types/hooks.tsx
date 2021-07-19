@@ -253,7 +253,7 @@ type AnalyticsTrackEventV2 = (
      */
     eventKey: string;
     /**
-     * The Amplitude event name
+     * The Amplitude event name. Set to null if event should not go to Amplitude.
      */
     eventName: string | null;
 
