@@ -54,17 +54,20 @@ def monitor_release_adoption(**kwargs):
                         Condition(Column("started"), Op.LT, datetime.utcnow()),
                     ],
                     granularity=Granularity(3600),
-                    orderby=[OrderBy(Column("org_id"), Direction.ASC)],
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                        OrderBy(Column("project_id"), Direction.ASC),
+                    ],
                 )
                 .set_limit(CHUNK_SIZE + 1)
                 .set_offset(offset)
             )
             data = snuba.raw_snql_query(query, referrer="tasks.monitor_release_adoption")["data"]
             count = len(data)
-            more_results = count >= CHUNK_SIZE
-            offset += count
+            more_results = count > CHUNK_SIZE
+            offset += CHUNK_SIZE
 
-            for row in data:
+            for row in data[:-1]:
                 aggregated_projects[row["org_id"]].append(row["project_id"])
 
             if not more_results:
