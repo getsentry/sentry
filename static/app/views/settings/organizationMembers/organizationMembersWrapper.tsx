@@ -1,11 +1,11 @@
 import {cloneElement, Fragment} from 'react';
-import { RouteComponentProps } from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
-import { openInviteMembersModal } from 'app/actionCreators/modal';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import {IconMail} from 'app/icons';
 import {t} from 'app/locale';
-import { Member, Organization } from 'app/types';
+import {Member, Organization} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -92,9 +92,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     });
 
   renderBody() {
-    const {
-      children,
-    } = this.props;
+    const {children} = this.props;
     const {requestList, inviteRequests} = this.state;
 
     const action = (
