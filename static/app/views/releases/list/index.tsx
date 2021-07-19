@@ -565,20 +565,22 @@ class ReleasesList extends AsyncView<Props, State> {
                   query={this.getQuery()}
                 />
               )}
-              <ReleaseListStatusOptions
-                selected={activeStatus}
-                onSelect={this.handleStatus}
-              />
-              <ReleaseListSortOptions
-                selected={activeSort}
-                selectedDisplay={activeDisplay}
-                onSelect={this.handleSortBy}
-                organization={organization}
-              />
-              <ReleaseDisplayOptions
-                selected={activeDisplay}
-                onSelect={this.handleDisplay}
-              />
+              <DropdownsWrapper>
+                <ReleaseListStatusOptions
+                  selected={activeStatus}
+                  onSelect={this.handleStatus}
+                />
+                <ReleaseListSortOptions
+                  selected={activeSort}
+                  selectedDisplay={activeDisplay}
+                  onSelect={this.handleSortBy}
+                  organization={organization}
+                />
+                <ReleaseDisplayOptions
+                  selected={activeDisplay}
+                  onSelect={this.handleDisplay}
+                />
+              </DropdownsWrapper>
             </SortAndFilterWrapper>
 
             {!reloading &&
@@ -611,13 +613,26 @@ const AlertText = styled('div')`
 `;
 
 const SortAndFilterWrapper = styled('div')`
-  display: inline-grid;
+  display: flex;
+  flex-direction: column;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr repeat(3, auto);
+  > *:nth-child(1) {
+    flex: 1;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: row;
+  }
+`;
+
+const DropdownsWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  grid-gap: ${space(2)};
 `;
 
 export default withOrganization(withGlobalSelection(ReleasesList));
