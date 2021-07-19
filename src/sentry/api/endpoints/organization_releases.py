@@ -74,7 +74,7 @@ def add_date_filter_to_queryset(queryset, filter_params):
     return queryset
 
 
-def _filter_releases_by_query(queryset, organization, query):
+def _filter_releases_by_query(queryset, organization, query, filter_params):
     search_filters = parse_search_query(query)
     for search_filter in search_filters:
         if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
@@ -99,7 +99,11 @@ def _filter_releases_by_query(queryset, organization, query):
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
             queryset = queryset.filter_by_stage(
-                organization.id, search_filter.operator, search_filter.value.value
+                # organization.id, search_filter.operator, search_filter.value.value
+                organization.id,
+                search_filter.operator,
+                search_filter.value.value,
+                project_ids=filter_params["project_id"],
             )
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
@@ -248,10 +252,9 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.select_related("owner").annotate(date=F("date_added"))
 
         queryset = add_environment_to_queryset(queryset, filter_params)
-
         if query:
             try:
-                queryset = _filter_releases_by_query(queryset, organization, query)
+                queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
             except InvalidSearchQuery as e:
                 return Response(
                     {"detail": str(e)},
@@ -524,7 +527,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
         queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
-                queryset = _filter_releases_by_query(queryset, organization, query)
+                queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
             except InvalidSearchQuery as e:
                 return Response(
                     {"detail": str(e)},
