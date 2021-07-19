@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Any, Mapping, Optional, Tuple, Union
 from uuid import uuid4
 
 import pytz
@@ -98,6 +99,30 @@ class SnubaProtocolEventStream(EventStream):
         if unexpected_tags:
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
+        # HACK: We are putting all this extra information that is required by the
+        # post process forwarder into the headers so we can skip parsing entire json
+        # messages. The post process forwarder is currently bound to a single core.
+        # Once we are able to parallelize the JSON parsing and other transformation
+        # steps being done there we may want to remove this hack.
+        def encode_bool(value: Optional[bool]) -> Optional[str]:
+            if value is None:
+                return None
+            return str(int(value))
+
+        headers = {
+            "Received-Timestamp": str(received_timestamp),
+            "event_id": str(event.event_id),
+            "project_id": str(event.project_id),
+            "group_id": str(event.group_id) if event.group_id is not None else None,
+            "primary_hash": str(primary_hash) if primary_hash is not None else None,
+            "is_new": encode_bool(is_new),
+            "is_new_group_environment": encode_bool(is_new_group_environment),
+            "is_regression": encode_bool(is_regression),
+            "version": str(self.EVENT_PROTOCOL_VERSION),
+            "operation": "insert",
+            "skip_consume": encode_bool(skip_consume),
+        }
+
         self._send(
             project.id,
             "insert",
@@ -123,7 +148,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={"Received-Timestamp": str(received_timestamp)},
+            headers=headers,
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -276,11 +301,11 @@ class SnubaProtocolEventStream(EventStream):
 
     def _send(
         self,
-        project_id,
-        _type,
-        extra_data=(),
-        asynchronous=True,
-        headers=None,  # Optional[Mapping[str, str]]
+        project_id: int,
+        _type: str,
+        extra_data: Tuple[Any, ...] = (),
+        asynchronous: bool = True,
+        headers: Optional[Mapping[str, Union[str, None]]] = None,
     ):
         raise NotImplementedError
 
@@ -288,11 +313,11 @@ class SnubaProtocolEventStream(EventStream):
 class SnubaEventStream(SnubaProtocolEventStream):
     def _send(
         self,
-        project_id,
-        _type,
-        extra_data=(),
-        asynchronous=True,
-        headers=None,  # Optional[Mapping[str, str]]
+        project_id: int,
+        _type: str,
+        extra_data: Tuple[Any, ...] = (),
+        asynchronous: bool = True,
+        headers: Optional[Mapping[str, Union[str, None]]] = None,
     ):
         if headers is None:
             headers = {}
@@ -312,7 +337,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
                     "POST",
                     f"/tests/{dataset}/eventstream",
                     body=json.dumps(data),
-                    headers={f"X-Sentry-{k}": v for k, v in headers.items()},
                 )
                 if resp.status != 200:
                     raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
