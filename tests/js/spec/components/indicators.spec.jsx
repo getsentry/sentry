@@ -25,8 +25,7 @@ jest.mock('framer-motion', () => ({
 
 function createWrapper(props = {}) {
   const {routerContext} = initializeOrg(props);
-  const wrapper = mountWithTheme(<Indicators />, {context: routerContext});
-  return wrapper;
+  return mountWithTheme(<Indicators />, {context: routerContext});
 }
 
 describe('Indicators', function () {
