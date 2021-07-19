@@ -65,7 +65,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
 
       // TODO(dcramer): we need to rethink this logic as doing multiple "is this value actually set"
       // is problematic
-      // all values to their server-defaults (as client-side defaults dont really work)
+      // all values to their server-defaults (as client-side defaults don't really work)
       const displayValue = option.value || getOptionDefault(optionName);
       if (
         // XXX(dcramer): we need the user to explicitly choose beacon.anonymous

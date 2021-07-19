@@ -54,9 +54,9 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
-import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
+import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {
   FetchEmbeddedChildrenState,
@@ -112,7 +112,6 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   toggleSpanTree: () => void;
-  isCurrentSpanFilteredOut: boolean;
   showEmbeddedChildren: boolean;
   toggleEmbeddedChildren:
     | ((props: {orgSlug: string; eventSlug: string}) => void)
@@ -625,32 +624,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   }
 
-  renderCursorGuide() {
-    return (
-      <CursorGuideHandler.Consumer>
-        {({
-          showCursorGuide,
-          traceViewMouseLeft,
-        }: {
-          showCursorGuide: boolean;
-          traceViewMouseLeft: number | undefined;
-        }) => {
-          if (!showCursorGuide || !traceViewMouseLeft) {
-            return null;
-          }
-
-          return (
-            <CursorGuide
-              style={{
-                left: toPercent(traceViewMouseLeft),
-              }}
-            />
-          );
-        }}
-      </CursorGuideHandler.Consumer>
-    );
-  }
-
   renderDivider(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
@@ -871,7 +844,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             </RowRectangle>
           )}
           {this.renderMeasurements()}
-          {this.renderCursorGuide()}
+          <SpanBarCursorGuide />
         </RowCell>
         {!this.state.showDetail && (
           <DividerLineGhostContainer
@@ -923,17 +896,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
-    const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
-
-    const isSpanVisibleInView = bounds.isSpanVisibleInView;
-    const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
+    const {isSpanVisibleInView} = bounds;
 
     return (
       <React.Fragment>
         <Row
           ref={this.spanRowDOMRef}
-          visible={isSpanVisible}
+          visible={isSpanVisibleInView}
           showBorder={this.state.showDetail}
           data-test-id="span-row"
         >
@@ -959,7 +929,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                       </DividerHandlerManager.Consumer>
                     )}
                   </ScrollbarManager.Consumer>
-                  {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
+                  {this.renderDetail({
+                    isVisible: isSpanVisibleInView,
+                    transactions,
+                    errors,
+                  })}
                 </React.Fragment>
               );
             }}
@@ -970,15 +944,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 }
-
-const CursorGuide = styled('div')`
-  position: absolute;
-  top: 0;
-  width: 1px;
-  background-color: ${p => p.theme.red300};
-  transform: translateX(-50%);
-  height: 100%;
-`;
 
 const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
   position: absolute;
