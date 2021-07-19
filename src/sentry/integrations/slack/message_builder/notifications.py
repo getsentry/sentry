@@ -67,7 +67,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 
         if isinstance(self.notification, ReleaseActivityNotification):
             return self._build(
-                text=" ",
+                text="",
                 actions=build_deploy_buttons(self.notification),
                 footer=build_notification_footer(self.notification, self.recipient),
             )
