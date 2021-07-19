@@ -212,7 +212,6 @@ class SpanTree extends React.Component<PropType> {
             spanNumber={spanNumber}
             isLast={isLast}
             isRoot={isRoot}
-            isCurrentSpanFilteredOut={false}
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}

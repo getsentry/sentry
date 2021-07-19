@@ -112,7 +112,6 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   toggleSpanTree: () => void;
-  isCurrentSpanFilteredOut: boolean;
   showEmbeddedChildren: boolean;
   toggleEmbeddedChildren:
     | ((props: {orgSlug: string; eventSlug: string}) => void)
@@ -923,17 +922,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
-    const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
-
-    const isSpanVisibleInView = bounds.isSpanVisibleInView;
-    const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
+    const {isSpanVisibleInView} = bounds;
 
     return (
       <React.Fragment>
         <Row
           ref={this.spanRowDOMRef}
-          visible={isSpanVisible}
+          visible={isSpanVisibleInView}
           showBorder={this.state.showDetail}
           data-test-id="span-row"
         >
@@ -959,7 +955,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                       </DividerHandlerManager.Consumer>
                     )}
                   </ScrollbarManager.Consumer>
-                  {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
+                  {this.renderDetail({
+                    isVisible: isSpanVisibleInView,
+                    transactions,
+                    errors,
+                  })}
                 </React.Fragment>
               );
             }}
