@@ -29,7 +29,7 @@ class ProviderManager:
     def unregister(self, key, cls):
         try:
             if self.__values[key] != cls:
-                # dont allow unregistering of arbitrary provider
+                # don't allow unregistering of arbitrary provider
                 raise ProviderNotRegistered(key)
         except KeyError:
             # we gracefully handle a missing provider

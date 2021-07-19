@@ -190,7 +190,7 @@ export function parseQuickTrace(
     current.generation !== null &&
     // the event's generation needs to be known to determine an ancestor
     e.generation !== null &&
-    // an ancestor cant be the root
+    // an ancestor can't be the root
     e.generation > 0 &&
     // an ancestor is the generation before the direct parent
     current.generation - 1 > e.generation;

@@ -33,7 +33,7 @@ def save_userreport(project, report, start_time=None):
         report["event_user_id"] = euser.id
 
     if event:
-        # if the event is more than 30 minutes old, we dont allow updates
+        # if the event is more than 30 minutes old, we don't allow updates
         # as it might be abusive
         if event.datetime < start_time - timedelta(minutes=30):
             raise Conflict("Feedback for this event cannot be modified.")
