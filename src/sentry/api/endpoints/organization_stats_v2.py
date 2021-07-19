@@ -25,12 +25,12 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                     organization,
                 )
             with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
-                if "project_id" in query.query_groupby:
-                    result_totals = run_outcomes_query_totals(query)
-                    result_timeseries = None
-                else:
-                    result_totals = run_outcomes_query_totals(query)
-                    result_timeseries = run_outcomes_query_timeseries(query)
+                result_totals = run_outcomes_query_totals(query)
+                result_timeseries = (
+                    None
+                    if "project_id" in query.query_groupby
+                    else run_outcomes_query_timeseries(query)
+                )
             with sentry_sdk.start_span(
                 op="outcomes.endpoint", description="massage_outcomes_result"
             ):
