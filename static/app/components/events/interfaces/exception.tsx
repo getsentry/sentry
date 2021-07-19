@@ -27,9 +27,9 @@ function Exception({event, type, data, projectId, hideGuide = false}: Props) {
 
   const eventHasThreads = !!event.entries.find(entry => entry.type === 'threads');
 
-  // in case there are threads in the event data, we don't render the
-  // exception block.  Instead the exception is contained within the
-  // thread interface.
+  /* in case there are threads in the event data, we don't render the
+   exception block.  Instead the exception is contained within the
+   thread interface. */
   if (eventHasThreads) {
     return null;
   }
@@ -43,15 +43,15 @@ function Exception({event, type, data, projectId, hideGuide = false}: Props) {
     stackType?: STACK_TYPE;
     newestFirst?: boolean;
   }) {
-    if (newStackView && newStackView !== stackView) {
+    if (newStackView) {
       setStackView(newStackView);
     }
 
-    if (newNewestFirst && newNewestFirst !== newestFirst) {
+    if (newNewestFirst) {
       setNewestFirst(newNewestFirst);
     }
 
-    if (newStackType && newStackType !== stackType) {
+    if (newStackType) {
       setStackType(newStackType);
     }
   }
