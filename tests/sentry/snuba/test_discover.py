@@ -521,6 +521,37 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 r[1] for r in expected_project_threshold_config
             ]
 
+    def test_failure_count_function(self):
+        project = self.create_project()
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/success"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/unknown"
+        data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(data, project_id=project.id)
+
+        for i in range(6):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["transaction"] = f"/failure_count/{i}"
+            data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(data, project_id=project.id)
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["failure_count()"],
+                query="",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+            )
+            data = result["data"]
+            assert data[0]["failure_count"] == 6
+
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/test_transaction/success"
@@ -540,7 +571,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for query_fn in [discover.query, discover.wip_snql_query]:
             result = query_fn(
                 selected_columns=["transaction.status"],
-                query="",
+                query="event.type:transaction",
                 params={
                     "organization_id": self.organization.id,
                     "project_id": [self.project.id],

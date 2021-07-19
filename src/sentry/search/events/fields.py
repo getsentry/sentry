@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Match, Optional, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -2065,6 +2065,10 @@ class QueryFields(QueryBase):
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
         }
 
+        self.function_converter: Mapping[str, Callable[[List[str], str], SelectType]] = {
+            "failure_count": self._resolve_failure_count_function,
+        }
+
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
         if selected_columns is None:
             return []
@@ -2083,7 +2087,7 @@ class QueryFields(QueryBase):
     def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+            return self.resolve_function(field, match)
 
         if self.is_field_alias(field):
             return self.resolve_field_alias(field)
@@ -2148,6 +2152,32 @@ class QueryFields(QueryBase):
             raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
         return converter(alias)
 
+    def is_function(self, function: str) -> bool:
+        return function in self.function_converter
+
+    def resolve_function(self, function: str, match: Match[str]) -> SelectType:
+        if function in self.params.get("aliases", {}):
+            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
+
+        name, arguments, alias = self.parse_function(match)
+        converter = self.function_converter.get(name)
+        return converter(name, arguments, alias)
+
+    def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
+        function = match.group("function")
+        if not self.is_function(function):
+            raise InvalidSearchQuery(f"{function} is not a valid function")
+
+        arguments = match.group("columns")
+        arguments = parse_arguments(function, arguments)
+        alias = match.group("alias")
+
+        if alias is None:
+            alias = get_function_alias_with_columns(function, arguments)
+
+        return (function, arguments, alias)
+
+    # Field Aliases
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
         """The state of having no issues is represented differently on transactions vs
         other events. On the transactions table, it is represented by 0 whereas it is
@@ -2347,3 +2377,39 @@ class QueryFields(QueryBase):
         Can be deleted once all field aliases have been implemented.
         """
         raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
+
+    # Functions
+    def _resolve_failure_count_function(
+        self,
+        function: str,
+        _: List[str],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "countIf",
+            [
+                Function(
+                    "notIn",
+                    [
+                        self.column("transaction.status"),
+                        (
+                            SPAN_STATUS_NAME_TO_CODE["ok"],
+                            SPAN_STATUS_NAME_TO_CODE["cancelled"],
+                            SPAN_STATUS_NAME_TO_CODE["unknown"],
+                        ),
+                    ],
+                )
+            ],
+            alias,
+        )
+
+    def _resolve_unimplemented_function(
+        self,
+        function: str,
+        _: List[str],
+        alias: str,
+    ) -> SelectType:
+        """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
+        Can be deleted once all functions have been implemented.
+        """
+        raise NotImplementedError(f"{function} not implemented in snql field parsing yet")
