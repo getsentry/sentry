@@ -91,12 +91,14 @@ describe('GroupSidebar', function () {
 
   describe('renders with tags', function () {
     it('renders', async function () {
-      expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
-      expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
-      expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(5);
+      await act(async () => {
+        expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
+        expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
+        expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
+        await tick();
+        wrapper.update();
+        expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(5);
+      });
     });
   });
 
