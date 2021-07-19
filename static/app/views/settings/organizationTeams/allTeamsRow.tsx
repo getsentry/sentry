@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
@@ -12,7 +13,6 @@ import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
-import TeamActions from 'app/actions/teamActions';
 
 type Props = {
   api: Client;
