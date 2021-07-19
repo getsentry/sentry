@@ -13,11 +13,18 @@ from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     SEMVER_EMPTY_RELEASE,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
+from sentry.search.events.fields import (
+    DiscoverFunction,
+    FunctionArg,
+    InvalidSearchQuery,
+    with_default,
+)
 from sentry.search.events.filter import (
+    _semver_build_filter_converter,
     _semver_filter_converter,
     _semver_package_filter_converter,
     get_filter,
@@ -1374,14 +1381,14 @@ def with_type(type, argument):
     return argument
 
 
-class FunctionTest(unittest.TestCase):
+class DiscoverFunctionTest(unittest.TestCase):
     def setUp(self):
-        self.fn_wo_optionals = Function(
+        self.fn_wo_optionals = DiscoverFunction(
             "wo_optionals",
             required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
             transform="",
         )
-        self.fn_w_optionals = Function(
+        self.fn_w_optionals = DiscoverFunction(
             "w_optionals",
             required_args=[FunctionArg("arg1")],
             optional_args=[with_default("default", FunctionArg("arg2"))],
@@ -1428,13 +1435,13 @@ class FunctionTest(unittest.TestCase):
         with self.assertRaisesRegexp(
             AssertionError, "test: optional argument at index 0 does not have default"
         ):
-            Function("test", optional_args=[FunctionArg("arg1")])
+            DiscoverFunction("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
         with self.assertRaisesRegexp(
             AssertionError, "test: argument arg1 specified more than once"
         ):
-            Function(
+            DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
                 optional_args=[with_default("default", FunctionArg("arg1"))],
@@ -1444,7 +1451,7 @@ class FunctionTest(unittest.TestCase):
         with self.assertRaisesRegexp(
             AssertionError, "test: argument arg1 specified more than once"
         ):
-            Function(
+            DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
                 calculated_args=[{"name": "arg1", "fn": lambda x: x}],
@@ -1454,7 +1461,7 @@ class FunctionTest(unittest.TestCase):
         with self.assertRaisesRegexp(
             AssertionError, "test: argument arg1 specified more than once"
         ):
-            Function(
+            DiscoverFunction(
                 "test",
                 optional_args=[with_default("default", FunctionArg("arg1"))],
                 calculated_args=[{"name": "arg1", "fn": lambda x: x}],
@@ -1462,20 +1469,20 @@ class FunctionTest(unittest.TestCase):
             )
 
     def test_default_result_type(self):
-        fn = Function("fn", transform="")
+        fn = DiscoverFunction("fn", transform="")
         assert fn.get_result_type() is None
 
-        fn = Function("fn", transform="", default_result_type="number")
+        fn = DiscoverFunction("fn", transform="", default_result_type="number")
         assert fn.get_result_type() == "number"
 
     def test_result_type_fn(self):
-        fn = Function("fn", transform="", result_type_fn=lambda *_: None)
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None)
         assert fn.get_result_type("fn()", []) is None
 
-        fn = Function("fn", transform="", result_type_fn=lambda *_: "number")
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: "number")
         assert fn.get_result_type("fn()", []) == "number"
 
-        fn = Function(
+        fn = DiscoverFunction(
             "fn",
             required_args=[with_type("number", FunctionArg("arg1"))],
             transform="",
@@ -1484,7 +1491,7 @@ class FunctionTest(unittest.TestCase):
         assert fn.get_result_type("fn()", ["arg1"]) == "number"
 
     def test_private_function(self):
-        fn = Function("fn", transform="", result_type_fn=lambda *_: None, private=True)
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None, private=True)
         assert fn.is_accessible() is False
         assert fn.is_accessible(None) is False
         assert fn.is_accessible([]) is False
@@ -1628,7 +1635,7 @@ class SemverPackageFilterConverterTest(TestCase):
         self, operator, version, expected_operator, expected_releases, organization_id=None
     ):
         organization_id = organization_id if organization_id else self.organization.id
-        key = SEMVER_ALIAS
+        key = SEMVER_PACKAGE_ALIAS
         filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
         converted = _semver_package_filter_converter(
             filter, key, {"organization_id": organization_id}
@@ -1655,6 +1662,41 @@ class SemverPackageFilterConverterTest(TestCase):
         self.run_test("=", "test", "IN", [release.version, release_2.version])
         self.run_test("=", "test2", "IN", [release_3.version])
         self.run_test("=", "test3", "IN", [SEMVER_EMPTY_RELEASE])
+
+
+class SemverBuildFilterConverterTest(TestCase):
+    def run_test(
+        self, operator, version, expected_operator, expected_releases, organization_id=None
+    ):
+        organization_id = organization_id if organization_id else self.organization.id
+        key = SEMVER_BUILD_ALIAS
+        filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
+        converted = _semver_build_filter_converter(
+            filter, key, {"organization_id": organization_id}
+        )
+        assert converted[0] == "release"
+        assert converted[1] == expected_operator
+        assert set(converted[2]) == set(expected_releases)
+
+    def test_invalid_params(self):
+        key = SEMVER_BUILD_ALIAS
+        filter = SearchFilter(SearchKey(key), "=", SearchValue("sentry"))
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            _semver_filter_converter(filter, key, None)
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            _semver_filter_converter(filter, key, {"something": 1})
+
+    def test_empty(self):
+        self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
+
+    def test(self):
+        release = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test@1.2.4+123")
+        release_3 = self.create_release(version="test2@1.2.5+124")
+        self.run_test("=", "123", "IN", [release.version, release_2.version])
+        self.run_test("=", "124", "IN", [release_3.version])
+        self.run_test("=", "125", "IN", [SEMVER_EMPTY_RELEASE])
+        self.run_test("<", "125", "IN", [release.version, release_2.version, release_3.version])
 
 
 class ParseSemverTest(unittest.TestCase):

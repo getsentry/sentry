@@ -323,9 +323,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     const {query} = this.props;
     const {query: lastQuery} = prevProps;
 
-    if (query !== lastQuery && defined(query)) {
+    if (query !== lastQuery && (defined(query) || defined(lastQuery))) {
       // eslint-disable-next-line react/no-did-update-set-state
-      this.setState(makeQueryState(addSpace(query)));
+      this.setState(makeQueryState(addSpace(query ?? undefined)));
     }
   }
 
@@ -1017,10 +1017,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     if (cursorToken.type === Token.FreeText) {
-      const autocompleteGroups = [
-        await this.generateTagAutocompleteGroup(cursorToken.text),
-      ];
-      this.setState({searchTerm: cursorToken.text});
+      const lastToken = cursorToken.text.trim().split(' ').pop() ?? '';
+      const keyText = lastToken.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
+      const autocompleteGroups = [await this.generateTagAutocompleteGroup(keyText)];
+      this.setState({searchTerm: keyText});
       this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
       return;
     }
