@@ -51,6 +51,7 @@ type Props = {
   activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
+  isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   showAdoptionStageLabels: boolean;
   adoptionStages?: Release['adoptionStages'];

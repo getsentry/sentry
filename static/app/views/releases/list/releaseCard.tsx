@@ -98,6 +98,7 @@ const ReleaseCard = ({
           showPlaceholders={showHealthPlaceholders}
           reloading={reloading}
           selection={selection}
+          isTopRelease={isTopRelease}
           getHealthData={getHealthData}
         />
       </ReleaseProjects>
