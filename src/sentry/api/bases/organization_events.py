@@ -269,6 +269,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         params=None,
         query=None,
         allow_partial_buckets=False,
+        zerofill_results=True,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
@@ -312,7 +313,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
-                result = get_event_stats(query_columns, query, params, rollup)
+                result = get_event_stats(
+                    query_columns, query, params, rollup, zerofill_results=zerofill_results
+                )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
@@ -325,7 +328,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 for key, event_result in result.items():
                     if len(query_columns) > 1:
                         results[key] = self.serialize_multiple_axis(
-                            serializer, event_result, columns, query_columns, allow_partial_buckets
+                            serializer,
+                            event_result,
+                            columns,
+                            query_columns,
+                            allow_partial_buckets,
+                            zerofill_results=zerofill_results,
                         )
                     else:
                         # Need to get function alias if count is a field, but not the axis
@@ -333,21 +341,39 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             event_result,
                             column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
+                            zerofill_results=zerofill_results,
                         )
-                return results
+                serializedResult = results
             elif len(query_columns) > 1:
-                return self.serialize_multiple_axis(
-                    serializer, result, columns, query_columns, allow_partial_buckets
+                serializedResult = self.serialize_multiple_axis(
+                    serializer,
+                    result,
+                    columns,
+                    query_columns,
+                    allow_partial_buckets,
+                    zerofill_results=zerofill_results,
                 )
             else:
-                return serializer.serialize(
+                serializedResult = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
+                    zerofill_results=zerofill_results,
                 )
+            if hasattr(result, "start") and hasattr(result, "end"):
+                serializedResult["start"] = result.start
+                serializedResult["end"] = result.end
+
+            return serializedResult
 
     def serialize_multiple_axis(
-        self, serializer, event_result, columns, query_columns, allow_partial_buckets
+        self,
+        serializer,
+        event_result,
+        columns,
+        query_columns,
+        allow_partial_buckets,
+        zerofill_results=True,
     ):
         # Return with requested yAxis as the key
         result = {
@@ -356,6 +382,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 resolve_axis_column(query_column, index),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
+                zerofill_results=zerofill_results,
             )
             for index, query_column in enumerate(query_columns)
         }

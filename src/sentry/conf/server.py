@@ -964,6 +964,8 @@ SENTRY_FEATURES = {
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
     "organizations:performance-events-page": False,
+    # Enable interpolation of null data points in charts instead of zerofilling in performance
+    "organizations:performance-chart-interpolation": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
