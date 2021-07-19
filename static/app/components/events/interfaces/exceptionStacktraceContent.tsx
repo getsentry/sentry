@@ -68,7 +68,7 @@ const ExceptionStacktraceContent = ({
    */
 
   const stackTracePlatform =
-    ((data?.frames ?? []).find(frame => frame.platform) || platform) ?? 'other';
+    (data?.frames ?? []).find(frame => frame.platform) ?? platform ?? 'other';
 
   if (
     hasGroupingTreeUI &&

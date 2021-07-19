@@ -28,7 +28,7 @@ const Stacktrace = ({
   groupingCurrentLevel,
 }: Props) => {
   const stackTracePlatform =
-    ((stacktrace?.frames ?? []).find(frame => frame.platform) || platform) ?? 'other';
+    (stacktrace?.frames ?? []).find(frame => frame.platform) ?? platform ?? 'other';
 
   return (
     <ErrorBoundary mini>

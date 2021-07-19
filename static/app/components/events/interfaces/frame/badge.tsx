@@ -4,36 +4,36 @@ import styled from '@emotion/styled';
 import RepoLabel from 'app/components/repoLabel';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import {FrameTag} from 'app/types';
+import {FrameBadge} from 'app/types';
 import {Theme} from 'app/utils/theme';
 
 type Props = {
   theme: Theme;
-  tag: FrameTag;
+  badge: FrameBadge;
 };
 
-function Tag({tag, theme}: Props) {
-  switch (tag) {
-    case FrameTag.PREFIX:
+function Badge({badge, theme}: Props) {
+  switch (badge) {
+    case FrameBadge.PREFIX:
       return (
         <Tooltip title={t('This frame is used for grouping as prefix frame')}>
           <StyledRepoLabel background={theme.green300}>{'prefix'}</StyledRepoLabel>
         </Tooltip>
       );
 
-    case FrameTag.SENTINEL:
+    case FrameBadge.SENTINEL:
       return (
         <Tooltip title={t('This frame is used for grouping as sentinel frame')}>
           <StyledRepoLabel background={theme.pink300}>{'sentinel'}</StyledRepoLabel>
         </Tooltip>
       );
-    case FrameTag.GROUPING:
+    case FrameBadge.GROUPING:
       return (
         <Tooltip title={t('This frame is used for grouping')}>
           <StyledRepoLabel>{'grouping'}</StyledRepoLabel>
         </Tooltip>
       );
-    case FrameTag.IN_APP:
+    case FrameBadge.IN_APP:
       return (
         <Tooltip title={t('This frame is from your application')}>
           <StyledRepoLabel background={theme.blue300}>{'in app'}</StyledRepoLabel>
@@ -44,7 +44,7 @@ function Tag({tag, theme}: Props) {
   }
 }
 
-export default withTheme(Tag);
+export default withTheme(Badge);
 
 const StyledRepoLabel = styled(RepoLabel)<{background?: string}>`
   ${p => p.background && `background: ${p.background};`}

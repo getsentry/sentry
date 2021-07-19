@@ -160,9 +160,8 @@ const FunctionNameToggleTooltip = styled(Tooltip)`
   height: 16px;
   align-items: center;
   margin-right: ${space(0.75)};
-  display: none;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
   }
 `;
 

@@ -24,15 +24,21 @@ import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Frame, FrameTag, Organization, PlatformType, SentryAppComponent} from 'app/types';
+import {
+  Frame,
+  FrameBadge,
+  Organization,
+  PlatformType,
+  SentryAppComponent,
+} from 'app/types';
 import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
+import Badge from './badge';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
-import Tag from './tag';
 import {
   getPlatform,
   hasAssembly,
@@ -290,24 +296,24 @@ export class Line extends React.Component<Props, State> {
     );
   }
 
-  renderGroupingTags() {
+  renderGroupingBadges() {
     const {isPrefix, isSentinel, isUsedForGrouping} = this.props;
 
-    const tags: React.ReactElement[] = [];
+    const badges: React.ReactElement[] = [];
 
     if (isSentinel) {
-      tags.push(<Tag tag={FrameTag.SENTINEL} />);
+      badges.push(<Badge badge={FrameBadge.SENTINEL} />);
     }
 
     if (isPrefix) {
-      tags.push(<Tag tag={FrameTag.PREFIX} />);
+      badges.push(<Badge badge={FrameBadge.PREFIX} />);
     }
 
     if (isUsedForGrouping) {
-      tags.push(<Tag tag={FrameTag.GROUPING} />);
+      badges.push(<Badge badge={FrameBadge.GROUPING} />);
     }
 
-    return tags;
+    return badges;
   }
 
   renderNativeLine() {
@@ -372,10 +378,10 @@ export class Line extends React.Component<Props, State> {
               onFunctionNameToggle={onFunctionNameToggle}
               isHoverPreviewed={isHoverPreviewed}
             />
-            <FrameCategories>
-              {data.inApp && <Tag tag={FrameTag.IN_APP} />}
-              {this.renderGroupingTags()}
-            </FrameCategories>
+            <FrameBadges>
+              {data.inApp && <Badge badge={FrameBadge.IN_APP} />}
+              {this.renderGroupingBadges()}
+            </FrameBadges>
             {this.renderExpander()}
           </FrameLine>
         </StrictClick>
@@ -481,7 +487,7 @@ export default withOrganization(
   withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
 );
 
-const FrameCategories = styled('div')`
+const FrameBadges = styled('div')`
   display: grid;
   grid-gap: ${space(0.5)};
   justify-content: flex-end;

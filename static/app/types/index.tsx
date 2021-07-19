@@ -1987,7 +1987,7 @@ export type Frame = {
   minGroupingLevel?: number;
 };
 
-export enum FrameTag {
+export enum FrameBadge {
   SENTINEL = 'sentinel',
   PREFIX = 'prefix',
   GROUPING = 'grouping',

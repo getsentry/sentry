@@ -140,7 +140,7 @@ function StackTraceContent({
     return frames.some((frame, frameIndex) =>
       isExpandable({
         frame,
-        registers: {},
+        registers: registers ?? {},
         emptySourceNotation: frames.length - 1 === frameIndex && frameIndex === 0,
         platform,
       })
@@ -265,9 +265,16 @@ function StackTraceContent({
 
     if (convertedFrames.length > 0 && registers) {
       const lastFrame = convertedFrames.length - 1;
+
       convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
         registers,
       });
+
+      if (!newestFirst) {
+        return convertedFrames;
+      }
+
+      return [...convertedFrames].reverse();
     }
 
     if (!newestFirst) {

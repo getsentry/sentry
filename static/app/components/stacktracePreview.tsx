@@ -143,7 +143,7 @@ class StacktracePreview extends React.Component<Props, State> {
     if (event) {
       const platform = (event.platform ?? 'other') as PlatformType;
       const stackTracePlatform =
-        ((stacktrace?.frames ?? []).find(frame => frame.platform) || platform) ?? 'other';
+        (stacktrace?.frames ?? []).find(frame => frame.platform) ?? platform ?? 'other';
 
       return (
         <div onClick={this.handleStacktracePreviewClick}>
