@@ -571,7 +571,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for query_fn in [discover.query, discover.wip_snql_query]:
             result = query_fn(
                 selected_columns=["transaction.status"],
-                query="event.type:transaction",
+                query="",
                 params={
                     "organization_id": self.organization.id,
                     "project_id": [self.project.id],
