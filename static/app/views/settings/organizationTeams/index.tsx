@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router';
-
+import TeamActions from 'app/actions/teamActions';
 import {loadStats} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import { Organization, Team, AccessRequest } from 'app/types';
@@ -48,10 +48,17 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
   }
 
 
-  removeAccessRequest = (id: string) =>
+  removeAccessRequest = (id: string, isApproved: boolean) => {
+    const requestToRemove = this.state.requestList.find(request => request.id === id);
     this.setState(state => ({
       requestList: state.requestList.filter(request => request.id !== id),
     }));
+    if (isApproved && requestToRemove) {
+      const team = requestToRemove.team;
+      team.memberCount += 1;
+      TeamActions.updateSuccess(team.slug, team);
+    }
+  }
 
   renderBody() {
     const {organization, teams} = this.props;

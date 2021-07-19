@@ -20,7 +20,7 @@ type Props = {
   activeTeams: Team[];
   organization: Organization;
   requestList: AccessRequest[];
-  onRemoveAccessRequest: (id: string) => void;
+  onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function OrganizationTeams({
