@@ -1,10 +1,12 @@
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
+  tagValidOps,
   TermOperator,
   Token,
   TokenResult,
 } from 'app/components/searchSyntax/parser';
+import {getKeyName} from 'app/components/searchSyntax/utils';
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 
@@ -223,13 +225,17 @@ export function getValidOps(
     type => interchangeableFilterOperators[type] ?? []
   );
 
+  // Determine any valid ops from the filter's tag
+  const validOpsFromTag = tagValidOps[getKeyName(filterToken.key)] ?? [];
+
   // Combine all types
   const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
 
   // Find all valid operations
-  const validOps = new Set<TermOperator>(
-    allValidTypes.map(type => filterTypeConfig[type].validOps).flat()
-  );
+  const validOps = new Set<TermOperator>([
+    ...allValidTypes.map(type => filterTypeConfig[type].validOps).flat(),
+    ...validOpsFromTag,
+  ]);
 
   return [...validOps];
 }

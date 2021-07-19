@@ -116,6 +116,12 @@ export const interchangeableFilterOperators = {
   [FilterType.Date]: [FilterType.SpecificDate],
 };
 
+export const tagValidOps = {
+  'release.version': allOperators,
+  'release.build': allOperators,
+  'release.package': allOperators,
+};
+
 const textKeys = [Token.KeySimple, Token.KeyExplicitTag] as const;
 
 const numberUnits = {
