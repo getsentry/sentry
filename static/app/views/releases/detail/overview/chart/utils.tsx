@@ -20,7 +20,6 @@ import {EventType, YAxis} from './releaseChartControls';
 
 type ChartData = Record<string, Series>;
 
-const SESSIONS_CHART_PALETTE = CHART_PALETTE[15];
 
 type GetIntervalOptions = {
   highFidelity?: boolean;
