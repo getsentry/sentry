@@ -29,6 +29,7 @@ from sentry.models import (
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
+    RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
@@ -217,6 +218,51 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.data[0]["version"] == release.version
 
         response = self.client.get(url + "?query=baz", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_release_filter(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        release = Release.objects.create(
+            organization_id=org.id,
+            version="foobar",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release.add_project(project)
+
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version="sdfsdfsdf",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release2.add_project(project)
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:foobar")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["version"] == release.version
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:foo*")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["version"] == release.version
+
+        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:baz")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -766,6 +812,21 @@ class OrganizationReleasesStatsTest(APITestCase):
         assert [r["version"] for r in response.data] == [release.version]
 
         response = self.get_valid_response(self.organization.slug, query="baz")
+        assert [r["version"] for r in response.data] == []
+
+        response = self.get_valid_response(self.organization.slug, query="release:*oob*")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:foob*")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:*bar")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:foobar")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:*baz*")
         assert [r["version"] for r in response.data] == []
 
 
