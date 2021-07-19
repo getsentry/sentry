@@ -647,7 +647,7 @@ export enum MobileVital {
   StallCount = 'measurements.stall_count',
   StallTotalTime = 'measurements.stall_total_time',
   StallLongestTime = 'measurements.stall_longest_time',
-  StallRate = 'measurements.stall_rate',
+  StallPercentage = 'measurements.stall_percentage',
 }
 
 const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
@@ -668,7 +668,7 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [MobileVital.StallCount]: 'number',
   [MobileVital.StallTotalTime]: 'duration',
   [MobileVital.StallLongestTime]: 'duration',
-  [MobileVital.StallRate]: 'percentage',
+  [MobileVital.StallPercentage]: 'percentage',
 };
 
 // This list contains fields/functions that are available with performance-view feature.

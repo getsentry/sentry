@@ -142,7 +142,7 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
   },
   [MobileVital.StallTotalTime]: {
     slug: 'stall_total_time',
-    name: t('Stall Total Time'),
+    name: t('Total Stall Time'),
     description: t(
       'Stall Total Time is the total amount of time the application is stalled within a transaction.'
     ),
@@ -150,18 +150,18 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
   },
   [MobileVital.StallLongestTime]: {
     slug: 'stall_longest_time',
-    name: t('Stall Longest Time'),
+    name: t('Longest Stall Time'),
     description: t(
       'Stall Longest Time is the longest amount of time the application is stalled within a transaction.'
     ),
     type: measurementType(MobileVital.StallLongestTime),
   },
-  [MobileVital.StallRate]: {
-    slug: 'stall_rate',
-    name: t('Stall Rate'),
+  [MobileVital.StallPercentage]: {
+    slug: 'stall_percentage',
+    name: t('Stall Percentage'),
     description: t(
-      'Stall Rate is the percentage of the transaction duration the application was stalled.'
+      'Stall Percentage is the percentage of the transaction duration the application was stalled.'
     ),
-    type: measurementType(MobileVital.StallRate),
+    type: measurementType(MobileVital.StallPercentage),
   },
 };
