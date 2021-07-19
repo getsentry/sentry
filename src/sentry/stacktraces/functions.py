@@ -99,7 +99,7 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     if platform == "csharp":
         return trim_csharp_function_name(function)
     if get_behavior_family_for_platform(platform) == "native":
-        return trim_native_function_name(function, normalize_lambdas=normalize_lambdas)
+        return trim_native_function_name(function, platform, normalize_lambdas=normalize_lambdas)
     return function
 
 
@@ -116,7 +116,7 @@ def trim_csharp_function_name(function):
     return function.split(" (", 1)[0]
 
 
-def trim_native_function_name(function, normalize_lambdas=True):
+def trim_native_function_name(function, platform, normalize_lambdas=True):
     if function in ("<redacted>", "<unknown>"):
         return function
 
@@ -189,6 +189,8 @@ def trim_native_function_name(function, normalize_lambdas=True):
 
     function = replace_enclosed_string(function, "<", ">", process_generics)
 
+    is_thunk = "thunk for " in function  # swift
+
     tokens = split_func_tokens(function)
 
     # MSVC demangles generic operator functions with a space between the
@@ -214,6 +216,10 @@ def trim_native_function_name(function, normalize_lambdas=True):
             func_token = None
 
     if func_token:
+        if func_token.startswith("@") and platform in ("cocoa", "swift"):
+            # Found a Swift attribute instead of a function name, must be an
+            # anonymous function
+            func_token = ("thunk for " if is_thunk else "") + "closure"
         function = (
             func_token.replace("⟨", "<")
             .replace("◯", "()")
