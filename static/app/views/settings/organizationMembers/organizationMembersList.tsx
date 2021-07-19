@@ -10,13 +10,12 @@ import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Pagination from 'app/components/pagination';
-import { Panel, PanelBody, PanelHeader } from 'app/components/panels';
-
-import space from 'app/styles/space';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {MEMBER_ROLES} from 'app/constants';
 import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import space from 'app/styles/space';
 import {Member, MemberRole, Organization, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -41,7 +40,6 @@ const StyledPanelItem = styled('div')`
   align-items: center;
   width: 100%;
 `;
-
 
 type Props = {
   organization: Organization;
