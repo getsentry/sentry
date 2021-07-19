@@ -75,7 +75,7 @@ describe('TeamNotificationSettings', () => {
     const emptyMessage = wrapper.find('Panel div[data-test-id="empty-message"]');
     expect(emptyMessage).toHaveLength(1);
     expect(emptyMessage.find('div div div').first().text()).toBe(
-      'No External Teams have been linked yet.'
+      'No teams have been linked yet.'
     );
   });
 

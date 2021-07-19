@@ -74,7 +74,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
     if (!externalTeams.length) {
       return (
         <EmptyMessage>
-          <div>{t('No External Teams have been linked yet.')}</div>
+          <div>{t('No teams have been linked yet.')}</div>
           <NotDisabledSubText>
             {tct('Head over to Slack and type [code] to get started. [link].', {
               code: <code>/sentry link team</code>,
