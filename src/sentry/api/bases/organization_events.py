@@ -313,9 +313,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
-                result = get_event_stats(
-                    query_columns, query, params, rollup, zerofill_results=zerofill_results
-                )
+                result = get_event_stats(query_columns, query, params, rollup, zerofill_results)
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
