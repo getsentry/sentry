@@ -438,9 +438,7 @@ class Issues extends Component<Props, State> {
                 </DiscoverButton>
               </GuideAnchor>
             )}
-            {!hasReleaseComparison && (
-              <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
-            )}
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
