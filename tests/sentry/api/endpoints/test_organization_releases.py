@@ -814,6 +814,21 @@ class OrganizationReleasesStatsTest(APITestCase):
         response = self.get_valid_response(self.organization.slug, query="baz")
         assert [r["version"] for r in response.data] == []
 
+        response = self.get_valid_response(self.organization.slug, query="release:*oob*")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:foob*")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:*bar")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:foobar")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="release:*baz*")
+        assert [r["version"] for r in response.data] == []
+
 
 class OrganizationReleaseCreateTest(APITestCase):
     def test_minimal(self):
