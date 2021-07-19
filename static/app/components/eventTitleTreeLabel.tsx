@@ -22,15 +22,15 @@ function EventTitleTreeLabel({treeLabel}: Props) {
           if (index !== firstFourParts.length - 1) {
             return (
               <Fragment key={index}>
-                <PriorityPart highlight={highlight}>{label}</PriorityPart>
+                <PriorityLabel highlight={highlight}>{label}</PriorityLabel>
                 <Divider>{'|'}</Divider>
               </Fragment>
             );
           }
           return (
-            <PriorityPart key={index} highlight={highlight}>
+            <PriorityLabel key={index} highlight={highlight}>
               {label}
-            </PriorityPart>
+            </PriorityLabel>
           );
         })}
       </FirstFourParts>
@@ -73,9 +73,10 @@ const Label = styled('div')<{highlight: boolean}>`
       border-radius: ${p.theme.borderRadius};
       padding: 0 ${space(0.5)};
     `}
+  display: inline-block;
 `;
 
-const PriorityPart = styled(Label)`
+const PriorityLabel = styled(Label)`
   ${overflowEllipsis}
   display: inline-block;
 `;
@@ -89,5 +90,5 @@ const RemainingLabels = styled('div')`
 export const Divider = styled('div')`
   color: ${p => p.theme.gray200};
   display: inline-block;
-  margin: 0 ${space(1)};
+  padding: 0 ${space(1)};
 `;
