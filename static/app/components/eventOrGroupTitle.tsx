@@ -34,6 +34,7 @@ function EventOrGroupTitle({
   className,
 }: Props) {
   const event = data as Event;
+  const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
 
   const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
   const {id, eventID, groupID, projectID} = event;
@@ -46,6 +47,7 @@ function EventOrGroupTitle({
         <StyledStacktracePreview
           organization={organization}
           issueId={groupID ? groupID : id}
+          groupingCurrentLevel={groupingCurrentLevel}
           // we need eventId and projectSlug only when hovering over Event, not Group
           // (different API call is made to get the stack trace then)
           eventId={eventID}

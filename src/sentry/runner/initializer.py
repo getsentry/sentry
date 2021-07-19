@@ -502,7 +502,7 @@ def monkeypatch_drf_listfield_serializer_errors():
 
     # We don't need to patch DictField since we don't use it
     # at the time of patching. This is fine since anything newly
-    # introduced that does use it should prefer the better seralizer
+    # introduced that does use it should prefer the better serializer
     # errors.
 
 
