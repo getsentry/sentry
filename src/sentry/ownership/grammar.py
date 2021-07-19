@@ -131,7 +131,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         """
         Codeowners has a slightly different syntax compared to issue owners
         As such we need to match it using gitignore logic.
-        See sytax documentation here:
+        See syntax documentation here:
         https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
         """
         spec = _path_to_regex(self.pattern)
@@ -228,7 +228,7 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     ported from https://github.com/hmarr/codeowners/blob/d0452091447bd2a29ee508eebc5a79874fb5d4ff/match.go#L33
     ported from https://github.com/sbdchd/codeowners/blob/6c5e8563f4c675abb098df704e19f4c6b95ff9aa/codeowners/__init__.py#L16
 
-    There are some special cases like backslash that was added
+    There are some special cases like backslash that were added
 
     MIT License
 
