@@ -37,6 +37,10 @@ class DateTime extends Component<Props> {
 
     // Oct 26, 11:30 AM
     if (timeAndDate) {
+      if (clock24Hours) {
+        return 'MMM DD, HH:mm';
+      }
+
       return 'MMM DD, LT';
     }
 
