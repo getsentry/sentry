@@ -114,7 +114,6 @@ function ReleaseComparisonChart({
     start,
     end,
     utc,
-    environment,
   } = useMemo(
     () =>
       // Memoizing this so that it does not calculate different `end` for releases without events+sessions each rerender
@@ -217,7 +216,7 @@ function ReleaseComparisonChart({
         {
           query: {
             project: project.id,
-            environment,
+            environment: decodeList(location.query.environment),
             start,
             end,
             ...(period ? {statsPeriod: period} : {}),
