@@ -3,6 +3,7 @@ import pick from 'lodash/pick';
 import round from 'lodash/round';
 import moment from 'moment';
 
+import {DateTimeObject} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {tn} from 'app/locale';
@@ -89,15 +90,37 @@ export const getReleaseNewIssuesUrl = (
 export const getReleaseUnhandledIssuesUrl = (
   orgSlug: string,
   projectId: string | number | null,
-  version: string
+  version: string,
+  dateTime: DateTimeObject = {}
 ) => {
   return {
     pathname: `/organizations/${orgSlug}/issues/`,
     query: {
+      ...dateTime,
       project: projectId,
       query: new QueryResults([
         `release:${version}`,
         'error.unhandled:true',
+      ]).formatString(),
+      sort: IssueSortOptions.FREQ,
+    },
+  };
+};
+
+export const getReleaseHandledIssuesUrl = (
+  orgSlug: string,
+  projectId: string | number | null,
+  version: string,
+  dateTime: DateTimeObject = {}
+) => {
+  return {
+    pathname: `/organizations/${orgSlug}/issues/`,
+    query: {
+      ...dateTime,
+      project: projectId,
+      query: new QueryResults([
+        `release:${version}`,
+        'error.handled:true',
       ]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
