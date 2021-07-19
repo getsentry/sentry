@@ -24,21 +24,15 @@ import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {
-  Frame,
-  FrameCategory,
-  Organization,
-  PlatformType,
-  SentryAppComponent,
-} from 'app/types';
+import {Frame, FrameTag, Organization, PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
-import Category from './category';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
+import Tag from './tag';
 import {
   getPlatform,
   hasAssembly,
@@ -296,22 +290,24 @@ export class Line extends React.Component<Props, State> {
     );
   }
 
-  renderGroupingCategory() {
+  renderGroupingTags() {
     const {isPrefix, isSentinel, isUsedForGrouping} = this.props;
 
+    const tags: React.ReactElement[] = [];
+
     if (isSentinel) {
-      return <Category category={FrameCategory.SENTINEL} />;
+      tags.push(<Tag tag={FrameTag.SENTINEL} />);
     }
 
     if (isPrefix) {
-      return <Category category={FrameCategory.PREFIX} />;
+      tags.push(<Tag tag={FrameTag.PREFIX} />);
     }
 
     if (isUsedForGrouping) {
-      return <Category category={FrameCategory.GROUPING} />;
+      tags.push(<Tag tag={FrameTag.GROUPING} />);
     }
 
-    return undefined;
+    return tags;
   }
 
   renderNativeLine() {
@@ -377,8 +373,8 @@ export class Line extends React.Component<Props, State> {
               isHoverPreviewed={isHoverPreviewed}
             />
             <FrameCategories>
-              {data.inApp && <Category category={FrameCategory.IN_APP} />}
-              {this.renderGroupingCategory()}
+              {data.inApp && <Tag tag={FrameTag.IN_APP} />}
+              {this.renderGroupingTags()}
             </FrameCategories>
             {this.renderExpander()}
           </FrameLine>
@@ -461,7 +457,7 @@ export class Line extends React.Component<Props, State> {
     const props = {className};
 
     return (
-      <StyledLi {...props}>
+      <StyledLi {...props} hasGroupingTreeUI={this.props.hasGroupingTreeUI}>
         {this.renderLine()}
         <Context
           frame={data}
@@ -633,8 +629,8 @@ const ToggleContextButton = styled(Button)`
   }
 `;
 
-const StyledLi = styled('li')`
-  overflow: hidden;
+const StyledLi = styled('li')<{hasGroupingTreeUI?: boolean}>`
+  ${p => p.hasGroupingTreeUI && `overflow: hidden;`}
 
   ${PackageStatusIcon} {
     flex-shrink: 0;

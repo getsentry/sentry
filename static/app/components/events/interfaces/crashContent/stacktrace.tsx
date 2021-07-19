@@ -2,17 +2,19 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import StacktraceContentV2 from 'app/components/events/interfaces/stacktraceContentV2';
-import {Group, PlatformType} from 'app/types';
+import {PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW, StacktraceType} from 'app/types/stacktrace';
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof StacktraceContentV2>,
+  'groupingCurrentLevel'
+> & {
   stacktrace: StacktraceType;
   event: Event;
   newestFirst: boolean;
   platform: PlatformType;
   hasGroupingTreeUI: boolean;
-  groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
 };
 

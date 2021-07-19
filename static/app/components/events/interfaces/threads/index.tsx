@@ -5,7 +5,7 @@ import CrashActions from 'app/components/events/interfaces/crashHeader/crashActi
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {t} from 'app/locale';
-import {Group, Project} from 'app/types';
+import {Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
@@ -21,15 +21,16 @@ const defaultProps = {
   hideGuide: false,
 };
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof Content>,
+  'groupingCurrentLevel' | 'hasGroupingTreeUI'
+> & {
   event: Event;
   projectId: Project['id'];
   type: string;
   data: {
     values?: Array<Thread>;
   };
-  hasGroupingTreeUI: boolean;
-  groupingCurrentLevel?: Group['metadata']['current_level'];
 } & typeof defaultProps;
 
 type State = {

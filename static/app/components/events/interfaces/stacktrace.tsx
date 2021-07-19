@@ -35,12 +35,12 @@ const defaultProps = {
   hideGuide: false,
 };
 
-type StackTrace = NonNullable<React.ComponentProps<typeof CrashContent>['stacktrace']>;
+type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
-type Props = {
+type Props = Pick<CrashContentProps, 'groupingCurrentLevel' | 'hasGroupingTreeUI'> & {
   event: Event;
   type: string;
-  data: StackTrace;
+  data: NonNullable<CrashContentProps['stacktrace']>;
   projectId: Project['id'];
   hasGroupingTreeUI: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];

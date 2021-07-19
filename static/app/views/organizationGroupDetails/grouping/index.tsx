@@ -27,7 +27,7 @@ function GroupingContainer({organization, location, group, router}: Props) {
     >
       <Grouping
         location={location}
-        group={group}
+        groupId={group.id}
         organization={organization}
         router={router}
       />

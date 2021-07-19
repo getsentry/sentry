@@ -74,24 +74,15 @@ const CrashActions = ({
   return (
     <ButtonGroupWrapper>
       <ButtonBar active={stackView} merged>
-        {hasSystemFrames &&
-          (hasGroupingTreeUI ? (
-            <Button
-              barId={STACK_VIEW.APP}
-              size="xsmall"
-              onClick={setStackView(STACK_VIEW.APP)}
-            >
-              {t('Relevant Only')}
-            </Button>
-          ) : (
-            <Button
-              barId={STACK_VIEW.APP}
-              size="xsmall"
-              onClick={setStackView(STACK_VIEW.APP)}
-            >
-              {t('App Only')}
-            </Button>
-          ))}
+        {hasSystemFrames && (
+          <Button
+            barId={STACK_VIEW.APP}
+            size="xsmall"
+            onClick={setStackView(STACK_VIEW.APP)}
+          >
+            {hasGroupingTreeUI ? t('Relevant Only') : t('App Only')}
+          </Button>
+        )}
         <Button
           barId={STACK_VIEW.FULL}
           size="xsmall"

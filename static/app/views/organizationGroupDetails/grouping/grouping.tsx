@@ -27,7 +27,7 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   organization: Organization;
-  group: Group;
+  groupId: Group['id'];
   location: Location<{level?: number; cursor?: string}>;
   api: Client;
   router: InjectedRouter;
@@ -44,9 +44,8 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, group, location, organization, router}: Props) {
+function Grouping({api, groupId, location, organization, router}: Props) {
   const {cursor, level} = location.query;
-  const groupId = group.id;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
     useState(false);
@@ -213,7 +212,6 @@ function Grouping({api, group, location, organization, router}: Props) {
                     }}
                     eventCount={eventCount}
                     organization={organization}
-                    group={group}
                   />
                 );
               }

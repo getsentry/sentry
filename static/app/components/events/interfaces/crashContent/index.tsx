@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {ExceptionType, ExceptionValue, Group, PlatformType} from 'app/types';
+import {ExceptionType, ExceptionValue, PlatformType} from 'app/types';
 
 import Exception from './exception';
 import Stacktrace from './stacktrace';
@@ -8,10 +8,14 @@ import Stacktrace from './stacktrace';
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 type Props = Pick<
   ExceptionProps,
-  'stackType' | 'stackView' | 'projectId' | 'event' | 'newestFirst'
+  | 'stackType'
+  | 'stackView'
+  | 'projectId'
+  | 'event'
+  | 'newestFirst'
+  | 'groupingCurrentLevel'
+  | 'hasGroupingTreeUI'
 > & {
-  hasGroupingTreeUI: boolean;
-  groupingCurrentLevel?: Group['metadata']['current_level'];
   exception?: ExceptionType;
   stacktrace?: ExceptionValue['stacktrace'];
 };
