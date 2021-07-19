@@ -67,7 +67,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
       );
     }
 
-    const externalTeams = teamDetails.externalTeams.filter(externalTeam =>
+    const externalTeams = (teamDetails.externalTeams || []).filter(externalTeam =>
       NOTIFICATION_PROVIDERS.includes(externalTeam.provider)
     );
 
