@@ -268,12 +268,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
       <SearchWrapperWithFilter>
-        {defaultSearchBar}
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
             <FilterWrapper>
               <Button icon={<IconSliders size="xs" />} {...getActorProps({})}>
-                {t('Search Filters')}
+                {t('Filter')}
               </Button>
               {isOpen && (
                 <StyledMembersFilter
@@ -285,6 +284,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
             </FilterWrapper>
           )}
         </DropdownMenu>
+        {defaultSearchBar}
       </SearchWrapperWithFilter>
     );
 
@@ -306,7 +306,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
           <Panel>
             <PanelHeader>
               <StyledPanelItem>
-                <div>{t('Pending Invite Requests')}</div>
+                <div>{t('Pending Members')}</div>
                 <div>{t('Role')}</div>
                 <div>{t('Teams')}</div>
               </StyledPanelItem>
@@ -366,6 +366,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
 const SearchWrapperWithFilter = styled(SearchWrapper)`
   display: grid;
+  grid-template-columns: max-content 1fr;
 `;
 
 const FilterWrapper = styled('div')`
