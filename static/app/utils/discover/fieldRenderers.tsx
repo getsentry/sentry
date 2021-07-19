@@ -559,7 +559,6 @@ const spanOperationRelativeBreakdownRenderer = (
   const cumulativeSpanOpBreakdown = Math.max(sumOfSpanTime, data['transaction.duration']);
 
   if (
-    !isDurationValue(data, 'spans.total.time') ||
     SPAN_OP_BREAKDOWN_FIELDS.every(field => !isDurationValue(data, field)) ||
     cumulativeSpanOpBreakdown === 0
   ) {
