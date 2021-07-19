@@ -1,6 +1,10 @@
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
+  working-dir:
+    description: 'Directory to do work from'
+    required: false
+    default: '.'
   snuba:
     description: 'Is snuba required?'
     required: false
@@ -88,7 +92,12 @@ runs:
 
     - name: Install python dependencies
       shell: bash
+      env:
+        # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
+        # without needing to fork it. The path needed is the one where setup.py is located
+        WORKDIR: ${{ inputs.workdir }}
       run: |
+        cd "$WORKDIR"
         python setup.py install_egg_info
         pip install wheel # GitHub Actions does not have `wheel` installed by default
         pip install -U -e ".[dev]"
