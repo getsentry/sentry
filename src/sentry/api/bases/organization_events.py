@@ -321,10 +321,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             # When the request is for top_events, result can be a SnubaTSResult in the event that
             # there were no top events found. In this case, result contains a zerofilled series
             # that acts as a placeholder.
+            is_multiple_axis = len(query_columns) > 1
             if top_events > 0 and isinstance(result, dict):
                 results = {}
                 for key, event_result in result.items():
-                    if len(query_columns) > 1:
+                    if is_multiple_axis:
                         results[key] = self.serialize_multiple_axis(
                             serializer,
                             event_result,
@@ -342,7 +343,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                         )
                 serializedResult = results
-            elif len(query_columns) > 1:
+            elif is_multiple_axis:
                 serializedResult = self.serialize_multiple_axis(
                     serializer,
                     result,
@@ -359,8 +360,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                 )
             if hasattr(result, "start") and hasattr(result, "end"):
-                serializedResult["start"] = result.start
-                serializedResult["end"] = result.end
+                if is_multiple_axis:
+                    for value in serializedResult.values():
+                        value["start"] = result.start
+                        value["end"] = result.end
+                else:
+                    serializedResult["start"] = result.start
+                    serializedResult["end"] = result.end
 
             return serializedResult
 
