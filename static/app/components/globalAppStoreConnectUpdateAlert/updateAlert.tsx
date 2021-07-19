@@ -168,14 +168,13 @@ const Actions = styled('div')`
 `;
 
 const Content = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    justify-content: space-between;
-  }
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-gap: ${space(1)};
 `;
 
 const ButtonClose = styled(Button)`
   color: ${p => p.theme.textColor};
+  /* Give the button an explicit height so that it lines up with the icon */
+  height: 22px;
 `;
