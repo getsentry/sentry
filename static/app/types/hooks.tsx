@@ -263,7 +263,20 @@ type AnalyticsTrackEventV2 = (
      */
     [key: string]: any;
   },
-  options: any
+  options: {
+    /**
+     * Sends the event to marketing analytics
+     */
+    sendMarketing?: boolean;
+    /**
+     * If true, starts an analytics session
+     */
+    startSession?: boolean;
+    /**
+     * An arbitrary function to map the parameters to new paraameters
+     */
+    mapValuesFn?: (params: object) => object;
+  }
 ) => void;
 
 /**

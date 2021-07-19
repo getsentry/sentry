@@ -31,6 +31,18 @@ import {Hooks} from 'app/types/hooks';
  * Refer for the backend implementation provided through HookStore for more
  * details.
  */
+export const trackAnalyticsEventV2: Hooks['analytics:track-event-v2'] = (data, options) =>
+  HookStore.get('analytics:track-event-v2').forEach(cb => cb(data, options));
+
+/**
+ * This should be primarily used for product events. In that case where you
+ * want to track some one-off Adhoc events, use the `trackAdhocEvent` function.
+ *
+ * Generally this is the function you will want to use for event tracking.
+ *
+ * Refer for the backend implementation provided through HookStore for more
+ * details.
+ */
 export const trackAnalyticsEvent: Hooks['analytics:track-event'] = options =>
   HookStore.get('analytics:track-event').forEach(cb => cb(options));
 
