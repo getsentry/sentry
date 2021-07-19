@@ -138,7 +138,7 @@ const InviteRequestRow = ({
             size="small"
             busy={inviteRequestBusy[inviteRequest.id]}
             title={
-              roleDisallowed
+              roleDisallowed && canApprove
                 ? t(
                     `You do not have permission to approve a user of this role.
                      Select a different role to approve this user.`
