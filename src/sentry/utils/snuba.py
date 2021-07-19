@@ -860,7 +860,7 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
 
 
 def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
-    # Run the SnQL query and if something fails try the legacy version.
+    # Convert the JSON query to SnQL and run it
     query_data, thread_hub, headers = params
     query_params, forward, reverse = query_data
 
