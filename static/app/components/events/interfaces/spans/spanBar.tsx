@@ -363,23 +363,21 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           orphanBranch={false}
         />
       );
-
-      if (hasCollapsedSpanGroup) {
-        connectorBars.push(
-          <ConnectorBar
-            style={{
-              right: '16px',
-              height: `${ROW_HEIGHT / 2}px`,
-              top: '0',
-            }}
-            key={`${spanID}-last-top`}
-            orphanBranch={false}
-          />
-        );
-      }
     }
 
     if (hasCollapsedSpanGroup) {
+      connectorBars.push(
+        <ConnectorBar
+          style={{
+            right: '16px',
+            height: `${ROW_HEIGHT / 2}px`,
+            top: '0',
+          }}
+          key={`${spanID}-last-top`}
+          orphanBranch={false}
+        />
+      );
+
       return (
         <TreeConnector
           isLast
