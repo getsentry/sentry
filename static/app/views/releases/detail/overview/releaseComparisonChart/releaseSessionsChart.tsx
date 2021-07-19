@@ -457,7 +457,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               response: releaseSessions,
               field: SessionField.SESSIONS,
               groupBy: 'session.status',
-              chartData: initSessionsBreakdownChartData(),
+              chartData: initSessionsBreakdownChartData(theme),
             })
           ),
           markLines,
@@ -469,7 +469,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               response: releaseSessions,
               field: SessionField.USERS,
               groupBy: 'session.status',
-              chartData: initSessionsBreakdownChartData(),
+              chartData: initSessionsBreakdownChartData(theme),
             })
           ),
           markLines,
