@@ -1,17 +1,13 @@
 import logging
 import signal
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
 from django.utils.functional import cached_property
 
-from sentry import options
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
-from sentry.eventstream.kafka.protocol import (
-    get_task_kwargs_for_message,
-    get_task_kwargs_for_message_from_headers,
-)
+from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
 from sentry.utils import json, kafka, metrics
 
@@ -32,11 +28,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _send(
         self,
-        project_id: int,
-        _type: str,
-        extra_data: Tuple[Any, ...] = (),
-        asynchronous: bool = True,
-        headers: Optional[Mapping[str, Union[str, None]]] = None,
+        project_id,
+        _type,
+        extra_data=(),
+        asynchronous=True,
+        headers=None,  # Optional[Mapping[str, str]]
     ):
         if headers is None:
             headers = {}
@@ -62,9 +58,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 key=key.encode("utf-8"),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
-                headers=[
-                    (k, v.encode("utf-8") if isinstance(v, str) else v) for k, v in headers.items()
-                ],
+                headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
             )
         except Exception as error:
             logger.error("Could not publish message: %s", error, exc_info=True)
@@ -216,26 +210,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
             i = i + 1
             owned_partition_offsets[key] = message.offset() + 1
 
-            use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
+            with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
+                task_kwargs = get_task_kwargs_for_message(message.value())
 
-            if use_kafka_headers is True:
-                try:
-                    with metrics.timer(
-                        "eventstream.duration", instance="get_task_kwargs_for_message_from_headers"
-                    ):
-                        task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
-
-                    with metrics.timer(
-                        "eventstream.duration", instance="dispatch_post_process_group_task"
-                    ):
-                        self._dispatch_post_process_group_task(**task_kwargs)
-
-                except Exception:
-                    metrics.incr("eventstream.parsing-error")
-                    self._get_task_kwargs_and_dispatch(message)
-
-            else:
-                self._get_task_kwargs_and_dispatch(message)
+            if task_kwargs is not None:
+                with metrics.timer(
+                    "eventstream.duration", instance="dispatch_post_process_group_task"
+                ):
+                    self._dispatch_post_process_group_task(**task_kwargs)
 
             if i % commit_batch_size == 0:
                 commit_offsets()
@@ -244,11 +226,3 @@ class KafkaEventStream(SnubaProtocolEventStream):
         commit_offsets()
 
         consumer.close()
-
-    def _get_task_kwargs_and_dispatch(self, message) -> None:
-        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
-            task_kwargs = get_task_kwargs_for_message(message.value())
-
-        if task_kwargs is not None:
-            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
-                self._dispatch_post_process_group_task(**task_kwargs)
