@@ -15,6 +15,8 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Member, MemberRole, Organization, Team} from 'app/types';
 
+import { IconCheckmark, IconClose } from 'app/icons';
+
 type Props = {
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
@@ -101,6 +103,14 @@ const InviteRequestRow = ({
       />
 
       <ButtonGroup>
+        <Button
+          size="small"
+          busy={inviteRequestBusy[inviteRequest.id]}
+          onClick={() => onDeny(inviteRequest)}
+          icon={<IconClose />}
+        >
+          {t('Deny')}
+        </Button>
         <Confirm
           onConfirm={sendInvites}
           disableConfirmButton={!canSend}
@@ -126,17 +136,11 @@ const InviteRequestRow = ({
                   )
                 : undefined
             }
+            icon={<IconCheckmark />}
           >
             {t('Approve')}
           </Button>
         </Confirm>
-        <Button
-          size="small"
-          busy={inviteRequestBusy[inviteRequest.id]}
-          onClick={() => onDeny(inviteRequest)}
-        >
-          {t('Deny')}
-        </Button>
       </ButtonGroup>
     </StyledPanelItem>
   );
