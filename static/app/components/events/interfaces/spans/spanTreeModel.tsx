@@ -184,9 +184,7 @@ class SpanTreeModel {
     const {
       operationNameFilters,
       generateBounds,
-      treeDepth,
       isLastSibling,
-      continuingTreeDepths,
       hiddenSpanGroups,
       // The set of ancestor span IDs whose sub-tree that the span belongs to
       spanGroups,
@@ -198,6 +196,7 @@ class SpanTreeModel {
       toggleSpanGroup,
       showSpanGroup,
     } = props;
+    let {treeDepth, continuingTreeDepths} = props;
 
     const parentSpanID = getSpanID(this.span);
     const childSpanGroup = new Set(spanGroups);
@@ -215,6 +214,32 @@ class SpanTreeModel {
     const isLastSpanOfGroup =
       isOnlySibling && !this.isRoot && descendantsSource.length !== 1;
 
+    // For a collapsed span group chain to be useful, we prefer span groupings
+    // that are two or more spans.
+    // Since there is no concept of "backtracking" when constructing the span tree,
+    // we will need to reconstruct the tree depth information. This is only neccessary
+    // when the span group chain is hidden/collapsed.
+    if (
+      isLastSpanOfGroup &&
+      Array.isArray(spanGrouping) &&
+      spanGrouping.length === 1 &&
+      !showSpanGroup
+    ) {
+      const treeDepthEntryFoo = isOrphanSpan(spanGrouping[0].span)
+        ? ({type: 'orphan', depth: spanGrouping[0].treeDepth} as OrphanTreeDepth)
+        : spanGrouping[0].treeDepth;
+
+      if (!spanGrouping[0].isLastSibling) {
+        continuingTreeDepths = [...continuingTreeDepths, treeDepthEntryFoo];
+      }
+
+      treeDepth = treeDepth + 1;
+    }
+
+    // Criteria for propagating information about the span group to the last span of the span group chain
+    const spanGroupingCriteria =
+      isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length > 1;
+
     const wrappedSpan: EnhancedSpan = {
       type: this.isRoot ? 'root_span' : 'span',
       span: this.span,
@@ -225,18 +250,12 @@ class SpanTreeModel {
       fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
       showEmbeddedChildren: this.showEmbeddedChildren,
       toggleEmbeddedChildren: this.toggleEmbeddedChildren,
-      spanGrouping:
-        isLastSpanOfGroup && Array.isArray(spanGrouping) ? spanGrouping : undefined,
+      spanGrouping: spanGroupingCriteria ? spanGrouping : undefined,
       toggleSpanGroup:
-        isLastSpanOfGroup &&
-        Array.isArray(spanGrouping) &&
-        spanGrouping.length &&
-        toggleSpanGroup
-          ? toggleSpanGroup
-          : undefined,
+        spanGroupingCriteria && toggleSpanGroup ? toggleSpanGroup : undefined,
       showSpanGroup:
-        (toggleSpanGroup === undefined && isLastSpanOfGroup && this.showSpanGroup) ||
-        (toggleSpanGroup !== undefined && isLastSpanOfGroup && showSpanGroup),
+        (spanGroupingCriteria && toggleSpanGroup === undefined && this.showSpanGroup) ||
+        (spanGroupingCriteria && toggleSpanGroup !== undefined && showSpanGroup),
     };
 
     const treeDepthEntry = isOrphanSpan(this.span)
@@ -337,6 +356,18 @@ class SpanTreeModel {
 
     if (shouldHideSpanOfGroup) {
       return [...descendants];
+    }
+
+    if (isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length === 1) {
+      if (toggleSpanGroup !== undefined && !showSpanGroup) {
+        toggleSpanGroup();
+      }
+
+      if (!showSpanGroup) {
+        return [spanGrouping[0], wrappedSpan, ...descendants];
+      }
+
+      return [wrappedSpan, ...descendants];
     }
 
     const gapSpan = this.generateSpanGap(
