@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
@@ -26,6 +27,7 @@ import HealthStatsPeriod from '../healthStatsPeriod';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
+import ProjectLink from './projectLink';
 
 const ADOPTION_STAGE_LABELS = {
   not_adopted: {
@@ -63,6 +65,7 @@ const Content = ({
   organization,
   activeDisplay,
   showPlaceholders,
+  isTopRelease,
   getHealthData,
 }: Props) => {
   const hasAdoptionStages: boolean =
@@ -102,7 +105,7 @@ const Content = ({
             </CollapseButtonWrapper>
           )}
         >
-          {projects.map(project => {
+          {projects.map((project, index) => {
             const {id, slug, newGroups} = project;
 
             const crashCount = getHealthData.getCrashCount(
@@ -210,6 +213,20 @@ const Content = ({
                       </GlobalSelectionLink>
                     </Tooltip>
                   </NewIssuesColumn>
+
+                  <ViewColumn>
+                    <GuideAnchor
+                      disabled={!isTopRelease || index !== 0}
+                      target="view_release"
+                    >
+                      <ProjectLink
+                        orgSlug={organization.slug}
+                        project={project}
+                        releaseVersion={releaseVersion}
+                        location={location}
+                      />
+                    </GuideAnchor>
+                  </ViewColumn>
                 </Layout>
               </ProjectRow>
             );
@@ -263,28 +280,28 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 1.4fr 0.6fr;
+  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr;
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     ${p =>
       p.hasAdoptionStages
         ? `
-      grid-template-columns: 1fr 0.5fr 1fr 1fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 0.5fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
     `
         : `
-      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
     `}
   }
 `;
@@ -347,6 +364,10 @@ const CrashesColumn = styled(Column)`
     display: block;
     text-align: right;
   }
+`;
+
+const ViewColumn = styled(Column)`
+  text-align: right;
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
