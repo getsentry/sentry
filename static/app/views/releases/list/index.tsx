@@ -64,6 +64,10 @@ const supportedTags = {
     key: 'release.package',
     name: 'release.package',
   },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+  },
   release: {
     key: 'release',
     name: 'release',

@@ -621,6 +621,10 @@ export const SEMVER_TAGS = {
     key: 'release.package',
     name: 'release.package',
   },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+  },
 };
 
 // Allows for a less strict field key definition in cases we are returning custom strings as fields

@@ -1056,6 +1056,10 @@ class IssueListOverview extends React.Component<Props, State> {
         key: 'release.package',
         name: 'release.package',
       };
+      tags['release.stage'] = {
+        key: 'release.stage',
+        name: 'release.stage',
+      };
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
