@@ -285,9 +285,6 @@ class SummaryContent extends React.Component<Props, State> {
       fields.splice(2, 0, {field: durationField});
 
       if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-        // Add spans.total.time field so that the span op breakdown can be compared against it.
-        // This is used to generate the relative
-        fields.push({field: 'spans.total.time'});
         fields.push(
           ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
             return {field};
