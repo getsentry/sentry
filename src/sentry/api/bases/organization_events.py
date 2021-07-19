@@ -350,15 +350,17 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         self, serializer, event_result, columns, query_columns, allow_partial_buckets
     ):
         # Return with requested yAxis as the key
-        result = {
-            columns[index]: serializer.serialize(
+        result = {}
+        equations = 0
+        for index, query_column in enumerate(query_columns):
+            result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, index),
+                resolve_axis_column(query_column, equations),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
             )
-            for index, query_column in enumerate(query_columns)
-        }
+            if is_equation(query_column):
+                equations += 1
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
