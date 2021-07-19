@@ -136,7 +136,7 @@ class ContextPickerModal extends Component<Props> {
       return;
     }
 
-    // If there is only one org and we dont need a project slug, then call finish callback
+    // If there is only one org and we don't need a project slug, then call finish callback
     if (!needProject) {
       onFinish(
         replaceRouterParams(nextPath, {

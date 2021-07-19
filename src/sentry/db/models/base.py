@@ -37,7 +37,7 @@ class BaseModel(models.Model):
 
     def __getstate__(self):
         d = self.__dict__.copy()
-        # we cant serialize weakrefs
+        # we can't serialize weakrefs
         d.pop("_Model__data", None)
         return d
 

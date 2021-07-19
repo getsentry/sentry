@@ -54,7 +54,7 @@ def make_key(model, prefix, kwargs):
 
 
 class BaseQuerySet(QuerySet):
-    # XXX(dcramer): we prefer values_list, but we cant disable values as Django uses it
+    # XXX(dcramer): we prefer values_list, but we can't disable values as Django uses it
     # internally
     # def values(self, *args, **kwargs):
     #     raise NotImplementedError('Use ``values_list`` instead [performance].')
@@ -136,7 +136,7 @@ class BaseManager(Manager):
 
     def __getstate__(self):
         d = self.__dict__.copy()
-        # we cant serialize weakrefs
+        # we can't serialize weakrefs
         d.pop("_BaseManager__cache", None)
         d.pop("_BaseManager__local_cache", None)
         return d

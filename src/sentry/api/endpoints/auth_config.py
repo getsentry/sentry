@@ -30,7 +30,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         next_uri = self.get_next_uri(request)
 
-        # we always reset the state on GET so you dont end up at an odd location
+        # we always reset the state on GET so you don't end up at an odd location
         auth.initiate_login(request, next_uri)
 
         # Auth login verifies the test cookie is set

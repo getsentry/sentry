@@ -254,7 +254,7 @@ def query_tag_data(
         counts = [r["count"] for r in tag_data["data"]]
         aggregates = [r["aggregate"] for r in tag_data["data"]]
 
-        # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that dont exist
+        # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that don't exist
         if counts[0] == 0 or aggregates[0] is None:
             return None
     if not tag_data["data"][0]:
@@ -320,7 +320,7 @@ def query_top_tags(
 
         counts = [r["count"] for r in tag_data["data"]]
 
-        # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that dont exist
+        # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that don't exist
         if counts[0] == 0:
             return None
     if not tag_data["data"]:

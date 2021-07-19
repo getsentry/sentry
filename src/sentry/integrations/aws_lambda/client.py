@@ -10,8 +10,8 @@ class ConfigurationError(Exception):
 
 def gen_aws_client(account_number, region, aws_external_id, service_name="lambda"):
     """
-    account_number - acccount number in AWS
-    regon - region in AWS
+    account_number - account number in AWS
+    region - region in AWS
     aws_external_id - the external_id used to assume the role
 
     Returns an aws_lambda_client
