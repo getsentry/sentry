@@ -1258,7 +1258,6 @@ class DiscoverFunction:
         aggregate=None,
         transform=None,
         conditional_transform=None,
-        snql_transform=None,
         result_type_fn=None,
         default_result_type=None,
         redundant_grouping=False,
@@ -1302,7 +1301,6 @@ class DiscoverFunction:
         self.aggregate = aggregate
         self.transform = transform
         self.conditional_transform = conditional_transform
-        self.snql_transform = snql_transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
         self.redundant_grouping = redundant_grouping
@@ -1396,7 +1394,6 @@ class DiscoverFunction:
                     self.aggregate is not None,
                     self.transform is not None,
                     self.conditional_transform is not None,
-                    self.snql_transform is not None,
                 ]
             )
             == 1
@@ -2043,6 +2040,29 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
+class SnQLFunction(DiscoverFunction):
+    def __init__(self, *args, **kwargs):
+        self.snql_transform = kwargs.pop("snql_transform", None)
+        super().__init__(*args, **kwargs)
+
+    def validate(self):
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), f"{self.name}: optional argument at index {i} does not have default"
+
+        assert self.snql_transform is not None
+
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
+            names.add(arg.name)
+
+
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
@@ -2068,79 +2088,79 @@ class QueryFields(QueryBase):
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
         }
 
-        self.function_converter: Mapping[str, DiscoverFunction] = {
+        self.function_converter: Mapping[str, SnQLFunction] = {
             function.name: function
             for function in [
-                DiscoverFunction(
+                SnQLFunction(
                     "failure_count",
-                    snql_transform=self._resolve_failure_count_function,
+                    snql_transform=lambda _, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                "notIn",
+                                [
+                                    self.column("transaction.status"),
+                                    (
+                                        SPAN_STATUS_NAME_TO_CODE["ok"],
+                                        SPAN_STATUS_NAME_TO_CODE["cancelled"],
+                                        SPAN_STATUS_NAME_TO_CODE["unknown"],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
                     default_result_type="integer",
                 ),
                 # TODO: implement these
-                DiscoverFunction("percentile", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("p50", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("p75", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("p95", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("p99", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("p100", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("eps", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("epm", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("last_seen", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
-                    "latest_event", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction("apdex", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
+                SnQLFunction("percentile", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("p50", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("p75", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("p95", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("p99", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("p100", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("eps", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("epm", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("last_seen", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("latest_event", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("apdex", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction(
                     "count_miserable", snql_transform=self._resolve_unimplemented_function
                 ),
-                DiscoverFunction(
-                    "user_misery", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction(
-                    "failure_rate", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction("array_join", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("histogram", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
-                    "count_unique", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction("count", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
-                    "count_at_least", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction("min", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("max", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("avg", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("var", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("stddev", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("cov", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("corr", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("sum", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("any", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
-                    "absolute_delta", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction(
+                SnQLFunction("user_misery", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("failure_rate", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("array_join", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("histogram", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("count_unique", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("count", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("count_at_least", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("min", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("max", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("avg", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("var", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("stddev", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("cov", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("corr", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("sum", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("any", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("absolute_delta", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction(
                     "percentile_range", snql_transform=self._resolve_unimplemented_function
                 ),
-                DiscoverFunction("avg_range", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
-                    "variance_range", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction(
-                    "count_range", snql_transform=self._resolve_unimplemented_function
-                ),
-                DiscoverFunction("percentage", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("t_test", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction("minus", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
+                SnQLFunction("avg_range", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("variance_range", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("count_range", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("percentage", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("t_test", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("minus", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction(
                     "absolute_correlation", snql_transform=self._resolve_unimplemented_function
                 ),
-                DiscoverFunction("count_if", snql_transform=self._resolve_unimplemented_function),
-                DiscoverFunction(
+                SnQLFunction("count_if", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction(
                     "compare_numeric_aggregate", snql_transform=self._resolve_unimplemented_function
                 ),
-                DiscoverFunction("to_other", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("to_other", snql_transform=self._resolve_unimplemented_function),
             ]
         }
 
@@ -2236,7 +2256,7 @@ class QueryFields(QueryBase):
 
         name, arguments, alias = self.parse_function(match)
         discover_func = self.function_converter.get(name)
-        return discover_func.snql_transform(name, arguments, alias)
+        return discover_func.snql_transform(arguments, alias)
 
     def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
         function = match.group("function")
@@ -2453,38 +2473,12 @@ class QueryFields(QueryBase):
         """
         raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
 
-    # Functions
-    def _resolve_failure_count_function(
-        self,
-        function: str,
-        _: List[str],
-        alias: str,
-    ) -> SelectType:
-        return Function(
-            "countIf",
-            [
-                Function(
-                    "notIn",
-                    [
-                        self.column("transaction.status"),
-                        (
-                            SPAN_STATUS_NAME_TO_CODE["ok"],
-                            SPAN_STATUS_NAME_TO_CODE["cancelled"],
-                            SPAN_STATUS_NAME_TO_CODE["unknown"],
-                        ),
-                    ],
-                )
-            ],
-            alias,
-        )
-
     def _resolve_unimplemented_function(
         self,
-        function: str,
         _: List[str],
         alias: str,
     ) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
         Can be deleted once all functions have been implemented.
         """
-        raise NotImplementedError(f"{function} not implemented in snql field parsing yet")
+        raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
