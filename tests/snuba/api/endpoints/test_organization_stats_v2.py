@@ -87,6 +87,17 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "quantity": 1,
             }
         )
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": datetime(2021, 3, 13, 13, 30, 28, tzinfo=pytz.utc),
+                "project_id": self.project2.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            }
+        )
 
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
