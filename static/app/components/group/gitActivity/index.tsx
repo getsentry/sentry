@@ -186,7 +186,7 @@ const Activities = styled('div')`
   margin: -${space(1)} 0;
   > * {
     &:nth-last-child(n + 4) {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.innerBorder};
     }
   }
 `;
