@@ -10,7 +10,9 @@ import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import { Panel, PanelBody, PanelHeader } from 'app/components/panels';
+
+import space from 'app/styles/space';
 import {MEMBER_ROLES} from 'app/constants';
 import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -31,6 +33,15 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationMemberRow from './organizationMemberRow';
+
+const StyledPanelItem = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
+  grid-gap: ${space(2)};
+  align-items: center;
+  width: 100%;
+`;
+
 
 type Props = {
   organization: Organization;
@@ -293,7 +304,13 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         </ClassNames>
         {inviteRequests && inviteRequests.length > 0 && (
           <Panel>
-            <PanelHeader>{t('Pending Invite Requests')}</PanelHeader>
+            <PanelHeader>
+              <StyledPanelItem>
+                <div>{t('Pending Invite Requests')}</div>
+                <div>{t('Role')}</div>
+                <div>{t('Teams')}</div>
+              </StyledPanelItem>
+            </PanelHeader>
             <PanelBody>
               {inviteRequests.map(inviteRequest => (
                 <InviteRequestRow
