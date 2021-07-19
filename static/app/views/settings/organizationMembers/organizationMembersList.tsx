@@ -33,14 +33,6 @@ import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationMemberRow from './organizationMemberRow';
 
-const StyledPanelItem = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  grid-gap: ${space(2)};
-  align-items: center;
-  width: 100%;
-`;
-
 type Props = {
   organization: Organization;
   teams: Team[];
@@ -394,6 +386,14 @@ const StyledMembersFilter = styled(MembersFilter)`
     margin-top: -1px;
     border-bottom-color: ${p => p.theme.border};
   }
+`;
+
+const StyledPanelItem = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
+  grid-gap: ${space(2)};
+  align-items: center;
+  width: 100%;
 `;
 
 export default withTeams(withOrganization(OrganizationMembersList));

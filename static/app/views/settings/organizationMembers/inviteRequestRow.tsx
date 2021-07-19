@@ -138,12 +138,14 @@ const InviteRequestRow = ({
             size="small"
             busy={inviteRequestBusy[inviteRequest.id]}
             title={
-              roleDisallowed && canApprove
-                ? t(
-                    `You do not have permission to approve a user of this role.
-                     Select a different role to approve this user.`
-                  )
-                : undefined
+              canApprove
+                ? roleDisallowed
+                  ? t(
+                      `You do not have permission to approve a user of this role.
+                      Select a different role to approve this user.`
+                    )
+                  : undefined
+                : t('This request needs to be reviewed by a privileged user')
             }
             icon={<IconCheckmark />}
           >
