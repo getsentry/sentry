@@ -1,17 +1,16 @@
 import {RouteComponentProps} from 'react-router';
-import TeamActions from 'app/actions/teamActions';
+
 import {loadStats} from 'app/actionCreators/projects';
+import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
-import { Organization, Team, AccessRequest } from 'app/types';
+import {AccessRequest, Organization, Team} from 'app/types';
 import {sortArray} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
+import AsyncView from 'app/views/asyncView';
 
 import OrganizationTeams from './organizationTeams';
-
-
-import AsyncView from 'app/views/asyncView';
 
 type Props = {
   api: Client;
@@ -25,11 +24,9 @@ type State = AsyncView['state'] & {
 
 class OrganizationTeamsContainer extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const { orgId } = this.props.params;
+    const {orgId} = this.props.params;
 
-    return [
-      ['requestList', `/organizations/${orgId}/access-requests/`],
-    ];
+    return [['requestList', `/organizations/${orgId}/access-requests/`]];
   }
 
   componentDidMount() {
@@ -47,7 +44,6 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
     });
   }
 
-
   removeAccessRequest = (id: string, isApproved: boolean) => {
     const requestToRemove = this.state.requestList.find(request => request.id === id);
     this.setState(state => ({
@@ -57,10 +53,10 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
       const team = requestToRemove.team;
       TeamActions.updateSuccess(team.slug, {
         ...team,
-        memberCount: team.memberCount + 1
+        memberCount: team.memberCount + 1,
       });
     }
-  }
+  };
 
   renderBody() {
     const {organization, teams} = this.props;
