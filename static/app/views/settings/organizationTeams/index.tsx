@@ -55,8 +55,10 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
     }));
     if (isApproved && requestToRemove) {
       const team = requestToRemove.team;
-      team.memberCount += 1;
-      TeamActions.updateSuccess(team.slug, team);
+      TeamActions.updateSuccess(team.slug, {
+        ...team,
+        memberCount: team.memberCount + 1
+      });
     }
   }
 

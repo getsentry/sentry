@@ -12,6 +12,7 @@ import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
+import TeamActions from 'app/actions/teamActions';
 
 type Props = {
   api: Client;
@@ -46,7 +47,11 @@ class AllTeamsRow extends React.Component<Props, State> {
         }),
       });
 
-      // TODO: Ideally we would update team so that `isPending` is true
+      // Update team so that `isPending` is true
+      TeamActions.updateSuccess(team.slug, {
+        ...team,
+        isPending: true,
+      });
     } catch (_err) {
       // No need to do anything
     }
