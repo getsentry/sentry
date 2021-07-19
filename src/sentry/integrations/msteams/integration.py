@@ -29,7 +29,7 @@ FEATURES = [
         """
         Interact with messages in the chat to assign, ignore, and resolve issues.
         """,
-        IntegrationFeatures.CHAT_UNFURL,  # not acutally using unfurl but we show this as just "chat"
+        IntegrationFeatures.CHAT_UNFURL,  # not actually using unfurl but we show this as just "chat"
     ),
     FeatureDescription(
         "Configure rule based Teams alerts to automatically be posted into a specific channel or user.",

@@ -30,7 +30,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :pparam string project_slug: the slug of the project.
         :auth: required
         """
-        # we dont allow read permission with DSNs
+        # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 

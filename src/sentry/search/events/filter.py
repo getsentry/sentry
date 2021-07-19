@@ -753,7 +753,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
     terms = new_terms
 
-    # We put precedence on AND, which sort of counter-intuitevely means we have to split the query
+    # We put precedence on AND, which sort of counter-intuitively means we have to split the query
     # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
     # query on each OR.
     # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on

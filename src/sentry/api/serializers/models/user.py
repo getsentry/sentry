@@ -168,7 +168,7 @@ class DetailedUserSerializer(UserSerializer):
 
     def serialize(self, obj, attrs, user):
         d = super().serialize(obj, attrs, user)
-        # XXX(dcramer): we dont use is_active_superuser here as we simply
+        # XXX(dcramer): we don't use is_active_superuser here as we simply
         # want to tell the UI that we're an authenticated superuser, and
         # for requests that require an *active* session, they should prompt
         # on-demand. This ensures things like links to the Sentry admin can

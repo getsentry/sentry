@@ -68,7 +68,7 @@ class GroupEndpoint(Endpoint):
         with configure_scope() as scope:
             scope.set_tag("project", group.project_id)
 
-        # we didnt bind context above, so do it now
+        # we didn't bind context above, so do it now
         if not organization:
             bind_organization_context(group.project.organization)
 

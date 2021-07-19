@@ -254,7 +254,7 @@ def record_release_received(project, event, **kwargs):
             user = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logging.getLogger("sentry").warning(
-                "Cannot record release recieved for organization (%s) due to missing owners",
+                "Cannot record release received for organization (%s) due to missing owners",
                 project.organization_id,
             )
             return

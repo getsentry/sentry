@@ -33,7 +33,7 @@ class IdentityManager:
     def unregister(self, cls):
         try:
             if self.__values[cls.key] != cls:
-                # dont allow unregistering of arbitrary provider
+                # don't allow unregistering of arbitrary provider
                 raise NotRegistered(cls.key)
         except KeyError:
             # we gracefully handle a missing provider

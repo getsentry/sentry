@@ -98,7 +98,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       orgOwnedApps.push(extraApp);
     }
 
-    // we dont want the app to render twice if its the org that created
+    // we don't want the app to render twice if its the org that created
     // the published app.
     const orgOwned = orgOwnedApps?.filter(
       app => !published.find(p => p.slug === app.slug)

@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from sentry import options
 from sentry.integrations.client import ApiClient
 
-# five minutes which is industry standard clock skew tolerence
+# five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
 
 

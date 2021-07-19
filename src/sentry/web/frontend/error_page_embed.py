@@ -135,7 +135,7 @@ class ErrorPageEmbedView(View):
             if name in request.GET:
                 options[name] = str(request.GET[name])
 
-        # TODO(dcramer): since we cant use a csrf cookie we should at the very
+        # TODO(dcramer): since we can't use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
         initial = {"name": request.GET.get("name"), "email": request.GET.get("email")}
 

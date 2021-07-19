@@ -74,7 +74,7 @@ class AlertRuleNotification(BaseNotification):
             "has_alert_integration": has_alert_integration(self.project),
         }
 
-        # if the organization has enabled enhanced privacy controls we dont send
+        # if the organization has enabled enhanced privacy controls we don't send
         # data which may show PII or source code
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})

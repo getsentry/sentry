@@ -1414,7 +1414,7 @@ class DiscoverFunctionTest(unittest.TestCase):
 
     def test_optional_valid(self):
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
-        # because the last argument is optional, we dont need to provide it
+        # because the last argument is optional, we don't need to provide it
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
 
     def test_optional_not_enough_arguments(self):

@@ -486,7 +486,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-        # should only show 1 event of type transaction since they dont have issues
+        # should only show 1 event of type transaction since they don't have issues
         query = {
             "field": ["project", "issue"],
             "query": "event.type:transaction !has:issue",

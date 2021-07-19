@@ -1,4 +1,4 @@
-How to Setup Trello
+How to Set Up Trello
 ===========================
 
 1. Go to https://trello.com/app-key

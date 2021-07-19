@@ -285,7 +285,7 @@ class MailAdapter:
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]
                 )
             ),
-            # TODO(dcramer): we dont have permalinks to feedback yet
+            # TODO(dcramer): we don't have permalinks to feedback yet
             "link": absolute_uri(
                 "/{}/{}/issues/{}/feedback/".format(
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]

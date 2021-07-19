@@ -56,7 +56,7 @@ class RelatedIssues extends Component<Props> {
         searchKey.match(/\w+\(.*\)/) ||
         // transaction event fields
         TRACING_FIELDS.includes(searchKey) ||
-        // tags that we dont want to pass to pass to issue search
+        // tags that we don't want to pass to pass to issue search
         EXCLUDE_TAG_KEYS.has(searchKey)
       ) {
         currentFilter.removeTag(tagKey);

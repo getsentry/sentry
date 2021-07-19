@@ -106,7 +106,7 @@ class DatabaseWrapper(DatabaseWrapper):
 
     def close(self, reconnect=False):
         """
-        This ensures we dont error if the connection has already been closed.
+        This ensures we don't error if the connection has already been closed.
         """
         if self.connection is not None:
             if not self.connection.closed:

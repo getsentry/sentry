@@ -10,7 +10,7 @@ Some key points to understanding pipelines:
    moving through them by having the view itself call `pipeline.next_step`.
 
  * Each executed view may maintain state within the pipeline using the
-   `pipeline.bind_state` method. This state is associated to the users
+   `pipeline.bind_state` method. This state is associated to the user's
    session.
 
  * Pipelines are always subclassed to implement the `finish_pipeline` method,
@@ -35,12 +35,12 @@ actual processes that the user is being guided through. The provider specifies
 the pipeline steps.
 
 A single pipeline may have multiple types of providers for the pipeline which
-define different flows on a per provider basis, but all complete a similar type
+define different flows on a per-provider basis, but all complete a similar type
 of pipeline process.
 
 A good example of a pipeline with multiple types of providers is the
 `sentry.identity.pipeline` module, which makes use of a Pipeline to associate
-user identities. Sentry has various identity types (github, slack, google) each
+user identities. Sentry has various identity types (GitHub, Slack, Google) each
 which may use a slightly different process to do identity lookup on the
 external service, however the end of the process (and what is done in the
 final `finish_pipeline` call) all result in an Identity object being created.
@@ -61,7 +61,7 @@ While not explicitly required, a pipeline supports lookup of a model that is
 associated to a particular pipeline. This allows the pipeline to automatically
 lookup the model given to the pipeline upon it's first initialization.
 
-This simply moves the boiler plate of looking up a model from the pipeline
+This simply moves the boilerplate of looking up a model from the pipeline
 views, into it already being available as `pipeline.provider_model` within any
 view that has access to the pipeline.
 

@@ -174,7 +174,7 @@ export default class AsyncComponent<
   api: Client = new Client();
   private _measurement: any;
 
-  // XXX: cant call this getInitialState as React whines
+  // XXX: can't call this getInitialState as React whines
   getDefaultState(): AsyncComponentState {
     const endpoints = this.getEndpoints();
     const state = {

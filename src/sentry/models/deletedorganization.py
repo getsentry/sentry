@@ -10,7 +10,7 @@ class DeletedOrganization(DeletedEntry):
     through the UI, a deletedorganization is created to log this deletion.
 
     This model does not account for aborted or failed deletions and is currently
-    unable to log deletions that occur implicity (i.e. when the sole parent object
+    unable to log deletions that occur implicitly (i.e. when the sole parent object
     is deleted, the child is also marked for deletion as well).
     """
 

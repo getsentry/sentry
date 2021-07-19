@@ -237,7 +237,7 @@ class GitLabApiClient(ApiClient):
         return self.get(path, params={"until": end_date})
 
     def compare_commits(self, project_id, start_sha, end_sha):
-        """Compare commits between two shas
+        """Compare commits between two SHAs
 
         See https://docs.gitlab.com/ee/api/repositories.html#compare-branches-tags-or-commits
         """

@@ -107,7 +107,7 @@ describe('TraceLiteQuery', function () {
     expect(traceMetaMock).toHaveBeenCalledTimes(0);
   });
 
-  it('uses lite results when it cant find current event in full results', async function () {
+  it('uses lite results when it cannot find current event in full results', async function () {
     const wrapper = mountWithTheme(
       <QuickTraceQuery
         withMeta={false}

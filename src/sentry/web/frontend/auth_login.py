@@ -255,7 +255,7 @@ class AuthLoginView(BaseView):
 
         request.session.set_test_cookie()
 
-        # we always reset the state on GET so you dont end up at an odd location
+        # we always reset the state on GET so you don't end up at an odd location
         auth.initiate_login(request, next_uri)
 
         # Single org mode -- send them to the org-specific handler

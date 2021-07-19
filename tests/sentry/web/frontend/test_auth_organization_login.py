@@ -512,7 +512,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         """
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be re-linking
-        the identity automatically as they dont have a password.
+        the identity automatically as they don't have a password.
 
         This is specifically testing an unauthenticated flow.
         """
@@ -540,7 +540,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         """
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be prompting to
-        confirm their identity as they dont have membership.
+        confirm their identity as they don't have membership.
         """
         auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider="dummy"

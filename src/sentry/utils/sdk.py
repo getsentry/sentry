@@ -106,7 +106,7 @@ def is_current_event_safe():
 
 def mark_scope_as_unsafe():
     """
-    Set the unsafe tag on the SDK scope for outgoing crashe and transactions.
+    Set the unsafe tag on the SDK scope for outgoing crashes and transactions.
 
     Marking a scope explicitly as unsafe allows the recursion breaker to
     decide early, before walking the stack and checking for unsafe files.

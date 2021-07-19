@@ -26,7 +26,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert not pk.roles.api
         assert pk.roles.store
 
-        # ensure that we dont hit an error here
+        # ensure that we don't hit an error here
         create_default_projects(config)
 
     def test_without_user(self):
@@ -48,7 +48,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert not pk.roles.api
         assert pk.roles.store
 
-        # ensure that we dont hit an error here
+        # ensure that we don't hit an error here
         create_default_projects(config)
 
     def test_no_sentry_project(self):
@@ -71,5 +71,5 @@ class CreateDefaultProjectsTest(TestCase):
             assert not pk.roles.api
             assert pk.roles.store
 
-            # ensure that we dont hit an error here
+            # ensure that we don't hit an error here
             create_default_projects(config)

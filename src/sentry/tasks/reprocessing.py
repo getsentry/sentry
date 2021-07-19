@@ -62,7 +62,7 @@ def clear_expired_raw_events():
         # Better to delete a few rows than none.
         while True:
             # Django already loads this into memory, might as well do it
-            # explicitly. Makes check for result emptyness cheaper.
+            # explicitly. Makes check for result emptiness cheaper.
             result = set(model_cls.objects.filter(**filter)[:200].values_list("pk", flat=True))
             if not result:
                 break

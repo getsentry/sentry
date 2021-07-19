@@ -183,7 +183,7 @@ class Projects extends React.Component<Props, State> {
     this.setState({
       // placeholders for projects we need to fetch
       fetchedProjects: notInStore.map(slug => ({slug})),
-      // set initallyLoaded if any projects were fetched from store
+      // set initiallyLoaded if any projects were fetched from store
       initiallyLoaded: !!inStore.length,
       projectsFromStore,
     });
