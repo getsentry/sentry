@@ -142,13 +142,10 @@ class StacktracePreview extends React.Component<Props, State> {
 
     if (event) {
       const platform = (event.platform ?? 'other') as PlatformType;
-      const stackTracePlatform =
-        (stacktrace?.frames ?? []).find(frame => frame.platform) ?? platform ?? 'other';
 
       return (
         <div onClick={this.handleStacktracePreviewClick}>
-          {!!organization.features?.includes('grouping-tree-ui') &&
-          (stackTracePlatform === 'native' || stackTracePlatform === 'cocoa') ? (
+          {!!organization.features?.includes('grouping-tree-ui') ? (
             <StacktraceContentV2
               data={stacktrace}
               expandFirstFrame={false}

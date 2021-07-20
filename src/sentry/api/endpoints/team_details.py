@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 
@@ -55,7 +56,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
         else:
             expand.append("organization")
 
-        return Response(serialize(team, request.user, collapse=collapse, expand=expand))
+        return Response(
+            serialize(team, request.user, ModelTeamSerializer(collapse=collapse, expand=expand))
+        )
 
     def put(self, request, team):
         """

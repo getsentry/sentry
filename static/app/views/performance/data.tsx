@@ -403,9 +403,7 @@ function generateGenericPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'tpm()',
@@ -471,9 +469,7 @@ function generateBackendPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'transaction.op',
@@ -541,9 +537,7 @@ function generateMobilePerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'transaction.op',
@@ -611,9 +605,7 @@ function generateFrontendPageloadPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'tpm()',
@@ -681,9 +673,7 @@ function generateFrontendOtherPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'transaction.op',
@@ -771,7 +761,7 @@ export function generatePerformanceEventView(
 }
 
 export function generatePerformanceVitalDetailView(
-  organization: LightWeightOrganization,
+  _organization: LightWeightOrganization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -785,9 +775,7 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      organization.features.includes('team-key-transactions')
-        ? 'team_key_transaction'
-        : 'key_transaction',
+      'team_key_transaction',
       'transaction',
       'project',
       'count_unique(user)',
