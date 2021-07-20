@@ -9,6 +9,7 @@ import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import {t} from 'app/locale';
 import {DateString, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
 import {IncidentRule, TimePeriod, TimeWindow} from 'app/views/alerts/incidentRules/types';
@@ -39,10 +40,18 @@ class AlertRuleDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
-    const {api, params} = this.props;
+    const {api, params, organization, location} = this.props;
 
     fetchOrgMembers(api, params.orgId);
     this.fetchData();
+
+    trackAnalyticsEvent({
+      eventKey: 'alert_rule_details.viewed',
+      eventName: 'Alert Rule Details: Viewed',
+      organization_id: organization.id,
+      rule_id: parseInt(params.ruleId, 10),
+      alert: location.query.alert ?? '',
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
