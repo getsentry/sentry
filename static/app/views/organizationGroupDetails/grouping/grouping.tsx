@@ -12,7 +12,7 @@ import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {BaseGroup, Group, Organization} from 'app/types';
+import {BaseGroup, Group, Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -28,6 +28,7 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 type Props = {
   organization: Organization;
   groupId: Group['id'];
+  projSlug: Project['slug'];
   location: Location<{level?: number; cursor?: string}>;
   api: Client;
   router: InjectedRouter;
@@ -44,7 +45,7 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization, router}: Props) {
+function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
@@ -167,7 +168,15 @@ function Grouping({api, groupId, location, organization, router}: Props) {
   }
 
   if (error) {
-    return <ErrorMessage onRetry={fetchGroupingLevels} groupId={groupId} error={error} />;
+    return (
+      <ErrorMessage
+        onRetry={fetchGroupingLevels}
+        groupId={groupId}
+        error={error}
+        projSlug={projSlug}
+        orgSlug={organization.slug}
+      />
+    );
   }
 
   if (!activeGroupingLevelDetails.length) {
