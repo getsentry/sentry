@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -110,17 +112,19 @@ describe('GroupEventEntries', function () {
           ],
         };
 
-        const {errorItem, bannerSummaryInfoText} = await renderComponent(newEvent);
+        await act(async () => {
+          const {errorItem, bannerSummaryInfoText} = await renderComponent(newEvent);
 
-        expect(bannerSummaryInfoText).toEqual(
-          'There was 1 problem processing this event'
-        );
+          expect(bannerSummaryInfoText).toEqual(
+            'There was 1 problem processing this event'
+          );
 
-        expect(errorItem.length).toBe(1);
-        expect(errorItem.at(0).props().error).toEqual({
-          type: 'proguard_missing_mapping',
-          message: 'A proguard mapping file was missing.',
-          data: {mapping_uuid: proGuardUuid},
+          expect(errorItem.length).toBe(1);
+          expect(errorItem.at(0).props().error).toEqual({
+            type: 'proguard_missing_mapping',
+            message: 'A proguard mapping file was missing.',
+            data: {mapping_uuid: proGuardUuid},
+          });
         });
       });
 

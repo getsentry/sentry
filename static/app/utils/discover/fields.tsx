@@ -143,6 +143,7 @@ export const AGGREGATIONS = {
           'number',
           'duration',
           'date',
+          'percentage',
         ]),
         required: true,
       },
@@ -160,6 +161,7 @@ export const AGGREGATIONS = {
           'number',
           'duration',
           'date',
+          'percentage',
         ]),
         required: true,
       },
@@ -172,7 +174,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -185,7 +187,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         required: true,
       },
     ],
@@ -215,7 +217,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -228,7 +230,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -241,7 +243,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -255,7 +257,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -268,7 +270,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -281,7 +283,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -640,6 +642,12 @@ export enum MobileVital {
   FramesTotal = 'measurements.frames_total',
   FramesSlow = 'measurements.frames_slow',
   FramesFrozen = 'measurements.frames_frozen',
+  FramesSlowRate = 'measurements.frames_slow_rate',
+  FramesFrozenRate = 'measurements.frames_frozen_rate',
+  StallCount = 'measurements.stall_count',
+  StallTotalTime = 'measurements.stall_total_time',
+  StallLongestTime = 'measurements.stall_longest_time',
+  StallPercentage = 'measurements.stall_percentage',
 }
 
 const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
@@ -655,6 +663,12 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [MobileVital.FramesTotal]: 'number',
   [MobileVital.FramesSlow]: 'number',
   [MobileVital.FramesFrozen]: 'number',
+  [MobileVital.FramesSlowRate]: 'percentage',
+  [MobileVital.FramesFrozenRate]: 'percentage',
+  [MobileVital.StallCount]: 'number',
+  [MobileVital.StallTotalTime]: 'duration',
+  [MobileVital.StallLongestTime]: 'duration',
+  [MobileVital.StallPercentage]: 'percentage',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
