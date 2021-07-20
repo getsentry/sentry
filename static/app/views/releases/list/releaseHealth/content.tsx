@@ -299,10 +299,10 @@ const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
     ${p =>
       p.hasAdoptionStages
         ? `
-      grid-template-columns: 1fr 0.5fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 0.5fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
     `
         : `
-      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
     `}
   }
 `;
@@ -324,6 +324,10 @@ const AdoptionColumn = styled(Column)`
     display: flex;
     /* Chart tooltips need overflow */
     overflow: visible;
+  }
+
+  & > * {
+    flex: 1;
   }
 `;
 
