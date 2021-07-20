@@ -19,7 +19,7 @@ import SearchBar from 'app/components/searchBar';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {desktop, mobile, releaseHealth} from 'app/data/platformCategories';
+import {desktop, mobile, PlatformKey, releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -69,6 +69,11 @@ const supportedTags = {
     name: 'release',
   },
 };
+
+export const isProjectMobileForReleases = (projectPlatform: PlatformKey) =>
+  (
+    [...mobile, ...desktop, 'java-android', 'cocoa-objc', 'cocoa-swift'] as string[]
+  ).includes(projectPlatform);
 
 type RouteParams = {
   orgId: string;
@@ -473,17 +478,7 @@ class ReleasesList extends AsyncView<Props, State> {
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
           const selectedProject = this.getSelectedProject();
           const isMobileProject =
-            selectedProject &&
-            selectedProject.platform &&
-            (
-              [
-                ...mobile,
-                ...desktop,
-                'java-android',
-                'cocoa-objc',
-                'cocoa-swift',
-              ] as string[]
-            ).includes(selectedProject.platform as string);
+            selectedProject && isProjectMobileForReleases(selectedProject.platform);
 
           return (
             <Fragment>

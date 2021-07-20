@@ -18,6 +18,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
+import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
@@ -69,14 +70,19 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
-  const hasAdoptionStages: boolean =
-    showAdoptionStageLabels && adoptionStages !== undefined;
+  const anyProjectMobile =
+    projects.filter(
+      project => project.platform && isProjectMobileForReleases(project.platform)
+    ).length > 0;
+  const hasAdoptionStagesColumn: boolean = anyProjectMobile && showAdoptionStageLabels;
+  const hasAdoptionStagesLabel: boolean =
+    hasAdoptionStagesColumn && adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
-        <Layout hasAdoptionStages={hasAdoptionStages}>
+        <Layout hasAdoptionStagesColumn={hasAdoptionStagesColumn}>
           <Column>{t('Project Name')}</Column>
-          {hasAdoptionStages && (
+          {hasAdoptionStagesColumn && (
             <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
           )}
           <AdoptionColumn>
@@ -119,6 +125,10 @@ const Content = ({
               id,
               activeDisplay
             );
+            const get24hCountByProject = getHealthData.get24hCountByProject(
+              id,
+              activeDisplay
+            );
             const timeSeries = getHealthData.getTimeSeries(
               releaseVersion,
               id,
@@ -131,20 +141,25 @@ const Content = ({
               timeSeries[0].data.some(item => item.value > 0);
 
             const adoptionStage =
-              hasAdoptionStages &&
+              hasAdoptionStagesColumn &&
               adoptionStages?.[project.slug] &&
               adoptionStages?.[project.slug].stage;
 
+            const isMobileProject = isProjectMobileForReleases(project.platform);
+
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
-                <Layout hasAdoptionStages={hasAdoptionStages}>
+                <Layout hasAdoptionStagesColumn={hasAdoptionStagesColumn}>
                   <Column>
                     <ProjectBadge project={project} avatarSize={16} />
                   </Column>
 
-                  {hasAdoptionStages && (
+                  {hasAdoptionStagesColumn && (
                     <AdoptionStageColumn>
-                      {adoptionStages?.[project.slug] ? (
+                      {isMobileProject &&
+                      adoptionStage &&
+                      hasAdoptionStagesLabel &&
+                      get24hCountByProject ? (
                         <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
                           {ADOPTION_STAGE_LABELS[adoptionStage].name}
                         </Tag>
@@ -279,7 +294,7 @@ const ProjectRow = styled(PanelItem)`
   }
 `;
 
-const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
+const Layout = styled('div')<{hasAdoptionStagesColumn?: boolean}>`
   display: grid;
   grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
@@ -297,9 +312,9 @@ const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     ${p =>
-      p.hasAdoptionStages
+      p.hasAdoptionStagesColumn
         ? `
-      grid-template-columns: 1fr 0.5fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
+      grid-template-columns: 1fr 0.7fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
     `
         : `
       grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
