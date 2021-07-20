@@ -97,6 +97,7 @@ class BuildIncidentAttachmentTest(TestCase):
         group = self.create_group(project=self.project)
         ts = group.last_seen
         assert build_group_attachment(group) == {
+            "text": "",
             "color": "#E03E2F",
             "actions": [
                 {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
@@ -128,6 +129,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     "name": "assign",
                 },
             ],
+            "mrkdwn_in": ["text"],
             "title": group.title,
             "fields": [],
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
@@ -143,6 +145,7 @@ class BuildIncidentAttachmentTest(TestCase):
         ts = event.datetime
         assert build_group_attachment(group, event) == {
             "color": "#E03E2F",
+            "text": "",
             "actions": [
                 {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
                 {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
@@ -173,6 +176,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     "name": "assign",
                 },
             ],
+            "mrkdwn_in": ["text"],
             "title": event.title,
             "fields": [],
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
@@ -187,6 +191,7 @@ class BuildIncidentAttachmentTest(TestCase):
 
         assert build_group_attachment(group, event, link_to_event=True) == {
             "color": "#E03E2F",
+            "text": "",
             "actions": [
                 {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
                 {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
@@ -217,6 +222,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     "name": "assign",
                 },
             ],
+            "mrkdwn_in": ["text"],
             "title": event.title,
             "fields": [],
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
