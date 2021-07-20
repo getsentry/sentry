@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class AlertRuleNotification(BaseNotification):
+    fine_tuning_key = "alerts"
+    is_message_issue_unfurl = True
+
     def __init__(
         self,
         notification: Notification,
@@ -80,14 +83,6 @@ class AlertRuleNotification(BaseNotification):
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
         return context
-
-    @property
-    def fine_tuning_key(self) -> str:
-        return "alerts/"
-
-    @property
-    def is_message_issue_unfurl(self) -> bool:
-        return True
 
     def get_notification_title(self) -> Any:
         from sentry.integrations.slack.message_builder.issues import build_rule_url

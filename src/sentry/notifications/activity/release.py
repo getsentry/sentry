@@ -21,6 +21,8 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
+    fine_tuning_key = "deploy"
+
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.organization = self.project.organization
@@ -114,7 +116,3 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "release_activity_email"
-
-    @property
-    def fine_tuning_key(self) -> str:
-        return "deploy/"
