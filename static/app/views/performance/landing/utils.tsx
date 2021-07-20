@@ -157,6 +157,11 @@ export const vitalCardDetails = (
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
+    'p75(measurements.stall_percentage)': {
+      title: t('Stall Percentage (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.STALL_PERCENTAGE),
+      formatter: value => formatPercentage(value, 2),
+    },
   };
 };
 
