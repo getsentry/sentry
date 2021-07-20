@@ -24,7 +24,6 @@ import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest'
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod from '../healthStatsPeriod';
-import ReleaseAdoption from '../releaseAdoption';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
@@ -77,26 +76,16 @@ const Content = ({
       <Header>
         <Layout hasAdoptionStages={hasAdoptionStages}>
           <Column>{t('Project Name')}</Column>
-          <AdoptionColumn>
-            <GuideAnchor
-              target="release_adoption"
-              position="bottom"
-              disabled={!(isTopRelease && window.innerWidth >= 800)}
-            >
-              {t('Adoption')}
-            </GuideAnchor>
-          </AdoptionColumn>
           {hasAdoptionStages && (
             <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
           )}
-          <CountColumn>
-            <span>{t('Count')}</span>
+          <AdoptionColumn>
+            <span>{t('Adoption')}</span>
             <HealthStatsPeriod location={location} />
-          </CountColumn>
+          </AdoptionColumn>
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-          <ViewColumn />
         </Layout>
       </Header>
 
@@ -130,15 +119,6 @@ const Content = ({
               id,
               activeDisplay
             );
-            const get24hCountByRelease = getHealthData.get24hCountByRelease(
-              releaseVersion,
-              id,
-              activeDisplay
-            );
-            const get24hCountByProject = getHealthData.get24hCountByProject(
-              id,
-              activeDisplay
-            );
             const timeSeries = getHealthData.getTimeSeries(
               releaseVersion,
               id,
@@ -162,24 +142,6 @@ const Content = ({
                     <ProjectBadge project={project} avatarSize={16} />
                   </Column>
 
-                  <AdoptionColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="100px" />
-                    ) : get24hCountByProject ? (
-                      <AdoptionWrapper>
-                        <ReleaseAdoption
-                          adoption={adoption ?? 0}
-                          releaseCount={get24hCountByRelease ?? 0}
-                          projectCount={get24hCountByProject ?? 0}
-                          displayOption={activeDisplay}
-                        />
-                        <Count value={get24hCountByRelease ?? 0} />
-                      </AdoptionWrapper>
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </AdoptionColumn>
-
                   {hasAdoptionStages && (
                     <AdoptionStageColumn>
                       {adoptionStages?.[project.slug] ? (
@@ -192,21 +154,22 @@ const Content = ({
                     </AdoptionStageColumn>
                   )}
 
-                  <CountColumn>
+                  <AdoptionColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder />
-                    ) : hasCountHistogram ? (
-                      <ChartWrapper>
+                      <StyledPlaceholder width="100px" />
+                    ) : adoption && hasCountHistogram ? (
+                      <AdoptionWrapper>
+                        <span>{Math.round(adoption)}%</span>
                         <HealthStatsChart
                           data={timeSeries}
                           height={20}
                           activeDisplay={activeDisplay}
                         />
-                      </ChartWrapper>
+                      </AdoptionWrapper>
                     ) : (
                       <NotAvailable />
                     )}
-                  </CountColumn>
+                  </AdoptionColumn>
 
                   <CrashFreeRateColumn>
                     {showPlaceholders ? (
@@ -329,17 +292,17 @@ const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     ${p =>
       p.hasAdoptionStages
         ? `
-      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 0.5fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
     `
         : `
-      grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+      grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
     `}
   }
 `;
@@ -362,6 +325,10 @@ const AdoptionColumn = styled(Column)`
     /* Chart tooltips need overflow */
     overflow: visible;
   }
+
+  & > * {
+    flex: 1;
+  }
 `;
 
 const AdoptionStageColumn = styled(Column)`
@@ -375,13 +342,14 @@ const AdoptionStageColumn = styled(Column)`
 `;
 
 const AdoptionWrapper = styled('span')`
+  flex: 1;
   display: inline-grid;
-  grid-template-columns: 70px 1fr;
+  grid-template-columns: 30px 1fr;
   grid-gap: ${space(1)};
   align-items: center;
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 90px 1fr;
-  }
+
+  /* Chart tooltips need overflow */
+  overflow: visible;
 `;
 
 const CrashFreeRateColumn = styled(Column)`
@@ -391,17 +359,6 @@ const CrashFreeRateColumn = styled(Column)`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     text-align: right;
-  }
-`;
-
-const CountColumn = styled(Column)`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    display: flex;
-    /* Chart tooltips need overflow */
-    overflow: visible;
-    margin-left: ${space(3)};
   }
 `;
 
@@ -416,14 +373,6 @@ const CrashesColumn = styled(Column)`
 
 const ViewColumn = styled(Column)`
   text-align: right;
-`;
-
-const ChartWrapper = styled('div')`
-  flex: 1;
-  g > .barchart-rect {
-    background: ${p => p.theme.gray200};
-    fill: ${p => p.theme.gray200};
-  }
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
