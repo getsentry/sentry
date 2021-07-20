@@ -164,9 +164,6 @@ class PushEventWebhook(Webhook):
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
 
     def _handle(self, integration, event, organization, repo, host=None):
-        # while we're here, make sure repo data is up to date
-        self.update_repo_data(repo, event)
-
         authors = {}
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache = {}
@@ -309,9 +306,6 @@ class PullRequestEventWebhook(Webhook):
         return options.get("github-app.id")
 
     def _handle(self, integration, event, organization, repo, host=None):
-        # while we're here, make sure repo data is up to date
-        self.update_repo_data(repo, event)
-
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]
