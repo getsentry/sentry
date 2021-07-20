@@ -5,7 +5,7 @@ import pytest
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.constants import RELEASE_STAGE_ALIAS, SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_ALIAS, RELEASE_STAGE_ALIAS, SEMVER_ALIAS
 
 
 class ParseSearchQueryTest(TestCase):
@@ -24,6 +24,14 @@ class ParseSearchQueryTest(TestCase):
             SearchFilter(
                 key=SearchKey(name=RELEASE_FREE_TEXT_KEY), operator="=", value=SearchValue("1.2.*")
             ),
+        ]
+
+    def test_release(self):
+        assert parse_search_query(f"{RELEASE_ALIAS}:12") == [
+            SearchFilter(key=SearchKey(name=RELEASE_ALIAS), operator="=", value=SearchValue("12"))
+        ]
+        assert parse_search_query(f"{RELEASE_ALIAS}:12*") == [
+            SearchFilter(key=SearchKey(name=RELEASE_ALIAS), operator="=", value=SearchValue("12*")),
         ]
 
     def test_release_stage(self):
