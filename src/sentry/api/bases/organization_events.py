@@ -342,9 +342,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             allow_partial_buckets=allow_partial_buckets,
                             zerofill_results=zerofill_results,
                         )
-                serializedResult = results
+                serialized_result = results
             elif is_multiple_axis:
-                serializedResult = self.serialize_multiple_axis(
+                serialized_result = self.serialize_multiple_axis(
                     serializer,
                     result,
                     columns,
@@ -361,14 +361,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 )
             if hasattr(result, "start") and hasattr(result, "end"):
                 if is_multiple_axis:
-                    for value in serializedResult.values():
+                    for value in serialized_result.values():
                         value["start"] = result.start
                         value["end"] = result.end
                 else:
-                    serializedResult["start"] = result.start
-                    serializedResult["end"] = result.end
+                    serialized_result["start"] = result.start
+                    serialized_result["end"] = result.end
 
-            return serializedResult
+            return serialized_result
 
     def serialize_multiple_axis(
         self,
