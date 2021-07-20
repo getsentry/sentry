@@ -1055,9 +1055,12 @@ class QueryFilter(QueryFields):
         if not parsed_terms:
             return []
 
+        if not use_aggregate_conditions:
+            return []
+
         having_conditions: List[WhereType] = []
         for term in parsed_terms:
-            if isinstance(term, AggregateFilter) and use_aggregate_conditions:
+            if isinstance(term, AggregateFilter):
                 condition = self.convert_aggregate_filter_to_condition(term)
                 if condition:
                     having_conditions.append(condition)

@@ -2106,6 +2106,8 @@ class SnQLFunction(DiscoverFunction):
             ), f"{self.name}: argument {arg.name} specified more than once"
             names.add(arg.name)
 
+        self.validate_result_type(self.default_result_type)
+
 
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
