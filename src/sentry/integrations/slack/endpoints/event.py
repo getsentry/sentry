@@ -23,6 +23,13 @@ from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger, parse_link
+from .command import (
+    ALREADY_LINKED_MESSAGE,
+    LINK_FROM_CHANNEL_MESSAGE,
+    LINK_USER_MESSAGE,
+    NOT_LINKED_MESSAGE,
+    UNLINK_USER_MESSAGE,
+)
 
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
@@ -62,14 +69,6 @@ class SlackEventEndpoint(Endpoint):  # type: ignore
     def on_command(
         self, request: Request, message: str, integration: Integration, data: Mapping[str, Any]
     ) -> Response:
-
-        from .command import (
-            ALREADY_LINKED_MESSAGE,
-            LINK_FROM_CHANNEL_MESSAGE,
-            LINK_USER_MESSAGE,
-            NOT_LINKED_MESSAGE,
-            UNLINK_USER_MESSAGE,
-        )
 
         access_token = self._get_access_token(integration)
         headers = {"Authorization": "Bearer %s" % access_token}
