@@ -798,6 +798,50 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
         assert response.status_code == 400
 
+    def test_multi_project_release_gets_filtered(self):
+        multi_project_release = self.create_release(version="multi_project_release")
+        single_project_release = self.create_release(version="single_project_release")
+        project2 = self.create_project(teams=[self.team], organization=self.organization)
+
+        # One project not adopted
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=multi_project_release.id,
+            environment_id=self.environment.id,
+        )
+        # One project adopted
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project2.id,
+            release_id=multi_project_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=single_project_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+
+        # Filtering to self.environment.name and self.project with release.stage:adopted should NOT return multi_project_release.
+        response = self.get_valid_response(
+            self.organization.slug,
+            project=self.project.id,
+            environment=self.environment.name,
+            query=f"{RELEASE_STAGE_ALIAS}:adopted",
+        )
+        assert [r["version"] for r in response.data] == [single_project_release.version]
+
+        response = self.get_valid_response(
+            self.organization.slug,
+            environment=self.environment.name,
+            query=f"{RELEASE_STAGE_ALIAS}:adopted",
+        )
+        assert [r["version"] for r in response.data] == [
+            single_project_release.version,
+            multi_project_release.version,
+        ]
+
     def test_query_filter(self):
         self.login_as(user=self.user)
 
