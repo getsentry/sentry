@@ -1,8 +1,8 @@
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
-  working-dir:
-    description: 'Directory to do work from'
+  workdir:
+    description: 'Directory where the sentry source is located'
     required: false
     default: '.'
   snuba:
@@ -105,6 +105,7 @@ runs:
         python setup.py install_egg_info
         pip install wheel # GitHub Actions does not have `wheel` installed by default
         pip install -U -e ".[dev]"
+        cd -
 
         # pytest plugin used for better pytest failure annotations
         pip install pytest-github-actions-annotate-failures
