@@ -156,10 +156,7 @@ describe('Indicators', function () {
     jest.runAllTimers();
     expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
 
-    fireEvent(
-      wrapper.getByTestId('toast'),
-      new MouseEvent('click', {bubbles: true, cancelable: true})
-    );
+    fireEvent.click(wrapper.getByTestId('toast'));
     jest.runAllTimers();
     expect(wrapper.container).toHaveTextContent('');
     expect(wrapper.queryByTestId('toast')).toBeNull();
