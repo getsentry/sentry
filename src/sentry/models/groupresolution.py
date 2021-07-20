@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.models.release import DB_VERSION_LENGTH
+from sentry.utils import metrics
 
 
 class GroupResolution(Model):
@@ -67,6 +68,11 @@ class GroupResolution(Model):
             return True
 
         if res_type in (None, cls.Type.in_next_release):
+            # Add metric here to ensure that this code branch ever runs given that
+            # clear_expired_resolutions changes the type to `in_release` once a Release instance
+            # is created
+            metrics.incr("groupresolution.has_resolution.in_next_release", sample_rate=1.0)
+
             if res_release == release.id:
                 return True
             elif res_release_datetime > release.date_added:
