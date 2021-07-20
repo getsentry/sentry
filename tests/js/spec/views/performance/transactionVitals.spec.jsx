@@ -104,6 +104,11 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/events-histogram/',
       body: histogramData,
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/key-transactions-list/`,
+      body: [],
+    });
   });
 
   it('render no access without feature', async function () {

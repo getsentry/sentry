@@ -9,12 +9,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.models import (
-    MAX_KEY_TRANSACTIONS,
-    MAX_TEAM_KEY_TRANSACTIONS,
-    KeyTransaction,
-    TeamKeyTransaction,
-)
+from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
 from sentry.search.events.filter import get_filter
@@ -243,20 +238,6 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 "You cannot use the %s attribute(s) with the selected version"
                 % ", ".join(sorted(bad_fields))
             )
-
-
-class KeyTransactionSerializer(serializers.Serializer):
-    transaction = serializers.CharField(required=True, max_length=200)
-
-    def validate(self, data):
-        data = super().validate(data)
-        base_filter = self.context.copy()
-        # Limit the number of key transactions
-        if KeyTransaction.objects.filter(**base_filter).count() >= MAX_KEY_TRANSACTIONS:
-            raise serializers.ValidationError(
-                f"At most {MAX_KEY_TRANSACTIONS} Key Transactions can be added"
-            )
-        return data
 
 
 class TeamKeyTransactionSerializer(serializers.Serializer):
