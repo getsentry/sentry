@@ -19,13 +19,18 @@ class QueryBuilder(QueryFilter):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        use_aggregate_conditions: bool = False,
         limit: int = 50,
     ):
         super().__init__(dataset, params)
 
         self.limit = Limit(limit)
 
-        self.where = self.resolve_where(query)
+        parsed_terms = self.parse_query(query)
+        self.where = self.resolve_where(parsed_terms)
+        self.having = self.resolve_having(
+            parsed_terms, use_aggregate_conditions=use_aggregate_conditions
+        )
 
         # params depends on get_filter since there may be projects in the query
         self.where += self.resolve_params()
@@ -35,12 +40,12 @@ class QueryBuilder(QueryFilter):
 
     @property
     def select(self) -> Optional[List[SelectType]]:
-        return [*self.aggregates, *self.columns]
+        return self.columns
 
     @property
     def groupby(self) -> Optional[List[SelectType]]:
         if self.aggregates:
-            return self.columns
+            return [c for c in self.columns if c not in self.aggregates]
         else:
             return []
 
@@ -50,6 +55,7 @@ class QueryBuilder(QueryFilter):
             match=Entity(self.dataset.value),
             select=self.select,
             where=self.where,
+            having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,
             limit=self.limit,
