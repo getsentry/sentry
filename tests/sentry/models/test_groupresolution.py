@@ -76,6 +76,42 @@ class GroupResolutionTest(TestCase):
             assert GroupResolution.has_resolution(self.group, self.old_semver_release)
             grp_resolution.delete()
 
+    def test_when_current_release_version_is_set_with_new_release(self):
+        for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
+            grp_resolution = GroupResolution.objects.create(
+                release=self.old_release,
+                current_release_version=self.old_release.version,
+                group=self.group,
+                type=grp_res_type,
+            )
+            assert not GroupResolution.has_resolution(self.group, self.new_release)
+
+            grp_resolution.delete()
+
+    def test_when_current_release_version_is_set_with_same_release(self):
+        for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
+            grp_resolution = GroupResolution.objects.create(
+                release=self.old_release,
+                current_release_version=self.old_release.version,
+                group=self.group,
+                type=grp_res_type,
+            )
+            assert GroupResolution.has_resolution(self.group, self.old_release)
+
+            grp_resolution.delete()
+
+    def test_when_current_release_version_is_set_with_old_release(self):
+        for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
+            grp_resolution = GroupResolution.objects.create(
+                release=self.new_release,
+                current_release_version=self.new_release.version,
+                group=self.group,
+                type=grp_res_type,
+            )
+            assert GroupResolution.has_resolution(self.group, self.old_release)
+
+            grp_resolution.delete()
+
     def test_when_current_release_version_is_set_incorrect_inputs_fallback_to_older_model(self):
         """
         Test that ensures in a project that follows semver and where current_release_version is
@@ -99,6 +135,22 @@ class GroupResolutionTest(TestCase):
             self.old_semver_release,
             self.new_semver_release,
         ]:
+            assert not GroupResolution.has_resolution(self.group, release)
+
+    def test_when_current_release_version_is_set_but_does_not_exist_fallback_to_older_model(self):
+        """
+        Test that ensures in a project that does not follows semver, and current_release_version
+        is set but no corresponding Release instance exists for that release version then
+        comparison does not break the method, but rather fallsback to the older model
+        """
+        GroupResolution.objects.create(
+            release=self.old_release,
+            current_release_version="kittie 12",
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+
+        for release in [self.new_release, self.old_semver_release, self.new_semver_release]:
             assert not GroupResolution.has_resolution(self.group, release)
 
     def test_in_release_with_new_release(self):
