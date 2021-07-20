@@ -104,24 +104,33 @@ class SnubaProtocolEventStream(EventStream):
         # messages. The post process forwarder is currently bound to a single core.
         # Once we are able to parallelize the JSON parsing and other transformation
         # steps being done there we may want to remove this hack.
-        def encode_bool(value: Optional[bool]) -> Optional[str]:
+        def encode_bool(value: Optional[bool]) -> str:
             if value is None:
-                return None
+                value = False
             return str(int(value))
 
-        headers = {
-            "Received-Timestamp": str(received_timestamp),
-            "event_id": str(event.event_id),
-            "project_id": str(event.project_id),
-            "group_id": str(event.group_id) if event.group_id is not None else None,
-            "primary_hash": str(primary_hash) if primary_hash is not None else None,
-            "is_new": encode_bool(is_new),
-            "is_new_group_environment": encode_bool(is_new_group_environment),
-            "is_regression": encode_bool(is_regression),
-            "version": str(self.EVENT_PROTOCOL_VERSION),
-            "operation": "insert",
-            "skip_consume": encode_bool(skip_consume),
-        }
+        # WARNING: We must remove all None headers. There is a bug in confluent-kafka-python
+        # (used by both Sentry and Snuba) that incorrectly decrements the reference count of
+        # Python's None in header values, leading None to eventually get deallocated and crash
+        # the interpreter.
+        def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
+            return {key: value for key, value in value.items() if value is not None}
+
+        headers = strip_none_values(
+            {
+                "Received-Timestamp": str(received_timestamp),
+                "event_id": str(event.event_id),
+                "project_id": str(event.project_id),
+                "group_id": str(event.group_id) if event.group_id is not None else None,
+                "primary_hash": str(primary_hash) if primary_hash is not None else None,
+                "is_new": encode_bool(is_new),
+                "is_new_group_environment": encode_bool(is_new_group_environment),
+                "is_regression": encode_bool(is_regression),
+                "version": str(self.EVENT_PROTOCOL_VERSION),
+                "operation": "insert",
+                "skip_consume": encode_bool(skip_consume),
+            }
+        )
 
         self._send(
             project.id,
