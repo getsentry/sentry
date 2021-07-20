@@ -616,7 +616,6 @@ const SortAndFilterWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: stretch;
-  grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   > *:nth-child(1) {
@@ -633,7 +632,10 @@ const SortAndFilterWrapper = styled('div')`
 const DropdownsWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+
+  & > * {
+    margin-top: ${space(2)};
+  }
 
   /* At the narrower widths wrapper is on its own in a row
    * Expand the dropdown controls to fill the empty space */
@@ -644,6 +646,17 @@ const DropdownsWrapper = styled('div')`
   /* At narrower widths space bar needs a separate row
    * Divide space evenly when 3 dropdowns are in their own row */
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(2)};
+
+    & > * {
+      margin-top: ${space(0)};
+      margin-left: ${space(2)};
+    }
+
+    & > *:nth-child(1) {
+      margin-left: ${space(0)};
+    }
+
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
   }
@@ -651,6 +664,12 @@ const DropdownsWrapper = styled('div')`
   /* At wider widths everything is in 1 row
    * Auto space dropdowns when they are in the same row with search bar */
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    margin-top: ${space(0)};
+
+    & > * {
+      margin-left: ${space(2)} !important;
+    }
+
     display: grid;
     grid-template-columns: auto auto auto;
   }
