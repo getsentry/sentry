@@ -2086,7 +2086,7 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs):
-        self.snql_transform = kwargs.pop("snql_transform", None)
+        self.snql_aggregate = kwargs.pop("snql_aggregate", None)
         super().__init__(*args, **kwargs)
 
     def validate(self):
@@ -2096,7 +2096,7 @@ class SnQLFunction(DiscoverFunction):
                 arg.has_default
             ), f"{self.name}: optional argument at index {i} does not have default"
 
-        assert self.snql_transform is not None
+        assert self.snql_aggregate is not None
 
         # assert that no duplicate argument names are used
         names = set()
@@ -2137,7 +2137,7 @@ class QueryFields(QueryBase):
             for function in [
                 SnQLFunction(
                     "failure_count",
-                    snql_transform=lambda _, alias: Function(
+                    snql_aggregate=lambda _, alias: Function(
                         "countIf",
                         [
                             Function(
@@ -2157,54 +2157,54 @@ class QueryFields(QueryBase):
                     default_result_type="integer",
                 ),
                 # TODO: implement these
-                SnQLFunction("percentile", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("p50", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("p75", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("p95", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("p99", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("p100", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("eps", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("epm", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("last_seen", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("latest_event", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("apdex", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("apdex", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
-                    "count_miserable", snql_transform=self._resolve_unimplemented_function
+                    "count_miserable", snql_aggregate=self._resolve_unimplemented_function
                 ),
-                SnQLFunction("user_misery", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("failure_rate", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("array_join", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("histogram", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("count_unique", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("count", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("count_at_least", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("min", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("max", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("avg", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("var", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("stddev", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("cov", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("corr", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("sum", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("any", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("absolute_delta", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("user_misery", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("avg", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("var", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("stddev", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("cov", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
-                    "percentile_range", snql_transform=self._resolve_unimplemented_function
+                    "percentile_range", snql_aggregate=self._resolve_unimplemented_function
                 ),
-                SnQLFunction("avg_range", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("variance_range", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("count_range", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("percentage", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("t_test", snql_transform=self._resolve_unimplemented_function),
-                SnQLFunction("minus", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("avg_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("variance_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
-                    "absolute_correlation", snql_transform=self._resolve_unimplemented_function
+                    "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
                 ),
-                SnQLFunction("count_if", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
-                    "compare_numeric_aggregate", snql_transform=self._resolve_unimplemented_function
+                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
                 ),
-                SnQLFunction("to_other", snql_transform=self._resolve_unimplemented_function),
+                SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
 
@@ -2300,7 +2300,7 @@ class QueryFields(QueryBase):
 
         name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter.get(name)
-        return snql_function.snql_transform(arguments, alias)
+        return snql_function.snql_aggregate(arguments, alias)
 
     def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
         function = match.group("function")
