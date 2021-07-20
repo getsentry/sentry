@@ -236,7 +236,7 @@ function StackTraceContent({
         if (isVisible && !repeatedFrame) {
           const lineProps = {
             event,
-            data: frame,
+            frame,
             isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
             emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
             nextFrame,
@@ -252,7 +252,6 @@ function StackTraceContent({
             onFunctionNameToggle: handleToggleFunctionName,
             showCompleteFunctionName,
             isHoverPreviewed,
-            isFirst: newestFirst ? frameIndex === lastFrameIndex : frameIndex === 0,
             isPrefix: !!frame.isPrefix,
             isSentinel: !!frame.isSentinel,
             isUsedForGrouping: isFrameUsedForGrouping(frame),
