@@ -709,6 +709,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("", 1),
             ("stack.filename:*.js", 1),
             ("stack.filename:*.py", 0),
+            ("has:stack.filename", 1),
+            ("!has:stack.filename", 0),
         ]
 
         for query, expected_len in queries:

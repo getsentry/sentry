@@ -1131,25 +1131,30 @@ class QueryFilter(QueryFields):
                 # If not a tag, we can just check that the column is null.
                 return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
-        if search_filter.value.is_wildcard():
-            if name in ARRAY_FIELDS:
-                condition = Condition(
-                    lhs,
-                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
-                    search_filter.value.raw_value.replace("%", "\\%")
-                    .replace("_", "\\_")
-                    .replace("*", "%"),
-                )
-            else:
-                condition = Condition(
-                    Function("match", [lhs, f"'(?i){value}'"]),
-                    Op(search_filter.operator),
-                    1,
-                )
+        if name in ARRAY_FIELDS and search_filter.value.is_wildcard():
+            condition = Condition(
+                lhs,
+                Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                search_filter.value.raw_value.replace("%", "\\%")
+                .replace("_", "\\_")
+                .replace("*", "%"),
+            )
         elif name in ARRAY_FIELDS and search_filter.is_in_filter:
             condition = Condition(
                 Function("hasAny", [self.column(name), value]),
-                Op.EQ if search_filter.operator == "IN" else Op.NEQs,
+                Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                1,
+            )
+        elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+            condition = Condition(
+                Function("notEmpty", [self.column(name)]),
+                Op.EQ,
+                1 if search_filter.operator == "!=" else 0,
+            )
+        elif search_filter.value.is_wildcard():
+            condition = Condition(
+                Function("match", [lhs, f"'(?i){value}'"]),
+                Op(search_filter.operator),
                 1,
             )
         else:
