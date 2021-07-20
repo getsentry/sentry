@@ -10,14 +10,14 @@ class JSONFieldTestModel(models.Model):
     json = JSONField("test", null=True, blank=True)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "tests"
 
 
 class JSONFieldWithDefaultTestModel(models.Model):
     json = JSONField(default={"sukasuka": "YAAAAAZ"})
 
     class Meta:
-        app_label = "sentry"
+        app_label = "tests"
 
 
 class BlankJSONFieldTestModel(models.Model):
@@ -25,7 +25,7 @@ class BlankJSONFieldTestModel(models.Model):
     blank_json = JSONField(blank=True)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "tests"
 
 
 def default():
@@ -36,7 +36,7 @@ class CallableDefaultModel(models.Model):
     json = JSONField(default=default)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "tests"
 
 
 class JSONFieldTest(TestCase):
