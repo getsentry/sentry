@@ -539,18 +539,34 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["contexts"]["trace"]["status"] = "unauthenticated"
             self.store_event(data, project_id=project.id)
 
-        for query_fn in [discover.query, discover.wip_snql_query]:
-            result = query_fn(
-                selected_columns=["failure_count()"],
-                query="",
-                params={
-                    "start": before_now(minutes=10),
-                    "end": before_now(minutes=2),
-                    "project_id": [project.id],
-                },
-            )
-            data = result["data"]
-            assert data[0]["failure_count"] == 6
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/0"
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data, project_id=project.id)
+
+        queries = [
+            ("", 8),
+            ("failure_count():>0", 6),
+        ]
+
+        for query, expected_length in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction", "failure_count()"],
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                    use_aggregate_conditions=True,
+                )
+                data = result["data"]
+
+                assert len(data) == expected_length
+                assert data[0]["failure_count"] == 2
+                assert data[1]["failure_count"] == 1
 
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))

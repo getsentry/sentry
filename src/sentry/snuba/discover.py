@@ -200,6 +200,7 @@ def wip_snql_query(
     """
     builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
     snql_query = builder.get_snql_query()
+
     results = raw_snql_query(snql_query, referrer)
     return results
 

@@ -2294,12 +2294,20 @@ class QueryFields(QueryBase):
     def is_function(self, function: str) -> bool:
         return function in self.function_converter
 
-    def resolve_function(self, function: str, match: Match[str]) -> SelectType:
+    def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
+        if match is None:
+            match = is_function(function)
+
+        if not match:
+            raise InvalidSearchQuery(f"Invalid characters in field {function}")
+
         if function in self.params.get("aliases", {}):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
         name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter.get(name)
+        if snql_function.snql_aggregate is not None:
+            self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
         return snql_function.snql_aggregate(arguments, alias)
 
     def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
