@@ -253,17 +253,18 @@ class MailAdapter:
                 send_to=[user_id],
             )
 
-    def notify_about_activity(self, activity):
+    @staticmethod
+    def notify_about_activity(activity):
         metrics.incr("mail_adapter.notify_about_activity")
         email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
             logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
             return
 
-        email = email_cls(activity)
-        email.send()
+        email_cls(activity).send()
 
-    def handle_user_report(self, payload, project, **kwargs):
+    @staticmethod
+    def handle_user_report(payload, project: Project, **kwargs):
         metrics.incr("mail_adapter.handle_user_report")
         group = Group.objects.get(id=payload["report"]["issue"]["id"])
 
