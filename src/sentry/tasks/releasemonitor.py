@@ -33,9 +33,11 @@ logger = logging.getLogger("tasks.releasemonitor")
     max_retries=5,
 )
 def monitor_release_adoption(**kwargs):
-    metrics.incr("sentry.tasks.monitor_release_adoption.start")
+    metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
     # 1. Query snuba for all project ids that have sessions.
-    with metrics.timer("sentry.tasks.monitor_release_adoption.aggregate_projects.loop"):
+    with metrics.timer(
+        "sentry.tasks.monitor_release_adoption.aggregate_projects.loop", sample_rate=1.0
+    ):
         aggregated_projects = defaultdict(list)
         start_time = time.time()
         offset = 0
@@ -81,9 +83,12 @@ def monitor_release_adoption(**kwargs):
         else:
             logger.info(
                 "monitor_release_adoption.loop_timeout",
+                sample_rate=1.0,
                 extra={"offset": offset},
             )
-    with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions"):
+    with metrics.timer(
+        "sentry.tasks.monitor_release_adoption.process_projects_with_sessions", sample_rate=1.0
+    ):
         for org_id in aggregated_projects:
             process_projects_with_sessions.delay(org_id, aggregated_projects[org_id])
 
