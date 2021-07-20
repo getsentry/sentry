@@ -110,6 +110,7 @@ export class Line extends React.Component<Props, State> {
     const {
       data: frame,
       nextFrame,
+      prevFrame,
       timesRepeated,
       isHoverPreviewed,
       platform = 'other',
@@ -123,7 +124,10 @@ export class Line extends React.Component<Props, State> {
       isUsedForGrouping,
       isPrefix,
       haveFramesAtLeastOneExpandedFrame,
+
       haveFramesAtLeastOneGroupingBadge,
+      maxLengthOfRelativeAddress,
+      image,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -142,6 +146,7 @@ export class Line extends React.Component<Props, State> {
             <Native
               frame={frame}
               nextFrame={nextFrame}
+              prevFrame={prevFrame}
               isHoverPreviewed={isHoverPreviewed}
               leadsToApp={leadsToApp}
               platform={platform as PlatformType}
@@ -160,6 +165,8 @@ export class Line extends React.Component<Props, State> {
               isUsedForGrouping={isUsedForGrouping}
               haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
               haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
+              image={image}
+              maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
             />
           </StrictClick>
         );

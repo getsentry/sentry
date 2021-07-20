@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {IconRefresh} from 'app/icons/iconRefresh';
+import {tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Frame} from 'app/types';
 import {defined} from 'app/utils';
@@ -41,7 +42,7 @@ function Default({
     if (defined(timesRepeated) && timesRepeated > 0) {
       return (
         <RepeatedFrames
-          title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
+          title={tn('Frame repeated %s time', 'Frame repeated %s times', timesRepeated)}
         >
           <RepeatedContent>
             <StyledIconRefresh />
