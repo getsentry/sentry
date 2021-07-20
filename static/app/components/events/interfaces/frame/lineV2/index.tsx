@@ -1,14 +1,12 @@
-import * as React from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
 import {AddressToggleIcon} from 'app/components/events/interfaces/togglableAddress';
 import StrictClick from 'app/components/strictClick';
-import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
+import {PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
-import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from '../context';
@@ -25,131 +23,87 @@ import {
 import Default from './default';
 import Native from './native';
 
-type Props = {
-  data: Frame;
-  event: Event;
-  registers: Record<string, string>;
-  components: Array<SentryAppComponent>;
-  haveFramesAtLeastOneExpandedFrame?: boolean;
-  haveFramesAtLeastOneGroupingBadge?: boolean;
-  isPrefix?: boolean;
-  isSentinel?: boolean;
-  isUsedForGrouping?: boolean;
-  nextFrame?: Frame;
-  prevFrame?: Frame;
-  platform?: PlatformType;
-  emptySourceNotation?: boolean;
-  isOnlyFrame?: boolean;
-  timesRepeated?: number;
-  showingAbsoluteAddress?: boolean;
-  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
-  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
-  showCompleteFunctionName?: boolean;
-  image?: React.ComponentProps<typeof DebugImage>['image'];
-  maxLengthOfRelativeAddress?: number;
-  isFrameAfterLastNonApp?: boolean;
-  includeSystemFrames?: boolean;
-  isExpanded?: boolean;
-  isFirst?: boolean;
-  organization?: Organization;
+type Props = Omit<
+  React.ComponentProps<typeof Native>,
+  'onToggleContext' | 'leadsToApp' | 'isExpandable' | 'hasGroupingBadge'
+> &
+  Omit<
+    React.ComponentProps<typeof Default>,
+    'onToggleContext' | 'leadsToApp' | 'isExpandable' | 'hasGroupingBadge'
+  > & {
+    event: Event;
+    registers: Record<string, string>;
+    components: Array<SentryAppComponent>;
+    emptySourceNotation?: boolean;
+    isOnlyFrame?: boolean;
+  };
+
+function Line({
+  frame,
+  nextFrame,
+  prevFrame,
+  timesRepeated,
+  includeSystemFrames,
+  onAddressToggle,
+  onFunctionNameToggle,
+  showingAbsoluteAddress,
+  showCompleteFunctionName,
+  isFrameAfterLastNonApp,
+  isSentinel,
+  isUsedForGrouping,
+  isPrefix,
+  haveFramesAtLeastOneExpandedFrame,
+  haveFramesAtLeastOneGroupingBadge,
+  maxLengthOfRelativeAddress,
+  image,
+  registers,
+  isOnlyFrame,
+  event,
+  components,
+  emptySourceNotation = false,
   /**
    * Is the stack trace being previewed in a hovercard?
    */
-  isHoverPreviewed?: boolean;
-};
+  isHoverPreviewed = false,
+  ...props
+}: Props) {
+  const [isExpanded, setIsExpanded] = useState(props.isExpanded ?? false);
 
-type State = {
-  isExpanded?: boolean;
-};
+  /* Prioritize the frame platform but fall back to the platform
+   of the stack trace / exception */
+  const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
+  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+  const expandable = isExpandable({
+    frame,
+    registers,
+    platform,
+    emptySourceNotation,
+    isOnlyFrame,
+  });
 
-export class Line extends React.Component<Props, State> {
-  static defaultProps = {
-    isExpanded: false,
-    emptySourceNotation: false,
-    isHoverPreviewed: false,
-  };
-
-  // isExpanded can be initialized to true via parent component;
-  // data synchronization is not important
-  // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
-  state: State = {
-    isExpanded: this.props.isExpanded,
-  };
-
-  toggleContext = (evt?: React.MouseEvent) => {
+  function toggleContext(evt?: React.MouseEvent) {
     evt && evt.preventDefault();
-
-    this.setState({
-      isExpanded: !this.state.isExpanded,
-    });
-  };
-
-  getPlatform() {
-    // prioritize the frame platform but fall back to the platform
-    // of the stack trace / exception
-    return getPlatform(this.props.data.platform, this.props.platform ?? 'other');
+    setIsExpanded(!isExpanded);
   }
 
-  isExpandable() {
-    const {registers, platform, emptySourceNotation, isOnlyFrame, data} = this.props;
-    return isExpandable({
-      frame: data,
-      registers,
-      platform,
-      emptySourceNotation,
-      isOnlyFrame,
-    });
-  }
-
-  leadsToApp() {
-    const {data, nextFrame} = this.props;
-    return !data.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
-  }
-
-  renderLine() {
-    const {
-      data: frame,
-      nextFrame,
-      prevFrame,
-      timesRepeated,
-      isHoverPreviewed,
-      platform = 'other',
-      includeSystemFrames,
-      onAddressToggle,
-      onFunctionNameToggle,
-      showingAbsoluteAddress,
-      showCompleteFunctionName,
-      isFrameAfterLastNonApp,
-      isSentinel,
-      isUsedForGrouping,
-      isPrefix,
-      haveFramesAtLeastOneExpandedFrame,
-
-      haveFramesAtLeastOneGroupingBadge,
-      maxLengthOfRelativeAddress,
-      image,
-    } = this.props;
-    const {isExpanded} = this.state;
-
-    const leadsToApp = this.leadsToApp();
-    const expandable = this.isExpandable();
+  function renderLine() {
     const hasGroupingBadge = isSentinel || isUsedForGrouping || isPrefix || frame.inApp;
 
-    switch (this.getPlatform()) {
+    switch (platform) {
       case 'objc':
       // fallthrough
       case 'cocoa':
       // fallthrough
       case 'native':
         return (
-          <StrictClick onClick={expandable ? this.toggleContext : undefined}>
+          <StrictClick onClick={expandable ? toggleContext : undefined}>
             <Native
               frame={frame}
               nextFrame={nextFrame}
               prevFrame={prevFrame}
               isHoverPreviewed={isHoverPreviewed}
               leadsToApp={leadsToApp}
-              platform={platform as PlatformType}
+              platform={platform}
               isExpanded={isExpanded}
               isExpandable={expandable}
               onAddressToggle={onAddressToggle}
@@ -158,7 +112,7 @@ export class Line extends React.Component<Props, State> {
               showingAbsoluteAddress={showingAbsoluteAddress}
               showCompleteFunctionName={showCompleteFunctionName}
               isFrameAfterLastNonApp={isFrameAfterLastNonApp}
-              onToggleContext={this.toggleContext}
+              onToggleContext={toggleContext}
               hasGroupingBadge={hasGroupingBadge}
               isSentinel={isSentinel}
               isPrefix={isPrefix}
@@ -172,17 +126,17 @@ export class Line extends React.Component<Props, State> {
         );
       default:
         return (
-          <StrictClick onClick={expandable ? this.toggleContext : undefined}>
+          <StrictClick onClick={expandable ? toggleContext : undefined}>
             <Default
               frame={frame}
               nextFrame={nextFrame}
               timesRepeated={timesRepeated}
               isHoverPreviewed={isHoverPreviewed}
               leadsToApp={leadsToApp}
-              platform={platform as PlatformType}
+              platform={platform}
               isExpanded={isExpanded}
               isExpandable={expandable}
-              onToggleContext={this.toggleContext}
+              onToggleContext={toggleContext}
               hasGroupingBadge={hasGroupingBadge}
               isSentinel={isSentinel}
               isPrefix={isPrefix}
@@ -195,44 +149,37 @@ export class Line extends React.Component<Props, State> {
     }
   }
 
-  render() {
-    const data = this.props.data;
+  const className = classNames({
+    frame: true,
+    'is-expandable': expandable,
+    expanded: isExpanded,
+    collapsed: !isExpanded,
+    'system-frame': !frame.inApp,
+    'frame-errors': !!(frame.errors ?? []).length,
+    'leads-to-app': leadsToApp,
+  });
 
-    const className = classNames({
-      frame: true,
-      'is-expandable': this.isExpandable(),
-      expanded: this.state.isExpanded,
-      collapsed: !this.state.isExpanded,
-      'system-frame': !data.inApp,
-      'frame-errors': data.errors,
-      'leads-to-app': this.leadsToApp(),
-    });
-    const props = {className};
-
-    return (
-      <StyledLi {...props}>
-        {this.renderLine()}
-        <Context
-          frame={data}
-          event={this.props.event}
-          registers={this.props.registers}
-          components={this.props.components}
-          hasContextSource={hasContextSource(data)}
-          hasContextVars={hasContextVars(data)}
-          hasContextRegisters={hasContextRegisters(this.props.registers)}
-          emptySourceNotation={this.props.emptySourceNotation}
-          hasAssembly={hasAssembly(data, this.props.platform)}
-          expandable={this.isExpandable()}
-          isExpanded={this.state.isExpanded}
-        />
-      </StyledLi>
-    );
-  }
+  return (
+    <StyledLi className={className}>
+      {renderLine()}
+      <Context
+        frame={frame}
+        event={event}
+        registers={registers}
+        components={components}
+        hasContextSource={hasContextSource(frame)}
+        hasContextVars={hasContextVars(frame)}
+        hasContextRegisters={hasContextRegisters(registers)}
+        emptySourceNotation={emptySourceNotation}
+        hasAssembly={hasAssembly(frame, platform)}
+        expandable={expandable}
+        isExpanded={isExpanded}
+      />
+    </StyledLi>
+  );
 }
 
-export default withOrganization(
-  withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
-);
+export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
 
 const StyledLi = styled('li')`
   overflow: hidden;
