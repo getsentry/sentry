@@ -25,11 +25,14 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_incident,
+    update_incident_status,
 )
 from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
+    IncidentActivity,
     IncidentStatus,
+    IncidentStatusMethod,
     IncidentType,
 )
 from sentry.interfaces.user import User as UserInterface
@@ -125,6 +128,8 @@ saved_search_by_platform = {
 }
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
+
+alert_platforms = ["android", "python"]
 
 
 def get_data_file_path(file_name):
@@ -558,7 +563,7 @@ def populate_org_members(org, team):
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
 
-def generate_incidents(timestamps, timeperiod, max_days, warning, critical):
+def generate_incident_times(timestamps, timeperiod, max_days, warning, critical):
     start_time = (
         timezone.now().replace(second=0, microsecond=0)
         - timedelta(days=max_days)
@@ -575,15 +580,14 @@ def generate_incidents(timestamps, timeperiod, max_days, warning, critical):
         else:
             counter[start_time] = 1
 
-    warning_time = []
-    critical_time = []
+    times = []
     for timestamp in counter:
         if counter[timestamp] >= warning and counter[timestamp] < critical:
-            warning_time.append(timestamp)
+            times.append([timestamp, "warning"])
         elif counter[timestamp] >= critical:
-            critical_time.append(timestamp)
+            times.append([timestamp, "critical"])
 
-    return warning_time, critical_time
+    return times
 
 
 class DataPopulation:
@@ -790,8 +794,8 @@ class DataPopulation:
             date_modified=timezone.now(), date_added=timezone.now() - timedelta(days=2)
         )
 
-        warning_threshold = 7
-        critical_threshold = 10
+        warning_threshold = 2
+        critical_threshold = 3
         critical_trigger = create_alert_rule_trigger(alert_rule, "critical", critical_threshold)
         warning_trigger = create_alert_rule_trigger(alert_rule, "warning", warning_threshold)
         for trigger in [critical_trigger, warning_trigger]:
@@ -802,7 +806,7 @@ class DataPopulation:
                 target_identifier=str(team.id),
             )
 
-        warning_time, critical_time = generate_incidents(
+        incident_times = generate_incident_times(
             self.timestamps_by_project[project.slug],
             time_interval,
             self.get_config_var("MAX_DAYS"),
@@ -810,17 +814,83 @@ class DataPopulation:
             critical_threshold,
         )
 
-        incident = create_incident(
-            organization=org,
-            type_=IncidentType.ALERT_TRIGGERED,
-            title="7 Errors",
-            date_started=timezone.now() - timedelta(hours=7),
-            projects=[project],
-            alert_rule=alert_rule,
-        )
-        incident.update(
-            status=IncidentStatus.WARNING.value, date_closed=timezone.now() - timedelta(hours=6)
-        )
+        # for warning_time in warning_times:
+        #     incident = create_incident(
+        #         organization=org,
+        #         type_=IncidentType.ALERT_TRIGGERED,
+        #         title=f"{warning_threshold} Errors",
+        #         date_started=warning_time,
+        #         projects=[project],
+        #         alert_rule=alert_rule,
+        #     )
+
+        #     update_incident_status(incident, status=IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED)
+
+        #     update_incident_status(incident, IncidentStatus.CLOSED, date_closed=warning_time + timedelta(minutes=time_interval))
+
+        #     activities = list(IncidentActivity.objects.filter(incident=incident))
+        #     created = activities[2]
+        #     created.update(date_added=warning_time + timedelta(minutes=time_interval))
+        #     changed = activities[1]
+        #     changed.update(date_added=warning_time + timedelta(minutes=time_interval))
+        #     resolved = activities[0]
+        #     resolved.update(date_added=warning_time + timedelta(minutes=2 * time_interval))
+
+        # for critical_time in critical_times:
+        #     incident = create_incident(
+        #         organization=org,
+        #         type_=IncidentType.ALERT_TRIGGERED,
+        #         title=f"{critical_threshold} Errors",
+        #         date_started=critical_time,
+        #         projects=[project],
+        #         alert_rule=alert_rule,
+        #     )
+
+        #     update_incident_status(incident, status=IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED)
+
+        #     update_incident_status(incident, IncidentStatus.CLOSED, date_closed=critical_time + timedelta(minutes=time_interval))
+
+        #     activities = list(IncidentActivity.objects.filter(incident=incident))
+        #     created = activities[2]
+        #     created.update(date_added=critical_time + timedelta(minutes=time_interval))
+        #     changed = activities[1]
+        #     changed.update(date_added=critical_time + timedelta(minutes=time_interval))
+        #     resolved = activities[0]
+        #     resolved.update(date_added=critical_time + timedelta(minutes=2 * time_interval))
+
+        for incident_time, status in incident_times:
+            if status == "warning":
+                title = f"{warning_threshold} Errors"
+                status = IncidentStatus.WARNING
+            else:
+                title = f"{critical_threshold} Errors"
+                status = IncidentStatus.CRITICAL
+
+            incident = create_incident(
+                organization=org,
+                type_=IncidentType.ALERT_TRIGGERED,
+                title=title,
+                date_started=incident_time,
+                projects=[project],
+                alert_rule=alert_rule,
+            )
+
+            update_incident_status(
+                incident, status=status, status_method=IncidentStatusMethod.RULE_TRIGGERED
+            )
+            update_incident_status(
+                incident,
+                IncidentStatus.CLOSED,
+                date_closed=incident_time + timedelta(minutes=time_interval),
+            )
+
+            activities = list(IncidentActivity.objects.filter(incident=incident))
+            created = activities[2]
+            created.update(date_added=incident_time + timedelta(minutes=time_interval))
+            changed = activities[1]
+            changed.update(date_added=incident_time + timedelta(minutes=time_interval))
+            resolved = activities[0]
+            resolved.update(date_added=incident_time + timedelta(minutes=2 * time_interval))
 
     def generate_issue_alert(self, project):
         org = project.organization
@@ -1071,6 +1141,11 @@ class DataPopulation:
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
 
+            if python_project.slug not in self.timestamps_by_project:
+                self.timestamps_by_project[python_project.slug] = [timestamp]
+            else:
+                self.timestamps_by_project[python_project.slug].append(timestamp)
+
         self.log_info("populate_connected_event_scenario_1.finished")
 
     def populate_connected_event_scenario_1b(self, react_project: Project, python_project: Project):
@@ -1292,10 +1367,11 @@ class DataPopulation:
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
 
-            if project.slug not in self.timestamps_by_project:
-                self.timestamps_by_project[project.slug] = [timestamp]
-            else:
-                self.timestamps_by_project[project.slug].append(timestamp)
+            if project.slug in alert_platforms:
+                if project.slug not in self.timestamps_by_project:
+                    self.timestamps_by_project[project.slug] = [timestamp]
+                else:
+                    self.timestamps_by_project[project.slug].append(timestamp)
 
         self.log_info("populate_generic_error.finished")
 
@@ -1522,8 +1598,6 @@ class DataPopulation:
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
     ):
-        # with sentry_sdk.start_span(op="handle_mobile_scenario", description="pre_event_setup"):
-        #     self.generate_alerts(android_project)
         if not self.get_config_var("DISABLE_SESSIONS"):
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
@@ -1560,3 +1634,4 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
+        self.generate_alerts(android_project)
