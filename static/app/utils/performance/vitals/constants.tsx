@@ -116,4 +116,52 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
     ),
     type: measurementType(MobileVital.FramesFrozen),
   },
+  [MobileVital.FramesSlowRate]: {
+    slug: 'frames_slow_rate',
+    name: t('Slow Frames Rate'),
+    description: t(
+      'Slow Frames Rate is the percentage of frames recorded within a transaction that is considered slow.'
+    ),
+    type: measurementType(MobileVital.FramesSlowRate),
+  },
+  [MobileVital.FramesFrozenRate]: {
+    slug: 'frames_frozen_rate',
+    name: t('Frozen Frames Rate'),
+    description: t(
+      'Frozen Frames Rate is the percentage of frames recorded within a transaction that is considered frozen.'
+    ),
+    type: measurementType(MobileVital.FramesFrozenRate),
+  },
+  [MobileVital.StallCount]: {
+    slug: 'stall_count',
+    name: t('Stalls'),
+    description: t(
+      'Stalls is the number of times the application stalled within a transaction.'
+    ),
+    type: measurementType(MobileVital.StallCount),
+  },
+  [MobileVital.StallTotalTime]: {
+    slug: 'stall_total_time',
+    name: t('Total Stall Time'),
+    description: t(
+      'Stall Total Time is the total amount of time the application is stalled within a transaction.'
+    ),
+    type: measurementType(MobileVital.StallTotalTime),
+  },
+  [MobileVital.StallLongestTime]: {
+    slug: 'stall_longest_time',
+    name: t('Longest Stall Time'),
+    description: t(
+      'Stall Longest Time is the longest amount of time the application is stalled within a transaction.'
+    ),
+    type: measurementType(MobileVital.StallLongestTime),
+  },
+  [MobileVital.StallPercentage]: {
+    slug: 'stall_percentage',
+    name: t('Stall Percentage'),
+    description: t(
+      'Stall Percentage is the percentage of the transaction duration the application was stalled.'
+    ),
+    type: measurementType(MobileVital.StallPercentage),
+  },
 };
