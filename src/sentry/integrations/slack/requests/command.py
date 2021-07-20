@@ -33,16 +33,12 @@ class SlackCommandRequest(SlackRequest):
         return self.identity_str is not None
 
     def _validate_data(self) -> None:
-        # print("request bodyyy")
-        # print(self.request.body)
         try:
             qs_data = parse_qs(self.request.body.decode("utf-8"), strict_parsing=True)
-        except ValueError as e:
+        except ValueError:
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
-        # print("qs data: ", qs_data)
         # Flatten the values.
         self._data = {key: value_array[0] for key, value_array in qs_data.items()}
-        # print("_data: ", self._data)
         if not self._data.get("team_id"):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
@@ -53,9 +49,5 @@ class SlackCommandRequest(SlackRequest):
         except IdentityProvider.DoesNotExist:
             logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
             raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
-        # import pdb; pdb.set_trace()
-        print("user id: ", self.user_id)
         identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
-        print("idp: ", idp)
-        print("identities: ", identities)
         self.identity_str = identities[0].user.email if identities else None
