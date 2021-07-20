@@ -67,19 +67,12 @@ const ExceptionStacktraceContent = ({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  const stackTracePlatform =
-    (data?.frames ?? []).find(frame => frame.platform) ?? platform ?? 'other';
-
-  if (
-    hasGroupingTreeUI &&
-    (stackTracePlatform === 'native' || stackTracePlatform === 'cocoa')
-  ) {
+  if (hasGroupingTreeUI) {
     return (
       <StacktraceContentV2
         data={data}
         expandFirstFrame={expandFirstFrame}
         includeSystemFrames={stackView === STACK_VIEW.FULL}
-        hasGroupingTreeUI={hasGroupingTreeUI}
         groupingCurrentLevel={groupingCurrentLevel}
         platform={platform}
         newestFirst={newestFirst}
