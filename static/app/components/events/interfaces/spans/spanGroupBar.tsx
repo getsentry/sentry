@@ -325,7 +325,7 @@ class SpanGroupBar extends React.Component<Props> {
               const durationString = getHumanDuration(duration);
 
               return (
-                <Row visible={isSpanVisible} showBorder={false}>
+                <Row visible={isSpanVisible} showBorder={false} data-test-id="span-row">
                   <RowCellContainer>
                     <RowCell
                       data-type="span-row-cell"
