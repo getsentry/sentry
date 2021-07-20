@@ -104,7 +104,7 @@ describe('OrganizationStats', function () {
       expect.objectContaining({
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
-          interval: '1d',
+          interval: '1h',
           groupBy: ['outcome', 'project'],
           project: '-1',
           field: ['sum(quantity)'],

@@ -332,7 +332,9 @@ def get_constrained_date_range(
     # NOTE: we can remove the difference between `interval` / `rounding_interval`
     # as soon as snuba can provide us with grouped totals in the same query
     # as the timeseries (using `WITH ROLLUP` in clickhouse)
+
     rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
     )
@@ -488,8 +490,9 @@ def massage_sessions_result(
         group = {
             "by": by,
             "totals": make_totals(total_groups.get(key, [None]), by),
-            "series": make_timeseries(timeseries_groups.get(key, []), by),
         }
+        if result_timeseries is not None:
+            group["series"] = make_timeseries(timeseries_groups.get(key, []), by)
 
         groups.append(group)
 
@@ -519,6 +522,8 @@ def _get_timestamps(query):
 
 def _split_rows_groupby(rows, groupby):
     groups = {}
+    if rows is None:
+        return groups
     for row in rows:
         key_parts = (group.get_keys_for_row(row) for group in groupby)
         keys = itertools.product(*key_parts)
