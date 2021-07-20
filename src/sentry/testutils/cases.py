@@ -18,6 +18,7 @@ __all__ = (
     "ReleaseCommitPatchTest",
     "SetRefsTestCase",
     "OrganizationDashboardWidgetTestCase",
+    "SCIMTestCase",
 )
 
 import inspect
@@ -60,6 +61,7 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -1128,3 +1130,13 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             user=self.user, organization=self.organization, role="member", teams=[self.team]
         )
         self.login_as(self.user)
+
+
+class SCIMTestCase(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.auth_provider = AuthProviderModel(organization=self.organization, provider="dummy")
+        with self.feature({"organizations:sso-scim": True}):
+            self.auth_provider.enable_scim(self.user)
+            self.auth_provider.save()
+        self.login_as(user=self.user)
