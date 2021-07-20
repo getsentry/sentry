@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.models import ReleaseProjectEnvironment
+from sentry.models import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -1355,7 +1355,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
-            f"{RELEASE_STAGE_ALIAS}:[replaced, not_adopted]",
+            f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.LOW_ADOPTION}]",
             {"organization_id": self.organization.id},
         )
         assert _filter.conditions == [
@@ -1364,7 +1364,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
-            f"!{RELEASE_STAGE_ALIAS}:[adopted, not_adopted]",
+            f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.LOW_ADOPTION}]",
             {"organization_id": self.organization.id},
         )
         assert _filter.conditions == [["release", "IN", [replaced_release.version]]]
