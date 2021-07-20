@@ -152,7 +152,7 @@
     "@storybook/manager-webpack5": "6.3.4",
     "@storybook/react": "6.3.4",
     "@storybook/theming": "6.3.4",
-    "@visual-snapshot/jest": "^4.0.0",
+    "@visual-snapshot/jest": "^5.0.0-alpha.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
     "babel-eslint": "^10.1.0",
     "babel-gettext-extractor": "^4.1.3",
