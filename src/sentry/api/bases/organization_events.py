@@ -353,7 +353,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                 )
             else:
-                serializedResult = serializer.serialize(
+                serialized_result = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
