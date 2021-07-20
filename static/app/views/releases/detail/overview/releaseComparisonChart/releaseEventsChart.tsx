@@ -5,7 +5,9 @@ import {withTheme} from '@emotion/react';
 
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import {HeaderTitleLegend, HeaderValue} from 'app/components/charts/styles';
+import {getInterval} from 'app/components/charts/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import {DateString, Organization, ReleaseComparisonChartType} from 'app/types';
@@ -117,45 +119,79 @@ function ReleaseEventsChart({
   const environments = location.query.environment;
 
   return (
-    <EventsChart
-      query={getQuery()}
+    /**
+     * EventsRequest is used to fetch the second series of Failure Rate chart.
+     * First one is "This Release" - fetched as usual inside EventsChart
+     * component and this one is "All Releases" that's shoehorned in place
+     * of Previous Period via previousSeriesTransformer
+     */
+    <EventsRequest
+      organization={organization}
+      api={new Client()}
+      period={period}
+      project={projects}
+      environment={environments}
+      start={start}
+      end={end}
+      interval={getInterval({start, end, period, utc}, true)}
+      query="event.type:transaction"
+      includePrevious={false}
+      currentSeriesName={t('All Releases')}
       yAxis={getYAxis()}
       field={getField()}
-      colors={getColors()}
-      api={api}
-      router={router}
-      organization={organization}
-      disableReleases
-      disablePrevious
-      showLegend
-      projects={projects}
-      environments={environments}
-      start={start as DateString}
-      end={end as DateString}
-      period={period ?? undefined}
-      utc={utc}
-      currentSeriesName={t('This Release')}
-      previousSeriesName={t('All Releases')}
-      disableableSeries={[t('This Release'), t('All Releases')]}
-      chartHeader={
-        <Fragment>
-          <HeaderTitleLegend>
-            {releaseComparisonChartTitles[chartType]}
-            {getHelp() && <QuestionTooltip size="sm" position="top" title={getHelp()} />}
-          </HeaderTitleLegend>
+      confirmedQuery={chartType === ReleaseComparisonChartType.FAILURE_RATE}
+      partial
+    >
+      {({timeseriesData, loading, reloading}) => (
+        <EventsChart
+          query={getQuery()}
+          yAxis={getYAxis()}
+          field={getField()}
+          colors={getColors()}
+          api={api}
+          router={router}
+          organization={organization}
+          disableReleases
+          disablePrevious
+          showLegend
+          projects={projects}
+          environments={environments}
+          start={start as DateString}
+          end={end as DateString}
+          period={period ?? undefined}
+          utc={utc}
+          currentSeriesName={t('This Release') + (loading || reloading ? ' ' : '')} // HACK: trigger echarts rerender without remounting
+          previousSeriesName={t('All Releases')}
+          disableableSeries={[t('This Release'), t('All Releases')]}
+          chartHeader={
+            <Fragment>
+              <HeaderTitleLegend>
+                {releaseComparisonChartTitles[chartType]}
+                {getHelp() && (
+                  <QuestionTooltip size="sm" position="top" title={getHelp()} />
+                )}
+              </HeaderTitleLegend>
 
-          <HeaderValue>
-            {value} {diff}
-          </HeaderValue>
-        </Fragment>
-      }
-      legendOptions={{right: 10, top: 0}}
-      chartOptions={{
-        grid: {left: '10px', right: '10px', top: '70px', bottom: '0px'},
-      }}
-      usePageZoom
-      height={240}
-    />
+              <HeaderValue>
+                {value} {diff}
+              </HeaderValue>
+            </Fragment>
+          }
+          legendOptions={{right: 10, top: 0}}
+          chartOptions={{
+            grid: {left: '10px', right: '10px', top: '70px', bottom: '0px'},
+          }}
+          usePageZoom
+          height={240}
+          previousSeriesTransformer={series => {
+            if (chartType === ReleaseComparisonChartType.FAILURE_RATE) {
+              return timeseriesData?.[0];
+            }
+            return series;
+          }}
+        />
+      )}
+    </EventsRequest>
   );
 }
 
