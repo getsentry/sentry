@@ -31,6 +31,7 @@ from sentry.models import (
     GroupHash,
     GroupInboxReason,
     GroupLink,
+    GroupRelease,
     GroupResolution,
     GroupSeen,
     GroupShare,
@@ -43,6 +44,7 @@ from sentry.models import (
     Team,
     User,
     UserOption,
+    follows_semver_versioning_scheme,
     remove_group_from_inbox,
 )
 from sentry.models.group import STATUS_UPDATE_CHOICES, looks_like_short_id
@@ -493,6 +495,42 @@ def rate_limit_endpoint(limit=1, window=1):
     return inner
 
 
+def get_current_release_version_of_group(group, follows_semver=False):
+    """
+    Function that returns the latest release version associated with a Group, and by latest we
+    mean either most recent (date) or latest in semver versioning scheme
+    Inputs:
+        * group: Group of the issue
+        * follows_semver: flag that determines whether the project of the group follows semantic
+                          versioning or not.
+    Returns:
+        current_release_version
+    """
+    current_release_version = None
+    if follows_semver:
+        try:
+            # This sets current_release_version to the latest semver version associated with a group
+            order_by_semver_desc = [f"-{col}" for col in Release.SEMVER_COLS]
+            current_release_version = (
+                Release.objects.filter_to_semver()
+                .filter(
+                    id__in=GroupRelease.objects.filter(
+                        project_id=group.project.id, group_id=group.id
+                    ).values_list("release_id"),
+                )
+                .annotate_prerelease_column()
+                .order_by(*order_by_semver_desc)
+                .values_list("version", flat=True)[:1]
+                .get()
+            )
+        except IndexError:
+            ...
+    else:
+        # This sets current_release_version to the most recent release associated with a group
+        current_release_version = group.get_last_release()
+    return current_release_version
+
+
 def update_groups(request, group_ids, projects, organization_id, search_fn):
     if group_ids:
         group_list = Group.objects.filter(
@@ -658,6 +696,26 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                         "status": res_status,
                         "actor_id": request.user.id if request.user.is_authenticated else None,
                     }
+
+                    # We only set `current_release_version` if GroupResolution type is
+                    # in_next_release, because we need to store information about the latest/most
+                    # recent release that was associated with a group and that is required for
+                    # release comparisons (i.e. handling regressions)
+                    if res_type == GroupResolution.Type.in_next_release:
+                        # Check if semver versioning scheme is followed
+                        follows_semver = follows_semver_versioning_scheme(
+                            org_id=group.organization.id,
+                            project_id=group.project.id,
+                            release_version=release.version,
+                        )
+
+                        current_release_version = get_current_release_version_of_group(
+                            group=group, follows_semver=follows_semver
+                        )
+                        if current_release_version:
+                            resolution_params.update(
+                                {"current_release_version": current_release_version}
+                            )
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params
                     )
