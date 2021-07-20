@@ -4,13 +4,7 @@ from uuid import uuid4
 from django.db.models import F
 from django.utils import timezone
 
-from sentry.models import (
-    GroupRelease,
-    Project,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    Repository,
-)
+from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
 from sentry.tasks.releasemonitor import monitor_release_adoption, process_projects_with_sessions
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -519,25 +513,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
                 "project_id": [self.project2.id, self.project1.id],
             },
         ]
-        # Will not create because the environment doesn't exist. We only create ReleaseProjectEnvironment
-        process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
-        assert not ReleaseProjectEnvironment.objects.filter(
-            project_id=self.project1.id,
-            release_id=self.release2.id,
-            environment__name="somenvname",
-            adopted__gte=now,
-        ).exists()
-        assert not ReleaseProjectEnvironment.objects.filter(
-            project_id=self.project1.id,
-            release_id=self.release2.id,
-            environment__name="",
-        ).exists()
-        env = self.create_environment(name="somenvname", project=self.project1)
-        self.release2.add_project(self.project1)
-        ReleaseEnvironment.objects.create(
-            organization=self.project1.organization, release=self.release2, environment=env
-        )
-        # Will create because proper models exist
+        # This will make the appropriate models (Environment, ReleaseProject, ReleaseEnvironment and ReleaseProjectEnvironment)
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
