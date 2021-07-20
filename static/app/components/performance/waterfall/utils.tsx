@@ -113,7 +113,7 @@ export const getToggleTheme = ({
     background: ${theme.blue300};
     border: 1px solid ${theme.button.default.border};
     color: ${color};
-    cursor: default;
+    cursor: pointer;
   `;
   }
 
