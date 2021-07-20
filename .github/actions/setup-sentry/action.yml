@@ -9,6 +9,10 @@ inputs:
     description: 'Is snuba required?'
     required: false
     default: 'false'
+  clickhouse:
+    description: 'Is clickhouse required?'
+    required: false
+    default: 'false'
   kafka:
     description: 'Is kafka required?'
     required: false
@@ -114,6 +118,7 @@ runs:
       env:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
+        NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
       run: |
         sentry init
@@ -147,6 +152,10 @@ runs:
 
         if [ "$NEED_SNUBA" = "true" ]; then
           sentry devservices up clickhouse snuba
+        fi
+
+        if [ "$NEED_CLICKHOUSE" = "true" ]; then
+          sentry devservices up clickhouse
         fi
 
         if [ "$NEED_CHARTCUTERIE" = "true" ]; then
