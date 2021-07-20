@@ -3376,13 +3376,6 @@
   resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.3.tgz#2ab0d5da2e5815f94b0b9d4b95d1e5f243ab2ca7"
   integrity sha512-KfRL3PuHmqQLOG+2tGpRO26Ctg+Cq1E01D2DMriKEATHgWLfeNDmq9e29Q9WIky0dQ3NPkd1mzYH8Lm936Z9qw==
 
-"@types/puppeteer@^5.4.4":
-  version "5.4.4"
-  resolved "https://registry.yarnpkg.com/@types/puppeteer/-/puppeteer-5.4.4.tgz#e92abeccc4f46207c3e1b38934a1246be080ccd0"
-  integrity sha512-3Nau+qi69CN55VwZb0ATtdUAlYlqOOQ3OfQfq0Hqgc4JMFXiQT/XInlwQ9g6LbicDslE6loIFsXFklGh5XmI6Q==
-  dependencies:
-    "@types/node" "*"
-
 "@types/q@^1.5.1":
   version "1.5.2"
   resolved "https://registry.yarnpkg.com/@types/q/-/q-1.5.2.tgz#690a1475b84f2a884fd07cd797c00f5f31356ea8"
@@ -3708,26 +3701,25 @@
   dependencies:
     eslint-visitor-keys "^1.1.0"
 
-"@visual-snapshot/jest-environment@^5.0.0-alpha.0":
-  version "5.0.0-alpha.0"
-  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest-environment/-/jest-environment-5.0.0-alpha.0.tgz#4e5993311e1f07404942f583f85db33e6643c56e"
-  integrity sha512-2NfXCvWzcFl3dxReR2tYNflK6Vu018reOntvA6L72s+vYptlKFpXvrtqvCWJTdZhpKAm/GzDualdfKum0pl36w==
+"@visual-snapshot/jest-environment@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest-environment/-/jest-environment-5.0.0.tgz#5b20a8bcccb0aa5ba1b56f0a1ec33f43d5ada19a"
+  integrity sha512-fEXOtpKs/RG1Yso372veCF3xQigLEPKBsIOPfEqiCnF5jSG1hajvIefQzcQGm5KjmXJNoW7mm0rUE6lpAhkmgg==
   dependencies:
     "@jest/environment" "^27.0.6"
     "@jest/types" "^27.0.6"
     "@sindresorhus/slugify" "^1.0.0"
-    "@types/puppeteer" "^5.4.4"
     jest-environment-jsdom "^27.0.6"
     puppeteer "^10.1.0"
   optionalDependencies:
     fsevents "^2.1.3"
 
-"@visual-snapshot/jest@^5.0.0-alpha.0":
-  version "5.0.0-alpha.0"
-  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest/-/jest-5.0.0-alpha.0.tgz#487e406e096463d5b56ece8fcf73dbbb983fcf88"
-  integrity sha512-KPXE+ERqSoe3eeuOlMppdHt+xlPQvMKRx9V1hjk6T6xYMYT4Hs26N3bzzCBPq1GB1i9m7+tNDJQ0okRCcXgRYw==
+"@visual-snapshot/jest@5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest/-/jest-5.0.0.tgz#247ccb9b00858ae5674f6625dcf6326edb47bb1f"
+  integrity sha512-bQzNmmx6JQPHtHZDvyFkxUB3L0X/SNU/pq2akKci+RVyi89+sTv2S1IPrKcrzsPPVhiR4WgNu5EkjZNcDGJ9+Q==
   dependencies:
-    "@visual-snapshot/jest-environment" "^5.0.0-alpha.0"
+    "@visual-snapshot/jest-environment" "^5.0.0"
 
 "@webassemblyjs/ast@1.11.1":
   version "1.11.1"
