@@ -101,7 +101,7 @@ type SpanBarProps = {
   organization: Organization;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
-  spanBarColour?: string;
+  spanBarColor?: string;
   spanBarHatch?: boolean;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
@@ -783,7 +783,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null;
     transactions: QuickTraceEvent[] | null;
   }) {
-    const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
+    const {span, spanBarColor, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -828,7 +828,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             <RowRectangle
               spanBarHatch={!!spanBarHatch}
               style={{
-                backgroundColor: spanBarColour,
+                backgroundColor: spanBarColor,
                 left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(bounds.width || 0),
               }}

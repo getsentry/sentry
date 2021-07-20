@@ -9,7 +9,7 @@ import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
-import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
+import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
@@ -610,7 +610,7 @@ const spanOperationRelativeBreakdownRenderer = (
               <RectangleRelativeOpsBreakdown
                 spanBarHatch={false}
                 style={{
-                  backgroundColor: pickBarColour(operationName),
+                  backgroundColor: pickBarColor(operationName),
                   cursor: 'pointer',
                 }}
                 onClick={event => {

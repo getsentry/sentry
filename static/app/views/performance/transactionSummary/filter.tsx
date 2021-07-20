@@ -5,7 +5,7 @@ import {Location} from 'history';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import {pickBarColour} from 'app/components/performance/waterfall/utils';
+import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import Radio from 'app/components/radio';
 import {IconFilter} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -118,7 +118,7 @@ class Filter extends React.Component<Props> {
                         onChangeFilter(filterOption);
                       }}
                     >
-                      <OperationDot backgroundColor={pickBarColour(operationName)} />
+                      <OperationDot backgroundColor={pickBarColor(operationName)} />
                       <OperationName>{operationName}</OperationName>
                       <Radio radioSize="small" checked={filterOption === currentFilter} />
                     </ListItem>
@@ -271,12 +271,12 @@ export function filterToSearchConditions(
   }
 }
 
-export function filterToColour(option: SpanOperationBreakdownFilter) {
+export function filterToColor(option: SpanOperationBreakdownFilter) {
   switch (option) {
     case SpanOperationBreakdownFilter.None:
-      return pickBarColour('');
+      return pickBarColor('');
     default: {
-      return pickBarColour(option);
+      return pickBarColor(option);
     }
   }
 }

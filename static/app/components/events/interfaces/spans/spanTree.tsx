@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {MessageRow} from 'app/components/performance/waterfall/messageRow';
-import {pickBarColour} from 'app/components/performance/waterfall/utils';
+import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 
@@ -186,7 +186,7 @@ class SpanTree extends React.Component<PropType> {
 
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
-        const spanBarColour: string = pickBarColour(getSpanOperation(span));
+        const spanBarColor: string = pickBarColor(getSpanOperation(span));
         const spanNumber = index + 1;
         const numOfSpanChildren = payload.numOfSpanChildren;
         const treeDepth = payload.treeDepth;
@@ -199,7 +199,7 @@ class SpanTree extends React.Component<PropType> {
             key={key}
             organization={organization}
             event={waterfallModel.event}
-            spanBarColour={spanBarColour}
+            spanBarColor={spanBarColor}
             spanBarHatch={type === 'gap'}
             span={span}
             showSpanTree={!waterfallModel.hiddenSpanGroups.has(getSpanID(span))}

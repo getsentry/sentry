@@ -23,7 +23,7 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'app/components/performance/waterfall/miniHeader';
-import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
+import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
 import TimeSince from 'app/components/timeSince';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
@@ -437,7 +437,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             isVisible={isVisible}
             hasGuideAnchor={hasGuideAnchor}
             renderedChildren={accumulated.renderedChildren}
-            barColour={pickBarColour(transaction['transaction.op'])}
+            barColor={pickBarColor(transaction['transaction.op'])}
           />
         </React.Fragment>
       ),
@@ -567,7 +567,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                         isVisible
                         hasGuideAnchor={false}
                         renderedChildren={transactionGroups}
-                        barColour={pickBarColour('')}
+                        barColor={pickBarColor('')}
                       />
                     </AnchorLinkManager.Provider>
                     {this.renderInfoMessage({

@@ -58,7 +58,7 @@ type Props = {
   isVisible: boolean;
   hasGuideAnchor: boolean;
   toggleExpandedState: () => void;
-  barColour?: string;
+  barColor?: string;
 };
 
 type State = {
@@ -332,7 +332,7 @@ class TransactionBar extends React.Component<Props, State> {
   }
 
   renderRectangle() {
-    const {transaction, traceInfo, barColour} = this.props;
+    const {transaction, traceInfo, barColor} = this.props;
     const {showDetail} = this.state;
 
     // Use 1 as the difference in the event that startTimestamp === endTimestamp
@@ -348,7 +348,7 @@ class TransactionBar extends React.Component<Props, State> {
       <RowRectangle
         spanBarHatch={false}
         style={{
-          backgroundColor: barColour,
+          backgroundColor: barColor,
           left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
           width: toPercent(widthPercentage || 0),
         }}
