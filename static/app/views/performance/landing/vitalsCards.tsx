@@ -18,10 +18,16 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {Column, getAggregateAlias, WebVital} from 'app/utils/discover/fields';
+import {
+  Column,
+  generateFieldAsString,
+  getAggregateAlias,
+  WebVital,
+} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
@@ -130,8 +136,12 @@ type BaseCardsProps = {
   organization: Organization;
 };
 
+type OptionalColumn = Column & {
+  optional?: boolean;
+};
+
 type GenericCardsProps = BaseCardsProps & {
-  functions: Column[];
+  functions: OptionalColumn[];
 };
 
 function GenericCards(props: GenericCardsProps) {
@@ -185,7 +195,9 @@ function GenericCards(props: GenericCardsProps) {
 
             return (
               <VitalsContainer>
-                {eventView.getFields().map(fieldName => {
+                {functions.map(func => {
+                  let fieldName = generateFieldAsString(func);
+
                   if (fieldName.includes('apdex')) {
                     // Replace apdex with explicit thresholds with a generic one for lookup
                     fieldName = 'apdex()';
@@ -200,6 +212,11 @@ function GenericCards(props: GenericCardsProps) {
                   const {title, tooltip, formatter} = cardDetail;
                   const alias = getAggregateAlias(fieldName);
                   const rawValue = tableData?.data?.[0]?.[alias];
+
+                  if (func.optional && !defined(rawValue)) {
+                    return null;
+                  }
+
                   const data = series?.[fieldName];
                   const value =
                     isSummaryLoading || rawValue === undefined
@@ -253,7 +270,7 @@ function _BackendCards(props: BaseCardsProps) {
 export const BackendCards = withApi(_BackendCards);
 
 function _MobileCards(props: BaseCardsProps) {
-  const functions: Column[] = [
+  const functions: OptionalColumn[] = [
     {
       kind: 'function',
       function: ['p75', 'measurements.app_start_cold', undefined, undefined],
@@ -269,6 +286,11 @@ function _MobileCards(props: BaseCardsProps) {
     {
       kind: 'function',
       function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.stall_percentage', undefined, undefined],
+      optional: true,
     },
   ];
   return <GenericCards {...props} functions={functions} />;
