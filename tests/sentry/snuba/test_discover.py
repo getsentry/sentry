@@ -545,11 +545,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.store_event(data, project_id=project.id)
 
         queries = [
-            ("", 8),
-            ("failure_count():>0", 6),
+            ("", 8, True),
+            ("failure_count():>0", 6, True),
+            ("failure_count():>0", 8, False),
         ]
 
-        for query, expected_length in queries:
+        for query, expected_length, use_aggregate_conditions in queries:
             for query_fn in [discover.query, discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=["transaction", "failure_count()"],
@@ -560,7 +561,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                         "end": before_now(minutes=2),
                         "project_id": [project.id],
                     },
-                    use_aggregate_conditions=True,
+                    use_aggregate_conditions=use_aggregate_conditions,
                 )
                 data = result["data"]
 
