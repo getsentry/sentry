@@ -83,7 +83,7 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
