@@ -80,24 +80,19 @@ def test_get_task_kwargs_for_message_version_1_kafka_headers():
         ("Received-Timestamp", b"1626301534.910839"),
         ("event_id", b"00000000000010008080808080808080"),
         ("project_id", b"1"),
-        ("group_id", b"2"),
-        ("primary_hash", b"49f68a5c8493ec2c0bf489821c21fc3b"),
         ("is_new", b"1"),
         ("is_new_group_environment", b"1"),
-        ("is_regression", None),
+        ("is_regression", b"0"),
         ("version", b"2"),
         ("operation", b"insert"),
         ("skip_consume", b"0"),
     ]
 
     kwargs = get_task_kwargs_for_message_from_headers(kafka_headers)
-    assert kwargs.pop("project_id") == 1
-    assert kwargs.pop("event_id") == "00000000000010008080808080808080"
-    assert kwargs.pop("group_id") == 2
-    assert kwargs.pop("primary_hash") == "49f68a5c8493ec2c0bf489821c21fc3b"
-
-    assert kwargs.pop("is_new") is True
-    assert kwargs.pop("is_regression") is None
-    assert kwargs.pop("is_new_group_environment") is True
-
-    assert not kwargs, f"unexpected values remaining: {kwargs!r}"
+    assert kwargs["project_id"] == 1
+    assert kwargs["event_id"] == "00000000000010008080808080808080"
+    assert kwargs["group_id"] is None
+    assert kwargs["primary_hash"] is None
+    assert kwargs["is_new"] is True
+    assert kwargs["is_regression"] is False
+    assert kwargs["is_new_group_environment"] is True

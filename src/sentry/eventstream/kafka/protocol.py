@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from typing import Optional, Sequence, Tuple
 
 from sentry.utils import json, metrics
@@ -105,7 +106,7 @@ def get_task_kwargs_for_message_from_headers(headers: Sequence[Tuple[str, Option
     the kafka message headers.
     """
     try:
-        header_data = {k: v for k, v in headers}
+        header_data = defaultdict(lambda: None, {k: v for k, v in headers})
 
         def decode_str(value: Optional[bytes]) -> str:
             assert isinstance(value, bytes)
@@ -125,9 +126,7 @@ def get_task_kwargs_for_message_from_headers(headers: Sequence[Tuple[str, Option
                 return None
             return decode_int(value)
 
-        def decode_optional_bool(value: Optional[bytes]) -> Optional[bool]:
-            if value is None:
-                return None
+        def decode_bool(value: bytes) -> bool:
             return bool(int(decode_str(value)))
 
         version = decode_int(header_data["version"])
@@ -144,10 +143,10 @@ def get_task_kwargs_for_message_from_headers(headers: Sequence[Tuple[str, Option
             "primary_hash": primary_hash,
         }
 
-        skip_consume = decode_optional_bool(header_data["skip_consume"])
-        is_new = decode_optional_bool(header_data["is_new"])
-        is_regression = decode_optional_bool(header_data["is_regression"])
-        is_new_group_environment = decode_optional_bool(header_data["is_new_group_environment"])
+        skip_consume = decode_bool(header_data["skip_consume"])
+        is_new = decode_bool(header_data["is_new"])
+        is_regression = decode_bool(header_data["is_regression"])
+        is_new_group_environment = decode_bool(header_data["is_new_group_environment"])
 
         task_state = {
             "skip_consume": skip_consume,
