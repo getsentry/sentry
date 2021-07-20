@@ -51,12 +51,8 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
       rules: [
         {
           ...firstRule,
-          test: /\.(mjs|[tj]sxs?)$/,
+          test: /\.(mjs|[tj]sx?)$/,
           include: [path.join(__dirname), staticPath, path.join(__dirname, '../docs-ui')],
-        },
-        {
-          test: /\.mdx?$/,
-          use: ['babel-loader', '@mdx-js/loader']
         },
         {
           test: /\.less$/,

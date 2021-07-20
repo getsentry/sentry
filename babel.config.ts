@@ -20,6 +20,17 @@ const config: TransformOptions = {
     ],
     '@babel/preset-typescript',
   ],
+  overrides: [{
+    test: ['./docs-ui'],
+    presets: [
+      [
+        '@babel/preset-react',
+        {
+          runtime: 'automatic'
+        },
+      ]
+    ]
+  }],
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
@@ -52,7 +63,6 @@ const config: TransformOptions = {
     development: {
       plugins: [
         '@emotion/babel-plugin',
-        '@babel/plugin-transform-react-jsx-source',
         ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
       ],
     },
