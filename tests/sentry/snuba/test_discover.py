@@ -693,6 +693,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data) == len(expected_events), query_fn
                 assert [item["error.unhandled"] for item in data] == error_handled
 
+    def test_array_fields(self):
+        data = load_data("javascript")
+        data["timestamp"] = iso_format(before_now(minutes=8))
+        self.store_event(data=data, project_id=self.project.id)
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["stack.filename"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": before_now(minutes=12),
+                    "end": before_now(minutes=8),
+                },
+            )
+
+            data = result["data"]
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],

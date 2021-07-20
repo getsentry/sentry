@@ -1132,9 +1132,22 @@ class QueryFilter(QueryFields):
                 return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
         if search_filter.value.is_wildcard():
+            if name in ARRAY_FIELDS:
+                condition = Condition(
+                    lhs,
+                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    value.replace("%", "\\%").replace("_", "\\_").replace("*", "%"),
+                )
+            else:
+                condition = Condition(
+                    Function("match", [lhs, f"'(?i){value}'"]),
+                    Op(search_filter.operator),
+                    1,
+                )
+        elif name in ARRAY_FIELDS and search_filter.is_in_filter:
             condition = Condition(
-                Function("match", [lhs, f"'(?i){value}'"]),
-                Op(search_filter.operator),
+                Function("hasAny", [Function("arrayConcat", [name]), value]),
+                Op.EQ if search_filter.operator == "IN" else Op.NEQs,
                 1,
             )
         else:

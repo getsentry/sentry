@@ -2084,6 +2084,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {"field": ["stack.filename", "message"], "query": "stack.filename:*.js"}
         response = self.do_request(query)
+
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["message"] == "string"
