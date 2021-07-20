@@ -6,8 +6,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestBackfill(TestMigrations):
-    migrate_from = "0221_add_appconnect_upload_dates"
-    migrate_to = "0222_semver_backfill_2"
+    migrate_from = "0222_add_datetime_index_to_auditlogentry"
+    migrate_to = "0223_semver_backfill_2"
 
     def setup_before_migration(self, apps):
         Release = apps.get_model("sentry", "Release")
