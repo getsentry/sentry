@@ -104,6 +104,11 @@ describe('OrganizationMembersList', function () {
       method: 'GET',
       body: TestStubs.Team(),
     });
+    Client.addMockResponse({
+      url: '/organizations/org-id/invite-requests/',
+      method: 'GET',
+      body: [],
+    });
     browserHistory.push.mockReset();
     OrganizationsStore.load([organization]);
   });
