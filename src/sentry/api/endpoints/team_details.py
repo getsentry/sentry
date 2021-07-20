@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 
@@ -40,12 +41,24 @@ class TeamDetailsEndpoint(TeamEndpoint):
         :pparam string organization_slug: the slug of the organization the
                                           team belongs to.
         :pparam string team_slug: the slug of the team to get.
+        :qparam list expand: an optional list of strings to opt in to additional
+            data. Supports `projects`, `externalTeams`.
+        :qparam list collapse: an optional list of strings to opt out of certain
+            pieces of data. Supports `organization`.
         :auth: required
         """
-        context = serialize(team, request.user)
-        context["organization"] = serialize(team.organization, request.user)
+        collapse = request.GET.getlist("collapse", [])
+        expand = request.GET.getlist("expand", [])
 
-        return Response(context)
+        # A little hack to preserve existing behavior.
+        if "organization" in collapse:
+            collapse.remove("organization")
+        else:
+            expand.append("organization")
+
+        return Response(
+            serialize(team, request.user, ModelTeamSerializer(collapse=collapse, expand=expand))
+        )
 
     def put(self, request, team):
         """

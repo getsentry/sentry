@@ -200,6 +200,20 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+# Patches transport functions to add metrics to improve resolution around events sent to our ingest.
+# Leaving this in to keep a permanent measurement of sdk requests vs ingest.
+def patch_transport_for_instrumentation(transport, transport_name):
+    _send_request = transport._send_request
+    if _send_request:
+
+        def patched_send_request(*args, **kwargs):
+            metrics.incr(f"internal.sent_requests.{transport_name}.events")
+            return _send_request(*args, **kwargs)
+
+        transport._send_request = patched_send_request
+    return transport
+
+
 def configure_sdk():
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -216,16 +230,17 @@ def configure_sdk():
     sdk_options["traces_sampler"] = traces_sampler
 
     if upstream_dsn:
-        upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        upstream_transport = patch_transport_for_instrumentation(transport, "upstream")
     else:
         upstream_transport = None
 
     if relay_dsn:
-        relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     elif internal_project_key and internal_project_key.dsn_private:
-        relay_transport = make_transport(
-            get_options(dsn=internal_project_key.dsn_private, **sdk_options)
-        )
+        transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
 
@@ -234,6 +249,14 @@ def configure_sdk():
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
+            # Temporarily capture envelope counts to compare to ingested
+            # transactions.
+            metrics.incr("internal.captured.events.envelopes")
+            transaction = envelope.get_transaction_event()
+
+            if transaction:
+                metrics.incr("internal.captured.events.transactions")
+
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):
                 return
