@@ -25,6 +25,7 @@ from sentry.models import (
     ReleaseHeadCommit,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStages,
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
@@ -390,22 +391,23 @@ class OrganizationReleaseListTest(APITestCase):
         )
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"
         )
         assert [r["version"] for r in response.data] == [adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:not_adopted"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:replaced"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}"
         )
         assert [r["version"] for r in response.data] == [replaced_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,replaced]"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
         )
         assert [r["version"] for r in response.data] == [
             adopted_release.version,
@@ -413,7 +415,7 @@ class OrganizationReleaseListTest(APITestCase):
         ]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[not_adopted]"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]"
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
@@ -760,22 +762,23 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"
         )
         assert [r["version"] for r in response.data] == [adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:not_adopted"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:replaced"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}"
         )
         assert [r["version"] for r in response.data] == [replaced_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,replaced]"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
         )
         assert [r["version"] for r in response.data] == [
             adopted_release.version,
@@ -783,7 +786,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         ]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[not_adopted]"
+            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]"
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 

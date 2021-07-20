@@ -11,6 +11,7 @@ from sentry.models import (
     ProjectTeam,
     ProjectTransactionThreshold,
     ReleaseProjectEnvironment,
+    ReleaseStages,
 )
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -868,7 +869,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         ).event_id
 
-        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:adopted"}
+        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
@@ -876,7 +877,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             adopted_release_e_2,
         }
 
-        query = {"field": ["id"], "query": f"!{RELEASE_STAGE_ALIAS}:not_adopted"}
+        query = {"field": ["id"], "query": f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
@@ -886,7 +887,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             replaced_release_e_2,
         }
 
-        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:[adopted, replaced]"}
+        query = {
+            "field": ["id"],
+            "query": f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+        }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
