@@ -95,7 +95,7 @@ class TestBackfill(TestMigrations):
             ).id,
         }
         self.execute_values_patcher = mock.patch(
-            "sentry.migrations.0222_semver_backfill_2.execute_values", side_effect=execute_values
+            "sentry.migrations.0223_semver_backfill_2.execute_values", side_effect=execute_values
         )
         self.execute_values_mock = self.execute_values_patcher.start()
 
