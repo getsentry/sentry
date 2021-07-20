@@ -75,8 +75,6 @@ const Content = ({
       project => project.platform && isProjectMobileForReleases(project.platform)
     ).length > 0;
   const hasAdoptionStagesColumn: boolean = anyProjectMobile && showAdoptionStageLabels;
-  const hasAdoptionStagesLabel: boolean =
-    hasAdoptionStagesColumn && adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
@@ -146,6 +144,8 @@ const Content = ({
               adoptionStages?.[project.slug].stage;
 
             const isMobileProject = isProjectMobileForReleases(project.platform);
+            const hasAdoptionStagesLabel =
+              get24hCountByProject && adoptionStage && isMobileProject;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -156,10 +156,7 @@ const Content = ({
 
                   {hasAdoptionStagesColumn && (
                     <AdoptionStageColumn>
-                      {isMobileProject &&
-                      adoptionStage &&
-                      hasAdoptionStagesLabel &&
-                      get24hCountByProject ? (
+                      {hasAdoptionStagesLabel ? (
                         <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
                           {ADOPTION_STAGE_LABELS[adoptionStage].name}
                         </Tag>
