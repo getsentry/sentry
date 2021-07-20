@@ -5,13 +5,15 @@ import datetime
 import shutil
 import sys
 import time
-from os import path
+from os import env, path
 from urllib.parse import urlparse
 
 import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
+
+RELAY_DOCKER_TAG = env.get("RELAY_DOCKER_TAG", "nightly")
 
 
 def _relay_server_container_name():
@@ -94,7 +96,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
     options = {
-        "image": "us.gcr.io/sentryio/relay:nightly",
+        "image": f"us.gcr.io/sentryio/relay:{RELAY_DOCKER_TAG}",
         "ports": {"%s/tcp" % relay_port: relay_port},
         "network": network,
         "detach": True,
