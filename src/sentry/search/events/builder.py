@@ -19,6 +19,7 @@ class QueryBuilder(QueryFilter):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        use_aggregate_conditions: bool = False,
         limit: int = 50,
     ):
         super().__init__(dataset, params)
@@ -26,9 +27,10 @@ class QueryBuilder(QueryFilter):
         self.limit = Limit(limit)
 
         parsed_terms = self.parse_query(query)
-
         self.where = self.resolve_where(parsed_terms)
-        self.having = self.resolve_having(parsed_terms)
+        self.having = self.resolve_having(
+            parsed_terms, use_aggregate_conditions=use_aggregate_conditions
+        )
 
         # params depends on get_filter since there may be projects in the query
         self.where += self.resolve_params()

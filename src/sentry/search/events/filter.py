@@ -1049,13 +1049,15 @@ class QueryFilter(QueryFields):
 
         return where_conditions
 
-    def resolve_having(self, parsed_terms: Optional[Sequence[SearchFilter]]) -> List[WhereType]:
+    def resolve_having(
+        self, parsed_terms: Optional[Sequence[SearchFilter]], use_aggregate_conditions: bool = False
+    ) -> List[WhereType]:
         if not parsed_terms:
             return []
 
         having_conditions: List[WhereType] = []
         for term in parsed_terms:
-            if isinstance(term, AggregateFilter):
+            if isinstance(term, AggregateFilter) and use_aggregate_conditions:
                 condition = self.convert_aggregate_filter_to_condition(term)
                 if condition:
                     having_conditions.append(condition)
