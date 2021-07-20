@@ -166,11 +166,14 @@ function GenericCards(props: GenericCardsProps) {
           team={apiPayload.team}
           start={start}
           end={end}
-          interval={getInterval({
-            start: start || null,
-            end: end || null,
-            period: globalSelection.datetime.period,
-          })}
+          interval={getInterval(
+            {
+              start: start || null,
+              end: end || null,
+              period: globalSelection.datetime.period,
+            },
+            'low'
+          )}
           query={apiPayload.query}
           includePrevious={false}
           yAxis={eventView.getFields()}

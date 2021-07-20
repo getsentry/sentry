@@ -83,7 +83,7 @@ function DurationChart(props: Props) {
           end,
           period: globalSelection.datetime.period,
         },
-        true
+        'high'
       )}
       showLoading={false}
       query={apiPayload.query}
