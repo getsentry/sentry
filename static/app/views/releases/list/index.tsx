@@ -39,6 +39,7 @@ import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
+import {ADOPTION_STAGE_LABELS} from 'app/views/releases/list/releaseHealth/content';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import ReleaseHealthRequest from '../utils/releaseHealthRequest';
@@ -67,6 +68,8 @@ const supportedTags = {
   'release.stage': {
     key: 'release.stage',
     name: 'release.stage',
+    predefined: true,
+    values: Object.keys(ADOPTION_STAGE_LABELS),
   },
   release: {
     key: 'release',
