@@ -214,13 +214,13 @@ class ReleaseQuerySet(models.QuerySet):
         value,
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
-        from sentry.models import ReleaseProjectEnvironment
+        from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
 
         filters = {
-            "adopted": Q(adopted__isnull=False, unadopted__isnull=True),
-            "replaced": Q(adopted__isnull=False, unadopted__isnull=False),
-            "not_adopted": Q(adopted__isnull=True, unadopted__isnull=True),
+            ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
+            ReleaseStages.REPLACED: Q(adopted__isnull=False, unadopted__isnull=False),
+            ReleaseStages.LOW_ADOPTION: Q(adopted__isnull=True, unadopted__isnull=True),
         }
         value = to_list(value)
         operator_conversions = {"=": "IN", "!=": "NOT IN"}

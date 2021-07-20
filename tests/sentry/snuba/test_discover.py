@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold, ReleaseProjectEnvironment
+from sentry.models import ProjectTransactionThreshold, ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
@@ -916,7 +916,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:adopted",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {
@@ -926,7 +926,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"!{RELEASE_STAGE_ALIAS}:not_adopted",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {
@@ -937,7 +937,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         }
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:[adopted, replaced]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {
