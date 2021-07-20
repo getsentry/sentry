@@ -25,8 +25,10 @@ class QueryBuilder(QueryFilter):
 
         self.limit = Limit(limit)
 
-        self.where = self.resolve_where(query)
-        self.having = self.resolve_having(query)
+        parsed_terms = self.parse_query(query)
+
+        self.where = self.resolve_where(parsed_terms)
+        self.having = self.resolve_having(parsed_terms)
 
         # params depends on get_filter since there may be projects in the query
         self.where += self.resolve_params()

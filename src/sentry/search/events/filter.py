@@ -1025,7 +1025,7 @@ class QueryFilter(QueryFields):
             ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
         }
 
-    def resolve_where(self, query: Optional[str]) -> List[WhereType]:
+    def parse_query(self, query: Optional[str]) -> Optional[Sequence[SearchFilter]]:
         if query is None:
             return []
 
@@ -1033,6 +1033,12 @@ class QueryFilter(QueryFields):
             parsed_terms = parse_search_query(query, params=self.params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+
+        return parsed_terms
+
+    def resolve_where(self, parsed_terms: Optional[Sequence[SearchFilter]]) -> List[WhereType]:
+        if not parsed_terms:
+            return []
 
         where_conditions: List[WhereType] = []
         for term in parsed_terms:
@@ -1043,14 +1049,9 @@ class QueryFilter(QueryFields):
 
         return where_conditions
 
-    def resolve_having(self, query: Optional[str]) -> List[WhereType]:
-        if query is None:
+    def resolve_having(self, parsed_terms: Optional[Sequence[SearchFilter]]) -> List[WhereType]:
+        if not parsed_terms:
             return []
-
-        try:
-            parsed_terms = parse_search_query(query, params=self.params)
-        except ParseError as e:
-            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
         having_conditions: List[WhereType] = []
         for term in parsed_terms:
