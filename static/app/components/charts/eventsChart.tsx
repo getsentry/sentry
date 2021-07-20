@@ -44,9 +44,7 @@ type ChartProps = {
    * Can be used to rename series or even insert a new series.
    */
   seriesTransformer?: (series: Series[]) => Series[];
-  previousSeriesTransformer?: (
-    series: Series | null | undefined
-  ) => Series | null | undefined;
+  previousSeriesTransformer?: (series?: Series | null) => Series | null | undefined;
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
