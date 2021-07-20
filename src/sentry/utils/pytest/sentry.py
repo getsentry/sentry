@@ -173,7 +173,7 @@ def pytest_configure(config):
         # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
         # This is a hack to force django to sync the database state from the models rather than use migrations.
         settings.MIGRATION_MODULES["sentry"] = None
-        settings.MIGRATION_MODULES["sentry.demo"] = None
+        settings.MIGRATION_MODULES["demo"] = None
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"
