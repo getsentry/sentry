@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any, Mapping, Optional, Tuple
 from uuid import uuid4
 
 import pytz
@@ -314,7 +314,7 @@ class SnubaProtocolEventStream(EventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, Union[str, None]]] = None,
+        headers: Optional[Mapping[str, str]] = None,
     ):
         raise NotImplementedError
 
@@ -326,7 +326,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, Union[str, None]]] = None,
+        headers: Optional[Mapping[str, str]] = None,
     ):
         if headers is None:
             headers = {}
@@ -346,6 +346,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                     "POST",
                     f"/tests/{dataset}/eventstream",
                     body=json.dumps(data),
+                    headers={f"X-Sentry-{k}": v for k, v in headers.items()},
                 )
                 if resp.status != 200:
                     raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)

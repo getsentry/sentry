@@ -1,6 +1,6 @@
 import logging
 import signal
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any, Mapping, Optional, Tuple
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -36,7 +36,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, Union[str, None]]] = None,
+        headers: Optional[Mapping[str, str]] = None,
     ):
         if headers is None:
             headers = {}
