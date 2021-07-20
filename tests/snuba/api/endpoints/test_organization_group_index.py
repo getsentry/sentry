@@ -1932,6 +1932,70 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert activity.data["version"] == ""
         uo1.delete()
 
+    def test_in_semver_projects_group_resolution_stores_current_release_version(self):
+        """
+        Test that ensures that when we resolve a group in the next release, then
+        GroupResolution.current_release_version is set to the latest release associated with a
+        Group, when the project follows semantic versioning scheme
+        """
+        release_1 = Release.objects.create(
+            organization_id=self.project.organization_id, version="fake_package@21.1.0"
+        )
+        release_2 = Release.objects.create(
+            organization_id=self.project.organization_id, version="fake_package@21.1.1"
+        )
+        release_3 = Release.objects.create(
+            organization_id=self.project.organization_id, version="fake_package@21.1.2"
+        )
+
+        for release in [release_1, release_2, release_3]:
+            release.add_project(self.project)
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        )
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"]
+
+        # The current_release_version should be to the latest (in semver) release associated with
+        # a group
+        grp_resolution = GroupResolution.objects.filter(group=group)
+
+        assert len(grp_resolution) == 1
+        assert grp_resolution[0].current_release_version == release_2.version
+
+        # Add release that is between 2 and 3 to ensure that any release after release 2 should
+        # not have a resolution
+        release_4 = Release.objects.create(
+            organization_id=self.project.organization_id, version="fake_package@21.1.1+1"
+        )
+        release_4.add_project(self.project)
+
+        for release in [release_1, release_2]:
+            assert GroupResolution.has_resolution(group=group, release=release)
+
+        for release in [release_3, release_4]:
+            assert not GroupResolution.has_resolution(group=group, release=release)
+
     def test_selective_status_update(self):
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
