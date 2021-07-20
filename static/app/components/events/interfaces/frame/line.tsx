@@ -6,10 +6,7 @@ import scrollToElement from 'scroll-to-element';
 import Button from 'app/components/button';
 import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import PackageLink, {
-  Package,
-  PackageName,
-} from 'app/components/events/interfaces/packageLink';
+import PackageLink from 'app/components/events/interfaces/packageLink';
 import PackageStatus, {
   PackageStatusIcon,
 } from 'app/components/events/interfaces/packageStatus';
@@ -24,18 +21,11 @@ import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {
-  Frame,
-  FrameBadge,
-  Organization,
-  PlatformType,
-  SentryAppComponent,
-} from 'app/types';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
-import Badge from './badge';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
@@ -54,11 +44,6 @@ type Props = {
   event: Event;
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
-  hasGroupingTreeUI?: boolean;
-  hasAtLeastOneExpandableFrame?: boolean;
-  isPrefix?: boolean;
-  isSentinel?: boolean;
-  isUsedForGrouping?: boolean;
   nextFrame?: Frame;
   prevFrame?: Frame;
   platform?: PlatformType;
@@ -296,26 +281,6 @@ export class Line extends React.Component<Props, State> {
     );
   }
 
-  renderGroupingBadges() {
-    const {isPrefix, isSentinel, isUsedForGrouping} = this.props;
-
-    const badges: React.ReactElement[] = [];
-
-    if (isSentinel) {
-      badges.push(<Badge badge={FrameBadge.SENTINEL} />);
-    }
-
-    if (isPrefix) {
-      badges.push(<Badge badge={FrameBadge.PREFIX} />);
-    }
-
-    if (isUsedForGrouping) {
-      badges.push(<Badge badge={FrameBadge.GROUPING} />);
-    }
-
-    return badges;
-  }
-
   renderNativeLine() {
     const {
       data,
@@ -328,65 +293,10 @@ export class Line extends React.Component<Props, State> {
       isFrameAfterLastNonApp,
       showCompleteFunctionName,
       isHoverPreviewed,
-      hasGroupingTreeUI,
-      hasAtLeastOneExpandableFrame,
     } = this.props;
 
     const leadHint = this.renderLeadHint();
     const packageStatus = this.packageStatus();
-
-    if (hasGroupingTreeUI) {
-      return (
-        <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-          <FrameLine
-            className="title as-table"
-            hasAtLeastOneExpandableFrame={hasAtLeastOneExpandableFrame}
-          >
-            <FramePackageInfo>
-              {leadHint}
-              <PackageLink
-                includeSystemFrames={!!includeSystemFrames}
-                withLeadHint={leadHint !== null}
-                packagePath={data.package}
-                onClick={this.scrollToImage}
-                isClickable={this.shouldShowLinkToImage()}
-                isHoverPreviewed={isHoverPreviewed}
-              >
-                {!isHoverPreviewed && (
-                  <PackageStatus
-                    status={packageStatus}
-                    tooltip={t('Go to Images Loaded')}
-                  />
-                )}
-              </PackageLink>
-            </FramePackageInfo>
-            {data.instructionAddr && (
-              <StyledTogglableAddress
-                address={data.instructionAddr}
-                startingAddress={image ? image.image_addr : null}
-                isAbsolute={!!showingAbsoluteAddress}
-                isFoundByStackScanning={this.isFoundByStackScanning()}
-                isInlineFrame={!!this.isInlineFrame()}
-                onToggle={onAddressToggle}
-                relativeAddressMaxlength={maxLengthOfRelativeAddress}
-                isHoverPreviewed={isHoverPreviewed}
-              />
-            )}
-            <StyledSymbol
-              frame={data}
-              showCompleteFunctionName={!!showCompleteFunctionName}
-              onFunctionNameToggle={onFunctionNameToggle}
-              isHoverPreviewed={isHoverPreviewed}
-            />
-            <FrameBadges>
-              {data.inApp && <Badge badge={FrameBadge.IN_APP} />}
-              {this.renderGroupingBadges()}
-            </FrameBadges>
-            {this.renderExpander()}
-          </FrameLine>
-        </StrictClick>
-      );
-    }
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
@@ -463,7 +373,7 @@ export class Line extends React.Component<Props, State> {
     const props = {className};
 
     return (
-      <StyledLi {...props} hasGroupingTreeUI={this.props.hasGroupingTreeUI}>
+      <StyledLi {...props}>
         {this.renderLine()}
         <Context
           frame={data}
@@ -486,73 +396,6 @@ export class Line extends React.Component<Props, State> {
 export default withOrganization(
   withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
 );
-
-const FrameBadges = styled('div')`
-  display: grid;
-  grid-gap: ${space(0.5)};
-  justify-content: flex-end;
-
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-auto-flow: column;
-  }
-`;
-
-const FrameLine = styled('div')<{hasAtLeastOneExpandableFrame?: boolean}>`
-  display: grid;
-  grid-template-columns: ${p =>
-    p.hasAtLeastOneExpandableFrame
-      ? '1fr 0.8fr 0.5fr minmax(24px, auto);'
-      : '1fr 0.8fr 0.5fr'};
-  grid-gap: ${space(0.75)};
-  padding: ${space(0.5)} 15px !important;
-
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: ${p =>
-      p.hasAtLeastOneExpandableFrame
-        ? '150px minmax(117px, auto) 1fr 0.5fr minmax(24px, auto)'
-        : '150px minmax(117px, auto) 1fr 0.5fr'};
-  }
-
-  @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
-      props.theme.breakpoints[3]}) {
-    grid-template-columns: ${p =>
-      p.hasAtLeastOneExpandableFrame
-        ? '140px minmax(117px, auto) 1fr 0.5fr minmax(24px, auto)'
-        : '140px minmax(117px, auto) 1fr 0.5fr'};
-  }
-`;
-
-const FramePackageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: flex-start;
-
-  ${PackageName} {
-    max-width: 100%;
-  }
-
-  ${Package} {
-    overflow: hidden;
-    max-width: 100%;
-    padding: 0;
-  }
-`;
-
-const StyledTogglableAddress = styled(TogglableAddress)`
-  order: 0;
-  align-items: flex-start;
-`;
-
-const StyledSymbol = styled(Symbol)`
-  order: 0;
-  ${FunctionNameToggleIcon} {
-    display: block;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-row-start: 2;
-  }
-`;
 
 const PackageInfo = styled('div')`
   display: grid;
@@ -635,9 +478,7 @@ const ToggleContextButton = styled(Button)`
   }
 `;
 
-const StyledLi = styled('li')<{hasGroupingTreeUI?: boolean}>`
-  ${p => p.hasGroupingTreeUI && `overflow: hidden;`}
-
+const StyledLi = styled('li')`
   ${PackageStatusIcon} {
     flex-shrink: 0;
   }

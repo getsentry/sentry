@@ -27,17 +27,13 @@ const Stacktrace = ({
   hasGroupingTreeUI,
   groupingCurrentLevel,
 }: Props) => {
-  const stackTracePlatform =
-    (stacktrace?.frames ?? []).find(frame => frame.platform) ?? platform ?? 'other';
-
   return (
     <ErrorBoundary mini>
       {stackView === STACK_VIEW.RAW ? (
         <pre className="traceback plain">
           {rawStacktraceContent(stacktrace, event.platform)}
         </pre>
-      ) : hasGroupingTreeUI &&
-        (stackTracePlatform === 'native' || stackTracePlatform === 'cocoa') ? (
+      ) : hasGroupingTreeUI ? (
         <StacktraceContentV2
           data={stacktrace}
           className="no-exception"
