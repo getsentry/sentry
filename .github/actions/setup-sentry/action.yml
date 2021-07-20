@@ -42,8 +42,12 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
         MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
+        # Only set `MIGRATIONS_TEST_MIGRATE` if it is not already set (or if it's an empty string)
+        if [ -z $MIGRATIONS_TEST_MIGRATE ]; then
+          echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
+        fi
+
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
-        echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
         echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
