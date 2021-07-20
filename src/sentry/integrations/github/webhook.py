@@ -76,6 +76,11 @@ class Webhook:
 
         Assumes a 'repository' key in event payload, with certain subkeys.
         Rework this if that stops being a safe assumption.
+
+        XXX(meredith): In it's current state, this tends to cause a lot of
+        IntegrityErrors when we try to update the repo. Those would need to
+        be handled should we decided to add this back in. Keeping the method
+        for now, even though it's not currently used.
         """
 
         name_from_event = event["repository"]["full_name"]
