@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
@@ -14,6 +15,7 @@ from sentry.models import (
     ReleaseEnvironment,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStatus,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
@@ -182,12 +184,12 @@ def adopt_releases(org_id, totals):
         for project_id, project_totals in totals.items():
             for environment, environment_totals in project_totals.items():
                 total_releases = len(environment_totals["releases"])
-                for release in environment_totals["releases"]:
+                for release_version in environment_totals["releases"]:
                     threshold = 0.1 / total_releases
                     if (
                         environment != ""
                         and environment_totals["total_sessions"] != 0
-                        and environment_totals["releases"][release]
+                        and environment_totals["releases"][release_version]
                         / environment_totals["total_sessions"]
                         >= threshold
                     ):
@@ -195,7 +197,7 @@ def adopt_releases(org_id, totals):
                             rpe = ReleaseProjectEnvironment.objects.get(
                                 project_id=project_id,
                                 release_id=Release.objects.get(
-                                    organization=org_id, version=release
+                                    organization=org_id, version=release_version
                                 ).id,
                                 environment__name=environment,
                                 environment__organization_id=org_id,
@@ -203,24 +205,38 @@ def adopt_releases(org_id, totals):
                             adopted_ids.append(rpe.id)
                             if rpe.adopted is None:
                                 rpe.update(adopted=timezone.now())
-                        except ReleaseProjectEnvironment.DoesNotExist:
+                        except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
                             metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
                             try:
-                                env = Environment.objects.get(
+                                env = Environment.objects.get_or_create(
                                     name=environment, organization_id=org_id
-                                )
-                                rel = Release.objects.get(organization=org_id, version=release)
-                                if ReleaseProject.objects.get_or_create(
-                                    project_id=project_id, release=rel
-                                ) and ReleaseEnvironment.objects.get_or_create(
-                                    environment=env, organization_id=org_id, release=rel
-                                ):
-                                    ReleaseProjectEnvironment.objects.create(
-                                        project_id=project_id,
-                                        release_id=rel.id,
-                                        environment=env,
-                                        adopted=timezone.now(),
+                                )[0]
+                                try:
+                                    release = Release.objects.get_or_create(
+                                        organization_id=org_id,
+                                        version=release_version,
+                                        defaults={
+                                            "status": ReleaseStatus.OPEN,
+                                        },
+                                    )[0]
+                                except IntegrityError:
+                                    release = Release.objects.get(
+                                        organization_id=org_id, version=release_version
                                     )
+                                ReleaseProject.objects.get_or_create(
+                                    project_id=project_id, release=release
+                                )
+
+                                ReleaseEnvironment.objects.get_or_create(
+                                    environment=env, organization_id=org_id, release=release
+                                )
+
+                                ReleaseProjectEnvironment.objects.create(
+                                    project_id=project_id,
+                                    release_id=release.id,
+                                    environment=env,
+                                    adopted=timezone.now(),
+                                )
                             except (
                                 Environment.DoesNotExist,
                                 Release.DoesNotExist,
