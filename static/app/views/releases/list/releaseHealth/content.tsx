@@ -31,7 +31,7 @@ import Header from './header';
 import ProjectLink from './projectLink';
 
 const ADOPTION_STAGE_LABELS = {
-  not_adopted: {
+  low_adoption: {
     name: t('Low Adoption'),
     type: 'warning',
   },
