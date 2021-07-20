@@ -44,6 +44,9 @@ type ChartProps = {
    * Can be used to rename series or even insert a new series.
    */
   seriesTransformer?: (series: Series[]) => Series[];
+  previousSeriesTransformer?: (
+    series: Series | null | undefined
+  ) => Series | null | undefined;
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
@@ -155,6 +158,7 @@ class Chart extends React.Component<ChartProps, State> {
       currentSeriesName,
       previousSeriesName,
       seriesTransformer,
+      previousSeriesTransformer,
       colors,
       height,
       ...props
@@ -194,9 +198,14 @@ class Chart extends React.Component<ChartProps, State> {
     let series = Array.isArray(releaseSeries)
       ? [...timeseriesData, ...releaseSeries]
       : timeseriesData;
+    let previousSeries = previousTimeseriesData;
 
     if (seriesTransformer) {
       series = seriesTransformer(series);
+    }
+
+    if (previousSeriesTransformer) {
+      previousSeries = previousSeriesTransformer(previousTimeseriesData);
     }
 
     const chartOptions = {
@@ -238,7 +247,7 @@ class Chart extends React.Component<ChartProps, State> {
         legend={legend}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : undefined}
+        previousPeriod={previousSeries ? [previousSeries] : undefined}
         height={height}
       />
     );
@@ -336,6 +345,7 @@ export type EventsChartProps = {
   | 'currentSeriesName'
   | 'previousSeriesName'
   | 'seriesTransformer'
+  | 'previousSeriesTransformer'
   | 'showLegend'
   | 'disableableSeries'
   | 'legendOptions'
@@ -375,6 +385,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       currentSeriesName: currentName,
       previousSeriesName: previousName,
       seriesTransformer,
+      previousSeriesTransformer,
       field,
       interval,
       showDaily,
@@ -446,6 +457,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
             seriesTransformer={seriesTransformer}
+            previousSeriesTransformer={previousSeriesTransformer}
             stacked={typeof topEvents === 'number' && topEvents > 0}
             yAxis={yAxis}
             showDaily={showDaily}
