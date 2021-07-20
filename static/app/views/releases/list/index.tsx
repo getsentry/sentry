@@ -478,7 +478,8 @@ class ReleasesList extends AsyncView<Props, State> {
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
           const selectedProject = this.getSelectedProject();
           const isMobileProject =
-            selectedProject && isProjectMobileForReleases(selectedProject.platform);
+            selectedProject?.platform &&
+            isProjectMobileForReleases(selectedProject.platform);
 
           return (
             <Fragment>
