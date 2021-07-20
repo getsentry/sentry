@@ -1132,7 +1132,7 @@ class QueryFilter(QueryFields):
         value = aggregate_filter.value.value
 
         if name in self.params.get("aliases", {}):
-            raise NotImplementedError
+            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
         value = (
             int(to_timestamp(value))
