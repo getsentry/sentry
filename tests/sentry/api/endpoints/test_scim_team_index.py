@@ -41,6 +41,11 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "members": [],
             "meta": {"resourceType": "Group"},
         }
+        assert Team.objects.get(id=team_id).exists()
+        assert Team.objects.get(id=team_id).slug == "test-scimv2"
+        assert Team.objects.get(id=team_id).name == "test-scimv2"
+        assert Team.objects.get(id=team_id).members == []
+
         # assert that the team exists
 
     def test_scim_team_index_populated(self):
@@ -106,7 +111,8 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-        # delete the team
+    def test_delete_team(self):
+        team = self.create_team(organization=self.organization)
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
         )

@@ -61,12 +61,11 @@ class SCIMGroupDetailsTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": str(team.id),
-            "displayName": "newname",
+            "displayName": "newname",  # we slugify the name passed in
             "members": None,
             "meta": {"resourceType": "Group"},
         }
-        # assert slug exists
-        assert Team.objects.filter(organization=self.organization, slug="newname").exists()
+        assert Team.objects.filter(id=team.id).slug == "newname"
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -112,9 +111,6 @@ class SCIMGroupDetailsTests(SCIMTestCase):
         member1 = self.create_member(
             user=self.create_user(), organization=self.organization, teams=[team]
         )
-        member2 = self.create_member(
-            user=self.create_user(), organization=self.organization, teams=[team]
-        )
 
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
@@ -143,10 +139,14 @@ class SCIMGroupDetailsTests(SCIMTestCase):
             team_id=team.id, organizationmember_id=member1.id
         ).exists()
 
-        # replace the entire member list
-
+    def test_team_details_replace_members_list(self):
+        team = self.create_team(organization=self.organization)
+        member1 = self.create_member(
+            user=self.create_user(), organization=self.organization, teams=[team]
+        )
+        member2 = self.create_member(user=self.create_user(), organization=self.organization)
         member3 = self.create_member(user=self.create_user(), organization=self.organization)
-        OrganizationMemberTeam.objects.create(organizationmember=member3, team_id=team.id)
+
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
         )
@@ -160,12 +160,12 @@ class SCIMGroupDetailsTests(SCIMTestCase):
                         "path": "members",
                         "value": [
                             {
-                                "value": member1.id,
+                                "value": member2.id,
                                 "display": "test.user@okta.local",
                             },
                             {
-                                "value": member2.id,
-                                "display": "test.user@okta.local",
+                                "value": member3.id,
+                                "display": "test.user2@okta.local",
                             },
                         ],
                     }
@@ -180,14 +180,13 @@ class SCIMGroupDetailsTests(SCIMTestCase):
             "members": None,
             "meta": {"resourceType": "Group"},
         }
-        assert OrganizationMemberTeam.objects.filter(
+        assert not OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member1.id
         ).exists()
         assert OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member2.id
         ).exists()
-
-        assert not OrganizationMemberTeam.objects.filter(
+        assert OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member3.id
         ).exists()
 
@@ -304,3 +303,4 @@ class SCIMGroupDetailsTests(SCIMTestCase):
             "members": None,
             "meta": {"resourceType": "Group"},
         }
+        assert Team.objects.get(id=self.team.id).slug == "thenewname"

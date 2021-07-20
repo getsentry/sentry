@@ -8,17 +8,12 @@ CREATE_USER_POST_DATA = {
     "userName": "test.user@okta.local",
     "name": {"givenName": "Test", "familyName": "User"},
     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
-    "displayName": "Test User",
-    "locale": "en-US",
-    "externalId": "00ujl29u0le5T6Aj10h7",
-    "groups": [],
-    "password": "1mz050nq",
     "active": True,
 }
 
 
 class SCIMMemberIndexTests(SCIMTestCase):
-    def test_get_user_index_empty(self):
+    def test_get_users_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
             f"{url}?startIndex=1&count=100&filter=userName%20eq%20%22test.user%40okta.local%22"
@@ -52,7 +47,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"
 
-    def post_users_already_exists(self):
+    def test_post_users_already_exists(self):
         # test that response 409s if member already exists (by email)
         self.create_member(
             user=self.create_user(), organization=self.organization, email="test.user@okta.local"
@@ -65,7 +60,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "detail": "User already exists in the database.",
         }
 
-    def test_user_index_populated(self):
+    def test_users_get_populated(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
@@ -93,8 +88,12 @@ class SCIMMemberIndexTests(SCIMTestCase):
 
     def test_pagination(self):
         for _ in range(0, 150):
-            user = self.create_user(is_superuser=False)
-            self.create_member(user=user, organization=self.organization, role="member", teams=[])
+            self.create_member(
+                user=self.create_user(),
+                organization=self.organization,
+                role="member",
+                teams=[],
+            )
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=100")
