@@ -695,22 +695,60 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_array_fields(self):
         data = load_data("javascript")
-        data["timestamp"] = iso_format(before_now(minutes=8))
+        data["timestamp"] = iso_format(before_now(minutes=10))
         self.store_event(data=data, project_id=self.project.id)
 
-        for query_fn in [discover.query, discover.wip_snql_query]:
-            result = query_fn(
-                selected_columns=["stack.filename"],
-                query="",
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                    "start": before_now(minutes=12),
-                    "end": before_now(minutes=8),
-                },
-            )
+        expected_filenames = [
+            "../../sentry/scripts/views.js",
+            "../../sentry/scripts/views.js",
+            "../../sentry/scripts/views.js",
+            "raven.js",
+        ]
 
-            data = result["data"]
+        queries = [
+            ("", 1),
+            ("stack.filename:*.js", 1),
+            ("stack.filename:*.py", 0),
+        ]
+
+        for query, expected_len in queries:
+            for query_fn, expected_alias in [
+                (discover.query, "stack.filename"),
+                (discover.wip_snql_query, "exception_frames.filename"),
+            ]:
+                result = query_fn(
+                    selected_columns=["stack.filename"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+
+                data = result["data"]
+                assert len(data) == expected_len
+                if len(data) == 0:
+                    continue
+                assert len(data[0][expected_alias]) == len(expected_filenames)
+                assert sorted(data[0][expected_alias]) == expected_filenames
+
+        result = discover.wip_snql_query(
+            selected_columns=["stack.filename"],
+            query="stack.filename:[raven.js]",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": before_now(minutes=12),
+                "end": before_now(minutes=8),
+            },
+        )
+
+        data = result["data"]
+        assert len(data) == 1
+        assert len(data[0]["exception_frames.filename"]) == len(expected_filenames)
+        assert sorted(data[0]["exception_frames.filename"]) == expected_filenames
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(

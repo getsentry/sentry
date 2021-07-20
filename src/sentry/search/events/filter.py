@@ -1136,7 +1136,9 @@ class QueryFilter(QueryFields):
                 condition = Condition(
                     lhs,
                     Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
-                    value.replace("%", "\\%").replace("_", "\\_").replace("*", "%"),
+                    search_filter.value.raw_value.replace("%", "\\%")
+                    .replace("_", "\\_")
+                    .replace("*", "%"),
                 )
             else:
                 condition = Condition(
@@ -1146,7 +1148,7 @@ class QueryFilter(QueryFields):
                 )
         elif name in ARRAY_FIELDS and search_filter.is_in_filter:
             condition = Condition(
-                Function("hasAny", [Function("arrayConcat", [name]), value]),
+                Function("hasAny", [self.column(name), value]),
                 Op.EQ if search_filter.operator == "IN" else Op.NEQs,
                 1,
             )
