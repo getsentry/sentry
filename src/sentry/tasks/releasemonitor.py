@@ -8,7 +8,13 @@ from django.utils import timezone
 from sentry_sdk import capture_exception
 from snuba_sdk import Column, Condition, Direction, Entity, Granularity, Op, OrderBy, Query
 
-from sentry.models import Release, ReleaseProjectEnvironment
+from sentry.models import (
+    Environment,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 
@@ -28,51 +34,53 @@ def monitor_release_adoption(**kwargs):
     metrics.incr("sentry.tasks.monitor_release_adoption.start")
     # 1. Query snuba for all project ids that have sessions.
     with metrics.timer("sentry.tasks.monitor_release_adoption.aggregate_projects.loop"):
-        #     aggregated_projects = defaultdict(list)
-        #     start_time = time.time()
-        #     offset = 0
-        #     while (time.time() - start_time) < MAX_SECONDS:
-        #         query = Query(
-        #             dataset="sessions",
-        #             match=Entity("org_sessions"),
-        #             select=[
-        #                 Column("org_id"),
-        #                 Column("project_id"),
-        #             ],
-        #             groupby=[Column("org_id"),Column("project_id")],
-        #             where=[
-        #                 Condition(
-        #                     Column("started"), Op.GTE, datetime.utcnow() - timedelta(hours=6)
-        #                 ),
-        #                 Condition(Column("started"), Op.LT, datetime.utcnow()),
-        #             ],
-        #             granularity=Granularity(3600),
-        #             orderby=[OrderBy(Column("org_id"), Direction.ASC)],
-        #         ).set_limit(CHUNK_SIZE+1).set_offset(offset)
-        #         data = snuba.raw_snql_query(query, referrer="tasks.monitor_release_adoption")["data"]
-        #         count = len(data)
-        #         more_results = count >= CHUNK_SIZE
-        #         offset += count
+        aggregated_projects = defaultdict(list)
+        start_time = time.time()
+        offset = 0
+        while (time.time() - start_time) < MAX_SECONDS:
+            query = (
+                Query(
+                    dataset="sessions",
+                    match=Entity("org_sessions"),
+                    select=[
+                        Column("org_id"),
+                        Column("project_id"),
+                    ],
+                    groupby=[Column("org_id"), Column("project_id")],
+                    where=[
+                        Condition(
+                            Column("started"), Op.GTE, datetime.utcnow() - timedelta(hours=6)
+                        ),
+                        Condition(Column("started"), Op.LT, datetime.utcnow()),
+                    ],
+                    granularity=Granularity(3600),
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                        OrderBy(Column("project_id"), Direction.ASC),
+                    ],
+                )
+                .set_limit(CHUNK_SIZE + 1)
+                .set_offset(offset)
+            )
+            data = snuba.raw_snql_query(query, referrer="tasks.monitor_release_adoption")["data"]
+            count = len(data)
+            more_results = count > CHUNK_SIZE
+            offset += CHUNK_SIZE
 
-        #         for row in data:
-        #             aggregated_projects[row['org_id']].append(row['project_id'])
+            if more_results:
+                data = data[:-1]
 
-        #         if not more_results:
-        #             break
+            for row in data:
+                aggregated_projects[row["org_id"]].append(row["project_id"])
 
-        #     else:
-        #         logger.info(
-        #             "monitor_release_adoption.loop_timeout",
-        #             extra={"offset": offset},
-        #         )
-        # NOTE: Hardcoded data for sentry org and sentry project for early release, in the same format snuba should return
-        aggregated_projects = {
-            1: [1],
-            315582: [5245995],
-            307710: [5227327],
-            34825: [1769835],
-        }  # org id: [project ids]
+            if not more_results:
+                break
 
+        else:
+            logger.info(
+                "monitor_release_adoption.loop_timeout",
+                extra={"offset": offset},
+            )
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions"):
         for org_id in aggregated_projects:
             process_projects_with_sessions.delay(org_id, aggregated_projects[org_id])
@@ -128,7 +136,10 @@ def sum_sessions_and_releases(org_id, project_ids):
                             Condition(Column("project_id"), Op.IN, project_ids),
                         ],
                         granularity=Granularity(21600),
-                        orderby=[OrderBy(Column("org_id"), Direction.ASC)],
+                        orderby=[
+                            OrderBy(Column("org_id"), Direction.ASC),
+                            OrderBy(Column("project_id"), Direction.ASC),
+                        ],
                     )
                     .set_limit(CHUNK_SIZE + 1)
                     .set_offset(offset)
@@ -138,8 +149,12 @@ def sum_sessions_and_releases(org_id, project_ids):
                     query, referrer="tasks.process_projects_with_sessions.session_count"
                 )["data"]
                 count = len(data)
-                more_results = count >= CHUNK_SIZE
-                offset += count
+                more_results = count > CHUNK_SIZE
+                offset += CHUNK_SIZE
+
+                if more_results:
+                    data = data[:-1]
+
                 for row in data:
                     row_totals = totals[row["project_id"]].setdefault(
                         row["environment"], {"total_sessions": 0, "releases": defaultdict(int)}
@@ -169,28 +184,53 @@ def adopt_releases(org_id, totals):
                 total_releases = len(environment_totals["releases"])
                 for release in environment_totals["releases"]:
                     threshold = 0.1 / total_releases
-                    if environment_totals["total_sessions"] != 0 and (
-                        environment_totals["releases"][release]
+                    if (
+                        environment != ""
+                        and environment_totals["total_sessions"] != 0
+                        and environment_totals["releases"][release]
                         / environment_totals["total_sessions"]
                         >= threshold
                     ):
                         try:
                             rpe = ReleaseProjectEnvironment.objects.get(
                                 project_id=project_id,
-                                release_id__in=Release.objects.filter(
+                                release_id=Release.objects.get(
                                     organization=org_id, version=release
-                                ).values("id")[:1],
+                                ).id,
                                 environment__name=environment,
                                 environment__organization_id=org_id,
                             )
                             adopted_ids.append(rpe.id)
                             if rpe.adopted is None:
                                 rpe.update(adopted=timezone.now())
-                        except ReleaseProjectEnvironment.DoesNotExist as exc:
-                            metrics.incr(
-                                "sentry.tasks.process_projects_with_sessions.skipped_update"
-                            )
-                            capture_exception(exc)
+                        except ReleaseProjectEnvironment.DoesNotExist:
+                            metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
+                            try:
+                                env = Environment.objects.get(
+                                    name=environment, organization_id=org_id
+                                )
+                                rel = Release.objects.get(organization=org_id, version=release)
+                                if ReleaseProject.objects.get_or_create(
+                                    project_id=project_id, release=rel
+                                ) and ReleaseEnvironment.objects.get_or_create(
+                                    environment=env, organization_id=org_id, release=rel
+                                ):
+                                    ReleaseProjectEnvironment.objects.create(
+                                        project_id=project_id,
+                                        release_id=rel.id,
+                                        environment=env,
+                                        adopted=timezone.now(),
+                                    )
+                            except (
+                                Environment.DoesNotExist,
+                                Release.DoesNotExist,
+                                ReleaseEnvironment.DoesNotExist,
+                                ReleaseProject.DoesNotExist,
+                            ) as exc:
+                                metrics.incr(
+                                    "sentry.tasks.process_projects_with_sessions.skipped_update"
+                                )
+                                capture_exception(exc)
 
     return adopted_ids
 
