@@ -18,19 +18,15 @@ import {getPlatform} from '../utils';
 
 import Expander from './expander';
 import GroupingBadges from './groupingBadges';
-import LeadHint from './leadHint';
+import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
-  React.ComponentProps<typeof LeadHint> &
   Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
     frame: Frame;
-    leadsToApp: boolean;
-    hasGroupingBadge: boolean;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
     showingAbsoluteAddress?: boolean;
     showCompleteFunctionName?: boolean;
-    nextFrame?: Frame;
     prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
     maxLengthOfRelativeAddress?: number;
@@ -44,9 +40,6 @@ function Native({
   frame,
   isFrameAfterLastNonApp,
   isExpanded,
-  nextFrame,
-  leadsToApp,
-  hasGroupingBadge,
   isHoverPreviewed,
   onAddressToggle,
   image,
@@ -64,7 +57,7 @@ function Native({
   haveFramesAtLeastOneGroupingBadge,
   ...props
 }: Props) {
-  const {instructionAddr, trust, addrMode, inApp, symbolicatorStatus} = frame ?? {};
+  const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
 
   function packageStatus() {
     // this is the status of image that belongs to this frame
@@ -120,15 +113,10 @@ function Native({
       haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
     >
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-        <PackageInfo>
-          <LeadHint
-            isExpanded={isExpanded}
-            nextFrame={nextFrame}
-            leadsToApp={leadsToApp}
-          />
+        <PackageLinkWrapper>
           <PackageLink
             includeSystemFrames={!!includeSystemFrames}
-            withLeadHint={!(isExpanded || !leadsToApp)}
+            withLeadHint={false}
             packagePath={frame.package}
             onClick={scrollToImage}
             isClickable={shouldShowLinkToImage}
@@ -141,7 +129,7 @@ function Native({
               />
             )}
           </PackageLink>
-        </PackageInfo>
+        </PackageLinkWrapper>
         {instructionAddr && (
           <TogglableAddress
             address={instructionAddr}
@@ -161,9 +149,8 @@ function Native({
           isHoverPreviewed={isHoverPreviewed}
         />
       </NativeLineContent>
-      {hasGroupingBadge && (
+      {haveFramesAtLeastOneGroupingBadge && (
         <GroupingBadges
-          inApp={inApp}
           isPrefix={isPrefix}
           isSentinel={isSentinel}
           isUsedForGrouping={isUsedForGrouping}
@@ -181,24 +168,11 @@ function Native({
 
 export default Native;
 
-const Wrapper = styled('div')<{
-  haveFramesAtLeastOneExpandedFrame?: boolean;
-  haveFramesAtLeastOneGroupingBadge?: boolean;
-}>`
-  display: grid;
-  grid-template-columns: ${p =>
-    p.haveFramesAtLeastOneGroupingBadge && p.haveFramesAtLeastOneExpandedFrame
-      ? '1.5fr 0.5fr 16px'
-      : p.haveFramesAtLeastOneGroupingBadge
-      ? '1fr 0.5fr'
-      : p.haveFramesAtLeastOneExpandedFrame
-      ? '1fr 16px'
-      : '1fr'};
-
-  grid-gap: ${space(1)};
+const PackageLinkWrapper = styled('span')`
+  order: 2;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    align-items: center;
+    order: 0;
   }
 `;
 
@@ -206,8 +180,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
   grid-gap: ${space(0.5)};
-  grid-template-columns: ${p =>
-    `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
+  grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: flex-start;
 
@@ -222,15 +195,5 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
       1fr;
-  }
-`;
-
-const PackageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  order: 2;
-  align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    order: 0;
   }
 `;

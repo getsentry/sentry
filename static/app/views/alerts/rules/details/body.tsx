@@ -100,7 +100,7 @@ export default class DetailsBody extends React.Component<Props> {
       return `${timeWindow}m`;
     }
 
-    return getInterval({start, end}, true);
+    return getInterval({start, end}, 'high');
   }
 
   getFilter() {

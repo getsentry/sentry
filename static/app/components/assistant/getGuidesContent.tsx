@@ -327,6 +327,27 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'semver',
+      requiredTargets: ['releases_search'],
+      dateThreshold: new Date(2021, 6, 1),
+      steps: [
+        {
+          title: t('Filter by Semver'),
+          target: 'releases_search',
+          description: tct(
+            'You can now filter releases by semver. For example: release.version:>14.0 [br] [link:View the docs]',
+            {
+              br: <br />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
+              ),
+            }
+          ),
+          nextText: t('Leave me alone'),
+        },
+      ],
+    },
   ];
 }
 

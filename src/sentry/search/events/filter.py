@@ -17,6 +17,7 @@ from sentry.api.event_search import (
     SearchValue,
     parse_search_query,
 )
+from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, Release, SemverFilter
@@ -547,7 +548,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     # part of these
                     version_parts.append(int(part))
                 except ValueError:
-                    raise InvalidSearchQuery(f"Invalid format for semver query {version}")
+                    raise InvalidSearchQuery(INVALID_SEMVER_MESSAGE)
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
         return SemverFilter("exact", version_parts, package)
@@ -1023,6 +1024,7 @@ class QueryFilter(QueryFields):
             ISSUE_ID_ALIAS: self._issue_id_filter_converter,
             ERROR_HANDLED_ALIAS: self._error_handled_filter_converter,
             ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
+            TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
         }
 
     def parse_query(self, query: Optional[str]) -> Optional[Sequence[SearchFilter]]:
@@ -1354,4 +1356,21 @@ class QueryFilter(QueryFields):
             return Condition(Function("notHandled", []), Op.EQ, 1)
         raise InvalidSearchQuery(
             "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
+
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        key_transaction_expr = self.resolve_field(TEAM_KEY_TRANSACTION_ALIAS)
+
+        if search_filter.value.raw_value == "":
+            return Condition(
+                key_transaction_expr, Op.NEQ if search_filter.operator == "!=" else Op.EQ, 0
+            )
+        if value in ("1", 1):
+            return Condition(key_transaction_expr, Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(key_transaction_expr, Op.EQ, 0)
+
+        raise InvalidSearchQuery(
+            "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )

@@ -7,6 +7,7 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
@@ -17,7 +18,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD, RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {desktop, mobile, PlatformKey, releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
@@ -63,6 +64,12 @@ const supportedTags = {
   'release.package': {
     key: 'release.package',
     name: 'release.package',
+  },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+    predefined: true,
+    values: RELEASE_ADOPTION_STAGES,
   },
   release: {
     key: 'release',
@@ -544,16 +551,18 @@ class ReleasesList extends AsyncView<Props, State> {
 
             <SortAndFilterWrapper>
               {hasSemver ? (
-                <SmartSearchBar
-                  searchSource="releases"
-                  query={this.getQuery()}
-                  placeholder={t('Search by release version')}
-                  maxSearchItems={5}
-                  hasRecentSearches={false}
-                  supportedTags={supportedTags}
-                  onSearch={this.handleSearch}
-                  onGetTagValues={this.getTagValues}
-                />
+                <GuideAnchor target="releases_search" position="bottom">
+                  <SmartSearchBar
+                    searchSource="releases"
+                    query={this.getQuery()}
+                    placeholder={t('Search by release version')}
+                    maxSearchItems={5}
+                    hasRecentSearches={false}
+                    supportedTags={supportedTags}
+                    onSearch={this.handleSearch}
+                    onGetTagValues={this.getTagValues}
+                  />
+                </GuideAnchor>
               ) : (
                 <SearchBar
                   placeholder={t('Search')}

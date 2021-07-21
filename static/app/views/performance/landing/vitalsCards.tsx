@@ -136,16 +136,13 @@ type BaseCardsProps = {
   organization: Organization;
 };
 
-type OptionalColumn = Column & {
-  optional?: boolean;
-};
-
 type GenericCardsProps = BaseCardsProps & {
-  functions: OptionalColumn[];
+  functions: Column[];
 };
 
 function GenericCards(props: GenericCardsProps) {
   const {api, eventView: baseEventView, location, organization, functions} = props;
+  const {query} = location;
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
@@ -156,6 +153,17 @@ function GenericCards(props: GenericCardsProps) {
   const end = globalSelection.datetime.end
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
     : undefined;
+  const interval =
+    typeof query.sparkInterval === 'string'
+      ? query.sparkInterval
+      : getInterval(
+          {
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          },
+          'low'
+        );
   const apiPayload = eventView.getEventsAPIPayload(location);
 
   return (
@@ -176,11 +184,7 @@ function GenericCards(props: GenericCardsProps) {
           team={apiPayload.team}
           start={start}
           end={end}
-          interval={getInterval({
-            start: start || null,
-            end: end || null,
-            period: globalSelection.datetime.period,
-          })}
+          interval={interval}
           query={apiPayload.query}
           includePrevious={false}
           yAxis={eventView.getFields()}
@@ -213,13 +217,9 @@ function GenericCards(props: GenericCardsProps) {
                   const alias = getAggregateAlias(fieldName);
                   const rawValue = tableData?.data?.[0]?.[alias];
 
-                  if (func.optional && !defined(rawValue)) {
-                    return null;
-                  }
-
                   const data = series?.[fieldName];
                   const value =
-                    isSummaryLoading || rawValue === undefined
+                    isSummaryLoading || !defined(rawValue)
                       ? '\u2014'
                       : formatter(rawValue);
                   const chart = <SparklineChart data={data} />;
@@ -269,8 +269,12 @@ function _BackendCards(props: BaseCardsProps) {
 
 export const BackendCards = withApi(_BackendCards);
 
-function _MobileCards(props: BaseCardsProps) {
-  const functions: OptionalColumn[] = [
+type MobileCardsProps = BaseCardsProps & {
+  showStallPercentage: boolean;
+};
+
+function _MobileCards(props: MobileCardsProps) {
+  const functions: Column[] = [
     {
       kind: 'function',
       function: ['p75', 'measurements.app_start_cold', undefined, undefined],
@@ -287,12 +291,13 @@ function _MobileCards(props: BaseCardsProps) {
       kind: 'function',
       function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
     },
-    {
+  ];
+  if (props.showStallPercentage) {
+    functions.push({
       kind: 'function',
       function: ['p75', 'measurements.stall_percentage', undefined, undefined],
-      optional: true,
-    },
-  ];
+    });
+  }
   return <GenericCards {...props} functions={functions} />;
 }
 

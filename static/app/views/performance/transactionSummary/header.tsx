@@ -245,7 +245,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackEventsTabClick}
               >
                 {t('All Events')}
-                <FeatureBadge type="beta" noTooltip />
+                <FeatureBadge type="new" noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>

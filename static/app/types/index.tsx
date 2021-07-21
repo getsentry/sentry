@@ -1997,7 +1997,6 @@ export enum FrameBadge {
   SENTINEL = 'sentinel',
   PREFIX = 'prefix',
   GROUPING = 'grouping',
-  IN_APP = 'in_app',
 }
 
 /**

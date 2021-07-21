@@ -9,44 +9,44 @@ type Props = {
   isPrefix?: boolean;
   isSentinel?: boolean;
   isUsedForGrouping?: boolean;
-  inApp?: boolean;
 };
 
-function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping, inApp}: Props) {
+function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping}: Props) {
   const badges: React.ReactElement[] = [];
 
   if (isSentinel) {
-    badges.push(<GroupingBadge badge={FrameBadge.SENTINEL} />);
+    badges.push(<GroupingBadge key={FrameBadge.SENTINEL} badge={FrameBadge.SENTINEL} />);
   }
 
   if (isPrefix) {
-    badges.push(<GroupingBadge badge={FrameBadge.PREFIX} />);
+    badges.push(<GroupingBadge key={FrameBadge.PREFIX} badge={FrameBadge.PREFIX} />);
   }
 
   if (isUsedForGrouping) {
-    badges.push(<GroupingBadge badge={FrameBadge.GROUPING} />);
+    badges.push(<GroupingBadge key={FrameBadge.GROUPING} badge={FrameBadge.GROUPING} />);
   }
 
-  if (inApp) {
-    badges.push(<GroupingBadge badge={FrameBadge.IN_APP} />);
-  }
-
-  if (badges.length === 0) {
-    return null;
-  }
-
-  return <Wrapper>{badges}</Wrapper>;
+  return <Wrapper hasGroupingBadges={!!badges.length}>{badges}</Wrapper>;
 }
 
 export default GroupingBadges;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{hasGroupingBadges: boolean}>`
   display: grid;
+  grid-auto-flow: column;
   grid-gap: ${space(0.5)};
-  justify-content: flex-end;
   align-items: flex-start;
+  justify-content: flex-start;
+  order: 2;
+  grid-column-start: 1;
+  grid-column-end: -1;
+  margin-top: ${p => (p.hasGroupingBadges ? space(1) : 0)};
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-auto-flow: column;
+    margin-top: 0;
+    justify-content: flex-end;
+    order: 0;
+    grid-column-start: auto;
+    grid-column-end: auto;
   }
 `;
