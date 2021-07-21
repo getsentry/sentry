@@ -547,11 +547,11 @@ function generateMobilePerformanceEventView(
     'project',
     'transaction.op',
     'tpm()',
-    'p50(measurements.app_start_cold)',
-    'p95(measurements.app_start_cold)',
-    'p50(measurements.app_start_warm)',
-    'p95(measurements.app_start_warm)',
-    'failure_rate()',
+    'p75(measurements.app_start_cold)',
+    'p75(measurements.app_start_warm)',
+    'p75(measurements.frames_slow_rate)',
+    'p75(measurements.frames_frozen_rate)',
+    'p75(measurements.stall_percentage)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
