@@ -1,3 +1,4 @@
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {t} from 'app/locale';
@@ -43,16 +44,18 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
   };
 
   return (
-    <SmartSearchBar
-      searchSource="project_filters"
-      query={query}
-      placeholder={t('Search by release version')}
-      maxSearchItems={5}
-      hasRecentSearches={false}
-      supportedTags={supportedTags}
-      onSearch={onSearch}
-      onGetTagValues={getTagValues}
-    />
+    <GuideAnchor target="releases_search" position="bottom">
+      <SmartSearchBar
+        searchSource="project_filters"
+        query={query}
+        placeholder={t('Search by release version')}
+        maxSearchItems={5}
+        hasRecentSearches={false}
+        supportedTags={supportedTags}
+        onSearch={onSearch}
+        onGetTagValues={getTagValues}
+      />
+    </GuideAnchor>
   );
 }
 
