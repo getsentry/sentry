@@ -1,3 +1,4 @@
+import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
 
@@ -621,6 +622,12 @@ export const SEMVER_TAGS = {
     key: 'release.package',
     name: 'release.package',
   },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+    predefined: true,
+    values: RELEASE_ADOPTION_STAGES,
+  },
 };
 
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
@@ -660,12 +667,12 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.RequestTime]: 'duration',
   [MobileVital.AppStartCold]: 'duration',
   [MobileVital.AppStartWarm]: 'duration',
-  [MobileVital.FramesTotal]: 'number',
-  [MobileVital.FramesSlow]: 'number',
-  [MobileVital.FramesFrozen]: 'number',
+  [MobileVital.FramesTotal]: 'integer',
+  [MobileVital.FramesSlow]: 'integer',
+  [MobileVital.FramesFrozen]: 'integer',
   [MobileVital.FramesSlowRate]: 'percentage',
   [MobileVital.FramesFrozenRate]: 'percentage',
-  [MobileVital.StallCount]: 'number',
+  [MobileVital.StallCount]: 'integer',
   [MobileVital.StallTotalTime]: 'duration',
   [MobileVital.StallLongestTime]: 'duration',
   [MobileVital.StallPercentage]: 'percentage',
@@ -993,6 +1000,9 @@ export function aggregateFunctionOutputType(
  * Get the multi-series chart type for an aggregate function.
  */
 export function aggregateMultiPlotType(field: string): PlotType {
+  if (isEquation(field)) {
+    return 'line';
+  }
   const result = parseFunction(field);
   // Handle invalid data.
   if (!result) {

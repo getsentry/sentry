@@ -1,12 +1,16 @@
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
-  working-dir:
-    description: 'Directory to do work from'
+  workdir:
+    description: 'Directory where the sentry source is located'
     required: false
     default: '.'
   snuba:
     description: 'Is snuba required?'
+    required: false
+    default: 'false'
+  clickhouse:
+    description: 'Is clickhouse required?'
     required: false
     default: 'false'
   kafka:
@@ -105,6 +109,7 @@ runs:
         python setup.py install_egg_info
         pip install wheel # GitHub Actions does not have `wheel` installed by default
         pip install -U -e ".[dev]"
+        cd -
 
         # pytest plugin used for better pytest failure annotations
         pip install pytest-github-actions-annotate-failures
@@ -114,6 +119,7 @@ runs:
       env:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
+        NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
       run: |
         sentry init
@@ -147,6 +153,10 @@ runs:
 
         if [ "$NEED_SNUBA" = "true" ]; then
           sentry devservices up clickhouse snuba
+        fi
+
+        if [ "$NEED_CLICKHOUSE" = "true" ]; then
+          sentry devservices up clickhouse
         fi
 
         if [ "$NEED_CHARTCUTERIE" = "true" ]; then
