@@ -8,6 +8,7 @@ import {IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 import {formattedValue} from 'app/utils/measurements/index';
 import {
   MOBILE_VITAL_DETAILS,
@@ -123,7 +124,7 @@ function EventVital({event, name, vital}: EventVitalProps) {
     return null;
   }
 
-  const failedThreshold = value >= vital.poorThreshold;
+  const failedThreshold = defined(vital.poorThreshold) && value >= vital.poorThreshold;
 
   const currentValue = formattedValue(vital, value);
   const thresholdValue = formattedValue(vital, vital?.poorThreshold ?? 0);
