@@ -116,7 +116,7 @@ class SnubaProtocolEventStream(EventStream):
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
-        send_new_headers = options.get("post-process-forwarder:kafka-headers")
+        send_new_headers = options.get("eventstream:kafka-headers")
 
         if send_new_headers is True:
             headers = strip_none_values(
