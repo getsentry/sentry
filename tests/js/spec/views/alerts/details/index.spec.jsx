@@ -94,7 +94,12 @@ describe('IncidentDetails', function () {
     // Number of events
     expect(wrapper.find('ItemValue').at(3).text()).toBe('100');
     expect(wrapper.find('ItemValue').at(4).text()).toBe('2 weeks');
-    expect(trackAnalyticsEvent).toHaveBeenCalledTimes(1);
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'alert_details.viewed',
+      eventName: 'Alert Details: Viewed',
+      organization_id: 3,
+      alert_id: 123,
+    });
   });
 
   it('renders open in discover button', async function () {
