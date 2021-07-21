@@ -726,7 +726,7 @@ class SnubaTagStorage(TagStorage):
             include_package = True
             versions = self._get_semver_versions_for_package(projects, organization_id, query)
         else:
-            include_package = not query or "@" in query
+            include_package = "@" in query
             if not query:
                 query = "*"
             elif query[-1] not in SEMVER_WILDCARDS | {"@"}:

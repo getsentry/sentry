@@ -738,25 +738,21 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         self.run_test(
             None,
             [
-                "z_test@2.0.0.0",
-                "test2@2.0.0.0",
-                "test@1.2.3.4",
-                "test@1.2.3.0-beta",
-                "test@1.2.0.0-alpha",
-                "z_test@1.0.0.0",
-                "test@1.0.0.0",
+                "2.0.0.0",
+                "1.2.3.4",
+                "1.2.3.0-beta",
+                "1.2.0.0-alpha",
+                "1.0.0.0",
             ],
         )
         self.run_test(
             "",
             [
-                "z_test@2.0.0.0",
-                "test2@2.0.0.0",
-                "test@1.2.3.4",
-                "test@1.2.3.0-beta",
-                "test@1.2.0.0-alpha",
-                "z_test@1.0.0.0",
-                "test@1.0.0.0",
+                "2.0.0.0",
+                "1.2.3.4",
+                "1.2.3.0-beta",
+                "1.2.0.0-alpha",
+                "1.0.0.0",
             ],
         )
 
@@ -769,8 +765,8 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
 
         self.run_test("1.2", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha"])
 
-        self.run_test("", ["test2@2.0.0.0", "test@1.2.0.0-alpha"], self.environment)
-        self.run_test("", ["test2@2.0.0.0", "test@1.2.3.4", "test@1.2.3.0-beta"], env_2)
+        self.run_test("", ["2.0.0.0", "1.2.0.0-alpha"], self.environment)
+        self.run_test("", ["2.0.0.0", "1.2.3.4", "1.2.3.0-beta"], env_2)
         self.run_test("1", ["1.2.0.0-alpha"], self.environment)
         self.run_test("1", ["1.2.3.4", "1.2.3.0-beta"], env_2)
 
