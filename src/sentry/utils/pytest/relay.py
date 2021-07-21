@@ -5,7 +5,7 @@ import datetime
 import shutil
 import sys
 import time
-from os import env, path
+from os import environ, path
 from urllib.parse import urlparse
 
 import pytest
@@ -13,7 +13,7 @@ import requests
 
 from sentry.runner.commands.devservices import get_docker_client
 
-RELAY_DOCKER_TAG = env.get("RELAY_DOCKER_TAG", "nightly")
+RELAY_DOCKER_TAG = environ.get("RELAY_DOCKER_TAG", "nightly")
 
 
 def _relay_server_container_name():
