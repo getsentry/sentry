@@ -51,10 +51,6 @@ function withReleaseRepos<P extends DependentProps>(
       this.fetchReleaseRepos();
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps: P & HoCsProps) {
-      this.setActiveReleaseRepo(nextProps);
-    }
-
     componentDidUpdate(prevProps: P & HoCsProps, prevState: State) {
       if (
         this.props.params.release !== prevProps.params.release ||
@@ -64,7 +60,10 @@ function withReleaseRepos<P extends DependentProps>(
         return;
       }
 
-      if (prevState.releaseRepos.length !== this.state.releaseRepos.length) {
+      if (
+        prevState.releaseRepos.length !== this.state.releaseRepos.length ||
+        prevProps.location.query?.activeRepo !== this.props.location.query?.activeRepo
+      ) {
         this.setActiveReleaseRepo(this.props);
       }
     }
