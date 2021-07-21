@@ -94,6 +94,8 @@ type PermissionObj = {
   };
 };
 
+export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
+
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_ACCESS_SCOPES from above should be represented in a more
 // User-friendly way here.

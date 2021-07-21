@@ -17,7 +17,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD, RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {desktop, mobile, PlatformKey, releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
@@ -63,6 +63,12 @@ const supportedTags = {
   'release.package': {
     key: 'release.package',
     name: 'release.package',
+  },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+    predefined: true,
+    values: RELEASE_ADOPTION_STAGES,
   },
   release: {
     key: 'release',
