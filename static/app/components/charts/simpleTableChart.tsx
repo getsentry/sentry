@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import PanelTable, {PanelTableHeader} from 'app/components/panels/panelTable';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -33,7 +34,7 @@ class SimpleTableChart extends Component<Props> {
     return columns.map(column => {
       const fieldRenderer = getFieldRenderer(column.name, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
-      return <div key={`${index}:${column.name}`}>{rendered}</div>;
+      return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });
   }
 
@@ -55,6 +56,8 @@ class SimpleTableChart extends Component<Props> {
               </HeadCell>
             );
           })}
+          isEmpty={!data?.length}
+          disablePadding
         >
           {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
         </StyledPanelTable>
@@ -80,6 +83,11 @@ type HeadCellProps = {
 };
 const HeadCell = styled('div')<HeadCellProps>`
   ${(p: HeadCellProps) => (p.align ? `text-align: ${p.align};` : '')}
+  padding: ${space(1)} ${space(3)};
+`;
+
+const TableCell = styled('div')`
+  padding: ${space(1)} ${space(3)};
 `;
 
 export default withOrganization(SimpleTableChart);

@@ -371,10 +371,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: none;
-
-  > div {
-    padding: ${space(1)} ${space(3)};
-  }
 `;
 
 export default withTheme(WidgetCardChart);
