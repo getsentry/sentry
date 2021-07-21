@@ -157,7 +157,7 @@ def get_send_to(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: Optional[int] = None,
-    event: Optional[Event] = None,
+    event: Optional["Event"] = None,
 ) -> Mapping[ExternalProviders, Union[Set[User], Set[Team]]]:
     """
     Returns a mapping of providers to a list of user IDs for the users that
@@ -179,7 +179,7 @@ def get_send_to(
     return {}
 
 
-def get_send_to_owners(event: Event, project: Project) -> Mapping[ExternalProviders, Set[User]]:
+def get_send_to_owners(event: "Event", project: Project) -> Mapping[ExternalProviders, Set[User]]:
     owners, _ = ProjectOwnership.get_owners(project.id, event.data)
     if owners == ProjectOwnership.Everyone:
         metrics.incr(

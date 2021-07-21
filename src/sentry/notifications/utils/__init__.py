@@ -192,7 +192,7 @@ def get_rules(
     ]
 
 
-def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
+def get_commits(project: Project, event: "Event") -> Sequence[Mapping[str, Any]]:
     # lets identify possibly suspect commits and owners
     commits: MutableMapping[int, Mapping[str, Any]] = {}
     try:
@@ -243,7 +243,7 @@ def has_alert_integration(project: Project) -> bool:
     return any(plugin.get_plugin_type() == "notification" for plugin in project_plugins)
 
 
-def get_interface_list(event: Event) -> Sequence[Tuple[str, str, str]]:
+def get_interface_list(event: "Event") -> Sequence[Tuple[str, str, str]]:
     interface_list = []
     for interface in event.interfaces.values():
         body = interface.to_email_html(event)
