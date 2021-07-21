@@ -20,7 +20,7 @@ from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 from sentry.utils import json, metrics
 
-WORKER_ID = str(uuid.uuid4().int % 5000)
+WORKER_ID = None
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
 INTERNAL_SOURCE_NAME = "sentry:project"
@@ -140,6 +140,16 @@ SOURCES_SCHEMA = {
         "oneOf": [HTTP_SOURCE_SCHEMA, S3_SOURCE_SCHEMA, GCS_SOURCE_SCHEMA, APP_STORE_CONNECT_SCHEMA]
     },
 }
+
+
+def _get_worker_id():
+    # generate worker id on first use doing this at import time caused all
+    # celery worker processes to share worker id which is not desired
+    global WORKER_ID
+    if WORKER_ID is None:
+        # % 5000 to reduce cardinality of metrics that we tag with worker_id
+        WORKER_ID = str(uuid.uuid4().int % 5000)
+    return WORKER_ID
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
@@ -491,7 +501,7 @@ class SymbolicatorSession:
         # required for load balancing
         kwargs.setdefault("headers", {})["x-sentry-project-id"] = self.project_id
         kwargs.setdefault("headers", {})["x-sentry-event-id"] = self.event_id
-        kwargs.setdefault("headers", {})["x-sentry-worker-id"] = WORKER_ID
+        kwargs.setdefault("headers", {})["x-sentry-worker-id"] = _get_worker_id()
 
         attempts = 0
         wait = 0.5
@@ -554,7 +564,7 @@ class SymbolicatorSession:
     def _create_task(self, path, **kwargs):
         params = {"timeout": self.timeout, "scope": self.project_id}
         with metrics.timer(
-            "events.symbolicator.create_task", tags={"path": path, "worker_id": WORKER_ID}
+            "events.symbolicator.create_task", tags={"path": path, "worker_id": _get_worker_id()}
         ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
@@ -593,7 +603,7 @@ class SymbolicatorSession:
             "scope": self.project_id,
         }
 
-        with metrics.timer("events.symbolicator.query_task", tags={"worker_id": WORKER_ID}):
+        with metrics.timer("events.symbolicator.query_task", tags={"worker_id": _get_worker_id()}):
             return self._request("get", task_url, params=params)
 
     def healthcheck(self):
