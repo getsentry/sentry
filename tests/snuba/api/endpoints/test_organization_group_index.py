@@ -892,6 +892,78 @@ class GroupListTest(APITestCase, SnubaTestCase):
             before_now_100_seconds
         ).replace(tzinfo=timezone.utc)
 
+    def test_semver_seen_stats(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5")
+
+        release_1_e_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        )
+        group_1 = release_1_e_1.group
+
+        release_2_e_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=3)),
+                "fingerprint": ["group-1"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        )
+
+        release_3_e_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+                "release": release_3.version,
+            },
+            project_id=self.project.id,
+        )
+
+        group_1.update(times_seen=3)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort_by="date", limit=10, query="release.version:1.2.3"
+        )
+        assert [int(row["id"]) for row in response.data] == [group_1.id]
+        group_data = response.data[0]
+        assert group_data["lifetime"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["filtered"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["lifetime"]["lastSeen"] == release_3_e_1.datetime
+        assert group_data["filtered"]["lastSeen"] == release_1_e_1.datetime
+        assert int(group_data["lifetime"]["count"]) == 3
+        assert int(group_data["filtered"]["count"]) == 1
+
+        response = self.get_success_response(
+            sort_by="date", limit=10, query="release.version:>=1.2.3"
+        )
+        assert [int(row["id"]) for row in response.data] == [group_1.id]
+        group_data = response.data[0]
+        assert group_data["lifetime"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["filtered"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["lifetime"]["lastSeen"] == release_3_e_1.datetime
+        assert group_data["filtered"]["lastSeen"] == release_3_e_1.datetime
+        assert int(group_data["lifetime"]["count"]) == 3
+        assert int(group_data["filtered"]["count"]) == 3
+
+        response = self.get_success_response(
+            sort_by="date", limit=10, query="release.version:=1.2.4"
+        )
+        assert [int(row["id"]) for row in response.data] == [group_1.id]
+        group_data = response.data[0]
+        assert group_data["lifetime"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["filtered"]["firstSeen"] == release_2_e_1.datetime
+        assert group_data["lifetime"]["lastSeen"] == release_3_e_1.datetime
+        assert group_data["filtered"]["lastSeen"] == release_2_e_1.datetime
+        assert int(group_data["lifetime"]["count"]) == 3
+        assert int(group_data["filtered"]["count"]) == 1
+
     def test_inbox_search(self):
         self.store_event(
             data={
