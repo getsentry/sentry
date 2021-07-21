@@ -5,7 +5,8 @@ from django.utils.encoding import force_text
 
 from sentry.models import Group, GroupSubscription, Project, User
 from sentry.notifications.base import BaseNotification
-from sentry.notifications.utils import get_reason_context, send_activity_notification
+from sentry.notifications.helpers import get_reason_context
+from sentry.notifications.utils import send_activity_notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 

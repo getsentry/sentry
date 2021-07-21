@@ -8,7 +8,8 @@ from django.utils.safestring import SafeString, mark_safe
 
 from sentry.models import Activity, User
 from sentry.notifications.base import BaseNotification
-from sentry.notifications.utils import get_reason_context, send_activity_notification
+from sentry.notifications.helpers import get_reason_context
+from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import get_participants_for_group
 from sentry.types.integrations import ExternalProviders
