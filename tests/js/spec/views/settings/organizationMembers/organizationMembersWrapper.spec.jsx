@@ -27,17 +27,6 @@ describe('OrganizationMembersWrapper', function () {
     params: {orgId: organization.slug},
   };
 
-  const inviteRequest = TestStubs.Member({
-    user: null,
-    inviterName: TestStubs.User().name,
-    inviteStatus: 'requested_to_be_invited',
-  });
-
-  const joinRequest = TestStubs.Member({
-    user: null,
-    inviteStatus: 'requested_to_join',
-  });
-
   beforeEach(function () {
     trackAnalyticsEvent.mockClear();
     MockApiClient.clearMockResponses();
