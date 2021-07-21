@@ -41,14 +41,14 @@ describe('InviteRequestRow', function () {
     inviterId: TestStubs.User().id,
     inviteStatus: 'requested_to_be_invited',
     role: 'member',
-    teams: ['myteam']
+    teams: ['myteam'],
   });
 
   const joinRequest = TestStubs.Member({
     user: null,
     inviteStatus: 'requested_to_join',
     role: 'member',
-    teams: ['myteam']
+    teams: ['myteam'],
   });
 
   it('renders request to be invited', function () {
@@ -140,8 +140,8 @@ describe('InviteRequestRow', function () {
         organization={orgWithoutAdminAccess}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        onApprove={() => { }}
-        onDeny={() => { }}
+        onApprove={() => {}}
+        onDeny={() => {}}
         allTeams={[]}
         allRoles={roles}
       />
@@ -158,7 +158,7 @@ describe('InviteRequestRow', function () {
       inviterId: TestStubs.User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'admin',
-      teams: ['myteam']
+      teams: ['myteam'],
     });
 
     const mockUpdate = jest.fn();
@@ -189,7 +189,7 @@ describe('InviteRequestRow', function () {
       inviterId: TestStubs.User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'owner',
-      teams: ['myteam']
+      teams: ['myteam'],
     });
 
     const mockUpdate = jest.fn();

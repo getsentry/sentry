@@ -111,10 +111,9 @@ describe('OrganizationTeams', function () {
     });
   });
 
-
   describe('Team Requests', function () {
     const orgId = 'org-slug';
-    const { organization, project, routerContext } = initializeOrg({
+    const {organization, project, routerContext} = initializeOrg({
       organization: {
         openMembership: false,
       },
@@ -126,12 +125,12 @@ describe('OrganizationTeams', function () {
       email: 'requester@example.com',
       name: 'Requester',
     });
-    const requestList = [accessRequest, TestStubs.AccessRequest({ id: '4', requester })];
+    const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
 
     const createWrapper = props =>
       mountWithTheme(
         <OrganizationTeams
-          params={{ orgId: organization.slug, projectId: project.slug }}
+          params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}
           features={new Set([])}
           access={new Set([])}
@@ -146,7 +145,7 @@ describe('OrganizationTeams', function () {
 
     it('renders empty', function () {
       const wrapper = createWrapper({
-        requestList: []
+        requestList: [],
       });
 
       expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
@@ -183,9 +182,8 @@ describe('OrganizationTeams', function () {
       });
 
       const wrapper = createWrapper({
-        onRemoveAccessRequest: onUpdateRequestListMock
+        onRemoveAccessRequest: onUpdateRequestListMock,
       });
-
       wrapper.find('button[aria-label="Approve"]').first().simulate('click');
 
       await tick();
@@ -209,7 +207,7 @@ describe('OrganizationTeams', function () {
       });
 
       const wrapper = createWrapper({
-        onRemoveAccessRequest: onUpdateRequestListMock
+        onRemoveAccessRequest: onUpdateRequestListMock,
       });
 
       wrapper.find('button[aria-label="Deny"]').first().simulate('click');
