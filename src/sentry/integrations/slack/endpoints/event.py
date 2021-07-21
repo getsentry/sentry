@@ -180,7 +180,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                 formatted_body["user_id"] = formatted_body["event"]["user"]
                 formatted_body = urlencode(formatted_body)
                 request.body = formatted_body.encode("utf-8")
-                return super().post_dispatcher(request)
+                resp = super().post_dispatcher(request)
             else:
                 resp = self.on_message(
                     request,
