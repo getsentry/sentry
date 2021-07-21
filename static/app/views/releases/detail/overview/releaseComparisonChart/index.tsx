@@ -945,18 +945,24 @@ const ChartTableRow = styled('label')<{
   font-weight: 400;
   margin-bottom: 0;
 
+  > * {
+    padding: ${space(2)};
+  }
+
   ${p =>
     p.isActive &&
     !p.isLoading &&
     css`
-      ${Cell},${DescriptionCell}, ${TitleWrapper} {
+      ${Cell}, ${DescriptionCell}, ${TitleWrapper} {
         background-color: ${p.theme.bodyBackground};
       }
     `}
 
   &:hover {
     cursor: pointer;
-    ${Cell},${DescriptionCell}, ${TitleWrapper} {
+    ${/* sc-selector */ Cell}, ${/* sc-selector */ DescriptionCell}, ${
+      /* sc-selector */ TitleWrapper
+    } {
       ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
     }
   }
@@ -1016,10 +1022,6 @@ const ChartTable = styled(PanelTable)`
 
   > * {
     border-bottom: 1px solid ${p => p.theme.border};
-  }
-
-  ${ChartTableRow} > * {
-    padding: ${space(2)};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
