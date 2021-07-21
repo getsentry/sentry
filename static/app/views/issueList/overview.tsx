@@ -28,7 +28,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {tct} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
@@ -56,7 +56,6 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withIssueTags from 'app/utils/withIssueTags';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
-import {ADOPTION_STAGES} from 'app/views/releases/list';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -1061,7 +1060,7 @@ class IssueListOverview extends React.Component<Props, State> {
         key: 'release.stage',
         name: 'release.stage',
         predefined: true,
-        values: ADOPTION_STAGES,
+        values: RELEASE_ADOPTION_STAGES,
       };
     }
 

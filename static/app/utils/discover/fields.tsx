@@ -1,6 +1,6 @@
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
-import {ADOPTION_STAGES} from 'app/views/releases/list';
+import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 
 export type Sort = {
   kind: 'asc' | 'desc';
@@ -626,7 +626,7 @@ export const SEMVER_TAGS = {
     key: 'release.stage',
     name: 'release.stage',
     predefined: true,
-    values: ADOPTION_STAGES,
+    values: RELEASE_ADOPTION_STAGES,
   },
 };
 
