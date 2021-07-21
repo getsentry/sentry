@@ -117,6 +117,11 @@ const InviteRequestRow = ({
           onClick={() => onDeny(inviteRequest)}
           icon={<IconClose />}
           disabled={!canApprove}
+          title={
+            canApprove
+              ? undefined
+              : t('This request needs to be reviewed by a privileged user')
+          }
         >
           {t('Deny')}
         </Button>

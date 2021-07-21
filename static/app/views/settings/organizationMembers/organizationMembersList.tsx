@@ -315,9 +315,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                   onUpdate={data => this.updateInviteRequest(inviteRequest.id, data)}
                 />
               ))}
-              {inviteRequests.length === 0 && (
-                <EmptyMessage>{t('No requests found.')}</EmptyMessage>
-              )}
             </PanelBody>
           </Panel>
         )}
