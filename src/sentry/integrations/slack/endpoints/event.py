@@ -1,6 +1,5 @@
 from collections import defaultdict
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from urllib.parse import urlencode
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -175,12 +174,8 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
             data = slack_request.data.get("event")
             command = data["text"]
             if command in COMMANDS:
-                # do some data massaging to get it in the right format
-                formatted_body = json.loads(request.body)
-                formatted_body["user_id"] = formatted_body["event"]["user"]
-                formatted_body = urlencode(formatted_body)
-                request.body = formatted_body.encode("utf-8")
-                resp = super().post_dispatcher(request)
+                resp = super().post_dispatcher(slack_request)
+
             else:
                 resp = self.on_message(
                     request,

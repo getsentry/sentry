@@ -2,9 +2,12 @@ import logging
 from typing import Mapping, Sequence, Tuple
 
 from django.http import HttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
+from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
@@ -98,5 +101,12 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         return self.reply(slack_request, UNLINK_TEAM_MESSAGE.format(associate_url=associate_url))
 
     def post(self, request: Request) -> HttpResponse:
+        try:
+            slack_request = SlackCommandRequest(request)
+            slack_request.validate()
+        except SlackRequestError as e:
+            if e.status == status.HTTP_403_FORBIDDEN:
+                return self.respond(SlackDisconnectedMessageBuilder().build())
+            return self.respond(status=e.status)
 
-        return super().post_dispatcher(request)
+        return super().post_dispatcher(slack_request)

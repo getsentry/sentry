@@ -1,13 +1,9 @@
-from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import Endpoint
-from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
-from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
@@ -27,48 +23,40 @@ class SlackDMEndpoint(Endpoint):  # type: ignore
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
         """
-        try:
-            slack_request = SlackCommandRequest(request)
-            slack_request.validate()
-        except SlackRequestError as e:
-            if e.status == status.HTTP_403_FORBIDDEN:
-                return self.respond(SlackDisconnectedMessageBuilder().build())
-            return self.respond(status=e.status)
-
-        command, args = self.get_command_and_args(slack_request)
+        command, args = self.get_command_and_args(request)
 
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
 
-        integration = slack_request.integration
+        integration = request.integration
         organization = integration.organizations.all()[0]
         if command in ["link", "unlink"] and not features.has(
             "organizations:notification-platform", organization
         ):
-            return self.reply(FEATURE_FLAG_MESSAGE)
+            return self.reply(request, FEATURE_FLAG_MESSAGE)
 
         if command == "link":
             if not args:
-                return self.link_user(slack_request)
+                return self.link_user(request)
 
             if args[0] == "team":
-                return self.link_team(slack_request)
+                return self.link_team(request)
 
         if command == "unlink":
             if not args:
-                return self.unlink_user(slack_request)
+                return self.unlink_user(request)
 
             if args[0] == "team":
-                return self.unlink_team(slack_request)
+                return self.unlink_team(request)
 
         # If we cannot interpret the command, print help text.
         return self.respond(SlackHelpMessageBuilder(command).build())
 
     def get_command_and_args(self, request):
-        return NotImplementedError
+        raise NotImplementedError
 
     def reply(self, slack_request, message: str) -> Response:
-        return NotImplementedError
+        raise NotImplementedError
 
     def link_user(self, slack_request):
         if slack_request.has_identity:
