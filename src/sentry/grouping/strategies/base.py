@@ -291,6 +291,9 @@ class StrategyConfiguration:
             == cls.id,
         }
 
+    def is_hierarchical(self):
+        return self.initial_context["hierarchical_grouping"]
+
 
 def create_strategy_configuration(
     id: str,
