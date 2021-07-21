@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import Team, TeamStatus
+from sentry.models import Team
 from sentry.testutils import SCIMTestCase
 
 CREATE_TEAM_POST_DATA = {
@@ -41,12 +41,10 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "members": [],
             "meta": {"resourceType": "Group"},
         }
-        assert Team.objects.get(id=team_id).exists()
+        assert Team.objects.filter(id=team_id).exists()
         assert Team.objects.get(id=team_id).slug == "test-scimv2"
         assert Team.objects.get(id=team_id).name == "test-scimv2"
-        assert Team.objects.get(id=team_id).members == []
-
-        # assert that the team exists
+        assert len(Team.objects.get(id=team_id).member_set) == 0
 
     def test_scim_team_index_populated(self):
         team = self.create_team(organization=self.organization)
@@ -110,16 +108,6 @@ class SCIMGroupIndexTests(SCIMTestCase):
         }
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
-
-    def test_delete_team(self):
-        team = self.create_team(organization=self.organization)
-        url = reverse(
-            "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
-        )
-        response = self.client.delete(url)
-        assert response.status_code == 204, response.content
-
-        assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
 
     def test_team_filter(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])

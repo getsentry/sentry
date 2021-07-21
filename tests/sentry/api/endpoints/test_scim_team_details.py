@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import OrganizationMemberTeam, Team
+from sentry.models import OrganizationMemberTeam, Team, TeamStatus
 from sentry.testutils import SCIMTestCase
 
 
@@ -65,7 +65,7 @@ class SCIMGroupDetailsTests(SCIMTestCase):
             "members": None,
             "meta": {"resourceType": "Group"},
         }
-        assert Team.objects.filter(id=team.id).slug == "newname"
+        assert Team.objects.get(id=team.id).slug == "newname"
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -304,3 +304,13 @@ class SCIMGroupDetailsTests(SCIMTestCase):
             "meta": {"resourceType": "Group"},
         }
         assert Team.objects.get(id=self.team.id).slug == "thenewname"
+
+    def test_delete_team(self):
+        team = self.create_team(organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
+        )
+        response = self.client.delete(url)
+        assert response.status_code == 204, response.content
+
+        assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
