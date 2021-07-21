@@ -13,7 +13,8 @@ import requests
 
 from sentry.runner.commands.devservices import get_docker_client
 
-RELAY_DOCKER_TAG = environ.get("RELAY_DOCKER_TAG", "nightly")
+# This helps the Relay CI to specify the generated Docker build before it is published
+RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "us.gcr.io/sentryio/relay:nightly")
 
 
 def _relay_server_container_name():
@@ -96,7 +97,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
     options = {
-        "image": f"us.gcr.io/sentryio/relay:{RELAY_DOCKER_TAG}",
+        "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
         "network": network,
         "detach": True,
