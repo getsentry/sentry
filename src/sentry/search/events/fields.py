@@ -2198,7 +2198,7 @@ class QueryFields(QueryBase):
                         }
                     ],
                     snql_aggregate=self._resolve_count_miserable_function,
-                    default_result_type="number",
+                    default_result_type="integer",
                 ),
                 SnQLFunction(
                     "user_misery",
