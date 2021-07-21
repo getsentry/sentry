@@ -78,12 +78,13 @@ class GroupResolutionTest(TestCase):
 
     def test_when_current_release_version_is_set_incorrect_inputs_fallback_to_older_model(self):
         """
-        Test that ensures in a project that follows semverand where current_release_version is
+        Test that ensures in a project that follows semver and where current_release_version is
         set, wrong release input (non semver) comparison does not break the method, but rather
         fallsback to the older model of comparison
         """
-        old_random_release = self.create_release(version="doggo", project=self.project)
-        old_random_release.update(date_added=timezone.now() - timedelta(minutes=45))
+        old_random_release = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=45), version="doggo"
+        )
 
         GroupResolution.objects.create(
             release=old_random_release,

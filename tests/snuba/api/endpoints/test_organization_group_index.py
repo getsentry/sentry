@@ -1938,18 +1938,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         GroupResolution.current_release_version is set to the latest release associated with a
         Group, when the project follows semantic versioning scheme
         """
-        release_1 = Release.objects.create(
-            organization_id=self.project.organization_id, version="fake_package@21.1.0"
-        )
-        release_2 = Release.objects.create(
-            organization_id=self.project.organization_id, version="fake_package@21.1.1"
-        )
-        release_3 = Release.objects.create(
-            organization_id=self.project.organization_id, version="fake_package@21.1.2"
-        )
-
-        for release in [release_1, release_2, release_3]:
-            release.add_project(self.project)
+        release_1 = self.create_release(version="fake_package@21.1.0")
+        release_2 = self.create_release(version="fake_package@21.1.1")
+        release_3 = self.create_release(version="fake_package@21.1.2")
 
         self.store_event(
             data={
@@ -1985,10 +1976,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # Add release that is between 2 and 3 to ensure that any release after release 2 should
         # not have a resolution
-        release_4 = Release.objects.create(
-            organization_id=self.project.organization_id, version="fake_package@21.1.1+1"
-        )
-        release_4.add_project(self.project)
+        release_4 = self.create_release(version="fake_package@21.1.1+1")
 
         for release in [release_1, release_2]:
             assert GroupResolution.has_resolution(group=group, release=release)
