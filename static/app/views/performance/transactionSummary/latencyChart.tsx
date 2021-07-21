@@ -20,7 +20,7 @@ import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogr
 import {decodeInteger} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
-import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
+import {filterToColor, filterToField, SpanOperationBreakdownFilter} from './filter';
 
 export const ZOOM_START = 'startDuration';
 export const ZOOM_END = 'endDuration';
@@ -117,7 +117,7 @@ class LatencyChart extends Component<Props, State> {
     const colors =
       currentFilter === SpanOperationBreakdownFilter.None
         ? [...theme.charts.getColorPalette(1)]
-        : [filterToColour(currentFilter)];
+        : [filterToColor(currentFilter)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.

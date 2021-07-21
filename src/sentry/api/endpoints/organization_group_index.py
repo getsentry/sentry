@@ -325,6 +325,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 search_filters=query_kwargs["search_filters"]
                 if "search_filters" in query_kwargs
                 else None,
+                organization_id=organization.id,
             ),
         )
 

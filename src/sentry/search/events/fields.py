@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Match, Optional, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -2104,6 +2104,31 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
+class SnQLFunction(DiscoverFunction):
+    def __init__(self, *args, **kwargs):
+        self.snql_aggregate = kwargs.pop("snql_aggregate", None)
+        super().__init__(*args, **kwargs)
+
+    def validate(self):
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), f"{self.name}: optional argument at index {i} does not have default"
+
+        assert self.snql_aggregate is not None
+
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
+            names.add(arg.name)
+
+        self.validate_result_type(self.default_result_type)
+
+
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
@@ -2127,6 +2152,82 @@ class QueryFields(QueryBase):
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
         }
 
+        self.function_converter: Mapping[str, SnQLFunction] = {
+            function.name: function
+            for function in [
+                SnQLFunction(
+                    "failure_count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                "notIn",
+                                [
+                                    self.column("transaction.status"),
+                                    (
+                                        SPAN_STATUS_NAME_TO_CODE["ok"],
+                                        SPAN_STATUS_NAME_TO_CODE["cancelled"],
+                                        SPAN_STATUS_NAME_TO_CODE["unknown"],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                # TODO: implement these
+                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("apdex", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "count_miserable", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("user_misery", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("avg", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("var", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("stddev", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("cov", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "percentile_range", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("avg_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("variance_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
+            ]
+        }
+
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
         if selected_columns is None:
             return []
@@ -2145,7 +2246,7 @@ class QueryFields(QueryBase):
     def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+            return self.resolve_function(field, match)
 
         if self.is_field_alias(field):
             return self.resolve_field_alias(field)
@@ -2210,6 +2311,40 @@ class QueryFields(QueryBase):
             raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
         return converter(alias)
 
+    def is_function(self, function: str) -> bool:
+        return function in self.function_converter
+
+    def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
+        if match is None:
+            match = is_function(function)
+
+        if not match:
+            raise InvalidSearchQuery(f"Invalid characters in field {function}")
+
+        if function in self.params.get("aliases", {}):
+            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
+
+        name, arguments, alias = self.parse_function(match)
+        snql_function = self.function_converter.get(name)
+        if snql_function.snql_aggregate is not None:
+            self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
+        return snql_function.snql_aggregate(arguments, alias)
+
+    def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
+        function = match.group("function")
+        if not self.is_function(function):
+            raise InvalidSearchQuery(f"{function} is not a valid function")
+
+        arguments = match.group("columns")
+        arguments = parse_arguments(function, arguments)
+        alias = match.group("alias")
+
+        if alias is None:
+            alias = get_function_alias_with_columns(function, arguments)
+
+        return (function, arguments, alias)
+
+    # Field Aliases
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
         """The state of having no issues is represented differently on transactions vs
         other events. On the transactions table, it is represented by 0 whereas it is
@@ -2443,3 +2578,13 @@ class QueryFields(QueryBase):
         return Function(
             "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
         )
+
+    def _resolve_unimplemented_function(
+        self,
+        _: List[str],
+        alias: str,
+    ) -> SelectType:
+        """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
+        Can be deleted once all functions have been implemented.
+        """
+        raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
