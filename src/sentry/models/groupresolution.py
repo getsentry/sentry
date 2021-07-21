@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.models.release import DB_VERSION_LENGTH
+from sentry.utils import metrics
 
 
 class GroupResolution(Model):
@@ -25,10 +26,8 @@ class GroupResolution(Model):
     # the release in which its suggested this was resolved
     # which allows us to indicate if it still happens in newer versions
     release = FlexibleForeignKey("sentry.Release")
-    # This release field represents the release version of the bug when the user clicked on the
-    # "resolve in next release" button
-    # This column is specifically added for semver release comparison to be able to compare this
-    # semver release against "future/resolved" semver releases
+    # This release field represents the latest release version associated with a group when the
+    # user chooses "resolve in next release", and is set for both semver and date ordered releases
     current_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     type = BoundedPositiveIntegerField(
         choices=((Type.in_next_release, "in_next_release"), (Type.in_release, "in_release")),
@@ -69,6 +68,11 @@ class GroupResolution(Model):
             return True
 
         if res_type in (None, cls.Type.in_next_release):
+            # Add metric here to ensure that this code branch ever runs given that
+            # clear_expired_resolutions changes the type to `in_release` once a Release instance
+            # is created
+            metrics.incr("groupresolution.has_resolution.in_next_release", sample_rate=1.0)
+
             if res_release == release.id:
                 return True
             elif res_release_datetime > release.date_added:
