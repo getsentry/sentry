@@ -8,11 +8,11 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
 
-jest.mock('app/utils/analytics', () => ({
-  trackAnalyticsEvent: jest.fn(),
+jest.mock('app/utils/advancedAnalytics', () => ({
+  trackAdvancedAnalyticsEvent: jest.fn(),
 }));
 
 jest.mock('app/api');
@@ -485,13 +485,14 @@ describe('OrganizationMembersList', function () {
 
       expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
-      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-        eventKey: 'invite_request.approved',
-        eventName: 'Invite Request Approved',
-        organization_id: org.id,
-        invite_status: inviteRequest.inviteStatus,
-        member_id: parseInt(inviteRequest.id, 10),
-      });
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+        'invite_request.approved',
+        {
+          invite_status: inviteRequest.inviteStatus,
+          member_id: parseInt(inviteRequest.id, 10),
+        },
+        org
+      );
     });
 
     it('can deny invite request and remove', async function () {
@@ -533,13 +534,14 @@ describe('OrganizationMembersList', function () {
 
       expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
-      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-        eventKey: 'invite_request.denied',
-        eventName: 'Invite Request Denied',
-        organization_id: org.id,
-        invite_status: joinRequest.inviteStatus,
-        member_id: parseInt(joinRequest.id, 10),
-      });
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+        'invite_request.denied',
+        {
+          invite_status: joinRequest.inviteStatus,
+          member_id: parseInt(joinRequest.id, 10),
+        },
+        org
+      );
     });
 
     it('can update invite requests', async function () {

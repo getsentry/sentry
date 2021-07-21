@@ -17,7 +17,7 @@ import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Member, MemberRole, Organization, Team} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
@@ -170,7 +170,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     successMessage,
     errorMessage,
     eventKey,
-    eventName,
   }) => {
     const {params, organization} = this.props;
 
@@ -189,13 +188,14 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
       this.removeInviteRequest(inviteRequest.id);
       addSuccessMessage(successMessage);
-      trackAnalyticsEvent({
+      trackAdvancedAnalyticsEvent(
         eventKey,
-        eventName,
-        organization_id: organization.id,
-        member_id: parseInt(inviteRequest.id, 10),
-        invite_status: inviteRequest.inviteStatus,
-      });
+        {
+          member_id: parseInt(inviteRequest.id, 10),
+          invite_status: inviteRequest.inviteStatus,
+        },
+        organization
+      );
     } catch {
       addErrorMessage(errorMessage);
     }
@@ -217,7 +217,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
       successMessage: tct('[email] has been invited', {email: inviteRequest.email}),
       errorMessage: tct('Error inviting [email]', {email: inviteRequest.email}),
       eventKey: 'invite_request.approved',
-      eventName: 'Invite Request Approved',
     });
   };
 
@@ -233,7 +232,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         email: inviteRequest.email,
       }),
       eventKey: 'invite_request.denied',
-      eventName: 'Invite Request Denied',
     });
   };
 
