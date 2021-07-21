@@ -190,13 +190,13 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         #
         # This is probably un-needed because we catch
         # `Authenticator.AlreadyEnrolled` when attempting to enroll
-        rotating_in_place = False
         if interface.is_enrolled():
-            if not interface.allow_multi_enrollment:
-                if interface.allow_rotation_in_place:
-                    rotating_in_place = True
-                else:
-                    return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+            if interface.allow_multi_enrollment:
+                interface.status = EnrollmentStatus.MULTI
+            elif interface.allow_rotation_in_place:
+                interface.status = EnrollmentStatus.ROTATION
+            else:
+                return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             interface.secret = request.data["secret"]
@@ -231,7 +231,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             )
             context.update({"device_name": serializer.data["deviceName"]})
 
-        if rotating_in_place:
+        if interface.status == EnrollmentStatus.ROTATION:
             interface.rotate_in_place()
         else:
             try:
