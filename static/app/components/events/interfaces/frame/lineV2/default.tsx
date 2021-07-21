@@ -11,12 +11,12 @@ import DefaultTitle from '../defaultTitle';
 import Expander from './expander';
 import GroupingBadges from './groupingBadges';
 import LeadHint from './leadHint';
+import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> &
   Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
     frame: Frame;
-    hasGroupingBadge: boolean;
     timesRepeated?: number;
     haveFramesAtLeastOneExpandedFrame?: boolean;
     haveFramesAtLeastOneGroupingBadge?: boolean;
@@ -30,7 +30,6 @@ function Default({
   platform,
   leadsToApp,
   timesRepeated,
-  hasGroupingBadge,
   isPrefix,
   isSentinel,
   isUsedForGrouping,
@@ -76,9 +75,8 @@ function Default({
         </div>
         {renderRepeats()}
       </VertCenterWrapper>
-      {hasGroupingBadge && (
+      {haveFramesAtLeastOneGroupingBadge && (
         <GroupingBadges
-          inApp={frame.inApp}
           isPrefix={isPrefix}
           isSentinel={isSentinel}
           isUsedForGrouping={isUsedForGrouping}
@@ -95,25 +93,6 @@ function Default({
 }
 
 export default Default;
-
-const Wrapper = styled('div')<{
-  haveFramesAtLeastOneGroupingBadge?: boolean;
-  haveFramesAtLeastOneExpandedFrame?: boolean;
-}>`
-  display: grid;
-  grid-template-columns: ${p =>
-    p.haveFramesAtLeastOneGroupingBadge && p.haveFramesAtLeastOneExpandedFrame
-      ? '1.5fr 0.5fr 16px'
-      : p.haveFramesAtLeastOneGroupingBadge
-      ? '1fr 0.5fr'
-      : p.haveFramesAtLeastOneExpandedFrame
-      ? '1fr 16px'
-      : '1fr'};
-  grid-gap: ${space(1)};
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    align-items: center;
-  }
-`;
 
 const VertCenterWrapper = styled('div')`
   display: flex;
