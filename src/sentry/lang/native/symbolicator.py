@@ -20,7 +20,6 @@ from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 from sentry.utils import json, metrics
 
-WORKER_ID = str(uuid.uuid4().int % 5000)
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
 INTERNAL_SOURCE_NAME = "sentry:project"
@@ -413,6 +412,11 @@ def get_sources_for_project(project):
 
 
 class SymbolicatorSession:
+
+    # used in x-sentry-worker-id http header
+    # to keep it static for celery worker process keep it as class attribute
+    _worker_id = None
+
     def __init__(
         self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
     ):
@@ -491,7 +495,7 @@ class SymbolicatorSession:
         # required for load balancing
         kwargs.setdefault("headers", {})["x-sentry-project-id"] = self.project_id
         kwargs.setdefault("headers", {})["x-sentry-event-id"] = self.event_id
-        kwargs.setdefault("headers", {})["x-sentry-worker-id"] = WORKER_ID
+        kwargs.setdefault("headers", {})["x-sentry-worker-id"] = self.get_worker_id()
 
         attempts = 0
         wait = 0.5
@@ -554,7 +558,8 @@ class SymbolicatorSession:
     def _create_task(self, path, **kwargs):
         params = {"timeout": self.timeout, "scope": self.project_id}
         with metrics.timer(
-            "events.symbolicator.create_task", tags={"path": path, "worker_id": WORKER_ID}
+            "events.symbolicator.create_task",
+            tags={"path": path, "worker_id": self.get_worker_id()},
         ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
@@ -593,11 +598,21 @@ class SymbolicatorSession:
             "scope": self.project_id,
         }
 
-        with metrics.timer("events.symbolicator.query_task", tags={"worker_id": WORKER_ID}):
+        with metrics.timer(
+            "events.symbolicator.query_task", tags={"worker_id": self.get_worker_id()}
+        ):
             return self._request("get", task_url, params=params)
 
     def healthcheck(self):
         return self._request("get", "healthcheck")
+
+    @classmethod
+    def get_worker_id(cls):
+        # as class attribute to keep it static for life of process
+        if cls._worker_id is None:
+            # %5000 to reduce cardinality of metrics tagging with worker id
+            cls._worker_id = str(uuid.uuid4().int % 5000)
+        return cls._worker_id
 
 
 def reverse_aliases_map(builtin_sources):
