@@ -88,3 +88,13 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
         assert resp.status_code == 400
         assert resp.data == {"raw": ["Invalid rule owners: #faketeam, idont@exist.com"]}
+
+    def test_invalid_matcher_type(self):
+        """Check for matcher types that aren't allowed when updating issue owners"""
+
+        # Codeowners cannot be added by modifying issue owners
+        resp = self.client.put(self.path, {"raw": "codeowners:*.js admin@localhost #tiger-team"})
+        assert resp.status_code == 400
+        assert resp.data == {
+            "raw": ["Codeowner type paths can only be added by importing CODEOWNER files"]
+        }
