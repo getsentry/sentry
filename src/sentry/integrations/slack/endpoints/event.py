@@ -19,10 +19,14 @@ from ..utils import logger, parse_link
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
+COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
 # need refactored
+
+
 class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
+
     authentication_classes = ()
     permission_classes = ()
 
@@ -169,7 +173,6 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                 return resp
 
         if slack_request.type == "message":
-            COMMANDS = ["link", "unlink", "link team", "unlink team"]
             data = slack_request.data.get("event")
             command = data["text"]
             if command in COMMANDS:
