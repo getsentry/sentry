@@ -617,8 +617,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             else:
                 self.store_event(data, project_id=project.id)
 
-        self.store_event(data=data, project_id=self.project.id)
-
         queries = [
             ("", [0.5, 0.5, 0.25, 0.0, 0.25], ["apdex(100)"], "apdex_100"),
             ("", [0.0, 1.0, 0.5, 0.0, 0.5], ["apdex()"], "apdex"),
@@ -698,8 +696,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
             else:
                 self.store_event(data, project_id=project.id)
-
-        self.store_event(data=data, project_id=self.project.id)
 
         queries = [
             (
@@ -797,8 +793,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             else:
                 self.store_event(data, project_id=project.id)
 
-        self.store_event(data=data, project_id=self.project.id)
-
         queries = [
             (
                 "",
@@ -847,6 +841,55 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data) == len(expected_user_misery)
                 for i, misery in enumerate(sorted(data, key=lambda k: k["transaction"])):
                     assert similar(misery[alias], expected_user_misery[i])
+
+    def test_count_unique(self):
+        project = self.create_project()
+
+        events = [
+            ("ace", 400),
+            ("ace", 400),
+            ("one", 400),
+            ("one", 400),
+            ("one", 3000),
+            ("one", 3000),
+            ("zorp", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(5)),
+            )
+            data["measurements"]["lcp"]["value"] = 3000
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_unique/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        queries = [
+            ("", [2, 4, 1]),
+            ("count_unique(user):>1", [2, 4]),
+        ]
+
+        for query, expected_count in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction", "count_unique(user)"],
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=30),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                        "organization_id": self.organization.id,
+                    },
+                    use_aggregate_conditions=True,
+                )
+
+                data = result["data"]
+                assert len(data) == len(expected_count)
+                assert [
+                    x["count_unique_user"] for x in sorted(data, key=lambda k: k["transaction"])
+                ] == expected_count
 
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))

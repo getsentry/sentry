@@ -2228,7 +2228,9 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "count_unique",
                     optional_args=[CountColumn("column")],
-                    snql_aggregate=lambda args, _: Function("uniq", [self.column(args["column"])]),
+                    snql_aggregate=lambda args, alias: Function(
+                        "uniq", [self.column(args["column"])], alias
+                    ),
                     default_result_type="integer",
                 ),
                 # TODO: implement these
