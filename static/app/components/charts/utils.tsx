@@ -73,6 +73,15 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     return '1d';
   }
 
+  if (diffInMinutes >= TWO_WEEKS) {
+    if (fidelity === 'high') {
+      return '30m';
+    } else if (fidelity === 'medium') {
+      return '1h';
+    }
+    return '12h';
+  }
+
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
     // Greater than 24 hours
     if (fidelity === 'high') {
@@ -80,7 +89,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     } else if (fidelity === 'medium') {
       return '1h';
     }
-    return '2h';
+    return '6h';
   }
 
   if (diffInMinutes > ONE_HOUR) {
@@ -90,7 +99,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     } else if (fidelity === 'medium') {
       return '15m';
     } else {
-      return '30m';
+      return '1h';
     }
   }
 
@@ -100,7 +109,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
   } else if (fidelity === 'medium') {
     return '5m';
   } else {
-    return '15m';
+    return '10m';
   }
 }
 

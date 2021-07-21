@@ -146,6 +146,7 @@ type GenericCardsProps = BaseCardsProps & {
 
 function GenericCards(props: GenericCardsProps) {
   const {api, eventView: baseEventView, location, organization, functions} = props;
+  const {query} = location;
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
@@ -156,6 +157,17 @@ function GenericCards(props: GenericCardsProps) {
   const end = globalSelection.datetime.end
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
     : undefined;
+  const interval =
+    typeof query.sparkInterval === 'string'
+      ? query.sparkInterval
+      : getInterval(
+          {
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          },
+          'low'
+        );
   const apiPayload = eventView.getEventsAPIPayload(location);
 
   return (
@@ -176,14 +188,7 @@ function GenericCards(props: GenericCardsProps) {
           team={apiPayload.team}
           start={start}
           end={end}
-          interval={getInterval(
-            {
-              start: start || null,
-              end: end || null,
-              period: globalSelection.datetime.period,
-            },
-            'low'
-          )}
+          interval={interval}
           query={apiPayload.query}
           includePrevious={false}
           yAxis={eventView.getFields()}
