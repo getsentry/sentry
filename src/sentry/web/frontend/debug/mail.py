@@ -537,9 +537,7 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
         },
     ).render(request)
@@ -559,9 +557,7 @@ def request_access_for_another_member(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
             "requester": request.user.get_display_name(),
         },

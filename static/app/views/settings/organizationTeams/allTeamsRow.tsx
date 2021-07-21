@@ -185,7 +185,13 @@ class AllTeamsRow extends React.Component<Props, State> {
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
-            <Button size="small" disabled>
+            <Button
+              size="small"
+              disabled
+              title={t(
+                'Your request to join this team is being reviewed by organization owners'
+              )}
+            >
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (
