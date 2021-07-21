@@ -61,7 +61,7 @@ class MiniGraph extends React.Component<Props> {
     const field = isTopEvents ? apiPayload.field : undefined;
     const topEvents = isTopEvents ? TOP_N : undefined;
     const orderby = isTopEvents ? decodeScalar(apiPayload.sort) : undefined;
-    const interval = isDaily ? '1d' : getInterval({start, end, period}, true);
+    const interval = isDaily ? '1d' : getInterval({start, end, period}, 'high');
 
     return {
       organization,

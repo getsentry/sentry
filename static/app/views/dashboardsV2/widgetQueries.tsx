@@ -45,7 +45,7 @@ function getWidgetInterval(
   const selectedRange = getDiffInMinutes(datetimeObj);
 
   if (selectedRange / desiredPeriod > MAX_BIN_COUNT) {
-    return getInterval(datetimeObj, true);
+    return getInterval(datetimeObj, 'high');
   }
   return interval;
 }

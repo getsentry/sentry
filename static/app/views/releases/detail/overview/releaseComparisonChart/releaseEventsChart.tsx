@@ -133,7 +133,7 @@ function ReleaseEventsChart({
       environment={environments}
       start={start}
       end={end}
-      interval={getInterval({start, end, period, utc}, true)}
+      interval={getInterval({start, end, period, utc}, 'high')}
       query="event.type:transaction"
       includePrevious={false}
       currentSeriesName={t('All Releases')}
