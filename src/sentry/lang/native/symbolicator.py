@@ -20,7 +20,7 @@ from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 from sentry.utils import json, metrics
 
-WORKER_ID = str(uuid.uuid4())
+WORKER_ID = str(uuid.uuid4().int % 5000)
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
 INTERNAL_SOURCE_NAME = "sentry:project"
