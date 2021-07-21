@@ -579,9 +579,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             metric=TransactionMetric.DURATION.value,
         )
 
+        ProjectTransactionThresholdOverride.objects.create(
+            project=project,
+            transaction="/apdex/ace",
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.LCP.value,
+        )
+
         project2 = self.create_project()
 
         events = [
+            ("ace", 400),
+            ("ace", 400),
             ("one", 400),
             ("one", 400),
             ("two", 3000),
@@ -597,6 +607,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 timestamp=before_now(minutes=(5 + idx)),
                 start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
             )
+            data["measurements"]["lcp"]["value"] = 3000
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/apdex/{event[0]}"
             data["user"] = {"email": f"{idx}@example.com"}
@@ -606,9 +617,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             else:
                 self.store_event(data, project_id=project.id)
 
+        self.store_event(data=data, project_id=self.project.id)
+
         queries = [
-            ("", [0.5, 0.25, 0.0, 0.25], ["apdex(100)"], "apdex_100"),
-            ("", [1.0, 0.5, 0.0, 0.5], ["apdex()"], "apdex"),
+            ("", [0.5, 0.5, 0.25, 0.0, 0.25], ["apdex(100)"], "apdex_100"),
+            ("", [0.0, 1.0, 0.5, 0.0, 0.5], ["apdex()"], "apdex"),
             ("apdex(100):<0.5", [0.25, 0.0, 0.25], ["apdex(100)"], "apdex_100"),
             ("apdex():>0", [1.0, 0.5, 0.5], ["apdex()"], "apdex"),
         ]

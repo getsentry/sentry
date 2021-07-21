@@ -6,6 +6,7 @@ from sentry.utils.snuba import DATASETS
 KEY_TRANSACTION_ALIAS = "key_transaction"
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
+MEASUREMENTS_LCP_INDEX_ALIAS = "measurements_lcp_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"

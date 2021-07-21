@@ -32,6 +32,7 @@ from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
+    MEASUREMENTS_LCP_INDEX_ALIAS,
     MEASUREMENTS_STALL_PERCENTAGE,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
@@ -2559,6 +2560,11 @@ class QueryFields(QueryBase):
             return Function(
                 "apdex", [self.column("transaction.duration"), int(args["satisfaction"])], alias
             )
+
+        lcp_index = Function(
+            "indexOf", [self.column("measurements_key"), "lcp"], MEASUREMENTS_LCP_INDEX_ALIAS
+        )
+
         return Function(
             "apdex",
             [
@@ -2578,17 +2584,15 @@ class QueryFields(QueryBase):
                         Function(
                             "if",
                             [
-                                Function("has", [self.column("measurements_key"), "lcp"]),
+                                Function("equals", [lcp_index, 0]),
+                                None,
                                 Function(
                                     "arrayElement",
                                     [
                                         self.column("measurements_value"),
-                                        Function(
-                                            "indexOf", [self.column("measurements_key"), "lcp"]
-                                        ),
+                                        lcp_index,
                                     ],
                                 ),
-                                None,
                             ],
                         ),
                         self.column("transaction.duration"),
