@@ -136,12 +136,8 @@ type BaseCardsProps = {
   organization: Organization;
 };
 
-type OptionalColumn = Column & {
-  optional?: boolean;
-};
-
 type GenericCardsProps = BaseCardsProps & {
-  functions: OptionalColumn[];
+  functions: Column[];
 };
 
 function GenericCards(props: GenericCardsProps) {
@@ -221,13 +217,9 @@ function GenericCards(props: GenericCardsProps) {
                   const alias = getAggregateAlias(fieldName);
                   const rawValue = tableData?.data?.[0]?.[alias];
 
-                  if (func.optional && !defined(rawValue)) {
-                    return null;
-                  }
-
                   const data = series?.[fieldName];
                   const value =
-                    isSummaryLoading || rawValue === undefined
+                    isSummaryLoading || !defined(rawValue)
                       ? '\u2014'
                       : formatter(rawValue);
                   const chart = <SparklineChart data={data} />;
@@ -277,8 +269,12 @@ function _BackendCards(props: BaseCardsProps) {
 
 export const BackendCards = withApi(_BackendCards);
 
-function _MobileCards(props: BaseCardsProps) {
-  const functions: OptionalColumn[] = [
+type MobileCardsProps = BaseCardsProps & {
+  showStallPercentage: boolean;
+};
+
+function _MobileCards(props: MobileCardsProps) {
+  const functions: Column[] = [
     {
       kind: 'function',
       function: ['p75', 'measurements.app_start_cold', undefined, undefined],
@@ -295,12 +291,13 @@ function _MobileCards(props: BaseCardsProps) {
       kind: 'function',
       function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
     },
-    {
+  ];
+  if (props.showStallPercentage) {
+    functions.push({
       kind: 'function',
       function: ['p75', 'measurements.stall_percentage', undefined, undefined],
-      optional: true,
-    },
-  ];
+    });
+  }
   return <GenericCards {...props} functions={functions} />;
 }
 

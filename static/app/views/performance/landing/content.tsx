@@ -35,6 +35,7 @@ import {
   FRONTEND_OTHER_COLUMN_TITLES,
   FRONTEND_PAGELOAD_COLUMN_TITLES,
   MOBILE_COLUMN_TITLES,
+  REACT_NATIVE_COLUMN_TITLES,
 } from './data';
 import {
   getCurrentLandingDisplay,
@@ -204,7 +205,13 @@ class LandingContent extends Component<Props, State> {
     const axisOptions = getMobileAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
-    const columnTitles = MOBILE_COLUMN_TITLES;
+    // only react native should contain the stall percentage column
+    const isReactNative = Boolean(
+      eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
+    );
+    const columnTitles = isReactNative
+      ? REACT_NATIVE_COLUMN_TITLES
+      : MOBILE_COLUMN_TITLES;
 
     return (
       <Fragment>
@@ -212,6 +219,7 @@ class LandingContent extends Component<Props, State> {
           eventView={eventView}
           organization={organization}
           location={location}
+          showStallPercentage={isReactNative}
         />
         <DoubleAxisDisplay
           eventView={eventView}
