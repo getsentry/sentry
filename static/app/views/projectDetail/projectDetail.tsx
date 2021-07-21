@@ -376,6 +376,7 @@ const StyledPageContent = styled(PageContent)`
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};
+  display: grid;
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
