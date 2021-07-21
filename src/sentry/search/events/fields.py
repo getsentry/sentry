@@ -2179,17 +2179,6 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="integer",
                 ),
-                # TODO: implement these
-                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "apdex",
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
@@ -2236,9 +2225,6 @@ class QueryFields(QueryBase):
                     snql_aggregate=self._resolve_user_misery_function,
                     default_result_type="number",
                 ),
-                SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "count_unique",
                     optional_args=[CountColumn("column")],
@@ -2251,6 +2237,20 @@ class QueryFields(QueryBase):
                     snql_aggregate=lambda _, alias: Function("count", []),
                     default_result_type="integer",
                 ),
+                # TODO: implement these
+                SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
@@ -2602,7 +2602,7 @@ class QueryFields(QueryBase):
         """
         raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
 
-    def _project_threshold_multi_if(self) -> SelectType:
+    def _private_project_threshold_multi_function(self) -> SelectType:
         lcp_index = Function(
             "indexOf", [self.column("measurements_key"), "lcp"], MEASUREMENTS_LCP_INDEX_ALIAS
         )
@@ -2647,7 +2647,7 @@ class QueryFields(QueryBase):
         return Function(
             "apdex",
             [
-                self._project_threshold_multi_if(),
+                self._private_project_threshold_multi_function(),
                 Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
             ],
             alias,
@@ -2673,7 +2673,7 @@ class QueryFields(QueryBase):
                 Function(
                     "greater",
                     [
-                        self._project_threshold_multi_if(),
+                        self._private_project_threshold_multi_function(),
                         Function(
                             "multiply",
                             [
