@@ -60,7 +60,7 @@ class SlackEventRequest(SlackRequest):
         return data["user"]
 
     @property
-    def text(self) -> str:
+    def text(self) -> Any:
         data = self.request.data.get("event")
         return data.get("text")
 
