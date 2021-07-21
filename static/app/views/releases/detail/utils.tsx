@@ -12,13 +12,16 @@ import {
   GlobalSelection,
   LightWeightOrganization,
   ReleaseComparisonChartType,
+  ReleaseProject,
   ReleaseWithHealth,
   Repository,
 } from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import {QueryResults} from 'app/utils/tokenizeSearch';
+import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
@@ -232,19 +235,21 @@ export const releaseMarkLinesLabels = {
 
 export function generateReleaseMarkLines(
   release: ReleaseWithHealth,
-  projectSlug: string,
+  project: ReleaseProject,
   theme: Theme,
   location: Location,
   options?: GenerateReleaseMarklineOptions
 ) {
-  const adoptionStages = release.adoptionStages?.[projectSlug];
-
-  if (
+  const adoptionStages = release.adoptionStages?.[project.slug];
+  const isDefaultPeriod = !(
     location.query.pageStart ||
     location.query.pageEnd ||
     location.query.pageStatsPeriod
-  ) {
-    // for now want to show marklines only on default time period "Entire Release Period"
+  );
+  const isSingleEnv = decodeList(location.query.environment).length === 1;
+
+  if (!isDefaultPeriod) {
+    // do not show marklines on non-default period
     return [];
   }
 
@@ -256,6 +261,11 @@ export function generateReleaseMarkLines(
       options
     ),
   ];
+
+  if (!isSingleEnv || !isProjectMobileForReleases(project.platform)) {
+    // for now want to show marklines only on mobile platforms with single environment selected
+    return markLines;
+  }
 
   if (adoptionStages?.adopted) {
     markLines.push(
