@@ -26,12 +26,12 @@ function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping}: Props) {
     badges.push(<GroupingBadge key={FrameBadge.GROUPING} badge={FrameBadge.GROUPING} />);
   }
 
-  return <Wrapper>{badges}</Wrapper>;
+  return <Wrapper hasGroupingBadges={!!badges.length}>{badges}</Wrapper>;
 }
 
 export default GroupingBadges;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{hasGroupingBadges: boolean}>`
   display: grid;
   grid-auto-flow: column;
   grid-gap: ${space(0.5)};
@@ -40,8 +40,10 @@ const Wrapper = styled('div')`
   order: 2;
   grid-column-start: 1;
   grid-column-end: -1;
+  margin-top: ${p => (p.hasGroupingBadges ? space(1) : 0)};
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    margin-top: 0;
     justify-content: flex-end;
     order: 0;
     grid-column-start: auto;
