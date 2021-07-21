@@ -18,13 +18,14 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
     @staticmethod
     def _validate_no_codeowners(rules: List[Rule]):
-        """codeowner matcher types cannot be added via ProjectOwnership, only via github"""
+        """
+        codeowner matcher types cannot be added via ProjectOwnership, only through codeowner
+        specific serializers
+        """
         for rule in rules:
             if rule.matcher.type == CODEOWNERS:
                 raise serializers.ValidationError(
-                    {
-                        "raw": f'"{CODEOWNERS}" type paths can only be added by importing CODEOWNER files'
-                    }
+                    {"raw": "Codeowner type paths can only be added by importing CODEOWNER files"}
                 )
 
     def validate(self, attrs):

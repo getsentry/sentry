@@ -96,5 +96,5 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"raw": "codeowners:*.js admin@localhost #tiger-team"})
         assert resp.status_code == 400
         assert resp.data == {
-            "raw": ['"codeowners" type paths can only be added by importing CODEOWNER files']
+            "raw": ["Codeowner type paths can only be added by importing CODEOWNER files"]
         }
