@@ -384,7 +384,10 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
           title={
             <Fragment>
               <span>{authenticator.name}</span>
-              <CircleIndicator css={{marginLeft: 6}} enabled={authenticator.isEnrolled} />
+              <CircleIndicator
+                css={{marginLeft: 6}}
+                enabled={authenticator.isEnrolled || authenticator.status === 'rotation'}
+              />
             </Fragment>
           }
           action={
@@ -398,6 +401,9 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
         />
 
         <TextBlock>{authenticator.description}</TextBlock>
+        {authenticator.rotationWarning && authenticator.status === 'rotation' && (
+          <TextBlock>{authenticator.rotationWarning}</TextBlock>
+        )}
 
         {!!authenticator.form?.length && (
           <Form

@@ -687,6 +687,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+  rotationWarning: string | null;
+  status: string;
   createdAt: string | null;
   lastUsedAt: string | null;
   codes: string[];

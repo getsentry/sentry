@@ -11,6 +11,7 @@ from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
+from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
@@ -110,13 +111,17 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         interface = Authenticator.objects.get_interface(user, interface_id)
 
-        # Not all interfaces allow multi enrollment
         if interface.is_enrolled():
-            if not interface.allow_multi_enrollment:
-                if interface.allow_rotation_in_place:
-                    interface = interface.generate()
-                else:
-                    return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+            # Not all interfaces allow multi enrollment
+            if interface.allow_multi_enrollment:
+                interface.status = EnrollmentStatus.MULTI
+            elif interface.allow_rotation_in_place:
+                # The new interface object returns False from
+                # interface.is_enrolled(), which is misleading.
+                # The status attribute can disambiguate where necessary.
+                interface = interface.generate(EnrollmentStatus.ROTATION)
+            else:
+                return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # User is not enrolled in auth interface:
         # - display configuration form

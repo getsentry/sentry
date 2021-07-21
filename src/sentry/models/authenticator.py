@@ -9,6 +9,7 @@ from sentry.auth.authenticators import (
     AUTHENTICATOR_INTERFACES_BY_TYPE,
     available_authenticators,
 )
+from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -87,7 +88,7 @@ class AuthenticatorManager(BaseManager):
         try:
             return Authenticator.objects.get(user=user, type=interface.type).interface
         except Authenticator.DoesNotExist:
-            return interface.generate()
+            return interface.generate(EnrollmentStatus.NEW)
 
     def user_has_2fa(self, user):
         """Checks if the user has any 2FA configured."""

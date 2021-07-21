@@ -1,3 +1,5 @@
+from enum import Enum
+
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -29,11 +31,19 @@ class ActivationChallengeResult(ActivationResult):
         self.challenge = challenge
 
 
+class EnrollmentStatus(Enum):
+    NEW = "new"
+    MULTI = "multi"
+    ROTATION = "rotation"
+    EXISTING = "existing"
+
+
 class AuthenticatorInterface:
     type = -1
     interface_id = None
     name = None
     description = None
+    rotation_warning = None
     is_backup_interface = False
     enroll_button = _("Enroll")
     configure_button = _("Info")
@@ -42,15 +52,16 @@ class AuthenticatorInterface:
     allow_multi_enrollment = False
     allow_rotation_in_place = False
 
-    def __init__(self, authenticator=None):
-        if authenticator is None:
-            self.authenticator = None
-        else:
-            self.authenticator = authenticator
+    def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
+        self.authenticator = authenticator
+        self.status = status
 
     @classmethod
-    def generate(cls):
-        return cls()
+    def generate(cls, status):
+        # Convenience method to build new instances either from the
+        # class or existing instances. That is, it's nicer than doing
+        # `type(interface)()`.
+        return cls(status=status)
 
     def is_enrolled(self):
         """Returns `True` if the interfaces is enrolled (eg: has an
