@@ -1,7 +1,9 @@
 import logging
 from typing import Any, Mapping, MutableMapping, Optional, Set
 
-from sentry.models import User
+import pytz
+
+from sentry.models import User, UserOption
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
@@ -56,6 +58,15 @@ class AlertRuleNotification(BaseNotification):
 
     def get_reference(self) -> Any:
         return self.group
+
+    def get_user_context(
+        self, user: User, extra_context: Mapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        return {
+            "timezone": pytz.timezone(
+                UserOption.objects.get_value(user=user, key="timezone", default="UTC")
+            )
+        }
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
