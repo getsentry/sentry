@@ -432,7 +432,7 @@ export default class AsyncComponent<
         .map(resp => resp.responseJSON.detail);
 
       if (badRequests.length) {
-        return <LoadingError message={badRequests.join('\n')} />;
+        return <LoadingError message={[...new Set(badRequests)].join('\n')} />;
       }
     }
 
