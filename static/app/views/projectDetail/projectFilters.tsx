@@ -1,4 +1,5 @@
 import SmartSearchBar from 'app/components/smartSearchBar';
+import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {t} from 'app/locale';
 import {Tag} from 'app/types';
 
@@ -16,6 +17,12 @@ const supportedTags = {
   'release.package': {
     key: 'release.package',
     name: 'release.package',
+  },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+    predefined: true,
+    values: RELEASE_ADOPTION_STAGES,
   },
   release: {
     key: 'release',

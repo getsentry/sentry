@@ -712,7 +712,12 @@ export type SearchConfig = {
 };
 
 const defaultConfig: SearchConfig = {
-  textOperatorKeys: new Set(['release.version', 'release.build', 'release.package']),
+  textOperatorKeys: new Set([
+    'release.version',
+    'release.build',
+    'release.package',
+    'release.stage',
+  ]),
   durationKeys: new Set(['transaction.duration']),
   percentageKeys: new Set(['percentage']),
   numericKeys: new Set([
