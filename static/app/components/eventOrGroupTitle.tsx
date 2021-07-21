@@ -34,7 +34,7 @@ function EventOrGroupTitle({
   className,
 }: Props) {
   const event = data as Event;
-  const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
+  const groupingCurrentLevel = (data as BaseGroup).metadata.current_level;
 
   const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
   const {id, eventID, groupID, projectID} = event;

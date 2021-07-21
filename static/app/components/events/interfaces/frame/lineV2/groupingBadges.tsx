@@ -15,15 +15,15 @@ function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping}: Props) {
   const badges: React.ReactElement[] = [];
 
   if (isSentinel) {
-    badges.push(<GroupingBadge badge={FrameBadge.SENTINEL} />);
+    badges.push(<GroupingBadge key={FrameBadge.SENTINEL} badge={FrameBadge.SENTINEL} />);
   }
 
   if (isPrefix) {
-    badges.push(<GroupingBadge badge={FrameBadge.PREFIX} />);
+    badges.push(<GroupingBadge key={FrameBadge.PREFIX} badge={FrameBadge.PREFIX} />);
   }
 
   if (isUsedForGrouping) {
-    badges.push(<GroupingBadge badge={FrameBadge.GROUPING} />);
+    badges.push(<GroupingBadge key={FrameBadge.GROUPING} badge={FrameBadge.GROUPING} />);
   }
 
   return <Wrapper>{badges}</Wrapper>;

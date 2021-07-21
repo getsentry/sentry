@@ -140,6 +140,8 @@ class StacktracePreview extends React.Component<Props, State> {
 
     const {organization, groupingCurrentLevel} = this.props;
 
+    console.log('groupingCurrentLevel', groupingCurrentLevel);
+
     if (event) {
       const platform = (event.platform ?? 'other') as PlatformType;
 
