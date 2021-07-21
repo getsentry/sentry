@@ -122,7 +122,7 @@ def is_valid_redirect(url, host=None):
         return False
     if url.startswith(get_login_url()):
         return False
-    return is_safe_url(url, host=host)
+    return is_safe_url(url, allowed_hosts=host)
 
 
 def mark_sso_complete(request, organization_id):
@@ -272,7 +272,7 @@ class EmailAuthBackend(ModelBackend):
     Supports authenticating via an email address or a username.
     """
 
-    def authenticate(self, username=None, password=None):
+    def authenticate(self, request, username=None, password=None):
         users = find_users(username)
         if users:
             for user in users:

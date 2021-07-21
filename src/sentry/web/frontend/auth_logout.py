@@ -11,7 +11,7 @@ class AuthLogoutView(BaseView):
 
     def redirect(self, request):
         next = request.GET.get(REDIRECT_FIELD_NAME, "")
-        if not is_safe_url(next, host=request.get_host()):
+        if not is_safe_url(next, allowed_hosts=request.get_host()):
             next = auth.get_login_url()
         return super().redirect(next)
 
