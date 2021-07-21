@@ -523,7 +523,7 @@ def get_current_release_version_of_group(group, follows_semver=False):
                 .values_list("version", flat=True)[:1]
                 .get()
             )
-        except IndexError:
+        except Release.DoesNotExist:
             ...
     return current_release_version
 
