@@ -40,18 +40,11 @@ class AlertRuleDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
-    const {api, params, organization, location} = this.props;
+    const {api, params} = this.props;
 
     fetchOrgMembers(api, params.orgId);
     this.fetchData();
-
-    trackAnalyticsEvent({
-      eventKey: 'alert_rule_details.viewed',
-      eventName: 'Alert Rule Details: Viewed',
-      organization_id: organization.id,
-      rule_id: parseInt(params.ruleId, 10),
-      alert: location.query.alert ?? '',
-    });
+    this.trackView();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -61,7 +54,20 @@ class AlertRuleDetails extends Component<Props, State> {
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {
       this.fetchData();
+      this.trackView();
     }
+  }
+
+  trackView() {
+    const {params, organization, location} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'alert_rule_details.viewed',
+      eventName: 'Alert Rule Details: Viewed',
+      organization_id: organization.id,
+      rule_id: parseInt(params.ruleId, 10),
+      alert: location.query.alert ?? '',
+    });
   }
 
   getTimePeriod(): TimePeriodType {
