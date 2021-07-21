@@ -3,6 +3,7 @@ import time
 import pytest
 
 from sentry.models import Group, GroupHash
+from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
 from sentry.utils.json import prune_empty_keys
 
@@ -98,6 +99,7 @@ def test_error_no_events(client, default_project):
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_error_not_hierarchical(client, default_project, reset_snuba, factories):
+    default_project.update_option("sentry:grouping_config", "mobile:2021-02-12")
     group = Group.objects.create(project=default_project)
     grouphash = GroupHash.objects.create(
         project=default_project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
@@ -114,6 +116,26 @@ def test_error_not_hierarchical(client, default_project, reset_snuba, factories)
     response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
     assert response.status_code == 403
     assert response.data["detail"]["code"] == "not_hierarchical"
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_error_project_not_hierarchical(client, default_organization, reset_snuba, factories):
+
+    project = Project.objects.create(organization=default_organization, slug="test-project")
+
+    group = Group.objects.create(project=project)
+    grouphash = GroupHash.objects.create(
+        project=project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
+    )
+
+    factories.store_event(
+        data={"message": "hello world", "checksum": grouphash.hash}, project_id=project.id
+    )
+
+    response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
+    assert response.status_code == 403
+    assert response.data["detail"]["code"] == "project_not_hierarchical"
 
 
 def _assert_tree_labels(event, functions):
