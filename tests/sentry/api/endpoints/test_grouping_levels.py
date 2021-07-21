@@ -144,6 +144,7 @@ def test_error_project_not_hierarchical(client, default_organization, reset_snub
 def test_error_project_not_hierarchical(client, default_organization, reset_snuba, factories):
 
     project = Project.objects.create(organization=default_organization, slug="test-project")
+    project.update_option("sentry:grouping_config", "newstyle:2019-10-29")
 
     group = Group.objects.create(project=project)
     grouphash = GroupHash.objects.create(
