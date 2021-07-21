@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, Optional, Union
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -19,9 +19,17 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders
 
+if TYPE_CHECKING:
+    from sentry.models import Group, Team, User
 
-class GroupSubscriptionManager(BaseManager):
-    def subscribe(self, group, user, reason=GroupSubscriptionReason.unknown):
+
+class GroupSubscriptionManager(BaseManager):  # type: ignore
+    def subscribe(
+        self,
+        group: "Group",
+        user: "User",
+        reason: int = GroupSubscriptionReason.unknown,
+    ) -> bool:
         """
         Subscribe a user to an issue, but only if the user has not explicitly
         unsubscribed.
@@ -33,8 +41,14 @@ class GroupSubscriptionManager(BaseManager):
                 )
         except IntegrityError:
             pass
+        return True
 
-    def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
+    def subscribe_actor(
+        self,
+        group: "Group",
+        actor: Union["Team", "User"],
+        reason: int = GroupSubscriptionReason.unknown,
+    ) -> Optional[bool]:
         from sentry.models import Team, User
 
         if isinstance(actor, User):
@@ -46,11 +60,17 @@ class GroupSubscriptionManager(BaseManager):
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
-    def bulk_subscribe(self, group, user_ids, reason=GroupSubscriptionReason.unknown):
+    def bulk_subscribe(
+        self,
+        group: "Group",
+        user_ids: Iterable[int],
+        reason: int = GroupSubscriptionReason.unknown,
+    ) -> bool:
         """
         Subscribe a list of user ids to an issue, but only if the users are not explicitly
         unsubscribed.
         """
+        # Unique the IDs.
         user_ids = set(user_ids)
 
         # 5 retries for race conditions where
@@ -83,7 +103,7 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group) -> Mapping[ExternalProviders, Mapping[Any, int]]:
+    def get_participants(self, group: "Group") -> Mapping[ExternalProviders, Mapping["User", int]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
@@ -105,7 +125,7 @@ class GroupSubscriptionManager(BaseManager):
             notification_settings, users
         )
 
-        result = defaultdict(dict)
+        result: MutableMapping[ExternalProviders, MutableMapping["User", int]] = defaultdict(dict)
         for user in users:
             providers = where_should_be_participating(
                 user,
@@ -123,7 +143,7 @@ class GroupSubscriptionManager(BaseManager):
         return result
 
 
-class GroupSubscription(Model):
+class GroupSubscription(Model):  # type: ignore
     """
     Identifies a subscription relationship between a user and an issue.
     """
