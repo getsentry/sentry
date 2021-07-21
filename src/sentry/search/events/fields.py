@@ -2194,16 +2194,63 @@ class QueryFields(QueryBase):
                     "apdex",
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     snql_aggregate=self._resolve_apdex_function,
+                    default_result_type="number",
                 ),
                 SnQLFunction(
-                    "count_miserable", snql_aggregate=self._resolve_unimplemented_function
+                    "count_miserable",
+                    required_args=[CountColumn("column")],
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        }
+                    ],
+                    snql_aggregate=self._resolve_count_miserable_function,
+                    default_result_type="number",
                 ),
-                SnQLFunction("user_misery", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "user_misery",
+                    # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+                    # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+                    # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+                    # with the user misery being adjusted for each fast/slow unique transaction. See:
+                    # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+                    # for an intuitive explanation of the Beta Distribution Function.
+                    optional_args=[
+                        NullableNumberRange("satisfaction", 0, None),
+                        with_default(5.8875, NumberRange("alpha", 0, None)),
+                        with_default(111.8625, NumberRange("beta", 0, None)),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        },
+                        {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+                    ],
+                    snql_aggregate=self._resolve_user_misery_function,
+                    default_result_type="number",
+                ),
                 SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "count_unique",
+                    optional_args=[CountColumn("column")],
+                    snql_aggregate=lambda args, _: Function("uniq", [self.column(args["column"])]),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count",
+                    optional_args=[NullColumn("column")],
+                    snql_aggregate=lambda _, alias: Function("count", []),
+                    default_result_type="integer",
+                ),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
@@ -2555,50 +2602,145 @@ class QueryFields(QueryBase):
         """
         raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
 
+    def _project_threshold_multi_if(self) -> SelectType:
+        lcp_index = Function(
+            "indexOf", [self.column("measurements_key"), "lcp"], MEASUREMENTS_LCP_INDEX_ALIAS
+        )
+
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "equals",
+                    [
+                        Function(
+                            "tupleElement",
+                            [self.resolve_field("project_threshold_config"), 1],
+                        ),
+                        "lcp",
+                    ],
+                ),
+                Function(
+                    "if",
+                    [
+                        Function("equals", [lcp_index, 0]),
+                        None,
+                        Function(
+                            "arrayElement",
+                            [
+                                self.column("measurements_value"),
+                                lcp_index,
+                            ],
+                        ),
+                    ],
+                ),
+                self.column("transaction.duration"),
+            ],
+        )
+
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
             return Function(
                 "apdex", [self.column("transaction.duration"), int(args["satisfaction"])], alias
             )
 
-        lcp_index = Function(
-            "indexOf", [self.column("measurements_key"), "lcp"], MEASUREMENTS_LCP_INDEX_ALIAS
-        )
-
         return Function(
             "apdex",
             [
+                self._project_threshold_multi_if(),
+                Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
+            ],
+            alias,
+        )
+
+    def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            return Function(
+                "uniqIf",
+                [
+                    self.column(args["column"]),
+                    Function(
+                        "greater", [self.column("transaction.duration"), int(args["tolerated"])]
+                    ),
+                ],
+                alias,
+            )
+
+        return Function(
+            "uniqIf",
+            [
+                self.column(args["column"]),
                 Function(
-                    "multiIf",
+                    "greater",
                     [
+                        self._project_threshold_multi_if(),
                         Function(
-                            "equals",
+                            "multiply",
                             [
                                 Function(
                                     "tupleElement",
-                                    [self.resolve_field("project_threshold_config"), 1],
+                                    [self.resolve_field("project_threshold_config"), 2],
                                 ),
-                                "lcp",
+                                4,
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            return Function(
+                "ifNull",
+                [
+                    Function(
+                        "divide",
+                        [
+                            Function(
+                                "plus",
+                                [
+                                    self.resolve_function(
+                                        f"count_miserable(user,{args['satisfaction']})"
+                                    ),
+                                    args["alpha"],
+                                ],
+                            ),
+                            Function(
+                                "plus",
+                                [
+                                    self.resolve_function("count_unique(user)"),
+                                    args["parameter_sum"],
+                                ],
+                            ),
+                        ],
+                    ),
+                    0,
+                ],
+                alias,
+            )
+
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                self.resolve_function("count_miserable(user)"),
+                                args["alpha"],
                             ],
                         ),
                         Function(
-                            "if",
-                            [
-                                Function("equals", [lcp_index, 0]),
-                                None,
-                                Function(
-                                    "arrayElement",
-                                    [
-                                        self.column("measurements_value"),
-                                        lcp_index,
-                                    ],
-                                ),
-                            ],
+                            "plus",
+                            [self.resolve_function("count_unique(user)"), args["parameter_sum"]],
                         ),
-                        self.column("transaction.duration"),
                     ],
                 ),
-                Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
+                0,
             ],
             alias,
         )

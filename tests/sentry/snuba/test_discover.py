@@ -613,7 +613,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["user"] = {"email": f"{idx}@example.com"}
 
             if event[0] == "zorp":
-                self.store_event(data, project_id=project2.id)
+                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
             else:
                 self.store_event(data, project_id=project.id)
 
@@ -650,6 +650,203 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert [
                     x[alias] for x in sorted(data, key=lambda k: k["transaction"])
                 ] == expected_apdex
+
+    def test_snql_count_miserable_function(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        ProjectTransactionThresholdOverride.objects.create(
+            project=project,
+            transaction="/count_miserable/ace",
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        project2 = self.create_project()
+
+        events = [
+            ("ace", 400),
+            ("ace", 400),
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+            ("zorp", 300),
+            ("zorp", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(5 + idx)),
+                start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
+            )
+            data["measurements"]["lcp"]["value"] = 3000
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+
+            if event[0] == "zorp":
+                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+            else:
+                self.store_event(data, project_id=project.id)
+
+        self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            (
+                "",
+                [0, 0, 1, 2, 1],
+                ["count_miserable(user,100)"],
+                "count_miserable_user_100",
+            ),
+            ("", [2, 0, 1, 2, 1], ["count_miserable(user)"], "count_miserable_user"),
+            (
+                "count_miserable(user,100):<2",
+                [0, 0, 1, 1],
+                ["count_miserable(user,100)"],
+                "count_miserable_user_100",
+            ),
+            (
+                "count_miserable(user):>0",
+                [2, 1, 2, 1],
+                ["count_miserable(user)"],
+                "count_miserable_user",
+            ),
+        ]
+
+        for query, expected_count_miserable, col, alias in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                if query_fn == discover.query:
+                    base_cols = ["transaction", "project_threshold_config"]
+                else:
+                    base_cols = ["transaction"]
+
+                result = query_fn(
+                    selected_columns=base_cols + col,
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=30),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id, project2.id],
+                        "organization_id": self.organization.id,
+                    },
+                    use_aggregate_conditions=True,
+                )
+
+                data = result["data"]
+                assert len(data) == len(expected_count_miserable)
+                assert [
+                    x[alias] for x in sorted(data, key=lambda k: k["transaction"])
+                ] == expected_count_miserable
+
+    def test_snql_user_misery_function(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        ProjectTransactionThresholdOverride.objects.create(
+            project=project,
+            transaction="/user_misery/ace",
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        project2 = self.create_project()
+
+        events = [
+            ("ace", 400),
+            ("ace", 400),
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+            ("zorp", 300),
+            ("zorp", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(5 + idx)),
+                start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
+            )
+            data["measurements"]["lcp"]["value"] = 3000
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/user_misery/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+
+            if event[0] == "zorp":
+                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+            else:
+                self.store_event(data, project_id=project.id)
+
+        self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            (
+                "",
+                [0.0492, 0.0492, 0.0575, 0.0659, 0.0575],
+                ["user_misery(100)"],
+                "user_misery_100",
+            ),
+            ("", [0.0659, 0.0492, 0.0575, 0.0659, 0.0575], ["user_misery()"], "user_misery"),
+            (
+                "user_misery(100):<0.06",
+                [0.0492, 0.0492, 0.0575, 0.0575],
+                ["user_misery(100)"],
+                "user_misery_100",
+            ),
+            (
+                "user_misery():>0.05",
+                [0.0659, 0.0575, 0.0659, 0.0575],
+                ["user_misery()"],
+                "user_misery",
+            ),
+        ]
+
+        similar = lambda a, b: abs(a - b) < 0.001
+
+        for query, expected_user_misery, col, alias in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                if query_fn == discover.query:
+                    base_cols = ["transaction", "project_threshold_config"]
+                else:
+                    base_cols = ["transaction"]
+
+                result = query_fn(
+                    selected_columns=base_cols + col,
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=30),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id, project2.id],
+                        "organization_id": self.organization.id,
+                    },
+                    use_aggregate_conditions=True,
+                )
+
+                data = result["data"]
+                assert len(data) == len(expected_user_misery)
+                for i, misery in enumerate(sorted(data, key=lambda k: k["transaction"])):
+                    assert similar(misery[alias], expected_user_misery[i])
 
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
