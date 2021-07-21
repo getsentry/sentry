@@ -151,7 +151,6 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
-
         try:
             slack_request = SlackEventRequest(request)
             slack_request.validate()

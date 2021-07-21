@@ -37,8 +37,10 @@ class SlackCommandRequest(SlackRequest):
             qs_data = parse_qs(self.request.body.decode("utf-8"), strict_parsing=True)
         except ValueError:
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
+
         # Flatten the values.
         self._data = {key: value_array[0] for key, value_array in qs_data.items()}
+
         if not self._data.get("team_id"):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
@@ -49,5 +51,6 @@ class SlackCommandRequest(SlackRequest):
         except IdentityProvider.DoesNotExist:
             logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
             raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
+
         identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
         self.identity_str = identities[0].user.email if identities else None
