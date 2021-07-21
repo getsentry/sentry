@@ -118,6 +118,12 @@ class ProjectDetailsTest(APITestCase):
         )
 
         response = self.get_valid_response(project.organization.slug, project.slug, status_code=302)
+        assert (
+            AuditLogEntry.objects.get(
+                organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            ).data["old_slug"]
+            == project.slug
+        )
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
