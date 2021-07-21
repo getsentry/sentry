@@ -111,6 +111,13 @@ function Onboarding({organization}: Props) {
         )}
       </p>
       <ButtonList gap={1}>
+        <Button
+          priority="primary"
+          target="_blank"
+          href="https://docs.sentry.io/performance-monitoring/getting-started/"
+        >
+          {t('Start Setup')}
+        </Button>
         <FeatureTourModal
           steps={PERFORMANCE_TOUR_STEPS}
           onAdvance={handleAdvance}
@@ -134,13 +141,6 @@ function Onboarding({organization}: Props) {
             </Button>
           )}
         </FeatureTourModal>
-        <Button
-          priority="primary"
-          target="_blank"
-          href="https://docs.sentry.io/performance-monitoring/getting-started/"
-        >
-          {t('Start Setup')}
-        </Button>
       </ButtonList>
     </OnboardingPanel>
   );
