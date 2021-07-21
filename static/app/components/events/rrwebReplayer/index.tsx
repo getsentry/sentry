@@ -41,7 +41,7 @@ const StyledRRWebReplayer = styled(RRWebReplayer)`
   .rr-controller {
     width: 100%;
     display: block;
-    padding: ${space(2)};
+    padding: ${space(2)} 0;
     background: ${p => p.theme.background};
     border-radius: 0 0 5px 5px;
     box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
