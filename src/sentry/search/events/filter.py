@@ -547,7 +547,9 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     # part of these
                     version_parts.append(int(part))
                 except ValueError:
-                    raise InvalidSearchQuery(f"Invalid format for semver query {version}")
+                    raise InvalidSearchQuery(
+                        'Invalid format of semantic version. For searching non-semver releases, use "release:" instead.'
+                    )
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
         return SemverFilter("exact", version_parts, package)

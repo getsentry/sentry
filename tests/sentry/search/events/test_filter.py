@@ -1511,7 +1511,10 @@ class SemverFilterConverterTest(TestCase):
     def test_invalid_query(self):
         key = SEMVER_ALIAS
         filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.hi"))
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match='Invalid format of semantic version. For searching non-semver releases, use "release:" instead.',
+        ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
     def run_test(
@@ -1705,9 +1708,15 @@ class ParseSemverTest(unittest.TestCase):
         assert semver_filter == expected
 
     def test_invalid(self):
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match='Invalid format of semantic version. For searching non-semver releases, use "release:" instead.',
+        ):
             parse_semver("1.hello", ">") is None
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match='Invalid format of semantic version. For searching non-semver releases, use "release:" instead.',
+        ):
             parse_semver("hello", ">") is None
 
     def test_normal(self):

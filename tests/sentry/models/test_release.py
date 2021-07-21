@@ -831,7 +831,10 @@ class SemverReleaseParseTestCase(TestCase):
 
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match='Invalid format of semantic version. For searching non-semver releases, use "release:" instead.',
+        ):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
     def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
