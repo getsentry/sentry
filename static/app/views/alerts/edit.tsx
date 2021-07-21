@@ -51,7 +51,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
 
   getTitle() {
     const {ruleName} = this.state;
-    return ruleName || t('Edit Alert Rule');
+    return `${ruleName}`;
   }
 
   getAlertType(): 'metric' | 'issue' {
