@@ -109,10 +109,7 @@ function StackTraceContent({
 
       if (!haveFramesAtLeastOneGroupingBadge) {
         haveFramesAtLeastOneGroupingBadge =
-          isFrameUsedForGrouping(frame) ||
-          frame.isPrefix ||
-          frame.isSentinel ||
-          frame.inApp;
+          isFrameUsedForGrouping(frame) || !!frame.isPrefix || !!frame.isSentinel;
       }
 
       if (haveFramesAtLeastOneExpandedFrame && haveFramesAtLeastOneGroupingBadge) {
