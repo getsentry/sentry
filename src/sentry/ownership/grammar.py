@@ -12,9 +12,14 @@ __all__ = ("parse_rules", "dump_schema", "load_schema")
 
 VERSION = 1
 
+URL = "url"
+PATH = "path"
+MODULE = "module"
+CODEOWNERS = "codeowners"
+
 # Grammar is defined in EBNF syntax.
 ownership_grammar = Grammar(
-    r"""
+    fr"""
 
 ownership = line+
 
@@ -24,7 +29,7 @@ rule = _ matcher owners
 
 matcher      = _ matcher_tag any_identifier
 matcher_tag  = (matcher_type sep)?
-matcher_type = "url" / "path" / "module" / "codeowners" / event_tag
+matcher_type = "{URL}" / "{PATH}" / "{MODULE}" / "{CODEOWNERS}" / event_tag
 
 event_tag   = ~r"tags.[^:]+"
 
@@ -89,15 +94,15 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     def test(self, data):
-        if self.type == "url":
+        if self.type == URL:
             return self.test_url(data)
-        elif self.type == "path":
+        elif self.type == PATH:
             return self.test_frames(data, ["filename", "abs_path"])
-        elif self.type == "module":
+        elif self.type == MODULE:
             return self.test_frames(data, ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
-        elif self.type.startswith("codeowners"):
+        elif self.type == CODEOWNERS:
             return self.test_codeowners(data)
         return False
 
