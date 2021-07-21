@@ -2231,13 +2231,8 @@ class QueryFields(QueryBase):
                     snql_aggregate=lambda args, _: Function("uniq", [self.column(args["column"])]),
                     default_result_type="integer",
                 ),
-                SnQLFunction(
-                    "count",
-                    optional_args=[NullColumn("column")],
-                    snql_aggregate=lambda _, alias: Function("count", []),
-                    default_result_type="integer",
-                ),
                 # TODO: implement these
+                SnQLFunction("count", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
