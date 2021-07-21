@@ -76,7 +76,7 @@ class Container extends Component<Props> {
               end,
               period: globalSelection.datetime.period,
             },
-            true
+            'high'
           )}
           showLoading={false}
           query={apiPayload.query}
