@@ -31,7 +31,7 @@ class MissingFeature(SentryAPIException):
 
 class IssueNotHierarchical(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
-    code = "not_hierarchical"
+    code = "issue_not_hierarchical"
     message = "This issue does not have hierarchical grouping."
 
 

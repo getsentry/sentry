@@ -115,7 +115,7 @@ def test_error_not_hierarchical(client, default_project, reset_snuba, factories)
 
     response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
     assert response.status_code == 403
-    assert response.data["detail"]["code"] == "not_hierarchical"
+    assert response.data["detail"]["code"] == "issue_not_hierarchical"
 
 
 @pytest.mark.django_db
