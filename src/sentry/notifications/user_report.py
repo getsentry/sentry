@@ -5,9 +5,7 @@ from django.utils.encoding import force_text
 
 from sentry.models import Group, GroupSubscription, Project, User
 from sentry.notifications.base import BaseNotification
-from sentry.notifications.notify import notify
-from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils.participants import split_participants_and_context
+from sentry.notifications.utils import get_reason_context, send_activity_notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -23,11 +21,12 @@ class UserReportNotification(BaseNotification):
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[User, int]]:
-        # Explicitly typing to satisfy mypy.
-        participants_by_provider: Mapping[
-            ExternalProviders, Mapping[User, int]
-        ] = GroupSubscription.objects.get_participants(group=self.group)
-        return participants_by_provider
+        data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
+        return {
+            provider: data
+            for provider, data in data_by_provider.items()
+            if provider in [ExternalProviders.EMAIL]
+        }
 
     def get_filename(self) -> str:
         return "activity/new-user-feedback"
@@ -63,27 +62,7 @@ class UserReportNotification(BaseNotification):
     def get_user_context(
         self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        """Get user-specific context. Do not call get_context() here."""
-        reason = extra_context.get("reason", 0)
-        return {
-            "reason": GroupSubscriptionReason.descriptions.get(
-                reason, "are subscribed to this issue"
-            )
-        }
+        return get_reason_context(extra_context)
 
     def send(self) -> None:
-        if not self.should_email():
-            return
-
-        provider = ExternalProviders.EMAIL
-        participants_with_reasons = self.get_participants_with_group_subscription_reason().get(
-            provider
-        )
-        if not participants_with_reasons:
-            return
-
-        # Only calculate shared context once.
-        shared_context = self.get_context()
-
-        participants, extra_context = split_participants_and_context(participants_with_reasons)
-        notify(provider, self, participants, shared_context, extra_context)
+        return send_activity_notification(self)
