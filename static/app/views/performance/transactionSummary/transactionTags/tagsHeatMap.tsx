@@ -31,6 +31,7 @@ import {Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
 import {TableData as TagTableData} from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'app/utils/performance/segmentExplorer/tagTransactionsQuery';
@@ -223,6 +224,7 @@ const TagsHeatMap = (
       dataArray: _data,
       label: {
         show: true,
+        formatter: data => formatAbbreviatedNumber(data.value[2]),
       },
       emphasis: {
         itemStyle: {
