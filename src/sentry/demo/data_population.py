@@ -31,8 +31,8 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentActivity,
+    IncidentActivityType,
     IncidentStatus,
-    IncidentStatusMethod,
     IncidentType,
 )
 from sentry.interfaces.user import User as UserInterface
@@ -163,6 +163,8 @@ def distribution_v2(hour: int) -> int:
 
 
 def distribution_v3(hour: int) -> int:
+    if hour == 17:
+        return 36
     if hour > 21:
         return 14
     if hour > 6 and hour < 15:
@@ -173,6 +175,7 @@ def distribution_v3(hour: int) -> int:
 
 
 def distribution_v4(hour: int) -> int:
+
     if hour > 13 and hour < 20:
         return 13
     if hour > 5 and hour < 12:
@@ -563,29 +566,75 @@ def populate_org_members(org, team):
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
 
-def generate_incident_times(timestamps, timeperiod, max_days, warning, critical):
+def generate_incident_times(timestamps, time_interval, max_days, warning, critical):
+    # rounds to nearest hour
     start_time = (
         timezone.now().replace(second=0, microsecond=0)
         - timedelta(days=max_days)
-        - timedelta(minutes=timezone.now().minute % 30)
+        - timedelta(minutes=timezone.now().minute % 60)
     )
+
+    # groups events by hour keeping track of number of events, start time, and number of adjacent time intervals
     counter = {}
 
     timestamps.sort()
     for timestamp in timestamps:
-        while timestamp > start_time + timedelta(minutes=timeperiod):
-            start_time = start_time + timedelta(minutes=timeperiod)
+        while timestamp > start_time + timedelta(minutes=time_interval):
+            start_time = start_time + timedelta(minutes=time_interval)
         if start_time in counter:
-            counter[start_time] += 1
+            counter[start_time]["events"][0] += 1
         else:
-            counter[start_time] = 1
+            counter[start_time] = {"events": [1], "timestamps": [start_time], "intervals": 1}
+
+    adjacent_groups = []
+    current_group = []
+
+    # find adjacent intervals where errors above warning
+    for timestamp, _ in sorted(counter.items()):
+        if counter[timestamp]["events"][0] < warning:
+            # ignore times where no alert is created
+            del counter[timestamp]
+        else:
+            if not current_group:
+                current_group = [timestamp]
+            else:
+                if timestamp - timedelta(minutes=time_interval) in current_group:
+                    current_group.append(timestamp)
+                else:
+                    adjacent_groups.append(current_group)
+                    current_group = [timestamp]
+    if current_group:
+        adjacent_groups.append(current_group)
+
+    # combine adjacent intervals
+    for adjacent_group in adjacent_groups:
+        start_time = adjacent_group.pop(0)
+        for timestamp in adjacent_group:
+            events = counter[timestamp]["events"]
+            intervals = counter[timestamp]["intervals"]
+            timestamps = counter[timestamp]["timestamps"]
+
+            # delete combined intervals
+            del counter[timestamp]
+
+            counter[start_time]["events"] += events
+            counter[start_time]["intervals"] += intervals
+            counter[start_time]["timestamps"] += timestamps
 
     times = []
     for timestamp in counter:
-        if counter[timestamp] >= warning and counter[timestamp] < critical:
-            times.append([timestamp, "warning"])
-        elif counter[timestamp] >= critical:
-            times.append([timestamp, "critical"])
+        max_events = max(counter[timestamp]["events"])
+        max_event_index = counter[timestamp]["events"].index(max_events)
+        if warning <= max_events < critical:
+            times.append([timestamp, "warning", counter[timestamp]["intervals"]])
+        elif max_events >= critical:
+            times.append(
+                [
+                    counter[timestamp]["timestamps"][max_event_index],
+                    "critical",
+                    counter[timestamp]["intervals"],
+                ]
+            )
 
     return times
 
@@ -772,14 +821,14 @@ class DataPopulation:
 
             release_time += timedelta(hours=hourly_release_cadence)
 
-    def generate_alerts(self, project):
-        self.generate_metric_alert(project)
+    def generate_alerts(self, project, warning, critical):
+        self.generate_metric_alert(project, warning, critical)
         self.generate_issue_alert(project)
 
-    def generate_metric_alert(self, project):
+    def generate_metric_alert(self, project, warning_threshold, critical_threshold):
         org = project.organization
         team = Team.objects.filter(organization=org).first()
-        time_interval = 30
+        time_interval = 60
         alert_rule = create_alert_rule(
             org,
             [project],
@@ -790,12 +839,11 @@ class DataPopulation:
             AlertRuleThresholdType.ABOVE,
             1,
         )
+
         alert_rule.update(
-            date_modified=timezone.now(), date_added=timezone.now() - timedelta(days=2)
+            date_added=timezone.now() - timedelta(days=self.get_config_var("MAX_DAYS"))
         )
 
-        warning_threshold = 2
-        critical_threshold = 3
         critical_trigger = create_alert_rule_trigger(alert_rule, "critical", critical_threshold)
         warning_trigger = create_alert_rule_trigger(alert_rule, "warning", warning_threshold)
         for trigger in [critical_trigger, warning_trigger]:
@@ -806,6 +854,7 @@ class DataPopulation:
                 target_identifier=str(team.id),
             )
 
+        # find the times when alerts need to be created
         incident_times = generate_incident_times(
             self.timestamps_by_project[project.slug],
             time_interval,
@@ -813,52 +862,8 @@ class DataPopulation:
             warning_threshold,
             critical_threshold,
         )
-
-        # for warning_time in warning_times:
-        #     incident = create_incident(
-        #         organization=org,
-        #         type_=IncidentType.ALERT_TRIGGERED,
-        #         title=f"{warning_threshold} Errors",
-        #         date_started=warning_time,
-        #         projects=[project],
-        #         alert_rule=alert_rule,
-        #     )
-
-        #     update_incident_status(incident, status=IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED)
-
-        #     update_incident_status(incident, IncidentStatus.CLOSED, date_closed=warning_time + timedelta(minutes=time_interval))
-
-        #     activities = list(IncidentActivity.objects.filter(incident=incident))
-        #     created = activities[2]
-        #     created.update(date_added=warning_time + timedelta(minutes=time_interval))
-        #     changed = activities[1]
-        #     changed.update(date_added=warning_time + timedelta(minutes=time_interval))
-        #     resolved = activities[0]
-        #     resolved.update(date_added=warning_time + timedelta(minutes=2 * time_interval))
-
-        # for critical_time in critical_times:
-        #     incident = create_incident(
-        #         organization=org,
-        #         type_=IncidentType.ALERT_TRIGGERED,
-        #         title=f"{critical_threshold} Errors",
-        #         date_started=critical_time,
-        #         projects=[project],
-        #         alert_rule=alert_rule,
-        #     )
-
-        #     update_incident_status(incident, status=IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED)
-
-        #     update_incident_status(incident, IncidentStatus.CLOSED, date_closed=critical_time + timedelta(minutes=time_interval))
-
-        #     activities = list(IncidentActivity.objects.filter(incident=incident))
-        #     created = activities[2]
-        #     created.update(date_added=critical_time + timedelta(minutes=time_interval))
-        #     changed = activities[1]
-        #     changed.update(date_added=critical_time + timedelta(minutes=time_interval))
-        #     resolved = activities[0]
-        #     resolved.update(date_added=critical_time + timedelta(minutes=2 * time_interval))
-
-        for incident_time, status in incident_times:
+        # create alerts
+        for incident_time, status, num_intervals in incident_times:
             if status == "warning":
                 title = f"{warning_threshold} Errors"
                 status = IncidentStatus.WARNING
@@ -875,22 +880,36 @@ class DataPopulation:
                 alert_rule=alert_rule,
             )
 
-            update_incident_status(
-                incident, status=status, status_method=IncidentStatusMethod.RULE_TRIGGERED
-            )
+            # update alert status
+            update_incident_status(incident, status=status)
+
+            # close alert
             update_incident_status(
                 incident,
                 IncidentStatus.CLOSED,
-                date_closed=incident_time + timedelta(minutes=time_interval),
+                date_closed=incident_time + timedelta(minutes=time_interval * num_intervals),
             )
 
-            activities = list(IncidentActivity.objects.filter(incident=incident))
-            created = activities[2]
-            created.update(date_added=incident_time + timedelta(minutes=time_interval))
-            changed = activities[1]
-            changed.update(date_added=incident_time + timedelta(minutes=time_interval))
-            resolved = activities[0]
-            resolved.update(date_added=incident_time + timedelta(minutes=2 * time_interval))
+            # update date_added for timeline on side
+            # alert created
+            created = IncidentActivity.objects.filter(
+                incident=incident, type=IncidentActivityType.CREATED.value
+            ).first()
+            created.update(date_added=incident_time + timedelta(minutes=30))
+            # alert status changed
+            changed = IncidentActivity.objects.filter(
+                incident=incident, type=IncidentActivityType.STATUS_CHANGE.value, value=status.value
+            ).first()
+            changed.update(date_added=incident_time + timedelta(minutes=60))
+            # resolved
+            resolved = IncidentActivity.objects.filter(
+                incident=incident,
+                type=IncidentActivityType.STATUS_CHANGE.value,
+                value=IncidentStatus.CLOSED.value,
+            ).first()
+            resolved.update(
+                date_added=incident_time + timedelta(minutes=time_interval * num_intervals + 30)
+            )
 
     def generate_issue_alert(self, project):
         org = project.organization
@@ -1593,7 +1612,7 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
-        self.generate_alerts(python_project)
+        self.generate_alerts(python_project, 15, 19)
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
@@ -1634,4 +1653,4 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
-        self.generate_alerts(android_project)
+        self.generate_alerts(android_project, 17, 23)
