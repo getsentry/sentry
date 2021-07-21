@@ -21,6 +21,9 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
             return Response({"detail": "query is a required parameter"}, status=400)
 
         installation = integration.get_installation(organization.id)
+        # Queries that are longer than 256 characters will error (excludes qualifiers
+        # like repo: & org:) https://docs.github.com/en/rest/reference/search#limitations-on-query-length
+        trimmed_query = query[:256]
         if field == "externalIssue":
             repo = request.GET.get("repo")
             if repo is None:
@@ -28,7 +31,7 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
 
             try:
                 response = installation.search_issues(
-                    query=(f"repo:{repo} {query}").encode("utf-8")
+                    query=(f"repo:{repo} {trimmed_query}").encode("utf-8")
                 )
             except ApiError as err:
                 if err.code == 403:
@@ -42,7 +45,9 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
             )
 
         if field == "repo":
-            full_query = build_repository_query(integration.metadata, integration.name, query)
+            full_query = build_repository_query(
+                integration.metadata, integration.name, trimmed_query
+            )
             try:
                 response = installation.get_client().search_repositories(full_query)
             except ApiError as err:

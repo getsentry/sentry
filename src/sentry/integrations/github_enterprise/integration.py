@@ -128,9 +128,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
         ]
 
     def search_issues(self, query):
-        # Search queries that are longer than 256 characters will error
-        # https://docs.github.com/en/enterprise-server@3.0/rest/reference/search#limitations-on-query-length
-        return self.get_client().search_issues(query[:256])
+        return self.get_client().search_issues(query)
 
     def reinstall(self):
         installation_id = self.model.external_id.split(":")[1]
