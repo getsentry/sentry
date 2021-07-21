@@ -6,7 +6,11 @@ import {t} from 'app/locale';
 import {Group} from 'app/types';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-type ErrorCode = 'not_hierarchical' | 'no_events' | 'merged_issues' | 'missing_feature';
+type ErrorCode =
+  | 'issue_not_hierarchical'
+  | 'no_events'
+  | 'merged_issues'
+  | 'missing_feature';
 
 type Error = {
   status: number;
@@ -44,7 +48,7 @@ function ErrorMessage({error, groupId, onRetry}: Props) {
         return {
           title: t('This issue has no events'),
         };
-      case 'not_hierarchical':
+      case 'issue_not_hierarchical':
         return {
           title: t('This issue does not have hierarchical grouping'),
         };
