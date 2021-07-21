@@ -1,6 +1,7 @@
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Choices, Organization, Project} from 'app/types';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
@@ -14,7 +15,7 @@ type Props = {
   builtinSymbolSources: string[];
 };
 
-function BuildInSymbolSources({
+function BuildInRepositories({
   api,
   organization,
   builtinSymbolSourceOptions,
@@ -22,6 +23,12 @@ function BuildInSymbolSources({
   projectSlug,
 }: Props) {
   function getRequestMessages(builtinSymbolSourcesQuantity: number) {
+    if (builtinSymbolSourcesQuantity === 0) {
+      return {
+        errorMessage: t('This field requires at least one built-in repository'),
+      };
+    }
+
     if (builtinSymbolSourcesQuantity > builtinSymbolSources.length) {
       return {
         successMessage: t('Successfully added built-in repository'),
@@ -35,8 +42,8 @@ function BuildInSymbolSources({
     };
   }
 
-  async function handleChange(value: string[]) {
-    const {successMessage, errorMessage} = getRequestMessages(value.length);
+  async function handleChange(value: null | string[]) {
+    const {successMessage, errorMessage} = getRequestMessages((value ?? []).length);
 
     try {
       const updatedProjectDetails: Project = await api.requestPromise(
@@ -57,24 +64,30 @@ function BuildInSymbolSources({
   }
 
   return (
-    <SelectField
-      name="builtinSymbolSources"
-      label={t('Built-in Repositories')}
-      help={t(
-        'Configures which built-in repositories Sentry should use to resolve debug files.'
-      )}
-      value={builtinSymbolSources}
-      onChange={handleChange}
-      choices={
-        builtinSymbolSourceOptions
-          ?.filter(source => !source.hidden)
-          .map(source => [source.sentry_key, t(source.name)]) as Choices
-      }
-      getValue={value => (value === null ? [] : value)}
-      flexibleControlStateSize
-      multiple
-    />
+    <Panel>
+      <PanelHeader>{t('Built-in Repositories')}</PanelHeader>
+      <PanelBody>
+        <SelectField
+          name="builtinSymbolSources"
+          label={t('Built-in Repositories')}
+          help={t(
+            'Configures which built-in repositories Sentry should use to resolve debug files.'
+          )}
+          placeholder={t('Select built-in repository')}
+          value={builtinSymbolSources}
+          onChange={handleChange}
+          choices={
+            builtinSymbolSourceOptions
+              ?.filter(source => !source.hidden)
+              .map(source => [source.sentry_key, t(source.name)]) as Choices
+          }
+          getValue={value => (value === null ? [] : value)}
+          flexibleControlStateSize
+          multiple
+        />
+      </PanelBody>
+    </Panel>
   );
 }
 
-export default BuildInSymbolSources;
+export default BuildInRepositories;

@@ -7,7 +7,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {getDebugSourceName} from 'app/data/debugFileSources';
 import {tct} from 'app/locale';
-import {DebugFileSource} from 'app/types';
+import {CustomRepoType} from 'app/types/debugFiles';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 
@@ -31,7 +31,7 @@ type Props = WithRouterProps<RouteParams, {}> & {
   /**
    * Type of this source.
    */
-  sourceType: DebugFileSource;
+  sourceType: CustomRepoType;
 
   appStoreConnectContext?: AppStoreConnectContextProps;
   /**
@@ -57,7 +57,7 @@ function DebugFileCustomRepository({
       closeModal();
 
       if (
-        sourceType === 'appStoreConnect' &&
+        sourceType === CustomRepoType.APP_STORE_CONNECT &&
         appStoreConnectContext?.updateAlertMessage
       ) {
         window.location.reload();
@@ -65,7 +65,7 @@ function DebugFileCustomRepository({
     });
   }
 
-  if (sourceType === 'appStoreConnect') {
+  if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
     return (
       <AppStoreConnect
         Header={Header}
