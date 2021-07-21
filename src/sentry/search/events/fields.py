@@ -2189,7 +2189,11 @@ class QueryFields(QueryBase):
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("apdex", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "apdex",
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    snql_aggregate=self._resolve_apdex_function,
+                ),
                 SnQLFunction(
                     "count_miserable", snql_aggregate=self._resolve_unimplemented_function
                 ),
@@ -2328,6 +2332,9 @@ class QueryFields(QueryBase):
 
         name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter.get(name)
+
+        arguments = snql_function.format_as_arguments(name, arguments, self.params)
+
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
         return snql_function.snql_aggregate(arguments, alias)
@@ -2546,6 +2553,51 @@ class QueryFields(QueryBase):
         Can be deleted once all field aliases have been implemented.
         """
         raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
+
+    def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            return Function(
+                "apdex", [self.column("transaction.duration"), int(args["satisfaction"])], alias
+            )
+        return Function(
+            "apdex",
+            [
+                Function(
+                    "multiIf",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Function(
+                                    "tupleElement",
+                                    [self.resolve_field("project_threshold_config"), 1],
+                                ),
+                                "lcp",
+                            ],
+                        ),
+                        Function(
+                            "if",
+                            [
+                                Function("has", [self.column("measurements_key"), "lcp"]),
+                                Function(
+                                    "arrayElement",
+                                    [
+                                        self.column("measurements_value"),
+                                        Function(
+                                            "indexOf", [self.column("measurements_key"), "lcp"]
+                                        ),
+                                    ],
+                                ),
+                                None,
+                            ],
+                        ),
+                        self.column("transaction.duration"),
+                    ],
+                ),
+                Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
+            ],
+            alias,
+        )
 
     def _resolve_unimplemented_function(
         self,
