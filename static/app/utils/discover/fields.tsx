@@ -1,6 +1,6 @@
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
-import {ADOPTION_STAGES} from 'app/views/releases/list/releaseHealth/content';
+import {ADOPTION_STAGES} from 'app/views/releases/list';
 
 export type Sort = {
   kind: 'asc' | 'desc';

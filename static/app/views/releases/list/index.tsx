@@ -39,7 +39,6 @@ import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
-import {ADOPTION_STAGES} from 'app/views/releases/list/releaseHealth/content';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import ReleaseHealthRequest from '../utils/releaseHealthRequest';
@@ -51,6 +50,8 @@ import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListStatusOptions from './releaseListStatusOptions';
 import ReleasePromo from './releasePromo';
 import {DisplayOption, SortOption, StatusOption} from './utils';
+
+export const ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 
 const supportedTags = {
   'release.version': {

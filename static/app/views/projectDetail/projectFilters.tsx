@@ -1,7 +1,7 @@
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {t} from 'app/locale';
 import {Tag} from 'app/types';
-import {ADOPTION_STAGES} from 'app/views/releases/list/releaseHealth/content';
+import {ADOPTION_STAGES} from 'app/views/releases/list';
 
 import {TagValueLoader} from '../issueList/types';
 

@@ -56,7 +56,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withIssueTags from 'app/utils/withIssueTags';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
-import {ADOPTION_STAGES} from 'app/views/releases/list/releaseHealth/content';
+import {ADOPTION_STAGES} from 'app/views/releases/list';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
