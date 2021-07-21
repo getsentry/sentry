@@ -1,6 +1,6 @@
+import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
-import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 
 export type Sort = {
   kind: 'asc' | 'desc';
