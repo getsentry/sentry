@@ -22,7 +22,6 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
-import KeyTransactionButton from './keyTransactionButton';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
@@ -119,23 +118,11 @@ class TransactionHeader extends React.Component<Props> {
     const {eventView, organization, transactionName} = this.props;
 
     return (
-      <Feature organization={organization} features={['team-key-transactions']}>
-        {({hasFeature}) =>
-          hasFeature ? (
-            <TeamKeyTransactionButton
-              transactionName={transactionName}
-              eventView={eventView}
-              organization={organization}
-            />
-          ) : (
-            <KeyTransactionButton
-              transactionName={transactionName}
-              eventView={eventView}
-              organization={organization}
-            />
-          )
-        }
-      </Feature>
+      <TeamKeyTransactionButton
+        transactionName={transactionName}
+        eventView={eventView}
+        organization={organization}
+      />
     );
   }
 
@@ -248,7 +235,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTagsTabClick}
               >
                 {t('Tags')}
-                <FeatureBadge type="alpha" noTooltip />
+                <FeatureBadge type="beta" noTooltip />
               </ListLink>
             </Feature>
             <Feature features={['organizations:performance-events-page']}>

@@ -5,14 +5,15 @@ from sentry.runner.decorators import configuration
 
 @click.group()
 def files():
-    "Manage files from filestore."
+    """Manage files from filestore."""
+    pass
 
 
 @files.command()
 @click.argument("id", type=click.INT, metavar="FILE_ID")
 @configuration
 def get(id):
-    "Fetch a file's contents by id."
+    """Fetch a file's contents by id."""
     from sentry.models import File
 
     try:
@@ -32,7 +33,7 @@ def get(id):
 @click.option("--format", default="json", type=click.Choice(("json", "yaml")))
 @configuration
 def info(id, format):
-    "Show a file's metadata by id."
+    """Show a file's metadata by id."""
     from sentry.models import File
 
     try:

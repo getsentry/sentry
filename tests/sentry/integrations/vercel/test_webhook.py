@@ -1,7 +1,9 @@
 import hashlib
 import hmac
+from typing import Optional
 
 import responses
+from rest_framework.response import Response
 
 from sentry import VERSION
 from sentry.models import (
@@ -19,6 +21,7 @@ from sentry.utils.http import absolute_uri
 from .testutils import (
     DEPLOYMENT_WEBHOOK_NO_COMMITS,
     EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
+    MINIMAL_WEBHOOK,
     SECRET,
     SIGNATURE,
 )
@@ -46,6 +49,23 @@ class SignatureVercelTest(APITestCase):
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
     header = "ZEIT"
+
+    @staticmethod
+    def get_signature(message: str) -> str:
+        return hmac.new(
+            key=b"vercel-client-secret",
+            msg=message.encode("utf-8"),
+            digestmod=hashlib.sha1,
+        ).hexdigest()
+
+    def _get_response(self, message: str, signature: Optional[str] = None) -> Response:
+        signature = signature or self.get_signature(message)
+        return self.client.post(
+            path=self.webhook_url,
+            data=message,
+            content_type="application/json",
+            **{f"HTTP_X_{self.header}_SIGNATURE": signature},
+        )
 
     def setUp(self):
         super().setUp()
@@ -90,12 +110,7 @@ class VercelReleasesTest(APITestCase):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert response.status_code == 201
 
@@ -131,12 +146,7 @@ class VercelReleasesTest(APITestCase):
         self.org_integration.save()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 204
@@ -151,12 +161,7 @@ class VercelReleasesTest(APITestCase):
         self.integration.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -172,12 +177,7 @@ class VercelReleasesTest(APITestCase):
         self.project.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -193,12 +193,7 @@ class VercelReleasesTest(APITestCase):
         self.installation_for_provider.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -215,12 +210,7 @@ class VercelReleasesTest(APITestCase):
         SentryAppInstallationToken.objects.filter().delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -236,12 +226,7 @@ class VercelReleasesTest(APITestCase):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert len(responses.calls) == 1
             assert response.status_code == 400
@@ -261,12 +246,7 @@ class VercelReleasesTest(APITestCase):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert len(responses.calls) == 2
             assert response.status_code == 400
@@ -274,22 +254,22 @@ class VercelReleasesTest(APITestCase):
 
     @responses.activate
     def test_manual_vercel_deploy(self):
-        local_signature = hmac.new(
-            key=b"vercel-client-secret",
-            msg=DEPLOYMENT_WEBHOOK_NO_COMMITS.encode("utf-8"),
-            digestmod=hashlib.sha1,
-        ).hexdigest()
-
-        response = self.client.post(
-            path=self.webhook_url,
-            data=DEPLOYMENT_WEBHOOK_NO_COMMITS,
-            content_type="application/json",
-            **{f"HTTP_X_{self.header}_SIGNATURE": local_signature},
-        )
+        response = self._get_response(DEPLOYMENT_WEBHOOK_NO_COMMITS)
 
         assert response.status_code == 404
         assert "No commit found" == response.data["detail"]
         assert len(responses.calls) == 0
+
+    def test_empty_payload(self):
+        response = self._get_response("{}")
+
+        assert response.status_code == 400
+
+    def test_missing_repository(self):
+        response = self._get_response(MINIMAL_WEBHOOK)
+
+        assert response.status_code == 400
+        assert "Could not determine repository" == response.data["detail"]
 
 
 class VercelReleasesNewTest(VercelReleasesTest):
@@ -309,11 +289,6 @@ class VercelReleasesNewTest(VercelReleasesTest):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-                content_type="application/json",
-                **{f"HTTP_X_{self.header}_SIGNATURE": SIGNATURE},
-            )
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
 
             assert response.status_code == 201

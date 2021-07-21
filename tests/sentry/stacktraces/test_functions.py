@@ -109,6 +109,40 @@ def test_trim_csharp_function_name(input, output):
     assert trim_function_name(input, "csharp") == output
 
 
+@pytest.mark.parametrize(
+    "input,output",
+    [
+        [
+            "thunk for @escaping @callee_guaranteed () -> ()",
+            "thunk for closure",
+        ],
+        [
+            "specialized thunk for @callee_guaranteed (@guaranteed [T1]) -> (@owned [T2])",
+            "thunk for closure",
+        ],
+        [
+            "partial apply for thunk for @callee_guaranteed () -> (@error @owned Error)",
+            "thunk for closure",
+        ],
+        [
+            "partial apply for thunk for @escaping @callee_guaranteed (@guaranteed SomeType, @guaranteed [String : SomeType2], @guaranteed SomeType3) -> ()",
+            "thunk for closure",
+        ],
+        [  # "closure ... in ..." functions are converted to containing
+            # function. We might want to change this in the future
+            "closure #1 (T1) in foo(bar: T2)",
+            "foo",
+        ],
+        [
+            "partial apply for closure #1 () in closure #2 (T1) in f1(_: T2, arg: T3)",
+            "f1",
+        ],
+    ],
+)
+def test_trim_cocoa_function_name(input, output):
+    assert trim_function_name(input, "cocoa") == output
+
+
 def replace_group(value, start):
     if start == 0:
         assert value == "anonymous namespace"

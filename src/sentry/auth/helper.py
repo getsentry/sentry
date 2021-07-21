@@ -432,7 +432,7 @@ class AuthIdentityHandler:
             else:
                 # force them to create a new account
                 acting_user = None
-        # without a usable password they cant login, so let's clear the acting_user
+        # without a usable password they can't login, so let's clear the acting_user
         elif acting_user and not acting_user.has_usable_password():
             acting_user = None
 

@@ -8,7 +8,10 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Event} from 'app/types/event';
 import {formattedValue} from 'app/utils/measurements/index';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {
+  MOBILE_VITAL_DETAILS,
+  WEB_VITAL_DETAILS,
+} from 'app/utils/performance/vitals/constants';
 import {IconSize} from 'app/utils/theme';
 
 type Props = {
@@ -32,7 +35,11 @@ function isOutdatedSdk(event: Event): boolean {
 
 export default function EventVitals({event, showSectionHeader = true}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
-    .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+    .filter(
+      name =>
+        Boolean(MOBILE_VITAL_DETAILS[`measurements.${name}`]) ||
+        Boolean(WEB_VITAL_DETAILS[`measurements.${name}`])
+    )
     .sort();
 
   if (measurementNames.length === 0) {
@@ -87,7 +94,8 @@ function EventVital({event, name}: EventVitalProps) {
   // Measurements are referred to by their full name `measurements.<name>`
   // here but are stored using their abbreviated name `<name>`. Make sure
   // to convert it appropriately.
-  const record = WEB_VITAL_DETAILS[`measurements.${name}`];
+  const measurement = `measurements.${name}`;
+  const record = WEB_VITAL_DETAILS[measurement] || MOBILE_VITAL_DETAILS[measurement];
 
   if (!record) {
     return null;

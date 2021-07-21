@@ -155,6 +155,9 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
 
       const newOptionGroups = makeOptions(options, partialTerm);
       const flattenedOptions = newOptionGroups.map(group => group.options).flat();
+      if (flattenedOptions.length === 0) {
+        return;
+      }
 
       let newSelection;
       if (!startedSelection) {
@@ -257,6 +260,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
           onBlur={this.handleBlur}
           onFocus={this.handleFocus}
           onKeyDown={this.handleKeyDown}
+          spellCheck={false}
         />
         <TermDropdown
           isOpen={dropdownVisible}

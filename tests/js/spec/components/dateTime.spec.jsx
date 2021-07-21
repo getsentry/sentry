@@ -71,6 +71,11 @@ describe('DateTime', () => {
       expect(wrapper.text()).toBe('19:41');
     });
 
+    it('renders timeAndDate', () => {
+      const wrapper = mountWithTheme(<DateTime date={new Date()} timeAndDate />);
+      expect(wrapper.text()).toBe('Oct 16, 19:41');
+    });
+
     it('renders date with forced utc', () => {
       const wrapper = mountWithTheme(<DateTime date={new Date()} utc />);
       expect(wrapper.text()).toBe('Oct 17, 2017 02:41');

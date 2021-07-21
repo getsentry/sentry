@@ -19,7 +19,7 @@ import SearchBar from 'app/components/searchBar';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {desktop, mobile, releaseHealth} from 'app/data/platformCategories';
+import {desktop, mobile, PlatformKey, releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -69,6 +69,11 @@ const supportedTags = {
     name: 'release',
   },
 };
+
+export const isProjectMobileForReleases = (projectPlatform: PlatformKey) =>
+  (
+    [...mobile, ...desktop, 'java-android', 'cocoa-objc', 'cocoa-swift'] as string[]
+  ).includes(projectPlatform);
 
 type RouteParams = {
   orgId: string;
@@ -473,17 +478,8 @@ class ReleasesList extends AsyncView<Props, State> {
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
           const selectedProject = this.getSelectedProject();
           const isMobileProject =
-            selectedProject &&
-            selectedProject.platform &&
-            (
-              [
-                ...mobile,
-                ...desktop,
-                'java-android',
-                'cocoa-objc',
-                'cocoa-swift',
-              ] as string[]
-            ).includes(selectedProject.platform as string);
+            selectedProject?.platform &&
+            isProjectMobileForReleases(selectedProject.platform);
 
           return (
             <Fragment>
@@ -565,20 +561,22 @@ class ReleasesList extends AsyncView<Props, State> {
                   query={this.getQuery()}
                 />
               )}
-              <ReleaseListStatusOptions
-                selected={activeStatus}
-                onSelect={this.handleStatus}
-              />
-              <ReleaseListSortOptions
-                selected={activeSort}
-                selectedDisplay={activeDisplay}
-                onSelect={this.handleSortBy}
-                organization={organization}
-              />
-              <ReleaseDisplayOptions
-                selected={activeDisplay}
-                onSelect={this.handleDisplay}
-              />
+              <DropdownsWrapper>
+                <ReleaseListStatusOptions
+                  selected={activeStatus}
+                  onSelect={this.handleStatus}
+                />
+                <ReleaseListSortOptions
+                  selected={activeSort}
+                  selectedDisplay={activeDisplay}
+                  onSelect={this.handleSortBy}
+                  organization={organization}
+                />
+                <ReleaseDisplayOptions
+                  selected={activeDisplay}
+                  onSelect={this.handleDisplay}
+                />
+              </DropdownsWrapper>
             </SortAndFilterWrapper>
 
             {!reloading &&
@@ -611,12 +609,65 @@ const AlertText = styled('div')`
 `;
 
 const SortAndFilterWrapper = styled('div')`
-  display: inline-grid;
-  grid-gap: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr repeat(3, auto);
+  > *:nth-child(1) {
+    flex: 1;
+  }
+
+  /* Below this width search bar needs its own row no to wrap placeholder text
+   * Above this width search bar and controls can be on the same row */
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    flex-direction: row;
+  }
+`;
+
+const DropdownsWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+
+  & > * {
+    margin-top: ${space(2)};
+  }
+
+  /* At the narrower widths wrapper is on its own in a row
+   * Expand the dropdown controls to fill the empty space */
+  & button {
+    width: 100%;
+  }
+
+  /* At narrower widths space bar needs a separate row
+   * Divide space evenly when 3 dropdowns are in their own row */
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(2)};
+
+    & > * {
+      margin-top: ${space(0)};
+      margin-left: ${space(2)};
+    }
+
+    & > *:nth-child(1) {
+      margin-left: ${space(0)};
+    }
+
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  /* At wider widths everything is in 1 row
+   * Auto space dropdowns when they are in the same row with search bar */
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    margin-top: ${space(0)};
+
+    & > * {
+      margin-left: ${space(2)} !important;
+    }
+
+    display: grid;
+    grid-template-columns: auto auto auto;
   }
 `;
 
