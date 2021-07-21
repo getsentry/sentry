@@ -1,0 +1,121 @@
+from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import features
+from sentry.api.base import Endpoint
+from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
+from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
+from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.requests.command import SlackCommandRequest
+from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+
+LINK_TEAM_MESSAGE = (
+    "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive "
+    "notifications of issues in Sentry in Slack."
+)
+LINK_USER_MESSAGE = (
+    "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
+    "You'll also be able to perform actions in Sentry through Slack. "
+)
+LINK_USER_FIRST_MESSAGE = (
+    "You must first link your identity to Sentry by typing /sentry link. Be aware that you "
+    "must be an admin or higher in your Sentry organization to link your team."
+)
+LINK_FROM_CHANNEL_MESSAGE = "You must type this command in a channel, not a DM."
+UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
+UNLINK_TEAM_MESSAGE = "<{associate_url}|Click here to unlink your team from this channel.>"
+NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
+TEAM_NOT_LINKED_MESSAGE = "No team is linked to this channel."
+ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
+DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
+FEATURE_FLAG_MESSAGE = "This feature hasn't been released yet, hang tight."
+
+
+class SlackDMEndpoint(Endpoint):  # type: ignore
+    def post_dispatcher(self, request: Request):
+        """
+        All Slack commands are handled by this endpoint. This block just
+        validates the request and dispatches it to the right handler.
+        """
+        try:
+            slack_request = SlackCommandRequest(request)
+            slack_request.validate()
+        except SlackRequestError as e:
+            if e.status == status.HTTP_403_FORBIDDEN:
+                return self.respond(SlackDisconnectedMessageBuilder().build())
+            return self.respond(status=e.status)
+
+        command, args = self.get_command_and_args(slack_request)
+
+        if command in ["help", ""]:
+            return self.respond(SlackHelpMessageBuilder().build())
+
+        integration = slack_request.integration
+        organization = integration.organizations.all()[0]
+        if command in ["link", "unlink"] and not features.has(
+            "organizations:notification-platform", organization
+        ):
+            return self.reply(FEATURE_FLAG_MESSAGE)
+
+        if command == "link":
+            if not args:
+                return self.link_user(slack_request)
+
+            if args[0] == "team":
+                return self.link_team(slack_request)
+
+        if command == "unlink":
+            if not args:
+                return self.unlink_user(slack_request)
+
+            if args[0] == "team":
+                return self.unlink_team(slack_request)
+
+        # If we cannot interpret the command, print help text.
+        return self.respond(SlackHelpMessageBuilder(command).build())
+
+    def get_command_and_args(self, request):
+        return NotImplementedError
+
+    def reply(self, slack_request, message: str) -> Response:
+        return NotImplementedError
+
+    def link_user(self, slack_request):
+        if slack_request.has_identity:
+            return self.reply(
+                slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
+            )
+
+        integration = slack_request.integration
+        organization = integration.organizations.all()[0]
+        associate_url = build_linking_url(
+            integration=integration,
+            organization=organization,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+        return self.reply(slack_request, LINK_USER_MESSAGE.format(associate_url=associate_url))
+
+    def unlink_user(self, slack_request):
+        if not slack_request.has_identity:
+            return self.reply(slack_request, NOT_LINKED_MESSAGE)
+
+        integration = slack_request.integration
+        organization = integration.organizations.all()[0]
+        associate_url = build_unlinking_url(
+            integration_id=integration.id,
+            organization_id=organization.id,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+        return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
+
+    def link_team(self, slack_request):
+        raise NotImplementedError
+
+    def unlink_team(self, slack_request):
+        raise NotImplementedError
