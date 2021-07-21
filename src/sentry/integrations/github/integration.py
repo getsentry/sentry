@@ -116,7 +116,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         ]
 
     def search_issues(self, query):
-        return self.get_client().search_issues(query)
+        # Search queries that are longer than 256 characters will error
+        # https://docs.github.com/en/rest/reference/search#limitations-on-query-length
+        return self.get_client().search_issues(query[:256])
 
     def format_source_url(self, repo, filepath, branch):
         # Must format the url ourselves since `check_file` is a head request
