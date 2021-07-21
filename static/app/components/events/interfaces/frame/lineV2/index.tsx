@@ -87,8 +87,6 @@ function Line({
   }
 
   function renderLine() {
-    const hasGroupingBadge = isSentinel || isUsedForGrouping || isPrefix || frame.inApp;
-
     switch (platform) {
       case 'objc':
       // fallthrough
@@ -113,7 +111,6 @@ function Line({
               showCompleteFunctionName={showCompleteFunctionName}
               isFrameAfterLastNonApp={isFrameAfterLastNonApp}
               onToggleContext={toggleContext}
-              hasGroupingBadge={hasGroupingBadge}
               isSentinel={isSentinel}
               isPrefix={isPrefix}
               isUsedForGrouping={isUsedForGrouping}
@@ -137,7 +134,6 @@ function Line({
               isExpanded={isExpanded}
               isExpandable={expandable}
               onToggleContext={toggleContext}
-              hasGroupingBadge={hasGroupingBadge}
               isSentinel={isSentinel}
               isPrefix={isPrefix}
               isUsedForGrouping={isUsedForGrouping}

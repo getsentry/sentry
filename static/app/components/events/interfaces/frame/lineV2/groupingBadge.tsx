@@ -1,5 +1,6 @@
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import RepoLabel from 'app/components/repoLabel';
 import Tooltip from 'app/components/tooltip';
@@ -42,17 +43,13 @@ function GroupingBadge({badge, theme}: Props) {
           <StyledRepoLabel>{'grouping'}</StyledRepoLabel>
         </Tooltip>
       );
-    case FrameBadge.IN_APP:
-      return (
-        <Tooltip
-          title={t('This frame is from your application')}
-          containerDisplayMode="inline-flex"
-        >
-          <StyledRepoLabel background={theme.blue300}>{'in app'}</StyledRepoLabel>
-        </Tooltip>
-      );
-    default:
+    default: {
+      Sentry.withScope(scope => {
+        scope.setExtra('badge', badge);
+        Sentry.captureException(new Error('Unknown grouping badge'));
+      });
       return null;
+    }
   }
 }
 

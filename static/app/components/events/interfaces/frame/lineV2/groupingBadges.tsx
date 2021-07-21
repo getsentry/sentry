@@ -9,10 +9,9 @@ type Props = {
   isPrefix?: boolean;
   isSentinel?: boolean;
   isUsedForGrouping?: boolean;
-  inApp?: boolean;
 };
 
-function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping, inApp}: Props) {
+function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping}: Props) {
   const badges: React.ReactElement[] = [];
 
   if (isSentinel) {
@@ -27,14 +26,6 @@ function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping, inApp}: Props)
     badges.push(<GroupingBadge badge={FrameBadge.GROUPING} />);
   }
 
-  if (inApp) {
-    badges.push(<GroupingBadge badge={FrameBadge.IN_APP} />);
-  }
-
-  if (badges.length === 0) {
-    return null;
-  }
-
   return <Wrapper>{badges}</Wrapper>;
 }
 
@@ -42,11 +33,18 @@ export default GroupingBadges;
 
 const Wrapper = styled('div')`
   display: grid;
+  grid-auto-flow: column;
   grid-gap: ${space(0.5)};
-  justify-content: flex-end;
   align-items: flex-start;
+  justify-content: flex-start;
+  order: 2;
+  grid-column-start: 1;
+  grid-column-end: -1;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-auto-flow: column;
+    justify-content: flex-end;
+    order: 0;
+    grid-column-start: auto;
+    grid-column-end: auto;
   }
 `;
