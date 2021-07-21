@@ -100,11 +100,10 @@ const UpdatesList = styled('div')`
 `;
 
 const Suggestions = styled('div')`
-  margin-top: ${space(1)};
   margin-left: calc(${space(4)} + ${space(0.25)});
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(1.5)};
+  grid-gap: ${space(0.5)};
 `;
 
 const SdkProjectBadge = styled(ProjectBadge)`
@@ -114,7 +113,6 @@ const SdkProjectBadge = styled(ProjectBadge)`
 const SdkName = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-weight: bold;
-  margin-bottom: ${space(1)};
 `;
 
 const SdkOutdatedVersion = styled('span')`
