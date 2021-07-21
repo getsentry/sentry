@@ -497,6 +497,7 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
 
+      <Redirect from="members/requests" to="members/" />
       <Route path="members/" name="Members">
         <Route
           componentPromise={() =>
