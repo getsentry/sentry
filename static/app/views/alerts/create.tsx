@@ -52,14 +52,6 @@ class Create extends Component<Props, State> {
   componentDidMount() {
     const {organization, location, project} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'new_alert_rule.viewed',
-      eventName: 'New Alert Rule: Viewed',
-      organization_id: organization.id,
-      project_id: project.id,
-      session_id: this.sessionId,
-    });
-
     if (location?.query) {
       const {query} = location;
       const {createFromDiscover, createFromWizard} = query;
@@ -87,15 +79,19 @@ class Create extends Component<Props, State> {
         );
       }
     }
+
+    trackAnalyticsEvent({
+      eventKey: 'new_alert_rule.viewed',
+      eventName: 'New Alert Rule: Viewed',
+      organization_id: organization.id,
+      project_id: project.id,
+      session_id: this.sessionId,
+      alert_type: this.state.alertType,
+    });
   }
 
   /** Used to track analytics within one visit to the creation page */
   sessionId = uniqueId();
-
-  handleChangeAlertType = (alertType: AlertType) => {
-    // alertType should be `issue` or `metric`
-    this.setState({alertType});
-  };
 
   render() {
     const {

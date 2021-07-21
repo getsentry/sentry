@@ -7,6 +7,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
 import IssueEditor from 'app/views/alerts/issueRuleEditor';
@@ -24,17 +25,27 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  alertType: string;
   ruleName: string;
 };
 
 class ProjectAlertsEditor extends Component<Props, State> {
   state: State = {
-    alertType: '',
     ruleName: '',
   };
 
-  handleChangeTitle = ruleName => {
+  componentDidMount() {
+    const {organization, project} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'edit_alert_rule.viewed',
+      eventName: 'Edit Alert Rule: Viewed',
+      organization_id: organization.id,
+      project_id: project.id,
+      alert_type: this.getAlertType(),
+    });
+  }
+
+  handleChangeTitle = (ruleName: string) => {
     this.setState({ruleName});
   };
 
@@ -43,12 +54,13 @@ class ProjectAlertsEditor extends Component<Props, State> {
     return `${ruleName}`;
   }
 
+  getAlertType(): 'metric' | 'issue' {
+    return location.pathname.includes('/alerts/metric-rules/') ? 'metric' : 'issue';
+  }
+
   render() {
     const {hasMetricAlerts, location, organization, project, routes} = this.props;
-
-    const alertType = location.pathname.includes('/alerts/metric-rules/')
-      ? 'metric'
-      : 'issue';
+    const alertType = this.getAlertType();
 
     return (
       <Fragment>
