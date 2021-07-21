@@ -747,7 +747,9 @@ class SnubaTagStorage(TagStorage):
             )
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
-        versions = versions.order_by(*order_by).values_list("version", flat=True)[:1000]
+        versions = (
+            versions.filter_to_semver().order_by(*order_by).values_list("version", flat=True)[:1000]
+        )
 
         seen = set()
         formatted_versions = []

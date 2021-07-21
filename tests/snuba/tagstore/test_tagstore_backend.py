@@ -732,6 +732,8 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         self.create_release(version="test2@2.0.0.0+456", environments=[self.environment, env_2])
         self.create_release(version="z_test@1.0.0.0")
         self.create_release(version="z_test@2.0.0.0+456", additional_projects=[project_2])
+        # This shouldn't appear for any semver autocomplete
+        self.create_release(version="test@abc123", additional_projects=[project_2])
 
         self.run_test(
             None,
@@ -808,6 +810,8 @@ class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase,
         self.create_release(version="test@1.2.0.0-alpha", environments=[self.environment])
         self.create_release(version="test2@2.0.0.0+456", environments=[self.environment, env_2])
         self.create_release(version="z_test@2.0.0.0+456", additional_projects=[project_2])
+        # This shouldn't appear for any semver autocomplete
+        self.create_release(version="test@abc123", additional_projects=[project_2])
 
         self.run_test(None, ["test", "test2", "z_test"])
         self.run_test("", ["test", "test2", "z_test"])
@@ -896,6 +900,8 @@ class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, S
         self.create_release(version="test@2.0.0.0+456", environments=[self.environment, env_2])
         self.create_release(version="test@2.0.1.0+457a", additional_projects=[project_2])
         self.create_release(version="test@2.0.1.0+789", additional_projects=[project_2])
+        # This shouldn't appear for any semver autocomplete
+        self.create_release(version="test@abc123", additional_projects=[project_2])
 
         self.run_test(None, ["123", "124", "456", "457a", "789"])
         self.run_test("", ["123", "124", "456", "457a", "789"])
