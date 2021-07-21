@@ -61,11 +61,7 @@ class GroupResolution(Model):
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
             """
-            if res_release == release.id:
-                return True
-            elif res_release_datetime > release.date_added:
-                return True
-            return False
+            return res_release == release.id or res_release_datetime > release.date_added
 
         try:
             res_type, res_release, res_release_datetime, current_release_version = (
@@ -106,7 +102,9 @@ class GroupResolution(Model):
                     ...
             else:
                 try:
-                    current_release_obj = Release.objects.get(version=current_release_version)
+                    current_release_obj = Release.objects.get(
+                        organization_id=group.organization.id, version=current_release_version
+                    )
 
                     return compare_release_dates_for_in_next_release(
                         res_release=current_release_obj.id,

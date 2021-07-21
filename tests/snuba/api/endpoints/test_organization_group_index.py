@@ -1990,16 +1990,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         GroupResolution.current_release_version is set to the most recent release associated with a
         Group, when the project does not follow semantic versioning scheme
         """
-        release_1 = Release.objects.create(
-            organization_id=self.project.organization_id, version="foobar 1"
+        release_1 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
         )
-        release_1.update(date_added=timezone.now() - timedelta(minutes=45))
-        release_2 = Release.objects.create(
-            organization_id=self.project.organization_id, version="foobar 2"
-        )
-
-        for release in [release_1, release_2]:
-            release.add_project(self.project)
+        release_2 = self.create_release(version="foobar 2")
 
         group = self.store_event(
             data={
@@ -2020,11 +2014,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # Add a new release that is between 1 and 2, to make sure that if a the same issue/group
         # occurs in that issue, then it should not have a resolution
-        release_3 = Release.objects.create(
-            organization_id=self.project.organization_id, version="foobar 3"
+        release_3 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=30), version="foobar 3"
         )
-        release_3.add_project(self.project)
-        release_3.update(date_added=timezone.now() - timedelta(minutes=30))
 
         grp_resolution = GroupResolution.objects.filter(group=group)
 
