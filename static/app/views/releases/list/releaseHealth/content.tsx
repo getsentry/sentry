@@ -30,7 +30,9 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
-export const ADOPTION_STAGE_LABELS = {
+export const ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
+
+const ADOPTION_STAGE_LABELS = {
   low_adoption: {
     name: t('Low Adoption'),
     type: 'warning',

@@ -56,7 +56,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withIssueTags from 'app/utils/withIssueTags';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
-import {ADOPTION_STAGE_LABELS} from 'app/views/releases/list/releaseHealth/content';
+import {ADOPTION_STAGES} from 'app/views/releases/list/releaseHealth/content';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -1061,7 +1061,7 @@ class IssueListOverview extends React.Component<Props, State> {
         key: 'release.stage',
         name: 'release.stage',
         predefined: true,
-        values: Object.keys(ADOPTION_STAGE_LABELS),
+        values: ADOPTION_STAGES,
       };
     }
 
