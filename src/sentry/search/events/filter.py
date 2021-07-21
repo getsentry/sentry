@@ -17,6 +17,7 @@ from sentry.api.event_search import (
     SearchValue,
     parse_search_query,
 )
+from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, Release, SemverFilter
@@ -547,9 +548,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     # part of these
                     version_parts.append(int(part))
                 except ValueError:
-                    raise InvalidSearchQuery(
-                        'Invalid format of semantic version. For searching non-semver releases, use "release:" instead.'
-                    )
+                    raise InvalidSearchQuery(INVALID_SEMVER_MESSAGE)
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
         return SemverFilter("exact", version_parts, package)

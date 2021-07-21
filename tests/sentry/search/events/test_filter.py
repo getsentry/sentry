@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.models import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
@@ -1513,7 +1514,7 @@ class SemverFilterConverterTest(TestCase):
         filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.hi"))
         with pytest.raises(
             InvalidSearchQuery,
-            match='Invalid format of semantic version. For searching non-semver releases, use "release:" instead.',
+            match=INVALID_SEMVER_MESSAGE,
         ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
@@ -1710,12 +1711,12 @@ class ParseSemverTest(unittest.TestCase):
     def test_invalid(self):
         with pytest.raises(
             InvalidSearchQuery,
-            match='Invalid format of semantic version. For searching non-semver releases, use "release:" instead.',
+            match=INVALID_SEMVER_MESSAGE,
         ):
             parse_semver("1.hello", ">") is None
         with pytest.raises(
             InvalidSearchQuery,
-            match='Invalid format of semantic version. For searching non-semver releases, use "release:" instead.',
+            match=INVALID_SEMVER_MESSAGE,
         ):
             parse_semver("hello", ">") is None
 
