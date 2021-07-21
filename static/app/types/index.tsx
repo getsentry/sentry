@@ -384,7 +384,6 @@ export type TreeLabelPart =
 
 // This type is incomplete
 export type EventMetadata = {
-  current_level: number;
   value?: string;
   message?: string;
   directive?: string;
@@ -397,6 +396,7 @@ export type EventMetadata = {
   stripped_crash?: boolean;
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
+  current_level?: number;
 };
 
 export type EventAttachment = {

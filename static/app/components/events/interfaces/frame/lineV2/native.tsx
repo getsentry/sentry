@@ -18,19 +18,15 @@ import {getPlatform} from '../utils';
 
 import Expander from './expander';
 import GroupingBadges from './groupingBadges';
-import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
-  React.ComponentProps<typeof LeadHint> &
   Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
     frame: Frame;
-    leadsToApp: boolean;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
     showingAbsoluteAddress?: boolean;
     showCompleteFunctionName?: boolean;
-    nextFrame?: Frame;
     prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
     maxLengthOfRelativeAddress?: number;
@@ -44,8 +40,6 @@ function Native({
   frame,
   isFrameAfterLastNonApp,
   isExpanded,
-  nextFrame,
-  leadsToApp,
   isHoverPreviewed,
   onAddressToggle,
   image,
@@ -119,28 +113,18 @@ function Native({
       haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
     >
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-        <PackageInfo>
-          <LeadHint
-            isExpanded={isExpanded}
-            nextFrame={nextFrame}
-            leadsToApp={leadsToApp}
-          />
-          <PackageLink
-            includeSystemFrames={!!includeSystemFrames}
-            withLeadHint={!(isExpanded || !leadsToApp)}
-            packagePath={frame.package}
-            onClick={scrollToImage}
-            isClickable={shouldShowLinkToImage}
-            isHoverPreviewed={isHoverPreviewed}
-          >
-            {!isHoverPreviewed && (
-              <PackageStatus
-                status={packageStatus()}
-                tooltip={t('Go to Images Loaded')}
-              />
-            )}
-          </PackageLink>
-        </PackageInfo>
+        <StyledPackageLink
+          includeSystemFrames={!!includeSystemFrames}
+          withLeadHint={false}
+          packagePath={frame.package}
+          onClick={scrollToImage}
+          isClickable={shouldShowLinkToImage}
+          isHoverPreviewed={isHoverPreviewed}
+        >
+          {!isHoverPreviewed && (
+            <PackageStatus status={packageStatus()} tooltip={t('Go to Images Loaded')} />
+          )}
+        </StyledPackageLink>
         {instructionAddr && (
           <TogglableAddress
             address={instructionAddr}
@@ -179,6 +163,14 @@ function Native({
 
 export default Native;
 
+const StyledPackageLink = styled(PackageLink)`
+  order: 2;
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    order: 0;
+  }
+`;
+
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
@@ -198,15 +190,5 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
       1fr;
-  }
-`;
-
-const PackageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  order: 2;
-  align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    order: 0;
   }
 `;

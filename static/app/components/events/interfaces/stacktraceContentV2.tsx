@@ -196,7 +196,6 @@ function StackTraceContent({
             frame,
             isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
             emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-            nextFrame,
             prevFrame,
             platform,
             timesRepeated: nRepeats,
@@ -204,7 +203,7 @@ function StackTraceContent({
             onAddressToggle: handleToggleAddresses,
             image: findImageForAddress(frame.instructionAddr, frame.addrMode),
             maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
-            registers: {}, // TODO: Fix registers
+            registers: {},
             includeSystemFrames,
             onFunctionNameToggle: handleToggleFunctionName,
             showCompleteFunctionName,
@@ -244,7 +243,6 @@ function StackTraceContent({
 
     if (convertedFrames.length > 0 && registers) {
       const lastFrame = convertedFrames.length - 1;
-
       convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
         registers,
       });
