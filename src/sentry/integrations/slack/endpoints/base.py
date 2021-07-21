@@ -1,9 +1,11 @@
-from rest_framework.request import Request
+import abc
+
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
+from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
@@ -17,8 +19,8 @@ ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
 FEATURE_FLAG_MESSAGE = "This feature hasn't been released yet, hang tight."
 
 
-class SlackDMEndpoint(Endpoint):  # type: ignore
-    def post_dispatcher(self, request: Request):
+class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
+    def post_dispatcher(self, request: SlackRequest):
         """
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
