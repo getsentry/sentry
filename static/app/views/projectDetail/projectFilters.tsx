@@ -1,9 +1,9 @@
 import SmartSearchBar from 'app/components/smartSearchBar';
+import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {t} from 'app/locale';
 import {Tag} from 'app/types';
 
 import {TagValueLoader} from '../issueList/types';
-import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 
 const supportedTags = {
   'release.version': {
