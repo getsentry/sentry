@@ -235,15 +235,6 @@ function ReleaseComparisonChart({
     }
   }
 
-  const activeChart = decodeScalar(
-    location.query.chart,
-    hasHealthData
-      ? ReleaseComparisonChartType.CRASH_FREE_SESSIONS
-      : hasPerformance
-      ? ReleaseComparisonChartType.FAILURE_RATE
-      : ReleaseComparisonChartType.ERROR_COUNT
-  ) as ReleaseComparisonChartType;
-
   const releaseCrashFreeSessions = getCrashFreeRate(
     releaseSessions?.groups,
     SessionField.SESSIONS
@@ -764,7 +755,23 @@ function ReleaseComparisonChart({
     ) : null;
   }
 
-  const chart = charts.find(ch => ch.type === activeChart);
+  let activeChart = decodeScalar(
+    location.query.chart,
+    hasHealthData
+      ? ReleaseComparisonChartType.CRASH_FREE_SESSIONS
+      : hasPerformance
+      ? ReleaseComparisonChartType.FAILURE_RATE
+      : ReleaseComparisonChartType.ERROR_COUNT
+  ) as ReleaseComparisonChartType;
+
+  let chart = charts.find(ch => ch.type === activeChart);
+
+  if (!chart) {
+    chart = charts[0];
+    activeChart = charts[0].type;
+  }
+
+  const showPlaceholders = loading || eventsLoading;
 
   if (errored || !chart) {
     return (
@@ -835,9 +842,15 @@ function ReleaseComparisonChart({
             diffColor,
           }) => {
             return (
-              <Fragment key={type}>
-                <DescriptionCell role={role}>
-                  <ChartToggle htmlFor={type}>
+              <ChartTableRow
+                key={type}
+                htmlFor={type}
+                isActive={type === activeChart}
+                isLoading={showPlaceholders}
+                role={role}
+              >
+                <DescriptionCell>
+                  <TitleWrapper>
                     <Radio
                       id={type}
                       disabled={false}
@@ -845,10 +858,10 @@ function ReleaseComparisonChart({
                       onChange={() => handleChartChange(type)}
                     />
                     {releaseComparisonChartLabels[type]}&nbsp;{drilldown}
-                  </ChartToggle>
+                  </TitleWrapper>
                 </DescriptionCell>
-                <Cell role={role}>
-                  {loading || eventsLoading ? (
+                <Cell>
+                  {showPlaceholders ? (
                     <Placeholder height="20px" />
                   ) : defined(allReleases) ? (
                     allReleases
@@ -856,8 +869,8 @@ function ReleaseComparisonChart({
                     <NotAvailable />
                   )}
                 </Cell>
-                <Cell role={role}>
-                  {loading || eventsLoading ? (
+                <Cell>
+                  {showPlaceholders ? (
                     <Placeholder height="20px" />
                   ) : defined(thisRelease) ? (
                     thisRelease
@@ -865,8 +878,8 @@ function ReleaseComparisonChart({
                     <NotAvailable />
                   )}
                 </Cell>
-                <Cell role={role}>
-                  {loading || eventsLoading ? (
+                <Cell>
+                  {showPlaceholders ? (
                     <Placeholder height="20px" />
                   ) : defined(diff) ? (
                     getChartDiff(diff, diffColor, diffDirection)
@@ -874,7 +887,7 @@ function ReleaseComparisonChart({
                     <NotAvailable />
                   )}
                 </Cell>
-              </Fragment>
+              </ChartTableRow>
             );
           }
         )}
@@ -890,76 +903,128 @@ const ChartPanel = styled(Panel)`
   border-bottom-right-radius: 0;
 `;
 
-const ChartTable = styled(PanelTable)`
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-
-  grid-template-columns: minmax(424px, auto) repeat(3, minmax(min-content, 1fr));
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr));
-  }
-`;
-
-const Cell = styled('div')<{role?: ComparisonRow['role']}>`
+const Cell = styled('div')`
   text-align: right;
   ${overflowEllipsis}
-  ${p =>
-    p.role &&
-    ['parent', 'children'].includes(p.role) &&
-    css`
-      && {
-        border-bottom: 0;
-        padding-bottom: 0;
-      }
-    `}
 `;
 
 const DescriptionCell = styled(Cell)`
   text-align: left;
   overflow: visible;
-  ${p =>
-    p.role === 'children' &&
-    css`
-      padding-left: 50px;
-      position: relative;
-      &:before {
-        content: '';
-        width: 15px;
-        height: 40px;
-        position: absolute;
-        top: -11px;
-        left: 27px;
-        border-bottom: 1px solid ${p.theme.border};
-        border-left: 1px solid ${p.theme.border};
-      }
-    `}
 `;
 
-const ChartToggle = styled('label')`
+const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-weight: 400;
-  margin-bottom: 0;
   position: relative;
   z-index: 1;
   background: ${p => p.theme.background};
 
   input {
     flex-shrink: 0;
+    background-color: ${p => p.theme.background};
     margin-right: ${space(1)} !important;
+
     &:hover {
       cursor: pointer;
     }
-  }
-  &:hover {
-    cursor: pointer;
   }
 `;
 
 const Change = styled('div')<{color?: Color}>`
   font-size: ${p => p.theme.fontSizeLarge};
   ${p => p.color && `color: ${p.theme[p.color]}`}
+`;
+
+const ChartTableRow = styled('label')<{
+  isActive: boolean;
+  role: ComparisonRow['role'];
+  isLoading: boolean;
+}>`
+  display: contents;
+  font-weight: 400;
+  margin-bottom: 0;
+
+  ${p =>
+    p.isActive &&
+    !p.isLoading &&
+    css`
+      ${Cell},${DescriptionCell}, ${TitleWrapper} {
+        background-color: ${p.theme.bodyBackground};
+      }
+    `}
+
+  &:hover {
+    cursor: pointer;
+    ${Cell},${DescriptionCell}, ${TitleWrapper} {
+      ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
+    }
+  }
+
+  ${p =>
+    p.role === 'default' &&
+    css`
+      &:not(:last-child) {
+        ${Cell}, ${DescriptionCell} {
+          border-bottom: 1px solid ${p.theme.border};
+        }
+      }
+    `}
+
+  ${p =>
+    p.role === 'parent' &&
+    css`
+      ${Cell}, ${DescriptionCell} {
+        margin-top: ${space(0.75)};
+      }
+    `}
+
+  ${p =>
+    p.role === 'children' &&
+    css`
+      ${DescriptionCell} {
+        padding-left: 50px;
+        position: relative;
+        &:before {
+          content: '';
+          width: 15px;
+          height: 36px;
+          position: absolute;
+          top: -17px;
+          left: 27px;
+          border-bottom: 1px solid ${p.theme.border};
+          border-left: 1px solid ${p.theme.border};
+        }
+      }
+    `}
+
+    ${p =>
+    (p.role === 'parent' || p.role === 'children') &&
+    css`
+      ${Cell}, ${DescriptionCell} {
+        padding-bottom: ${space(0.75)};
+        padding-top: ${space(0.75)};
+        border-bottom: 0;
+      }
+    `}
+`;
+
+const ChartTable = styled(PanelTable)`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  grid-template-columns: minmax(424px, auto) repeat(3, minmax(min-content, 1fr));
+
+  > * {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+
+  ${ChartTableRow} > * {
+    padding: ${space(2)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(4, minmax(min-content, 1fr));
+  }
 `;
 
 export default ReleaseComparisonChart;
