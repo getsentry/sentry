@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -17,10 +18,16 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
+import {
+  Column,
+  generateFieldAsString,
+  getAggregateAlias,
+  WebVital,
+} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
@@ -41,10 +48,9 @@ import {
 import VitalPercents from '../vitalDetail/vitalPercents';
 
 import {
-  backendCardDetails,
-  getBackendFunction,
   getDefaultDisplayFieldForPlatform,
   LandingDisplayField,
+  vitalCardDetails,
 } from './utils';
 
 type FrontendCardsProps = {
@@ -123,22 +129,23 @@ const VitalBarContainer = styled('div')`
   margin-top: ${space(1.5)};
 `;
 
-type BackendCardsProps = {
+type BaseCardsProps = {
   api: Client;
   eventView: EventView;
   location: Location;
   organization: Organization;
 };
 
-function _BackendCards(props: BackendCardsProps) {
-  const {api, eventView: baseEventView, location, organization} = props;
-  const functionNames = [
-    'p75' as const,
-    'tpm' as const,
-    'failure_rate' as const,
-    'apdex' as const,
-  ];
-  const functions = functionNames.map(fn => getBackendFunction(fn, organization));
+type OptionalColumn = Column & {
+  optional?: boolean;
+};
+
+type GenericCardsProps = BaseCardsProps & {
+  functions: OptionalColumn[];
+};
+
+function GenericCards(props: GenericCardsProps) {
+  const {api, eventView: baseEventView, location, organization, functions} = props;
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
@@ -184,17 +191,33 @@ function _BackendCards(props: BackendCardsProps) {
               allSeries[oneSeries.seriesName] = oneSeries.data.map(item => item.value);
               return allSeries;
             }, {});
-            const fields = eventView
-              .getFields()
-              .map((fn, i) => [functionNames[i], fn, series?.[fn]]);
+            const details = vitalCardDetails(organization);
 
             return (
               <VitalsContainer>
-                {fields.map(([name, fn, data]) => {
-                  const {title, tooltip, formatter} =
-                    backendCardDetails(organization)[name];
-                  const alias = getAggregateAlias(fn);
+                {functions.map(func => {
+                  let fieldName = generateFieldAsString(func);
+
+                  if (fieldName.includes('apdex')) {
+                    // Replace apdex with explicit thresholds with a generic one for lookup
+                    fieldName = 'apdex()';
+                  }
+
+                  const cardDetail = details[fieldName];
+                  if (!cardDetail) {
+                    Sentry.captureMessage(`Missing field '${fieldName}' in vital cards.`);
+                    return null;
+                  }
+
+                  const {title, tooltip, formatter} = cardDetail;
+                  const alias = getAggregateAlias(fieldName);
                   const rawValue = tableData?.data?.[0]?.[alias];
+
+                  if (func.optional && !defined(rawValue)) {
+                    return null;
+                  }
+
+                  const data = series?.[fieldName];
                   const value =
                     isSummaryLoading || rawValue === undefined
                       ? '\u2014'
@@ -202,7 +225,7 @@ function _BackendCards(props: BackendCardsProps) {
                   const chart = <SparklineChart data={data} />;
                   return (
                     <VitalCard
-                      key={name}
+                      key={fieldName}
                       title={title}
                       tooltip={tooltip}
                       value={value}
@@ -222,7 +245,58 @@ function _BackendCards(props: BackendCardsProps) {
   );
 }
 
+function _BackendCards(props: BaseCardsProps) {
+  const {organization} = props;
+  const functions: Column[] = [
+    {
+      kind: 'function',
+      function: ['p75', 'transaction.duration', undefined, undefined],
+    },
+    {kind: 'function', function: ['tpm', '', undefined, undefined]},
+    {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
+    organization.features.includes('project-transaction-threshold')
+      ? {
+          kind: 'function',
+          function: ['apdex', '', undefined, undefined],
+        }
+      : {
+          kind: 'function',
+          function: ['apdex', `${organization.apdexThreshold}`, undefined, undefined],
+        },
+  ];
+  return <GenericCards {...props} functions={functions} />;
+}
+
 export const BackendCards = withApi(_BackendCards);
+
+function _MobileCards(props: BaseCardsProps) {
+  const functions: OptionalColumn[] = [
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.app_start_cold', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.app_start_warm', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.stall_percentage', undefined, undefined],
+      optional: true,
+    },
+  ];
+  return <GenericCards {...props} functions={functions} />;
+}
+
+export const MobileCards = withApi(_MobileCards);
 
 type SparklineChartProps = {
   data: number[];
@@ -353,7 +427,7 @@ const EmptyVitalBar = styled(EmptyStateWarning)`
 type VitalCardProps = {
   title: string;
   tooltip: string;
-  value: string;
+  value: string | number;
   chart: React.ReactNode;
   minHeight?: number;
   horizontal?: boolean;

@@ -61,7 +61,7 @@ class RouteError extends Component<Props> {
       }
     }
     // TODO(dcramer): show something in addition to embed (that contains it?)
-    // throw this in a timeout so if it errors we dont fall over
+    // throw this in a timeout so if it errors we don't fall over
     this._timeout = window.setTimeout(() => {
       Sentry.withScope(scope => {
         enrichScopeContext(scope);

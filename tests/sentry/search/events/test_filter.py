@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.models import ReleaseProjectEnvironment
+from sentry.models import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -17,7 +17,12 @@ from sentry.search.events.constants import (
     SEMVER_EMPTY_RELEASE,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
+from sentry.search.events.fields import (
+    DiscoverFunction,
+    FunctionArg,
+    InvalidSearchQuery,
+    with_default,
+)
 from sentry.search.events.filter import (
     _semver_build_filter_converter,
     _semver_filter_converter,
@@ -1350,7 +1355,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
-            f"{RELEASE_STAGE_ALIAS}:[replaced, not_adopted]",
+            f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.LOW_ADOPTION}]",
             {"organization_id": self.organization.id},
         )
         assert _filter.conditions == [
@@ -1359,7 +1364,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
-            f"!{RELEASE_STAGE_ALIAS}:[adopted, not_adopted]",
+            f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.LOW_ADOPTION}]",
             {"organization_id": self.organization.id},
         )
         assert _filter.conditions == [["release", "IN", [replaced_release.version]]]
@@ -1376,14 +1381,14 @@ def with_type(type, argument):
     return argument
 
 
-class FunctionTest(unittest.TestCase):
+class DiscoverFunctionTest(unittest.TestCase):
     def setUp(self):
-        self.fn_wo_optionals = Function(
+        self.fn_wo_optionals = DiscoverFunction(
             "wo_optionals",
             required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
             transform="",
         )
-        self.fn_w_optionals = Function(
+        self.fn_w_optionals = DiscoverFunction(
             "w_optionals",
             required_args=[FunctionArg("arg1")],
             optional_args=[with_default("default", FunctionArg("arg2"))],
@@ -1409,7 +1414,7 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_valid(self):
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
-        # because the last argument is optional, we dont need to provide it
+        # because the last argument is optional, we don't need to provide it
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
 
     def test_optional_not_enough_arguments(self):
@@ -1430,13 +1435,13 @@ class FunctionTest(unittest.TestCase):
         with self.assertRaisesRegexp(
             AssertionError, "test: optional argument at index 0 does not have default"
         ):
-            Function("test", optional_args=[FunctionArg("arg1")])
+            DiscoverFunction("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
         with self.assertRaisesRegexp(
             AssertionError, "test: argument arg1 specified more than once"
         ):
-            Function(
+            DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
                 optional_args=[with_default("default", FunctionArg("arg1"))],
@@ -1446,7 +1451,7 @@ class FunctionTest(unittest.TestCase):
         with self.assertRaisesRegexp(
             AssertionError, "test: argument arg1 specified more than once"
         ):
-            Function(
+            DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
                 calculated_args=[{"name": "arg1", "fn": lambda x: x}],
@@ -1456,7 +1461,7 @@ class FunctionTest(unittest.TestCase):
         with self.assertRaisesRegexp(
             AssertionError, "test: argument arg1 specified more than once"
         ):
-            Function(
+            DiscoverFunction(
                 "test",
                 optional_args=[with_default("default", FunctionArg("arg1"))],
                 calculated_args=[{"name": "arg1", "fn": lambda x: x}],
@@ -1464,20 +1469,20 @@ class FunctionTest(unittest.TestCase):
             )
 
     def test_default_result_type(self):
-        fn = Function("fn", transform="")
+        fn = DiscoverFunction("fn", transform="")
         assert fn.get_result_type() is None
 
-        fn = Function("fn", transform="", default_result_type="number")
+        fn = DiscoverFunction("fn", transform="", default_result_type="number")
         assert fn.get_result_type() == "number"
 
     def test_result_type_fn(self):
-        fn = Function("fn", transform="", result_type_fn=lambda *_: None)
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None)
         assert fn.get_result_type("fn()", []) is None
 
-        fn = Function("fn", transform="", result_type_fn=lambda *_: "number")
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: "number")
         assert fn.get_result_type("fn()", []) == "number"
 
-        fn = Function(
+        fn = DiscoverFunction(
             "fn",
             required_args=[with_type("number", FunctionArg("arg1"))],
             transform="",
@@ -1486,7 +1491,7 @@ class FunctionTest(unittest.TestCase):
         assert fn.get_result_type("fn()", ["arg1"]) == "number"
 
     def test_private_function(self):
-        fn = Function("fn", transform="", result_type_fn=lambda *_: None, private=True)
+        fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None, private=True)
         assert fn.is_accessible() is False
         assert fn.is_accessible(None) is False
         assert fn.is_accessible([]) is False

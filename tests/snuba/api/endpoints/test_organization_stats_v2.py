@@ -321,7 +321,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": "2021-03-14T00:00:00Z",
             "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [],
         }
 
@@ -385,16 +384,13 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": "2021-03-14T00:00:00Z",
             "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {"project": self.project.id},
-                    "series": {"sum(quantity)": [6]},
                     "totals": {"sum(quantity)": 6},
                 },
                 {
                     "by": {"project": self.project2.id},
-                    "series": {"sum(quantity)": [1]},
                     "totals": {"sum(quantity)": 1},
                 },
             ],
@@ -512,20 +508,50 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": "2021-03-14T00:00:00Z",
             "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {"project": self.project.id},
                     "totals": {"sum(times_seen)": 6},
-                    "series": {"sum(times_seen)": [6]},
                 },
                 {
                     "by": {"project": self.project2.id},
                     "totals": {"sum(times_seen)": 1},
-                    "series": {"sum(times_seen)": [1]},
                 },
             ],
         }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_org_project_totals_per_project(self):
+        make_request = functools.partial(
+            self.client.get,
+            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
+        )
+        response_per_group = make_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1h",
+                "field": ["sum(times_seen)"],
+                "groupBy": ["project"],
+                "category": ["error", "transaction"],
+            }
+        )
+
+        response_total = make_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1h",
+                "field": ["sum(times_seen)"],
+                "category": ["error", "transaction"],
+            }
+        )
+
+        per_group_total = 0
+        for total in response_per_group.data["groups"]:
+            per_group_total += total["totals"]["sum(times_seen)"]
+
+        assert response_per_group.status_code == 200, response_per_group.content
+        assert response_total.status_code == 200, response_total.content
+        assert response_total.data["groups"][0]["totals"]["sum(times_seen)"] == per_group_total
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_project_filter(self):

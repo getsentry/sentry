@@ -502,7 +502,7 @@ class EventManager:
                 )
 
         if is_reprocessed:
-            safe_execute(delete_old_primary_hash, job["event"])
+            safe_execute(delete_old_primary_hash, job["event"], _with_transaction=False)
 
         _eventstream_insert_many(jobs)
 
@@ -645,7 +645,7 @@ def _get_or_create_release_many(jobs, projects):
             if job["dist"]:
                 job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
 
-                # dont allow a conflicting 'dist' tag
+                # don't allow a conflicting 'dist' tag
                 pop_tag(job["data"], "dist")
                 set_tag(job["data"], "sentry:dist", job["dist"].name)
 
@@ -1235,7 +1235,7 @@ def _handle_regression(group, event, release):
     is_regression = bool(
         Group.objects.filter(
             id=group.id,
-            # ensure we cant update things if the status has been set to
+            # ensure we can't update things if the status has been set to
             # ignored
             status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
         )

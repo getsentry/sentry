@@ -1,12 +1,14 @@
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import {ExceptionValue, PlatformType} from 'app/types';
+import {ExceptionValue, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+
+import StacktraceContent from './stacktraceContent';
+import StacktraceContentV2 from './stacktraceContentV2';
 
 type Props = {
   data: ExceptionValue['stacktrace'];
@@ -14,6 +16,8 @@ type Props = {
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
+  hasGroupingTreeUI: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
   newestFirst?: boolean;
@@ -25,6 +29,8 @@ const ExceptionStacktraceContent = ({
   chainedException,
   platform,
   newestFirst,
+  groupingCurrentLevel,
+  hasGroupingTreeUI,
   data,
   expandFirstFrame,
   event,
@@ -60,6 +66,20 @@ const ExceptionStacktraceContent = ({
    *
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
+
+  if (hasGroupingTreeUI) {
+    return (
+      <StacktraceContentV2
+        data={data}
+        expandFirstFrame={expandFirstFrame}
+        includeSystemFrames={stackView === STACK_VIEW.FULL}
+        groupingCurrentLevel={groupingCurrentLevel}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+      />
+    );
+  }
 
   return (
     <StacktraceContent

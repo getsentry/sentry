@@ -23,6 +23,9 @@ SEMVER_BUILD_ALIAS = "release.build"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
+MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
+MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
+MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -81,6 +84,7 @@ SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 # Allow list of fields that are compatible with the Snql Query Builder.
 # Once we reach a certain threshold of fields handled should turn this into a denylist
@@ -89,6 +93,7 @@ SNQL_FIELD_ALLOWLIST = {
     "environment",
     "message",
     "project",
+    "transaction",
     "project.id",
     "release",
     USER_DISPLAY_ALIAS,
