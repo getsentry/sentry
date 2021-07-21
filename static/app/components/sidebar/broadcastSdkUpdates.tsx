@@ -103,7 +103,7 @@ const Suggestions = styled('div')`
   margin-left: calc(${space(4)} + ${space(0.25)});
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(1.5)};
+  grid-gap: ${space(0.5)};
 `;
 
 const SdkProjectBadge = styled(ProjectBadge)`
