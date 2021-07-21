@@ -278,7 +278,6 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ADD:
             return "created project {}".format(self.data["slug"])
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
-            # __import__("pdb").set_trace()
             return "edited project settings " + (
                 " ".join(f" in {key} to {value}" for (key, value) in self.data.items())
                 if self.data["old_slug"] is None
