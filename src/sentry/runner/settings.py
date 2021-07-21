@@ -92,11 +92,13 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     # Make sure that our warnings are always displayed.
     warnings.filterwarnings("default", "", Warning, r"^sentry")
 
-    from django.utils.deprecation import RemovedInDjango21Warning
+    from django.utils.deprecation import RemovedInDjango21Warning, RemovedInDjango30Warning
 
     # While we're on Django 1.9, we only care about RemovedInDjango20Warning.
     # TODO(joshuarli): Remove this after RemovedInDjango21Warnings are fixed in testing.
     warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
+
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
 
     # Add in additional mimetypes that are useful for our static files
     # which aren't common in default system registries
