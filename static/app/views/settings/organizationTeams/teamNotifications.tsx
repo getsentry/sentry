@@ -117,8 +117,11 @@ export default withOrganization(TeamNotificationSettings);
 
 const NotDisabledText = styled('div')`
   color: ${p => p.theme.textColor};
+  line-height: 16px;
 `;
 const NotDisabledSubText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
+  line-height: 1.4;
+  margin-top: 8px;
 `;
