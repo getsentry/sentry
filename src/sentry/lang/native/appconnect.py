@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 # The key in the project options under which all symbol sources are stored.
 SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
+# The key in the project options under which all of the dates corresponding to the last time sentry
+# checked for new builds in App Store Connect are stored.
+APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
 
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
@@ -156,16 +159,6 @@ class AppStoreConnectConfig:
         return cls(**data)
 
     @classmethod
-    def all_for_project(cls, project: Project) -> "List[AppStoreConnectConfig]":
-        sources = []
-        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
-        all_sources = json.loads(raw)
-        for source in all_sources:
-            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
-                sources.append(cls.from_json(source))
-        return sources
-
-    @classmethod
     def from_project_config(cls, project: Project, config_id: str) -> "AppStoreConnectConfig":
         """Creates a new instance from the symbol source configured in the project.
 
@@ -241,9 +234,9 @@ class BuildInfo:
     # The app ID
     app_id: str
 
-    # A platform identifying e.g. iOS, TvOS etc.
+    # A platform identifier, e.g. iOS, TvOS etc.
     #
-    # These are not always human readable but some opaque string supplied by apple.
+    # These are not always human-readable and can be some opaque string supplied by Apple.
     platform: str
 
     # The human-readable version, e.g. "7.2.0".
@@ -256,6 +249,9 @@ class BuildInfo:
     #
     # Apple naming calls this the "bundle_version".
     build_number: str
+
+    # The date and time the build was uploaded to App Store Connect.
+    uploaded_date: datetime
 
 
 class ITunesClient:
@@ -359,6 +355,7 @@ class AppConnectClient:
                     platform=build["platform"],
                     version=build["version"],
                     build_number=build["build_number"],
+                    uploaded_date=build["uploaded_date"],
                 )
             )
 

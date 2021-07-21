@@ -1416,7 +1416,7 @@ class ResolveFieldListTest(unittest.TestCase):
                                             for name in ["ok", "cancelled", "unknown"]
                                         ],
                                     ],
-                                    "transaction_status",
+                                    "transaction.status",
                                 ],
                             ],
                         ],
@@ -1600,10 +1600,6 @@ class ResolveFieldListTest(unittest.TestCase):
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(stack.function, equals, test)"], eventstore.Filter())
         assert str(query_error.exception) == "stack.function is not supported by count_if"
-
-        with self.assertRaises(InvalidSearchQuery) as query_error:
-            resolve_field_list(["count_if(http.status_code, greater, test)"], eventstore.Filter())
-        assert str(query_error.exception) == "greater is not compatible with http.status_code"
 
         with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(

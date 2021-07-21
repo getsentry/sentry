@@ -56,10 +56,16 @@ function ReleaseComparisonChart({
       return [];
     }
 
-    const sessionsMarkLines = generateReleaseMarkLines(release, project.slug, theme, {
-      hideLabel: true,
-      axisIndex: 0,
-    });
+    const sessionsMarkLines = generateReleaseMarkLines(
+      release,
+      project,
+      theme,
+      location,
+      {
+        hideLabel: true,
+        axisIndex: 0,
+      }
+    );
 
     const series = [
       ...sessionsMarkLines,
@@ -78,7 +84,7 @@ function ReleaseComparisonChart({
     ];
 
     if (hasUsers) {
-      const usersMarkLines = generateReleaseMarkLines(release, project.slug, theme, {
+      const usersMarkLines = generateReleaseMarkLines(release, project, theme, location, {
         hideLabel: true,
         axisIndex: 1,
       });

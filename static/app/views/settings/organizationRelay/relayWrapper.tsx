@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -177,15 +176,11 @@ class RelayWrapper extends AsyncView<Props, State> {
           }
         />
         <PermissionAlert />
-        <StyledTextBlock>
-          {t(
-            'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io.'
-          )}
-        </StyledTextBlock>
         <TextBlock>
-          {tct(`Go to [link:Relay Documentation] for setup and details.`, {
-            link: <ExternalLink href={RELAY_DOCS_LINK} />,
-          })}
+          {tct(
+            'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+            {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+          )}
         </TextBlock>
         {this.renderContent(disabled)}
       </Fragment>
@@ -194,7 +189,3 @@ class RelayWrapper extends AsyncView<Props, State> {
 }
 
 export default RelayWrapper;
-
-const StyledTextBlock = styled(TextBlock)`
-  max-width: 600px;
-`;

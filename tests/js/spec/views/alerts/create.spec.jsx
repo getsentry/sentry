@@ -157,15 +157,71 @@ describe('ProjectAlertsCreate', function () {
       expect(getByDisplayValue('30')).toBeInTheDocument();
     });
 
+    it('can remove filters, conditions and actions', async function () {
+      const {
+        wrapper: {getByLabelText, getByPlaceholderText, getByText},
+      } = createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
+
+      await waitFor(() => {
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+      });
+
+      // Change name of alert rule
+      fireEvent.change(getByPlaceholderText('My Rule Name'), {
+        target: {value: 'My Rule Name'},
+      });
+
+      // Add a condition and remove it
+      await selectEvent.select(getByText('Add optional condition...'), [
+        'A new issue is created',
+      ]);
+      fireEvent.click(getByLabelText('Delete Node'));
+
+      // Add a filter and remove it
+      await selectEvent.select(getByText('Add optional filter...'), [
+        'The issue is {comparison_type} than {value} {time}',
+      ]);
+      fireEvent.click(getByLabelText('Delete Node'));
+
+      // Add an action and remove it
+      await selectEvent.select(getByText('Add action...'), [
+        'Send a notification (for all legacy integrations)',
+      ]);
+      fireEvent.click(getByLabelText('Delete Node'));
+
+      fireEvent.click(getByText('Save Rule'));
+
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
+
     it('updates values and saves', async function () {
       const {
-        wrapper: {
-          getAllByLabelText,
-          getAllByText,
-          getByLabelText,
-          getByPlaceholderText,
-          getByText,
-        },
+        wrapper: {getAllByText, getByPlaceholderText, getByText},
         router,
       } = createWrapper({
         organization: {
@@ -184,6 +240,7 @@ describe('ProjectAlertsCreate', function () {
 
       // Change target environment
       await selectEvent.select(getByText('All Environments'), ['production']);
+
       // Change actionMatch and filterMatch dropdown
       await selectEvent.select(getAllByText('all')[0], ['any']);
       await selectEvent.select(getAllByText('all')[0], ['any']);
@@ -192,12 +249,6 @@ describe('ProjectAlertsCreate', function () {
       fireEvent.change(getByPlaceholderText('My Rule Name'), {
         target: {value: 'My Rule Name'},
       });
-
-      // Add a condition and remove it
-      await selectEvent.select(getByText('Add optional condition...'), [
-        'A new issue is created',
-      ]);
-      fireEvent.click(getByLabelText('Delete Node'));
 
       // Add another condition
       await selectEvent.select(getByText('Add optional condition...'), [
@@ -212,12 +263,6 @@ describe('ProjectAlertsCreate', function () {
       });
       await selectEvent.select(getByText('equals'), ['does not equal']);
 
-      // Add a filter and remove it
-      await selectEvent.select(getByText('Add optional filter...'), [
-        'The issue is {comparison_type} than {value} {time}',
-      ]);
-      fireEvent.click(getAllByLabelText('Delete Node')[1]);
-
       // Add a new filter
       await selectEvent.select(getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
@@ -225,12 +270,6 @@ describe('ProjectAlertsCreate', function () {
       fireEvent.change(getByPlaceholderText('10'), {
         target: {value: '12'},
       });
-
-      // Add an action and remove it
-      await selectEvent.select(getByText('Add action...'), [
-        'Send a notification (for all legacy integrations)',
-      ]);
-      fireEvent.click(getAllByLabelText('Delete Node')[2]);
 
       // Add a new action
       await selectEvent.select(getByText('Add action...'), [

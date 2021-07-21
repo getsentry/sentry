@@ -7,9 +7,11 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
+from datetime import datetime
 from typing import List, Mapping
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
@@ -51,6 +53,15 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             build_state = get_or_create_persisted_build(project, config, build)
             if not build_state.fetched:
                 builds.append((build, build_state))
+
+    build_refresh_dates = project.get_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default={}
+    )
+    build_refresh_dates[config_id] = json.dumps(datetime.now())
+    serialized_refresh_dates = json.dumps(build_refresh_dates)
+    project.update_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
+    )
 
     itunes_client = client.itunes_client()
     for (build, build_state) in builds:
@@ -108,8 +119,9 @@ def get_or_create_persisted_build(
             platform=build.platform,
             bundle_short_version=build.version,
             bundle_version=build.build_number,
+            uploaded_to_appstore=build.uploaded_date,
+            first_seen=timezone.now(),
             fetched=False,
-            # TODO: persist the `uploadedDate` attribute as well.
         )
         build_state.save()
     return build_state

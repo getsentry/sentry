@@ -198,8 +198,17 @@ def wip_snql_query(
     Replacement API for query using snql, this function is still a work in
     progress and is not ready for use in production
     """
-    builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
+    builder = QueryBuilder(
+        Dataset.Discover,
+        params,
+        query=query,
+        selected_columns=selected_columns,
+        orderby=orderby,
+        use_aggregate_conditions=use_aggregate_conditions,
+        limit=limit,
+    )
     snql_query = builder.get_snql_query()
+
     results = raw_snql_query(snql_query, referrer)
     return results
 
@@ -590,7 +599,7 @@ def top_events_timeseries(
         )
 
         for field in selected_columns:
-            # If we have a project field, we need to limit results by project so we dont hit the result limit
+            # If we have a project field, we need to limit results by project so we don't hit the result limit
             if field in ["project", "project.id"] and top_events["data"]:
                 snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
                 continue

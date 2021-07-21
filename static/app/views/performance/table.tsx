@@ -410,13 +410,11 @@ class Table extends React.Component<Props, State> {
   };
 
   getSortedEventView() {
-    const {eventView, organization} = this.props;
+    const {eventView} = this.props;
 
     return eventView.withSorts([
       {
-        field: organization.features.includes('team-key-transactions')
-          ? 'team_key_transaction'
-          : 'key_transaction',
+        field: 'team_key_transaction',
         kind: 'desc',
       },
       ...eventView.sorts,

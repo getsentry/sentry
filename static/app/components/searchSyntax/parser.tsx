@@ -127,7 +127,7 @@ const numberUnits = {
 /**
  * This constant-type configuration object declares how each filter type
  * operates. Including what types of keys, operators, and values it may
- * recieve.
+ * receive.
  *
  * This configuration is used to generate the discriminate Filter type that is
  * returned from the tokenFilter converter.
@@ -712,7 +712,12 @@ export type SearchConfig = {
 };
 
 const defaultConfig: SearchConfig = {
-  textOperatorKeys: new Set(['release.version', 'release.build', 'release.package']),
+  textOperatorKeys: new Set([
+    'release.version',
+    'release.build',
+    'release.package',
+    'release.stage',
+  ]),
   durationKeys: new Set(['transaction.duration']),
   percentageKeys: new Set(['percentage']),
   numericKeys: new Set([

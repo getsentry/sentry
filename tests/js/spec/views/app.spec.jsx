@@ -26,7 +26,7 @@ describe('App', function () {
   it('renders newsletter consent with flag', async function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
-    // XXX(dcramer): shouldnt need to re-set
+    // XXX(dcramer): shouldn't need to re-set
     ConfigStore.set('user', user);
 
     const wrapper = mountWithTheme(
@@ -39,7 +39,7 @@ describe('App', function () {
   it('does not render newsletter consent without flag', async function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = false;
-    // XXX(dcramer): shouldnt need to re-set
+    // XXX(dcramer): shouldn't need to re-set
     ConfigStore.set('user', user);
 
     const wrapper = mountWithTheme(
