@@ -18,8 +18,13 @@ export type TableDataRow = {
   [key: string]: React.ReactText;
 };
 
+export type HistogramTag = {
+  tags_value: string;
+};
+
 export type TableData = {
-  data: TableDataRow[];
+  histogram: {data: TableDataRow[]};
+  tags: {data: HistogramTag[]};
   meta: {};
 };
 

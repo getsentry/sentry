@@ -1,6 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
+    open-pull-requests-limit: 10
     directory: "/"
     schedule:
       # Going to start with a high interval, and then tone it back
@@ -26,7 +27,7 @@ updates:
       - dependency-name: "@babel/preset-typescript"
       - dependency-name: "@babel/runtime"
 
-      # Storybook updates should all happen in unison, same as a bove we ignore
+      # Storybook updates should all happen in unison, same as above we ignore
       # all but one as a reminder.
       #
       # - dependency-name: "@storybook/react"
@@ -38,6 +39,15 @@ updates:
       - dependency-name: "@storybook/builder-webpack5"
       - dependency-name: "@storybook/manager-webpack5"
       - dependency-name: "@storybook/theming"
+
+      # Sentry updates should all happen in unison, same as above we ignore
+      # all but one as a reminder.
+      # - dependency-name: "@sentry/react"
+      - dependency-name: "@sentry/node"
+      - dependency-name: "@sentry/utils"
+      - dependency-name: "@sentry/tracing"
+      - dependency-name: "@sentry/integrations"
+      - dependency-name: "@sentry/rrweb"
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading

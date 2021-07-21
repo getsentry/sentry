@@ -21,12 +21,18 @@ type Props = {
   platform: ExceptionStacktraceContentProps['platform'];
   stackView?: ExceptionStacktraceContentProps['stackView'];
   newestFirst?: boolean;
-} & Pick<ExceptionType, 'values'>;
+} & Pick<ExceptionType, 'values'> &
+  Pick<
+    React.ComponentProps<typeof ExceptionStacktraceContent>,
+    'groupingCurrentLevel' | 'hasGroupingTreeUI'
+  >;
 
 const ExceptionContent = ({
   newestFirst,
   event,
   stackView,
+  groupingCurrentLevel,
+  hasGroupingTreeUI,
   platform,
   values,
   type,
@@ -55,6 +61,8 @@ const ExceptionContent = ({
         newestFirst={newestFirst}
         event={event}
         chainedException={values.length > 1}
+        hasGroupingTreeUI={hasGroupingTreeUI}
+        groupingCurrentLevel={groupingCurrentLevel}
       />
     </div>
   ));

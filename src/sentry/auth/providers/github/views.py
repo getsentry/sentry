@@ -76,11 +76,11 @@ class ConfirmEmail(AuthView):
     def handle(self, request, helper):
         user = helper.fetch_state("user")
 
-        # TODO(dcramer): this isnt ideal, but our current flow doesnt really
+        # TODO(dcramer): this isn't ideal, but our current flow doesnt really
         # support this behavior;
         try:
             auth_identity = AuthIdentity.objects.select_related("user").get(
-                auth_provider=helper.auth_provider, ident=user["id"]
+                auth_provider=helper.provider_model, ident=user["id"]
             )
         except AuthIdentity.DoesNotExist:
             pass

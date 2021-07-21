@@ -40,7 +40,7 @@ def connect(app):
         )
 
 
-# Celery signals fail to propagate if they error and we dont want to break things with our
+# Celery signals fail to propagate if they error and we don't want to break things with our
 # instrumentation
 # XXX(dcramer): This appears to be specific to the 3.x series we're running, and doesn't have
 # the same behavior in 4.x

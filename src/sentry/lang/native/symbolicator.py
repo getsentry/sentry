@@ -3,6 +3,7 @@ import logging
 import random
 import sys
 import time
+import uuid
 from urllib.parse import urljoin
 
 import jsonschema
@@ -19,6 +20,7 @@ from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 from sentry.utils import json, metrics
 
+WORKER_ID = str(uuid.uuid4().int % 5000)
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
 INTERNAL_SOURCE_NAME = "sentry:project"
@@ -489,6 +491,7 @@ class SymbolicatorSession:
         # required for load balancing
         kwargs.setdefault("headers", {})["x-sentry-project-id"] = self.project_id
         kwargs.setdefault("headers", {})["x-sentry-event-id"] = self.event_id
+        kwargs.setdefault("headers", {})["x-sentry-worker-id"] = WORKER_ID
 
         attempts = 0
         wait = 0.5
@@ -550,7 +553,9 @@ class SymbolicatorSession:
 
     def _create_task(self, path, **kwargs):
         params = {"timeout": self.timeout, "scope": self.project_id}
-        with metrics.timer("events.symbolicator.create_task", tags={"path": path}):
+        with metrics.timer(
+            "events.symbolicator.create_task", tags={"path": path, "worker_id": WORKER_ID}
+        ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
@@ -588,7 +593,7 @@ class SymbolicatorSession:
             "scope": self.project_id,
         }
 
-        with metrics.timer("events.symbolicator.query_task"):
+        with metrics.timer("events.symbolicator.query_task", tags={"worker_id": WORKER_ID}):
             return self._request("get", task_url, params=params)
 
     def healthcheck(self):

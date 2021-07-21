@@ -359,18 +359,18 @@ class Issues extends Component<Props, State> {
     const {path, queryParams} = this.getIssuesEndpoint();
     const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
+      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
       {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
-      {
-        value: IssuesType.RESOLVED,
-        label: t('Resolved Issues'),
-        issueCount: count.resolved,
-      },
       {
         value: IssuesType.UNHANDLED,
         label: t('Unhandled Issues'),
         issueCount: count.unhandled,
       },
-      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
+      {
+        value: IssuesType.RESOLVED,
+        label: t('Resolved Issues'),
+        issueCount: count.resolved,
+      },
     ];
 
     return (

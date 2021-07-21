@@ -185,7 +185,11 @@ def test_site_too_long():
 
 def test_release_too_long():
     data = validate_and_normalize({"release": "a" * (MAX_VERSION_LENGTH + 1)})
-    assert len(data.get("release")) == MAX_VERSION_LENGTH
+    assert not data.get("release")
+    assert len(data["errors"]) == 1
+    assert data["errors"][0]["type"] == "invalid_data"
+    assert data["errors"][0]["name"] == "release"
+    assert data["errors"][0]["value"] == "a" * (MAX_VERSION_LENGTH + 1)
 
 
 def test_release_as_non_string():
@@ -242,7 +246,12 @@ def test_invalid_platform():
 
 def test_environment_too_long():
     data = validate_and_normalize({"environment": "a" * 65})
-    assert len(data["environment"]) == 64
+    assert not data.get("environment")
+    (error,) = data["errors"]
+    error["type"] == "invalid_data"
+
+    assert error["name"] == "environment"
+    assert error["value"] == "a" * 65
 
 
 def test_environment_invalid():

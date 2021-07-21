@@ -16,6 +16,7 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStages,
     User,
     UserEmail,
 )
@@ -159,7 +160,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["pre"] == "a"
         assert result["versionInfo"]["version"]["buildCode"] == "20200101100"
         assert result["versionInfo"]["buildHash"] is None
-        assert result["versionInfo"]["description"] == "1.0-a (20200101100)"
+        assert result["versionInfo"]["description"] == "1.0a (20200101100)"
         assert result["versionInfo"]["version"]["components"] == 2
 
     def test_no_tag_data(self):
@@ -515,7 +516,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             assert "adoptionStages" not in result
 
             result = serialize(release, user, with_adoption_stages=True)
-            assert result["adoptionStages"][project.slug]["stage"] == "not_adopted"
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.LOW_ADOPTION
             assert result["adoptionStages"][project.slug]["unadopted"] is None
             assert result["adoptionStages"][project.slug]["adopted"] is None
 
@@ -531,7 +532,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             )
 
             result = serialize(release, user, with_adoption_stages=True)
-            assert result["adoptionStages"][project.slug]["stage"] == "adopted"
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
             assert result["adoptionStages"][project.slug]["unadopted"] is None
             assert result["adoptionStages"][project.slug]["adopted"] is not None
 
@@ -543,8 +544,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
                 new_issues_count=1,
             )
             result = serialize(release, user, with_adoption_stages=True)
-            assert result["adoptionStages"][project.slug]["stage"] == "adopted"
-            assert result["adoptionStages"][project2.slug]["stage"] == "not_adopted"
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
+            assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.LOW_ADOPTION
 
             ReleaseProjectEnvironment.objects.create(
                 project_id=project2.id,
@@ -554,13 +555,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
                 adopted=datetime.utcnow(),
             )
             result = serialize(release, user, with_adoption_stages=True)
-            assert result["adoptionStages"][project.slug]["stage"] == "adopted"
-            assert result["adoptionStages"][project2.slug]["stage"] == "adopted"
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
+            assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
             rpe.update(unadopted=datetime.utcnow())
             result = serialize(release, user, with_adoption_stages=True)
-            assert result["adoptionStages"][project.slug]["stage"] == "replaced"
-            assert result["adoptionStages"][project2.slug]["stage"] == "adopted"
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
+            assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
 
 class ReleaseRefsSerializerTest(TestCase):
