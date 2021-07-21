@@ -297,18 +297,16 @@ class SpanTreeModel {
             spanGrouping: shouldGroup
               ? [...(spanGrouping ?? []), wrappedSpan]
               : undefined,
-            toggleSpanGroup:
-              toggleSpanGroup === undefined && isNotLastSpanOfGroup
+            toggleSpanGroup: isNotLastSpanOfGroup
+              ? toggleSpanGroup === undefined
                 ? this.toggleSpanGroup
-                : toggleSpanGroup !== undefined && isNotLastSpanOfGroup
-                ? toggleSpanGroup
-                : undefined,
-            showSpanGroup:
-              toggleSpanGroup === undefined && isNotLastSpanOfGroup
+                : toggleSpanGroup
+              : undefined,
+            showSpanGroup: isNotLastSpanOfGroup
+              ? toggleSpanGroup === undefined
                 ? this.showSpanGroup
-                : toggleSpanGroup !== undefined && isNotLastSpanOfGroup
-                ? showSpanGroup
-                : false,
+                : showSpanGroup
+              : false,
           })
         );
 
