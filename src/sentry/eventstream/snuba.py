@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytz
 import urllib3
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.eventstream.base import EventStream
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
@@ -116,21 +116,26 @@ class SnubaProtocolEventStream(EventStream):
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
-        headers = strip_none_values(
-            {
-                "Received-Timestamp": str(received_timestamp),
-                "event_id": str(event.event_id),
-                "project_id": str(event.project_id),
-                "group_id": str(event.group_id) if event.group_id is not None else None,
-                "primary_hash": str(primary_hash) if primary_hash is not None else None,
-                "is_new": encode_bool(is_new),
-                "is_new_group_environment": encode_bool(is_new_group_environment),
-                "is_regression": encode_bool(is_regression),
-                "version": str(self.EVENT_PROTOCOL_VERSION),
-                "operation": "insert",
-                "skip_consume": encode_bool(skip_consume),
-            }
-        )
+        send_new_headers = options.get("post-process-forwarder:kafka-headers")
+
+        if send_new_headers is True:
+            headers = strip_none_values(
+                {
+                    "Received-Timestamp": str(received_timestamp),
+                    "event_id": str(event.event_id),
+                    "project_id": str(event.project_id),
+                    "group_id": str(event.group_id) if event.group_id is not None else None,
+                    "primary_hash": str(primary_hash) if primary_hash is not None else None,
+                    "is_new": encode_bool(is_new),
+                    "is_new_group_environment": encode_bool(is_new_group_environment),
+                    "is_regression": encode_bool(is_regression),
+                    "version": str(self.EVENT_PROTOCOL_VERSION),
+                    "operation": "insert",
+                    "skip_consume": encode_bool(skip_consume),
+                }
+            )
+        else:
+            headers = {"Received-Timestamp": str(received_timestamp)}
 
         self._send(
             project.id,
