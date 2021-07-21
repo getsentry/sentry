@@ -18,7 +18,6 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
-  className?: string;
 };
 
 class PackageLink extends React.Component<Props> {
@@ -38,7 +37,6 @@ class PackageLink extends React.Component<Props> {
       children,
       includeSystemFrames,
       isHoverPreviewed,
-      className,
     } = this.props;
 
     return (
@@ -47,7 +45,6 @@ class PackageLink extends React.Component<Props> {
         isClickable={isClickable}
         withLeadHint={withLeadHint}
         includeSystemFrames={includeSystemFrames}
-        className={className}
       >
         {defined(packagePath) ? (
           <Tooltip

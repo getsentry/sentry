@@ -113,18 +113,23 @@ function Native({
       haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
     >
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-        <StyledPackageLink
-          includeSystemFrames={!!includeSystemFrames}
-          withLeadHint={false}
-          packagePath={frame.package}
-          onClick={scrollToImage}
-          isClickable={shouldShowLinkToImage}
-          isHoverPreviewed={isHoverPreviewed}
-        >
-          {!isHoverPreviewed && (
-            <PackageStatus status={packageStatus()} tooltip={t('Go to Images Loaded')} />
-          )}
-        </StyledPackageLink>
+        <PackageLinkWrapper>
+          <PackageLink
+            includeSystemFrames={!!includeSystemFrames}
+            withLeadHint={false}
+            packagePath={frame.package}
+            onClick={scrollToImage}
+            isClickable={shouldShowLinkToImage}
+            isHoverPreviewed={isHoverPreviewed}
+          >
+            {!isHoverPreviewed && (
+              <PackageStatus
+                status={packageStatus()}
+                tooltip={t('Go to Images Loaded')}
+              />
+            )}
+          </PackageLink>
+        </PackageLinkWrapper>
         {instructionAddr && (
           <TogglableAddress
             address={instructionAddr}
@@ -163,7 +168,7 @@ function Native({
 
 export default Native;
 
-const StyledPackageLink = styled(PackageLink)`
+const PackageLinkWrapper = styled('span')`
   order: 2;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
