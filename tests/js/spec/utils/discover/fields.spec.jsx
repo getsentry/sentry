@@ -293,6 +293,7 @@ describe('aggregateMultiPlotType', function () {
   it('handles known functions', function () {
     expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
     expect(aggregateMultiPlotType('p95()')).toBe('line');
+    expect(aggregateMultiPlotType('equation|sum(transaction.duration) / 2')).toBe('line');
   });
 });
 
