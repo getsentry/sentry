@@ -726,7 +726,7 @@ class SnubaTagStorage(TagStorage):
             include_package = True
             versions = self._get_semver_versions_for_package(projects, organization_id, query)
         else:
-            include_package = not query or "@" in query
+            include_package = "@" in query
             if not query:
                 query = "*"
             elif query[-1] not in SEMVER_WILDCARDS | {"@"}:
@@ -747,7 +747,9 @@ class SnubaTagStorage(TagStorage):
             )
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
-        versions = versions.order_by(*order_by).values_list("version", flat=True)[:1000]
+        versions = (
+            versions.filter_to_semver().order_by(*order_by).values_list("version", flat=True)[:1000]
+        )
 
         seen = set()
         formatted_versions = []
