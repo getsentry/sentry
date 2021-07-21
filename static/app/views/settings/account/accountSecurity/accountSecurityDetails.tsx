@@ -127,6 +127,14 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
 
         <TextBlock>{authenticator.description}</TextBlock>
 
+        {/* TODO: Better positioning. Would like to have next to the "Remove" button,
+            but SettingsPageHeader doesn't support two buttons? */}
+        {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
+          <Button to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}>
+            {t('Rotate')}
+          </Button>
+        )}
+
         <AuthenticatorDates>
           <AuthenticatorDate label={t('Created at')} date={authenticator.createdAt} />
           <AuthenticatorDate label={t('Last used')} date={authenticator.lastUsedAt} />

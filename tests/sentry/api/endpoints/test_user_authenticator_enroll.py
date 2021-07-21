@@ -78,15 +78,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         self._assert_security_email_sent("mfa-added", email_log)
 
-        # can't enroll again because no multi enrollment is allowed
-        resp = self.client.get(url)
-        assert resp.status_code == 400
-        resp = self.client.post(url)
-        assert resp.status_code == 400
-
-        # can rotate in place if org doesn't allow deactivating
-        self.organization.flags.require_2fa = True
-        self.organization.save()
+        # can rotate in place
         resp = self.client.get(url)
         assert resp.status_code == 200
         resp = self.client.post(url, data={"secret": "secret56", "otp": "5678"})

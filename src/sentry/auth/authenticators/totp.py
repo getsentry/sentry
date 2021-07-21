@@ -9,6 +9,7 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
     type = 1
     interface_id = "totp"
     name = _("Authenticator App")
+    allow_rotation_in_place = True
     description = _(
         "An authenticator application that supports TOTP (like "
         "Google Authenticator or 1Password) can be used to "
@@ -25,9 +26,3 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
 
     def get_provision_url(self, user, issuer=None):
         return self.make_otp().get_provision_url(user, issuer=issuer)
-
-    @property
-    def allow_rotation_in_place(self):
-        return self.is_enrolled() and any(
-            org.flags.require_2fa for org in self.authenticator.user.get_orgs()
-        )
