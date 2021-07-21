@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.requests.event import SlackEventRequest
+from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
@@ -17,8 +17,6 @@ from sentry.web.decorators import transaction_start
 from ..utils import logger, parse_link
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
-
-COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
 # need refactored
@@ -30,9 +28,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     permission_classes = ()
 
     def get_command_and_args(self, payload: Mapping[str, str]) -> Tuple[str, Sequence[str]]:
-        event_data = payload.data.get("event")
-        event_data = event_data.replace("'", '"')
-        data = json.loads(event_data)
+        data = payload.data.get("event")
         command = data["text"].lower().split()
         return command[0], command[1:]
 
@@ -41,8 +37,6 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         access_token = self._get_access_token(slack_request.integration)
         headers = {"Authorization": "Bearer %s" % access_token}
         data = slack_request.data.get("event")
-        data = data.replace("'", '"')
-        data = json.loads(data)
         channel = data["channel"]
         payload = {"channel": channel, "text": message}
 
