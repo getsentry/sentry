@@ -165,4 +165,4 @@ def _list_levels(group):
 def _project_has_hierarchical_grouping(project):
     config_dict = get_grouping_config_dict_for_project(project)
     config = load_grouping_config(config_dict)
-    return config.is_hierarchical()
+    return config.initial_context["hierarchical_grouping"]
