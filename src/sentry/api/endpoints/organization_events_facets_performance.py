@@ -35,7 +35,10 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
         return features.has("organizations:performance-tag-page", organization, actor=request.user)
 
     def setup(self, request, organization):
-        if not self.has_feature(organization, request):
+        if not (
+            self.has_feature(organization, request)
+            or self.has_tag_page_feature(organization, request)
+        ):
             raise Http404
 
         params = self.get_snuba_params(request, organization)

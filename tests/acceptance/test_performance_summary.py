@@ -86,6 +86,29 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("performance event details")
 
     @patch("django.utils.timezone.now")
+    def test_tags_page(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        tags_path = "/organizations/{}/performance/summary/tags/?{}".format(
+            self.org.slug,
+            urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
+        )
+
+        # Create a transaction
+        event_data = load_data("transaction", timestamp=before_now(minutes=3))
+        # only frontend pageload transactions can be shown on the vitals tab
+        event_data["contexts"]["trace"]["op"] = "pageload"
+        event_data["measurements"]["fp"]["value"] = 5000
+        event = make_event(event_data)
+        self.store_event(data=event, project_id=self.project.id)
+
+        with self.feature(FEATURE_NAMES + ("organizations:performance-tag-page",)):
+            self.browser.get(tags_path)
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("transaction summary tags page")
+
+    @patch("django.utils.timezone.now")
     def test_transaction_vitals(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
