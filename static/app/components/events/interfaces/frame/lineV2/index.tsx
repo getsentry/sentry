@@ -25,11 +25,11 @@ import Native from './native';
 
 type Props = Omit<
   React.ComponentProps<typeof Native>,
-  'onToggleContext' | 'leadsToApp' | 'isExpandable' | 'hasGroupingBadge'
+  'onToggleContext' | 'isExpandable' | 'hasGroupingBadge'
 > &
   Omit<
     React.ComponentProps<typeof Default>,
-    'onToggleContext' | 'leadsToApp' | 'isExpandable' | 'hasGroupingBadge'
+    'onToggleContext' | 'isExpandable' | 'hasGroupingBadge'
   > & {
     event: Event;
     registers: Record<string, string>;
@@ -40,7 +40,6 @@ type Props = Omit<
 
 function Line({
   frame,
-  nextFrame,
   prevFrame,
   timesRepeated,
   includeSystemFrames,
@@ -72,7 +71,6 @@ function Line({
   /* Prioritize the frame platform but fall back to the platform
    of the stack trace / exception */
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
-  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
   const expandable = isExpandable({
     frame,
     registers,
@@ -97,10 +95,8 @@ function Line({
           <StrictClick onClick={expandable ? toggleContext : undefined}>
             <Native
               frame={frame}
-              nextFrame={nextFrame}
               prevFrame={prevFrame}
               isHoverPreviewed={isHoverPreviewed}
-              leadsToApp={leadsToApp}
               platform={platform}
               isExpanded={isExpanded}
               isExpandable={expandable}
@@ -126,10 +122,8 @@ function Line({
           <StrictClick onClick={expandable ? toggleContext : undefined}>
             <Default
               frame={frame}
-              nextFrame={nextFrame}
               timesRepeated={timesRepeated}
               isHoverPreviewed={isHoverPreviewed}
-              leadsToApp={leadsToApp}
               platform={platform}
               isExpanded={isExpanded}
               isExpandable={expandable}
@@ -152,7 +146,6 @@ function Line({
     collapsed: !isExpanded,
     'system-frame': !frame.inApp,
     'frame-errors': !!(frame.errors ?? []).length,
-    'leads-to-app': leadsToApp,
   });
 
   return (
