@@ -2,6 +2,7 @@ import logging
 import threading
 import weakref
 from contextlib import contextmanager
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.conf import settings
 from django.db import router
@@ -22,13 +23,14 @@ _local_cache = threading.local()
 _local_cache_generation = 0
 _local_cache_enabled = False
 
-class BaseManager(Manager):
+
+class BaseManager(Manager):  # type: ignore
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
     _queryset_class = BaseQuerySet
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         #: Model fields for which we should build up a cache to be used with
         #: Model.objects.get_from_cache(fieldname=value)`.
         #:
@@ -37,13 +39,13 @@ class BaseManager(Manager):
         #: project slug is not.
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self._cache_version = kwargs.pop("cache_version", None)
+        self._cache_version: Optional[str] = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super().__init__(*args, **kwargs)
 
     @staticmethod
     @contextmanager
-    def local_cache():
+    def local_cache() -> Any:
         """Enables local caching for the entire process."""
         global _local_cache_enabled, _local_cache_generation
         if _local_cache_enabled:
@@ -55,9 +57,9 @@ class BaseManager(Manager):
             _local_cache_enabled = False
             _local_cache_generation += 1
 
-    def _get_local_cache(self):
+    def _get_local_cache(self) -> Optional[MutableMapping[str, Any]]:
         if not _local_cache_enabled:
-            return
+            return None
 
         gen = _local_cache_generation
         cache_gen = getattr(_local_cache, "generation", None)
@@ -66,18 +68,23 @@ class BaseManager(Manager):
             _local_cache.cache = {}
             _local_cache.generation = gen
 
-        return _local_cache.cache
+        # Explicitly typing to satisfy mypy.
+        cache_: MutableMapping[str, Any] = _local_cache.cache
+        return cache_
 
-    def _get_cache(self):
+    def _get_cache(self) -> MutableMapping[str, Any]:
         if not hasattr(self.__local_cache, "value"):
             self.__local_cache.value = weakref.WeakKeyDictionary()
-        return self.__local_cache.value
 
-    def _set_cache(self, value):
+        # Explicitly typing to satisfy mypy.
+        cache_: MutableMapping[str, Any] = self.__local_cache.value
+        return cache_
+
+    def _set_cache(self, value: Any) -> None:
         self.__local_cache.value = value
 
     @property
-    def cache_version(self):
+    def cache_version(self) -> str:
         if self._cache_version is None:
             self._cache_version = md5_text(
                 "&".join(sorted(f.attname for f in self.model._meta.fields))
@@ -86,18 +93,19 @@ class BaseManager(Manager):
 
     __cache = property(_get_cache, _set_cache)
 
-    def __getstate__(self):
+    def __getstate__(self) -> Mapping[str, Any]:
         d = self.__dict__.copy()
         # we can't serialize weakrefs
         d.pop("_BaseManager__cache", None)
         d.pop("_BaseManager__local_cache", None)
         return d
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Mapping[str, Any]) -> None:
         self.__dict__.update(state)
-        self.__local_cache = weakref.WeakKeyDictionary()
+        # TODO(typing): Basically everywhere else we set this to `threading.local()`.
+        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore
 
-    def __class_prepared(self, sender, **kwargs):
+    def __class_prepared(self, sender: Any, **kwargs: Any) -> None:
         """
         Given the cache is configured, connects the required signals for invalidation.
         """
@@ -111,7 +119,7 @@ class BaseManager(Manager):
         post_save.connect(self.__post_save, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
 
-    def __cache_state(self, instance):
+    def __cache_state(self, instance: Any) -> None:
         """
         Updates the tracked state of an instance.
         """
@@ -120,13 +128,13 @@ class BaseManager(Manager):
                 f: self.__value_for_field(instance, f) for f in self.cache_fields
             }
 
-    def __post_init(self, instance, **kwargs):
+    def __post_init(self, instance: Any, **kwargs: Any) -> None:
         """
         Stores the initial state of an instance.
         """
         self.__cache_state(instance)
 
-    def __post_save(self, instance, **kwargs):
+    def __post_save(self, instance: Any, **kwargs: Any) -> None:
         """
         Pushes changes to an instance into the cache, and removes invalid (changed)
         lookup values.
@@ -175,7 +183,7 @@ class BaseManager(Manager):
 
         self.__cache_state(instance)
 
-    def __post_delete(self, instance, **kwargs):
+    def __post_delete(self, instance: Any, **kwargs: Any) -> None:
         """
         Drops instance from all cache storages.
         """
@@ -193,10 +201,10 @@ class BaseManager(Manager):
             key=self.__get_lookup_cache_key(**{pk_name: instance.pk}), version=self.cache_version
         )
 
-    def __get_lookup_cache_key(self, **kwargs):
+    def __get_lookup_cache_key(self, **kwargs: Any) -> str:
         return make_key(self.model, "modelcache", kwargs)
 
-    def __value_for_field(self, instance, key):
+    def __value_for_field(self, instance: Any, key: str) -> Any:
         """
         Return the cacheable value for a field.
 
@@ -209,11 +217,11 @@ class BaseManager(Manager):
         field = instance._meta.get_field(key)
         return getattr(instance, field.attname)
 
-    def contribute_to_class(self, model, name):
+    def contribute_to_class(self, model: Any, name: str) -> None:
         super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
-    def get_from_cache(self, **kwargs) -> Model:  # TODO(typing): Properly type this
+    def get_from_cache(self, **kwargs: Any) -> Model:  # TODO(typing): Properly type this
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
@@ -278,7 +286,7 @@ class BaseManager(Manager):
         else:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
-    def get_many_from_cache(self, values, key="pk"):
+    def get_many_from_cache(self, values: Sequence[str], key: str = "pk") -> Sequence[Any]:
         """
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
         the intermediate value.  Callee is responsible for making sure the
@@ -395,25 +403,27 @@ class BaseManager(Manager):
 
         return final_results
 
-    def create_or_update(self, **kwargs):
-        return create_or_update(self.model, **kwargs)
+    def create_or_update(self, **kwargs: Any) -> Tuple[Any, bool]:
+        model, created = create_or_update(self.model, **kwargs)
+        # Explicitly typing to satisfy mypy.
+        return model, created
 
-    def uncache_object(self, instance_id):
+    def uncache_object(self, instance_id: int) -> None:
         pk_name = self.model._meta.pk.name
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, instance: Any, **kwargs: Any) -> None:
         """
         Triggered when a model bound to this manager is saved.
         """
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: Any, **kwargs: Any) -> None:
         """
         Triggered when a model bound to this manager is deleted.
         """
 
-    def get_queryset(self):
+    def get_queryset(self) -> BaseQuerySet:
         """
         Returns a new QuerySet object.  Subclasses can override this method to
         easily customize the behavior of the Manager.

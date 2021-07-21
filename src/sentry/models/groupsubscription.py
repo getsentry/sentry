@@ -102,6 +102,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             except IntegrityError as e:
                 if i == 0:
                     raise e
+        return False
 
     def get_participants(self, group: "Group") -> Mapping[ExternalProviders, Mapping["User", int]]:
         """
