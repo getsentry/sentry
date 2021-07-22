@@ -110,4 +110,119 @@ describe('OrganizationTeams', function () {
       expect(wrapper.find('button[aria-label="Leave Team"]')).toHaveLength(1);
     });
   });
+
+  describe('Team Requests', function () {
+    const orgId = 'org-slug';
+    const {organization, project, routerContext} = initializeOrg({
+      organization: {
+        openMembership: false,
+      },
+    });
+    const accessRequest = TestStubs.AccessRequest();
+    const requester = TestStubs.User({
+      id: '9',
+      username: 'requester@example.com',
+      email: 'requester@example.com',
+      name: 'Requester',
+    });
+    const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
+
+    const createWrapper = props =>
+      mountWithTheme(
+        <OrganizationTeams
+          params={{orgId: organization.slug, projectId: project.slug}}
+          routes={[]}
+          features={new Set([])}
+          access={new Set([])}
+          allTeams={[]}
+          activeTeams={[]}
+          organization={organization}
+          requestList={requestList}
+          {...props}
+        />,
+        routerContext
+      );
+
+    it('renders empty', function () {
+      const wrapper = createWrapper({
+        requestList: [],
+      });
+
+      expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
+    });
+    it('renders team request panel', function () {
+      const wrapper = createWrapper({});
+
+      expect(wrapper.find('PanelHeader').first().text()).toBe('Pending Team Requests');
+      expect(
+        wrapper
+          .find('StyledPanelItem')
+          .first()
+          .text()
+          .includes(
+            `${accessRequest.member.user.name} requests access to the #${accessRequest.team.slug} team`
+          )
+      ).toBe(true);
+      expect(
+        wrapper
+          .find('StyledPanelItem')
+          .last()
+          .text()
+          .includes(
+            `${requester.name} requests to add ${accessRequest.member.user.name} to the #${accessRequest.team.slug} team`
+          )
+      ).toBe(true);
+    });
+
+    it('can approve', async function () {
+      const onUpdateRequestListMock = jest.fn();
+      const approveMock = MockApiClient.addMockResponse({
+        url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
+        method: 'PUT',
+      });
+
+      const wrapper = createWrapper({
+        onRemoveAccessRequest: onUpdateRequestListMock,
+      });
+      wrapper.find('button[aria-label="Approve"]').first().simulate('click');
+
+      await tick();
+
+      expect(approveMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            isApproved: true,
+          },
+        })
+      );
+      expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id, true);
+    });
+
+    it('can deny', async function () {
+      const onUpdateRequestListMock = jest.fn();
+      const denyMock = MockApiClient.addMockResponse({
+        url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
+        method: 'PUT',
+      });
+
+      const wrapper = createWrapper({
+        onRemoveAccessRequest: onUpdateRequestListMock,
+      });
+
+      wrapper.find('button[aria-label="Deny"]').first().simulate('click');
+
+      await tick();
+
+      expect(denyMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            isApproved: false,
+          },
+        })
+      );
+      expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id, false);
+    });
+  });
 });
