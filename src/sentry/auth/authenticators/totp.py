@@ -17,11 +17,11 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
         "generated every 30 seconds."
     )
     rotation_warning = _(
-        "Your account is already linked to an authenticator "
-        "application. You may link this code to a new device or new "
-        "application. However, if you do, it will replace the "
-        "existing authenticator secret, meaning that it can no longer "
-        "be used to access your account. "
+        "Your account is currently linked to an authenticator "
+        "application. While you may link this code to a new device or "
+        "new application, it will replace the existing authenticator "
+        "secret, and you won't be able to use it to access your "
+        "account."
     )
 
     def get_provision_url(self, user, issuer=None):
