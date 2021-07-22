@@ -18,10 +18,10 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
     )
     rotation_warning = _(
         "Your account is currently linked to an authenticator "
-        "application. While you may link this code to a new device or "
-        "new application, it will replace the existing authenticator "
-        "secret, and you won't be able to use it to access your "
-        "account."
+        "application. To link to a new device or application, "
+        'or to update your secret key, click "Confirm" below. By '
+        'clicking "Confirm", your existing secret key will be '
+        "replaced and will no longer work to access your account."
     )
 
     def get_provision_url(self, user, issuer=None):

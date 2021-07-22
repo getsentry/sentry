@@ -112,7 +112,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
             <AuthenticatorActions>
               {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
                 <Button to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}>
-                  {t('Rotate')}
+                  {t('Rotate Secret Key')}
                 </Button>
               )}
               {authenticator.isEnrolled && authenticator.removeButton && (
