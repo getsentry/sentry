@@ -93,11 +93,15 @@ class GitlabIdentityProvider(OAuth2Provider):
             body = safe_urlread(req)
             payload = json.loads(body)
         except Exception as e:
+            # JSONDecodeError's will happen when we get a 301
+            # from GitLab, and won't have the `code` attribute
+            # we use the req.status_code instead in that case
+            error_status = getattr(e, "code", req.status_code)
             self.logger(
                 "gitlab.refresh-identity-failure",
                 extra={
                     "identity_id": identity.id,
-                    "error_status": e.code,
+                    "error_status": error_status,
                     "error_message": str(e),
                 },
             )
