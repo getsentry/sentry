@@ -2081,9 +2081,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = load_data("javascript")
         data["timestamp"] = self.min_ago
         self.store_event(data=data, project_id=project.id)
+
         query = {"field": ["stack.filename", "message"], "query": "stack.filename:*.js"}
         response = self.do_request(query)
-
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["message"] == "string"
