@@ -118,6 +118,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             member = OrganizationMember.objects.get(
                 organization=team.organization, id=member["value"]
             )
+            if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
+                # if a member already belongs to a team, do nothing
+                continue
+
             with transaction.atomic():
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
                 self.create_audit_entry(
