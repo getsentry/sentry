@@ -366,6 +366,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     {
         "appstoreCredentialsValid": true,
         "itunesSessionValid": true,
+        "promptItunesSession": false,
         "pendingDownloads": 123,
         "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
         "latestBuildVersion: "9.8.7" | null,
@@ -382,6 +383,9 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
 
     ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
     of whether there were any or no builds in App Store Connect at the time.
+
+    ``promptItunesSession`` indicates whether the user should be prompted to refresh the
+    iTunes session since we know we need to fetch more dSYMs.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -444,6 +448,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
                 "lastCheckedBuilds": last_checked_builds,
+                "promptItunesSession": pending_downloads and itunes_session_info is None,
             },
             status=200,
         )
