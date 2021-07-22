@@ -69,11 +69,6 @@ const ACTION_OVERFLOW_WIDTH = 400;
  */
 const ACTION_OVERFLOW_STEPS = 75;
 
-/**
- * Is the SearchItem a default item
- */
-const isDefaultDropdownItem = (item: SearchItem) => item?.type === ItemType.DEFAULT;
-
 const makeQueryState = (query: string) => ({
   query,
   parsedQuery: parseSearch(query),
@@ -560,7 +555,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         childrenIndex !== undefined &&
         searchGroups[groupIndex].children[childrenIndex];
 
-      if (item && !isDefaultDropdownItem(item)) {
+      if (item) {
         this.onAutoComplete(item.value, item);
       }
       return;
