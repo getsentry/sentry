@@ -747,9 +747,9 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     if equations is not None:
-        equation_aliases = [equation[-1] for equation in equations]
+        equation_aliases = {equation[-1]: equation for equation in equations}
     else:
-        equation_aliases = []
+        equation_aliases = {}
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
@@ -759,7 +759,10 @@ def resolve_orderby(orderby, fields, aggregations, equations):
             continue
 
         if equation_aliases and bare_column in equation_aliases:
-            validated.append(column)
+            equation = equation_aliases[bare_column]
+            prefix = "-" if column.startswith("-") else ""
+            # Drop alias because if prefix was included snuba thinks we're shadow aliasing
+            validated.append([prefix + equation[0], equation[1]])
             continue
 
         if is_function(bare_column):
