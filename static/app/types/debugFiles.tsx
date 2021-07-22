@@ -54,4 +54,9 @@ export type AppStoreConnectValidationData = {
    */
   latestBuildVersion: string | null;
   updateAlertMessage?: string;
+  /**
+   * Whether the UI should show an alert indicating we need the user to refresh their iTunes
+   * credentials.
+   */
+  promptItunesSession: boolean;
 };
