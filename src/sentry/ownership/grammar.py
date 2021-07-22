@@ -411,17 +411,12 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
             continue
 
         path, *code_owners = (x.strip() for x in rule.split())
-        # Escape invalid rules
-        # Check if rule has whitespace
-        # Check if rule has '#' not as first character
-        # Check if rule contains '!'
-        if re.search(r"[\s!#]", path):
-            continue
-
-        # Check if rule has '[' and ']'
-        if re.search(r"^([^[^\s]*)\[([^]^\s]*)\][^\s]*$", path):
-            # if rule has whitespace, it will pass.
-            # we escape for that in the beginning
+        # Escape invalid paths
+        # Check if path has whitespace
+        # Check if path has '#' not as first character
+        # Check if path contains '!'
+        # Check if path has a '[' followed by a ']'
+        if re.search(r"(\[([^]^\s]*)\])|[\s!#]", path):
             continue
 
         sentry_assignees = []
