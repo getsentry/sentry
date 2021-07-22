@@ -256,7 +256,7 @@ export function generateReleaseMarkLines(
   const markLines = [
     generateReleaseMarkLine(
       releaseMarkLinesLabels.created,
-      moment(release.dateCreated).valueOf(),
+      moment(release.dateCreated).startOf('minute').valueOf(),
       theme,
       options
     ),

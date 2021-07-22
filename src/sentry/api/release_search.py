@@ -10,6 +10,9 @@ from sentry.search.events.constants import (
 )
 
 RELEASE_FREE_TEXT_KEY = "release_free_text"
+INVALID_SEMVER_MESSAGE = (
+    'Invalid format of semantic version. For searching non-semver releases, use "release:" instead.'
+)
 
 release_search_config = SearchConfig.create_from(
     default_config,

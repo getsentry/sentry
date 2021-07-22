@@ -4,8 +4,14 @@ import pytest
 from django.utils import timezone
 
 from sentry.discover.arithmetic import ArithmeticValidationError
+from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold, ReleaseProjectEnvironment, ReleaseStages
+from sentry.models import (
+    ProjectTeam,
+    ProjectTransactionThreshold,
+    ReleaseProjectEnvironment,
+    ReleaseStages,
+)
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
@@ -410,6 +416,69 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data = result["data"]
             assert len(data) == 1, query_fn
             assert [item["user.display"] for item in data] == ["bruce@example.com"]
+
+    def test_team_key_transactions(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        self.project.add_team(team1)
+
+        team2 = self.create_team(organization=self.organization, name="Team B")
+        self.project.add_team(team2)
+
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            (team1, "/foo_transaction/"),
+            (team2, "/zoo_transaction/"),
+        ]
+
+        for transaction in transactions:
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(5)),
+            )
+            data["transaction"] = transaction
+            self.store_event(data, project_id=self.project.id)
+
+        for team, transaction in key_transactions:
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(5)),
+            )
+            data["transaction"] = transaction
+            self.store_event(data, project_id=self.project.id)
+            TeamKeyTransaction.objects.create(
+                organization=self.organization,
+                transaction=transaction,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
+            )
+
+        queries = [
+            ("", [("/blah_transaction/", 0), ("/foo_transaction/", 1), ("/zoo_transaction/", 1)]),
+            ("has:team_key_transaction", [("/foo_transaction/", 1), ("/zoo_transaction/", 1)]),
+            ("!has:team_key_transaction", [("/blah_transaction/", 0)]),
+            ("team_key_transaction:true", [("/foo_transaction/", 1), ("/zoo_transaction/", 1)]),
+            ("team_key_transaction:false", [("/blah_transaction/", 0)]),
+        ]
+
+        for query, expected_results in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction", "team_key_transaction"],
+                    query=query,
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [self.project.id],
+                        "organization_id": self.organization.id,
+                        "team_id": [team1.id, team2.id],
+                    },
+                )
+
+                data = result["data"]
+                assert len(data) == len(expected_results)
+                assert [
+                    (x["transaction"], x["team_key_transaction"])
+                    for x in sorted(data, key=lambda k: k["transaction"])
+                ] == expected_results
 
     def test_snql_wip_project_threshold_config(self):
         ProjectTransactionThreshold.objects.create(

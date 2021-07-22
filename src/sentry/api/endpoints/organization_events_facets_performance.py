@@ -174,7 +174,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not top_tags:
-                    return {"data": []}
+                    return {"data": []}, []
 
                 results = query_facet_performance_key_histogram(
                     top_tags=top_tags,
@@ -188,7 +188,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not results:
-                    return {"data": []}
+                    return {"data": []}, top_tags
 
                 for row in results["data"]:
                     row["tags_value"] = tagstore.get_tag_value_label(

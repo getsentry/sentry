@@ -85,6 +85,7 @@ export default Default;
 
 const VertCenterWrapper = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     align-items: center;
   }
