@@ -347,14 +347,14 @@ class PullRequestEventWebhook(Webhook):
                 organization_id=organization.id, external_id=self.get_external_id(user["login"])
             )
         except CommitAuthor.DoesNotExist:
-            author = CommitAuthor.objects.get_or_create(
+            author, _created = CommitAuthor.objects.get_or_create(
                 organization_id=organization.id,
                 email=author_email,
                 defaults={
                     "name": user["login"][:128],
                     "external_id": self.get_external_id(user["login"]),
                 },
-            )[0]
+            )
 
         try:
             PullRequest.create_or_save(
