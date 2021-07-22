@@ -21,7 +21,6 @@ from sentry.tagstore.types import TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 
-
 exception = {
     "values": [
         {
