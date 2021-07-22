@@ -82,7 +82,7 @@ class RenderField extends React.Component<RenderProps> {
         options={projectOptions}
         components={{
           Option: customOptionProject,
-          ValueContainer: customValueContainer,
+          SingleValue: customValueContainer,
         }}
         {...rest}
         onChange={this.handleChange.bind(this, onBlur, onChange)}

@@ -2149,9 +2149,7 @@ class QueryFields(QueryBase):
             PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
-            # TODO: implement these
-            KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
-            TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
+            TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
         }
 
         self.function_converter: Mapping[str, SnQLFunction] = {
@@ -2178,6 +2176,43 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="integer",
                 ),
+                SnQLFunction(
+                    "count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "count",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda _, alias: Function(
+                        "max",
+                        [self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="date",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "latest_event",
+                    snql_aggregate=lambda _, alias: Function(
+                        "argMax",
+                        [self.column("id"), self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="string",
+                ),
+                SnQLFunction(
+                    "failure_rate",
+                    snql_aggregate=lambda _, alias: Function(
+                        "failure_rate",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
                 # TODO: implement these
                 SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
@@ -2187,18 +2222,14 @@ class QueryFields(QueryBase):
                 SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("apdex", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "count_miserable", snql_aggregate=self._resolve_unimplemented_function
                 ),
                 SnQLFunction("user_misery", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
@@ -2531,6 +2562,46 @@ class QueryFields(QueryBase):
 
         return _project_threshold_config(PROJECT_THRESHOLD_CONFIG_ALIAS)
 
+    def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
+        org_id = self.params.get("organization_id")
+        project_ids = self.params.get("project_id")
+        team_ids = self.params.get("team_id")
+
+        if org_id is None or team_ids is None or project_ids is None:
+            raise TypeError("Team key transactions parameters cannot be None")
+
+        team_key_transactions = list(
+            TeamKeyTransaction.objects.filter(
+                organization_id=org_id,
+                project_team__in=ProjectTeam.objects.filter(
+                    project_id__in=project_ids, team_id__in=team_ids
+                ),
+            )
+            .order_by("transaction", "project_team__project_id")
+            .values_list("project_team__project_id", "transaction")
+            .distinct("transaction", "project_team__project_id")[
+                :MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+            ]
+        )
+
+        count = len(team_key_transactions)
+
+        # NOTE: this raw count is not 100% accurate because if it exceeds
+        # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
+        sentry_sdk.set_tag("team_key_txns.count", count)
+        sentry_sdk.set_tag(
+            "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
+        )
+
+        if count == 0:
+            return Function("toInt8", [0], TEAM_KEY_TRANSACTION_ALIAS)
+
+        return Function(
+            "in",
+            [(self.column("project_id"), self.column("transaction")), team_key_transactions],
+            TEAM_KEY_TRANSACTION_ALIAS,
+        )
+
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
 
@@ -2540,12 +2611,6 @@ class QueryFields(QueryBase):
         return Function(
             "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
         )
-
-    def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
-        """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
-        Can be deleted once all field aliases have been implemented.
-        """
-        raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
 
     def _resolve_unimplemented_function(
         self,

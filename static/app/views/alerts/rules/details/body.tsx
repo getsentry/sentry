@@ -310,6 +310,9 @@ export default class DetailsBody extends React.Component<Props> {
                               <DropdownItem
                                 key={value}
                                 eventKey={value}
+                                isActive={
+                                  !timePeriod.custom && timePeriod.period === value
+                                }
                                 onSelect={this.props.handleTimePeriodChange}
                               >
                                 {label}

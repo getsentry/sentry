@@ -1024,6 +1024,7 @@ class QueryFilter(QueryFields):
             ISSUE_ID_ALIAS: self._issue_id_filter_converter,
             ERROR_HANDLED_ALIAS: self._error_handled_filter_converter,
             ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
+            TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
         }
 
     def parse_query(self, query: Optional[str]) -> Optional[Sequence[SearchFilter]]:
@@ -1173,15 +1174,39 @@ class QueryFilter(QueryFields):
 
         lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
 
+        if name in ARRAY_FIELDS:
+            if search_filter.value.is_wildcard():
+                condition = Condition(
+                    lhs,
+                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    search_filter.value.raw_value.replace("%", "\\%")
+                    .replace("_", "\\_")
+                    .replace("*", "%"),
+                )
+            elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+                condition = Condition(
+                    Function("hasAny", [self.column(name), value]),
+                    Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                    1,
+                )
+            elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+                condition = Condition(
+                    Function("hasAny", [self.column(name), []]),
+                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    1,
+                )
+            else:
+                condition = Condition(lhs, Op(search_filter.operator), value)
+
         # Handle checks for existence
-        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        elif search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if search_filter.key.is_tag:
-                return Condition(lhs, Op(search_filter.operator), value)
+                condition = Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
-                return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
+                condition = Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
-        if search_filter.value.is_wildcard():
+        elif search_filter.value.is_wildcard():
             condition = Condition(
                 Function("match", [lhs, f"'(?i){value}'"]),
                 Op(search_filter.operator),
@@ -1355,4 +1380,21 @@ class QueryFilter(QueryFields):
             return Condition(Function("notHandled", []), Op.EQ, 1)
         raise InvalidSearchQuery(
             "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
+
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        key_transaction_expr = self.resolve_field(TEAM_KEY_TRANSACTION_ALIAS)
+
+        if search_filter.value.raw_value == "":
+            return Condition(
+                key_transaction_expr, Op.NEQ if search_filter.operator == "!=" else Op.EQ, 0
+            )
+        if value in ("1", 1):
+            return Condition(key_transaction_expr, Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(key_transaction_expr, Op.EQ, 0)
+
+        raise InvalidSearchQuery(
+            "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )
