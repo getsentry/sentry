@@ -5,7 +5,7 @@ import os
 import random
 import time
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import wraps
 from hashlib import sha1
 from typing import List
@@ -566,32 +566,40 @@ def populate_org_members(org, team):
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
 
-def generate_incident_times(timestamps, time_interval, max_days, warning, critical):
+def generate_incident_times(timestamps, time_interval, max_days):
     # rounds to nearest hour
-    start_time = (
-        timezone.now().replace(second=0, microsecond=0)
-        - timedelta(days=max_days)
-        - timedelta(minutes=timezone.now().minute % 60)
-    )
+    start_time = timezone.now().replace(second=0, microsecond=0) - timedelta(days=max_days)
+
+    if time_interval < 60:
+        start_time = start_time - timedelta(minutes=timezone.now().minute % time_interval)
+    else:
+        start_time = (
+            start_time
+            - timedelta(minutes=timezone.now().minute % 60)
+            - timedelta(hours=timezone.now().hour % (time_interval / 60))
+        )
 
     # groups events by hour keeping track of number of events, start time, and number of adjacent time intervals
-    counter = {}
+    counter = defaultdict(lambda: {"events": 0, "timestamps": [start_time], "intervals": 1})
 
     timestamps.sort()
     for timestamp in timestamps:
         while timestamp > start_time + timedelta(minutes=time_interval):
             start_time = start_time + timedelta(minutes=time_interval)
-        if start_time in counter:
-            counter[start_time]["events"][0] += 1
-        else:
-            counter[start_time] = {"events": [1], "timestamps": [start_time], "intervals": 1}
 
+        counter[start_time]["events"] += 1
+
+    num_events = [counter[timestamp]["events"] for timestamp in counter.keys()]
+    critical = max(num_events)
+
+    # keeps track of adjacent time intervals where number of events is above threshold
     adjacent_groups = []
+    # current group of adjacent intervals as for loop is iterated through
     current_group = []
 
-    # find adjacent intervals where errors above warning
+    # find adjacent intervals where errors above critical
     for timestamp, _ in sorted(counter.items()):
-        if counter[timestamp]["events"][0] < warning:
+        if counter[timestamp]["events"] < critical:
             # ignore times where no alert is created
             del counter[timestamp]
         else:
@@ -603,6 +611,8 @@ def generate_incident_times(timestamps, time_interval, max_days, warning, critic
                 else:
                     adjacent_groups.append(current_group)
                     current_group = [timestamp]
+
+    # adds final group if exists
     if current_group:
         adjacent_groups.append(current_group)
 
@@ -610,33 +620,20 @@ def generate_incident_times(timestamps, time_interval, max_days, warning, critic
     for adjacent_group in adjacent_groups:
         start_time = adjacent_group.pop(0)
         for timestamp in adjacent_group:
-            events = counter[timestamp]["events"]
             intervals = counter[timestamp]["intervals"]
             timestamps = counter[timestamp]["timestamps"]
 
             # delete combined intervals
             del counter[timestamp]
 
-            counter[start_time]["events"] += events
             counter[start_time]["intervals"] += intervals
             counter[start_time]["timestamps"] += timestamps
 
-    times = []
-    for timestamp in counter:
-        max_events = max(counter[timestamp]["events"])
-        max_event_index = counter[timestamp]["events"].index(max_events)
-        if warning <= max_events < critical:
-            times.append([timestamp, "warning", counter[timestamp]["intervals"]])
-        elif max_events >= critical:
-            times.append(
-                [
-                    counter[timestamp]["timestamps"][max_event_index],
-                    "critical",
-                    counter[timestamp]["intervals"],
-                ]
-            )
-
-    return times
+    times = [
+        (counter[timestamp]["timestamps"][0], counter[timestamp]["intervals"])
+        for timestamp in counter.keys()
+    ]
+    return critical, times
 
 
 class DataPopulation:
@@ -647,7 +644,7 @@ class DataPopulation:
     def __init__(self, org: Organization, quick: bool):
         self.org = org
         self.quick = quick
-        self.timestamps_by_project = {}
+        self.timestamps_by_project = defaultdict(list)
 
     def get_config(self):
         """
@@ -738,6 +735,12 @@ class DataPopulation:
         try:
             create_sample_event_basic(data, project.id)
             time.sleep(self.get_config_var("DEFAULT_BACKOFF_TIME"))
+
+            if project.slug in alert_platforms and data["type"] == "error":
+                self.timestamps_by_project[project.slug].append(
+                    datetime.fromtimestamp(data["timestamp"]).replace(tzinfo=pytz.utc)
+                )
+
         except SnubaError:
             # if snuba fails, just back off and continue
             self.log_info("safe_send_event.snuba_error")
@@ -821,14 +824,15 @@ class DataPopulation:
 
             release_time += timedelta(hours=hourly_release_cadence)
 
-    def generate_alerts(self, project, warning, critical):
-        self.generate_metric_alert(project, warning, critical)
+    def generate_alerts(self, project):
+        self.generate_metric_alert(project)
         self.generate_issue_alert(project)
 
-    def generate_metric_alert(self, project, warning_threshold, critical_threshold):
+    def generate_metric_alert(self, project):
         org = project.organization
         team = Team.objects.filter(organization=org).first()
-        time_interval = 60
+        time_interval = self.get_config_var("METRIC_ALERT_INTERVAL")
+        max_days = self.get_config_var("MAX_DAYS")
         alert_rule = create_alert_rule(
             org,
             [project],
@@ -841,47 +845,37 @@ class DataPopulation:
         )
 
         alert_rule.update(
-            date_added=timezone.now() - timedelta(days=self.get_config_var("MAX_DAYS"))
+            date_added=timezone.now() - timedelta(days=max_days),
+            date_modified=timezone.now() - timedelta(days=max_days * 2),
+        )
+
+        # find the times when alerts need to be created
+        critical_threshold, incident_times = generate_incident_times(
+            self.timestamps_by_project[project.slug], time_interval, self.get_config_var("MAX_DAYS")
         )
 
         critical_trigger = create_alert_rule_trigger(alert_rule, "critical", critical_threshold)
-        warning_trigger = create_alert_rule_trigger(alert_rule, "warning", warning_threshold)
-        for trigger in [critical_trigger, warning_trigger]:
-            create_alert_rule_trigger_action(
-                trigger,
-                AlertRuleTriggerAction.Type.EMAIL,
-                AlertRuleTriggerAction.TargetType.TEAM,
-                target_identifier=str(team.id),
-            )
 
-        # find the times when alerts need to be created
-        incident_times = generate_incident_times(
-            self.timestamps_by_project[project.slug],
-            time_interval,
-            self.get_config_var("MAX_DAYS"),
-            warning_threshold,
-            critical_threshold,
+        create_alert_rule_trigger_action(
+            critical_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(team.id),
         )
-        # create alerts
-        for incident_time, status, num_intervals in incident_times:
-            if status == "warning":
-                title = f"{warning_threshold} Errors"
-                status = IncidentStatus.WARNING
-            else:
-                title = f"{critical_threshold} Errors"
-                status = IncidentStatus.CRITICAL
 
+        # create alerts
+        for incident_time, num_intervals in incident_times:
             incident = create_incident(
                 organization=org,
                 type_=IncidentType.ALERT_TRIGGERED,
-                title=title,
+                title=f"{critical_threshold} Errors",
                 date_started=incident_time,
                 projects=[project],
                 alert_rule=alert_rule,
             )
 
             # update alert status
-            update_incident_status(incident, status=status)
+            update_incident_status(incident, status=IncidentStatus.CRITICAL)
 
             # close alert
             update_incident_status(
@@ -898,7 +892,9 @@ class DataPopulation:
             created.update(date_added=incident_time + timedelta(minutes=30))
             # alert status changed
             changed = IncidentActivity.objects.filter(
-                incident=incident, type=IncidentActivityType.STATUS_CHANGE.value, value=status.value
+                incident=incident,
+                type=IncidentActivityType.STATUS_CHANGE.value,
+                value=IncidentStatus.CRITICAL.value,
             ).first()
             changed.update(date_added=incident_time + timedelta(minutes=60))
             # resolved
@@ -1160,11 +1156,6 @@ class DataPopulation:
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
 
-            if python_project.slug not in self.timestamps_by_project:
-                self.timestamps_by_project[python_project.slug] = [timestamp]
-            else:
-                self.timestamps_by_project[python_project.slug].append(timestamp)
-
         self.log_info("populate_connected_event_scenario_1.finished")
 
     def populate_connected_event_scenario_1b(self, react_project: Project, python_project: Project):
@@ -1386,12 +1377,6 @@ class DataPopulation:
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
 
-            if project.slug in alert_platforms:
-                if project.slug not in self.timestamps_by_project:
-                    self.timestamps_by_project[project.slug] = [timestamp]
-                else:
-                    self.timestamps_by_project[project.slug].append(timestamp)
-
         self.log_info("populate_generic_error.finished")
 
     def populate_generic_transaction(
@@ -1612,7 +1597,7 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
-        self.generate_alerts(python_project, 15, 19)
+        self.generate_alerts(python_project)
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
@@ -1653,4 +1638,4 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
-        self.generate_alerts(android_project, 17, 23)
+        self.generate_alerts(android_project)
