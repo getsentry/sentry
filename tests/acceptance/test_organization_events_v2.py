@@ -404,6 +404,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
+            self.browser.snapshot("events-v2 - transactions event with auto-grouped spans")
+
+            # Expand auto-grouped spans
+            self.browser.elements('[data-test-id="span-row"]')[4].click()
+
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
             self.browser.elements('[data-test-id="span-row"]')[6].click()

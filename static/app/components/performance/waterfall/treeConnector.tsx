@@ -9,6 +9,7 @@ import {OmitHtmlDivProps} from 'app/utils';
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;
 export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+const TREE_TOGGLE_CONTAINER_WIDTH = 40;
 
 export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
@@ -21,22 +22,32 @@ export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
 type TogglerTypes = OmitHtmlDivProps<{
   hasToggler?: boolean;
   isLast?: boolean;
+  hasCollapsedSpanGroup?: boolean;
 }>;
 
 export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? ROW_HEIGHT / 2 : ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
+  border-left: ${p => {
+    if (p.hasCollapsedSpanGroup) {
+      return '1px solid transparent';
+    }
+
+    return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border}`;
+  }};
   position: absolute;
   top: 0;
 
   &:before {
     content: '';
     height: 1px;
-    border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-      ${p => p.theme.border};
-
-    width: 100%;
+    border-bottom: ${p =>
+      `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};`};
+    left: ${p => (p.hasCollapsedSpanGroup ? `${TOGGLE_BORDER_BOX / 2}px` : '0')};
+    width: ${p =>
+      p.hasCollapsedSpanGroup
+        ? `${TREE_TOGGLE_CONTAINER_WIDTH - TOGGLE_BORDER_BOX / 2 - 2}px`
+        : '100%'};
     position: absolute;
     bottom: ${p => (p.isLast ? '0' : '50%')};
   }
@@ -57,6 +68,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isSpanGroupToggler?: boolean;
 }>;
 
 export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`
@@ -79,8 +91,8 @@ export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`
 export const TreeToggleContainer = styled('div')<TogglerTypes>`
   position: relative;
   height: ${ROW_HEIGHT}px;
-  width: 40px;
-  min-width: 40px;
+  width: ${TREE_TOGGLE_CONTAINER_WIDTH}px;
+  min-width: ${TREE_TOGGLE_CONTAINER_WIDTH}px;
   margin-right: ${space(1)};
   z-index: ${p => p.theme.zIndex.traceView.spanTreeToggler};
   display: flex;
