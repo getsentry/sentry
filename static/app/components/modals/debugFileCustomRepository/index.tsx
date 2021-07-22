@@ -56,10 +56,7 @@ function DebugFileCustomRepository({
     onSave({...data, type: sourceType}).then(() => {
       closeModal();
 
-      if (
-        sourceType === CustomRepoType.APP_STORE_CONNECT &&
-        appStoreConnectContext?.updateAlertMessage
-      ) {
+      if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
         window.location.reload();
       }
     });

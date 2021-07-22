@@ -120,10 +120,3 @@ export type CustomRepo =
   | CustomRepoHttp
   | CustomRepoS3
   | CustomRepoGCS;
-
-export const customRepoTypeLabel = {
-  [CustomRepoType.APP_STORE_CONNECT]: 'App Store Connect',
-  [CustomRepoType.HTTP]: 'SymbolServer (HTTP)',
-  [CustomRepoType.S3]: 'Amazon S3',
-  [CustomRepoType.GCS]: 'Google Cloud Storage',
-};

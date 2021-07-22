@@ -15,7 +15,7 @@ type Props = {
   builtinSymbolSources: string[];
 };
 
-function BuildInRepositories({
+function BuiltInRepositories({
   api,
   organization,
   builtinSymbolSourceOptions,
@@ -90,4 +90,4 @@ function BuildInRepositories({
   );
 }
 
-export default BuildInRepositories;
+export default BuiltInRepositories;

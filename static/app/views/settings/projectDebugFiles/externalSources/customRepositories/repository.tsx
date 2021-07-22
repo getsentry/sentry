@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
-import {CustomRepo, CustomRepoType, customRepoTypeLabel} from 'app/types/debugFiles';
+import {CustomRepo, CustomRepoType} from 'app/types/debugFiles';
 
 import CustomRepositoryActions from './actions';
 import Details from './details';
 import Status from './status';
+import {customRepoTypeLabel} from './utils';
 
 type Props = {
   repository: CustomRepo;

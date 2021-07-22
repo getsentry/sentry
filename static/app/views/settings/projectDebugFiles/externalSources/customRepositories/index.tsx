@@ -18,7 +18,12 @@ import {CustomRepo, CustomRepoType} from 'app/types/debugFiles';
 import {defined} from 'app/utils';
 
 import Repository from './repository';
-import {dropDownItems, expandKeys, getRequestMessages} from './utils';
+import {
+  customRepoTypeLabel,
+  dropDownItems,
+  expandKeys,
+  getRequestMessages,
+} from './utils';
 
 type Props = {
   api: Client;
@@ -47,14 +52,18 @@ function CustomRepositories({
     !!organization.features?.includes('app-store-connect');
 
   if (
-    (!hasAppConnectStoreFeatureFlag ||
-      !!appStoreConnectContext ||
-      !!dropDownItems.find(
-        dropDownItem => dropDownItem.value === CustomRepoType.APP_STORE_CONNECT
-      )) &&
-    dropDownItems.length === 4
+    hasAppConnectStoreFeatureFlag &&
+    !appStoreConnectContext &&
+    !dropDownItems.find(
+      dropDownItem => dropDownItem.value === CustomRepoType.APP_STORE_CONNECT
+    ) &&
+    !repositories.find(repository => repository.type === CustomRepoType.APP_STORE_CONNECT)
   ) {
-    dropDownItems.splice(dropDownItems.length - 1, 1);
+    dropDownItems.push({
+      value: CustomRepoType.APP_STORE_CONNECT,
+      label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
+      searchKey: t('apple store connect itunes ios'),
+    });
   }
 
   function openDebugFileSourceDialog() {
@@ -85,10 +94,12 @@ function CustomRepositories({
     updatedItems,
     updatedItem,
     index,
+    refresh,
   }: {
     updatedItems?: CustomRepo[];
     updatedItem?: CustomRepo;
     index?: number;
+    refresh?: boolean;
   }) {
     let items = updatedItems ?? [];
 
@@ -119,6 +130,10 @@ function CustomRepositories({
     promise.then(result => {
       ProjectActions.updateSuccess(result);
       addSuccessMessage(successMessage);
+
+      if (refresh) {
+        window.location.reload();
+      }
     });
 
     return promise;
@@ -147,7 +162,10 @@ function CustomRepositories({
     const newRepositories = [...repositories];
     const index = newRepositories.findIndex(item => item.id === repoId);
     newRepositories.splice(index, 1);
-    persistData({updatedItems: newRepositories as CustomRepo[]});
+    persistData({
+      updatedItems: newRepositories as CustomRepo[],
+      refresh: repositories[index].type === CustomRepoType.APP_STORE_CONNECT,
+    });
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {

@@ -6,7 +6,7 @@ import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource, CustomRepo} from 'app/types/debugFiles';
 
-import BuildInRepositories from './buildInRepositories';
+import BuiltInRepositories from './builtInRepositories';
 import CustomRepositories from './customRepositories';
 
 type Props = {
@@ -32,7 +32,7 @@ function ExternalSources({
 }: Props) {
   return (
     <Fragment>
-      <BuildInRepositories
+      <BuiltInRepositories
         api={api}
         organization={organization}
         builtinSymbolSources={builtinSymbolSources}
