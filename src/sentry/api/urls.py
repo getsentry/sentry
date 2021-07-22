@@ -183,6 +183,7 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsStatsEndpoint,
 )
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
+from .endpoints.organization_events_has_measurements import OrganizationEventsHasMeasurementsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
@@ -988,6 +989,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-vitals/$",
                     OrganizationEventsVitalsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-vitals",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-has-measurements/$",
+                    OrganizationEventsHasMeasurementsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-has-measurements",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
