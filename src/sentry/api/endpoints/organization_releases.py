@@ -301,6 +301,10 @@ class OrganizationReleasesEndpoint(
                 .order_by(*order_by, "-date_added")
             )
             paginator_kwargs["order_by"] = order_by
+        elif sort == "adoption":
+            # sort by adoption date (most recently adopted first)
+            queryset = queryset.annotate_adoption_date_column().order_by("-adopted")
+            paginator_kwargs["order_by"] = "-adopted"
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(

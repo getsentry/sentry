@@ -1008,7 +1008,7 @@ SENTRY_FEATURES = {
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
     # Enable the release adoption stage labels and sorting+filtering by them
-    "organizations:release-adoption-stage": False,
+    "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
     # Enable the new release details experience
