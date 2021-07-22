@@ -10,11 +10,13 @@ import {
 } from 'app/actionCreators/indicator';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
 import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CircleIndicator from 'app/components/circleIndicator';
 import {PanelItem} from 'app/components/panels';
 import U2fsign from 'app/components/u2f/u2fsign';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Authenticator} from 'app/types';
@@ -401,8 +403,11 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
         />
 
         <TextBlock>{authenticator.description}</TextBlock>
+
         {authenticator.rotationWarning && authenticator.status === 'rotation' && (
-          <TextBlock>{authenticator.rotationWarning}</TextBlock>
+          <Alert type="warning" icon={<IconWarning size="md" />}>
+            {authenticator.rotationWarning}
+          </Alert>
         )}
 
         {!!authenticator.form?.length && (
