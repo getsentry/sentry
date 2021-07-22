@@ -2178,6 +2178,42 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="integer",
                 ),
+                SnQLFunction(
+                    "count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "count",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda _, alias: Function(
+                        "max",
+                        [self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "latest_event",
+                    snql_aggregate=lambda _, alias: Function(
+                        "argMax",
+                        [self.column("id"), self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "failure_rate",
+                    snql_aggregate=lambda _, alias: Function(
+                        "failure_rate",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
                 # TODO: implement these
                 SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
@@ -2187,18 +2223,14 @@ class QueryFields(QueryBase):
                 SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("apdex", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "count_miserable", snql_aggregate=self._resolve_unimplemented_function
                 ),
                 SnQLFunction("user_misery", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
