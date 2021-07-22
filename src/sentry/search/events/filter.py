@@ -1123,34 +1123,36 @@ class QueryFilter(QueryFields):
 
         lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
 
+        if name in ARRAY_FIELDS:
+            if search_filter.value.is_wildcard():
+                condition = Condition(
+                    lhs,
+                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    search_filter.value.raw_value.replace("%", "\\%")
+                    .replace("_", "\\_")
+                    .replace("*", "%"),
+                )
+            elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+                condition = Condition(
+                    Function("hasAny", [self.column(name), value]),
+                    Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                    1,
+                )
+            elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+                condition = Condition(
+                    Function("hasAny", [self.column(name), []]),
+                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    1,
+                )
+
         # Handle checks for existence
-        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        elif search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if search_filter.key.is_tag:
-                return Condition(lhs, Op(search_filter.operator), value)
+                condition = Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
-                return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
+                condition = Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
-        if name in ARRAY_FIELDS and search_filter.value.is_wildcard():
-            condition = Condition(
-                lhs,
-                Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
-                search_filter.value.raw_value.replace("%", "\\%")
-                .replace("_", "\\_")
-                .replace("*", "%"),
-            )
-        elif name in ARRAY_FIELDS and search_filter.is_in_filter:
-            condition = Condition(
-                Function("hasAny", [self.column(name), value]),
-                Op.EQ if search_filter.operator == "IN" else Op.NEQ,
-                1,
-            )
-        elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
-            condition = Condition(
-                Function("notEmpty", [self.column(name)]),
-                Op.EQ,
-                1 if search_filter.operator == "!=" else 0,
-            )
         elif search_filter.value.is_wildcard():
             condition = Condition(
                 Function("match", [lhs, f"'(?i){value}'"]),
