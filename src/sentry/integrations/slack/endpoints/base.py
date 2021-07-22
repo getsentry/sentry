@@ -1,4 +1,5 @@
 import abc
+from typing import Any, Sequence, Tuple
 
 from rest_framework.response import Response
 
@@ -20,7 +21,7 @@ FEATURE_FLAG_MESSAGE = "This feature hasn't been released yet, hang tight."
 
 
 class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
-    def post_dispatcher(self, request: SlackRequest):
+    def post_dispatcher(self, request: SlackRequest) -> Any:
         """
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
@@ -54,13 +55,13 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         # If we cannot interpret the command, print help text.
         return self.respond(SlackHelpMessageBuilder(command).build())
 
-    def get_command_and_args(self, request):
+    def get_command_and_args(self, request: SlackRequest) -> Tuple[str, Sequence[str]]:
         raise NotImplementedError
 
-    def reply(self, slack_request, message: str) -> Response:
+    def reply(self, slack_request: SlackRequest, message: str) -> Response:
         raise NotImplementedError
 
-    def link_user(self, slack_request):
+    def link_user(self, slack_request: SlackRequest) -> Any:
         if slack_request.has_identity:
             return self.reply(
                 slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
@@ -77,7 +78,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         )
         return self.reply(slack_request, LINK_USER_MESSAGE.format(associate_url=associate_url))
 
-    def unlink_user(self, slack_request):
+    def unlink_user(self, slack_request: SlackRequest) -> Any:
         if not slack_request.has_identity:
             return self.reply(slack_request, NOT_LINKED_MESSAGE)
 
@@ -92,8 +93,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         )
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 
-    def link_team(self, slack_request):
+    def link_team(self, slack_request: SlackRequest) -> Any:
         raise NotImplementedError
 
-    def unlink_team(self, slack_request):
+    def unlink_team(self, slack_request: SlackRequest) -> Any:
         raise NotImplementedError

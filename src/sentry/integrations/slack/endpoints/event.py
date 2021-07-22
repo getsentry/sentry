@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
-from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.models import Integration
@@ -27,12 +27,12 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
-    def get_command_and_args(self, payload: Mapping[str, str]) -> Tuple[str, Sequence[str]]:
-        data = payload.data.get("event")
+    def get_command_and_args(self, slack_request: SlackRequest) -> Tuple[str, Sequence[str]]:
+        data = slack_request.data.get("event")
         command = data["text"].lower().split()
         return command[0], command[1:]
 
-    def reply(self, slack_request, message: str) -> Response:
+    def reply(self, slack_request: SlackRequest, message: str) -> Response:
         client = SlackClient()
         access_token = self._get_access_token(slack_request.integration)
         headers = {"Authorization": "Bearer %s" % access_token}
@@ -47,13 +47,13 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
 
         return self.respond()
 
-    def link_team(self, slack_request):
+    def link_team(self, slack_request: SlackRequest) -> Any:
         return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-    def unlink_team(self, slack_request):
+    def unlink_team(self, slack_request: SlackRequest) -> Any:
         return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-    def _get_access_token(self, integration: Integration) -> str:
+    def _get_access_token(self, integration: Integration) -> Any:
         # the classic bot tokens must use the user auth token for URL unfurling
         # we stored the user_access_token there
         # but for workspace apps and new slack bot tokens, we can just use access_token

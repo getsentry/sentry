@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping, Sequence, Tuple
+from typing import Sequence, Tuple
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
-from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
@@ -36,7 +36,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
-    def get_command_and_args(self, payload: Mapping[str, str]) -> Tuple[str, Sequence[str]]:
+    def get_command_and_args(self, payload: SlackRequest) -> Tuple[str, Sequence[str]]:
         payload = payload.data
         text = payload.get("text", "").lower().split()
         if not text:
@@ -44,7 +44,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
 
         return text[0], text[1:]
 
-    def reply(self, slack_request, message: str) -> Response:
+    def reply(self, slack_request: SlackRequest, message: str) -> Response:
         return self.respond(
             {
                 "response_type": "ephemeral",
