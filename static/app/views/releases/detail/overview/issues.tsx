@@ -237,11 +237,11 @@ class Issues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:${version}`] || 0,
-            new: issueResponse[`${IssuesQuery.NEW}:${version}`] || 0,
+            all: issueResponse[`${IssuesQuery.ALL}:"${version}"`] || 0,
+            new: issueResponse[`${IssuesQuery.NEW}:"${version}"`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`] ||
+              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
               0,
           },
         });
@@ -257,9 +257,9 @@ class Issues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.NEW}:${version}`,
-      `${IssuesQuery.ALL}:${version}`,
-      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`,
+      `${IssuesQuery.NEW}:"${version}"`,
+      `${IssuesQuery.ALL}:"${version}"`,
+      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {

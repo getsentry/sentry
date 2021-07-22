@@ -209,8 +209,8 @@ function ReleaseComparisonChart({
   }
 
   async function fetchIssuesTotals() {
-    const UNHANDLED_QUERY = `release:${release.version} error.handled:0`;
-    const HANDLED_QUERY = `release:${release.version} error.handled:1`;
+    const UNHANDLED_QUERY = `release:"${release.version}" error.handled:0`;
+    const HANDLED_QUERY = `release:"${release.version}" error.handled:1`;
 
     try {
       const response = await api.requestPromise(
