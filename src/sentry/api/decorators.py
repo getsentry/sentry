@@ -13,7 +13,7 @@ def is_considered_sudo(request):
         or isinstance(request.auth, ApiKey)
         or isinstance(request.auth, ApiToken)
         or user.is_authenticated
-        and not user.has_usable_password()
+        and not user.password
     )
 
 
