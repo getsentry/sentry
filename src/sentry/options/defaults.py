@@ -355,5 +355,8 @@ register("processing.use-release-archives-sample-rate", default=0.0)  # unused
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
+# Write new kafka headers in eventstream
+register("eventstream:kafka-headers", default=False)
+
 # Post process forwarder gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=False)
