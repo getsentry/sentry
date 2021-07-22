@@ -107,7 +107,9 @@ function ReleaseComparisonChart({
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
   const charts: ComparisonRow[] = [];
-  const hasDiscover = organization.features.includes('discover-basic');
+  const hasDiscover =
+    organization.features.includes('discover-basic') ||
+    organization.features.includes('performance-view');
   const hasPerformance = organization.features.includes('performance-view');
   const {
     statsPeriod: period,
@@ -477,7 +479,11 @@ function ReleaseComparisonChart({
               )}
             >
               {tct('([count] handled [issues])', {
-                count: <Count value={issuesTotals?.handled ?? 0} />,
+                count: issuesTotals?.handled
+                  ? issuesTotals.handled >= 100
+                    ? '99+'
+                    : issuesTotals.handled
+                  : 0,
                 issues: tn('issue', 'issues', issuesTotals?.handled),
               })}
             </GlobalSelectionLink>
@@ -517,7 +523,11 @@ function ReleaseComparisonChart({
               )}
             >
               {tct('([count] unhandled [issues])', {
-                count: <Count value={issuesTotals?.unhandled ?? 0} />,
+                count: issuesTotals?.unhandled
+                  ? issuesTotals.unhandled >= 100
+                    ? '99+'
+                    : issuesTotals.unhandled
+                  : 0,
                 issues: tn('issue', 'issues', issuesTotals?.unhandled),
               })}
             </GlobalSelectionLink>
@@ -542,7 +552,13 @@ function ReleaseComparisonChart({
             ? 'red300'
             : 'green300'
           : null,
-      },
+      }
+    );
+  }
+
+  const hasUsers = !!getCount(releaseSessions?.groups, SessionField.USERS);
+  if (hasHealthData && (hasUsers || loading)) {
+    charts.push(
       {
         type: ReleaseComparisonChartType.CRASH_FREE_USERS,
         role: 'parent',
