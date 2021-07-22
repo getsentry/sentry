@@ -263,8 +263,7 @@ class MailAdapter:
 
         email_cls(activity).send()
 
-    @staticmethod
-    def handle_user_report(payload, project: Project, **kwargs):
+    def handle_user_report(self, payload, project: Project, **kwargs):
         metrics.incr("mail_adapter.handle_user_report")
         group = Group.objects.get(id=payload["report"]["issue"]["id"])
 
