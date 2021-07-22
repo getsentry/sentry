@@ -62,11 +62,15 @@ class AlertRuleNotification(BaseNotification):
     def get_user_context(
         self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        return {
-            "timezone": pytz.timezone(
-                UserOption.objects.get_value(user=user, key="timezone", default="UTC")
-            )
-        }
+        # AlertRuleNotification is shared among both email and slack notifications, and in slack
+        # notifications, the `user` arg could be of type `Team` which is why we need this check
+        if isinstance(user, User):
+            return {
+                "timezone": pytz.timezone(
+                    UserOption.objects.get_value(user=user, key="timezone", default="UTC")
+                )
+            }
+        return super().get_user_context(user, extra_context)
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
