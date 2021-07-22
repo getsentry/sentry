@@ -5,7 +5,7 @@ import {
   DEBUG_SOURCE_LAYOUTS,
 } from 'app/data/debugFileSources';
 import {t, tct} from 'app/locale';
-import {DebugFileSource} from 'app/types';
+import {CustomRepoType} from 'app/types/debugFiles';
 import {Field} from 'app/views/settings/components/forms/type';
 
 function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {
@@ -170,7 +170,7 @@ const gcsFields: FieldMap = {
   },
 };
 
-export function getFormFields(type: DebugFileSource) {
+export function getFormFields(type: CustomRepoType) {
   switch (type) {
     case 'http':
       return [

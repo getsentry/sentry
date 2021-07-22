@@ -6,15 +6,8 @@ import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboa
 import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
-import {
-  DebugFileSource,
-  Group,
-  IssueOwnership,
-  Organization,
-  Project,
-  SentryApp,
-  Team,
-} from 'app/types';
+import {Group, IssueOwnership, Organization, Project, SentryApp, Team} from 'app/types';
+import {CustomRepoType} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
 type ModalProps = Required<React.ComponentProps<typeof GlobalModal>>;
@@ -202,7 +195,7 @@ export type SentryAppDetailsModalOptions = {
 };
 
 type DebugFileSourceModalOptions = {
-  sourceType: DebugFileSource;
+  sourceType: CustomRepoType;
   onSave: (data: Record<string, any>) => Promise<void>;
   appStoreConnectContext?: AppStoreConnectContextProps;
   onClose?: () => void;
