@@ -21,7 +21,7 @@ def send_invite_request_notification_email(member_id):
         "email": om.email,
         "organization_name": om.organization.name,
         "pending_requests_link": absolute_uri(
-            reverse("sentry-organization-members-requests", kwargs=link_args)
+            reverse("sentry-organization-members", kwargs=link_args)
         ),
     }
 

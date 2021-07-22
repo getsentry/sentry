@@ -17,7 +17,7 @@ class DebugOrganizationInviteRequestEmailView(View):
             "inviter_name": user.get_salutation_name,
             "email": "test@gmail.com",
             "pending_requests_link": absolute_uri(
-                reverse("sentry-organization-members-requests", args=[org.slug])
+                reverse("sentry-organization-members", args=[org.slug])
             ),
         }
         return MailPreview(

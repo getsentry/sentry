@@ -13,7 +13,7 @@ import withApi from 'app/utils/withApi';
 type Props = {
   api: Client;
   orgId: string;
-  onRemoveAccessRequest: (id: string) => void;
+  onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   requestList: AccessRequest[];
 };
 
@@ -45,7 +45,7 @@ class OrganizationAccessRequests extends React.Component<Props, State> {
         method: 'PUT',
         data: {isApproved},
       });
-      onRemoveAccessRequest(id);
+      onRemoveAccessRequest(id, isApproved);
       addSuccessMessage(successMessage);
     } catch {
       addErrorMessage(errorMessage);

@@ -34,6 +34,11 @@ type SampleEventParam = {
   platform?: PlatformKey;
 };
 
+type InviteRequestParam = {
+  member_id: number;
+  invite_status: string;
+};
+
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'growth.show_mobile_prompt_banner': ShowParams;
@@ -54,6 +59,8 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
+  'invite_request.approved': InviteRequestParam;
+  'invite_request.denied': InviteRequestParam;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -82,4 +89,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
+  'invite_request.approved': 'Invite Request Approved',
+  'invite_request.denied': 'Invite Request Denied',
 };

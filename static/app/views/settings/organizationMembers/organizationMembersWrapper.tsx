@@ -1,16 +1,11 @@
 import {cloneElement, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import Badge from 'app/components/badge';
 import Button from 'app/components/button';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
 import {IconMail} from 'app/icons';
 import {t} from 'app/locale';
 import {Member, Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -97,11 +92,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     });
 
   renderBody() {
-    const {
-      children,
-      organization,
-      params: {orgId},
-    } = this.props;
+    const {children} = this.props;
     const {requestList, inviteRequests} = this.state;
 
     const action = (
@@ -126,35 +117,6 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title="Members" action={action} />
-
-        {this.showNavTabs && (
-          <NavTabs underlined>
-            <ListLink
-              to={`/settings/${orgId}/members/`}
-              isActive={() => !this.onRequestsTab}
-              data-test-id="members-tab"
-            >
-              {t('Members')}
-            </ListLink>
-            <ListLink
-              to={`/settings/${orgId}/members/requests/`}
-              isActive={() => this.onRequestsTab}
-              data-test-id="requests-tab"
-              onClick={() => {
-                this.showInviteRequests &&
-                  trackAnalyticsEvent({
-                    eventKey: 'invite_request.tab_clicked',
-                    eventName: 'Invite Request Tab Clicked',
-                    organization_id: organization.id,
-                  });
-              }}
-            >
-              {t('Requests')}
-            </ListLink>
-            {this.requestCount && <StyledBadge text={this.requestCount} />}
-          </NavTabs>
-        )}
-
         {children &&
           cloneElement(children, {
             requestList,
@@ -168,13 +130,5 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledBadge = styled(Badge)`
-  margin-left: -12px;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin-left: -6px;
-  }
-`;
 
 export default withOrganization(OrganizationMembersWrapper);

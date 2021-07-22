@@ -497,6 +497,7 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
 
+      <Redirect from="members/requests" to="members/" />
       <Route path="members/" name="Members">
         <Route
           componentPromise={() =>
@@ -507,15 +508,6 @@ function routes() {
           <IndexRoute
             componentPromise={() =>
               import('app/views/settings/organizationMembers/organizationMembersList')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-
-          <Route
-            path="requests/"
-            name="Requests"
-            componentPromise={() =>
-              import('app/views/settings/organizationMembers/organizationRequestsView')
             }
             component={errorHandler(LazyLoad)}
           />
