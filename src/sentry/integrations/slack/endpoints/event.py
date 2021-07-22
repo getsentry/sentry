@@ -166,7 +166,10 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
 
         if slack_request.type == "message":
             data = slack_request.data.get("event")
-            command = data["text"]
+            if data.get("bot_id"):
+                return self.respond()
+
+            command = data.get("text")
             if command in COMMANDS:
                 resp = super().post_dispatcher(slack_request)
 
