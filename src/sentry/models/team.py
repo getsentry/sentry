@@ -270,9 +270,8 @@ class Team(Model):
         return Project.objects.get_for_team_ids({self.id})
 
     def delete(self, **kwargs):
-        from sentry.models import Actor
+        from sentry.models import ExternalActor
 
-        # There is no foreign key relationship so we have to manually cascade Actors. This will cascade delete the ExternalActors
-        Actor.objects.filter(id=self.actor_id).delete()
-
+        # There is no foreign key relationship so we have to manually delete the ExternalActors
+        ExternalActor.objects.filter(actor_id=self.actor_id).delete()
         return super().delete(**kwargs)
