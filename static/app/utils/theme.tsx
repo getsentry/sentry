@@ -607,8 +607,6 @@ const commonTheme = {
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
   },
 
-  space: [0, 8, 16, 20, 30],
-
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],
 
