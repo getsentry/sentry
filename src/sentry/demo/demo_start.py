@@ -82,18 +82,16 @@ class DemoStartView(BaseView):
         extra_query_string = request.POST.get("extraQueryString")
         redirect_url = get_redirect_url(request, org)
 
-        hash_param = ""
+        if extra_query_string:
+            hash_param = ""
 
-        if "#" in redirect_url:
-            partition = redirect_url.rpartition("#")
-            redirect_url = partition[0]
-            hash_param = partition[1] + partition[2]
+            if "#" in redirect_url:
+                partition = redirect_url.index("#")
+                hash_param = redirect_url[partition:]
+                redirect_url = redirect_url[:partition]
 
-        if "/?" in redirect_url:
-            redirect_url += f"&{extra_query_string}{hash_param}"
-        else:
-            redirect_url += f"?{extra_query_string}{hash_param}"
-
+            separator = "&" if "?" in redirect_url else "?"
+            redirect_url += separator + extra_query_string + hash_param
         resp = self.redirect(redirect_url)
 
         # set a cookie of whether the user accepted tracking so we know
