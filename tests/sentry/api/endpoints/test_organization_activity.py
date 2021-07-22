@@ -10,6 +10,10 @@ class OrganizationActivityTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
+    def test_empty(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == []
+
     def test_simple(self):
         group = self.group
         org = group.organization
