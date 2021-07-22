@@ -87,7 +87,6 @@ class TeamManager(BaseManager):
         return results
 
     def post_save(self, instance, **kwargs):
-
         update_code_owners_schema.apply_async(
             kwargs={
                 "organization": instance.organization,

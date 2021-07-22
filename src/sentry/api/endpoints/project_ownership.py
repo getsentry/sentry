@@ -1,6 +1,5 @@
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -30,17 +29,13 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     def validate(self, attrs):
         if "raw" not in attrs:
             return attrs
-        try:
-            schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id
-            )
 
-            self._validate_no_codeowners(schema["rules"])
+        schema = create_schema_from_issue_owners(attrs["raw"], self.context["ownership"].project_id)
 
-            attrs["schema"] = schema
-            return attrs
-        except ValidationError as e:
-            raise serializers.ValidationError(e)
+        self._validate_no_codeowners(schema["rules"])
+
+        attrs["schema"] = schema
+        return attrs
 
     def save(self):
         ownership = self.context["ownership"]

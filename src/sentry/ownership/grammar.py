@@ -7,7 +7,7 @@ from typing import List, Pattern, Tuple
 from django.db.models import Q
 from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
-from rest_framework.exceptions import ValidationError
+from rest_framework.serializers import ValidationError
 
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
