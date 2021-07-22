@@ -97,7 +97,7 @@ class GitlabIdentityProvider(OAuth2Provider):
                 "gitlab.refresh-identity-failure",
                 extra={
                     "identity_id": identity.id,
-                    "error_status": e.code,
+                    "error_status": req.status_code,
                     "error_message": str(e),
                 },
             )
