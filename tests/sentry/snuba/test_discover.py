@@ -649,7 +649,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     x[alias] for x in sorted(data, key=lambda k: k["transaction"])
                 ] == expected_apdex
 
-    def test_snql_count_miserable_function(self):
+    def test_count_miserable_function(self):
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
@@ -745,7 +745,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     x[alias] for x in sorted(data, key=lambda k: k["transaction"])
                 ] == expected_count_miserable
 
-    def test_snql_user_misery_function(self):
+    def test_user_misery_function(self):
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
