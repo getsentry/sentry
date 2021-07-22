@@ -46,10 +46,15 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
             ).values_list("id", flat=True)
         )
 
-        union_qs = reduce(
-            lambda qs1, qs2: qs1.union(qs2, all=True),
-            [base_qs.filter(project_id=project)[: paginator.max_limit] for project in project_ids],
-        )
+        union_qs = Activity.objects.none()
+        if project_ids:
+            union_qs = reduce(
+                lambda qs1, qs2: qs1.union(qs2, all=True),
+                [
+                    base_qs.filter(project_id=project)[: paginator.max_limit]
+                    for project in project_ids
+                ],
+            )
 
         # We do `select_related` here to make the unions less heavy. This way we only join these
         # table for the rows we actually want.
