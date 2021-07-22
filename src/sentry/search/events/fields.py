@@ -1011,6 +1011,13 @@ class FunctionAliasArg(FunctionArg):
         return value
 
 
+class AggregateFunctionArg(FunctionArg):
+    def normalize(self, value, params):
+        if not FUNCTION_PATTERN.match(value):
+            raise InvalidFunctionArgument(f"{value} is not a valid aggregate function")
+        return value
+
+
 class NullColumn(FunctionArg):
     """
     Convert the provided column to null so that we
@@ -2176,6 +2183,25 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="integer",
                 ),
+                # This "function signature" for this one is slightly different.
+                # The JSON version accepts an alias but since we can resolve
+                # aggregates easily here, we can actually accept the function
+                # call instead and eliminate the need add the aggregate to
+                # selected columns.
+                SnQLFunction(
+                    "compare_numeric_aggregate",
+                    required_args=[
+                        AggregateFunctionArg("aggregate"),
+                        ConditionArg("condition"),
+                        NumberRange("value", 0, None),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        args["condition"],
+                        [self.resolve_function(args["aggregate"]), args["value"]],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
                 # TODO: implement these
                 SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
@@ -2221,9 +2247,6 @@ class QueryFields(QueryBase):
                     "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
                 ),
                 SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
-                ),
                 SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
@@ -2326,6 +2349,8 @@ class QueryFields(QueryBase):
 
         name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter.get(name)
+        arguments = snql_function.format_as_arguments(name, arguments, self.params)
+
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
         return snql_function.snql_aggregate(arguments, alias)

@@ -590,6 +590,68 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 r[1] for r in expected_project_threshold_config
             ]
 
+    def test_compare_numeric_aggregate_function(self):
+        project = self.create_project()
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/success"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/unknown"
+        data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(data, project_id=project.id)
+
+        for i in range(3):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["transaction"] = f"/failure_count/{i}"
+            data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/0"
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data, project_id=project.id)
+
+        fields = [
+            (["transaction", "compare_numeric_aggregate(failure_count(),greater,1)"], ""),
+            (["transaction", "compare_numeric_aggregate(failure_count(),notEquals,1)"], ""),
+            (
+                ["transaction", "compare_numeric_aggregate(failure_count(),notEquals,1)"],
+                "has:compare_numeric_aggregate(failure_count(),notEquals,1)",
+            ),
+            (
+                ["transaction", "compare_numeric_aggregate(failure_count(),notEquals,1)"],
+                "compare_numeric_aggregate(failure_count(),notEquals,1):false",
+            ),
+        ]
+
+        expected_results = [
+            ("compare_numeric_aggregate_failure_count___greater_1", [1, 0, 0, 0, 0]),
+            ("compare_numeric_aggregate_failure_count___notEquals_1", [1, 0, 0, 1, 1]),
+            ("compare_numeric_aggregate_failure_count___notEquals_1", [1, 1, 1]),
+            ("compare_numeric_aggregate_failure_count___notEquals_1", [0, 0]),
+        ]
+
+        for i, test_case in enumerate(fields):
+            selected, query = test_case
+            result = discover.wip_snql_query(
+                selected_columns=selected,
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=True,
+            )
+            data = result["data"]
+
+            alias, expected_values = expected_results[i]
+            assert len(data) == 5
+            assert [x[alias] for x in data] == expected_values
+
     def test_failure_count_function(self):
         project = self.create_project()
 
