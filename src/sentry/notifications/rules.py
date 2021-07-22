@@ -1,7 +1,9 @@
 import logging
 from typing import Any, Mapping, MutableMapping, Optional, Set
 
-from sentry.models import User
+import pytz
+
+from sentry.models import User, UserOption
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
@@ -56,6 +58,19 @@ class AlertRuleNotification(BaseNotification):
 
     def get_reference(self) -> Any:
         return self.group
+
+    def get_user_context(
+        self, user: User, extra_context: Mapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        # AlertRuleNotification is shared among both email and slack notifications, and in slack
+        # notifications, the `user` arg could be of type `Team` which is why we need this check
+        if isinstance(user, User):
+            return {
+                "timezone": pytz.timezone(
+                    UserOption.objects.get_value(user=user, key="timezone", default="UTC")
+                )
+            }
+        return super().get_user_context(user, extra_context)
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
