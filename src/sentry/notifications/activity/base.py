@@ -146,5 +146,8 @@ class ActivityNotification(BaseNotification, ABC):
     def get_reply_reference(self) -> Optional[Any]:
         return self.group
 
+    def get_type(self) -> str:
+        return f"notify.activity.{self.activity.get_type_display()}"
+
     def send(self) -> None:
         return send_activity_notification(self)

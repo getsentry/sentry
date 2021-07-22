@@ -35,6 +35,9 @@ class UserReportNotification(BaseNotification):
     def get_category(self) -> str:
         return "user_report_email"
 
+    def get_type(self) -> str:
+        return "notify.user-report"
+
     def get_subject(self) -> str:
         # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"
