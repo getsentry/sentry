@@ -320,13 +320,16 @@ function AppStoreConnect({
       if (shouldGoNext) {
         setIsLoading(false);
         goNext();
+        return;
       }
+
+      addSuccessMessage(t('An iTunes verification code has been sent'));
     } catch {
       if (shouldGoNext) {
         setIsLoading(false);
       }
       addErrorMessage(
-        t('The iTunes authentication failed. Please check the entered credentials.')
+        t('The iTunes authentication failed. Please check the entered credentials')
       );
     }
   }
