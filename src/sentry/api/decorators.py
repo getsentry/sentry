@@ -2,10 +2,11 @@ from functools import wraps
 
 from sentry.api.exceptions import EmailVerificationRequired, SudoRequired
 from sentry.models import ApiKey, ApiToken
+from sentry.utils.auth import is_user_password_usable
 
 
 def is_considered_sudo(request):
-    # Users without a password are assumed to always have sudo powers
+    # Users without a usable password are assumed to always have sudo powers
     user = request.user
 
     return (
@@ -13,7 +14,7 @@ def is_considered_sudo(request):
         or isinstance(request.auth, ApiKey)
         or isinstance(request.auth, ApiToken)
         or user.is_authenticated
-        and not user.has_usable_password()
+        and not is_user_password_usable(user)
     )
 
 

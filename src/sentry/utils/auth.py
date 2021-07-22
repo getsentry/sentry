@@ -1,6 +1,7 @@
 import logging
 from time import time
 
+import django
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
@@ -265,6 +266,19 @@ def is_user_signed_request(request):
         return False
 
 
+def is_user_password_usable(user):
+    """
+    From Django 1.6 to 2.0, has_usable_password returned True for None
+    or empty string. We'd like to keep that behavior.
+    """
+    if django.VERSION[:2] < (2, 1):
+        return user.has_usable_password()
+
+    # Hmm, or we could just replace existing usage of has_usable_password
+    # since we don't use set_unusable_password at all...
+    return user.password is None or user.password == "" or user.has_usable_password()
+
+
 class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.
@@ -277,7 +291,7 @@ class EmailAuthBackend(ModelBackend):
         if users:
             for user in users:
                 try:
-                    if user.password and user.check_password(password):
+                    if is_user_password_usable(user):
                         return user
                 except ValueError:
                     continue

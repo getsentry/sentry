@@ -37,6 +37,7 @@ from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.auth import is_user_password_usable
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -422,7 +423,7 @@ class AuthIdentityHandler:
                 try:
                     self._login(acting_user)
                 except self._NotCompletedSecurityChecks:
-                    if acting_user.has_usable_password():
+                    if is_user_password_usable(acting_user):
                         return self._post_login_redirect()
                     else:
                         acting_user = None
@@ -433,7 +434,7 @@ class AuthIdentityHandler:
                 # force them to create a new account
                 acting_user = None
         # without a usable password they can't login, so let's clear the acting_user
-        elif acting_user and not acting_user.has_usable_password():
+        elif acting_user and not is_user_password_usable(acting_user):
             acting_user = None
 
         if op == "confirm" and self.user.is_authenticated:
