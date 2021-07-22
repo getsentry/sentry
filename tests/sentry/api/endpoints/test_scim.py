@@ -817,3 +817,39 @@ class SCIMGroupTests(SCIMTestCase):
             "members": None,
             "meta": {"resourceType": "Group"},
         }
+
+    def test_add_member_already_in_team(self):
+        member1 = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, self.team.id],
+        )
+        response = self.client.patch(
+            url,
+            response=self.client.patch(
+                url,
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                    "Operations": [
+                        {
+                            "op": "add",
+                            "path": "members",
+                            "value": [
+                                {
+                                    "value": member1.id,
+                                    "display": member1.email,
+                                }
+                            ],
+                        },
+                    ],
+                },
+            ),
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": str(self.team.id),
+            "displayName": self.team.name,
+            "members": None,
+            "meta": {"resourceType": "Group"},
+        }
