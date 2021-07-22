@@ -1195,6 +1195,8 @@ class QueryFilter(QueryFields):
                     Op.EQ if search_filter.operator == "=" else Op.NEQ,
                     1,
                 )
+            else:
+                condition = Condition(lhs, Op(search_filter.operator), value)
 
         # Handle checks for existence
         elif search_filter.operator in ("=", "!=") and search_filter.value.value == "":
