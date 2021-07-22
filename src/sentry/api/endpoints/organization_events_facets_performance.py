@@ -188,7 +188,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not results:
-                    return {"data": []}, []
+                    return {"data": []}, top_tags
 
                 for row in results["data"]:
                     row["tags_value"] = tagstore.get_tag_value_label(
