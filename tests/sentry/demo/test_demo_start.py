@@ -87,6 +87,14 @@ class DemoStartTest(TestCase):
             assert resp.status_code == 302
             assert partial_url in resp.url
 
+        extra_query_string = "param=156&thing=test"
+        resp = self.client.post(
+            self.path, data={"scenario": scenario, "extraQueryString": extra_query_string}
+        )
+        partial_url = f"/organizations/{self.org.slug}/{scenario}/?{extra_query_string}"
+        assert resp.status_code == 302
+        assert partial_url in resp.url
+
     @override_settings(
         DEMO_DATA_QUICK_GEN_PARAMS=DEMO_DATA_QUICK_GEN_PARAMS,
         DEMO_DATA_GEN_PARAMS=DEMO_DATA_GEN_PARAMS,
@@ -132,6 +140,25 @@ class DemoStartTest(TestCase):
         for scenario_tuple in scenario_tuples:
             (scenario, partial_url) = scenario_tuple
             resp = self.client.post(self.path, data={"scenario": scenario, "projectSlug": "react"})
+            assert resp.status_code == 302
+            assert partial_url in resp.url
+
+        extra_query_string = "param=156&thing=test"
+        scenario_pairs = [
+            ("oneIssue", f"{base_issue_url}&{extra_query_string}"),
+            ("oneBreadcrumb", f"{base_issue_url}&{extra_query_string}#breadcrumbs"),
+        ]
+
+        for pair in scenario_pairs:
+            (scenario, partial_url) = pair
+            resp = self.client.post(
+                self.path,
+                data={
+                    "scenario": scenario,
+                    "projectSlug": "react",
+                    "extraQueryString": extra_query_string,
+                },
+            )
             assert resp.status_code == 302
             assert partial_url in resp.url
 
