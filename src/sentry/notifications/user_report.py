@@ -33,7 +33,7 @@ class UserReportNotification(BaseNotification):
         return "activity/new-user-feedback"
 
     def get_category(self) -> str:
-        return "digest_email"
+        return "user_report_email"
 
     def get_subject(self) -> str:
         # Explicitly typing to satisfy mypy.
