@@ -455,7 +455,69 @@ def test_convert_codeowners_syntax():
             },
             code_mapping,
         )
-        == "\n# cool stuff comment\npath:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\npath:webpack://docs/* docs-sentry ecosystem\npath:src/sentry/* anotheruser@sentry.io\npath:api/* nisanthan.nanthakumar@sentry.io\n"
+        == "\n# cool stuff comment\ncodeowners:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\ncodeowners:webpack://docs/* docs-sentry ecosystem\ncodeowners:src/sentry/* anotheruser@sentry.io\ncodeowners:api/* nisanthan.nanthakumar@sentry.io\n"
+    )
+
+
+def test_convert_codeowners_syntax_excludes_invalid():
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = "webpack://static/"
+    code_mapping.source_root = ""
+    codeowners = (
+        codeowners_fixture_data
+        + r"""
+# some invalid rules
+debug[0-9].log                @NisanthanNanthakumar
+!important/*.log                 @NisanthanNanthakumar
+file 1.txt @NisanthanNanthakumar  @getsentry/ecosystem
+\#somefile.txt  @NisanthanNanthakumar
+
+# some anchored paths
+/scripts/test.js              @getsentry/ops
+config/hooks                  @getsentry/ops
+config/relay/                 @getsentry/relay
+
+# not anchored path
+docs-ui/                  @getsentry/docs @getsentry/ecosystem
+"""
+    )
+
+    assert (
+        convert_codeowners_syntax(
+            codeowners,
+            {
+                "@getsentry/frontend": "front-sentry",
+                "@getsentry/docs": "docs-sentry",
+                "@getsentry/ecosystem": "ecosystem",
+                "@getsentry/ops": "ops",
+                "@getsentry/relay": "relay",
+                "@NisanthanNanthakumar": "nisanthan.nanthakumar@sentry.io",
+                "@AnotherUser": "anotheruser@sentry.io",
+                "nisanthan.nanthakumar@sentry.io": "nisanthan.nanthakumar@sentry.io",
+            },
+            code_mapping,
+        )
+        == """
+# cool stuff comment
+codeowners:*.js front-sentry nisanthan.nanthakumar@sentry.io
+# good comment
+
+
+codeowners:webpack://static/docs/* docs-sentry ecosystem
+codeowners:webpack://static/src/sentry/* anotheruser@sentry.io
+codeowners:webpack://static/api/* nisanthan.nanthakumar@sentry.io
+
+# some invalid rules
+codeowners:file nisanthan.nanthakumar@sentry.io ecosystem
+
+# some anchored paths
+codeowners:webpack://static/scripts/test.js ops
+codeowners:webpack://static/config/hooks ops
+codeowners:webpack://static/config/relay/ relay
+
+# not anchored path
+codeowners:docs-ui/ docs-sentry ecosystem
+"""
     )
 
 

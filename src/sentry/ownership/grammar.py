@@ -410,7 +410,20 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
             result += f"{rule}\n"
             continue
 
-        path, *code_owners = rule.split()
+        path, *code_owners = (x.strip() for x in rule.split())
+        # Escape invalid rules
+        # Check if rule has whitespace
+        # Check if rule has '#' not as first character
+        # Check if rule contains '!'
+        if re.search(r"[\s!#]", path):
+            continue
+
+        # Check if rule has '[' and ']'
+        if re.search(r"^([^[^\s]*)\[([^]^\s]*)\][^\s]*$", path):
+            # if rule has whitespace, it will pass.
+            # we escape for that in the beginning
+            continue
+
         sentry_assignees = []
 
         for owner in code_owners:
@@ -427,8 +440,20 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
                 continue
 
         if sentry_assignees:
-            formatted_path = path.replace(code_mapping.source_root, code_mapping.stack_root, 1)
-            result += f'path:{formatted_path} {" ".join(sentry_assignees)}\n'
+            # Replace source_root with stack_root for anchored paths
+            # /foo/dir -> anchored
+            # foo/dir -> anchored
+            # foo/dir/ -> anchored
+            # foo/ -> not anchored
+            if re.search(r"[\/].{1}", path):
+                path_with_stack_root = path.replace(
+                    code_mapping.source_root, code_mapping.stack_root, 1
+                )
+                # flatten multiple '/' if not protocol
+                formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
+                result += f'codeowners:{formatted_path} {" ".join(sentry_assignees)}\n'
+            else:
+                result += f'codeowners:{path} {" ".join(sentry_assignees)}\n'
 
     return result
 
