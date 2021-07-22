@@ -8,7 +8,8 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.models import ReleaseProjectEnvironment
+from sentry.api.release_search import INVALID_SEMVER_MESSAGE
+from sentry.models import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -1355,7 +1356,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
-            f"{RELEASE_STAGE_ALIAS}:[replaced, not_adopted]",
+            f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.LOW_ADOPTION}]",
             {"organization_id": self.organization.id},
         )
         assert _filter.conditions == [
@@ -1364,7 +1365,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
-            f"!{RELEASE_STAGE_ALIAS}:[adopted, not_adopted]",
+            f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.LOW_ADOPTION}]",
             {"organization_id": self.organization.id},
         )
         assert _filter.conditions == [["release", "IN", [replaced_release.version]]]
@@ -1511,7 +1512,10 @@ class SemverFilterConverterTest(TestCase):
     def test_invalid_query(self):
         key = SEMVER_ALIAS
         filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.hi"))
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match=INVALID_SEMVER_MESSAGE,
+        ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
     def run_test(
@@ -1705,9 +1709,15 @@ class ParseSemverTest(unittest.TestCase):
         assert semver_filter == expected
 
     def test_invalid(self):
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match=INVALID_SEMVER_MESSAGE,
+        ):
             parse_semver("1.hello", ">") is None
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match=INVALID_SEMVER_MESSAGE,
+        ):
             parse_semver("hello", ">") is None
 
     def test_normal(self):

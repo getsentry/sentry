@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment
+from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -732,29 +732,27 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         self.create_release(version="test2@2.0.0.0+456", environments=[self.environment, env_2])
         self.create_release(version="z_test@1.0.0.0")
         self.create_release(version="z_test@2.0.0.0+456", additional_projects=[project_2])
+        # This shouldn't appear for any semver autocomplete
+        self.create_release(version="test@abc123", additional_projects=[project_2])
 
         self.run_test(
             None,
             [
-                "z_test@2.0.0.0",
-                "test2@2.0.0.0",
-                "test@1.2.3.4",
-                "test@1.2.3.0-beta",
-                "test@1.2.0.0-alpha",
-                "z_test@1.0.0.0",
-                "test@1.0.0.0",
+                "2.0.0.0",
+                "1.2.3.4",
+                "1.2.3.0-beta",
+                "1.2.0.0-alpha",
+                "1.0.0.0",
             ],
         )
         self.run_test(
             "",
             [
-                "z_test@2.0.0.0",
-                "test2@2.0.0.0",
-                "test@1.2.3.4",
-                "test@1.2.3.0-beta",
-                "test@1.2.0.0-alpha",
-                "z_test@1.0.0.0",
-                "test@1.0.0.0",
+                "2.0.0.0",
+                "1.2.3.4",
+                "1.2.3.0-beta",
+                "1.2.0.0-alpha",
+                "1.0.0.0",
             ],
         )
 
@@ -767,8 +765,8 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
 
         self.run_test("1.2", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha"])
 
-        self.run_test("", ["test2@2.0.0.0", "test@1.2.0.0-alpha"], self.environment)
-        self.run_test("", ["test2@2.0.0.0", "test@1.2.3.4", "test@1.2.3.0-beta"], env_2)
+        self.run_test("", ["2.0.0.0", "1.2.0.0-alpha"], self.environment)
+        self.run_test("", ["2.0.0.0", "1.2.3.4", "1.2.3.0-beta"], env_2)
         self.run_test("1", ["1.2.0.0-alpha"], self.environment)
         self.run_test("1", ["1.2.3.4", "1.2.3.0-beta"], env_2)
 
@@ -808,6 +806,8 @@ class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase,
         self.create_release(version="test@1.2.0.0-alpha", environments=[self.environment])
         self.create_release(version="test2@2.0.0.0+456", environments=[self.environment, env_2])
         self.create_release(version="z_test@2.0.0.0+456", additional_projects=[project_2])
+        # This shouldn't appear for any semver autocomplete
+        self.create_release(version="test@abc123", additional_projects=[project_2])
 
         self.run_test(None, ["test", "test2", "z_test"])
         self.run_test("", ["test", "test2", "z_test"])
@@ -875,12 +875,12 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         env_2 = self.create_environment()
         project_2 = self.create_project()
 
-        self.run_test("adopted", [adopted_release])
-        self.run_test("not_adopted", [not_adopted_release])
-        self.run_test("replaced", [replaced_release])
+        self.run_test(ReleaseStages.ADOPTED, [adopted_release])
+        self.run_test(ReleaseStages.LOW_ADOPTION, [not_adopted_release])
+        self.run_test(ReleaseStages.REPLACED, [replaced_release])
 
-        self.run_test("adopted", [], environment=env_2)
-        self.run_test("adopted", [], project=project_2)
+        self.run_test(ReleaseStages.ADOPTED, [], environment=env_2)
+        self.run_test(ReleaseStages.ADOPTED, [], project=project_2)
 
 
 class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, SnubaTestCase):
@@ -896,6 +896,8 @@ class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, S
         self.create_release(version="test@2.0.0.0+456", environments=[self.environment, env_2])
         self.create_release(version="test@2.0.1.0+457a", additional_projects=[project_2])
         self.create_release(version="test@2.0.1.0+789", additional_projects=[project_2])
+        # This shouldn't appear for any semver autocomplete
+        self.create_release(version="test@abc123", additional_projects=[project_2])
 
         self.run_test(None, ["123", "124", "456", "457a", "789"])
         self.run_test("", ["123", "124", "456", "457a", "789"])
