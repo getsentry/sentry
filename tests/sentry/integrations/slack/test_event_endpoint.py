@@ -4,7 +4,13 @@ from urllib.parse import parse_qsl
 import responses
 
 from sentry.integrations.slack.unfurl import Handler, make_type_coercer
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    OrganizationIntegration,
+)
 from sentry.testutils import APITestCase
 from sentry.utils import json
 from sentry.utils.compat import filter
@@ -40,6 +46,22 @@ MESSAGE_IM_EVENT = """{
     "user": "Uxxxxxxx",
     "text": "helloo",
     "message_ts": "123456789.9875"
+}"""
+
+MESSAGE_IM_EVENT_UNLINK = """{
+        "type": "message",
+        "text": "unlink",
+        "user": "UXXXXXXX1",
+        "team": "TXXXXXXX1",
+        "channel": "DTPJWTJ2D"
+}"""
+
+MESSAGE_IM_EVENT_LINK = """{
+        "type": "message",
+        "text": "link",
+        "user": "UXXXXXXX1",
+        "team": "TXXXXXXX1",
+        "channel": "DTPJWTJ2D"
 }"""
 
 MESSAGE_IM_BOT_EVENT = """{
@@ -203,6 +225,84 @@ class MessageIMEventTest(BaseEventTest):
             self.get_block_type_text("section", data)
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
+
+    @responses.activate
+    def test_user_message_link(self):
+        """
+        Test that when a user types in "link" to the DM we reply with the correct response
+        """
+        IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        with self.feature("organizations:notification-platform"):
+            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
+        assert resp.status_code == 200, resp.content
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "Link your Slack identity" in data["text"]
+
+    @responses.activate
+    def test_user_message_already_linked(self):
+        """
+        Test that when a user who has already linked their identity types in "link" to the DM we reply with the correct response
+        """
+        idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        with self.feature("organizations:notification-platform"):
+            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
+        assert resp.status_code == 200, resp.content
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "You are already linked" in data["text"]
+
+    @responses.activate
+    def test_user_message_unlink(self):
+        """
+        Test that when a user types in "unlink" to the DM we reply with the correct response
+        """
+        idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        with self.feature("organizations:notification-platform"):
+            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
+        assert resp.status_code == 200, resp.content
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "Click here to unlink your identity" in data["text"]
+
+    @responses.activate
+    def test_user_message_already_unlinked(self):
+        """
+        Test that when a user without an Identity types in "unlink" to the DM we reply with the correct response
+        """
+        IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        with self.feature("organizations:notification-platform"):
+            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
+        assert resp.status_code == 200, resp.content
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "You do not have a linked identity to unlink" in data["text"]
 
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))

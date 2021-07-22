@@ -52,6 +52,10 @@ class SlackRequest:
         return False
 
     @property
+    def has_identity(self) -> bool:
+        raise NotImplementedError
+
+    @property
     def type(self) -> str:
         # Found in different places, so this is implemented in each request's
         # specific object (``SlackEventRequest`` and ``SlackActionRequest``).
