@@ -329,7 +329,7 @@ function AppStoreConnect({
         setIsLoading(false);
       }
       addErrorMessage(
-        t('The iTunes authentication failed. Please check the entered credentials')
+        t('The iTunes authentication failed. Please check the provided credentials')
       );
     }
   }
