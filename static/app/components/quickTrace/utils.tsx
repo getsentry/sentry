@@ -43,12 +43,11 @@ function generatePerformanceEventTarget(
     id: event.event_id,
     project: event.project_slug,
   });
-  return getTransactionDetailsUrl(
-    organization,
-    eventSlug,
-    event.transaction,
-    location.query
-  );
+  const query = {
+    ...location.query,
+    project: String(event.project_id),
+  };
+  return getTransactionDetailsUrl(organization, eventSlug, event.transaction, query);
 }
 
 function generateDiscoverEventTarget(
@@ -60,10 +59,17 @@ function generateDiscoverEventTarget(
     id: event.event_id,
     project: event.project_slug,
   });
+  const newLocation = {
+    ...location,
+    query: {
+      ...location.query,
+      project: String(event.project_id),
+    },
+  };
   return eventDetailsRouteWithEventView({
     orgSlug: organization.slug,
     eventSlug,
-    eventView: EventView.fromLocation(location),
+    eventView: EventView.fromLocation(newLocation),
   });
 }
 
