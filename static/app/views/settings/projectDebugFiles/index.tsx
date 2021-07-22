@@ -11,7 +11,7 @@ import SearchBar from 'app/components/searchBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
+import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'app/types/debugFiles';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -189,8 +189,10 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               router={router}
               projectSlug={project.slug}
               organization={organization}
-              symbolSources={
-                project.symbolSources ? JSON.parse(project.symbolSources) : []
+              customRepositories={
+                (project.symbolSources
+                  ? JSON.parse(project.symbolSources)
+                  : []) as CustomRepo[]
               }
               builtinSymbolSources={project.builtinSymbolSources ?? []}
               builtinSymbolSourceOptions={builtinSymbolSources ?? []}
