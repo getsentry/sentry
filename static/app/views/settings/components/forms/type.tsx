@@ -5,7 +5,6 @@ import Alert from 'app/components/alert';
 import {AvatarProject, Project} from 'app/types';
 import {ChoiceMapperProps} from 'app/views/settings/components/forms/choiceMapperField';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
-import {RichListProps} from 'app/views/settings/components/forms/richListField';
 import {SelectAsyncFieldProps} from 'app/views/settings/components/forms/selectAsyncField';
 
 export const FieldType = [
@@ -19,7 +18,6 @@ export const FieldType = [
   'multichoice',
   'number',
   'radio',
-  'rich_list',
   'secret',
   'separator',
   'string',
@@ -180,23 +178,6 @@ export type SentryProjectSelectorType = {
 export type SelectAsyncType = {
   type: 'select_async';
 } & SelectAsyncFieldProps;
-/**
- * Json field configuration makes using generics hard.
- * This isn't the ideal type to use, but it will cover
- * general usage.
- */
-export type RichListType = {
-  type: 'rich_list';
-} & Pick<
-  RichListProps,
-  | 'renderItem'
-  | 'addButtonText'
-  | 'onAddItem'
-  | 'onEditItem'
-  | 'onRemoveItem'
-  | 'addDropdown'
-  | 'removeConfirm'
->;
 
 export type Field = (
   | CustomType
@@ -208,7 +189,6 @@ export type Field = (
   | ProjectMapperType
   | SentryProjectSelectorType
   | SelectAsyncType
-  | RichListType
   | ChoiceMapperType
   | {type: typeof FieldType[number]}
 ) &

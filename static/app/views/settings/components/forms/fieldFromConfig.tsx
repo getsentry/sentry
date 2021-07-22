@@ -13,7 +13,6 @@ import NumberField from './numberField';
 import ProjectMapperField from './projectMapperField';
 import RadioField from './radioField';
 import RangeField from './rangeField';
-import RichListField from './richListField';
 import SelectAsyncField from './selectAsyncField';
 import SelectField from './selectField';
 import SentryProjectSelectorField from './sentryProjectSelectorField';
@@ -87,10 +86,6 @@ export default class FieldFromConfig extends Component<Props> {
           throw new Error('Invalid `choices` type. Use an array of options');
         }
         return <RadioField {...props} choices={choices} />;
-      case 'rich_list':
-        // TODO(ts) The switch on field.type is not resolving
-        // the Field union for this component. The union might be 'too big'.
-        return <RichListField {...(props as any)} />;
       case 'table':
         // TODO(ts) The switch on field.type is not resolving
         // the Field union for this component. The union might be 'too big'.
