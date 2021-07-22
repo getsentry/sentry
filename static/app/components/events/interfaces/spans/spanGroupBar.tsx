@@ -181,7 +181,7 @@ class SpanGroupBar extends React.Component<Props> {
     );
 
     return (
-      <strong>{`${t('Autogrouped ')}${mostFrequentOperationName}${
+      <strong>{`${t('Autogrouped ')}\u2014 ${mostFrequentOperationName}${
         hasOthers ? t(' and more') : ''
       }`}</strong>
     );
