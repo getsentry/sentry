@@ -96,16 +96,13 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         # Create a transaction
         event_data = load_data("transaction", timestamp=before_now(minutes=3))
-        # only frontend pageload transactions can be shown on the vitals tab
-        event_data["contexts"]["trace"]["op"] = "pageload"
-        event_data["measurements"]["fp"]["value"] = 5000
+
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
 
         with self.feature(FEATURE_NAMES + ("organizations:performance-tag-page",)):
             self.browser.get(tags_path)
             self.page.wait_until_loaded()
-
             self.browser.snapshot("transaction summary tags page")
 
     @patch("django.utils.timezone.now")
