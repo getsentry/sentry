@@ -372,7 +372,9 @@ def get_referrer_qstring(notification: BaseNotification) -> str:
 
 
 def get_settings_url(notification: BaseNotification) -> str:
-    url_str = f"/settings/account/notifications/{notification.fine_tuning_key}"
+    url_str = "/settings/account/notifications/"
+    if notification.fine_tuning_key:
+        url_str += f"{notification.fine_tuning_key}/"
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 

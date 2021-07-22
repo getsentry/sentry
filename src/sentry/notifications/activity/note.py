@@ -4,6 +4,8 @@ from .base import ActivityNotification
 
 
 class NoteActivityNotification(ActivityNotification):
+    is_message_issue_unfurl = False
+
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **self.get_base_context(),

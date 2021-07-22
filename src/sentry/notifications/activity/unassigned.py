@@ -13,10 +13,6 @@ class UnassignedActivityNotification(ActivityNotification):
     def get_category(self) -> str:
         return "unassigned_activity_email"
 
-    @property
-    def is_message_issue_unfurl(self) -> bool:
-        return True
-
     def get_notification_title(self) -> str:
         user = self.activity.user
         if user:
