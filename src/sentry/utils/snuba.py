@@ -1251,13 +1251,16 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         resolved_orderby = []
 
         for field_with_order in orderby:
-            field = field_with_order.lstrip("-")
-            resolved_orderby.append(
-                "{}{}".format(
-                    "-" if field_with_order.startswith("-") else "",
-                    field if field in derived_columns else resolve_func(field),
+            if isinstance(field_with_order, str):
+                field = field_with_order.lstrip("-")
+                resolved_orderby.append(
+                    "{}{}".format(
+                        "-" if field_with_order.startswith("-") else "",
+                        field if field in derived_columns else resolve_func(field),
+                    )
                 )
-            )
+            else:
+                resolved_orderby.append(field_with_order)
         resolved.orderby = resolved_orderby
     return resolved, translated_columns
 
