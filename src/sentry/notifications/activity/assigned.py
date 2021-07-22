@@ -57,10 +57,6 @@ class AssignedActivityNotification(ActivityNotification):
     def get_category(self) -> str:
         return "assigned_activity_email"
 
-    @property
-    def is_message_issue_unfurl(self) -> bool:
-        return True
-
     def build_notification_title(self) -> Tuple[str, str]:
         activity = self.activity
         data = activity.data

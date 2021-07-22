@@ -32,7 +32,6 @@ from uuid import uuid4
 import pytest
 import requests
 from click.testing import CliRunner
-from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
@@ -427,6 +426,14 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             assert_status_code(response, 400, 600)
 
         return response
+
+    def get_cursor_headers(self, response):
+        return [
+            link["cursor"]
+            for link in requests.utils.parse_header_links(
+                response.get("link").rstrip(">").replace(">,<", ",<")
+            )
+        ]
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -1140,7 +1147,6 @@ class TestMigrations(TestCase):
     @property
     def app(self):
         return "sentry"
-        return apps.get_containing_app_config(type(self).__module__).name
 
     migrate_from = None
     migrate_to = None
