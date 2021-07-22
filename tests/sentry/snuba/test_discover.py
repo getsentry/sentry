@@ -569,7 +569,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0]["failure_count"] == 2
                 assert data[1]["failure_count"] == 1
 
-    def test_snql_apdex_function(self):
+    def test_apdex_function(self):
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(

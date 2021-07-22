@@ -2599,7 +2599,11 @@ class QueryFields(QueryBase):
         """
         raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
 
-    def _private_project_threshold_multi_function(self) -> SelectType:
+    def _project_threshold_multi_function(self) -> SelectType:
+        """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
+        this returns the right duration value (for example, lcp or duration) based
+        on project or transaction thresholds that have been configured by the user.
+        """
         lcp_index = Function(
             "indexOf", [self.column("measurements_key"), "lcp"], MEASUREMENTS_LCP_INDEX_ALIAS
         )
@@ -2637,40 +2641,28 @@ class QueryFields(QueryBase):
 
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
-            return Function(
-                "apdex", [self.column("transaction.duration"), int(args["satisfaction"])], alias
-            )
-
-        return Function(
-            "apdex",
-            [
-                self._private_project_threshold_multi_function(),
+            function_args = [self.column("transaction.duration"), int(args["satisfaction"])]
+        else:
+            function_args = [
+                self._project_threshold_multi_function(),
                 Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
-            ],
-            alias,
-        )
+            ]
+
+        return Function("apdex", function_args, alias)
 
     def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
-            return Function(
-                "uniqIf",
-                [
-                    self.column(args["column"]),
-                    Function(
-                        "greater", [self.column("transaction.duration"), int(args["tolerated"])]
-                    ),
-                ],
-                alias,
-            )
-
-        return Function(
-            "uniqIf",
-            [
+            function_args = [
+                self.column(args["column"]),
+                Function("greater", [self.column("transaction.duration"), int(args["tolerated"])]),
+            ]
+        else:
+            function_args = [
                 self.column(args["column"]),
                 Function(
                     "greater",
                     [
-                        self._private_project_threshold_multi_function(),
+                        self._project_threshold_multi_function(),
                         Function(
                             "multiply",
                             [
@@ -2683,40 +2675,17 @@ class QueryFields(QueryBase):
                         ),
                     ],
                 ),
-            ],
-            alias,
-        )
+            ]
+
+        return Function("uniqIf", function_args, alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
-            return Function(
-                "ifNull",
-                [
-                    Function(
-                        "divide",
-                        [
-                            Function(
-                                "plus",
-                                [
-                                    self.resolve_function(
-                                        f"count_miserable(user,{args['satisfaction']})"
-                                    ),
-                                    args["alpha"],
-                                ],
-                            ),
-                            Function(
-                                "plus",
-                                [
-                                    self.resolve_function("count_unique(user)"),
-                                    args["parameter_sum"],
-                                ],
-                            ),
-                        ],
-                    ),
-                    0,
-                ],
-                alias,
+            count_miserable_agg = self.resolve_function(
+                f"count_miserable(user,{args['satisfaction']})"
             )
+        else:
+            count_miserable_agg = self.resolve_function("count_miserable(user)")
 
         return Function(
             "ifNull",
@@ -2727,7 +2696,7 @@ class QueryFields(QueryBase):
                         Function(
                             "plus",
                             [
-                                self.resolve_function("count_miserable(user)"),
+                                count_miserable_agg,
                                 args["alpha"],
                             ],
                         ),
