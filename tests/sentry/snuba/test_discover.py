@@ -706,7 +706,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for query, expected_length, use_aggregate_conditions in queries:
-            for query_fn in [discover.wip_snql_query]:
+            for query_fn in [discover.query, discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=["transaction", "failure_rate()"],
                     query=query,

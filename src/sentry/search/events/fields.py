@@ -2194,7 +2194,8 @@ class QueryFields(QueryBase):
                         [self.column("timestamp")],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="date",
+                    redundant_grouping=True,
                 ),
                 SnQLFunction(
                     "latest_event",
@@ -2203,7 +2204,7 @@ class QueryFields(QueryBase):
                         [self.column("id"), self.column("timestamp")],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="string",
                 ),
                 SnQLFunction(
                     "failure_rate",
@@ -2212,7 +2213,7 @@ class QueryFields(QueryBase):
                         [],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="percentage",
                 ),
                 # TODO: implement these
                 SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
