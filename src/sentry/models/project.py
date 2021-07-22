@@ -438,14 +438,20 @@ class Project(Model, PendingDeletionMixin):
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
 post_save.connect(
     lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={"organization": None, "integration": None, "projects": [instance.project]}
+        kwargs={
+            "organization": instance.project.organization,
+            "projects": [instance.project],
+        }
     ),
     sender=ProjectTeam,
     weak=False,
 )
 post_delete.connect(
     lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={"organization": None, "integration": None, "projects": [instance.project]}
+        kwargs={
+            "organization": instance.project.organization,
+            "projects": [instance.project],
+        }
     ),
     sender=ProjectTeam,
     weak=False,

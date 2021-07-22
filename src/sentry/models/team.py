@@ -91,7 +91,6 @@ class TeamManager(BaseManager):
         update_code_owners_schema.apply_async(
             kwargs={
                 "organization": instance.organization,
-                "integration": None,
                 "projects": instance.get_projects(),
             }
         ),
@@ -100,7 +99,6 @@ class TeamManager(BaseManager):
         update_code_owners_schema.apply_async(
             kwargs={
                 "organization": instance.organization,
-                "integration": None,
                 "projects": instance.get_projects(),
             }
         ),
@@ -272,10 +270,9 @@ class Team(Model):
         return Project.objects.get_for_team_ids({self.id})
 
     def delete(self, **kwargs):
-        from sentry.models import Actor, ExternalActor
+        from sentry.models import Actor
 
-        # There is no foreign key relationship so we have to manually cascade.
-        ExternalActor.objects.filter(actor=self.actor).delete()
+        # There is no foreign key relationship so we have to manually cascade Actors. This will cascade delete the ExternalActors
         Actor.objects.filter(id=self.actor_id).delete()
 
         return super().delete(**kwargs)

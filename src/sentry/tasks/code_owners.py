@@ -12,7 +12,7 @@ logger = logging.getLogger("sentry.tasks.code_owners")
     default_retry_delay=5,
     max_retries=5,
 )
-def update_code_owners_schema(organization=None, integration=None, projects=None, **kwargs):
+def update_code_owners_schema(organization, integration=None, projects=None, **kwargs):
     from sentry.models import ProjectCodeOwners, RepositoryProjectPathConfig
 
     if not features.has("organizations:integrations-codeowners", organization):
@@ -23,7 +23,7 @@ def update_code_owners_schema(organization=None, integration=None, projects=None
         if projects:
             code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
 
-        if organization and integration:
+        if integration:
             code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
                 organization_integration__organization=organization,
                 organization_integration__integration=integration,
