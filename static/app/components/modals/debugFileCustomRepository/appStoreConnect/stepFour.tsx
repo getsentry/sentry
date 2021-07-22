@@ -78,13 +78,22 @@ export default StepFour;
 
 const StyledAlert = styled(Alert)`
   div {
-    align-items: center;
+    align-items: flex-start;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    div {
+      align-items: center;
+    }
   }
 `;
 
 const AlertContent = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: 1fr;
   align-items: center;
   grid-gap: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr max-content;
+  }
 `;
