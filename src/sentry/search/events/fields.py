@@ -2652,32 +2652,29 @@ class QueryFields(QueryBase):
 
     def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
-            function_args = [
-                self.column(args["column"]),
-                Function("greater", [self.column("transaction.duration"), int(args["tolerated"])]),
-            ]
+            lhs = self.column("transaction.duration")
+            rhs = int(args["tolerated"])
         else:
-            function_args = [
-                self.column(args["column"]),
-                Function(
-                    "greater",
-                    [
-                        self._project_threshold_multi_function(),
-                        Function(
-                            "multiply",
-                            [
-                                Function(
-                                    "tupleElement",
-                                    [self.resolve_field("project_threshold_config"), 2],
-                                ),
-                                4,
-                            ],
-                        ),
-                    ],
-                ),
-            ]
+            lhs = self._project_threshold_multi_function()
+            rhs = Function(
+                "multiply",
+                [
+                    Function(
+                        "tupleElement",
+                        [self.resolve_field("project_threshold_config"), 2],
+                    ),
+                    4,
+                ],
+            )
 
-        return Function("uniqIf", function_args, alias)
+        return Function(
+            "uniqIf",
+            [
+                self.column(args["column"]),
+                Function("greater", [lhs, rhs]),
+            ],
+            alias,
+        )
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
