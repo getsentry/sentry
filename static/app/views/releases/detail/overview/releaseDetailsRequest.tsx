@@ -135,7 +135,7 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
     const response: SessionApiResponse = await api.requestPromise(this.path, {
       query: {
         ...this.baseQueryParams,
-        query: `release:${version}`,
+        query: `release:"${version}"`,
       },
     });
 

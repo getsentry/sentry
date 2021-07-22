@@ -524,6 +524,13 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
+
+    // On mobile views issue list dropdowns overlap
+    issuesList: {
+      stickyHeader: 1,
+      sortOptions: 2,
+      displayOptions: 3,
+    },
   },
 
   grid: 8,
@@ -606,8 +613,6 @@ const commonTheme = {
     empty: '#e2dee6',
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
   },
-
-  space: [0, 8, 16, 20, 30],
 
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],

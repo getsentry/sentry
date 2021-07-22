@@ -11,7 +11,7 @@ import {
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectsStore from 'app/stores/projectsStore';
-import {metric} from 'app/utils/analytics';
+import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertsContainer from 'app/views/alerts';
 import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'app/views/alerts/create';
@@ -113,6 +113,7 @@ describe('ProjectAlertsCreate', function () {
   afterEach(function () {
     cleanup();
     MockApiClient.clearMockResponses();
+    trackAnalyticsEvent.mockClear();
   });
 
   const createWrapper = (props = {}) => {
@@ -185,6 +186,15 @@ describe('ProjectAlertsCreate', function () {
         'A new issue is created',
       ]);
       fireEvent.click(getByLabelText('Delete Node'));
+
+      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+        eventKey: 'edit_alert_rule.add_row',
+        eventName: 'Edit Alert Rule: Add Row',
+        name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+        organization_id: '3',
+        project_id: '2',
+        type: 'conditions',
+      });
 
       // Add a filter and remove it
       await selectEvent.select(getByText('Add optional filter...'), [

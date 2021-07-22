@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
@@ -46,7 +47,11 @@ class AllTeamsRow extends React.Component<Props, State> {
         }),
       });
 
-      // TODO: Ideally we would update team so that `isPending` is true
+      // Update team so that `isPending` is true
+      TeamActions.updateSuccess(team.slug, {
+        ...team,
+        isPending: true,
+      });
     } catch (_err) {
       // No need to do anything
     }
@@ -180,7 +185,13 @@ class AllTeamsRow extends React.Component<Props, State> {
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
-            <Button size="small" disabled>
+            <Button
+              size="small"
+              disabled
+              title={t(
+                'Your request to join this team is being reviewed by organization owners'
+              )}
+            >
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (

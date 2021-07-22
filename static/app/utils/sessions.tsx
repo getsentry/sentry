@@ -189,6 +189,7 @@ export function filterSessionsInTimeWindow(
     const series = {};
     const totals = {};
     Object.keys(group.series).forEach(field => {
+      totals[field] = 0;
       series[field] = group.series[field].filter((value, index) => {
         const isBetween = filteredIndexes.includes(index);
         if (isBetween) {

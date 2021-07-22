@@ -220,6 +220,9 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -248,6 +251,9 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -276,6 +282,9 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -300,6 +309,9 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
       },
     ];
 
@@ -323,6 +335,10 @@ describe('SpanTreeModel', () => {
       filterSpans: undefined,
       previousSiblingEndTimestamp: undefined,
       event,
+      isOnlySibling: true,
+      spanGrouping: undefined,
+      toggleSpanGroup: undefined,
+      showSpanGroup: false,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -352,6 +368,10 @@ describe('SpanTreeModel', () => {
       filterSpans: undefined,
       previousSiblingEndTimestamp: undefined,
       event,
+      isOnlySibling: true,
+      spanGrouping: undefined,
+      toggleSpanGroup: undefined,
+      showSpanGroup: false,
     });
 
     const fullWaterfallExpected: EnhancedProcessedSpanType[] = [...fullWaterfall];
@@ -380,6 +400,9 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -401,6 +424,9 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
+        spanGrouping: undefined,
+        showSpanGroup: false,
+        toggleSpanGroup: undefined,
       }
     );
 
