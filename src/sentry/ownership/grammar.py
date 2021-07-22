@@ -411,7 +411,7 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
             continue
 
         path, *code_owners = (x.strip() for x in rule.split())
-        # Escape invalid paths
+        # Escape invalid paths https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners#syntax-exceptions
         # Check if path has whitespace
         # Check if path has '#' not as first character
         # Check if path contains '!'
