@@ -590,7 +590,7 @@ def generate_incident_times(timestamps, time_interval, max_days):
         counter[start_time]["events"] += 1
 
     num_events = [counter[timestamp]["events"] for timestamp in counter.keys()]
-    critical = max(num_events)
+    critical = max(num_events + [0])
 
     # keeps track of adjacent time intervals where number of events is above threshold
     adjacent_groups = []
