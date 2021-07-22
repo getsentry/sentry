@@ -2,21 +2,22 @@ import {t} from 'app/locale';
 
 import grammar from './grammar.pegjs';
 
+// This constant should stay in sync with the backend parser
 const MAX_OPERATORS = 10;
 const MAX_OPERATOR_MESSAGE = t('Maximum operators exceeded');
 
 type OperationOpts = {
   operator: Operator;
-  lhs?: term;
-  rhs: term;
+  lhs?: Term;
+  rhs: Term;
 };
 
 type Operator = 'plus' | 'minus' | 'multiply' | 'divide';
-type term = Operation | string | number | null;
+type Term = Operation | string | number | null;
 export class Operation {
   operator: Operator;
-  lhs?: term;
-  rhs: term;
+  lhs?: Term;
+  rhs: Term;
 
   constructor({operator, lhs = null, rhs}: OperationOpts) {
     this.operator = operator;
@@ -34,7 +35,7 @@ export class TokenConverter {
     this.errors = [];
   }
 
-  tokenTerm = (maybeFactor: term, remainingAdds: Array<Operation>): term => {
+  tokenTerm = (maybeFactor: Term, remainingAdds: Array<Operation>): Term => {
     if (remainingAdds.length > 0) {
       remainingAdds[0].lhs = maybeFactor;
       return flatten(remainingAdds);
@@ -43,7 +44,7 @@ export class TokenConverter {
     }
   };
 
-  tokenOperation = (operator: Operator, rhs: term): Operation => {
+  tokenOperation = (operator: Operator, rhs: Term): Operation => {
     this.numOperations += 1;
     if (
       this.numOperations > MAX_OPERATORS &&
@@ -57,7 +58,7 @@ export class TokenConverter {
     return new Operation({operator, rhs});
   };
 
-  tokenFactor = (primary: term, remaining: Array<Operation>): Operation | undefined => {
+  tokenFactor = (primary: Term, remaining: Array<Operation>): Operation | undefined => {
     remaining[0].lhs = primary;
     return flatten(remaining);
   };
@@ -80,7 +81,7 @@ function flatten(remaining: Array<Operation>): Operation {
   return term;
 }
 
-export function parseArithmetic(query: string): {result: term; error: string} {
+export function parseArithmetic(query: string): {result: Term; error: string} {
   const tc = new TokenConverter();
   try {
     const result = grammar.parse(query, {tc});

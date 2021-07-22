@@ -408,6 +408,33 @@ describe('EventsV2 -> ColumnEditModal', function () {
         newWrapper.find('RowContainer button[aria-label="Drag to reorder"]')
       ).toHaveLength(0);
     });
+    it('handles equations being deleted', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'equation',
+              field: '1 / 0',
+            },
+            columns[0],
+            columns[1],
+          ],
+          onApply: () => void 0,
+          tagKeys,
+        },
+        initialData
+      );
+      expect(newWrapper.find('QueryField ArithmeticError')).toHaveLength(1);
+      expect(newWrapper.find('QueryField')).toHaveLength(3);
+      newWrapper
+        .find('RowContainer button[aria-label="Remove column"]')
+        .first()
+        .simulate('click');
+
+      expect(newWrapper.find('QueryField')).toHaveLength(2);
+
+      expect(newWrapper.find('ArithmeticError')).toHaveLength(0);
+    });
   });
 
   describe('apply action', function () {

@@ -37,7 +37,7 @@ type State = {
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
   draggingGrabbedOffset: undefined | {x: number; y: number};
-  error: Map<number, undefined | string>;
+  error: Map<number, string>;
   left: undefined | number;
   top: undefined | number;
 };
@@ -75,6 +75,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
       document.body.appendChild(this.portal);
     }
+    this.checkColumnErrors();
   }
 
   componentWillUnmount() {
@@ -82,6 +83,20 @@ class ColumnEditCollection extends React.Component<Props, State> {
       document.body.removeChild(this.portal);
     }
     this.cleanUpListeners();
+  }
+
+  checkColumnErrors() {
+    const error = new Map();
+    for (let i = 0; i < this.props.columns.length; i += 1) {
+      const column = this.props.columns[i];
+      if (column.kind === 'equation') {
+        const result = parseArithmetic(column.field);
+        if (result.error) {
+          error.set(i, result.error);
+        }
+      }
+    }
+    this.setState({error});
   }
 
   previousUserSelect: UserSelectValues | null = null;
@@ -126,7 +141,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     if (column.kind === 'equation') {
       this.setState(prevState => {
         const error = prevState.error;
-        error[index] = parseArithmetic(column.field).error;
+        error.set(index, parseArithmetic(column.field).error);
         return {
           ...prevState,
           error,
@@ -138,6 +153,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   };
 
   removeColumn(index: number) {
+    this.setState(prevState => {
+      prevState.error.delete(index);
+      return prevState;
+    });
     const newColumns = [...this.props.columns];
     newColumns.splice(index, 1);
     this.props.onChange(newColumns);
@@ -258,13 +277,30 @@ class ColumnEditCollection extends React.Component<Props, State> {
     newColumns.splice(targetIndex, 0, removed[0]);
     this.props.onChange(newColumns);
 
-    this.setState({
-      isDragging: false,
-      left: undefined,
-      top: undefined,
-      draggingIndex: undefined,
-      draggingTargetIndex: undefined,
-      draggingGrabbedOffset: undefined,
+    this.setState(prevState => {
+      const error = prevState.error;
+      const sourceError = error.get(sourceIndex);
+      const newError = error.get(targetIndex);
+      if (newError) {
+        error.set(sourceIndex, newError);
+      } else {
+        error.delete(sourceIndex);
+      }
+      if (sourceError) {
+        error.set(targetIndex, sourceError);
+      } else {
+        error.delete(targetIndex);
+      }
+      return {
+        ...prevState,
+        error,
+        isDragging: false,
+        left: undefined,
+        top: undefined,
+        draggingIndex: undefined,
+        draggingTargetIndex: undefined,
+        draggingGrabbedOffset: undefined,
+      };
     });
   };
 
@@ -350,7 +386,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             gridColumns={gridColumns}
             fieldValue={col}
             onChange={value => this.handleUpdateColumn(i, value)}
-            error={this.state.error[i]}
+            error={this.state.error.get(i)}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
           />
