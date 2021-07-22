@@ -3,6 +3,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
+from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
@@ -831,7 +832,10 @@ class SemverReleaseParseTestCase(TestCase):
 
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
-        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match=INVALID_SEMVER_MESSAGE,
+        ):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
     def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):

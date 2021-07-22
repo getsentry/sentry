@@ -34,7 +34,7 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'app/types/alerts';
-import {metric} from 'app/utils/analytics';
+import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDisplayName} from 'app/utils/environment';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -425,6 +425,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
       set(clonedState, `rule[${type}]`, [...newTypeList, newRule]);
       return clonedState;
+    });
+
+    const {organization, project} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'edit_alert_rule.add_row',
+      eventName: 'Edit Alert Rule: Add Row',
+      organization_id: organization.id,
+      project_id: project.id,
+      type,
+      name: id,
     });
   };
 

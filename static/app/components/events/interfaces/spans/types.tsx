@@ -49,6 +49,12 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
+export type SpanGroupProps = {
+  spanGrouping: EnhancedSpan[] | undefined;
+  showSpanGroup: boolean;
+  toggleSpanGroup: (() => void) | undefined;
+};
+
 type CommonEnhancedProcessedSpanType = {
   numOfSpanChildren: number;
   treeDepth: number;
@@ -61,16 +67,21 @@ type CommonEnhancedProcessedSpanType = {
     | undefined;
 };
 
-// ProcessedSpanType with additional information
-export type EnhancedProcessedSpanType =
+export type EnhancedSpan =
   | ({
       type: 'root_span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType)
+    } & CommonEnhancedProcessedSpanType &
+      SpanGroupProps)
   | ({
       type: 'span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType)
+    } & CommonEnhancedProcessedSpanType &
+      SpanGroupProps);
+
+// ProcessedSpanType with additional information
+export type EnhancedProcessedSpanType =
+  | EnhancedSpan
   | ({
       type: 'gap';
       span: GapSpanType;

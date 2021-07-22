@@ -144,7 +144,6 @@ class Broadcasts extends Component<Props, State> {
               title={t("What's new in Sentry")}
               hidePanel={hidePanel}
             >
-              <BroadcastSdkUpdates />
               {loading ? (
                 <LoadingIndicator />
               ) : broadcasts.length === 0 ? (
@@ -163,6 +162,7 @@ class Broadcasts extends Component<Props, State> {
                   />
                 ))
               )}
+              <BroadcastSdkUpdates />
             </SidebarPanel>
           )}
         </Fragment>

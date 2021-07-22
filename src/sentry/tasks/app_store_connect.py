@@ -7,6 +7,7 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
+from datetime import datetime
 from typing import List, Mapping
 
 import sentry_sdk
@@ -52,6 +53,8 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             build_state = get_or_create_persisted_build(project, config, build)
             if not build_state.fetched:
                 builds.append((build, build_state))
+
+    update_build_refresh_date(project, config_id)
 
     itunes_client = client.itunes_client()
     for (build, build_state) in builds:
@@ -115,6 +118,18 @@ def get_or_create_persisted_build(
         )
         build_state.save()
     return build_state
+
+
+def update_build_refresh_date(project: Project, config_id: str) -> None:
+    serialized_option = project.get_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
+    )
+    build_refresh_dates = json.loads(serialized_option)
+    build_refresh_dates[config_id] = datetime.now()
+    serialized_refresh_dates = json.dumps_htmlsafe(build_refresh_dates)
+    project.update_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
+    )
 
 
 # Untyped decorator would stop type-checking of entire function, split into an inner

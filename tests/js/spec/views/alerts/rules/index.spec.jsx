@@ -2,8 +2,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertRulesList from 'app/views/alerts/rules';
 import {IncidentStatus} from 'app/views/alerts/types';
+
+jest.mock('app/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
@@ -63,6 +66,7 @@ describe('OrganizationRuleList', () => {
     wrapper.unmount();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
+    trackAnalyticsEvent.mockClear();
   });
 
   it('displays list', async () => {
@@ -85,6 +89,12 @@ describe('OrganizationRuleList', () => {
     );
     expect(wrapper.find('IdBadge').at(0).prop('project')).toMatchObject({
       slug: 'earth',
+    });
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'alert_rules.viewed',
+      eventName: 'Alert Rules: Viewed',
+      organization_id: '3',
+      sort: undefined,
     });
   });
 

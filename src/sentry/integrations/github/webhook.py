@@ -76,6 +76,11 @@ class Webhook:
 
         Assumes a 'repository' key in event payload, with certain subkeys.
         Rework this if that stops being a safe assumption.
+
+        XXX(meredith): In it's current state, this tends to cause a lot of
+        IntegrityErrors when we try to update the repo. Those would need to
+        be handled should we decided to add this back in. Keeping the method
+        for now, even though it's not currently used.
         """
 
         name_from_event = event["repository"]["full_name"]
@@ -164,9 +169,6 @@ class PushEventWebhook(Webhook):
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
 
     def _handle(self, integration, event, organization, repo, host=None):
-        # while we're here, make sure repo data is up to date
-        self.update_repo_data(repo, event)
-
         authors = {}
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache = {}
@@ -309,9 +311,6 @@ class PullRequestEventWebhook(Webhook):
         return options.get("github-app.id")
 
     def _handle(self, integration, event, organization, repo, host=None):
-        # while we're here, make sure repo data is up to date
-        self.update_repo_data(repo, event)
-
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]

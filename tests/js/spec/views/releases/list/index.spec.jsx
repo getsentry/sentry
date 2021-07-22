@@ -80,7 +80,7 @@ describe('ReleasesList', function () {
     expect(items.at(0).text()).toContain('1.0.0');
     expect(items.at(0).text()).toContain('Adoption');
     expect(items.at(1).text()).toContain('1.0.1');
-    expect(items.at(1).find('CountColumn').at(1).text()).toContain('\u2014');
+    expect(items.at(1).find('AdoptionColumn').at(1).text()).toContain('\u2014');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
     expect(items.at(2).find('Header').text()).toContain('Project');
   });
@@ -207,8 +207,8 @@ describe('ReleasesList', function () {
     expect(sortByOptions).toHaveLength(4);
     expect(dateCreatedOption.text()).toEqual('Date Created');
 
-    const healthStatsControls = wrapper.find('CountColumn span').first();
-    expect(healthStatsControls.text()).toEqual('Count');
+    const healthStatsControls = wrapper.find('AdoptionColumn span').first();
+    expect(healthStatsControls.text()).toEqual('Adoption');
 
     dateCreatedOption.simulate('click');
 
