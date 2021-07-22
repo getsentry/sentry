@@ -24,6 +24,10 @@ const StyledDateRangePicker = styled(DateRangePicker)`
     color: ${p => p.theme.textColor};
   }
 
+  .rdrDayDisabled {
+    background: none;
+  }
+
   .rdrDayDisabled span {
     color: ${p => p.theme.subText};
   }
@@ -106,6 +110,7 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   .rdrMonthPicker select,
   .rdrYearPicker select {
     background: none;
+    color: ${p => p.theme.textColor};
     font-weight: normal;
     font-size: ${p => p.theme.fontSizeLarge};
     padding: 0;
@@ -117,6 +122,7 @@ const StyledDateRangePicker = styled(DateRangePicker)`
 
   .rdrCalendarWrapper {
     flex: 1;
+    background: none;
   }
 
   .rdrNextPrevButton {
