@@ -9,14 +9,6 @@ from sentry.models import Activity, OrganizationMemberTeam, Project
 
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
     def get(self, request, organization, member):
-        project_ids = list(
-            Project.objects.filter(
-                organization=organization,
-                teams__in=OrganizationMemberTeam.objects.filter(organizationmember=member).values(
-                    "team"
-                ),
-            ).values_list("id", flat=True)
-        )
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid
         # showing the same entry twice.
@@ -43,7 +35,16 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
             cursor_value = paginator.value_from_cursor(cursor)
         else:
             cursor_value = 0
-        base_qs = paginator._build_queryset(cursor_value, False)
+        base_qs = paginator.build_queryset(cursor_value, False)
+
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                teams__in=OrganizationMemberTeam.objects.filter(organizationmember=member).values(
+                    "team"
+                ),
+            ).values_list("id", flat=True)
+        )
 
         union_qs = reduce(
             lambda qs1, qs2: qs1.union(qs2, all=True),
