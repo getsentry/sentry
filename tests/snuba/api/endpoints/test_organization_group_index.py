@@ -1984,6 +1984,49 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         for release in [release_3, release_4]:
             assert not GroupResolution.has_resolution(group=group, release=release)
 
+    def test_in_non_semver_projects_group_resolution_stores_current_release_version(self):
+        """
+        Test that ensures that when we resolve a group in the next release, then
+        GroupResolution.current_release_version is set to the most recent release associated with a
+        Group, when the project does not follow semantic versioning scheme
+        """
+        release_1 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+        )
+        release_2 = self.create_release(version="foobar 2")
+
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"]
+
+        # Add a new release that is between 1 and 2, to make sure that if a the same issue/group
+        # occurs in that issue, then it should not have a resolution
+        release_3 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=30), version="foobar 3"
+        )
+
+        grp_resolution = GroupResolution.objects.filter(group=group)
+
+        assert len(grp_resolution) == 1
+        assert grp_resolution[0].current_release_version == release_1.version
+
+        assert GroupResolution.has_resolution(group=group, release=release_1)
+        for release in [release_2, release_3]:
+            assert not GroupResolution.has_resolution(group=group, release=release)
+
     def test_selective_status_update(self):
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)

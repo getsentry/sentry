@@ -525,6 +525,9 @@ def get_current_release_version_of_group(group, follows_semver=False):
             )
         except Release.DoesNotExist:
             ...
+    else:
+        # This sets current_release_version to the most recent release associated with a group
+        current_release_version = group.get_last_release()
     return current_release_version
 
 
@@ -705,15 +708,14 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                             project_id=group.project.id,
                             release_version=release.version,
                         )
-                        if follows_semver:
-                            current_release_version = get_current_release_version_of_group(
-                                group=group, follows_semver=follows_semver
-                            )
 
-                            if current_release_version:
-                                resolution_params.update(
-                                    {"current_release_version": current_release_version}
-                                )
+                        current_release_version = get_current_release_version_of_group(
+                            group=group, follows_semver=follows_semver
+                        )
+                        if current_release_version:
+                            resolution_params.update(
+                                {"current_release_version": current_release_version}
+                            )
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params
                     )

@@ -5,7 +5,7 @@ from sentry_relay import RelayError, parse_release
 from sentry_relay.processing import compare_version as compare_version_relay
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-from sentry.models.release import DB_VERSION_LENGTH, follows_semver_versioning_scheme
+from sentry.models.release import DB_VERSION_LENGTH, Release, follows_semver_versioning_scheme
 from sentry.utils import metrics
 
 
@@ -55,6 +55,14 @@ class GroupResolution(Model):
 
         This is used to suggest if a regression has occurred.
         """
+
+        def compare_release_dates_for_in_next_release(res_release, res_release_datetime, release):
+            """
+            Helper function that compares release versions based on date for
+            `GroupResolution.Type.in_next_release`
+            """
+            return res_release == release.id or res_release_datetime > release.date_added
+
         try:
             res_type, res_release, res_release_datetime, current_release_version = (
                 cls.objects.filter(group=group)
@@ -92,6 +100,19 @@ class GroupResolution(Model):
                     return compare_version_relay(current_release_raw, release_raw) >= 0
                 except RelayError:
                     ...
+            else:
+                try:
+                    current_release_obj = Release.objects.get(
+                        organization_id=group.organization.id, version=current_release_version
+                    )
+
+                    return compare_release_dates_for_in_next_release(
+                        res_release=current_release_obj.id,
+                        res_release_datetime=current_release_obj.date_added,
+                        release=release,
+                    )
+                except Release.DoesNotExist:
+                    ...
 
         # We still fallback to the older model if either current_release_version was not set (
         # i.e. In all resolved cases except for Resolved in Next Release) or if for whatever
@@ -102,11 +123,9 @@ class GroupResolution(Model):
             # is created
             metrics.incr("groupresolution.has_resolution.in_next_release", sample_rate=1.0)
 
-            if res_release == release.id:
-                return True
-            elif res_release_datetime > release.date_added:
-                return True
-            return False
+            return compare_release_dates_for_in_next_release(
+                res_release=res_release, res_release_datetime=res_release_datetime, release=release
+            )
         elif res_type == cls.Type.in_release:
             if res_release == release.id:
                 return False
