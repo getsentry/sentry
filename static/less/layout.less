@@ -116,6 +116,8 @@ body.narrow {
   }
 }
 
+/* Integration templates use body.auth! */
+
 body.auth {
   .app > .container {
     padding-top: 5vh;
@@ -128,6 +130,11 @@ body.auth {
     border-radius: 4px;
     display: flex;
     width: 100%;
+  }
+
+  .box-modal {
+    display: flex;
+    flex-direction: column;
   }
 
   .auth-sidebar {
