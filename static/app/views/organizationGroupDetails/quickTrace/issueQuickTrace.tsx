@@ -117,7 +117,7 @@ class IssueQuickTrace extends Component<Props, State> {
             {tct('The [type] for this error cannot be found. [link]', {
               type: type === 'missing' ? t('transaction') : t('trace'),
               link: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#troubleshooting">
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting">
                   {t('Read the docs to understand why.')}
                 </ExternalLink>
               ),
