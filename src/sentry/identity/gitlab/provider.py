@@ -93,11 +93,12 @@ class GitlabIdentityProvider(OAuth2Provider):
             body = safe_urlread(req)
             payload = json.loads(body)
         except Exception as e:
+            error_status = getattr(e, "code", req.status_code)
             self.logger(
                 "gitlab.refresh-identity-failure",
                 extra={
                     "identity_id": identity.id,
-                    "error_status": req.status_code,
+                    "error_status": error_status,
                     "error_message": str(e),
                 },
             )
