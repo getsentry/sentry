@@ -15,11 +15,7 @@ type Props = {
   builtinSymbolSources: string[];
 };
 
-<<<<<<< HEAD:static/app/views/settings/projectDebugFiles/externalSources/builtInRepositories.tsx
 function BuiltInRepositories({
-=======
-function BuildInRepositories({
->>>>>>> 04d30f6e0a (ref(debug-files): Add custom repositories new design):static/app/views/settings/projectDebugFiles/externalSources/buildInRepositories.tsx
   api,
   organization,
   builtinSymbolSourceOptions,
@@ -94,8 +90,4 @@ function BuildInRepositories({
   );
 }
 
-<<<<<<< HEAD:static/app/views/settings/projectDebugFiles/externalSources/builtInRepositories.tsx
 export default BuiltInRepositories;
-=======
-export default BuildInRepositories;
->>>>>>> 04d30f6e0a (ref(debug-files): Add custom repositories new design):static/app/views/settings/projectDebugFiles/externalSources/buildInRepositories.tsx
