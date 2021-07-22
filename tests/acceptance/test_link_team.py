@@ -12,7 +12,7 @@ from sentry.models import (
 from sentry.testutils import AcceptanceTestCase
 
 
-class AcceptOrganizationInviteTest(AcceptanceTestCase):
+class SlackLinkTeamTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
@@ -56,23 +56,22 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.path = linking_url.path
 
     def test_link_team(self):
+        self.login_as(self.user)
         with self.feature("organizations:notification-platform"):
-            self.login_as(self.user)
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
-            self.browser.click('[data-test-id="select-team"]')
-            self.browser.click('[data-test-id="my-team"]')
-            self.browser.snapshot(name="select team")
-            self.browser.click('[data-test-id="link-team"]')
+            self.browser.click('[name="team"]')
+            self.browser.click(f'[value="{self.team.id}"]')
+            self.browser.snapshot(name="slack link team select team")
+            self.browser.click('[type="submit"]')
             self.browser.wait_until_not(".loading")
-            self.browser.snapshot(name="post linked team")
+            self.browser.snapshot(name="slack post linked team")
 
-        external_actor = ExternalActor.objects.get(
+        assert ExternalActor.objects.filter(
             actor_id=self.team.actor_id,
             organization=self.org,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
             external_name="general",
             external_id="CXXXXXXX9",
-        )
-        assert external_actor
+        ).exists()
