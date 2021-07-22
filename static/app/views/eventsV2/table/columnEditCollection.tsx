@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import {parseArithmetic} from 'app/components/arithmeticInput/parser';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
 import FeatureBadge from 'app/components/featureBadge';
@@ -36,6 +37,7 @@ type State = {
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
   draggingGrabbedOffset: undefined | {x: number; y: number};
+  error: Map<number, undefined | string>;
   left: undefined | number;
   top: undefined | number;
 };
@@ -55,6 +57,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     draggingIndex: void 0,
     draggingTargetIndex: void 0,
     draggingGrabbedOffset: void 0,
+    error: new Map(),
     left: void 0,
     top: void 0,
   };
@@ -120,6 +123,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   handleUpdateColumn = (index: number, column: Column) => {
     const newColumns = [...this.props.columns];
+    if (column.kind === 'equation') {
+      this.setState(prevState => {
+        const error = prevState.error;
+        error[index] = parseArithmetic(column.field).error;
+        return {
+          ...prevState,
+          error,
+        };
+      });
+    }
     newColumns.splice(index, 1, column);
     this.props.onChange(newColumns);
   };
@@ -337,6 +350,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             gridColumns={gridColumns}
             fieldValue={col}
             onChange={value => this.handleUpdateColumn(i, value)}
+            error={this.state.error[i]}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
           />
