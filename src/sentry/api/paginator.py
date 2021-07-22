@@ -44,7 +44,7 @@ class BasePaginator:
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
-    def _build_queryset(self, value, is_prev):
+    def build_queryset(self, value, is_prev):
         queryset = self.queryset
 
         # "asc" controls whether or not we need to change the ORDER BY to
@@ -114,7 +114,7 @@ class BasePaginator:
         else:
             cursor_value = 0
 
-        queryset = self._build_queryset(cursor_value, cursor.is_prev)
+        queryset = self.build_queryset(cursor_value, cursor.is_prev)
 
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
