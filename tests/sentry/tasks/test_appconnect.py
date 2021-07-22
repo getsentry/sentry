@@ -37,8 +37,8 @@ class TestUpdateDsyms:
         return appconnect.BuildInfo(
             app_id="123",
             platform="iOS",
-            version="0.0.1",
-            build_number="001",
+            version="3.1.5",
+            build_number="20200220",
             uploaded_date=datetime.utcnow(),
         )
 
