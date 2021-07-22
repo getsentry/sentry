@@ -2664,12 +2664,6 @@ class QueryFields(QueryBase):
             "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
         )
 
-    def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
-        """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
-        Can be deleted once all field aliases have been implemented.
-        """
-        raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
-
     def _project_threshold_multi_function(self) -> SelectType:
         """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
         this returns the right duration value (for example, lcp or duration) based
