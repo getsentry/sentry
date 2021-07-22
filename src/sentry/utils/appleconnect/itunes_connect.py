@@ -293,7 +293,7 @@ def set_provider(session: Session, content_provider_id: int) -> None:
         )
     user_id = safe.get_path(user_details_response.json(), "data", "sessionToken", "dsId")
 
-    url = "https://appstoreconnect.apple.com//WebObjects/iTunesConnect.woa/ra/v1/session/webSession"
+    url = "https://appstoreconnect.apple.com//WebObjects/iTunesConnect.woa/ra/v2/session/webSession"
     logger.debug(f"POST {url}")
 
     select_provider_response = session.post(
