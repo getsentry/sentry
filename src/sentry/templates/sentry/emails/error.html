@@ -1,5 +1,6 @@
 {% extends "sentry/emails/base.html" %}
 
+{% load timezone from tz %}
 {% load sentry_avatars %}
 {% load sentry_helpers %}
 {% load sentry_features %}
@@ -46,7 +47,7 @@
     {% if enhanced_privacy %}
       <div class="event">
         <div class="event-id">ID: {{ event.event_id }}</div>
-        <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e" }}</div>
+        <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
       </div>
 
       <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
@@ -110,7 +111,7 @@
 
       <div class="event">
         <div class="event-id">ID: {{ event.event_id }}</div>
-        <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e" }}</div>
+        <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
       </div>
 
       {% if commits %}

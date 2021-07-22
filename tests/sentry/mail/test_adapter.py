@@ -26,6 +26,7 @@ from sentry.models import (
     Repository,
     Rule,
     User,
+    UserOption,
     UserReport,
 )
 from sentry.notifications.rules import AlertRuleNotification
@@ -288,6 +289,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_notify_users_does_email(self, mock_func):
+        UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
@@ -305,6 +307,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         args, kwargs = mock_func.call_args
         notification = args[1]
+
+        assert notification.get_user_context(self.user, {})["timezone"] == pytz.timezone(
+            "Europe/Vienna"
+        )
 
         self.assertEquals(notification.project, self.project)
         self.assertEquals(notification.get_reference(), group)
@@ -341,6 +347,32 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
+
+    def test_notify_users_with_their_timezones(self):
+        """
+        Test that ensures that datetime in issue alert email is in the user's timezone
+        """
+        from django.template.defaultfilters import date
+
+        timestamp = datetime.now(tz=pytz.utc)
+        local_timestamp = timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
+        local_timestamp = date(local_timestamp, "N j, Y, g:i:s a e")
+
+        UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
+
+        event = self.store_event(
+            data={"message": "foobar", "level": "error", "timestamp": iso_format(timestamp)},
+            project_id=self.project.id,
+        )
+
+        notification = Notification(event=event)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert local_timestamp in str(msg.alternatives)
 
     def test_notify_with_suspect_commits(self):
         repo = Repository.objects.create(
