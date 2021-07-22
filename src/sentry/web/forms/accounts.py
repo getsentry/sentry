@@ -12,7 +12,7 @@ from sentry import newsletter, options
 from sentry.app import ratelimiter
 from sentry.auth import password_validation
 from sentry.models import User
-from sentry.utils.auth import find_users, is_user_password_usable, logger
+from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
 
@@ -299,7 +299,9 @@ class EmailForm(forms.Form):
         self.user = user
         super().__init__(*args, **kwargs)
 
-        if not is_user_password_usable(user):
+        needs_password = user.has_usable_password()
+
+        if not needs_password:
             del self.fields["password"]
 
     def clean_password(self):
