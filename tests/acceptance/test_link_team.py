@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.models import (
     ExternalActor,
@@ -42,14 +44,16 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
             status=IdentityStatus.VALID,
             scopes=[],
         )
-        self.path = build_team_linking_url(
-            self.integration,
-            "UXXXXXXX1",
-            "CXXXXXXX9",
-            "general",
-            "http://example.slack.com/response_url",
+        linking_url = urlparse(
+            build_team_linking_url(
+                self.integration,
+                "UXXXXXXX1",
+                "CXXXXXXX9",
+                "general",
+                "http://example.slack.com/response_url",
+            )
         )
-        self.path = self.path[len("http://testserver/") :]
+        self.path = linking_url.path
 
     def test_link_team(self):
         with self.feature("organizations:notification-platform"):
