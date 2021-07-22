@@ -7,10 +7,10 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
+from sentry.integrations.slack.endpoints.base import NOT_LINKED_MESSAGE
 from sentry.integrations.slack.endpoints.command import (
     LINK_FROM_CHANNEL_MESSAGE,
     LINK_USER_FIRST_MESSAGE,
-    NOT_LINKED_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
 from sentry.integrations.slack.message_builder import SlackBody
