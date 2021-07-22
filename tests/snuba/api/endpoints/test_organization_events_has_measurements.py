@@ -5,6 +5,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
+
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -39,11 +40,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_more_than_one_project(self):
         project = self.create_project()
 
-        response = self.do_request({
-            "project": [self.project.id, project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "web",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id, project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "web",
+            }
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -51,11 +54,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_unknown_type(self):
-        response = self.do_request({
-            "project": [self.project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "foo",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "foo",
+            }
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -63,11 +68,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_no_events(self):
-        response = self.do_request({
-            "project": [self.project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "web",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "web",
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
@@ -77,11 +84,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.transaction_data["measurements"] = {}
         self.store_event(self.transaction_data, self.project.id)
 
-        response = self.do_request({
-            "project": [self.project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "web",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "web",
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
@@ -93,11 +102,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         transaction_data["measurements"] = {"lcp": {"value": 100}}
         self.store_event(transaction_data, self.project.id)
 
-        response = self.do_request({
-            "project": [self.project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "web",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "web",
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
@@ -107,11 +118,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.transaction_data["measurements"] = {"lcp": {"value": 100}}
         self.store_event(self.transaction_data, self.project.id)
 
-        response = self.do_request({
-            "project": [self.project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "web",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "web",
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": True}
@@ -123,11 +136,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         transaction_data["measurements"] = {"app_start_cold": {"value": 100}}
         self.store_event(transaction_data, self.project.id)
 
-        response = self.do_request({
-            "project": [self.project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "mobile",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "mobile",
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
@@ -137,12 +152,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.transaction_data["measurements"] = {"app_start_cold": {"value": 100}}
         self.store_event(self.transaction_data, self.project.id)
 
-        response = self.do_request({
-            "project": [self.project.id],
-            "transaction": self.transaction_data["transaction"],
-            "type": "mobile",
-        })
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+                "type": "mobile",
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": True}
-
