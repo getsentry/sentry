@@ -58,6 +58,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
+import {MeasurementMarker} from './styles';
 import {
   FetchEmbeddedChildrenState,
   ParsedTraceType,
@@ -117,6 +118,7 @@ type SpanBarProps = {
     | ((props: {orgSlug: string; eventSlug: string}) => void)
     | undefined;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  hasCollapsedSpanGroup: boolean;
 };
 
 type SpanBarState = {
@@ -307,6 +309,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       continuingTreeDepths,
       span,
       showSpanTree,
+      hasCollapsedSpanGroup,
     } = this.props;
 
     const spanID = getSpanID(span);
@@ -352,13 +355,38 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <ConnectorBar
           style={{
             right: '16px',
-            height: '10px',
+            height: `${ROW_HEIGHT / 2}px`,
             bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
-          key={`${spanID}-last`}
+          key={`${spanID}-last-bottom`}
           orphanBranch={false}
         />
+      );
+    }
+
+    if (hasCollapsedSpanGroup) {
+      connectorBars.push(
+        <ConnectorBar
+          style={{
+            right: '16px',
+            height: `${ROW_HEIGHT / 2}px`,
+            top: '0',
+          }}
+          key={`${spanID}-last-top`}
+          orphanBranch={false}
+        />
+      );
+
+      return (
+        <TreeConnector
+          isLast
+          hasToggler={hasToggler}
+          orphanBranch={isOrphanSpan(span)}
+          hasCollapsedSpanGroup
+        >
+          {connectorBars}
+        </TreeConnector>
       );
     }
 
@@ -944,22 +972,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 }
-
-const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
-  position: absolute;
-  top: 0;
-  height: ${ROW_HEIGHT}px;
-  user-select: none;
-  width: 1px;
-  background: repeating-linear-gradient(
-      to bottom,
-      transparent 0 4px,
-      ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
-    )
-    80%/2px 100% no-repeat;
-  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
-  color: ${p => p.theme.textColor};
-`;
 
 const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};

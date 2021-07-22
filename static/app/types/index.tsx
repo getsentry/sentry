@@ -2093,11 +2093,6 @@ export type ServerlessFunction = {
 };
 
 /**
- * File storage service options for debug files
- */
-export type DebugFileSource = 'http' | 's3' | 'gcs' | 'appStoreConnect';
-
-/**
  * Base type for series   style API response
  */
 export type SeriesApi = {

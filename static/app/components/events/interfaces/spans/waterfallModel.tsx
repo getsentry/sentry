@@ -243,6 +243,10 @@ class WaterfallModel {
       filterSpans: this.filterSpans,
       previousSiblingEndTimestamp: undefined,
       event: this.event,
+      isOnlySibling: true,
+      spanGrouping: undefined,
+      toggleSpanGroup: undefined,
+      showSpanGroup: false,
     });
   };
 }

@@ -35,7 +35,10 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
         return features.has("organizations:performance-tag-page", organization, actor=request.user)
 
     def setup(self, request, organization):
-        if not self.has_feature(organization, request):
+        if not (
+            self.has_feature(organization, request)
+            or self.has_tag_page_feature(organization, request)
+        ):
             raise Http404
 
         params = self.get_snuba_params(request, organization)
@@ -174,7 +177,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not top_tags:
-                    return {"data": []}
+                    return {"data": []}, []
 
                 results = query_facet_performance_key_histogram(
                     top_tags=top_tags,
@@ -188,7 +191,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not results:
-                    return {"data": []}
+                    return {"data": []}, top_tags
 
                 for row in results["data"]:
                     row["tags_value"] = tagstore.get_tag_value_label(

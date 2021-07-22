@@ -19,6 +19,9 @@ from sentry.types.integrations import ExternalProviders
 
 
 class ActivityNotification(BaseNotification, ABC):
+    fine_tuning_key = "workflow"
+    is_message_issue_unfurl = True
+
     def __init__(self, activity: Activity) -> None:
         self.activity = activity
         super().__init__(activity.project, activity.group)
@@ -151,10 +154,6 @@ class ActivityNotification(BaseNotification, ABC):
 
     def get_reply_reference(self) -> Optional[Any]:
         return self.group
-
-    @property
-    def fine_tuning_key(self) -> str:
-        return "workflow/"
 
     def send(self) -> None:
         if not self.should_email():

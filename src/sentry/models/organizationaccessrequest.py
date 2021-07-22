@@ -37,7 +37,7 @@ class OrganizationAccessRequest(Model):
             "team": self.team,
             "url": absolute_uri(
                 reverse(
-                    "sentry-organization-members-requests",
+                    "sentry-organization-teams",
                     kwargs={"organization_slug": organization.slug},
                 )
             ),
