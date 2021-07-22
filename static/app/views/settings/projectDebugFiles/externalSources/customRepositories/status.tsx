@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
 import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
-// import TimeSince from 'app/components/timeSince';
+import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconDownload} from 'app/icons/iconDownload';
-// import {IconRefresh} from 'app/icons/iconRefresh';
+import {IconRefresh} from 'app/icons/iconRefresh';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -15,10 +15,12 @@ import {Theme} from 'app/utils/theme';
 
 type Props = {
   theme: Theme;
+  onEditRepository: () => void;
+  onRevalidateItunesSession: () => void;
   details?: AppStoreConnectValidationData;
 };
 
-function Status({theme, details}: Props) {
+function Status({theme, details, onEditRepository, onRevalidateItunesSession}: Props) {
   const {
     pendingDownloads,
     updateAlertMessage,
@@ -33,7 +35,7 @@ function Status({theme, details}: Props) {
     updateAlertMessage === appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
   ) {
     return (
-      <Wrapper color={theme.red300}>
+      <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
         <StyledTooltip
           title={t('We recommend that you revalidate the iTunes session')}
           containerDisplayMode="inline-flex"
@@ -47,7 +49,7 @@ function Status({theme, details}: Props) {
 
   if (itunesSessionValid === false) {
     return (
-      <Wrapper color={theme.red300}>
+      <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
         <StyledTooltip
           title={t('Revalidate your iTunes session')}
           containerDisplayMode="inline-flex"
@@ -61,7 +63,7 @@ function Status({theme, details}: Props) {
 
   if (appstoreCredentialsValid === false) {
     return (
-      <Wrapper color={theme.red300}>
+      <Wrapper color={theme.red300} onClick={onEditRepository}>
         <StyledTooltip
           title={t('Recheck your App Store Credentials')}
           containerDisplayMode="inline-flex"
@@ -85,15 +87,14 @@ function Status({theme, details}: Props) {
   }
 
   if (lastCheckedBuilds) {
-    // return (
-    //   <Wrapper color={theme.gray400}>
-    //     <IconWrapper>
-    //       <IconRefresh size="sm" />
-    //     </IconWrapper>
-    //     <TimeSince date="2021-07-21T08:27:37.717257Z" />
-    //   </Wrapper>
-    // );
-    return null;
+    return (
+      <Wrapper color={theme.gray400}>
+        <IconWrapper>
+          <IconRefresh size="sm" />
+        </IconWrapper>
+        <TimeSince date={lastCheckedBuilds} />
+      </Wrapper>
+    );
   }
 
   return <Placeholder height="14px" />;
@@ -109,6 +110,7 @@ const Wrapper = styled('div')<{color: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeMedium};
   height: 14px;
+  ${p => p.onClick && `cursor: pointer`};
 `;
 
 const StyledTooltip = styled(Tooltip)`

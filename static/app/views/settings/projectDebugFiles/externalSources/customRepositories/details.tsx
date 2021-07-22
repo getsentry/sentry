@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-// import DateTime from 'app/components/dateTime';
+import DateTime from 'app/components/dateTime';
 import NotAvailable from 'app/components/notAvailable';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -11,7 +11,7 @@ type Props = {
 };
 
 function Details({details}: Props) {
-  const {latestBuildVersion, latestBuildNumber} = details ?? {};
+  const {latestBuildVersion, latestBuildNumber, lastCheckedBuilds} = details ?? {};
   return (
     <Wrapper>
       {t('Last detected version')}
@@ -26,14 +26,14 @@ function Details({details}: Props) {
       {t('Last detected build')}
       <Value>{latestBuildNumber ?? <NotAvailable tooltip={t('Not available')} />}</Value>
 
-      {/* {t('Detected last build on')}
+      {t('Detected last build on')}
       <Value>
         {lastCheckedBuilds ? (
-          <DateTime date="2021-07-21T08:27:37.717257Z" />
+          <DateTime date={lastCheckedBuilds} />
         ) : (
           <NotAvailable tooltip={t('Not available')} />
         )}
-      </Value> */}
+      </Value>
     </Wrapper>
   );
 }

@@ -9,6 +9,7 @@ import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MenuItem from 'app/components/menuItem';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
@@ -168,12 +169,16 @@ function CustomRepositories({
     });
   }
 
-  function handleEditRepository(repoId: CustomRepo['id']) {
+  function handleEditRepository(
+    repoId: CustomRepo['id'],
+    revalidateItunesSession?: boolean
+  ) {
     router.push({
       ...location,
       query: {
         ...location.query,
         customRepository: repoId,
+        revalidateItunesSession,
       },
     });
   }
@@ -205,23 +210,29 @@ function CustomRepositories({
         </DropdownAutoComplete>
       </PanelHeader>
       <PanelBody>
-        {repositories.map((repository, index) => {
-          const repositoryCopy = {...repository};
-          if (
-            repositoryCopy.type === CustomRepoType.APP_STORE_CONNECT &&
-            repositoryCopy.id === appStoreConnectContext?.id
-          ) {
-            repositoryCopy.details = appStoreConnectContext;
-          }
-          return (
-            <Repository
-              key={index}
-              repository={repositoryCopy}
-              onDelete={handleDeleteRepository}
-              onEdit={handleEditRepository}
-            />
-          );
-        })}
+        {!repositories.length ? (
+          <EmptyStateWarning>
+            <p>{t('No custom repositories configured')}</p>
+          </EmptyStateWarning>
+        ) : (
+          repositories.map((repository, index) => {
+            const repositoryCopy = {...repository};
+            if (
+              repositoryCopy.type === CustomRepoType.APP_STORE_CONNECT &&
+              repositoryCopy.id === appStoreConnectContext?.id
+            ) {
+              repositoryCopy.details = appStoreConnectContext;
+            }
+            return (
+              <Repository
+                key={index}
+                repository={repositoryCopy}
+                onDelete={handleDeleteRepository}
+                onEdit={handleEditRepository}
+              />
+            );
+          })
+        )}
       </PanelBody>
     </Panel>
   );

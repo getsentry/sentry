@@ -77,11 +77,8 @@ function StepFour({
 export default StepFour;
 
 const StyledAlert = styled(Alert)`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: center;
-  span:nth-child(2) {
-    margin: 0;
+  div {
+    align-items: center;
   }
 `;
 
