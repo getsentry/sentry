@@ -12,7 +12,6 @@ from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import is_measurement
 
-
 MEASUREMENT_TYPES = {
     "web": [
         "measurements.fp",
@@ -33,6 +32,7 @@ MEASUREMENT_TYPES = {
     ],
 }
 
+
 class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
     transaction = serializers.CharField(max_length=200)
     type = serializers.ChoiceField(choices=list(MEASUREMENT_TYPES.keys()))
@@ -46,13 +46,10 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
         return data
 
 
-
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
     def get_snuba_params(self, request, organization, check_global_views=True):
         params = super().get_snuba_params(
-            request,
-            organization,
-            check_global_views=check_global_views
+            request, organization, check_global_views=check_global_views
         )
 
         # Once an transaction begins containing measurement data, it is unlikely
@@ -66,7 +63,6 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
         params["end"] = now
 
         return params
-
 
     def get(self, request, organization):
         if not self.has_feature(organization, request):
