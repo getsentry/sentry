@@ -1081,7 +1081,7 @@ class SnubaTagStorage(TagStorage):
     ):
         from sentry.api.paginator import SequencePaginator
 
-        if order_by in ("-last_seen", "-first_seen"):
+        if order_by in ("-last_seen", "-first_seen", "-times_seen"):
             pass
         elif order_by == "-id":
             # Snuba has no unique id per GroupTagValue so we'll substitute `-first_seen`
@@ -1093,6 +1093,12 @@ class SnubaTagStorage(TagStorage):
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")
+        if score_field == "times_seen":
+            return SequencePaginator(
+                [(int(getattr(gtv, score_field)), gtv) for gtv in group_tag_values],
+                reverse=desc,
+            )
+
         return SequencePaginator(
             [
                 (int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv)
