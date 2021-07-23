@@ -18,6 +18,7 @@ import {PanelTable} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Environment, Group, Project, SavedQueryVersions, Tag, TagValue} from 'app/types';
 import {isUrl, percent} from 'app/utils';
@@ -71,15 +72,19 @@ class GroupTagValues extends AsyncComponent<
   renderTagName(tagValue: TagValue) {
     return (
       <Fragment>
-        {tagValue.key === 'user' ? (
-          <UserBadge
-            user={{...tagValue, id: tagValue.identifier ?? ''}}
-            avatarSize={20}
-            hideEmail
-          />
-        ) : (
-          <DeviceName value={tagValue.name} />
-        )}
+        <NameWrapper>
+          {tagValue.key === 'user' ? (
+            <UserBadge
+              user={{...tagValue, id: tagValue.identifier ?? ''}}
+              avatarSize={20}
+              hideEmail
+            />
+          ) : (
+            <Fragment>
+              <DeviceName value={tagValue.name} />
+            </Fragment>
+          )}
+        </NameWrapper>
 
         {tagValue.email && (
           <StyledExternalLink href={`mailto:${tagValue.email}`}>
@@ -130,7 +135,7 @@ class GroupTagValues extends AsyncComponent<
 
       return (
         <Fragment key={tagValueIdx}>
-          <Column>{this.renderTagName(tagValue)}</Column>
+          <NameColumn>{this.renderTagName(tagValue)}</NameColumn>
           <RightAlignColumn>{pct}</RightAlignColumn>
           <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
           <RightAlignColumn>
@@ -297,6 +302,11 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 
+  overflow: auto;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: initial;
+  }
+
   & > * {
     padding: ${space(1)} ${space(2)};
   }
@@ -322,6 +332,16 @@ const StyledExternalLink = styled(ExternalLink)`
 const Column = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const NameColumn = styled(Column)`
+  ${overflowEllipsis};
+  display: flex;
+`;
+
+const NameWrapper = styled('span')`
+  ${overflowEllipsis};
+  width: auto;
 `;
 
 const RightAlignColumn = styled(Column)`
