@@ -128,12 +128,6 @@ textarea {
 // Scaffolding
 // --------------------------------------------------
 
-// Reset the box-sizing
-//
-// Heads up! This reset may cause conflicts with some third-party widgets.
-// For recommendations on resolving such conflicts, see
-// https://getbootstrap.com/docs/3.4/getting-started/#third-box-sizing
-
 // Reset fonts for relevant elements
 input,
 button,
@@ -345,6 +339,10 @@ svg:not(:root) {
 hr {
   box-sizing: content-box;
   height: 0;
+  margin-top: @line-height-computed;
+  margin-bottom: @line-height-computed;
+  border: 0;
+  border-top: 1px solid @hr-border;
 }
 
 //
@@ -655,3 +653,55 @@ caption {
     background-color: @body-bg;
   }
 }
+
+// Rounded corners
+.img-rounded {
+border-radius: @border-radius-large;
+}
+
+// Perfect circle
+.img-circle {
+border-radius: 50%; // set radius in percents
+}
+
+// Only display content to screen readers
+//
+// See: https://a11yproject.com/posts/how-to-hide-content
+
+.sr-only {
+position: absolute;
+width: 1px;
+height: 1px;
+padding: 0;
+margin: -1px;
+overflow: hidden;
+clip: rect(0, 0, 0, 0);
+border: 0;
+}
+
+// Use in conjunction with .sr-only to only display content when it's focused.
+// Useful for "Skip to main content" links; see https://www.w3.org/TR/2013/NOTE-WCAG20-TECHS-20130905/G1
+// Credit: HTML5 Boilerplate
+
+.sr-only-focusable {
+&:active,
+&:focus {
+position: static;
+width: auto;
+height: auto;
+margin: 0;
+overflow: visible;
+clip: auto;
+}
+}
+
+// iOS "clickable elements" fix for role="button"
+//
+// Fixes "clickability" issue (and more generally, the firing of events such as focus as well)
+// for traditionally non-focusable elements with role="button"
+// see https://developer.mozilla.org/en-US/docs/Web/Events/click#Safari_Mobile
+
+[role='button'] {
+cursor: pointer;
+}
+
