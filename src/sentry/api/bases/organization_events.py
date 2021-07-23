@@ -359,14 +359,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
                 )
-            if hasattr(result, "start") and hasattr(result, "end"):
-                if is_multiple_axis:
-                    for value in serialized_result.values():
-                        value["start"] = result.start
-                        value["end"] = result.end
-                else:
-                    serialized_result["start"] = result.start
-                    serialized_result["end"] = result.end
 
             return serialized_result
 
@@ -393,6 +385,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
+
+        if zerofill_results and hasattr(event_result, "start") and hasattr(event_result, "end"):
+            for value in result.values():
+                value["start"] = event_result.start
+                value["end"] = event_result.end
+
         return result
 
 
