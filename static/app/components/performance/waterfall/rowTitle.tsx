@@ -28,5 +28,5 @@ export const RowTitleContent = styled('span')<{errored: boolean}>`
 `;
 
 export const SpanGroupRowTitleContent = styled('span')`
-  color: ${p => p.theme.blue300};
+  color: ${p => p.theme.linkColor};
 `;
