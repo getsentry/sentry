@@ -7,7 +7,7 @@ term
   = maybeFactor:maybe_factor remainingAdds:remaining_adds {
     return tc.tokenTerm(maybeFactor, remainingAdds);
   }
- 
+
 remaining_adds = add_sub*
 
 add_sub
@@ -82,8 +82,18 @@ field_value
     return text();
   }
 
-function_args        = function_arg (spaces comma spaces function_arg)*
-function_arg         = [a-zA-Z_\.0-9]+
+function_args
+  = aggregate_param (spaces comma spaces aggregate_param)*
+
+aggregate_param
+  = quoted_aggregate_param / raw_aggregate_param
+
+raw_aggregate_param
+  = param:[^()\t\n, \"]+
+
+quoted_aggregate_param
+  = '"' param:('\\"' / [^\t\n\"])* '"'
+
 function_name        = [a-zA-Z_0-9]+
 comma                = ","
 open_paren           = "("
