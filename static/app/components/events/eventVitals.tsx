@@ -14,6 +14,7 @@ import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'app/utils/performance/vitals/constants';
+import {Vital} from 'app/utils/performance/vitals/types';
 import {IconSize} from 'app/utils/theme';
 
 function isOutdatedSdk(event: Event): boolean {
@@ -45,11 +46,7 @@ export default function EventVitals({event}: Props) {
 
 function WebVitals({event}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
-    .filter(
-      name =>
-        Boolean(MOBILE_VITAL_DETAILS[`measurements.${name}`]) ||
-        Boolean(WEB_VITAL_DETAILS[`measurements.${name}`])
-    )
+    .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
 
   if (measurementNames.length === 0) {
@@ -123,17 +120,7 @@ type EventVitalProps = Props & {
 
 function EventVital({event, name, vital}: EventVitalProps) {
   const value = event.measurements?.[name].value ?? null;
-  if (value === null) {
-    return null;
-  }
-
-  // Measurements are referred to by their full name `measurements.<name>`
-  // here but are stored using their abbreviated name `<name>`. Make sure
-  // to convert it appropriately.
-  const measurement = `measurements.${name}`;
-  const record = WEB_VITAL_DETAILS[measurement] || MOBILE_VITAL_DETAILS[measurement];
-
-  if (!record) {
+  if (value === null || !vital) {
     return null;
   }
 

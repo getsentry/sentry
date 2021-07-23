@@ -196,7 +196,6 @@ class SpanTree extends React.Component<PropType> {
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
         const spanBarColor: string = pickBarColor(getSpanOperation(span));
-        const spanNumber = index + 1;
         const numOfSpanChildren = payload.numOfSpanChildren;
         const treeDepth = payload.treeDepth;
         const continuingTreeDepths = payload.continuingTreeDepths;
