@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {Integration, LightWeightOrganization, Team} from 'app/types';
 import {toTitleCase} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
@@ -117,11 +118,11 @@ export default withOrganization(TeamNotificationSettings);
 
 const NotDisabledText = styled('div')`
   color: ${p => p.theme.textColor};
-  line-height: 16px;
+  line-height: ${space(2)};
 `;
 const NotDisabledSubText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4;
-  margin-top: 8px;
+  margin-top: ${space(1)};
 `;
