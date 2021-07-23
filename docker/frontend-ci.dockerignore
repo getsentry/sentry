@@ -1,0 +1,12 @@
+*
+!/package.json
+!/yarn.lock
+!/webpack.config.*
+!/tsconfig.json
+!/static
+!/config/tsconfig*
+!/babel.config.*
+!/build-utils
+!/src/sentry/locale/catalogs.json
+!/src/sentry/static/sentry/images/logos
+!/tests/fixtures/integration-docs/_platforms.json
