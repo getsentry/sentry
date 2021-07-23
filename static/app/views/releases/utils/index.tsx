@@ -144,11 +144,25 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
   const {sessionsUpperBound} = currentProjectMeta || {};
 
+  const releaseStart = moment(dateCreated).startOf('minute').utc().format();
+  const releaseEnd = moment(
+    (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
+      undefined
+  )
+    .startOf('minute')
+    .utc()
+    .format();
+
+  if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
+    return {
+      releaseStart,
+      releaseEnd: moment(releaseEnd).add(1, 'minutes').utc().format(),
+    };
+  }
+
   return {
-    releaseStart: dateCreated,
-    releaseEnd:
-      (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
-      moment().utc().format(),
+    releaseStart,
+    releaseEnd,
   };
 }
 

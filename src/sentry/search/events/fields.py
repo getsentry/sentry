@@ -747,9 +747,9 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     if equations is not None:
-        equation_aliases = [equation[-1] for equation in equations]
+        equation_aliases = {equation[-1]: equation for equation in equations}
     else:
-        equation_aliases = []
+        equation_aliases = {}
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
@@ -759,7 +759,10 @@ def resolve_orderby(orderby, fields, aggregations, equations):
             continue
 
         if equation_aliases and bare_column in equation_aliases:
-            validated.append(column)
+            equation = equation_aliases[bare_column]
+            prefix = "-" if column.startswith("-") else ""
+            # Drop alias because if prefix was included snuba thinks we're shadow aliasing
+            validated.append([prefix + equation[0], equation[1]])
             continue
 
         if is_function(bare_column):
@@ -2176,6 +2179,43 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="integer",
                 ),
+                SnQLFunction(
+                    "count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "count",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda _, alias: Function(
+                        "max",
+                        [self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="date",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "latest_event",
+                    snql_aggregate=lambda _, alias: Function(
+                        "argMax",
+                        [self.column("id"), self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="string",
+                ),
+                SnQLFunction(
+                    "failure_rate",
+                    snql_aggregate=lambda _, alias: Function(
+                        "failure_rate",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
                 # TODO: implement these
                 SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
@@ -2185,18 +2225,14 @@ class QueryFields(QueryBase):
                 SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("last_seen", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("latest_event", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("apdex", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "count_miserable", snql_aggregate=self._resolve_unimplemented_function
                 ),
                 SnQLFunction("user_misery", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("failure_rate", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),

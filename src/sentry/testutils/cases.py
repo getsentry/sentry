@@ -427,6 +427,14 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
         return response
 
+    def get_cursor_headers(self, response):
+        return [
+            link["cursor"]
+            for link in requests.utils.parse_header_links(
+                response.get("link").rstrip(">").replace(">,<", ",<")
+            )
+        ]
+
 
 class TwoFactorAPITestCase(APITestCase):
     @fixture
