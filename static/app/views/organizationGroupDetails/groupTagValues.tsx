@@ -112,11 +112,11 @@ class GroupTagValues extends AsyncComponent<
       return (
         <Fragment key={tagValueIdx}>
           <Column>{this.renderTagName(tagValue)}</Column>
-          <Column>
+          <RightAlignColumn>{pct}</RightAlignColumn>
+          <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
+          <RightAlignColumn>
             <TimeSince date={tagValue.lastSeen} />
-          </Column>
-          <CountColumn>{pct}</CountColumn>
-          <CountColumn>{tagValue.count.toLocaleString()}</CountColumn>
+          </RightAlignColumn>
         </Fragment>
       );
     });
@@ -142,15 +142,15 @@ class GroupTagValues extends AsyncComponent<
           pathname: location.pathname,
           query: {
             ...currentQuery,
-            sort: 'last_seen',
+            sort: 'date',
           },
         }}
       >
-        {t('Last Seen')} {sort === 'last_seen' && sortArrow}
+        {t('Last Seen')} {sort === 'date' && sortArrow}
       </StyledSortLink>
     );
     const countColumnHeader = (
-      <CountSortLink
+      <StyledSortLink
         to={{
           pathname: location.pathname,
           query: {
@@ -160,7 +160,7 @@ class GroupTagValues extends AsyncComponent<
         }}
       >
         {t('Count')} {sort === 'count' && sortArrow}
-      </CountSortLink>
+      </StyledSortLink>
     );
 
     return (
@@ -192,9 +192,9 @@ class GroupTagValues extends AsyncComponent<
           isEmpty={tagValueList?.length === 0}
           headers={[
             title,
-            lastSeenColumnHeader,
             <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
             countColumnHeader,
+            lastSeenColumnHeader,
           ]}
           emptyMessage={t('Sorry, the tags for this issue could not be found.')}
           emptyAction={
@@ -235,15 +235,12 @@ const PercentColumnHeader = styled('div')`
 `;
 
 const StyledSortLink = styled(Link)`
+  text-align: right;
   color: inherit;
 
   :hover {
     color: inherit;
   }
-`;
-
-const CountSortLink = styled(StyledSortLink)`
-  text-align: right;
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
@@ -255,7 +252,7 @@ const Column = styled('div')`
   align-items: center;
 `;
 
-const CountColumn = styled(Column)`
+const RightAlignColumn = styled(Column)`
   justify-content: flex-end;
 `;
 
