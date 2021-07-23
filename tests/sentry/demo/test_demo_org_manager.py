@@ -19,6 +19,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.savedsearch import SavedSearch
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
 from sentry.utils.email import create_fake_email
@@ -59,6 +60,7 @@ class DemoOrgManagerTest(TestCase):
 
         assert len(Project.objects.filter(organization=org)) == 5
         assert len(Release.objects.filter(organization=org)) == 3
+        assert len(SavedSearch.objects.filter(organization=org)) == 4
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY)
         mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
