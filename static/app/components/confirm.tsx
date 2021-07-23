@@ -29,6 +29,18 @@ export type ConfirmMessageRenderProps = {
   setConfirmCallback: (cb: () => void) => void;
 };
 
+export type ConfirmButtonsRenderProps = {
+  /**
+   * Applications can call this function to manually close the modal.
+   */
+  closeModal: () => void;
+  /**
+   * The default onClick behavior, including closing the modal and triggering the
+   * onConfirm / onCancel callbacks.
+   */
+  defaultOnClick: () => void;
+};
+
 type ChildrenRenderProps = {
   open: () => void;
 };
@@ -41,11 +53,11 @@ type Props = {
   /**
    * Custom function to render the confirm button
    */
-  renderConfirmButton?: (closeModal: () => void, defaultOnClick: () => void) => void;
+  renderConfirmButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
   /**
    * Custom function to render the cancel button
    */
-  renderCancelButton?: (closeModal: () => void, defaultOnClick: () => void) => void;
+  renderCancelButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
   /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
    */
@@ -278,12 +290,18 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
         <Footer>
           <ButtonBar gap={2}>
             {renderCancelButton ? (
-              renderCancelButton(this.props.closeModal, this.handleClose)
+              renderCancelButton({
+                closeModal: this.props.closeModal,
+                defaultOnClick: this.handleClose,
+              })
             ) : (
               <Button onClick={this.handleClose}>{cancelText}</Button>
             )}
             {renderConfirmButton ? (
-              renderConfirmButton(this.props.closeModal, this.handleConfirm)
+              renderConfirmButton({
+                closeModal: this.props.closeModal,
+                defaultOnClick: this.handleConfirm,
+              })
             ) : (
               <Button
                 data-test-id="confirm-button"
