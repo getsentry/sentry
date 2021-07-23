@@ -134,7 +134,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ):
                 continue
             converted_filter = convert_search_filter_to_snuba_query(
-                search_filter, params={"organization_id": organization_id}
+                search_filter,
+                params={"organization_id": organization_id, "project_id": project_ids},
             )
             converted_filter = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
