@@ -28,18 +28,13 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
 
         for i in range(5):
             self.store_transaction(
-                tags=[["color", "blue"], ["many", "yes"]],
-                duration=4000,
+                tags=[["color", "blue"], ["many", "yes"]], duration=4000, lcp=3000
             )
         for i in range(14):
-            self.store_transaction(
-                tags=[["color", "red"], ["many", "yes"]],
-                duration=1000,
-            )
+            self.store_transaction(tags=[["color", "red"], ["many", "yes"]], duration=1000, lcp=500)
         for i in range(1):
             self.store_transaction(
-                tags=[["color", "green"], ["many", "no"]],
-                duration=5000,
+                tags=[["color", "green"], ["many", "no"]], duration=5000, lcp=4000
             )
 
         self.url = reverse(
@@ -48,7 +43,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         )
 
     def store_transaction(
-        self, name="exampleTransaction", duration=100, tags=None, project_id=None
+        self, name="exampleTransaction", duration=100, tags=None, project_id=None, lcp=None
     ):
         if tags is None:
             tags = []
@@ -64,6 +59,12 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
                 "timestamp": iso_format(self.two_mins_ago),
             }
         )
+
+        if lcp:
+            event["measurements"]["lcp"]["value"] = lcp
+        else:
+            del event["measurements"]["lcp"]
+
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
 
@@ -200,6 +201,32 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         assert data[0]["count"] == 19
         assert data[0]["tags_key"] == "application"
         assert data[0]["tags_value"] == "countries"
+
+    def test_tag_frequency(self):
+        # LCP-less transaction should be ignored in total counts for frequency.
+        self.store_transaction(tags=[["color", "orange"], ["many", "maybe"]], lcp=None)
+
+        request = {
+            "aggregateColumn": "measurements.lcp",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "query": "(color:red or color:blue)",
+            "allTagKeys": True,
+        }
+
+        response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        data = response.data["data"]
+        assert len(data) == 5
+        assert data[0]["count"] == 19
+        assert data[0]["tags_key"] == "application"
+        assert data[0]["tags_value"] == "countries"
+
+        # Only transactions with lcp should be considered
+        assert data[0]["frequency"] == 1
 
     def test_tag_key_values(self):
         request = {
