@@ -79,9 +79,6 @@ logger = logging.getLogger(__name__)
 # The name of the feature flag which enables the App Store Connect symbol source.
 APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 
-# iTunes session token validity is 10-14 days so we like refreshing after 1 week.
-ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
-
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectAppsEndpoint."""
@@ -368,24 +365,22 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         "itunesSessionValid": true,
         "promptItunesSession": false,
         "pendingDownloads": 123,
-        "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
         "latestBuildVersion: "9.8.7" | null,
         "latestBuildNumber": "987000" | null,
         "lastCheckedBuilds": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
     }
     ```
 
-    Here the ``itunesSessionRefreshAt`` is when we recommend to refresh the
-    iTunes session, and ``pendingDownloads`` is the number of pending build
-    downloads, and an indicator if we do need the session to fetch new builds.
-    ``latestBuildVersion`` and ``latestBuildNumber`` together form a unique
-    identifier for the latest build recognized by Sentry.
+    * ``pendingDownloads`` is the number of pending build dSYM downloads.
 
-    ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
-    of whether there were any or no builds in App Store Connect at the time.
+    * ``latestBuildVersion`` and ``latestBuildNumber`` together form a unique identifier for
+      the latest build recognized by Sentry.
 
-    ``promptItunesSession`` indicates whether the user should be prompted to refresh the
-    iTunes session since we know we need to fetch more dSYMs.
+    * ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
+      of whether there were any or no builds in App Store Connect at the time.
+
+    * ``promptItunesSession`` indicates whether the user should be prompted to refresh the
+      iTunes session since we know we need to fetch more dSYMs.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -402,8 +397,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             )
         except KeyError:
             return Response(status=404)
-
-        expiration_date = symbol_source_cfg.itunesCreated + ITUNES_TOKEN_VALIDITY
 
         credentials = appstore_connect.AppConnectCredentials(
             key_id=symbol_source_cfg.appconnectKey,
@@ -443,7 +436,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             {
                 "appstoreCredentialsValid": apps is not None,
                 "itunesSessionValid": itunes_session_info is not None,
-                "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
