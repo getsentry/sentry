@@ -45,30 +45,25 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
 
 
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
-    def get_snuba_params(self, request, organization, check_global_views=True):
-        params = super().get_snuba_params(
-            request, organization, check_global_views=check_global_views
-        )
-
-        # Once an transaction begins containing measurement data, it is unlikely
-        # it will stop. So it makes more sense to always query the latest data.
-        #
-        # Additionally, to account for periods of low volume, increase the range
-        # to 7 days to have a better chance of finding an example event and provide
-        # a more consistent experience.
-        now = timezone.now()
-        params["start"] = now - timedelta(days=7)
-        params["end"] = now
-
-        return params
-
     def get(self, request, organization):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="parse params"):
             try:
-                params = self.get_snuba_params(request, organization)
+                # This endpoint only allows for a single project + transaction, so no need
+                # to check `global-views`.
+                params = self.get_snuba_params(request, organization, check_global_views=False)
+
+                # Once an transaction begins containing measurement data, it is unlikely
+                # it will stop. So it makes more sense to always query the latest data.
+                #
+                # Additionally, to account for periods of low volume, increase the range
+                # to 7 days to have a better chance of finding an example event and provide
+                # a more consistent experience.
+                now = timezone.now()
+                params["start"] = now - timedelta(days=7)
+                params["end"] = now
             except NoProjects:
                 return Response({"measurements": False})
 
