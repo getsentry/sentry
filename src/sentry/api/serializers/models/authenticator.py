@@ -15,13 +15,16 @@ class AuthenticatorInterfaceSerializer(Serializer):
             "id": str(obj.interface_id),
             "name": obj.name,
             "description": obj.description,
+            "rotationWarning": obj.rotation_warning,
             "enrollButton": obj.enroll_button,
             "configureButton": obj.configure_button,
             "removeButton": obj.remove_button,
             "isBackupInterface": obj.is_backup_interface,
             "isEnrolled": obj.is_enrolled(),
+            "status": str(obj.status.value),
             "canValidateOtp": obj.can_validate_otp,
             "allowMultiEnrollment": obj.allow_multi_enrollment,
+            "allowRotationInPlace": obj.allow_rotation_in_place,
         }
 
         # authenticator is enrolled

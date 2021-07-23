@@ -28,6 +28,7 @@ def get_fixture_path(name):
 class UserAuthenticatorEnrollTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="a@example.com", is_superuser=False)
+        self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
     def _assert_security_email_sent(self, email_type, email_log):
@@ -68,6 +69,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
         assert interface
+        assert interface.secret == "secret12"
+        assert interface.config == {"secret": "secret12"}
 
         # also enrolls in recovery codes
         recovery = Authenticator.objects.get_interface(user=self.user, interface_id="recovery")
@@ -75,11 +78,15 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         self._assert_security_email_sent("mfa-added", email_log)
 
-        # can't enroll again because no multi enrollment is allowed
+        # can rotate in place
         resp = self.client.get(url)
-        assert resp.status_code == 400
-        resp = self.client.post(url)
-        assert resp.status_code == 400
+        assert resp.status_code == 200
+        resp = self.client.post(url, data={"secret": "secret56", "otp": "5678"})
+        assert validate_otp.call_args == mock.call("5678")
+        assert resp.status_code == 204
+        interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
+        assert interface.secret == "secret56"
+        assert interface.config == {"secret": "secret56"}
 
     @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)

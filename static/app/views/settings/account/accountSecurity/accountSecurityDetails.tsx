@@ -109,19 +109,25 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
             </Fragment>
           }
           action={
-            authenticator.isEnrolled &&
-            authenticator.removeButton && (
-              <Tooltip
-                title={t(
-                  "Two-factor authentication is required for at least one organization you're a member of."
-                )}
-                disabled={!deleteDisabled}
-              >
-                <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
-                  <Button priority="danger">{authenticator.removeButton}</Button>
-                </RemoveConfirm>
-              </Tooltip>
-            )
+            <AuthenticatorActions>
+              {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
+                <Button to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}>
+                  {t('Rotate Secret Key')}
+                </Button>
+              )}
+              {authenticator.isEnrolled && authenticator.removeButton && (
+                <Tooltip
+                  title={t(
+                    "Two-factor authentication is required for at least one organization you're a member of."
+                  )}
+                  disabled={!deleteDisabled}
+                >
+                  <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
+                    <Button priority="danger">{authenticator.removeButton}</Button>
+                  </RemoveConfirm>
+                </Tooltip>
+              )}
+            </AuthenticatorActions>
           }
         />
 
@@ -160,6 +166,16 @@ export default AccountSecurityDetails;
 
 const AuthenticatorStatus = styled(CircleIndicator)`
   margin-left: ${space(1)};
+`;
+
+const AuthenticatorActions = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  > * {
+    margin-left: ${space(1)};
+  }
 `;
 
 const AuthenticatorDates = styled('div')`
