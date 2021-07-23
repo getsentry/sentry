@@ -1,21 +1,19 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {Link, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import property from 'lodash/property';
-import sortBy from 'lodash/sortBy';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import DeviceName from 'app/components/deviceName';
-import DetailedError from 'app/components/errors/detailedError';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import UserBadge from 'app/components/idBadge/userBadge';
 import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
+import {PanelTable} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
-import {IconMail, IconOpen} from 'app/icons';
+import {IconArrow, IconMail, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Environment, Group, Tag, TagValue} from 'app/types';
@@ -33,10 +31,12 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  tag: Tag;
-  tagValueList: TagValue[];
+  tag: Tag | null;
+  tagValueList: TagValue[] | null;
   tagValueListPageLinks: string;
 };
+
+const DEFAULT_SORT = 'count';
 
 class GroupTagValues extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -50,93 +50,131 @@ class GroupTagValues extends AsyncComponent<
       [
         'tagValueList',
         `/issues/${groupId}/tags/${tagKey}/values/`,
-        {query: {environment}},
+        {query: {environment, sort: this.getSort()}},
       ],
     ];
+  }
+
+  getSort(): string {
+    return this.props.location.query.sort || DEFAULT_SORT;
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderTagName(tagValue: TagValue) {
+    const {tag} = this.state;
+    const {
+      params: {orgId},
+    } = this.props;
+    const issuesPath = `/organizations/${orgId}/issues/`;
+    const query = tagValue.query || `${tag?.key}:"${tagValue.value}"`;
+
+    return (
+      <Fragment>
+        <GlobalSelectionLink
+          to={{
+            pathname: issuesPath,
+            query: {query},
+          }}
+        >
+          {tag?.key === 'user' ? (
+            <UserBadge
+              user={{...tagValue, id: tagValue.identifier ?? ''}}
+              avatarSize={20}
+              hideEmail
+            />
+          ) : (
+            <DeviceName value={tagValue.name} />
+          )}
+        </GlobalSelectionLink>
+        {tagValue.email && (
+          <StyledExternalLink href={`mailto:${tagValue.email}`}>
+            <IconMail size="xs" color="gray300" />
+          </StyledExternalLink>
+        )}
+        {isUrl(tagValue.value) && (
+          <StyledExternalLink href={tagValue.value}>
+            <IconOpen size="xs" color="gray300" />
+          </StyledExternalLink>
+        )}
+      </Fragment>
+    );
+  }
+
+  renderResults() {
+    const {tagValueList, tag} = this.state;
+    return tagValueList?.map((tagValue, tagValueIdx) => {
+      const pct = tag?.totalValues
+        ? `${percent(tagValue.count, tag?.totalValues).toFixed(2)}%`
+        : '--';
+      return (
+        <Fragment key={tagValueIdx}>
+          <Column>{this.renderTagName(tagValue)}</Column>
+          <Column>
+            <TimeSince date={tagValue.lastSeen} />
+          </Column>
+          <CountColumn>{pct}</CountColumn>
+          <CountColumn>{tagValue.count.toLocaleString()}</CountColumn>
+        </Fragment>
+      );
+    });
   }
 
   renderBody() {
     const {
       group,
       params: {orgId, tagKey},
+      location: {query},
       environments,
     } = this.props;
-    const {tag, tagValueList, tagValueListPageLinks} = this.state;
-    const sortedTagValueList: TagValue[] = sortBy(
-      tagValueList,
-      property('count')
-    ).reverse();
+    const {tagValueList, tagValueListPageLinks, loading} = this.state;
+    const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
-    if (sortedTagValueList.length === 0 && environments.length > 0) {
-      return (
-        <DetailedError
-          heading={t('Sorry, the tags for this issue could not be found.')}
-          message={t('No tags were found for the currently selected environments')}
-        />
-      );
-    }
+    const title = tagKey === 'user' ? t('Affected Users') : tagKey;
 
-    const issuesPath = `/organizations/${orgId}/issues/`;
-
-    const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
-      const pct = tag.totalValues
-        ? `${percent(tagValue.count, tag.totalValues).toFixed(2)}%`
-        : '--';
-      const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
-      return (
-        <tr key={tagValueIdx}>
-          <td className="bar-cell">
-            <span className="label">{pct}</span>
-          </td>
-          <td>
-            <ValueWrapper>
-              <GlobalSelectionLink
-                to={{
-                  pathname: issuesPath,
-                  query: {query},
-                }}
-              >
-                {tag.key === 'user' ? (
-                  <UserBadge
-                    user={{...tagValue, id: tagValue.identifier ?? ''}}
-                    avatarSize={20}
-                    hideEmail
-                  />
-                ) : (
-                  <DeviceName value={tagValue.name} />
-                )}
-              </GlobalSelectionLink>
-              {tagValue.email && (
-                <StyledExternalLink href={`mailto:${tagValue.email}`}>
-                  <IconMail size="xs" color="gray300" />
-                </StyledExternalLink>
-              )}
-              {isUrl(tagValue.value) && (
-                <StyledExternalLink href={tagValue.value}>
-                  <IconOpen size="xs" color="gray300" />
-                </StyledExternalLink>
-              )}
-            </ValueWrapper>
-          </td>
-          <td>
-            <TimeSince date={tagValue.lastSeen} />
-          </td>
-        </tr>
-      );
-    });
+    const sort = this.getSort();
+    const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+    const lastSeenColumnHeader = (
+      <StyledSortLink
+        to={{
+          pathname: location.pathname,
+          query: {
+            ...currentQuery,
+            sort: 'last_seen',
+          },
+        }}
+      >
+        {t('Last Seen')} {sort === 'last_seen' && sortArrow}
+      </StyledSortLink>
+    );
+    const countColumnHeader = (
+      <CountSortLink
+        to={{
+          pathname: location.pathname,
+          query: {
+            ...currentQuery,
+            sort: 'count',
+          },
+        }}
+      >
+        {t('Count')} {sort === 'count' && sortArrow}
+      </CountSortLink>
+    );
 
     return (
       <Fragment>
-        <Header>
-          <HeaderTitle>{tag.key === 'user' ? t('Affected Users') : tag.name}</HeaderTitle>
-          <HeaderButtons gap={1}>
-            <BrowserExportButton
+        <TitleWrapper>
+          <Title>{t('Tag Details')}</Title>
+          <ButtonBar gap={1}>
+            <Button
               size="small"
               priority="default"
               href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
             >
               {t('Export Page to CSV')}
-            </BrowserExportButton>
+            </Button>
             <DataExport
               payload={{
                 queryType: ExportQueryType.IssuesByTag,
@@ -147,65 +185,80 @@ class GroupTagValues extends AsyncComponent<
                 },
               }}
             />
-          </HeaderButtons>
-        </Header>
-        <StyledTable className="table">
-          <thead>
-            <tr>
-              <TableHeader width={20}>%</TableHeader>
-              <th />
-              <TableHeader width={300}>{t('Last Seen')}</TableHeader>
-            </tr>
-          </thead>
-          <tbody>{children}</tbody>
-        </StyledTable>
-        <Pagination pageLinks={tagValueListPageLinks} />
-        <p>
-          <small>
-            {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
-          </small>
-        </p>
+          </ButtonBar>
+        </TitleWrapper>
+        <StyledPanelTable
+          isLoading={loading}
+          isEmpty={tagValueList?.length === 0}
+          headers={[
+            title,
+            lastSeenColumnHeader,
+            <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
+            countColumnHeader,
+          ]}
+          emptyMessage={t('Sorry, the tags for this issue could not be found.')}
+          emptyAction={
+            environments.length > 0
+              ? t('No tags were found for the currently selected environments')
+              : null
+          }
+        >
+          {this.renderResults()}
+        </StyledPanelTable>
+        <StyledPagination pageLinks={tagValueListPageLinks} />
       </Fragment>
     );
   }
 }
 
-const StyledTable = styled('table')`
-  > tbody > tr:nth-of-type(odd) {
-    background-color: ${p => p.theme.bodyBackground};
-  }
-`;
+export default GroupTagValues;
 
-const Header = styled('div')`
+const TitleWrapper = styled('div')`
   display: flex;
+  flex-direction: row;
   align-items: center;
-  margin: 0 0 20px;
+  justify-content: space-between;
+  margin-bottom: ${space(2)};
 `;
 
-const HeaderTitle = styled('h3')`
+const Title = styled('h3')`
   margin: 0;
 `;
 
-const HeaderButtons = styled(ButtonBar)`
-  align-items: stretch;
-  margin: 0px ${space(1.5)};
+const StyledPanelTable = styled(PanelTable)`
+  white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const BrowserExportButton = styled(Button)`
-  display: flex;
-  align-items: center;
+const PercentColumnHeader = styled('div')`
+  text-align: right;
 `;
 
-const TableHeader = styled('th')<{width: number}>`
-  width: ${p => p.width}px;
+const StyledSortLink = styled(Link)`
+  color: inherit;
+
+  :hover {
+    color: inherit;
+  }
 `;
-const ValueWrapper = styled('div')`
-  display: flex;
-  align-items: center;
+
+const CountSortLink = styled(StyledSortLink)`
+  text-align: right;
 `;
+
 const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
 `;
 
-export {GroupTagValues};
-export default GroupTagValues;
+const Column = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const CountColumn = styled(Column)`
+  justify-content: flex-end;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
