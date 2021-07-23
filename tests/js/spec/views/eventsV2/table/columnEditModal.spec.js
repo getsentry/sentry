@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {openMenu, selectByLabel} from 'sentry-test/select-new';
+import {changeInputValue, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import ColumnEditModal from 'app/views/eventsV2/table/columnEditModal';
 
@@ -327,6 +327,35 @@ describe('EventsV2 -> ColumnEditModal', function () {
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count', '', undefined, undefined]},
       ]);
+    });
+
+    it('updates equation errors when they change', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'equation',
+              field: '1 / 0',
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+      expect(newWrapper.find('QueryField ArithmeticError')).toHaveLength(1);
+      expect(newWrapper.find('QueryField ArithmeticError').prop('title')).toBe(
+        'Division by 0 is not allowed'
+      );
+
+      const field = newWrapper.find('QueryField input[type="text"]');
+      changeInputValue(field, '1+1+1+1+1+1+1+1+1+1+1+1');
+      newWrapper.update();
+      field.simulate('blur');
+
+      expect(newWrapper.find('QueryField ArithmeticError').prop('title')).toBe(
+        'Maximum operators exceeded'
+      );
     });
   });
 

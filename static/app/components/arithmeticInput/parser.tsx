@@ -58,12 +58,13 @@ export class TokenConverter {
     return new Operation({operator, rhs});
   };
 
-  tokenFactor = (primary: Term, remaining: Array<Operation>): Operation | undefined => {
+  tokenFactor = (primary: Term, remaining: Array<Operation>): Operation => {
     remaining[0].lhs = primary;
     return flatten(remaining);
   };
 }
 
+// Assumes an array with at least one element
 function flatten(remaining: Array<Operation>): Operation {
   let term = remaining.shift();
   while (remaining.length > 0) {
