@@ -97,7 +97,7 @@ class GitlabIdentityProvider(OAuth2Provider):
             # from GitLab, and won't have the `code` attribute
             # we use the req.status_code instead in that case
             error_status = getattr(e, "code", req.status_code)
-            self.logger(
+            self.logger.info(
                 "gitlab.refresh-identity-failure",
                 extra={
                     "identity_id": identity.id,
