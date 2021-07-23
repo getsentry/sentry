@@ -32,7 +32,6 @@ from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
-    MEASUREMENTS_LCP_INDEX_ALIAS,
     MEASUREMENTS_STALL_PERCENTAGE,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
@@ -2664,14 +2663,11 @@ class QueryFields(QueryBase):
             "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
         )
 
-    def _project_threshold_multi_function(self) -> SelectType:
+    def _project_threshold_multi_if_function(self) -> SelectType:
         """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
         this returns the right duration value (for example, lcp or duration) based
         on project or transaction thresholds that have been configured by the user.
         """
-        lcp_index = Function(
-            "indexOf", [self.column("measurements_key"), "lcp"], MEASUREMENTS_LCP_INDEX_ALIAS
-        )
 
         return Function(
             "multiIf",
@@ -2686,20 +2682,7 @@ class QueryFields(QueryBase):
                         "lcp",
                     ],
                 ),
-                Function(
-                    "if",
-                    [
-                        Function("equals", [lcp_index, 0]),
-                        None,
-                        Function(
-                            "arrayElement",
-                            [
-                                self.column("measurements_value"),
-                                lcp_index,
-                            ],
-                        ),
-                    ],
-                ),
+                self.column("measurements.lcp"),
                 self.column("transaction.duration"),
             ],
         )
@@ -2709,7 +2692,7 @@ class QueryFields(QueryBase):
             function_args = [self.column("transaction.duration"), int(args["satisfaction"])]
         else:
             function_args = [
-                self._project_threshold_multi_function(),
+                self._project_threshold_multi_if_function(),
                 Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
             ]
 
@@ -2720,7 +2703,7 @@ class QueryFields(QueryBase):
             lhs = self.column("transaction.duration")
             rhs = int(args["tolerated"])
         else:
-            lhs = self._project_threshold_multi_function()
+            lhs = self._project_threshold_multi_if_function()
             rhs = Function(
                 "multiply",
                 [
