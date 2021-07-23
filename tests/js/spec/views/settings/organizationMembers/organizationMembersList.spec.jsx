@@ -2,12 +2,18 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {selectByValue} from 'sentry-test/select-new';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
+
+jest.mock('app/utils/advancedAnalytics', () => ({
+  trackAdvancedAnalyticsEvent: jest.fn(),
+}));
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
@@ -103,6 +109,11 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-id/teams/',
       method: 'GET',
       body: TestStubs.Team(),
+    });
+    Client.addMockResponse({
+      url: '/organizations/org-id/invite-requests/',
+      method: 'GET',
+      body: [],
     });
     browserHistory.push.mockReset();
     OrganizationsStore.load([organization]);
@@ -377,5 +388,202 @@ describe('OrganizationMembersList', function () {
         .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] input`)
         .simulate('change', {target: {checked: false}});
     }
+  });
+
+  describe('OrganizationInviteRequests', function () {
+    const inviteRequest = TestStubs.Member({
+      id: '123',
+      user: null,
+      inviteStatus: 'requested_to_be_invited',
+      inviter: TestStubs.User(),
+      role: 'member',
+      teams: [],
+    });
+    const joinRequest = TestStubs.Member({
+      id: '456',
+      user: null,
+      email: 'test@gmail.com',
+      inviteStatus: 'requested_to_join',
+      role: 'member',
+      teams: [],
+    });
+    it('disable buttons for no access', async function () {
+      const org = TestStubs.Organization({
+        status: {
+          id: 'active',
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-id/invite-requests/',
+        method: 'GET',
+        body: [inviteRequest],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        method: 'PUT',
+      });
+
+      const wrapper = mountWithTheme(
+        <OrganizationMembersList
+          {...defaultProps}
+          params={{orgId: 'org-id'}}
+          organization={org}
+        />,
+        TestStubs.routerContext([{organization: org}])
+      );
+
+      expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
+
+      expect(wrapper.find('PanelHeader').first().text().includes('Pending Members')).toBe(
+        true
+      );
+
+      expect(wrapper.find('button[aria-label="Approve"]').prop('aria-disabled')).toBe(
+        true
+      );
+    });
+
+    it('can approve invite request and update', async function () {
+      const org = TestStubs.Organization({
+        access: ['member:admin', 'org:admin', 'member:write'],
+        status: {
+          id: 'active',
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-id/invite-requests/',
+        method: 'GET',
+        body: [inviteRequest],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        method: 'PUT',
+      });
+
+      const wrapper = mountWithTheme(
+        <OrganizationMembersList
+          {...defaultProps}
+          params={{orgId: 'org-id'}}
+          organization={org}
+        />,
+        TestStubs.routerContext([{organization: org}])
+      );
+
+      expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
+
+      expect(wrapper.find('PanelHeader').first().text().includes('Pending Members')).toBe(
+        true
+      );
+
+      wrapper.find('button[aria-label="Approve"]').simulate('click');
+
+      const modal = await mountGlobalModal();
+      modal.find('button[aria-label="Confirm"]').simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
+
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+        'invite_request.approved',
+        {
+          invite_status: inviteRequest.inviteStatus,
+          member_id: parseInt(inviteRequest.id, 10),
+        },
+        org
+      );
+    });
+
+    it('can deny invite request and remove', async function () {
+      const org = TestStubs.Organization({
+        access: ['member:admin', 'org:admin', 'member:write'],
+        status: {
+          id: 'active',
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-id/invite-requests/',
+        method: 'GET',
+        body: [joinRequest],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-id/invite-requests/${joinRequest.id}/`,
+        method: 'DELETE',
+      });
+
+      const wrapper = mountWithTheme(
+        <OrganizationMembersList
+          {...defaultProps}
+          params={{orgId: 'org-id'}}
+          organization={org}
+        />,
+        TestStubs.routerContext([{organization: org}])
+      );
+
+      expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
+
+      expect(wrapper.find('PanelHeader').first().text().includes('Pending Members')).toBe(
+        true
+      );
+
+      wrapper.find('button[aria-label="Deny"]').simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
+
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+        'invite_request.denied',
+        {
+          invite_status: joinRequest.inviteStatus,
+          member_id: parseInt(joinRequest.id, 10),
+        },
+        org
+      );
+    });
+
+    it('can update invite requests', async function () {
+      const org = TestStubs.Organization({
+        access: ['member:admin', 'org:admin', 'member:write'],
+        status: {
+          id: 'active',
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-id/invite-requests/',
+        method: 'GET',
+        body: [inviteRequest],
+      });
+
+      const updateWithApprove = MockApiClient.addMockResponse({
+        url: `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        method: 'PUT',
+      });
+
+      const wrapper = mountWithTheme(
+        <OrganizationMembersList
+          {...defaultProps}
+          params={{orgId: 'org-id'}}
+          organization={org}
+        />,
+        TestStubs.routerContext([{organization: org}])
+      );
+
+      selectByValue(wrapper, 'admin', {name: 'role', control: true});
+
+      wrapper.find('button[aria-label="Approve"]').simulate('click');
+      const modal = await mountGlobalModal();
+      modal.find('button[aria-label="Confirm"]').simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(updateWithApprove).toHaveBeenCalledWith(
+        `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        expect.objectContaining({data: expect.objectContaining({role: 'admin'})})
+      );
+    });
   });
 });

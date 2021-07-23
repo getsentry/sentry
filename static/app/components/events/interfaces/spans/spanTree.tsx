@@ -6,11 +6,18 @@ import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
+import {assert} from 'app/types/utils';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import {EnhancedProcessedSpanType, FilterSpans, ParsedTraceType} from './types';
+import SpanGroupBar, {isCollapsedSpanGroup} from './spanGroupBar';
+import {
+  EnhancedProcessedSpanType,
+  EnhancedSpan,
+  FilterSpans,
+  ParsedTraceType,
+} from './types';
 import {getSpanID, getSpanOperation} from './utils';
 import WaterfallModel from './waterfallModel';
 
@@ -147,10 +154,11 @@ class SpanTree extends React.Component<PropType> {
       numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
       spanTree: React.ReactNode[];
+      spanNumber: number;
     };
 
     const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} = spans.reduce(
-      (acc: AccType, payload: EnhancedProcessedSpanType, index) => {
+      (acc: AccType, payload: EnhancedProcessedSpanType) => {
         const {type} = payload;
 
         switch (payload.type) {
@@ -182,8 +190,9 @@ class SpanTree extends React.Component<PropType> {
 
         const {span} = payload;
 
-        const key = getSpanID(span, `span-${index}`);
+        let spanNumber = acc.spanNumber;
 
+        const key = getSpanID(span, `span-${spanNumber}`);
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
         const spanBarColor: string = pickBarColor(getSpanOperation(span));
@@ -194,6 +203,36 @@ class SpanTree extends React.Component<PropType> {
 
         acc.numOfFilteredSpansAbove = 0;
         acc.numOfSpansOutOfViewAbove = 0;
+
+        const hasCollapsedSpanGroup: boolean =
+          (payload.type === 'span' || payload.type === 'root_span') &&
+          isCollapsedSpanGroup({
+            spanGrouping: payload.spanGrouping,
+            showSpanGroup: payload.showSpanGroup,
+            toggleSpanGroup: payload.toggleSpanGroup,
+          });
+
+        if (hasCollapsedSpanGroup) {
+          assert(payload.type === 'span' || payload.type === 'root_span');
+          // If the span has a collapsed span group, then we render it above the associated span.
+          // The associated span will be the last span of the span group.
+          acc.spanTree.push(
+            <SpanGroupBar
+              key={`${key}-span-group`}
+              event={waterfallModel.event}
+              span={span}
+              generateBounds={generateBounds}
+              treeDepth={treeDepth}
+              continuingTreeDepths={continuingTreeDepths}
+              spanNumber={spanNumber}
+              spanGrouping={payload.spanGrouping as EnhancedSpan[]}
+              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+            />
+          );
+
+          spanNumber = spanNumber + 1;
+        }
+
         acc.spanTree.push(
           <SpanBar
             key={key}
@@ -215,15 +254,18 @@ class SpanTree extends React.Component<PropType> {
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
+            hasCollapsedSpanGroup={hasCollapsedSpanGroup}
           />
         );
 
+        acc.spanNumber = spanNumber + 1;
         return acc;
       },
       {
         numOfSpansOutOfViewAbove: 0,
         numOfFilteredSpansAbove: 0,
         spanTree: [],
+        spanNumber: 1, // 1-based indexing
       }
     );
 

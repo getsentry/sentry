@@ -88,11 +88,7 @@ class DropdownControl extends React.Component<Props> {
 
     if (buttonTooltipTitle && !isOpen) {
       return (
-        <Tooltip
-          containerDisplayMode="inline-flex"
-          position="top"
-          title={buttonTooltipTitle}
-        >
+        <Tooltip skipWrapper position="top" title={buttonTooltipTitle}>
           <StyledDropdownButton
             priority={priority}
             {...getActorProps(buttonProps)}

@@ -94,9 +94,7 @@ def configure(ctx, py, yaml, skip_service_validation=False):
 
     from django.utils.deprecation import RemovedInDjango21Warning, RemovedInDjango30Warning
 
-    # While we're on Django 1.9, we only care about RemovedInDjango20Warning.
-    # TODO(joshuarli): Remove this after RemovedInDjango21Warnings are fixed in testing.
-    warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
 
     warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
 
