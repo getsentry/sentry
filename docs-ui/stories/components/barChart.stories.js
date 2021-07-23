@@ -1,5 +1,3 @@
-import React from 'react';
-
 import BarChart from 'app/components/charts/barChart';
 
 export default {

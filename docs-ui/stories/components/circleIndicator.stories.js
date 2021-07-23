@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import CircleIndicator from 'app/components/circleIndicator';
 
@@ -13,13 +13,13 @@ export default {
 
 export const Default = ({size, enabled}) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <CircleIndicator style={{marginRight: 12}} size={size} enabled={enabled} />
 
       <CircleIndicator style={{marginRight: 12}} size={size} enabled={!enabled} />
 
       <CircleIndicator size={size} enabled={enabled} color="purple300" />
-    </React.Fragment>
+    </Fragment>
   );
 };
 

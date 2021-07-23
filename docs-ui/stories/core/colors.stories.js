@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import theme, {aliases} from 'app/utils/theme';
@@ -38,7 +38,7 @@ export const Default = () => {
   });
 
   return (
-    <React.Fragment>
+    <Fragment>
       <h2>Aliases</h2>
 
       <p>
@@ -48,10 +48,10 @@ export const Default = () => {
 
       <Aliases>
         {Object.keys(aliases).map(alias => (
-          <React.Fragment key={alias}>
+          <Fragment key={alias}>
             <Swatch color={aliases[alias]}>{alias}</Swatch>
             <div>{DESCRIPTIONS[alias] || 'No description available'}</div>
-          </React.Fragment>
+          </Fragment>
         ))}
       </Aliases>
 
@@ -63,7 +63,7 @@ export const Default = () => {
           </Swatch>
         ))}
       </Swatches>
-    </React.Fragment>
+    </Fragment>
   );
 };
 Default.storyName = 'Color';

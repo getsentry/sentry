@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Hovercard from 'app/components/hovercard';
 
 export default {

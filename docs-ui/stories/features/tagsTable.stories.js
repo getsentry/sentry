@@ -1,5 +1,3 @@
-import React from 'react';
-
 import TagsTable from 'app/components/tagsTable';
 
 const event = {

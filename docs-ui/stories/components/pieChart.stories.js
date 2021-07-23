@@ -1,5 +1,3 @@
-import React from 'react';
-
 import PieChart from 'app/components/charts/pieChart';
 
 export default {

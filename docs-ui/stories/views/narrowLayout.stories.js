@@ -1,5 +1,3 @@
-import React from 'react';
-
 import NarrowLayout from 'app/components/narrowLayout';
 
 export default {

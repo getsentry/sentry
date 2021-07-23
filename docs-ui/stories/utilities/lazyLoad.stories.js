@@ -1,5 +1,3 @@
-import React from 'react';
-
 import LazyLoad from 'app/components/lazyLoad';
 
 export default {

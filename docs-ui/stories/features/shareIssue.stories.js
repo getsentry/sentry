@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {action} from '@storybook/addon-actions';
 
 import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
@@ -29,7 +29,7 @@ export default {
   },
 };
 
-class ShareSimulator extends React.Component {
+class ShareSimulator extends Component {
   state = {isShared: false, loading: false};
   toggleAction = action('Toggle');
 

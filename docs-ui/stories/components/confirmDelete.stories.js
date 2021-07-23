@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Button from 'app/components/button';
 import ConfirmDelete from 'app/components/confirmDelete';
 

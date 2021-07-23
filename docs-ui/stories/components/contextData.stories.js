@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ContextData from 'app/components/contextData';
 
 export default {

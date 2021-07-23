@@ -1,5 +1,3 @@
-import React from 'react';
-
 import SplitDiff from 'app/components/splitDiff';
 
 const base = `RangeError: Invalid array length

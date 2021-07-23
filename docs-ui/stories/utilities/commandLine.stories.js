@@ -1,5 +1,3 @@
-import React from 'react';
-
 import CommandLine from 'app/components/commandLine';
 
 export default {

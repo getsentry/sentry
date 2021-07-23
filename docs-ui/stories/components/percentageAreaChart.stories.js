@@ -1,5 +1,3 @@
-import React from 'react';
-
 import PercentageAreaChart from 'app/components/charts/percentageAreaChart';
 
 const TOTAL = 6;

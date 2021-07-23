@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Well from 'app/components/well';
 
 export default {

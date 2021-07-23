@@ -1,5 +1,3 @@
-import React from 'react';
-
 import RepoLabel from 'app/components/repoLabel';
 
 export default {

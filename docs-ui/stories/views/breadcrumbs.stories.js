@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Breadcrumbs from 'app/components/breadcrumbs';
 
 export default {

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import NewBooleanField from 'app/views/settings/components/forms/booleanField';
 import Form from 'app/views/settings/components/forms/form';
 import RadioField from 'app/views/settings/components/forms/radioField';

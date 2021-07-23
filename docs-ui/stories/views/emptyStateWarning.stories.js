@@ -1,5 +1,3 @@
-import React from 'react';
-
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 export default {

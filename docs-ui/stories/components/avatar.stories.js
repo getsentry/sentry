@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Avatar from 'app/components/avatar';
 
 const USER = {

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import DebugMeta from 'app/components/events/interfaces/debugMeta-v2';
 
 const event = {

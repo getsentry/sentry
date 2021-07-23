@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import echarts from 'echarts/lib/echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';

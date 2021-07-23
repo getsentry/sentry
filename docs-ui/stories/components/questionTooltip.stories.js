@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import QuestionTooltip from 'app/components/questionTooltip';
 import theme from 'app/utils/theme';
@@ -22,12 +22,12 @@ export default {
 
 export const _QuestionTooltip = ({...args}) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <h3>
         Some Jargon Term
         <QuestionTooltip {...args} />
       </h3>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

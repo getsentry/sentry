@@ -1,5 +1,3 @@
-import React from 'react';
-
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 

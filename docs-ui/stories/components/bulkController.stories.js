@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import BulkController from 'app/components/bulkController';
@@ -63,7 +63,7 @@ export const _BulkController = () => (
         {renderBulkNotice()}
 
         {dummy.map(d => (
-          <React.Fragment key={d.id}>
+          <Fragment key={d.id}>
             <div>
               <StyledCheckbox
                 checked={selectedIds.includes(d.id)}
@@ -72,7 +72,7 @@ export const _BulkController = () => (
             </div>
             <div>{d.id}</div>
             <div>{d.text}</div>
-          </React.Fragment>
+          </Fragment>
         ))}
       </PanelTable>
     )}

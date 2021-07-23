@@ -1,5 +1,3 @@
-import React from 'react';
-
 import SimpleTableChart from 'app/components/charts/simpleTableChart';
 
 export default {

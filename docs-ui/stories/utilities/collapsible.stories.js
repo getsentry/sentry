@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import {tn} from 'app/locale';

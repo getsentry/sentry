@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AreaChart from 'app/components/charts/areaChart';
 
 export default {

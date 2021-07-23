@@ -1,5 +1,3 @@
-import React from 'react';
-
 import SimilarSpectrum from 'app/components/similarSpectrum';
 
 export default {

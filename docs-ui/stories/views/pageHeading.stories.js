@@ -1,5 +1,3 @@
-import React from 'react';
-
 import PageHeading from 'app/components/pageHeading';
 
 export default {

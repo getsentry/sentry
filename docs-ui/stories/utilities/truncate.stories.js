@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Truncate from 'app/components/truncate';
@@ -9,7 +9,7 @@ export default {
 };
 
 export const TruncateAndExpandOnHover = () => (
-  <React.Fragment>
+  <Fragment>
     <Wrapper position="start">
       <Truncate value="https://sentry.io/organizations/sentry/issues/" maxLength={30} />
     </Wrapper>
@@ -21,13 +21,13 @@ export const TruncateAndExpandOnHover = () => (
         expandDirection="left"
       />
     </Wrapper>
-  </React.Fragment>
+  </Fragment>
 );
 
 TruncateAndExpandOnHover.storyName = 'Truncate and Expand on Hover';
 
 export const TruncateWithRegex = () => (
-  <React.Fragment>
+  <Fragment>
     <Wrapper position="start">
       <Truncate
         value="https://sentry.io/organizations/sentry/issues/"
@@ -44,7 +44,7 @@ export const TruncateWithRegex = () => (
         expandDirection="left"
       />
     </Wrapper>
-  </React.Fragment>
+  </Fragment>
 );
 
 TruncateWithRegex.storyName = 'Truncate with Regex';

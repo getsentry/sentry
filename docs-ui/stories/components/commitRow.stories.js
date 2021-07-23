@@ -1,5 +1,3 @@
-import React from 'react';
-
 import CommitRow from 'app/components/commitRow';
 
 export default {

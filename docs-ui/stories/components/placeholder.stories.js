@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Placeholder from 'app/components/placeholder';
 
 export default {

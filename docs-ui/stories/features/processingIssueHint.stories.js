@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 
@@ -25,7 +25,7 @@ export const Default = ({showProject}) => {
   const info = {...issue, numIssues: 0, issuesProcessing: 0};
 
   return (
-    <React.Fragment>
+    <Fragment>
       <ProcessingIssueHint
         issue={issue}
         projectId={issue.project}
@@ -46,7 +46,7 @@ export const Default = ({showProject}) => {
         orgId="organization-slug"
         showProject={showProject}
       />
-    </React.Fragment>
+    </Fragment>
   );
 };
 

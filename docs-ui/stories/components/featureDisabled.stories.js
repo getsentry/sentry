@@ -1,5 +1,3 @@
-import React from 'react';
-
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 
 export default {

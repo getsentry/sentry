@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 

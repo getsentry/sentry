@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
@@ -54,7 +54,7 @@ const DATA = [
   },
 ];
 
-class GridParent extends React.Component {
+class GridParent extends Component {
   static propTypes = {
     withHeader: PropTypes.bool,
     title: PropTypes.string,
@@ -98,12 +98,12 @@ export default {
 };
 
 export const Default = () => (
-  <React.Fragment>
+  <Fragment>
     <div className="section">
       <h2>Basic Table</h2>
       <GridParent />
     </div>
-  </React.Fragment>
+  </Fragment>
 );
 
 Default.storyName = 'default';

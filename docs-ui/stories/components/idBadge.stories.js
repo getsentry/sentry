@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import IdBadge from 'app/components/idBadge';
@@ -43,7 +43,7 @@ export const All = () => {
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header>User Badge</Header>
       <Item>
         <IdBadge user={user} />
@@ -64,7 +64,7 @@ export const All = () => {
       <Item>
         <IdBadge organization={organization} />
       </Item>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

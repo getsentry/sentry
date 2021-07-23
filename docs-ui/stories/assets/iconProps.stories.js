@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'app/icons';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import MutedBox from 'app/components/mutedBox';
 
 export default {

@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
@@ -174,14 +174,14 @@ Overview.parameters = {
 };
 
 export const _DropdownButton = () => (
-  <React.Fragment>
+  <Fragment>
     <Item>
       <DropdownButton isOpen={false}>Closed</DropdownButton>
     </Item>
     <Item>
       <DropdownButton isOpen>Open</DropdownButton>
     </Item>
-  </React.Fragment>
+  </Fragment>
 );
 _DropdownButton.storyName = 'Dropdown Button';
 _DropdownButton.parameters = {

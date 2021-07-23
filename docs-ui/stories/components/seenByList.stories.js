@@ -1,5 +1,3 @@
-import React from 'react';
-
 import SeenByList from 'app/components/seenByList';
 
 const USER = {

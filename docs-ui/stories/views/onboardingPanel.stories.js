@@ -1,5 +1,3 @@
-import React from 'react';
-
 import OnboardingPanel from 'app/components/onboardingPanel';
 import {IconFire} from 'app/icons';
 

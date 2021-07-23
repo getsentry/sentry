@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import Button from 'app/components/button';
 import {
@@ -65,7 +65,7 @@ PanelAlerts.parameters = {
 };
 
 export const _PanelTable = () => (
-  <React.Fragment>
+  <Fragment>
     <PanelTable
       // eslint-disable-next-line react/jsx-key
       headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>, '']}
@@ -110,7 +110,7 @@ export const _PanelTable = () => (
     </PanelTable>
 
     <_BulkController />
-  </React.Fragment>
+  </Fragment>
 );
 _PanelTable.parameters = {
   docs: {

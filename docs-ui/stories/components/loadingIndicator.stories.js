@@ -1,5 +1,3 @@
-import React from 'react';
-
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 export default {

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ClippedBox from 'app/components/clippedBox';
 
 export default {

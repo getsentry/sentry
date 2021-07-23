@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import GlobalModal from 'app/components/globalModal';

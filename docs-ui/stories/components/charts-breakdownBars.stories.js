@@ -1,5 +1,3 @@
-import React from 'react';
-
 import BreakdownBars from 'app/components/charts/breakdownBars';
 
 export default {

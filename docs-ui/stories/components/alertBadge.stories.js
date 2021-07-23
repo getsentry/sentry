@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AlertBadge from 'app/views/alerts/alertBadge';
 import {IncidentStatus} from 'app/views/alerts/types';
 

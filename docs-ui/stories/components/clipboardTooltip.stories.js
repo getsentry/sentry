@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ClipboardTooltip from 'app/components/clipboardTooltip';
 
 export default {

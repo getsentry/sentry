@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory, Route, Router} from 'react-router';
 import PropTypes from 'prop-types';
 
@@ -162,7 +162,7 @@ function loadGroups() {
   ]);
 }
 
-class LocationContext extends React.Component {
+class LocationContext extends Component {
   static childContextTypes = {
     location: PropTypes.object,
   };

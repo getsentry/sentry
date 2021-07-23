@@ -1,5 +1,3 @@
-import React from 'react';
-
 import SeenInfo from 'app/components/group/seenInfo';
 
 export default {
@@ -30,4 +28,4 @@ export const Default = ({title}) => {
   );
 };
 
-Deafult.storyName = 'Seen Info';
+Default.storyName = 'Seen Info';

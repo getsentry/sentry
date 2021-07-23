@@ -1,4 +1,3 @@
-import React from 'react';
 import {action} from '@storybook/addon-actions';
 
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';

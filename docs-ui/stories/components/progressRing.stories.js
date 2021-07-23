@@ -1,10 +1,10 @@
-import React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import ProgressRing from 'app/components/progressRing';
 
-class Ticker extends React.Component {
+class Ticker extends Component {
   state = {
     tickNumber: 0,
   };

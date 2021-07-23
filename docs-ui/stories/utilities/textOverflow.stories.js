@@ -1,5 +1,3 @@
-import React from 'react';
-
 import TextOverflow from 'app/components/textOverflow';
 
 export default {

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ActivityItem from 'app/components/activity/item';
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import ActivityBubble from 'app/components/activity/item/bubble';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import LineChart from 'app/components/charts/lineChart';
 
 export default {

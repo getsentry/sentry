@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';

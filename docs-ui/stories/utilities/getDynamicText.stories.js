@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -9,12 +9,12 @@ export default {
 
 export const Default = () => {
   return (
-    <React.Fragment>
+    <Fragment>
       {getDynamicText({
         fixed: 'Fixed Content',
         value: 'Pretend this is a dynamic value',
       })}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

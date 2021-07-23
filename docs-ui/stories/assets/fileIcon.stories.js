@@ -1,5 +1,3 @@
-import React from 'react';
-
 import FileIcon from 'app/components/fileIcon';
 
 export default {

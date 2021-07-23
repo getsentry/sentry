@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AutoComplete from 'app/components/autoComplete';
 
 const items = [

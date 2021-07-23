@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Clipboard from 'app/components/clipboard';
 import Tooltip from 'app/components/tooltip';
 

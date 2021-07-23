@@ -1,5 +1,3 @@
-import React from 'react';
-
 import LogoSentry from 'app/components/logoSentry';
 
 export default {

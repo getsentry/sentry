@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ScoreBar from 'app/components/scoreBar';
 
 export default {

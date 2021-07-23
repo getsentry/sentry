@@ -1,9 +1,9 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 
-class CustomThing extends React.Component {
+class CustomThing extends Component {
   render() {
     return <span>A class component with no ref</span>;
   }
@@ -16,7 +16,7 @@ export default {
 
 export const _Tooltip = ({...args}) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <h3>With styled component trigger</h3>
       <p>
         <Tooltip {...args}>
@@ -58,7 +58,7 @@ export const _Tooltip = ({...args}) => {
           <button>Native button</button>
         </Tooltip>
       </p>
-    </React.Fragment>
+    </Fragment>
   );
 };
 _Tooltip.args = {

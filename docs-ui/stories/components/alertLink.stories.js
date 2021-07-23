@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AlertLink from 'app/components/alertLink';
 import {IconDocs, IconGeneric, IconMail, IconStack, IconStar} from 'app/icons';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import Tag from 'app/components/tagDeprecated';
 import Tooltip from 'app/components/tooltip';
@@ -8,7 +8,7 @@ export default {
 };
 
 export const Overview = () => (
-  <React.Fragment>
+  <Fragment>
     <div>
       <Tag>default</Tag>
     </div>
@@ -39,7 +39,7 @@ export const Overview = () => (
     <div>
       <Tag priority="alpha">alpha</Tag>
     </div>
-  </React.Fragment>
+  </Fragment>
 );
 
 export const Default = () => <Tag>Development</Tag>;

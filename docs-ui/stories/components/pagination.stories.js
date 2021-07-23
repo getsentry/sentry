@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 
 import Pagination from 'app/components/pagination';
@@ -16,7 +16,7 @@ const withNext = `<https://sentry.io/api/0/organizations/sentry/issues/?cursor=1
 <https://sentry.io/api/0/organizations/sentry/issues/?cursor=1603719405000:0:0>; rel="next"; results="true"; cursor="1603719405000:0:0"
 `;
 
-class Container extends React.Component {
+class Container extends Component {
   static childContextTypes = {
     location: PropTypes.object,
   };

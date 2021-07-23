@@ -1,4 +1,3 @@
-import React from 'react';
 import {action} from '@storybook/addon-actions';
 
 import {Form as LegacyForm} from 'app/components/forms';

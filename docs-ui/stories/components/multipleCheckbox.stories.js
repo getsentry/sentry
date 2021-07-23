@@ -1,4 +1,3 @@
-import React from 'react';
 import {action} from '@storybook/addon-actions';
 
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';

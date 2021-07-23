@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
@@ -9,7 +9,7 @@ export default {
 };
 
 export const _List = () => (
-  <React.Fragment>
+  <Fragment>
     <div className="section">
       <h4>Without Symbol</h4>
       <List>
@@ -58,5 +58,5 @@ export const _List = () => (
         <ListItem>Item 3</ListItem>
       </List>
     </div>
-  </React.Fragment>
+  </Fragment>
 );

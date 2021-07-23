@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import theme from 'app/utils/theme';
@@ -66,7 +66,7 @@ export const _MiniBarChart = () => {
   ];
 
   return (
-    <React.Fragment>
+    <Fragment>
       <div className="section">
         <h2>Stacked MiniBarChart</h2>
 
@@ -154,7 +154,7 @@ export const _MiniBarChart = () => {
           ]}
         />
       </div>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

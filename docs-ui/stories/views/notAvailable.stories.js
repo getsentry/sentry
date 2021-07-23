@@ -1,5 +1,3 @@
-import React from 'react';
-
 import NotAvailable from 'app/components/notAvailable';
 import PanelTable from 'app/components/panels/panelTable';
 
