@@ -348,6 +348,26 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'release_stages',
+      requiredTargets: ['release_stages'],
+      steps: [
+        {
+          title: t('Adoption Filter'),
+          target: 'release_stages',
+          description: tct(
+            'Select an environment and search for `release.stage:adopted` to filter out releases with low adoption. [link:Learn more]',
+            {
+              br: <br />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
+              ),
+            }
+          ),
+          nextText: t('Got it'),
+        },
+      ],
+    },
   ];
 }
 

@@ -552,16 +552,18 @@ class ReleasesList extends AsyncView<Props, State> {
             <SortAndFilterWrapper>
               {hasSemver ? (
                 <GuideAnchor target="releases_search" position="bottom">
-                  <SmartSearchBar
-                    searchSource="releases"
-                    query={this.getQuery()}
-                    placeholder={t('Search by release version')}
-                    maxSearchItems={5}
-                    hasRecentSearches={false}
-                    supportedTags={supportedTags}
-                    onSearch={this.handleSearch}
-                    onGetTagValues={this.getTagValues}
-                  />
+                  <GuideAnchor target="release_stages" position="bottom">
+                    <SmartSearchBar
+                      searchSource="releases"
+                      query={this.getQuery()}
+                      placeholder={t('Search by release version')}
+                      maxSearchItems={5}
+                      hasRecentSearches={false}
+                      supportedTags={supportedTags}
+                      onSearch={this.handleSearch}
+                      onGetTagValues={this.getTagValues}
+                    />
+                  </GuideAnchor>
                 </GuideAnchor>
               ) : (
                 <SearchBar
