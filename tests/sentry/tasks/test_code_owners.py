@@ -5,7 +5,7 @@ from sentry.testutils import TestCase
 
 
 class CodeOwnersTest(TestCase):
-    def setup(self):
+    def setUp(self):
         self.login_as(user=self.user)
         self.integration = Integration.objects.create(
             provider="github", name="GitHub", external_id="github:1"
