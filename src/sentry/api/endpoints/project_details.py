@@ -420,6 +420,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.slug = result["slug"]
             changed = True
             changed_proj_settings["new_slug"] = project.slug
+            changed_proj_settings["old_slug"] = old_slug
 
         if result.get("name"):
             project.name = result["name"]
