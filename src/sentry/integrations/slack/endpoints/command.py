@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -38,7 +38,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
-    def get_identity(self, slack_request: SlackRequest) -> Any:
+    def get_identity(self, slack_request: SlackRequest) -> Optional[Identity]:
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
         except IdentityProvider.DoesNotExist:
