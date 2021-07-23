@@ -2187,7 +2187,8 @@ class QueryFields(QueryBase):
                 # The JSON version accepts an alias but since we can resolve
                 # aggregates easily here, we can actually accept the function
                 # call instead and eliminate the need add the aggregate to
-                # selected columns.
+                # selected columns. Requires some chages to event grammar
+                # to support filtering.
                 SnQLFunction(
                     "compare_numeric_aggregate",
                     required_args=[

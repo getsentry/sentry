@@ -614,23 +614,27 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.store_event(data, project_id=project.id)
 
         fields = [
-            (["transaction", "compare_numeric_aggregate(failure_count(),greater,1)"], ""),
-            (["transaction", "compare_numeric_aggregate(failure_count(),notEquals,1)"], ""),
             (
-                ["transaction", "compare_numeric_aggregate(failure_count(),notEquals,1)"],
-                "has:compare_numeric_aggregate(failure_count(),notEquals,1)",
+                [
+                    "transaction",
+                    "failure_count()",
+                    "compare_numeric_aggregate(failure_count(),greater,1)",
+                ],
+                "",
             ),
             (
-                ["transaction", "compare_numeric_aggregate(failure_count(),notEquals,1)"],
-                "compare_numeric_aggregate(failure_count(),notEquals,1):false",
+                [
+                    "transaction",
+                    "failure_count()",
+                    "compare_numeric_aggregate(failure_count(),notEquals,1)",
+                ],
+                "",
             ),
         ]
 
         expected_results = [
             ("compare_numeric_aggregate_failure_count___greater_1", [1, 0, 0, 0, 0]),
             ("compare_numeric_aggregate_failure_count___notEquals_1", [1, 0, 0, 1, 1]),
-            ("compare_numeric_aggregate_failure_count___notEquals_1", [1, 1, 1]),
-            ("compare_numeric_aggregate_failure_count___notEquals_1", [0, 0]),
         ]
 
         for i, test_case in enumerate(fields):
@@ -649,7 +653,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data = result["data"]
 
             alias, expected_values = expected_results[i]
-            assert len(data) == 5
+            assert len(data) == len(expected_values)
             assert [x[alias] for x in data] == expected_values
 
     def test_failure_count_function(self):
