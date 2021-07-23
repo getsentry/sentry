@@ -2,14 +2,12 @@ import itertools
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from time import time
 from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, router
-from django.db.models import Case, F, Func, OuterRef, Q, Subquery, Sum, Value, When
-from django.db.models.functions import Coalesce
+from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -131,20 +129,6 @@ class ReleaseQuerySet(models.QuerySet):
         return self.annotate(
             prerelease_case=Case(
                 When(prerelease="", then=1), default=0, output_field=models.IntegerField()
-            )
-        )
-
-    def annotate_adoption_date_column(self):
-        from sentry.models import ReleaseProjectEnvironment
-
-        return self.annotate(
-            adopted=Coalesce(
-                Subquery(
-                    ReleaseProjectEnvironment.objects.filter(release_id=OuterRef("pk"))
-                    .order_by("-adopted")
-                    .values("adopted")[:1]
-                ),
-                Value(datetime.min),
             )
         )
 
@@ -272,9 +256,6 @@ class ReleaseModelManager(models.Manager):
 
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
-
-    def annotate_adoption_date_column(self):
-        return self.get_queryset().annotate_adoption_date_column()
 
     def filter_to_semver(self):
         return self.get_queryset().filter_to_semver()
