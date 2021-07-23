@@ -568,9 +568,11 @@ def populate_org_members(org, team):
 
 def generate_incident_times(timestamps, time_interval, max_days):
 
+    # sort time stamps and set up deque
     timestamps.sort()
     time_event_pairs = deque()
 
+    # add timestamp to deque
     def add(timestamp):
         if len(time_event_pairs) and time_event_pairs[-1][0] == timestamp:
             time_event_pairs[-1][1] += 1
@@ -579,16 +581,19 @@ def generate_incident_times(timestamps, time_interval, max_days):
             if len(time_event_pairs) > time_interval:
                 time_event_pairs.popleft()
 
+    # count hits within last time_interval
     def count(timestamp):
         start_interval = timestamp - timedelta(minutes=time_interval)
         sum_window = sum(pair[1] for pair in time_event_pairs if pair[0] >= start_interval)
         return timestamp, sum_window
 
+    # for each timestamp, add it, then count at that timestamp
     counts = []
     for timestamp in timestamps:
         add(timestamp)
         counts.append(count(timestamp))
 
+    # find maximum number of events over intervals
     num_events = [count[1] for count in counts]
     critical = max(num_events + [0])
 
@@ -900,6 +905,7 @@ class DataPopulation:
                 value=IncidentStatus.CRITICAL.value,
             ).first()
             # change alert statue right after alert created, creation needs to happen first for the timeline
+            # randomness added so not the same duration
             change_time = random.randint(30, 60)
             changed.update(
                 date_added=start_time + timedelta(minutes=time_interval + 1, seconds=change_time)
@@ -910,7 +916,7 @@ class DataPopulation:
                 type=IncidentActivityType.STATUS_CHANGE.value,
                 value=IncidentStatus.CLOSED.value,
             ).first()
-            # end alert after the alert change
+            # end alert after the alert change so constant added to make sure the date added is later
             resolved.update(date_added=end_time + timedelta(minutes=3))
 
     def generate_issue_alert(self, project):
