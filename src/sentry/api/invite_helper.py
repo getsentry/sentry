@@ -171,7 +171,7 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user=None):
+    def accept_invite(self, user=None, sso_validated=False):
         om = self.om
 
         if user is None:
@@ -209,6 +209,8 @@ class ApiInviteHelper:
 
         self.handle_success()
         metrics.incr("organization.invite-accepted", sample_rate=1.0)
+
+        return om
 
     def _needs_2fa(self) -> bool:
         org_requires_2fa = self.om.organization.flags.require_2fa.is_set
