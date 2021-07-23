@@ -3,6 +3,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.http import QueryDict
+from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.entity import Entity
+from snuba_sdk.expressions import Granularity, Limit, Offset
+from snuba_sdk.function import Function
+from snuba_sdk.query import Query
 
 from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
@@ -13,7 +19,7 @@ from sentry.snuba.sessions_v2 import (
     massage_sessions_result,
 )
 from sentry.utils.outcomes import Outcome
-from sentry.utils.snuba import raw_query
+from sentry.utils.snuba import raw_query, raw_snql_query
 
 from .dataset import Dataset
 
@@ -44,7 +50,7 @@ by these fields
 """
 
 ResultSet = List[Dict[str, Any]]
-Condition = Tuple[str, str, List[Any]]
+Conditions = Tuple[str, str, List[Any]]
 
 
 class Field(ABC):
@@ -191,10 +197,9 @@ ONE_HOUR = 3600
 
 def get_filter(
     query: QueryDict, params: Mapping[Any, Any]
-) -> Tuple[List[Condition], Dict[str, Any]]:
+) -> Tuple[List[Conditions], Dict[str, Any]]:
     filter_keys = {}
-    conditions: List[Condition] = []
-
+    conditions: List[Conditions] = []
     for filter_name in DIMENSION_MAP:
         raw_filter = query.getlist(filter_name, [])
         resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
@@ -267,19 +272,32 @@ class QueryDefinition:
 
 
 def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
-    result = raw_query(
-        dataset=query.dataset,
-        start=query.start,
-        end=query.end,
-        groupby=query.query_groupby,
-        aggregations=query.aggregations,
-        rollup=query.rollup,
-        filter_keys=query.filter_keys,
-        conditions=query.conditions,
-        selected_columns=query.query_columns,
-        referrer="outcomes.totals",
-        limit=10000,
+    group_by = []
+    for key in query.query_groupby:
+        group_by.append(Column(key))
+
+    conditions = [
+        Condition(Column("timestamp"), Op.GTE, query.start),
+        Condition(Column("timestamp"), Op.LT, query.end),
+        Condition(Column("org_id"), Op.EQ, query.filter_keys["org_id"][0]),
+    ]
+    for condition in query.conditions:
+        conditions.append(Condition(Column(condition[0]), Op.IN, condition[2]))
+
+    snql_query = Query(
+        dataset=query.dataset.value,
+        match=Entity("outcomes"),
+        select=[
+            Column("outcome"),
+            Function("sum", [Column("quantity")], "quantity"),
+        ],
+        groupby=group_by,
+        where=conditions,
+        limit=Limit(10000),
+        offset=Offset(0),
+        granularity=Granularity(query.rollup),
     )
+    result = raw_snql_query(snql_query, referrer="outcomes.totals")
     return _format_rows(result["data"], query)
 
 
