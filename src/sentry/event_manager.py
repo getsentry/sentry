@@ -1633,7 +1633,9 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+    metric_tags = {"grouping_config": grouping_config["id"]}
+
+    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
             event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
@@ -1655,7 +1657,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
             ),
         )
 
-    with metrics.timer("event_manager.event.get_hashes"):
+    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
         # event.  If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
