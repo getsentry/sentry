@@ -61,6 +61,7 @@ jobs:
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
         with:
+          retention-days: 14
           name: jest-html
           path: .artifacts/visual-snapshots/jest
 
@@ -138,6 +139,7 @@ jobs:
       - name: Save frontend dist
         uses: actions/upload-artifact@v2
         with:
+          retention-days: 3
           name: frontend-dist
           path: dist.tar.gz
 
