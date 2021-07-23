@@ -30,9 +30,6 @@ filterwarnings = [
     # This is just to prevent pytest from exiting if pytest-xdist isn't installed.
     "ignore:Unknown config option.*looponfailroots:pytest.PytestConfigWarning",
 
-    # TODO(joshuarli): Enable this and address all after Django 2.0 lands.
-    "ignore::django.utils.deprecation.RemovedInDjango21Warning",
-
     "ignore::django.utils.deprecation.RemovedInDjango30Warning",
 
     # DeprecationWarnings from Python 3.6's sre_parse are just so painful,
