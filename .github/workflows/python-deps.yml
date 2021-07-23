@@ -1,0 +1,56 @@
+name: python deps
+on:
+  pull_request:
+    paths:
+    - '.github/workflows/python-deps.yml'
+    - 'requirements*'
+
+jobs:
+  # This workflow makes sure that Python dependencies install correctly for
+  # a) our current version b) the next version we're targetting
+  python-deps:
+    name: install
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        os: [ macos-11.0, ubuntu-20.04 ]
+        python-version: [ 3.6.13, 3.8.10 ]
+      fail-fast: false
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      # There's a check that prevents make install-py-dev to work if the developer has not
+      # explicitely set the intention to use a non-default Python version
+      SENTRY_PYTHON_VERSION: ${{ matrix.python-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install prerequisites
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip.outputs.pip-cache-dir }}
+          key: |
+            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+          restore-keys: |
+            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          make install-py-dev
