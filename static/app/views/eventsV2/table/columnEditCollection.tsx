@@ -140,7 +140,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const newColumns = [...this.props.columns];
     if (column.kind === 'equation') {
       this.setState(prevState => {
-        const error = prevState.error;
+        const error = new Map(prevState.error);
         error.set(index, parseArithmetic(column.field).error);
         return {
           ...prevState,
@@ -154,8 +154,12 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   removeColumn(index: number) {
     this.setState(prevState => {
-      prevState.error.delete(index);
-      return prevState;
+      const error = new Map(prevState.error);
+      error.delete(index);
+      return {
+        ...prevState,
+        error,
+      };
     });
     const newColumns = [...this.props.columns];
     newColumns.splice(index, 1);
@@ -278,7 +282,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.props.onChange(newColumns);
 
     this.setState(prevState => {
-      const error = prevState.error;
+      const error = new Map(prevState.error);
       const sourceError = error.get(sourceIndex);
       const newError = error.get(targetIndex);
       if (newError) {
