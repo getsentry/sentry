@@ -13,8 +13,8 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
     description = _(
         "An authenticator application that supports TOTP (like "
         "Google Authenticator or 1Password) can be used to "
-        "conveniently secure your account.  A new token is "
-        "generated every 30 seconds."
+        "access your account securely using a token and secret key. "
+        "A new token is generated every 30 seconds."
     )
     rotation_warning = _(
         "Your account is currently linked to an authenticator "

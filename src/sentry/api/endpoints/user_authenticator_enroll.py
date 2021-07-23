@@ -24,7 +24,7 @@ SEND_SMS_ERR = {"details": "Error sending SMS"}
 
 class TotpRestSerializer(serializers.Serializer):
     otp = serializers.CharField(
-        label="Authenticator code",
+        label="Authenticator token",
         help_text="Code from authenticator",
         required=True,
         max_length=20,
