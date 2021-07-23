@@ -2,8 +2,10 @@ import logging
 
 from django.db import models
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, JSONField, sane_repr
+from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -55,13 +57,13 @@ class ProjectCodeOwners(DefaultFieldsModel):
         return codeowners or None
 
     @classmethod
-    def validate_codeowners_associations(self, attrs, project):
+    def validate_codeowners_associations(self, codeowners, project):
         from sentry.api.endpoints.project_codeowners import validate_association
         from sentry.models import ExternalActor, UserEmail, actor_type_to_string
         from sentry.ownership.grammar import parse_code_owners
 
         # Get list of team/user names from CODEOWNERS file
-        team_names, usernames, emails = parse_code_owners(attrs["raw"])
+        team_names, usernames, emails = parse_code_owners(codeowners)
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
         user_emails = UserEmail.objects.filter(
@@ -105,3 +107,30 @@ class ProjectCodeOwners(DefaultFieldsModel):
             "teams_without_access": teams_without_access,
         }
         return associations, errors
+
+    def update_schema(self):
+        """
+        Updating the schema goes through the following steps:
+        1. parsing the original codeowner file to get the associations
+        2. convert the codeowner file to the ownership syntax
+        3. convert the ownership syntax to the schema
+        """
+        associations, _ = self.validate_codeowners_associations(self.raw, self.project)
+
+        issue_owner_rules = convert_codeowners_syntax(
+            codeowners=self.raw,
+            associations=associations,
+            code_mapping=self.repository_project_path_config,
+        )
+
+        # Convert IssueOwner syntax into schema syntax
+        try:
+            schema = create_schema_from_issue_owners(
+                issue_owners=issue_owner_rules, project_id=self.project.id
+            )
+            # Convert IssueOwner syntax into schema syntax
+            if schema:
+                self.schema = schema
+                self.save()
+        except ValidationError:
+            return

@@ -1,14 +1,10 @@
-import operator
-from functools import reduce
-
 from django.db import models
-from django.db.models import Q
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.ownership.grammar import load_schema
+from sentry.ownership.grammar import load_schema, resolve_actors
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -192,58 +188,6 @@ class ProjectOwnership(Model):
                     rules.append(rule)
 
         return rules
-
-
-def resolve_actors(owners, project_id):
-    """Convert a list of Owner objects into a dictionary
-    of {Owner: Actor} pairs. Actors not identified are returned
-    as None."""
-    from sentry.models import ActorTuple, Team, User
-
-    if not owners:
-        return {}
-
-    users, teams = [], []
-    owners_lookup = {}
-
-    for owner in owners:
-        # teams aren't technical case insensitive, but teams also
-        # aren't allowed to have non-lowercase in slugs, so
-        # this kinda works itself out correctly since they won't match
-        owners_lookup[(owner.type, owner.identifier.lower())] = owner
-        if owner.type == "user":
-            users.append(owner)
-        elif owner.type == "team":
-            teams.append(owner)
-
-    actors = {}
-    if users:
-        actors.update(
-            {
-                ("user", email.lower()): ActorTuple(u_id, User)
-                for u_id, email in User.objects.filter(
-                    reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
-                    # We don't require verified emails
-                    # emails__is_verified=True,
-                    is_active=True,
-                    sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
-                )
-                .distinct()
-                .values_list("id", "emails__email")
-            }
-        )
-
-    if teams:
-        actors.update(
-            {
-                ("team", slug): ActorTuple(t_id, Team)
-                for t_id, slug in Team.objects.filter(
-                    slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
-                ).values_list("id", "slug")
-            }
-        )
-
-    return {o: actors.get((o.type, o.identifier.lower())) for o in owners}
 
 
 # Signals update the cached reads used in post_processing

@@ -2,13 +2,13 @@ import logging
 from typing import Any, Mapping, MutableMapping, Sequence, Union
 
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin, ProjectOwnershipSerializer
+from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -19,7 +19,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     UserEmail,
 )
-from sentry.ownership.grammar import convert_codeowners_syntax
+from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
         # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.
         associations, _ = ProjectCodeOwners.validate_codeowners_associations(
-            attrs, self.context["project"]
+            attrs["raw"], self.context["project"]
         )
 
         issue_owner_rules = convert_codeowners_syntax(
@@ -72,11 +72,16 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         )
 
         # Convert IssueOwner syntax into schema syntax
-        validated_data = ProjectOwnershipSerializer(context=self.context).validate(
-            {"raw": issue_owner_rules}
-        )
-
-        return {**validated_data, **attrs}
+        try:
+            validated_data = create_schema_from_issue_owners(
+                issue_owners=issue_owner_rules, project_id=self.context["project"].id
+            )
+            return {
+                **attrs,
+                "schema": validated_data,
+            }
+        except ValidationError as e:
+            raise serializers.ValidationError(e)
 
     def validate_code_mapping_id(self, code_mapping_id: int) -> RepositoryProjectPathConfig:
         if ProjectCodeOwners.objects.filter(

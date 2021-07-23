@@ -15,6 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -84,6 +85,22 @@ class TeamManager(BaseManager):
                 results[idx] = (team, team_projects)
 
         return results
+
+    def post_save(self, instance, **kwargs):
+        update_code_owners_schema.apply_async(
+            kwargs={
+                "organization": instance.organization,
+                "projects": instance.get_projects(),
+            }
+        ),
+
+    def post_delete(self, instance, **kwargs):
+        update_code_owners_schema.apply_async(
+            kwargs={
+                "organization": instance.organization,
+                "projects": instance.get_projects(),
+            }
+        ),
 
 
 # TODO(dcramer): pull in enum library
@@ -250,3 +267,10 @@ class Team(Model):
         from sentry.models import Project
 
         return Project.objects.get_for_team_ids({self.id})
+
+    def delete(self, **kwargs):
+        from sentry.models import ExternalActor
+
+        # There is no foreign key relationship so we have to manually delete the ExternalActors
+        ExternalActor.objects.filter(actor_id=self.actor_id).delete()
+        return super().delete(**kwargs)
