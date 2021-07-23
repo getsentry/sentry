@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
@@ -320,13 +320,16 @@ function AppStoreConnect({
       if (shouldGoNext) {
         setIsLoading(false);
         goNext();
+        return;
       }
+
+      addSuccessMessage(t('An iTunes verification code has been sent'));
     } catch {
       if (shouldGoNext) {
         setIsLoading(false);
       }
       addErrorMessage(
-        t('The iTunes authentication failed. Please check the entered credentials.')
+        t('The iTunes authentication failed. Please check the provided credentials')
       );
     }
   }
@@ -346,6 +349,7 @@ function AppStoreConnect({
       );
 
       setSessionContext(response.sessionContext);
+      addSuccessMessage(t("We've sent a SMS code to your phone"));
     } catch {
       addErrorMessage(t('An error occured while sending the SMS. Please try again'));
     }

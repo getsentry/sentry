@@ -19,6 +19,7 @@ type State = {
 type LatestContextStoreInterface = {
   state: State;
   reset: () => void;
+  get: () => State;
   onSetLastRoute: (route: string) => void;
   onUpdateOrganization: (organization: OrgTypes) => void;
   onSetActiveOrganization: (organization: OrgTypes) => void;
@@ -41,7 +42,7 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
     lastRoute: null,
   },
 
-  getInitialState() {
+  get() {
     return this.state;
   },
 

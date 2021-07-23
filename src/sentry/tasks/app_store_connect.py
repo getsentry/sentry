@@ -175,6 +175,11 @@ def inner_refresh_all_builds() -> None:
                         logger.exception("Malformed symbol source")
                         continue
                     if source_type == appconnect.SYMBOL_SOURCE_TYPE_NAME:
-                        inner_dsym_download(option.project_id, source_id)
+                        dsym_download.apply_async(
+                            kwargs={
+                                "project_id": option.project_id,
+                                "config_id": source_id,
+                            }
+                        )
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")
