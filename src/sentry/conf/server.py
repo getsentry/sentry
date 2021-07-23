@@ -1111,6 +1111,9 @@ SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
+# sample rate for Apple App Store Connect tasks transactions
+SENTRY_APPCONNECT_APM_SAMPLING = 1
+
 # ----
 # end APM config
 # ----
