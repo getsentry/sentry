@@ -97,6 +97,17 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTraceNotFound() {
+    const {meta} = this.props;
+
+    const transactions = meta?.transactions ?? 0;
+    const errors = meta?.errors ?? 0;
+
+    if (transactions === 0 && errors > 0) {
+      return (
+        <LoadingError message={t('The trace you are looking contains only errors.')} />
+      );
+    }
+
     return <LoadingError message={t('The trace you are looking for was not found.')} />;
   }
 
