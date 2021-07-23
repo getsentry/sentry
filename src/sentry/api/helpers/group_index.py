@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import timedelta
 from uuid import uuid4
 
+import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -93,6 +94,14 @@ def build_query_params_from_request(request, organization, projects, environment
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
     query = request.GET.get("query", "is:unresolved").strip()
+    sentry_sdk.set_tag("search.query", query)
+    sentry_sdk.set_tag("search.sort", query)
+    if projects:
+        sentry_sdk.set_tag("search.projects", len(projects) if len(projects) <= 5 else ">5")
+    if environments:
+        sentry_sdk.set_tag(
+            "search.environments", len(environments) if len(environments) <= 5 else ">5"
+        )
     if query:
         try:
             search_filters = convert_query_values(
