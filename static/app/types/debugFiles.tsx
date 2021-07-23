@@ -51,10 +51,10 @@ export type AppStoreConnectValidationData = {
    * be found.
    */
   latestBuildVersion: string | null;
-  updateAlertMessage?: string;
   /**
    * Whether the UI should show an alert indicating we need the user to refresh their iTunes
    * session.
    */
   promptItunesSession: boolean;
+  updateAlertMessage?: string;
 };
