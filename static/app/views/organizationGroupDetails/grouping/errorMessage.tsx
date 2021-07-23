@@ -77,7 +77,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
           action: (
             <Button
               priority="primary"
-              to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/`}
+              to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
             >
               {t('Upgrade Grouping Strategy')}
             </Button>
