@@ -27,6 +27,13 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
+    def is_bot(self, data: Mapping[str, Any]) -> bool:
+        """
+        If it's a message posted by our bot, we don't want to respond since that
+        will cause an infinite loop of messages.
+        """
+        return bool(data.get("bot_id"))
+
     def get_command_and_args(self, slack_request: SlackRequest) -> Tuple[str, Sequence[str]]:
         data = slack_request.data.get("event")
         command = data["text"].lower().split()
@@ -66,9 +73,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
     ) -> Response:
         channel = data["channel"]
-        # if it's a message posted by our bot, we don't want to respond since
-        # that will cause an infinite loop of messages
-        if data.get("bot_id"):
+        if self.is_bot(data):
             return self.respond()
         access_token = self._get_access_token(integration)
         headers = {"Authorization": "Bearer %s" % access_token}
@@ -166,7 +171,10 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
 
         if slack_request.type == "message":
             data = slack_request.data.get("event")
-            command = data["text"]
+            if self.is_bot(data):
+                return self.respond()
+
+            command = data.get("text")
             if command in COMMANDS:
                 resp = super().post_dispatcher(slack_request)
 
