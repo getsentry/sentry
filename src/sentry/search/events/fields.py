@@ -2715,7 +2715,7 @@ class QueryFields(QueryBase):
         return Function(
             "uniqIf",
             [
-                self.resolve_field(col) if self.is_field_alias(col) else self.column(col),
+                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
                 Function("greater", [lhs, rhs]),
             ],
             alias,
