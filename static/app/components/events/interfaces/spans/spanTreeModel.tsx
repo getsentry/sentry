@@ -219,26 +219,29 @@ class SpanTreeModel {
       (spanGrouping === undefined ||
         (Array.isArray(spanGrouping) && spanGrouping.length === 0));
 
-    // For a collapsed span group chain to be useful, we prefer span groupings
-    // that are two or more spans.
-    // Since there is no concept of "backtracking" when constructing the span tree,
-    // we will need to reconstruct the tree depth information. This is only neccessary
-    // when the span group chain is hidden/collapsed.
     if (
       isLastSpanOfGroup &&
       Array.isArray(spanGrouping) &&
-      spanGrouping.length === 1 &&
+      spanGrouping.length >= 1 &&
       !showSpanGroup
     ) {
-      const treeDepthEntryFoo = isOrphanSpan(spanGrouping[0].span)
-        ? ({type: 'orphan', depth: spanGrouping[0].treeDepth} as OrphanTreeDepth)
-        : spanGrouping[0].treeDepth;
-
-      if (!spanGrouping[0].isLastSibling) {
-        continuingTreeDepths = [...continuingTreeDepths, treeDepthEntryFoo];
-      }
-
+      // We always want to indent the last span of the span group chain
       treeDepth = treeDepth + 1;
+
+      // For a collapsed span group chain to be useful, we prefer span groupings
+      // that are two or more spans.
+      // Since there is no concept of "backtracking" when constructing the span tree,
+      // we will need to reconstruct the tree depth information. This is only neccessary
+      // when the span group chain is hidden/collapsed.
+      if (spanGrouping.length === 1) {
+        const treeDepthEntryFoo = isOrphanSpan(spanGrouping[0].span)
+          ? ({type: 'orphan', depth: spanGrouping[0].treeDepth} as OrphanTreeDepth)
+          : spanGrouping[0].treeDepth;
+
+        if (!spanGrouping[0].isLastSibling) {
+          continuingTreeDepths = [...continuingTreeDepths, treeDepthEntryFoo];
+        }
+      }
     }
 
     // Criteria for propagating information about the span group to the last span of the span group chain
@@ -255,16 +258,12 @@ class SpanTreeModel {
       fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
       showEmbeddedChildren: this.showEmbeddedChildren,
       toggleEmbeddedChildren: this.toggleEmbeddedChildren,
-      spanGrouping: spanGroupingCriteria ? spanGrouping : undefined,
       toggleSpanGroup:
-        spanGroupingCriteria && toggleSpanGroup
+        spanGroupingCriteria && toggleSpanGroup && !showSpanGroup
           ? toggleSpanGroup
           : isFirstSpanOfGroup && this.showSpanGroup && !hideSpanTree
           ? this.toggleSpanGroup
           : undefined,
-      showSpanGroup:
-        (spanGroupingCriteria && toggleSpanGroup === undefined && this.showSpanGroup) ||
-        (spanGroupingCriteria && toggleSpanGroup !== undefined && showSpanGroup),
     };
 
     const treeDepthEntry = isOrphanSpan(this.span)
@@ -368,10 +367,37 @@ class SpanTreeModel {
     }
 
     if (
+      isLastSpanOfGroup &&
+      Array.isArray(spanGrouping) &&
+      spanGrouping.length > 1 &&
+      !showSpanGroup &&
+      wrappedSpan.type === 'span'
+    ) {
+      const spanGroupChain: EnhancedProcessedSpanType = {
+        type: 'span_group_chain',
+        span: this.span,
+        treeDepth: treeDepth - 1,
+        continuingTreeDepths,
+        spanGrouping: spanGroupingCriteria ? spanGrouping : undefined,
+        showSpanGroup:
+          (spanGroupingCriteria && toggleSpanGroup === undefined && this.showSpanGroup) ||
+          (spanGroupingCriteria && toggleSpanGroup !== undefined && showSpanGroup),
+        toggleSpanGroup: wrappedSpan.toggleSpanGroup,
+      };
+
+      return [
+        spanGroupChain,
+        {...wrappedSpan, toggleSpanGroup: undefined},
+        ...descendants,
+      ];
+    }
+
+    if (
       isFirstSpanOfGroup &&
       this.showSpanGroup &&
       !hideSpanTree &&
-      descendants.length <= 1
+      descendants.length <= 1 &&
+      wrappedSpan.type === 'span'
     ) {
       // If we know the descendants will be one span or less, we remove the "regroup" feature (therefore hide it)
       // by setting toggleSpanGroup to be undefined for the first span of the group chain.
