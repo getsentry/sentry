@@ -44,7 +44,7 @@ class CodeOwnersTest(TestCase):
             "$version": 1,
             "rules": [
                 {
-                    "matcher": {"type": "path", "pattern": "docs/*"},
+                    "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
                         {"type": "team", "identifier": "tiger-team"},
                     ],

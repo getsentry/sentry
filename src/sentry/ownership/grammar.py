@@ -410,7 +410,15 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
             result += f"{rule}\n"
             continue
 
-        path, *code_owners = rule.split()
+        path, *code_owners = (x.strip() for x in rule.split())
+        # Escape invalid paths https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners#syntax-exceptions
+        # Check if path has whitespace
+        # Check if path has '#' not as first character
+        # Check if path contains '!'
+        # Check if path has a '[' followed by a ']'
+        if re.search(r"(\[([^]^\s]*)\])|[\s!#]", path):
+            continue
+
         sentry_assignees = []
 
         for owner in code_owners:
@@ -427,8 +435,20 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
                 continue
 
         if sentry_assignees:
-            formatted_path = path.replace(code_mapping.source_root, code_mapping.stack_root, 1)
-            result += f'path:{formatted_path} {" ".join(sentry_assignees)}\n'
+            # Replace source_root with stack_root for anchored paths
+            # /foo/dir -> anchored
+            # foo/dir -> anchored
+            # foo/dir/ -> anchored
+            # foo/ -> not anchored
+            if re.search(r"[\/].{1}", path):
+                path_with_stack_root = path.replace(
+                    code_mapping.source_root, code_mapping.stack_root, 1
+                )
+                # flatten multiple '/' if not protocol
+                formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
+                result += f'codeowners:{formatted_path} {" ".join(sentry_assignees)}\n'
+            else:
+                result += f'codeowners:{path} {" ".join(sentry_assignees)}\n'
 
     return result
 

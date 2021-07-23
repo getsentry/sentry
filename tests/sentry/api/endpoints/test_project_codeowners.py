@@ -119,7 +119,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
         assert response.data["codeMappingId"] == str(self.code_mapping.id)
         assert response.data["provider"] == "github"
-        assert response.data["ownershipSyntax"] == "path:docs/* admin@sentry.io #tiger-team\n"
+        assert response.data["ownershipSyntax"] == "codeowners:docs/* admin@sentry.io #tiger-team\n"
 
         errors = response.data["errors"]
         assert errors["missing_external_teams"] == []
@@ -246,7 +246,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "$version": 1,
             "rules": [
                 {
-                    "matcher": {"pattern": "docs/*", "type": "path"},
+                    "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
                         {"identifier": self.user.email, "type": "user"},
                         {"identifier": self.team.slug, "type": "team"},
@@ -266,7 +266,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "$version": 1,
             "rules": [
                 {
-                    "matcher": {"pattern": "docs/*", "type": "path"},
+                    "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
                         {"identifier": self.user.email, "type": "user"},
                         {"identifier": self.team.slug, "type": "team"},
@@ -286,7 +286,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "$version": 1,
             "rules": [
                 {
-                    "matcher": {"pattern": "docs/*", "type": "path"},
+                    "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
                         {"identifier": self.user.email, "type": "user"},
                         {"identifier": self.team.slug, "type": "team"},
@@ -308,7 +308,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   user2@sentry.io"
         assert response.data["codeMappingId"] == str(self.code_mapping.id)
         assert response.data["provider"] == "github"
-        assert response.data["ownershipSyntax"] == "path:docs/* admin@sentry.io\n"
+        assert response.data["ownershipSyntax"] == "codeowners:docs/* admin@sentry.io\n"
 
         errors = response.data["errors"]
         assert errors["missing_external_teams"] == []
