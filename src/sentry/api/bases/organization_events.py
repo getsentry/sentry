@@ -386,7 +386,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
 
-        if zerofill_results and hasattr(event_result, "start") and hasattr(event_result, "end"):
+        if hasattr(event_result, "start") and hasattr(event_result, "end"):
             for value in result.values():
                 value["start"] = event_result.start
                 value["end"] = event_result.end
