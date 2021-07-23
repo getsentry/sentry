@@ -20,17 +20,19 @@ const config: TransformOptions = {
     ],
     '@babel/preset-typescript',
   ],
-  overrides: [{
-    test: ['./docs-ui'],
-    presets: [
-      [
-        '@babel/preset-react',
-        {
-          runtime: 'automatic'
-        },
-      ]
-    ]
-  }],
+  overrides: [
+    {
+      test: ['./docs-ui'],
+      presets: [
+        [
+          '@babel/preset-react',
+          {
+            runtime: 'automatic',
+          },
+        ],
+      ],
+    },
+  ],
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
