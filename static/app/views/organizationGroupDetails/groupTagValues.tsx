@@ -2,22 +2,26 @@ import {Fragment} from 'react';
 import {Link, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import DeviceName from 'app/components/deviceName';
+import DiscoverButton from 'app/components/discoverButton';
+import DropdownLink from 'app/components/dropdownLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import UserBadge from 'app/components/idBadge/userBadge';
 import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
-import {IconArrow, IconMail, IconOpen} from 'app/icons';
+import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Environment, Group, Tag, TagValue} from 'app/types';
+import {Environment, Group, Project, SavedQueryVersions, Tag, TagValue} from 'app/types';
 import {isUrl, percent} from 'app/utils';
+import EventView from 'app/utils/discover/eventView';
 
 type RouteParams = {
   groupId: string;
@@ -26,6 +30,7 @@ type RouteParams = {
 };
 
 type Props = {
+  project?: Project;
   group: Group;
   environments: Environment[];
 } & RouteComponentProps<RouteParams, {}>;
@@ -64,31 +69,18 @@ class GroupTagValues extends AsyncComponent<
   }
 
   renderTagName(tagValue: TagValue) {
-    const {tag} = this.state;
-    const {
-      params: {orgId},
-    } = this.props;
-    const issuesPath = `/organizations/${orgId}/issues/`;
-    const query = tagValue.query || `${tag?.key}:"${tagValue.value}"`;
-
     return (
       <Fragment>
-        <GlobalSelectionLink
-          to={{
-            pathname: issuesPath,
-            query: {query},
-          }}
-        >
-          {tag?.key === 'user' ? (
-            <UserBadge
-              user={{...tagValue, id: tagValue.identifier ?? ''}}
-              avatarSize={20}
-              hideEmail
-            />
-          ) : (
-            <DeviceName value={tagValue.name} />
-          )}
-        </GlobalSelectionLink>
+        {tagValue.key === 'user' ? (
+          <UserBadge
+            user={{...tagValue, id: tagValue.identifier ?? ''}}
+            avatarSize={20}
+            hideEmail
+          />
+        ) : (
+          <DeviceName value={tagValue.name} />
+        )}
+
         {tagValue.email && (
           <StyledExternalLink href={`mailto:${tagValue.email}`}>
             <IconMail size="xs" color="gray300" />
@@ -104,11 +96,38 @@ class GroupTagValues extends AsyncComponent<
   }
 
   renderResults() {
+    const {
+      project,
+      params: {orgId, groupId},
+    } = this.props;
     const {tagValueList, tag} = this.state;
+
     return tagValueList?.map((tagValue, tagValueIdx) => {
       const pct = tag?.totalValues
         ? `${percent(tagValue.count, tag?.totalValues).toFixed(2)}%`
         : '--';
+      const discoverQuery = {
+        id: undefined,
+        name: tagValue.key,
+        fields: [
+          tagValue.key,
+          'title',
+          'release',
+          'environment',
+          'user.display',
+          'timestamp',
+        ],
+        orderby: '-timestamp',
+        query: `issue.id:${groupId} ${tagValue.key}:${tagValue.name}`,
+        projects: [Number(project?.id)],
+        version: 2 as SavedQueryVersions,
+        range: '90d',
+      };
+
+      const discoverView = EventView.fromSavedQuery(discoverQuery);
+      const issuesPath = `/organizations/${orgId}/issues/`;
+      const issuesQuery = tagValue.query || `${tag?.key}:"${tagValue.value}"`;
+
       return (
         <Fragment key={tagValueIdx}>
           <Column>{this.renderTagName(tagValue)}</Column>
@@ -116,6 +135,38 @@ class GroupTagValues extends AsyncComponent<
           <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
           <RightAlignColumn>
             <TimeSince date={tagValue.lastSeen} />
+          </RightAlignColumn>
+          <RightAlignColumn>
+            <DropdownLink
+              anchorRight
+              caret={false}
+              title={
+                <Button
+                  tooltipProps={{
+                    containerDisplayMode: 'flex',
+                  }}
+                  size="small"
+                  type="button"
+                  aria-label={t('Show more')}
+                  icon={<IconEllipsis size="xs" />}
+                />
+              }
+            >
+              <Feature features={['organizations:discover-basic']}>
+                <li>
+                  <Link to={discoverView.getResultsViewUrlTarget(orgId)}>
+                    {t('Open in Discover')}
+                  </Link>
+                </li>
+              </Feature>
+              <li>
+                <GlobalSelectionLink
+                  to={{pathname: issuesPath, query: {query: issuesQuery}}}
+                >
+                  {t('Search All Issues with Tag Value')}
+                </GlobalSelectionLink>
+              </li>
+            </DropdownLink>
           </RightAlignColumn>
         </Fragment>
       );
@@ -125,7 +176,8 @@ class GroupTagValues extends AsyncComponent<
   renderBody() {
     const {
       group,
-      params: {orgId, tagKey},
+      project,
+      params: {orgId, tagKey, groupId},
       location: {query},
       environments,
     } = this.props;
@@ -133,6 +185,18 @@ class GroupTagValues extends AsyncComponent<
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
     const title = tagKey === 'user' ? t('Affected Users') : tagKey;
+    const discoverQuery = {
+      id: undefined,
+      name: tagKey,
+      fields: [tagKey, 'title', 'release', 'environment', 'user.display', 'timestamp'],
+      orderby: '-timestamp',
+      query: `issue.id:${groupId} has:${tagKey}`,
+      projects: [Number(project?.id)],
+      version: 2 as SavedQueryVersions,
+      range: '90d',
+    };
+
+    const discoverView = EventView.fromSavedQuery(discoverQuery);
 
     const sort = this.getSort();
     const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
@@ -168,6 +232,9 @@ class GroupTagValues extends AsyncComponent<
         <TitleWrapper>
           <Title>{t('Tag Details')}</Title>
           <ButtonBar gap={1}>
+            <DiscoverButton size="small" to={discoverView.getResultsViewUrlTarget(orgId)}>
+              {t('Open in Discover')}
+            </DiscoverButton>
             <Button
               size="small"
               priority="default"
@@ -195,6 +262,7 @@ class GroupTagValues extends AsyncComponent<
             <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
             countColumnHeader,
             lastSeenColumnHeader,
+            '',
           ]}
           emptyMessage={t('Sorry, the tags for this issue could not be found.')}
           emptyAction={
@@ -228,6 +296,10 @@ const Title = styled('h3')`
 const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
+
+  & > * {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const PercentColumnHeader = styled('div')`
