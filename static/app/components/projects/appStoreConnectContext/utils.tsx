@@ -18,7 +18,7 @@ export const appStoreConnectAlertMessage = {
 export function getAppConnectStoreUpdateAlertMessage(
   appConnectValidationData: AppStoreConnectValidationData
 ) {
-  if (appConnectValidationData.promptItunesSession === true) {
+  if (appConnectValidationData.promptItunesSession) {
     return appStoreConnectAlertMessage.iTunesSessionInvalid;
   }
   if (appConnectValidationData.appstoreCredentialsValid === false) {
