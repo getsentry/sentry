@@ -14,7 +14,7 @@ import {IconAdd} from 'app/icons/iconAdd';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import EventView, {isFieldSortable} from 'app/utils/discover/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {fieldAlignment} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import {
@@ -28,6 +28,8 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {PerformanceDuration} from '../../utils';
 import {TagValue} from '../tagExplorer';
+
+import {trackTagPageInteraction} from './utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -142,7 +144,6 @@ export class TagValueTable extends Component<Props, State> {
       };
     }
     const currentSort = sortedEventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
 
@@ -151,7 +152,7 @@ export class TagValueTable extends Component<Props, State> {
         align={align}
         title={columnInfo.name}
         direction={currentSortKind}
-        canSort={canSort}
+        canSort={false}
         generateSortLink={generateSortLink}
         onClick={() => {}} // TODO(k-fish): Implement sorting
       />
@@ -189,7 +190,8 @@ export class TagValueTable extends Component<Props, State> {
     actionRow: any
   ) => {
     return (action: Actions) => {
-      const {eventView, location} = this.props;
+      const {eventView, location, organization} = this.props;
+      trackTagPageInteraction(organization);
 
       const searchConditions = tokenizeSearch(eventView.query);
 
@@ -214,7 +216,7 @@ export class TagValueTable extends Component<Props, State> {
     dataRow: TableDataRow
   ): React.ReactNode => {
     const value = dataRow[column.key];
-    const {location, eventView} = parentProps;
+    const {location, eventView, organization} = parentProps;
 
     if (column.key === 'key') {
       return dataRow.tags_key;
@@ -247,9 +249,10 @@ export class TagValueTable extends Component<Props, State> {
         <Link
           disabled={disabled}
           to=""
-          onClick={() =>
-            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
-          }
+          onClick={() => {
+            trackTagPageInteraction(organization);
+            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value);
+          }}
         >
           <LinkContainer>
             <IconAdd isCircled />

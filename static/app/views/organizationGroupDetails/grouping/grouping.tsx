@@ -12,11 +12,13 @@ import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {BaseGroup, Group, Organization} from 'app/types';
+import {BaseGroup, Group, Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import RangeSlider, {
+  Slider,
+} from 'app/views/settings/components/forms/controls/rangeSlider';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
@@ -26,6 +28,7 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 type Props = {
   organization: Organization;
   groupId: Group['id'];
+  projSlug: Project['slug'];
   location: Location<{level?: number; cursor?: string}>;
   api: Client;
   router: InjectedRouter;
@@ -38,11 +41,11 @@ type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
 };
 
 type GroupingLevel = {
-  id: string;
+  id: number;
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization, router}: Props) {
+function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
@@ -153,11 +156,11 @@ function Grouping({api, groupId, location, organization, router}: Props) {
     }
 
     if (groupingLevels.length > 1) {
-      setActiveGroupingLevel(Number(groupingLevels[1].id));
+      setActiveGroupingLevel(groupingLevels[1].id);
       return;
     }
 
-    setActiveGroupingLevel(Number(groupingLevels[0].id));
+    setActiveGroupingLevel(groupingLevels[0].id);
   }
 
   if (isLoading) {
@@ -165,7 +168,15 @@ function Grouping({api, groupId, location, organization, router}: Props) {
   }
 
   if (error) {
-    return <ErrorMessage onRetry={fetchGroupingLevels} groupId={groupId} error={error} />;
+    return (
+      <ErrorMessage
+        onRetry={fetchGroupingLevels}
+        groupId={groupId}
+        error={error}
+        projSlug={projSlug}
+        orgSlug={organization.slug}
+      />
+    );
   }
 
   if (!activeGroupingLevelDetails.length) {
@@ -313,9 +324,22 @@ const SliderWrapper = styled('div')`
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  input {
+  ${Slider} {
+    background: transparent;
     margin-top: 0;
     margin-bottom: 0;
+
+    ::-ms-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
+
+    ::-moz-range-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
+
+    ::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
   }
 
   position: absolute;

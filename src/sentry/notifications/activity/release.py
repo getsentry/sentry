@@ -21,6 +21,9 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
+    fine_tuning_key = "deploy"
+    is_message_issue_unfurl = False
+
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.organization = self.project.organization
@@ -28,8 +31,8 @@ class ReleaseActivityNotification(ActivityNotification):
         self.email_list: Set[str] = set()
         self.user_ids: Set[int] = set()
         self.deploy = get_deploy(activity)
-
         self.release = get_release(activity, self.organization)
+
         if not self.release:
             self.repos: Iterable[Mapping[str, Any]] = set()
             self.projects: Set[Project] = set()
@@ -102,6 +105,12 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_title(self) -> str:
         return self.get_subject()
+
+    def get_notification_title(self) -> str:
+        text = "this project"
+        if len(self.projects) > 1:
+            text = "these projects"
+        return f"Release {self.version[:12]} deployed to {self.environment} for {text}"
 
     def get_filename(self) -> str:
         return "activity/release"

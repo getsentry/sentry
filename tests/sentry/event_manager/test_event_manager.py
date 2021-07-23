@@ -1616,7 +1616,36 @@ class EventManagerTest(TestCase):
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-        assert event1.get_hashes() == event2.get_hashes(grouping_config)
+        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
+
+    def test_synthetic_exception_detection(self):
+        manager = EventManager(
+            make_event(
+                message="foo",
+                event_id="b" * 32,
+                exception={
+                    "values": [
+                        {
+                            "type": "SIGABRT",
+                            "mechanism": {"handled": False},
+                            "stacktrace": {"frames": [{"function": "foo"}]},
+                        }
+                    ]
+                },
+            ),
+            project=self.project,
+        )
+        manager.normalize()
+
+        manager.get_data()["grouping_config"] = {
+            "id": "mobile:2021-02-12",
+        }
+        event = manager.save(1)
+
+        mechanism = event.interfaces["exception"].values[0].mechanism
+        assert mechanism is not None
+        assert mechanism.synthetic is True
+        assert event.title == "foo"
 
 
 class ReleaseIssueTest(TestCase):

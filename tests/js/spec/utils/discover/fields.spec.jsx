@@ -1,3 +1,5 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -291,6 +293,7 @@ describe('aggregateMultiPlotType', function () {
   it('handles known functions', function () {
     expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
     expect(aggregateMultiPlotType('p95()')).toBe('line');
+    expect(aggregateMultiPlotType('equation|sum(transaction.duration) / 2')).toBe('line');
   });
 });
 
@@ -314,19 +317,15 @@ describe('generateAggregateFields', function () {
 });
 
 describe('parameterOverrides', function () {
-  const organization = TestStubs.Organization();
+  const {organization} = initializeOrg({
+    organization: {
+      apdexThreshold: 500,
+    },
+  });
   it('handles parameter overrides', function () {
     expect(generateAggregateFields(organization, [])).toContainEqual({
-      field: 'apdex(300)',
+      field: 'apdex(500)',
     });
-    expect(generateAggregateFields(organization, [])).not.toContainEqual({
-      field: 'apdex()',
-    });
-    organization.features = ['project-transaction-threshold'];
-    expect(generateAggregateFields(organization, [])).not.toContainEqual({
-      field: 'apdex(300)',
-    });
-    expect(generateAggregateFields(organization, [])).toContainEqual({field: 'apdex()'});
   });
 });
 

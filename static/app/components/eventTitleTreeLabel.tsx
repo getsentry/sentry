@@ -3,37 +3,45 @@ import styled from '@emotion/styled';
 
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {TreeLabelPart} from 'app/types';
+import {getTreeLabelPartDetails} from 'app/utils/events';
 
 type Props = {
-  treeLabel: string[];
+  treeLabel: TreeLabelPart[];
 };
 
 function EventTitleTreeLabel({treeLabel}: Props) {
-  const firstFourLabels = treeLabel.slice(0, 4);
-  const remainingLabels = treeLabel.slice(firstFourLabels.length);
+  const firstFourParts = treeLabel.slice(0, 4);
+  const remainingParts = treeLabel.slice(firstFourParts.length);
 
   return (
     <Wrapper>
-      <FirstFourLabels>
-        {firstFourLabels.map((label, index) => {
-          if (index !== firstFourLabels.length - 1) {
+      <FirstFourParts>
+        {firstFourParts.map((part, index) => {
+          const {label, highlight} = getTreeLabelPartDetails(part);
+          if (index !== firstFourParts.length - 1) {
             return (
               <Fragment key={index}>
-                <PriorityLabel>{label}</PriorityLabel>
+                <PriorityLabel highlight={highlight}>{label}</PriorityLabel>
                 <Divider>{'|'}</Divider>
               </Fragment>
             );
           }
-          return <PriorityLabel key={index}>{label}</PriorityLabel>;
+          return (
+            <PriorityLabel key={index} highlight={highlight}>
+              {label}
+            </PriorityLabel>
+          );
         })}
-      </FirstFourLabels>
-      {!!remainingLabels.length && (
+      </FirstFourParts>
+      {!!remainingParts.length && (
         <RemainingLabels>
-          {remainingLabels.map((label, index) => {
+          {remainingParts.map((part, index) => {
+            const {label, highlight} = getTreeLabelPartDetails(part);
             return (
               <Fragment key={index}>
                 <Divider>{'|'}</Divider>
-                {label}
+                <Label highlight={highlight}>{label}</Label>
               </Fragment>
             );
           })}
@@ -45,27 +53,42 @@ function EventTitleTreeLabel({treeLabel}: Props) {
 
 export default EventTitleTreeLabel;
 
-const Wrapper = styled('span')`
+const Wrapper = styled('div')`
   display: inline-grid;
   grid-template-columns: auto 1fr;
+  align-items: center;
 `;
 
-const FirstFourLabels = styled('span')`
-  display: grid;
+const FirstFourParts = styled('div')`
+  display: inline-grid;
   grid-auto-flow: column;
+  align-items: center;
 `;
 
-const PriorityLabel = styled('div')`
+const Label = styled('div')<{highlight: boolean}>`
+  ${p =>
+    p.highlight &&
+    `
+      background: ${p.theme.alert.info.backgroundLight};
+      border-radius: ${p.theme.borderRadius};
+      padding: 0 ${space(0.5)};
+    `}
+  display: inline-block;
+`;
+
+const PriorityLabel = styled(Label)`
   ${overflowEllipsis}
+  display: inline-block;
 `;
 
 const RemainingLabels = styled('div')`
   ${overflowEllipsis}
+  display: inline-block;
   min-width: 50px;
 `;
 
-const Divider = styled('span')`
+export const Divider = styled('div')`
   color: ${p => p.theme.gray200};
   display: inline-block;
-  margin: 0 ${space(1)};
+  padding: 0 ${space(1)};
 `;

@@ -6,6 +6,9 @@ from sentry.utils.http import absolute_uri
 
 
 class BaseNotification:
+    fine_tuning_key: Optional[str] = None
+    is_message_issue_unfurl = False
+
     def __init__(self, project: Project, group: Group) -> None:
         self.project = project
         self.organization = self.project.organization
@@ -48,3 +51,10 @@ class BaseNotification:
         self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         return {}
+
+    def get_notification_title(self) -> str:
+        raise NotImplementedError
+
+    def get_message_description(self) -> Any:
+        context = getattr(self, "context", None)
+        return context["text_description"] if context else None

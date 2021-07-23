@@ -12,3 +12,11 @@ class UnassignedActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "unassigned_activity_email"
+
+    def get_notification_title(self) -> str:
+        user = self.activity.user
+        if user:
+            author = user.name or user.email
+        else:
+            author = "Sentry"
+        return f"Issue unassigned by {author}"

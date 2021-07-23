@@ -204,7 +204,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     } = this.state;
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
             <h3>{t("Add Sentry's CloudFormation")}</h3>

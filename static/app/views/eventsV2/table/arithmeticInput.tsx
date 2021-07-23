@@ -155,6 +155,9 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
 
       const newOptionGroups = makeOptions(options, partialTerm);
       const flattenedOptions = newOptionGroups.map(group => group.options).flat();
+      if (flattenedOptions.length === 0) {
+        return;
+      }
 
       let newSelection;
       if (!startedSelection) {
@@ -257,6 +260,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
           onBlur={this.handleBlur}
           onFocus={this.handleFocus}
           onKeyDown={this.handleKeyDown}
+          spellCheck={false}
         />
         <TermDropdown
           isOpen={dropdownVisible}
@@ -347,6 +351,10 @@ function makeFieldOptions(
   const options = columns
     .filter(({kind}) => kind !== 'equation')
     .filter(option => {
+      // Any isn't allowed in arithmetic
+      if (option.kind === 'function' && option.function[0] === 'any') {
+        return false;
+      }
       const columnType = getColumnType(option);
       return (
         columnType === 'number' || columnType === 'integer' || columnType === 'duration'
@@ -366,7 +374,7 @@ function makeFieldOptions(
 }
 
 function makeOperatorOptions(partialTerm: string | null): DropdownOptionGroup {
-  const options = ['+', '-', '*', '/']
+  const options = ['+', '-', '*', '/', '(', ')']
     .filter(operator => (partialTerm ? operator.includes(partialTerm) : true))
     .map(operator => ({
       kind: 'operator' as const,

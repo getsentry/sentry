@@ -16,7 +16,8 @@ DM_COMMANDS = {
     "help": "View this list of commands.",
 }
 CHANNEL_COMMANDS = {
-    "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in."
+    "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in.",
+    "unlink team": "Unlink a team from the channel this command is typed in.",
 }
 CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.io"
 
@@ -24,7 +25,7 @@ CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.i
 def list_commands(commands: Mapping[str, str]) -> str:
     return "\n".join(
         (
-            f"• `/sentry {command}`: {description}"
+            f"`/sentry {command}`: {description}"
             for command, description in sorted(tuple(commands.items()))
         )
     )

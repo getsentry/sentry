@@ -39,7 +39,7 @@ class ReactPageViewTest(TestCase):
 
         self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
 
-        # ensure we dont redirect to auth if its not a valid org
+        # ensure we don't redirect to auth if its not a valid org
         path = reverse("sentry-organization-home", args=["foobar"])
 
         resp = self.client.get(path)
@@ -47,7 +47,7 @@ class ReactPageViewTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] != reverse("sentry-auth-organization", args=[org.slug])
 
-        # ensure we dont redirect with valid membership
+        # ensure we don't redirect with valid membership
         path = reverse("sentry-organization-home", args=[org.slug])
 
         self.login_as(owner)

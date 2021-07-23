@@ -40,11 +40,12 @@ def make_event(**kwargs):
 def get_attachment():
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[0].request.body)
+    assert "text" in data
     assert "attachments" in data
     attachments = json.loads(data["attachments"][0])
 
     assert len(attachments) == 1
-    return attachments[0]
+    return attachments[0], data["text"][0]
 
 
 class ActivityNotificationTest(APITestCase):
@@ -112,13 +113,18 @@ class ActivityNotificationTest(APITestCase):
         # check the html version
         assert "blah blah</p></div>" in msg.alternatives[0][0]
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
         # check the Slack version
-        assert attachment["title"] == f"New comment by {self.name}"
+        assert text == f"New comment by {self.name}"
+        assert attachment["title"] == f"{self.group.title}"
+        assert (
+            attachment["title_link"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack"
+        )
         assert attachment["text"] == "blah blah"
         assert (
             attachment["footer"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=NoteActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=NoteActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=NoteActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -139,13 +145,13 @@ class ActivityNotificationTest(APITestCase):
         # check the html version
         assert f"{self.short_id}</a> to themselves</p>" in msg.alternatives[0][0]
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
-        assert attachment["title"] == "Assigned"
-        assert attachment["text"] == f"{self.name} assigned {self.short_id} to themselves"
+        assert text == f"Issue assigned to {self.name} by themselves"
+        assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=AssignedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=AssignedActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -168,13 +174,13 @@ class ActivityNotificationTest(APITestCase):
         # check the html version
         assert f"{self.user.username}</strong> unassigned" in msg.alternatives[0][0]
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
-        assert attachment["title"] == "Unassigned"
-        assert attachment["text"] == f"{self.name} unassigned {self.short_id}"
+        assert text == f"Issue unassigned by {self.name}"
+        assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=UnassignedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=UnassignedActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=UnassignedActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -194,13 +200,16 @@ class ActivityNotificationTest(APITestCase):
         # check the html version
         assert f"{self.short_id}</a> as resolved</p>" in msg.alternatives[0][0]
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
-        assert attachment["title"] == "Resolved Issue"
-        assert attachment["text"] == f"{self.name} marked {self.short_id} as resolved"
+        assert (
+            text
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as resolved"
+        )
+        assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=ResolvedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=ResolvedActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -227,18 +236,19 @@ class ActivityNotificationTest(APITestCase):
             in msg.alternatives[0][0]
         )
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
         assert (
-            attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
+            text
+            == f"Release {release.version[:12]} deployed to {self.environment.name} for this project"
         )
         assert (
-            attachment["text"]
-            == f"Version {release.version} was deployed to {self.environment.name}"
+            attachment["actions"][0]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/"
         )
         assert (
             attachment["footer"]
-            == "<http://testserver/settings/account/notifications/?referrer=ReleaseActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -272,13 +282,12 @@ class ActivityNotificationTest(APITestCase):
         # check the html version
         assert f"{group.qualified_short_id}</a> as a regression</p>" in msg.alternatives[0][0]
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
-        assert attachment["title"] == "Regression"
-        assert attachment["text"] == f"Sentry marked {group.qualified_short_id} as a regression"
+        assert text == "Issue marked as regression"
         assert (
             attachment["footer"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{group.id}/?referrer=RegressionActivitySlack|{group.qualified_short_id}> via <http://testserver/settings/account/notifications/?referrer=RegressionActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=RegressionActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -308,15 +317,12 @@ class ActivityNotificationTest(APITestCase):
             f'text-decoration: none">{self.short_id}</a> as resolved in' in msg.alternatives[0][0]
         )
 
-        attachment = get_attachment()
-        assert attachment["title"] == "Resolved Issue"
-        assert (
-            attachment["text"]
-            == f"{self.name} marked {self.short_id} as resolved in {release.version}"
-        )
+        attachment, text = get_attachment()
+        assert text == f"Issue marked as resolved in {release.version} by {self.name}"
+        assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=ResolvedInReleaseActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=ResolvedInReleaseActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlack|Notification Settings>"
         )
 
     @responses.activate
@@ -371,8 +377,10 @@ class ActivityNotificationTest(APITestCase):
         # check the html version
         assert "Hello world</pre>" in msg.alternatives[0][0]
 
-        attachment = get_attachment()
+        attachment, text = get_attachment()
 
         assert attachment["title"] == "Hello world"
-        assert attachment["text"] == ""
-        assert attachment["footer"] == event.group.qualified_short_id
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+        )

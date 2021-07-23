@@ -2,6 +2,7 @@
   {
     "query": "project_id:1",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",

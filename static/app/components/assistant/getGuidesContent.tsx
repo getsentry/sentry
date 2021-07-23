@@ -185,19 +185,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'release_adoption',
-      requiredTargets: ['release_adoption'],
-      steps: [
-        {
-          title: t('Recalculating Adoption'),
-          target: 'release_adoption',
-          description: t(
-            `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
-          ),
-        },
-      ],
-    },
-    {
       guide: 'stack_trace_preview',
       requiredTargets: ['issue_stream_title'],
       dateThreshold: new Date(2021, 2, 15),
@@ -318,6 +305,46 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             'Use this menu to adjust each transaction’s satisfactory response time threshold, which can vary across transactions. These thresholds are used to calculate Apdex and User Misery, metrics that indicate how satisfied and miserable users are, respectively.'
           ),
+        },
+      ],
+    },
+    {
+      guide: 'percentage_based_alerts',
+      requiredTargets: ['percentage_based_alerts'],
+      steps: [
+        {
+          title: t('Percentage Based Alerts'),
+          target: 'percentage_based_alerts',
+          description: tct(
+            'View the event count as a percentage of sessions and alert on this number to adapt to changes in traffic patterns. [link:View the docs] to learn more.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/#when-conditions-triggers" />
+              ),
+            }
+          ),
+          nextText: t('Got it'),
+        },
+      ],
+    },
+    {
+      guide: 'semver',
+      requiredTargets: ['releases_search'],
+      dateThreshold: new Date(2021, 6, 1),
+      steps: [
+        {
+          title: t('Filter by Semver'),
+          target: 'releases_search',
+          description: tct(
+            'You can now filter releases by semver. For example: release.version:>14.0 [br] [link:View the docs]',
+            {
+              br: <br />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
+              ),
+            }
+          ),
+          nextText: t('Leave me alone'),
         },
       ],
     },

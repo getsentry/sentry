@@ -25,11 +25,11 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view'],
+      features: ['performance-view', 'discover-arithmetic'],
       apdexThreshold: 400,
     },
   });
-  const tagKeys = ['browser.name', 'custom-field'];
+  const tagKeys = ['browser.name', 'custom-field', 'user'];
   const columns = [
     {
       kind: 'field',
@@ -107,9 +107,11 @@ describe('EventsV2 -> ColumnEditModal', function () {
       expect(
         funcRow.find('SelectControl[name="field"] [data-test-id="label"]').text()
       ).toBe('count_unique(\u2026)');
-      expect(funcRow.find('SelectControl[name="parameter"] SingleValue').text()).toBe(
-        'user-defined'
-      );
+      expect(
+        funcRow
+          .find('SelectControl[name="parameter"] SingleValue span[data-test-id="label"]')
+          .text()
+      ).toBe('user-defined');
 
       const fieldRow = wrapper.find('QueryField').last();
       expect(
@@ -215,7 +217,9 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('QueryField SelectControl[name="parameter"]');
-      expect(field.find('SingleValue').text()).toBe('transaction.duration');
+      expect(field.find('SingleValue span[data-test-id="label"]').text()).toBe(
+        'transaction.duration'
+      );
 
       // Input should show and have default value.
       const refinement = wrapper.find('QueryField input[inputMode="numeric"]');
@@ -249,41 +253,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Trigger a blur and make sure the column is not wrong.
       field.simulate('blur');
-
-      const newData = initializeOrg({
-        organization: {
-          features: ['performance-view', 'project-transaction-threshold'],
-          apdexThreshold: 400,
-        },
-      });
-
-      const newApply = jest.fn();
-      const newWrapper = mountModal(
-        {
-          columns,
-          onApply: newApply,
-          tagKeys,
-        },
-        newData
-      );
-
-      selectByLabel(newWrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
-
-      // Parameter select should display and use the default value.
-      const newField = newWrapper.find('QueryField input[name="refinement"]');
-      expect(newField.props().value).toBe('');
-      expect(newField.prop('placeholder')).toBe('Automatic');
-
-      // Trigger a blur and make sure the column is not wrong.
-      newField.simulate('blur');
-
-      // Apply the changes so we can see the new columns.
-      newWrapper.find('Button[priority="primary"]').simulate('click');
-      expect(newApply).toHaveBeenCalledWith(
-        expect.objectContaining([
-          {kind: 'function', function: ['apdex', '', undefined, undefined]},
-        ])
-      );
     });
 
     it('clears unused parameters', function () {
@@ -307,6 +276,56 @@ describe('EventsV2 -> ColumnEditModal', function () {
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
+      ]);
+    });
+
+    it('clears all unused parameters with count_if to two parameter function', function () {
+      // Choose percentile, then failure_rate which has no parameters.
+      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'user', {name: 'parameter', at: 0, control: true});
+      selectByLabel(wrapper, 'count_miserable(\u2026)', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count_miserable', 'user', '400', undefined]},
+      ]);
+    });
+
+    it('clears all unused parameters with count_if to one parameter function', function () {
+      // Choose percentile, then failure_rate which has no parameters.
+      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'user', {name: 'parameter', at: 0, control: true});
+      selectByLabel(wrapper, 'count_unique(\u2026)', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+      ]);
+    });
+
+    it('clears all unused parameters with count_if to parameterless function', function () {
+      // Choose percentile, then failure_rate which has no parameters.
+      selectByLabel(wrapper, 'count_if(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'count()', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count', '', undefined, undefined]},
       ]);
     });
   });
@@ -355,6 +374,38 @@ describe('EventsV2 -> ColumnEditModal', function () {
       ).toHaveLength(0);
       expect(
         wrapper.find('RowContainer button[aria-label="Drag to reorder"]')
+      ).toHaveLength(0);
+    });
+    it('does not count equations towards the count of rows', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            columns[0],
+            columns[1],
+            {
+              kind: 'equation',
+              field: '5 + 5',
+            },
+          ],
+          onApply: () => void 0,
+          tagKeys,
+        },
+        initialData
+      );
+      expect(newWrapper.find('QueryField')).toHaveLength(3);
+      newWrapper
+        .find('RowContainer button[aria-label="Remove column"]')
+        .first()
+        .simulate('click');
+
+      expect(newWrapper.find('QueryField')).toHaveLength(2);
+
+      // Last row cannot be removed or dragged.
+      expect(
+        newWrapper.find('RowContainer button[aria-label="Remove column"]')
+      ).toHaveLength(0);
+      expect(
+        newWrapper.find('RowContainer button[aria-label="Drag to reorder"]')
       ).toHaveLength(0);
     });
   });

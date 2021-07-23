@@ -157,7 +157,7 @@ class AppleCrashReport:
         return 0
 
     def get_binary_images_apple_string(self):
-        # We dont need binary images on symbolicated crashreport
+        # We don't need binary images on symbolicated crashreport
         if self.symbolicated or self.debug_images is None:
             return ""
         binary_images = map(

@@ -23,7 +23,6 @@ from sentry.models import (
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationMemberTeam,
-    ProjectStatus,
     ProjectTeam,
     Team,
     TeamAvatar,
@@ -88,6 +87,23 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
 
 @register(Team)
 class TeamSerializer(Serializer):  # type: ignore
+    def __init__(
+        self, collapse: Optional[Sequence[str]] = None, expand: Optional[Sequence[str]] = None
+    ):
+        self.collapse = collapse
+        self.expand = expand
+
+    def _expand(self, key: str) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key: str) -> bool:
+        if self.collapse is None:
+            return False
+        return key in self.collapse
+
     def get_attrs(
         self, item_list: Sequence[Team], user: User, **kwargs: Any
     ) -> MutableMapping[Team, MutableMapping[str, Any]]:
@@ -125,6 +141,34 @@ class TeamSerializer(Serializer):  # type: ignore
                 "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
             }
+
+        if self._expand("projects"):
+            project_teams = ProjectTeam.objects.get_for_teams_with_org_cache(item_list)
+            projects = [pt.project for pt in project_teams]
+
+            projects_by_id = {
+                project.id: data for project, data in zip(projects, serialize(projects, user))
+            }
+
+            project_map = defaultdict(list)
+            for project_team in project_teams:
+                project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
+
+            for team in item_list:
+                result[team]["projects"] = project_map[team.id]
+
+        if self._expand("externalTeams"):
+            actor_mapping = {team.actor_id: team for team in item_list}
+            external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
+
+            external_teams_map = defaultdict(list)
+            serialized_list = serialize(external_actors, user, key="team")
+            for serialized in serialized_list:
+                external_teams_map[serialized["teamId"]].append(serialized)
+
+            for team in item_list:
+                result[team]["externalTeams"] = external_teams_map[str(team.id)]
+
         return result
 
     def serialize(
@@ -137,7 +181,8 @@ class TeamSerializer(Serializer):  # type: ignore
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
-        return {
+
+        result = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
@@ -149,53 +194,24 @@ class TeamSerializer(Serializer):  # type: ignore
             "avatar": avatar,
         }
 
+        # Expandable attributes.
+        if self._expand("externalTeams"):
+            result["externalTeams"] = attrs["externalTeams"]
 
-class TeamWithProjectsSerializer(TeamSerializer):
-    def get_attrs(
-        self, item_list: Sequence[Team], user: Any, **kwargs: Any
-    ) -> MutableMapping[Team, MutableMapping[str, Any]]:
-        project_teams = list(
-            ProjectTeam.objects.filter(team__in=item_list, project__status=ProjectStatus.VISIBLE)
-            .order_by("project__name", "project__slug")
-            .select_related("project")
-        )
+        if self._expand("organization"):
+            result["organization"] = serialize(obj.organization, user)
 
-        actor_mapping = {team.actor_id: team for team in item_list}
-        external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
+        if self._expand("projects"):
+            result["projects"] = attrs["projects"]
 
-        # TODO(dcramer): we should query in bulk for ones we're missing here
-        orgs = {i.organization_id: i.organization for i in item_list}
-
-        for project_team in project_teams:
-            project_team.project._organization_cache = orgs[project_team.project.organization_id]
-
-        projects = [pt.project for pt in project_teams]
-        projects_by_id = {
-            project.id: data for project, data in zip(projects, serialize(projects, user))
-        }
-
-        project_map = defaultdict(list)
-        for project_team in project_teams:
-            project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
-
-        external_teams_map = defaultdict(list)
-        serialized_list = serialize(external_actors, user, key="team")
-        for serialized in serialized_list:
-            external_teams_map[serialized["teamId"]].append(serialized)
-
-        result = super().get_attrs(item_list, user)
-        for team in item_list:
-            result[team]["projects"] = project_map[team.id]
-            result[team]["externalTeams"] = external_teams_map[str(team.id)]
         return result
 
-    def serialize(
-        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
-        d = super().serialize(obj, attrs, user)
-        d["projects"] = attrs["projects"]
-        d["externalTeams"] = attrs["externalTeams"]
-        return d
+
+class TeamWithProjectsSerializer(TeamSerializer):
+    """@deprecated Use `expand` instead."""
+
+    def __init__(self) -> None:
+        super().__init__(expand=["projects", "externalTeams"])
 
 
 def get_scim_teams_members(

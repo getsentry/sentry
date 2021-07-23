@@ -1,20 +1,34 @@
 import logging
+import re
 import time
-from typing import List, Tuple
-from urllib.parse import parse_qs, urlencode, urlparse
+from typing import Any, List, Tuple, Union
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from django.core.exceptions import ValidationError
 from django.http import Http404, HttpResponse
 from rest_framework.request import Request
 
 from sentry.constants import ObjectStatus
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Organization
+from sentry.models import (
+    Environment,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    Organization,
+    Project,
+    Team,
+    User,
+)
+from sentry.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import SlackClient
@@ -351,3 +365,42 @@ def send_confirmation(
                 "team_id": integration.external_id,
             },
         )
+
+
+def get_referrer_qstring(notification: BaseNotification) -> str:
+    return "?referrer=" + re.sub("Notification$", "Slack", notification.__class__.__name__)
+
+
+def get_settings_url(notification: BaseNotification) -> str:
+    url_str = "/settings/account/notifications/"
+    if notification.fine_tuning_key:
+        url_str += f"{notification.fine_tuning_key}/"
+    return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+
+
+def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> Any:
+    if isinstance(recipient, Team):
+        team = Team.objects.get(id=recipient.id)
+        url_str = f"/settings/{notification.group.project.organization.slug}/teams/{team.slug}/notifications/"
+        settings_url = str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+    else:
+        settings_url = get_settings_url(notification)
+
+    if isinstance(notification, ReleaseActivityNotification):
+        # no environment related to a deploy
+        if notification.release:
+            return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
+        return f"<{settings_url}|Notification Settings>"
+
+    footer = Project.objects.get_from_cache(id=notification.group.project_id).slug
+    latest_event = notification.group.get_latest_event()
+    environment = None
+    if latest_event:
+        try:
+            environment = latest_event.get_environment()
+        except Environment.DoesNotExist:
+            pass
+    if environment and getattr(environment, "name", None) != "":
+        footer += f" | {environment.name}"
+    footer += f" | <{settings_url}|Notification Settings>"
+    return footer

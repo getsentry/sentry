@@ -237,11 +237,11 @@ class Issues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:${version}`] || 0,
-            new: issueResponse[`${IssuesQuery.NEW}:${version}`] || 0,
+            all: issueResponse[`${IssuesQuery.ALL}:"${version}"`] || 0,
+            new: issueResponse[`${IssuesQuery.NEW}:"${version}"`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`] ||
+              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
               0,
           },
         });
@@ -257,9 +257,9 @@ class Issues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.NEW}:${version}`,
-      `${IssuesQuery.ALL}:${version}`,
-      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`,
+      `${IssuesQuery.NEW}:"${version}"`,
+      `${IssuesQuery.ALL}:"${version}"`,
+      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -305,31 +305,50 @@ class Issues extends Component<Props, State> {
   };
 
   renderEmptyMessage = () => {
-    const {selection} = this.props;
+    const {location, releaseBounds, defaultStatsPeriod, organization} = this.props;
     const {issuesType} = this.state;
+    const hasReleaseComparison = organization.features.includes('release-comparison');
+    const isEntireReleasePeriod =
+      hasReleaseComparison &&
+      !location.query.pageStatsPeriod &&
+      !location.query.pageStart;
 
-    const selectedTimePeriod = DEFAULT_RELATIVE_PERIODS[selection.datetime.period];
+    const {statsPeriod} = getReleaseParams({
+      location,
+      releaseBounds,
+      defaultStatsPeriod,
+      allowEmptyPeriod: hasReleaseComparison,
+    });
+
+    const selectedTimePeriod = statsPeriod ? DEFAULT_RELATIVE_PERIODS[statsPeriod] : null;
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
       : t('given timeframe');
 
     return (
       <EmptyState>
-        <Fragment>
-          {issuesType === IssuesType.NEW &&
-            tct('No new issues for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
-          {issuesType === IssuesType.UNHANDLED &&
-            tct('No unhandled issues for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
-          {issuesType === IssuesType.RESOLVED && t('No resolved issues.')}
-          {issuesType === IssuesType.ALL &&
-            tct('No issues for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
-        </Fragment>
+        {issuesType === IssuesType.NEW
+          ? isEntireReleasePeriod
+            ? t('No new issues in this release.')
+            : tct('No new issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })
+          : null}
+        {issuesType === IssuesType.UNHANDLED
+          ? isEntireReleasePeriod
+            ? t('No unhandled issues in this release.')
+            : tct('No unhandled issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })
+          : null}
+        {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
+        {issuesType === IssuesType.ALL
+          ? isEntireReleasePeriod
+            ? t('No issues in this release')
+            : tct('No issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })
+          : null}
       </EmptyState>
     );
   };
@@ -340,18 +359,18 @@ class Issues extends Component<Props, State> {
     const {path, queryParams} = this.getIssuesEndpoint();
     const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
+      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
       {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
-      {
-        value: IssuesType.RESOLVED,
-        label: t('Resolved Issues'),
-        issueCount: count.resolved,
-      },
       {
         value: IssuesType.UNHANDLED,
         label: t('Unhandled Issues'),
         issueCount: count.unhandled,
       },
-      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
+      {
+        value: IssuesType.RESOLVED,
+        label: t('Resolved Issues'),
+        issueCount: count.resolved,
+      },
     ];
 
     return (

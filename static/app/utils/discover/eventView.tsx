@@ -706,7 +706,7 @@ class EventView {
       interval: this.interval,
       expired: this.expired,
       createdBy: this.createdBy,
-      additionalConditions: this.additionalConditions,
+      additionalConditions: this.additionalConditions.copy(),
     });
   }
 
@@ -1295,7 +1295,13 @@ class EventView {
     }
     const conditions = tokenizeSearch(query);
     Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
-      conditions.addTagValues(tag, tagValues);
+      const existingTagValues = conditions.getTagValues(tag);
+      const newTagValues = tagValues.filter(
+        tagValue => !existingTagValues.includes(tagValue)
+      );
+      if (newTagValues.length) {
+        conditions.addTagValues(tag, newTagValues);
+      }
     });
     return conditions.formatString();
   }

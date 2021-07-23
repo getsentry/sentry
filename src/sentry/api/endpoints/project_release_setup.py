@@ -2,7 +2,7 @@ from django.core.cache import cache
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import Deploy, Group, ReleaseCommit, Repository
+from sentry.models import Deploy, Group, ReleaseCommit, ReleaseProject, Repository
 from sentry.utils.hashlib import hash_values
 
 
@@ -36,8 +36,14 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
 
         commit = onboard_cache.get(commit_key)
         if commit is None:
+            # only get the last 1000 releases
+            release_ids = (
+                ReleaseProject.objects.filter(project=project.id)
+                .order_by("-release_id")
+                .values_list("release_id", flat=True)
+            )[:1000]
             commit = ReleaseCommit.objects.filter(
-                organization_id=project.organization_id, release__projects=project.id
+                organization_id=project.organization_id, release__id__in=release_ids
             ).exists()
             cache.set(commit_key, commit, 3600 if commit else 60)
 

@@ -6,21 +6,14 @@ import {preloadIcons} from 'platformicons';
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import testableTransition from 'app/utils/testableTransition';
-import withOrganization from 'app/utils/withOrganization';
 
 import FallingError from './components/fallingError';
 import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
 
-const recordAnalyticsOnboardingSkipped = ({organization}: {organization: Organization}) =>
-  analytics('onboarding_v2.skipped', {org_id: organization.id});
-
-type Props = StepProps & {
-  organization: Organization;
-};
+type Props = StepProps;
 
 const easterEggText = [
   t('Be careful. She’s barely hanging on as it is.'),
@@ -47,11 +40,15 @@ class OnboardingWelcome extends Component<Props> {
     // icons). Keep things smooth by prefetching them. Preload a bit late to
     // avoid jank on welcome animations.
     setTimeout(preloadIcons, 1500);
+    trackAdvancedAnalyticsEvent(
+      'growth.onboarding_start_onboarding',
+      {},
+      this.props.organization ?? null
+    );
   }
 
   render() {
-    const {organization, onComplete, active} = this.props;
-    const skipOnboarding = () => recordAnalyticsOnboardingSkipped({organization});
+    const {onComplete, active} = this.props;
 
     return (
       <FallingError
@@ -81,14 +78,7 @@ class OnboardingWelcome extends Component<Props> {
               <PositionedFallingError>{fallingError}</PositionedFallingError>
             </CTAContainer>
             <SecondaryAction {...fadeAway}>
-              {tct('[flavorText][br][exitLink:Skip onboarding].', {
-                br: <br />,
-                exitLink: <Button priority="link" onClick={skipOnboarding} href="/" />,
-                flavorText:
-                  fallCount > 0
-                    ? easterEggText[fallCount - 1]
-                    : t("Really, this again? I've used Sentry before."),
-              })}
+              {fallCount > 0 ? easterEggText[fallCount - 1] : <br />}
             </SecondaryAction>
           </Wrapper>
         )}
@@ -140,4 +130,4 @@ Wrapper.defaultProps = {
   }),
 };
 
-export default withOrganization(OnboardingWelcome);
+export default OnboardingWelcome;

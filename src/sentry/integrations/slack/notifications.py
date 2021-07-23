@@ -140,12 +140,17 @@ def send_notification_as_slack(
             )
         extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
         context = get_context(notification, recipient, shared_context, extra_context)
-        attachment = [build_notification_attachment(notification, context)]
+        attachment = [build_notification_attachment(notification, context, recipient)]
         for channel, token in tokens_by_channel.items():
+            # unfurl_links and unfurl_media are needed to preserve the intended message format
+            # and prevent the app from replying with help text to the unfurl
             payload = {
                 "token": token,
                 "channel": channel,
                 "link_names": 1,
+                "unfurl_links": False,
+                "unfurl_media": False,
+                "text": notification.get_notification_title(),
                 "attachments": json.dumps(attachment),
             }
             try:

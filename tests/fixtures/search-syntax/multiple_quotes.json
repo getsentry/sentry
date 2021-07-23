@@ -2,6 +2,7 @@
   {
     "query": "device.family:\"\" browser.name:\"Chrome\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
@@ -25,6 +26,7 @@
   {
     "query": "device.family:\"\\\"\" browser.name:\"Chrome\"",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",

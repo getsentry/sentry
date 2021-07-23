@@ -56,3 +56,41 @@ class AssignedActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "assigned_activity_email"
+
+    def build_notification_title(self) -> Tuple[str, str]:
+        activity = self.activity
+        data = activity.data
+        user = self.activity.user
+        if user:
+            author = user.name or user.email
+        else:
+            author = "Sentry"
+
+        # legacy Activity objects from before assignable teams
+        if "assigneeType" not in data or data["assigneeType"] == "user":
+            author = "themselves"
+
+            try:
+                assignee = User.objects.get_from_cache(id=data["assignee"])
+            except User.DoesNotExist:
+                assignee = data.get("assigneeEmail", "an unknown user")
+            else:
+                assignee = assignee.get_display_name()
+            return author, assignee
+
+        if data.get("assigneeType") == "team":
+            try:
+                assignee_team = Team.objects.get(
+                    id=data["assignee"], organization=self.organization
+                )
+            except Team.DoesNotExist:
+                assignee = "an unknown team"
+            else:
+                assignee = f"#{assignee_team.slug}"
+        return author, assignee
+
+    def get_notification_title(self) -> str:
+        author, assignee = self.build_notification_title()
+        if author == "Sentry":
+            return f"Issue automatically assigned to {assignee}"
+        return f"Issue assigned to {assignee} by {author}"

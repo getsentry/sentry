@@ -6,6 +6,7 @@ from sentry import features
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _construct_arraymax, _get_group_filters
 from sentry.api.exceptions import SentryAPIException, status
+from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.models import Group, GroupHash
 from sentry.utils import snuba
 
@@ -28,10 +29,16 @@ class MissingFeature(SentryAPIException):
     message = "This project does not have the grouping tree feature."
 
 
-class NotHierarchical(SentryAPIException):
+class IssueNotHierarchical(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
-    code = "not_hierarchical"
+    code = "issue_not_hierarchical"
     message = "This issue does not have hierarchical grouping."
+
+
+class ProjectNotHierarchical(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "project_not_hierarchical"
+    message = "This project does not have hierarchical grouping."
 
 
 class GroupingLevelsEndpoint(GroupEndpoint):
@@ -127,7 +134,9 @@ def get_levels_overview(group):
     fields = res["data"][0]
 
     if fields["num_levels"] <= 0:
-        raise NotHierarchical()
+        if not _project_has_hierarchical_grouping(group.project):
+            raise ProjectNotHierarchical()
+        raise IssueNotHierarchical()
 
     # TODO: Cache this if it takes too long. This is called from multiple
     # places, grouping overview and then again in the new-issues endpoint.
@@ -144,11 +153,16 @@ def _list_levels(group):
 
     # It is a little silly to transfer a list of integers rather than just
     # giving the UI a range, but in the future we may want to add
-    # additional fields to each level. Also it is good if the UI does not
-    # assume too much about the form of IDs.
-    levels = [{"id": str(i)} for i in range(fields.num_levels)]
+    # additional fields to each level.
+    levels = [{"id": i} for i in range(fields.num_levels)]
 
     current_level = fields.current_level
-    assert levels[current_level]["id"] == str(current_level)
+    assert levels[current_level]["id"] == current_level
     levels[current_level]["isCurrent"] = True
     return {"levels": levels}
+
+
+def _project_has_hierarchical_grouping(project):
+    config_dict = get_grouping_config_dict_for_project(project)
+    config = load_grouping_config(config_dict)
+    return config.initial_context["hierarchical_grouping"]

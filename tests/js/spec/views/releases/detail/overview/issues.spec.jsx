@@ -26,7 +26,10 @@ describe('Release Issues', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0%20release%3A1.0.0&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&statsPeriod=14d`,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&statsPeriod=24h`,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
@@ -36,12 +39,20 @@ describe('Release Issues', function () {
       url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=14d`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=24h`,
+      body: [],
+    });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?groupStatsPeriod=auto&limit=10&query=&sort=freq&statsPeriod=14d`,
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=14d`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=24h`,
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
@@ -61,7 +72,7 @@ describe('Release Issues', function () {
   it('shows an empty state', async function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
     const wrapper2 = mountWithTheme(
-      <Issues {...props} selection={{datetime: {period: '24h'}}} />
+      <Issues {...props} location={{query: {statsPeriod: '24h'}}} />
     );
 
     await tick();
@@ -79,7 +90,9 @@ describe('Release Issues', function () {
     filterIssues(wrapper, 'resolved');
     await tick();
     wrapper.update();
-    expect(wrapper.find('EmptyStateWarning').text()).toBe('No resolved issues.');
+    expect(wrapper.find('EmptyStateWarning').text()).toBe(
+      'No resolved issues in this release.'
+    );
 
     filterIssues(wrapper2, 'unhandled');
     await tick();

@@ -371,6 +371,17 @@ export type Team = {
 
 export type TeamWithProjects = Team & {projects: Project[]};
 
+export type TreeLabelPart =
+  | string
+  | {
+      function?: string;
+      package?: string;
+      type?: string;
+      datapath?: (string | number)[];
+      is_sentinel?: boolean;
+      is_prefix?: boolean;
+    };
+
 // This type is incomplete
 export type EventMetadata = {
   value?: string;
@@ -383,8 +394,9 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
-  current_tree_label?: string[];
-  finest_tree_label?: string[];
+  current_tree_label?: TreeLabelPart[];
+  finest_tree_label?: TreeLabelPart[];
+  current_level?: number;
 };
 
 export type EventAttachment = {
@@ -1956,7 +1968,6 @@ export type Frame = {
   function: string | null;
   inApp: boolean;
   instructionAddr: string | null;
-  addrMode?: string;
   lineNo: number | null;
   module: string | null;
   package: string | null;
@@ -1967,10 +1978,20 @@ export type Frame = {
   symbolicatorStatus: SymbolicatorStatus;
   trust: any | null;
   vars: Record<string, any> | null;
+  addrMode?: string;
   origAbsPath?: string | null;
   mapUrl?: string | null;
   map?: string | null;
+  isSentinel?: boolean;
+  isPrefix?: boolean;
+  minGroupingLevel?: number;
 };
+
+export enum FrameBadge {
+  SENTINEL = 'sentinel',
+  PREFIX = 'prefix',
+  GROUPING = 'grouping',
+}
 
 /**
  * Note used in Group Activity and Alerts for users to comment
@@ -2066,11 +2087,6 @@ export type ServerlessFunction = {
 };
 
 /**
- * File storage service options for debug files
- */
-export type DebugFileSource = 'http' | 's3' | 'gcs' | 'appStoreConnect';
-
-/**
  * Base type for series   style API response
  */
 export type SeriesApi = {
@@ -2099,11 +2115,29 @@ export enum SessionField {
   USERS = 'count_unique(user)',
 }
 
+export enum SessionStatus {
+  HEALTHY = 'healthy',
+  ABNORMAL = 'abnormal',
+  ERRORED = 'errored',
+  CRASHED = 'crashed',
+}
+
 export enum ReleaseComparisonChartType {
   CRASH_FREE_USERS = 'crashFreeUsers',
+  HEALTHY_USERS = 'healthyUsers',
+  ABNORMAL_USERS = 'abnormalUsers',
+  ERRORED_USERS = 'erroredUsers',
+  CRASHED_USERS = 'crashedUsers',
   CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  HEALTHY_SESSIONS = 'healthySessions',
+  ABNORMAL_SESSIONS = 'abnormalSessions',
+  ERRORED_SESSIONS = 'erroredSessions',
+  CRASHED_SESSIONS = 'crashedSessions',
   SESSION_COUNT = 'sessionCount',
   USER_COUNT = 'userCount',
+  ERROR_COUNT = 'errorCount',
+  TRANSACTION_COUNT = 'transactionCount',
+  FAILURE_RATE = 'failureRate',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2126,7 +2160,13 @@ export type CodeOwners = {
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
-  codeMapping?: RepositoryProjectPathConfig[];
+  codeMapping?: RepositoryProjectPathConfig;
+  errors: {
+    missing_external_teams: string[];
+    missing_external_users: string[];
+    missing_user_emails: string[];
+    teams_without_access: string[];
+  };
 };
 
 export type KeyValueListData = {
@@ -2151,6 +2191,7 @@ export type ExternalUser = {
   memberId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
 };
 
 export type ExternalTeam = {
@@ -2158,4 +2199,5 @@ export type ExternalTeam = {
   teamId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
 };

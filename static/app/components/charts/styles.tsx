@@ -20,7 +20,6 @@ export const SectionHeading = styled('h4')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
-  line-height: 1.3;
 `;
 
 export const SectionValue = styled('span')`
@@ -67,6 +66,19 @@ export const HeaderTitleLegend = styled(HeaderTitle)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   position: absolute;
   z-index: 1;
+`;
+
+// Used for rendering total value of a chart right below the HeaderTitleLegend
+export const HeaderValue = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: baseline;
+  background-color: ${p => p.theme.background};
+  position: absolute;
+  top: 40px;
+  z-index: 1;
+  font-size: ${p => p.theme.headerFontSize};
 `;
 
 export const ChartContainer = styled('div')`

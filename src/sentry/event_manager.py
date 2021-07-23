@@ -23,18 +23,19 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.eventstore.models import CalculatedHashes
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
+    detect_synthetic_exception,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -319,8 +320,8 @@ class EventManager:
             return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project._organization_cache = Organization.objects.get_from_cache(
-                id=project.organization_id
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
             )
 
         job = {"data": self._data, "project_id": project_id, "raw": raw, "start_time": start_time}
@@ -386,6 +387,9 @@ class EventManager:
 
         if not do_background_grouping_before:
             _run_background_grouping(project, job)
+
+        if hashes.tree_labels:
+            job["finest_tree_label"] = hashes.finest_tree_label
 
         _materialize_metadata_many(jobs)
 
@@ -498,7 +502,7 @@ class EventManager:
                 )
 
         if is_reprocessed:
-            safe_execute(delete_old_primary_hash, job["event"])
+            safe_execute(delete_old_primary_hash, job["event"], _with_transaction=False)
 
         _eventstream_insert_many(jobs)
 
@@ -641,7 +645,7 @@ def _get_or_create_release_many(jobs, projects):
             if job["dist"]:
                 job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
 
-                # dont allow a conflicting 'dist' tag
+                # don't allow a conflicting 'dist' tag
                 pop_tag(job["data"], "dist")
                 set_tag(job["data"], "sentry:dist", job["dist"].name)
 
@@ -710,9 +714,8 @@ def _materialize_metadata_many(jobs):
         # In save_aggregate we store current_tree_label for the group metadata,
         # and finest_tree_label for the event's own title.
 
-        finest_tree_label = get_path(data, "hierarchical_tree_labels", -1)
-        if finest_tree_label is not None:
-            event_metadata["finest_tree_label"] = finest_tree_label
+        if "finest_tree_label" in job:
+            event_metadata["finest_tree_label"] = job["finest_tree_label"]
 
         data.update(materialize_metadata(data, event_type, event_metadata))
         job["culprit"] = data["culprit"]
@@ -990,8 +993,12 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
             project=project, hash=root_hierarchical_hash
         )[0]
 
-        metadata["current_tree_label"] = hashes.tree_label_from_hash(
-            existing_grouphash.hash if existing_grouphash is not None else root_hierarchical_hash
+        metadata.update(
+            hashes.group_metadata_from_hash(
+                existing_grouphash.hash
+                if existing_grouphash is not None
+                else root_hierarchical_hash
+            )
         )
 
     else:
@@ -1228,7 +1235,7 @@ def _handle_regression(group, event, release):
     is_regression = bool(
         Group.objects.filter(
             id=group.id,
-            # ensure we cant update things if the status has been set to
+            # ensure we can't update things if the status has been set to
             # ignored
             status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
         )
@@ -1626,10 +1633,14 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
+    metric_tags = {"grouping_config": grouping_config["id"]}
 
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
             event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+
+    # Detect & set synthetic marker if necessary
+    detect_synthetic_exception(event.data, grouping_config)
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the
@@ -1646,7 +1657,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
             ),
         )
 
-    with metrics.timer("event_manager.event.get_hashes"):
+    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
         # event.  If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
@@ -1673,7 +1684,9 @@ def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.set_organization_cache"):
         for project in projects.values():
             try:
-                project._organization_cache = organizations[project.organization_id]
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
             except KeyError:
                 continue
 

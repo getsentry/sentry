@@ -10,6 +10,8 @@ from .base import ActivityNotification
 
 
 class NewProcessingIssuesActivityNotification(ActivityNotification):
+    is_message_issue_unfurl = False
+
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.issues = summarize_issues(self.activity.data["issues"])
@@ -46,3 +48,12 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "new_processing_issues_activity_email"
+
+    def get_notification_title(self) -> str:
+        project_url = absolute_uri(
+            f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+        )
+        return f"Processing issues on <{self.project.slug}|{project_url}"
+
+    def get_message_description(self) -> Any:
+        return self.get_context()["text_description"]

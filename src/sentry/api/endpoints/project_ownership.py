@@ -1,3 +1,5 @@
+from typing import List
+
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -5,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership, resolve_actors
-from sentry.ownership.grammar import ParseError, dump_schema, parse_rules
+from sentry.ownership.grammar import CODEOWNERS, ParseError, Rule, dump_schema, parse_rules
 from sentry.signals import ownership_rule_created
 
 
@@ -14,8 +16,20 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     fallthrough = serializers.BooleanField()
     autoAssignment = serializers.BooleanField()
 
+    @staticmethod
+    def _validate_no_codeowners(rules: List[Rule]):
+        """
+        codeowner matcher types cannot be added via ProjectOwnership, only through codeowner
+        specific serializers
+        """
+        for rule in rules:
+            if rule.matcher.type == CODEOWNERS:
+                raise serializers.ValidationError(
+                    {"raw": "Codeowner type paths can only be added by importing CODEOWNER files"}
+                )
+
     def validate(self, attrs):
-        if not attrs.get("raw", "").strip():
+        if "raw" not in attrs:
             return attrs
         try:
             rules = parse_rules(attrs["raw"])
@@ -28,6 +42,8 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             )
 
         schema = dump_schema(rules)
+
+        self._validate_no_codeowners(rules)
 
         owners = {o for rule in rules for o in rule.owners}
         actors = resolve_actors(owners, self.context["ownership"].project_id)

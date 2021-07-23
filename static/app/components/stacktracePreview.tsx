@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import StacktraceContentV2 from 'app/components/events/interfaces/stacktraceContentV2';
 import Hovercard, {Body} from 'app/components/hovercard';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
@@ -27,9 +28,11 @@ type Props = {
   organization: Organization;
   api: Client;
   theme: Theme;
+  groupingCurrentLevel?: number;
   disablePreview?: boolean;
   eventId?: string;
   projectSlug?: string;
+  className?: string;
 };
 
 type State = {
@@ -135,18 +138,35 @@ class StacktracePreview extends React.Component<Props, State> {
       );
     }
 
+    const {organization, groupingCurrentLevel} = this.props;
+
     if (event) {
+      const platform = (event.platform ?? 'other') as PlatformType;
+
       return (
         <div onClick={this.handleStacktracePreviewClick}>
-          <StacktraceContent
-            data={stacktrace}
-            expandFirstFrame={false}
-            includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
-            platform={(event.platform ?? 'other') as PlatformType}
-            newestFirst={isStacktraceNewestFirst()}
-            event={event}
-            isHoverPreviewed
-          />
+          {!!organization.features?.includes('grouping-tree-ui') ? (
+            <StacktraceContentV2
+              data={stacktrace}
+              expandFirstFrame={false}
+              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
+              platform={platform}
+              newestFirst={isStacktraceNewestFirst()}
+              event={event}
+              groupingCurrentLevel={groupingCurrentLevel}
+              isHoverPreviewed
+            />
+          ) : (
+            <StacktraceContent
+              data={stacktrace}
+              expandFirstFrame={false}
+              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
+              platform={platform}
+              newestFirst={isStacktraceNewestFirst()}
+              event={event}
+              isHoverPreviewed
+            />
+          )}
         </div>
       );
     }
@@ -155,7 +175,7 @@ class StacktracePreview extends React.Component<Props, State> {
   }
 
   render() {
-    const {children, disablePreview, theme} = this.props;
+    const {children, disablePreview, theme, className} = this.props;
 
     const {loading, loadingVisible} = this.state;
     const stacktrace = this.getStacktrace();
@@ -165,7 +185,7 @@ class StacktracePreview extends React.Component<Props, State> {
     }
 
     return (
-      <span onMouseEnter={this.fetchData}>
+      <span className={className} onMouseEnter={this.fetchData}>
         <StyledHovercard
           body={this.renderHovercardBody(stacktrace)}
           position="right"

@@ -6,8 +6,8 @@
 }
 
 search
-  = spaces terms:term* {
-      return terms.flat();
+  = space:spaces terms:term* {
+      return [space, ...terms.flat()];
     }
 
 term

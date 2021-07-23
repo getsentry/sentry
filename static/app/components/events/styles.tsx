@@ -4,6 +4,8 @@ import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 export const DataSection = styled('div')`
+  display: flex;
+  flex-direction: column;
   padding: ${space(2)} 0;
   border-top: 1px solid ${p => p.theme.innerBorder};
 

@@ -5,7 +5,7 @@ from sentry.models import CommitFileChange
 
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):
     """
-    Similar to ``mock.assert_called_once_with()``, but we dont require all
+    Similar to ``mock.assert_called_once_with()``, but we don't require all
     args and kwargs to be specified.
     """
     assert len(mock.mock_calls) == 1

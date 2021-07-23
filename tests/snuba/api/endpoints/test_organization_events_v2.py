@@ -2,15 +2,27 @@ from base64 import b64encode
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from pytz import utc
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
-from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
+from sentry.models import (
+    ApiKey,
+    ProjectTeam,
+    ProjectTransactionThreshold,
+    ReleaseProjectEnvironment,
+    ReleaseStages,
+)
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import (
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -475,7 +487,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-        # should only show 1 event of type transaction since they dont have issues
+        # should only show 1 event of type transaction since they don't have issues
         query = {
             "field": ["project", "issue"],
             "query": "event.type:transaction !has:issue",
@@ -815,6 +827,141 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert {r["id"] for r in response.data["data"]} == {
             release_1_e_1,
             release_1_e_2,
+        }
+
+    def test_release_stage(self):
+        replaced_release = self.create_release(version="replaced_release")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        adopted_release_e_1 = self.store_event(
+            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        adopted_release_e_2 = self.store_event(
+            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_1 = self.store_event(
+            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_2 = self.store_event(
+            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+
+        query = {
+            "field": ["id"],
+            "query": f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+
+    def test_semver_package(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.4")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{SEMVER_PACKAGE_ALIAS}:test"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_PACKAGE_ALIAS}:test2"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
+        }
+
+    def test_semver_build(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test2@1.2.4+124")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{SEMVER_BUILD_ALIAS}:123"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_BUILD_ALIAS}:124"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
         }
 
     def test_aliased_fields(self):
@@ -4420,3 +4567,81 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
+
+    def test_mobile_measurements(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["frames_total"] = {"value": 100}
+        data["measurements"]["frames_slow"] = {"value": 10}
+        data["measurements"]["frames_frozen"] = {"value": 5}
+        data["measurements"]["stall_count"] = {"value": 2}
+        data["measurements"]["stall_total_time"] = {"value": 12}
+        data["measurements"]["stall_longest_time"] = {"value": 7}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "measurements.frames_total",
+                "measurements.frames_slow",
+                "measurements.frames_frozen",
+                "measurements.frames_slow_rate",
+                "measurements.frames_frozen_rate",
+                "measurements.stall_count",
+                "measurements.stall_total_time",
+                "measurements.stall_longest_time",
+                "measurements.stall_percentage",
+            ],
+            "query": "",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["measurements.frames_total"] == 100
+        assert data[0]["measurements.frames_slow"] == 10
+        assert data[0]["measurements.frames_frozen"] == 5
+        assert data[0]["measurements.frames_slow_rate"] == 0.1
+        assert data[0]["measurements.frames_frozen_rate"] == 0.05
+        assert data[0]["measurements.stall_count"] == 2
+        assert data[0]["measurements.stall_total_time"] == 12
+        assert data[0]["measurements.stall_longest_time"] == 7
+        assert data[0]["measurements.stall_percentage"] == 0.004
+        meta = response.data["meta"]
+        assert meta["measurements.frames_total"] == "number"
+        assert meta["measurements.frames_slow"] == "number"
+        assert meta["measurements.frames_frozen"] == "number"
+        assert meta["measurements.frames_slow_rate"] == "percentage"
+        assert meta["measurements.frames_frozen_rate"] == "percentage"
+        assert meta["measurements.stall_count"] == "number"
+        assert meta["measurements.stall_total_time"] == "number"
+        assert meta["measurements.stall_longest_time"] == "number"
+        assert meta["measurements.stall_percentage"] == "percentage"
+
+        query = {
+            "field": [
+                "p75(measurements.frames_slow_rate)",
+                "p75(measurements.frames_frozen_rate)",
+                "percentile(measurements.frames_slow_rate,0.5)",
+                "percentile(measurements.frames_frozen_rate,0.5)",
+                "p75(measurements.stall_percentage)",
+                "percentile(measurements.stall_percentage,0.5)",
+            ],
+            "query": "",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p75_measurements_frames_slow_rate"] == 0.1
+        assert data[0]["p75_measurements_frames_frozen_rate"] == 0.05
+        assert data[0]["p75_measurements_stall_percentage"] == 0.004
+        assert data[0]["percentile_measurements_frames_slow_rate_0_5"] == 0.1
+        assert data[0]["percentile_measurements_frames_frozen_rate_0_5"] == 0.05
+        assert data[0]["percentile_measurements_stall_percentage_0_5"] == 0.004
+        meta = response.data["meta"]
+        assert meta["p75_measurements_frames_slow_rate"] == "percentage"
+        assert meta["p75_measurements_frames_frozen_rate"] == "percentage"
+        assert meta["p75_measurements_stall_percentage"] == "percentage"
+        assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
+        assert meta["percentile_measurements_stall_percentage_0_5"] == "percentage"

@@ -32,3 +32,11 @@ class RegressionActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "regression_activity_email"
+
+    def get_notification_title(self) -> str:
+        data = self.activity.data
+        release = data.get("version")
+        text = "Issue marked as regression"
+        if release:
+            text += f" in release {release}"
+        return text

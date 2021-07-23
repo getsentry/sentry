@@ -50,7 +50,10 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
   );
 
   return (
-    <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
+    <StyledDropdownControl
+      buttonProps={{prefix: t('Sort by')}}
+      label={getSortLabel(sortKey)}
+    >
       <React.Fragment>
         {query === Query.FOR_REVIEW && getMenuItem(IssueSortOptions.INBOX)}
         {getMenuItem(IssueSortOptions.DATE)}
@@ -62,7 +65,7 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
           {getMenuItem(IssueSortOptions.TREND)}
         </Feature>
       </React.Fragment>
-    </DropdownControl>
+    </StyledDropdownControl>
   );
 };
 
@@ -70,4 +73,16 @@ export default IssueListSortOptions;
 
 const StyledTooltip = styled(Tooltip)`
   width: 100%;
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  z-index: ${p => p.theme.zIndex.issuesList.sortOptions};
+
+  button {
+    width: 100%;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    order: 2;
+  }
 `;

@@ -14,8 +14,8 @@ import {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IntegrationProvider, Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {IntegrationProvider, Organization} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
@@ -27,19 +27,6 @@ import AddInstallationInstructions from './components/integrations/addInstallati
 import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
 import {StepProps} from './types';
-
-type AnalyticsOpts = {
-  organization: Organization;
-  project: Project | null;
-  platform: PlatformKey | null;
-};
-
-const recordAnalyticsDocsClicked = ({organization, project, platform}: AnalyticsOpts) =>
-  analytics('onboarding_v2.full_docs_clicked', {
-    org_id: organization.id,
-    project: project?.slug,
-    platform,
-  });
 
 type Props = StepProps & {
   api: Client;
@@ -84,7 +71,7 @@ class IntegrationSetup extends Component<Props, State> {
 
   get platformDocs() {
     // TODO: make dynamic based on the integration
-    return 'https://docs.sentry.io/product/integrations/aws-lambda/';
+    return 'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
   }
 
   fetchData = async () => {
@@ -107,8 +94,8 @@ class IntegrationSetup extends Component<Props, State> {
   };
 
   handleFullDocsClick = () => {
-    const {organization, project, platform} = this.props;
-    recordAnalyticsDocsClicked({organization, project, platform});
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
   };
 
   trackSwitchToManual = () => {
@@ -163,7 +150,14 @@ class IntegrationSetup extends Component<Props, State> {
           {tct(
             "Don't have have permissions to create a Cloudformation stack? [link:Invite your team instead].",
             {
-              link: <Button priority="link" onClick={openInviteMembersModal} />,
+              link: (
+                <Button
+                  priority="link"
+                  onClick={() => {
+                    openInviteMembersModal();
+                  }}
+                />
+              ),
             }
           )}
         </motion.p>
