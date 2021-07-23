@@ -1,5 +1,4 @@
 import logging
-from collections import defaultdict
 from typing import Optional, Sequence, Tuple
 
 from sentry.utils import json, metrics
@@ -106,7 +105,11 @@ def get_task_kwargs_for_message_from_headers(headers: Sequence[Tuple[str, Option
     the kafka message headers.
     """
     try:
-        header_data = defaultdict(lambda: None, {k: v for k, v in headers})
+        header_data = {k: v for k, v in headers}
+        if "group_id" not in header_data:
+            header_data["group_id"] = None
+        if "primary_hash" not in header_data:
+            header_data["primary_hash"] = None
 
         def decode_str(value: Optional[bytes]) -> str:
             assert isinstance(value, bytes)
