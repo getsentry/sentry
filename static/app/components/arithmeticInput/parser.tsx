@@ -82,7 +82,10 @@ function flatten(remaining: Array<Operation>): Operation {
   return term;
 }
 
-export function parseArithmetic(query: string): {result: Term; error: string} {
+export function parseArithmetic(query: string): {
+  result: Term;
+  error: string | undefined;
+} {
   const tc = new TokenConverter();
   try {
     const result = grammar.parse(query, {tc});

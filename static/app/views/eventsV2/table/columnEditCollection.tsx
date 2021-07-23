@@ -37,7 +37,7 @@ type State = {
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
   draggingGrabbedOffset: undefined | {x: number; y: number};
-  error: Map<number, string>;
+  error: Map<number, string | undefined>;
   left: undefined | number;
   top: undefined | number;
 };
@@ -75,7 +75,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
       document.body.appendChild(this.portal);
     }
-    this.checkColumnErrors();
+    this.checkColumnErrors(this.props.columns);
   }
 
   componentWillUnmount() {
@@ -85,10 +85,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.cleanUpListeners();
   }
 
-  checkColumnErrors() {
+  checkColumnErrors(columns: Column[]) {
     const error = new Map();
-    for (let i = 0; i < this.props.columns.length; i += 1) {
-      const column = this.props.columns[i];
+    for (let i = 0; i < columns.length; i += 1) {
+      const column = columns[i];
       if (column.kind === 'equation') {
         const result = parseArithmetic(column.field);
         if (result.error) {
@@ -153,16 +153,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
   };
 
   removeColumn(index: number) {
-    this.setState(prevState => {
-      const error = new Map(prevState.error);
-      error.delete(index);
-      return {
-        ...prevState,
-        error,
-      };
-    });
     const newColumns = [...this.props.columns];
     newColumns.splice(index, 1);
+    this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
   }
 
@@ -279,32 +272,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const newColumns = [...this.props.columns];
     const removed = newColumns.splice(sourceIndex, 1);
     newColumns.splice(targetIndex, 0, removed[0]);
+    this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
 
-    this.setState(prevState => {
-      const error = new Map(prevState.error);
-      const sourceError = error.get(sourceIndex);
-      const newError = error.get(targetIndex);
-      if (newError) {
-        error.set(sourceIndex, newError);
-      } else {
-        error.delete(sourceIndex);
-      }
-      if (sourceError) {
-        error.set(targetIndex, sourceError);
-      } else {
-        error.delete(targetIndex);
-      }
-      return {
-        ...prevState,
-        error,
-        isDragging: false,
-        left: undefined,
-        top: undefined,
-        draggingIndex: undefined,
-        draggingTargetIndex: undefined,
-        draggingGrabbedOffset: undefined,
-      };
+    this.setState({
+      isDragging: false,
+      left: undefined,
+      top: undefined,
+      draggingIndex: undefined,
+      draggingTargetIndex: undefined,
+      draggingGrabbedOffset: undefined,
     });
   };
 
