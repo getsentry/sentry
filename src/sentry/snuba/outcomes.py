@@ -279,18 +279,25 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
     conditions = [
         Condition(Column("timestamp"), Op.GTE, query.start),
         Condition(Column("timestamp"), Op.LT, query.end),
-        Condition(Column("org_id"), Op.EQ, query.filter_keys["org_id"][0]),
     ]
+    for org in query.filter_keys["org_id"]:
+        conditions.append(
+            Condition(Column("org_id"), Op.EQ, org),
+        )
+    if query.filter_keys.get("project_id") is not None:
+        conditions.append(
+            Condition(Column("project_id"), Op.IN, query.filter_keys.get("project_id")),
+        )
     for condition in query.conditions:
         conditions.append(Condition(Column(condition[0]), Op.IN, condition[2]))
 
+    select_params = []
+    for aggregation in query.aggregations:
+        select_params.append(Function(aggregation[0], [Column(aggregation[1])], aggregation[2]))
     snql_query = Query(
         dataset=query.dataset.value,
         match=Entity("outcomes"),
-        select=[
-            Column("outcome"),
-            Function("sum", [Column("quantity")], "quantity"),
-        ],
+        select=select_params,
         groupby=group_by,
         where=conditions,
         limit=Limit(10000),
