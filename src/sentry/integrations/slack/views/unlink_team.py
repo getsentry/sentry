@@ -90,12 +90,7 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             )
             return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
-        try:
-            Identity.objects.select_related("user").get(idp=idp, external_id=params["slack_id"])
-        except Identity.DoesNotExist:
-            logger.error(
-                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
-            )
+        if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
         external_team.delete()
