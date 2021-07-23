@@ -61,8 +61,8 @@ describe('OrganizationMemberRow', function () {
         }}
       />
     );
-    expect(wrapper.find('IconCheckmark')).toHaveLength(1);
-    expect(wrapper.find('IconFlag')).toHaveLength(0);
+    expect(wrapper.find('IconLock[data-test-id="enabled"]')).toHaveLength(1);
+    expect(wrapper.find('IconLock[data-test-id="disabled"]')).toHaveLength(0);
   });
 
   it('has 2fa warning if user does not have 2fa enabled', function () {
@@ -78,8 +78,8 @@ describe('OrganizationMemberRow', function () {
         }}
       />
     );
-    expect(wrapper.find('IconCheckmark')).toHaveLength(0);
-    expect(wrapper.find('IconFlag')).toHaveLength(1);
+    expect(wrapper.find('IconLock[data-test-id="enabled"]')).toHaveLength(0);
+    expect(wrapper.find('IconLock[data-test-id="disabled"]')).toHaveLength(1);
   });
 
   describe('Pending user', function () {
@@ -228,8 +228,8 @@ describe('OrganizationMemberRow', function () {
         />
       );
 
-      expect(wrapper.find('IconCheckmark')).toHaveLength(0);
-      expect(wrapper.find('IconFlag')).toHaveLength(1);
+      expect(wrapper.find('IconLock[data-test-id="enabled"]')).toHaveLength(0);
+      expect(wrapper.find('IconLock[data-test-id="disabled"]')).toHaveLength(1);
     });
   });
 

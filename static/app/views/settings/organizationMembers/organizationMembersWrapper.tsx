@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
-import {IconMail} from 'app/icons';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {Member, Organization} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -98,7 +98,6 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     const action = (
       <Button
         priority="primary"
-        size="small"
         onClick={() =>
           openInviteMembersModal({
             onClose: () => {
@@ -108,7 +107,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
           })
         }
         data-test-id="email-invite"
-        icon={<IconMail />}
+        icon={<IconAdd isCircled />}
       >
         {t('Invite Members')}
       </Button>

@@ -9,7 +9,7 @@ import HookOrDefault from 'app/components/hookOrDefault';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelItem} from 'app/components/panels';
-import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'app/icons';
+import {IconClose, IconDelete, IconLock, IconMail} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarUser, Member} from 'app/types';
@@ -162,11 +162,11 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
           ) : (
             <AuthStatus>
               {has2fa ? (
-                <IconCheckmark isCircled color="success" />
+                <IconLock color="success" data-test-id="enabled" />
               ) : (
-                <IconFlag color="error" />
+                <IconLock color="error" isUnlocked data-test-id="disabled" />
               )}
-              {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
+              {has2fa ? t('2FA Enabled') : t('2FA Disabled')}
             </AuthStatus>
           )}
         </div>
@@ -183,9 +183,9 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               >
                 <Button
                   data-test-id="remove"
-                  icon={<IconSubtract isCircled size="xs" />}
-                  size="small"
+                  icon={<IconDelete />}
                   busy={this.state.busy}
+                  size="small"
                 >
                   {t('Remove')}
                 </Button>
@@ -197,7 +197,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 disabled
                 size="small"
                 title={t('You do not have access to remove members')}
-                icon={<IconSubtract isCircled size="xs" />}
+                icon={<IconDelete />}
               >
                 {t('Remove')}
               </Button>
@@ -237,7 +237,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: minmax(150px, 2fr) minmax(90px, 1fr) minmax(120px, 1fr) 90px;
+  grid-template-columns: minmax(150px, 2fr) 1fr 1fr max-content;
   grid-gap: ${space(2)};
   align-items: center;
 `;

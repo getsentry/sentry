@@ -42,7 +42,6 @@ function OrganizationTeams({
   const action = (
     <Button
       priority="primary"
-      size="small"
       disabled={!canCreateTeams}
       title={
         !canCreateTeams ? t('You do not have permission to create teams') : undefined
@@ -52,7 +51,7 @@ function OrganizationTeams({
           organization,
         })
       }
-      icon={<IconAdd size="xs" isCircled />}
+      icon={<IconAdd isCircled />}
     >
       {t('Create Team')}
     </Button>
