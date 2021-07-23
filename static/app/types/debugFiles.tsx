@@ -37,8 +37,6 @@ export type AppStoreConnectValidationData = {
   id: string;
   appstoreCredentialsValid: boolean;
   itunesSessionValid: boolean;
-  /** Approximate expiration Date of AppStore Connect iTunes session as an ISO DateTime */
-  itunesSessionRefreshAt: string | null;
   /** Indicates if the itunesSession is actually *needed* to complete any downloads that are pending. */
   pendingDownloads: number;
   /**
