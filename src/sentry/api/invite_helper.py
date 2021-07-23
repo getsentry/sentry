@@ -171,7 +171,7 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user=None, sso_validated=False):
+    def accept_invite(self, user=None):
         om = self.om
 
         if user is None:
