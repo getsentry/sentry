@@ -142,7 +142,7 @@ describe('Release Issues', function () {
         id: undefined,
         name: `Release ${props.version}`,
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        widths: [-1, -1, -1, -1, -1],
+        widths: [],
         sort: ['-count'],
         environment: [],
         project: [],
