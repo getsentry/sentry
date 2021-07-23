@@ -4,8 +4,8 @@ import logging
 import os
 import random
 import time
-from collections import defaultdict
-from datetime import timedelta
+from collections import defaultdict, deque
+from datetime import datetime, timedelta
 from functools import wraps
 from hashlib import sha1
 from typing import List
@@ -24,8 +24,17 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    create_incident,
+    update_incident_status,
 )
-from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+    IncidentActivity,
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentType,
+)
 from sentry.interfaces.user import User as UserInterface
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -77,6 +86,7 @@ org_users = [
     ("aj", "AJ Jindal"),
     ("zac.propersi", "Zac Propersi"),
     ("roggenkemper", "Richard Roggenkemper"),
+    ("neozhang", "Neo Zhang"),
 ]
 
 logger = logging.getLogger(__name__)
@@ -119,6 +129,8 @@ saved_search_by_platform = {
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
 
+alert_platforms = ["android", "python"]
+
 
 def get_data_file_path(file_name):
     return os.path.join(os.path.dirname(__file__), "data", file_name)
@@ -142,7 +154,7 @@ def distribution_v1(hour: int) -> int:
 
 def distribution_v2(hour: int) -> int:
     if hour > 18 and hour < 20:
-        return 16
+        return 12
     if hour > 9 and hour < 14:
         return 8
     if hour > 3 and hour < 22:
@@ -151,6 +163,8 @@ def distribution_v2(hour: int) -> int:
 
 
 def distribution_v3(hour: int) -> int:
+    if hour == 17:
+        return 36
     if hour > 21:
         return 14
     if hour > 6 and hour < 15:
@@ -161,6 +175,7 @@ def distribution_v3(hour: int) -> int:
 
 
 def distribution_v4(hour: int) -> int:
+
     if hour > 13 and hour < 20:
         return 13
     if hour > 5 and hour < 12:
@@ -172,7 +187,7 @@ def distribution_v4(hour: int) -> int:
 
 def distribution_v5(hour: int) -> int:
     if hour == 3:
-        return 12
+        return 49
     if hour < 5:
         return 9
     if hour > 18 and hour < 21:
@@ -551,6 +566,79 @@ def populate_org_members(org, team):
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
 
+def generate_incident_times(timestamps, time_interval, max_days):
+
+    # sort time stamps and set up deque
+    timestamps.sort()
+    time_event_pairs = deque()
+
+    # add timestamp to deque
+    def add(timestamp):
+        if len(time_event_pairs) and time_event_pairs[-1][0] == timestamp:
+            time_event_pairs[-1][1] += 1
+        else:
+            time_event_pairs.append([timestamp, 1])
+            if len(time_event_pairs) > time_interval:
+                time_event_pairs.popleft()
+
+    # count hits within last time_interval
+    def count(timestamp):
+        start_interval = timestamp - timedelta(minutes=time_interval)
+        sum_window = sum(pair[1] for pair in time_event_pairs if pair[0] >= start_interval)
+        return timestamp, sum_window
+
+    # for each timestamp, add it, then count at that timestamp
+    counts = []
+    for timestamp in timestamps:
+        add(timestamp)
+        counts.append(count(timestamp))
+
+    # find maximum number of events over intervals
+    num_events = [count[1] for count in counts]
+    critical = max(num_events + [0])
+
+    # keeps track of adjacent time intervals where number of events is above threshold
+    adjacent_groups = []
+    # current group of adjacent intervals as for loop is iterated through
+    current_group = []
+
+    # find adjacent intervals where errors above critical
+    for pair in sorted(counts):
+        if pair[1] < critical:
+            # ignore times where no alert is created
+            counts.remove(pair)
+        else:
+            if not current_group:
+                current_group = [pair]
+            else:
+                if pair[0] - timedelta(minutes=time_interval) < current_group[-1][0]:
+                    current_group.append(pair)
+                else:
+                    adjacent_groups.append(current_group)
+                    current_group = [pair]
+
+    # adds final group if exists
+    if current_group:
+        adjacent_groups.append(current_group)
+
+    times = []
+    # combine adjacent intervals
+    for adjacent_group in adjacent_groups:
+        # start time is the beginning of the interval
+        interval_time = adjacent_group.pop(0)[0]
+        start_time = interval_time - timedelta(minutes=time_interval)
+        # default end time if non adjacent is right after its interval
+        end_time = interval_time
+        for pair in adjacent_group:
+            # delete combined interval
+            end_time = pair[0]
+            counts.remove(pair)
+
+        times.append((start_time, end_time))
+
+    return critical, times
+
+
 class DataPopulation:
     """
     This class is used to populate data for a single organization
@@ -559,6 +647,7 @@ class DataPopulation:
     def __init__(self, org: Organization, quick: bool):
         self.org = org
         self.quick = quick
+        self.timestamps_by_project = defaultdict(list)
 
     def get_config(self):
         """
@@ -649,6 +738,12 @@ class DataPopulation:
         try:
             create_sample_event_basic(data, project.id)
             time.sleep(self.get_config_var("DEFAULT_BACKOFF_TIME"))
+
+            if project.slug in alert_platforms and data["type"] == "error":
+                self.timestamps_by_project[project.slug].append(
+                    datetime.fromtimestamp(data["timestamp"]).replace(tzinfo=pytz.utc)
+                )
+
         except SnubaError:
             # if snuba fails, just back off and continue
             self.log_info("safe_send_event.snuba_error")
@@ -739,25 +834,90 @@ class DataPopulation:
     def generate_metric_alert(self, project):
         org = project.organization
         team = Team.objects.filter(organization=org).first()
+        time_interval = self.get_config_var("METRIC_ALERT_INTERVAL")
+        max_days = self.get_config_var("MAX_DAYS")
         alert_rule = create_alert_rule(
             org,
             [project],
             f"High Error Rate - {project.name} ",
             "level:error",
             "count()",
-            10,
+            time_interval,
             AlertRuleThresholdType.ABOVE,
             1,
         )
-        critical_trigger = create_alert_rule_trigger(alert_rule, "critical", 10)
-        warning_trigger = create_alert_rule_trigger(alert_rule, "warning", 7)
-        for trigger in [critical_trigger, warning_trigger]:
-            create_alert_rule_trigger_action(
-                trigger,
-                AlertRuleTriggerAction.Type.EMAIL,
-                AlertRuleTriggerAction.TargetType.TEAM,
-                target_identifier=str(team.id),
+
+        # date_modified is changed by max_days times 2 to make sure
+        # the grey modified alert will always be off the chart and not visible
+        alert_rule.update(
+            date_added=timezone.now() - timedelta(days=max_days),
+            date_modified=timezone.now() - timedelta(days=max_days * 2),
+        )
+
+        # find the times when alerts need to be created
+        critical_threshold, incident_times = generate_incident_times(
+            self.timestamps_by_project[project.slug], time_interval, self.get_config_var("MAX_DAYS")
+        )
+
+        critical_trigger = create_alert_rule_trigger(alert_rule, "critical", critical_threshold)
+
+        create_alert_rule_trigger_action(
+            critical_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(team.id),
+        )
+
+        # create alerts
+        for start_time, end_time in incident_times:
+            incident = create_incident(
+                organization=org,
+                type_=IncidentType.ALERT_TRIGGERED,
+                title=f"{critical_threshold} Errors",
+                date_started=start_time,
+                projects=[project],
+                alert_rule=alert_rule,
             )
+
+            # update alert status
+            update_incident_status(incident, status=IncidentStatus.CRITICAL)
+
+            # close alert
+            update_incident_status(
+                incident,
+                IncidentStatus.CLOSED,
+                date_closed=end_time,
+            )
+
+            # update date_added for timeline on side
+            # alert created
+            created = IncidentActivity.objects.filter(
+                incident=incident, type=IncidentActivityType.CREATED.value
+            ).first()
+            # create at end of interval right after trigger detected
+            # doesn't go off end time in case there are adjacent intervals
+            created.update(date_added=start_time + timedelta(minutes=time_interval + 1))
+
+            # alert status changed
+            changed = IncidentActivity.objects.filter(
+                incident=incident,
+                type=IncidentActivityType.STATUS_CHANGE.value,
+                value=IncidentStatus.CRITICAL.value,
+            ).first()
+            # change alert statue right after alert created, creation needs to happen first for the timeline
+            # randomness added so not the same duration
+            change_time = random.randint(30, 60)
+            changed.update(
+                date_added=start_time + timedelta(minutes=time_interval + 1, seconds=change_time)
+            )
+            # resolved
+            resolved = IncidentActivity.objects.filter(
+                incident=incident,
+                type=IncidentActivityType.STATUS_CHANGE.value,
+                value=IncidentStatus.CLOSED.value,
+            ).first()
+            # end alert after the alert change so constant added to make sure the date added is later
+            resolved.update(date_added=end_time + timedelta(minutes=3))
 
     def generate_issue_alert(self, project):
         org = project.organization
@@ -1228,6 +1388,7 @@ class DataPopulation:
             update_context(local_event, platform=project.platform)
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
+
         self.log_info("populate_generic_error.finished")
 
     def populate_generic_transaction(
@@ -1416,7 +1577,6 @@ class DataPopulation:
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="pre_event_setup"
         ):
-            self.generate_alerts(python_project)
             self.generate_saved_query(react_project, "/productstore", "Product Store by Browser")
 
         if not self.get_config_var("DISABLE_SESSIONS"):
@@ -1449,12 +1609,11 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
+        self.generate_alerts(python_project)
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
     ):
-        with sentry_sdk.start_span(op="handle_mobile_scenario", description="pre_event_setup"):
-            self.generate_alerts(android_project)
         if not self.get_config_var("DISABLE_SESSIONS"):
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
@@ -1491,3 +1650,4 @@ class DataPopulation:
             )
         self.assign_issues()
         self.inbox_issues()
+        self.generate_alerts(android_project)
