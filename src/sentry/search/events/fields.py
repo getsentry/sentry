@@ -2184,7 +2184,10 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count_miserable",
-                    required_args=[CountColumn("column")],
+                    # Using the generic FunctionArg here temporarily till we
+                    # implement a resolver for count columns in SnQL. The only
+                    # column to be passed through here for now is `user`.
+                    required_args=[FunctionArg("column")],
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[
                         {
@@ -2221,14 +2224,6 @@ class QueryFields(QueryBase):
                     ],
                     snql_aggregate=self._resolve_user_misery_function,
                     default_result_type="number",
-                ),
-                SnQLFunction(
-                    "count_unique",
-                    optional_args=[CountColumn("column")],
-                    snql_aggregate=lambda args, alias: Function(
-                        "uniq", [self.column(args["column"])], alias
-                    ),
-                    default_result_type="integer",
                 ),
                 SnQLFunction(
                     "count",
@@ -2301,6 +2296,7 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
                 ),
+                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
@@ -2714,11 +2710,12 @@ class QueryFields(QueryBase):
                     4,
                 ],
             )
+        col = args["column"]
 
         return Function(
             "uniqIf",
             [
-                self.column(args["column"]),
+                self.resolve_field(col) if self.is_field_alias(col) else self.column(col),
                 Function("greater", [lhs, rhs]),
             ],
             alias,
@@ -2747,7 +2744,10 @@ class QueryFields(QueryBase):
                         ),
                         Function(
                             "plus",
-                            [self.resolve_function("count_unique(user)"), args["parameter_sum"]],
+                            [
+                                Function("uniq", [self.column("user")]),
+                                args["parameter_sum"],
+                            ],
                         ),
                     ],
                 ),

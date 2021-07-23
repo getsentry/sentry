@@ -98,6 +98,7 @@ SNQL_FIELD_ALLOWLIST = {
     "release",
     USER_DISPLAY_ALIAS,
     "user.email",
+    "user",
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
