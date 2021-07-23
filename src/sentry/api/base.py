@@ -292,6 +292,15 @@ class Endpoint(APIView):
 
         return per_page
 
+    def get_cursor_from_request(self, request, cursor_cls=Cursor):
+        if not request.GET.get(self.cursor_name):
+            return
+
+        try:
+            return cursor_cls.from_string(request.GET.get(self.cursor_name))
+        except ValueError:
+            raise ParseError(detail="Invalid cursor parameter.")
+
     def paginate(
         self,
         request,
@@ -307,12 +316,7 @@ class Endpoint(APIView):
 
         per_page = self.get_per_page(request, default_per_page, max_per_page)
 
-        input_cursor = None
-        if request.GET.get(self.cursor_name):
-            try:
-                input_cursor = cursor_cls.from_string(request.GET.get(self.cursor_name))
-            except ValueError:
-                raise ParseError(detail="Invalid cursor parameter.")
+        input_cursor = self.get_cursor_from_request(request, cursor_cls=cursor_cls)
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
