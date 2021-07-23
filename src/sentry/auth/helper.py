@@ -35,12 +35,13 @@ from sentry.models import (
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
-from sentry.utils import auth, metrics
+from sentry.utils import auth, json, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.session_store import redis_property
+from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
@@ -357,8 +358,16 @@ class AuthIdentityHandler:
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def _post_login_redirect(self) -> HttpResponseRedirect:
-        response = HttpResponseRedirect(auth.get_login_redirect(self.request))
+    def _post_login_redirect(self, is_new_user: bool = False) -> HttpResponseRedirect:
+        url = auth.get_login_redirect(self.request)
+        if is_new_user:
+            # add events that we can hanlde on the front end
+            provider = self.auth_provider.provider if self.auth_provider else None
+            params = {
+                "marketing_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
+            }
+            url = add_params_to_url(url, params)
+        response = HttpResponseRedirect(auth.get_login_redirect(url))
 
         # Always remove any pending invite cookies, pending invites will have been
         # accepted during the SSO flow.

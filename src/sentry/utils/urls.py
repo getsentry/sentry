@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 _scheme_re = re.compile(r"^([a-zA-Z0-9-+]+://)(.*)$")
 
@@ -28,3 +28,11 @@ def non_standard_url_join(base, to_join):
             return original_base_scheme + match.group(2)
 
     return rv
+
+
+def add_params_to_url(url, params):
+    url_parts = list(urlparse(url))
+    query = dict(parse_qsl(url_parts[4]))
+    query.update(params)
+    url_parts[4] = urlencode(query)
+    return urlunparse(url_parts)
