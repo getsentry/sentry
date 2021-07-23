@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import {t} from 'app/locale';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 
