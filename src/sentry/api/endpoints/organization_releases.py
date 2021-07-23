@@ -303,7 +303,11 @@ class OrganizationReleasesEndpoint(
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            queryset = queryset.annotate_adoption_date_column().order_by("-adopted")
+            project_ids = filter_params["project_id"]
+            environments = filter_params.get("environment")
+            queryset = queryset.annotate_adoption_date_column(project_ids, environments).order_by(
+                "-adopted"
+            )
             paginator_kwargs["order_by"] = "-adopted"
         elif sort in self.SESSION_SORTS:
             if not flatten:
@@ -311,6 +315,7 @@ class OrganizationReleasesEndpoint(
                     {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
                     status=400,
                 )
+
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
                 data_load_func=lambda offset, limit: get_project_releases_by_stability(

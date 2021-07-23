@@ -134,13 +134,17 @@ class ReleaseQuerySet(models.QuerySet):
             )
         )
 
-    def annotate_adoption_date_column(self):
+    def annotate_adoption_date_column(self, project_ids, environments=None):
         from sentry.models import ReleaseProjectEnvironment
+
+        rpe_filter = ReleaseProjectEnvironment.objects.filter(project_id__in=project_ids)
+        if environments:
+            rpe_filter = rpe_filter.filter(environment__name__in=environments)
 
         return self.annotate(
             adopted=Coalesce(
                 Subquery(
-                    ReleaseProjectEnvironment.objects.filter(release_id=OuterRef("pk"))
+                    rpe_filter.filter(release_id=OuterRef("pk"))
                     .order_by("-adopted")
                     .values("adopted")[:1]
                 ),
@@ -273,8 +277,8 @@ class ReleaseModelManager(models.Manager):
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
 
-    def annotate_adoption_date_column(self):
-        return self.get_queryset().annotate_adoption_date_column()
+    def annotate_adoption_date_column(self, project_ids, environments=None):
+        return self.get_queryset().annotate_adoption_date_column(project_ids, environments)
 
     def filter_to_semver(self):
         return self.get_queryset().filter_to_semver()
