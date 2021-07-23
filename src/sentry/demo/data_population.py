@@ -4,7 +4,7 @@ import logging
 import os
 import random
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from functools import wraps
 from hashlib import sha1
@@ -154,7 +154,7 @@ def distribution_v1(hour: int) -> int:
 
 def distribution_v2(hour: int) -> int:
     if hour > 18 and hour < 20:
-        return 16
+        return 12
     if hour > 9 and hour < 14:
         return 8
     if hour > 3 and hour < 22:
@@ -187,7 +187,7 @@ def distribution_v4(hour: int) -> int:
 
 def distribution_v5(hour: int) -> int:
     if hour == 3:
-        return 12
+        return 49
     if hour < 5:
         return 9
     if hour > 18 and hour < 21:
@@ -567,29 +567,29 @@ def populate_org_members(org, team):
 
 
 def generate_incident_times(timestamps, time_interval, max_days):
-    # rounds to nearest hour
-    start_time = timezone.now().replace(second=0, microsecond=0) - timedelta(days=max_days)
-
-    if time_interval < 60:
-        start_time = start_time - timedelta(minutes=timezone.now().minute % time_interval)
-    else:
-        start_time = (
-            start_time
-            - timedelta(minutes=timezone.now().minute % 60)
-            - timedelta(hours=timezone.now().hour % (time_interval / 60))
-        )
-
-    # groups events by hour keeping track of number of events, start time, and number of adjacent time intervals
-    counter = defaultdict(lambda: {"events": 0, "timestamps": [start_time], "intervals": 1})
 
     timestamps.sort()
+    time_event_pairs = deque()
+
+    def add(timestamp):
+        if len(time_event_pairs) and time_event_pairs[-1][0] == timestamp:
+            time_event_pairs[-1][1] += 1
+        else:
+            time_event_pairs.append([timestamp, 1])
+            if len(time_event_pairs) > time_interval:
+                time_event_pairs.popleft()
+
+    def count(timestamp):
+        start_interval = timestamp - timedelta(minutes=time_interval)
+        sum_window = sum(pair[1] for pair in time_event_pairs if pair[0] >= start_interval)
+        return timestamp, sum_window
+
+    counts = []
     for timestamp in timestamps:
-        while timestamp > start_time + timedelta(minutes=time_interval):
-            start_time = start_time + timedelta(minutes=time_interval)
+        add(timestamp)
+        counts.append(count(timestamp))
 
-        counter[start_time]["events"] += 1
-
-    num_events = [counter[timestamp]["events"] for timestamp in counter.keys()]
+    num_events = [count[1] for count in counts]
     critical = max(num_events + [0])
 
     # keeps track of adjacent time intervals where number of events is above threshold
@@ -598,41 +598,39 @@ def generate_incident_times(timestamps, time_interval, max_days):
     current_group = []
 
     # find adjacent intervals where errors above critical
-    for timestamp, _ in sorted(counter.items()):
-        if counter[timestamp]["events"] < critical:
+    for pair in sorted(counts):
+        if pair[1] < critical:
             # ignore times where no alert is created
-            del counter[timestamp]
+            counts.remove(pair)
         else:
             if not current_group:
-                current_group = [timestamp]
+                current_group = [pair]
             else:
-                if timestamp - timedelta(minutes=time_interval) in current_group:
-                    current_group.append(timestamp)
+                if pair[0] - timedelta(minutes=time_interval) < current_group[-1][0]:
+                    current_group.append(pair)
                 else:
                     adjacent_groups.append(current_group)
-                    current_group = [timestamp]
+                    current_group = [pair]
 
     # adds final group if exists
     if current_group:
         adjacent_groups.append(current_group)
 
+    times = []
     # combine adjacent intervals
     for adjacent_group in adjacent_groups:
-        start_time = adjacent_group.pop(0)
-        for timestamp in adjacent_group:
-            intervals = counter[timestamp]["intervals"]
-            timestamps = counter[timestamp]["timestamps"]
+        # start time is the beginning of the interval
+        interval_time = adjacent_group.pop(0)[0]
+        start_time = interval_time - timedelta(minutes=time_interval)
+        # default end time if non adjacent is right after its interval
+        end_time = interval_time
+        for pair in adjacent_group:
+            # delete combined interval
+            end_time = pair[0]
+            counts.remove(pair)
 
-            # delete combined intervals
-            del counter[timestamp]
+        times.append((start_time, end_time))
 
-            counter[start_time]["intervals"] += intervals
-            counter[start_time]["timestamps"] += timestamps
-
-    times = [
-        (counter[timestamp]["timestamps"][0], counter[timestamp]["intervals"])
-        for timestamp in counter.keys()
-    ]
     return critical, times
 
 
@@ -844,6 +842,8 @@ class DataPopulation:
             1,
         )
 
+        # date_modified is changed by max_days times 2 to make sure
+        # the grey modified alert will always be off the chart and not visible
         alert_rule.update(
             date_added=timezone.now() - timedelta(days=max_days),
             date_modified=timezone.now() - timedelta(days=max_days * 2),
@@ -864,12 +864,12 @@ class DataPopulation:
         )
 
         # create alerts
-        for incident_time, num_intervals in incident_times:
+        for start_time, end_time in incident_times:
             incident = create_incident(
                 organization=org,
                 type_=IncidentType.ALERT_TRIGGERED,
                 title=f"{critical_threshold} Errors",
-                date_started=incident_time,
+                date_started=start_time,
                 projects=[project],
                 alert_rule=alert_rule,
             )
@@ -881,7 +881,7 @@ class DataPopulation:
             update_incident_status(
                 incident,
                 IncidentStatus.CLOSED,
-                date_closed=incident_time + timedelta(minutes=time_interval * num_intervals),
+                date_closed=end_time,
             )
 
             # update date_added for timeline on side
@@ -889,23 +889,29 @@ class DataPopulation:
             created = IncidentActivity.objects.filter(
                 incident=incident, type=IncidentActivityType.CREATED.value
             ).first()
-            created.update(date_added=incident_time + timedelta(minutes=30))
+            # create at end of interval right after trigger detected
+            # doesn't go off end time in case there are adjacent intervals
+            created.update(date_added=start_time + timedelta(minutes=time_interval + 1))
+
             # alert status changed
             changed = IncidentActivity.objects.filter(
                 incident=incident,
                 type=IncidentActivityType.STATUS_CHANGE.value,
                 value=IncidentStatus.CRITICAL.value,
             ).first()
-            changed.update(date_added=incident_time + timedelta(minutes=60))
+            # change alert statue right after alert created, creation needs to happen first for the timeline
+            change_time = random.randint(30, 60)
+            changed.update(
+                date_added=start_time + timedelta(minutes=time_interval + 1, seconds=change_time)
+            )
             # resolved
             resolved = IncidentActivity.objects.filter(
                 incident=incident,
                 type=IncidentActivityType.STATUS_CHANGE.value,
                 value=IncidentStatus.CLOSED.value,
             ).first()
-            resolved.update(
-                date_added=incident_time + timedelta(minutes=time_interval * num_intervals + 30)
-            )
+            # end alert after the alert change
+            resolved.update(date_added=end_time + timedelta(minutes=3))
 
     def generate_issue_alert(self, project):
         org = project.organization
