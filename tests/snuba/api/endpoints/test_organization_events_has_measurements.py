@@ -53,6 +53,32 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "non_field_errors": [ErrorDetail("Only 1 project allowed.", code="invalid")],
         }
 
+    def test_no_transaction(self):
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "type": "web",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "transaction": [ErrorDetail("This field may not be null.", code="null")],
+        }
+
+    def test_no_type(self):
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "transaction": self.transaction_data["transaction"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "type": [ErrorDetail("This field may not be null.", code="null")],
+        }
+
     def test_unknown_type(self):
         response = self.do_request(
             {
