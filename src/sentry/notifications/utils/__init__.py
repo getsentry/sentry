@@ -40,11 +40,16 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.notifications.notify import notify
+from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
+    from sentry.notifications.activity.base import ActivityNotification
+    from sentry.notifications.user_report import UserReportNotification
+
 
 logger = logging.getLogger(__name__)
 
@@ -252,3 +257,21 @@ def get_interface_list(event: "Event") -> Sequence[Tuple[str, str, str]]:
         text_body = interface.to_string(event)
         interface_list.append((interface.get_title(), mark_safe(body), text_body))
     return interface_list
+
+
+def send_activity_notification(
+    notification: Union["ActivityNotification", "UserReportNotification"]
+) -> None:
+    if not notification.should_email():
+        return
+
+    participants_by_provider = notification.get_participants_with_group_subscription_reason()
+    if not participants_by_provider:
+        return
+
+    # Only calculate shared context once.
+    shared_context = notification.get_context()
+
+    for provider, participants_with_reasons in participants_by_provider.items():
+        participants_, extra_context = split_participants_and_context(participants_with_reasons)
+        notify(provider, notification, participants_, shared_context, extra_context)

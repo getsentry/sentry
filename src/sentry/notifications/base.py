@@ -58,3 +58,6 @@ class BaseNotification:
     def get_message_description(self) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
+
+    def get_type(self) -> str:
+        raise NotImplementedError

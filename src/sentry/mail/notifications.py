@@ -44,14 +44,6 @@ def get_subject_with_prefix(
     return f"{prefix}{notification.get_subject()}".encode("utf-8")
 
 
-def get_email_type(notification: BaseNotification) -> str:
-    if isinstance(notification, ActivityNotification):
-        return f"notify.activity.{notification.activity.get_type_display()}"
-    elif isinstance(notification, AlertRuleNotification):
-        return "notify.error"
-    return ""
-
-
 def get_unsubscribe_link(user_id: int, group_id: int) -> str:
     return generate_signed_link(
         user_id,
@@ -115,7 +107,6 @@ def send_notification_as_email(
 ) -> None:
     headers = get_headers(notification)
     subject = get_subject_with_prefix(notification)
-    type = get_email_type(notification)
 
     for user in users:
         extra_context = (extra_context_by_user_id or {}).get(user.id, {})
@@ -128,7 +119,7 @@ def send_notification_as_email(
             headers=headers,
             reference=notification.get_reference(),
             reply_reference=notification.get_reply_reference(),
-            type=type,
+            type=notification.get_type(),
         )
         msg.add_users([user.id], project=notification.project)
         msg.send_async()
