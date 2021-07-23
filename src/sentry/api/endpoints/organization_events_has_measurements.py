@@ -4,13 +4,11 @@ import sentry_sdk
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
-from sentry.utils.snuba import is_measurement
 
 MEASUREMENT_TYPES = {
     "web": [
