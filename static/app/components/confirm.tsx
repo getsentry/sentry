@@ -39,6 +39,14 @@ type Props = {
    */
   onConfirm?: () => void;
   /**
+   * Custom function to render the confirm button
+   */
+  renderConfirmButton?: (closeModal: () => void, defaultOnClick: () => void) => void;
+  /**
+   * Custom function to render the cancel button
+   */
+  renderCancelButton?: (closeModal: () => void, defaultOnClick: () => void) => void;
+  /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
    */
   bypass?: boolean;
@@ -105,6 +113,8 @@ type Props = {
 function Confirm({
   bypass,
   renderMessage,
+  renderConfirmButton,
+  renderCancelButton,
   message,
   header,
   disabled,
@@ -137,6 +147,8 @@ function Confirm({
     const modalProps = {
       priority,
       renderMessage,
+      renderConfirmButton,
+      renderCancelButton,
       message,
       confirmText,
       cancelText,
@@ -166,6 +178,8 @@ type ModalProps = ModalRenderProps &
     Props,
     | 'priority'
     | 'renderMessage'
+    | 'renderConfirmButton'
+    | 'renderCancelButton'
     | 'message'
     | 'confirmText'
     | 'cancelText'
@@ -246,24 +260,41 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
   }
 
   render() {
-    const {Header, Body, Footer, priority, confirmText, cancelText, header} = this.props;
-
+    const {
+      Header,
+      Body,
+      Footer,
+      priority,
+      confirmText,
+      cancelText,
+      header,
+      renderConfirmButton,
+      renderCancelButton,
+    } = this.props;
     return (
       <React.Fragment>
         {header && <Header>{header}</Header>}
         <Body>{this.confirmMessage}</Body>
         <Footer>
           <ButtonBar gap={2}>
-            <Button onClick={this.handleClose}>{cancelText}</Button>
-            <Button
-              data-test-id="confirm-button"
-              disabled={this.state.disableConfirmButton}
-              priority={priority}
-              onClick={this.handleConfirm}
-              autoFocus
-            >
-              {confirmText}
-            </Button>
+            {renderCancelButton ? (
+              renderCancelButton(this.props.closeModal, this.handleClose)
+            ) : (
+              <Button onClick={this.handleClose}>{cancelText}</Button>
+            )}
+            {renderConfirmButton ? (
+              renderConfirmButton(this.props.closeModal, this.handleConfirm)
+            ) : (
+              <Button
+                data-test-id="confirm-button"
+                disabled={this.state.disableConfirmButton}
+                priority={priority}
+                onClick={this.handleConfirm}
+                autoFocus
+              >
+                {confirmText}
+              </Button>
+            )}
           </ButtonBar>
         </Footer>
       </React.Fragment>
