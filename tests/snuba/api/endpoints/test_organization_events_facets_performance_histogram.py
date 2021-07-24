@@ -190,6 +190,28 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         assert tag_data[0]["tags_value"] == "red"
         assert tag_data[1]["tags_value"] == "blue"
 
+    def test_no_top_tags(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "tagKeyLimit": 10,
+            "numBucketsPerKey": 10,
+            "tagKey": "color",
+            "query": "(color:teal or color:oak)",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        histogram_data = data_response.data["histogram"]["data"]
+        assert histogram_data == []
+
+        tag_data = data_response.data["tags"]["data"]
+        assert tag_data == []
+
     def test_tag_key_histogram_buckets(self):
         request = {
             "aggregateColumn": "transaction.duration",

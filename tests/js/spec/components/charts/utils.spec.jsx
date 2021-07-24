@@ -9,39 +9,73 @@ describe('Chart Utils', function () {
   describe('getInterval()', function () {
     describe('with high fidelity', function () {
       it('greater than 24 hours', function () {
-        expect(getInterval({period: '25h'}, true)).toBe('30m');
+        expect(getInterval({period: '25h'}, 'high')).toBe('30m');
       });
 
       it('less than 30 minutes', function () {
-        expect(getInterval({period: '20m'}, true)).toBe('1m');
+        expect(getInterval({period: '20m'}, 'high')).toBe('1m');
       });
       it('between 30 minutes and 24 hours', function () {
-        expect(getInterval({period: '12h'}, true)).toBe('5m');
+        expect(getInterval({period: '12h'}, 'high')).toBe('5m');
+      });
+      it('more than 14 days', function () {
+        expect(getInterval({period: '14d'}, 'high')).toBe('30m');
       });
       it('more than 30 days', function () {
-        expect(getInterval({period: '30d'}, true)).toBe('1h');
+        expect(getInterval({period: '30d'}, 'high')).toBe('1h');
       });
       it('more than 60 days', function () {
-        expect(getInterval({period: '90d'}, true)).toBe('4h');
+        expect(getInterval({period: '90d'}, 'high')).toBe('4h');
+      });
+    });
+
+    describe('with medium fidelity', function () {
+      it('greater than 24 hours', function () {
+        expect(getInterval({period: '25h'})).toBe('1h');
+        expect(getInterval({period: '25h'}, 'medium')).toBe('1h');
+      });
+
+      it('less than 30 minutes', function () {
+        expect(getInterval({period: '20m'})).toBe('5m');
+        expect(getInterval({period: '20m'}, 'medium')).toBe('5m');
+      });
+      it('between 30 minutes and 24 hours', function () {
+        expect(getInterval({period: '12h'})).toBe('15m');
+        expect(getInterval({period: '12h'}, 'medium')).toBe('15m');
+      });
+      it('more than 14 days', function () {
+        expect(getInterval({period: '14d'})).toBe('1h');
+        expect(getInterval({period: '14d'}, 'medium')).toBe('1h');
+      });
+      it('more than 30 days', function () {
+        expect(getInterval({period: '30d'})).toBe('4h');
+        expect(getInterval({period: '30d'}, 'medium')).toBe('4h');
+      });
+      it('more than 90 days', function () {
+        expect(getInterval({period: '90d'})).toBe('1d');
+        expect(getInterval({period: '90d'}, 'medium')).toBe('1d');
       });
     });
 
     describe('with low fidelity', function () {
       it('greater than 24 hours', function () {
-        expect(getInterval({period: '25h'})).toBe('1h');
+        expect(getInterval({period: '25h'}, 'low')).toBe('6h');
       });
 
       it('less than 30 minutes', function () {
-        expect(getInterval({period: '20m'})).toBe('5m');
+        expect(getInterval({period: '20m'}, 'low')).toBe('10m');
       });
       it('between 30 minutes and 24 hours', function () {
-        expect(getInterval({period: '12h'})).toBe('15m');
+        expect(getInterval({period: '12h'}, 'low')).toBe('1h');
+      });
+      it('more than 14 days', function () {
+        expect(getInterval({period: '14d'}, 'low')).toBe('12h');
       });
       it('more than 30 days', function () {
-        expect(getInterval({period: '30d'})).toBe('4h');
+        expect(getInterval({period: '30d'}, 'low')).toBe('1d');
       });
       it('more than 90 days', function () {
-        expect(getInterval({period: '90d'})).toBe('1d');
+        expect(getInterval({period: '90d'}, 'low')).toBe('2d');
       });
     });
   });

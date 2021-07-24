@@ -181,7 +181,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
       return {};
     }
 
-    const markLines = generateReleaseMarkLines(release, project.slug, theme, location);
+    const markLines = generateReleaseMarkLines(release, project, theme, location);
 
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:

@@ -130,6 +130,9 @@ class ReleasePromo extends Component<Props> {
           )}
         </p>
         <ButtonList gap={1}>
+          <Button priority="primary" href={releasesSetupUrl} external>
+            {t('Start Setup')}
+          </Button>
           <FeatureTourModal
             steps={RELEASES_TOUR_STEPS}
             onAdvance={this.handleTourAdvance}
@@ -143,9 +146,6 @@ class ReleasePromo extends Component<Props> {
               </Button>
             )}
           </FeatureTourModal>
-          <Button priority="primary" href={releasesSetupUrl} external>
-            {t('Start Setup')}
-          </Button>
         </ButtonList>
       </OnboardingPanel>
     );

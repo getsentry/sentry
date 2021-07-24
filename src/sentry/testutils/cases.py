@@ -38,7 +38,8 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -427,6 +428,14 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             assert_status_code(response, 400, 600)
 
         return response
+
+    def get_cursor_headers(self, response):
+        return [
+            link["cursor"]
+            for link in requests.utils.parse_header_links(
+                response.get("link").rstrip(">").replace(">,<", ",<")
+            )
+        ]
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -1130,6 +1139,45 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             user=self.user, organization=self.organization, role="member", teams=[self.team]
         )
         self.login_as(self.user)
+
+
+class TestMigrations(TestCase):
+    """
+    From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
+    """
+
+    @property
+    def app(self):
+        return "sentry"
+
+    migrate_from = None
+    migrate_to = None
+
+    def setUp(self):
+        assert (
+            self.migrate_from and self.migrate_to
+        ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
+            type(self).__name__
+        )
+        self.migrate_from = [(self.app, self.migrate_from)]
+        self.migrate_to = [(self.app, self.migrate_to)]
+        executor = MigrationExecutor(connection)
+        old_apps = executor.loader.project_state(self.migrate_from).apps
+
+        # Reverse to the original migration
+        executor.migrate(self.migrate_from)
+
+        self.setup_before_migration(old_apps)
+
+        # Run the migration to test
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()  # reload.
+        executor.migrate(self.migrate_to)
+
+        self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def setup_before_migration(self, apps):
+        pass
 
 
 class SCIMTestCase(APITestCase):

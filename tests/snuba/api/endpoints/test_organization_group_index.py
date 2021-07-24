@@ -31,6 +31,7 @@ from sentry.models import (
     OrganizationIntegration,
     Release,
     ReleaseProjectEnvironment,
+    ReleaseStages,
     UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
@@ -891,6 +892,78 @@ class GroupListTest(APITestCase, SnubaTestCase):
             before_now_100_seconds
         ).replace(tzinfo=timezone.utc)
 
+    def test_semver_seen_stats(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5")
+
+        release_1_e_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        )
+        group_1 = release_1_e_1.group
+
+        release_2_e_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=3)),
+                "fingerprint": ["group-1"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        )
+
+        release_3_e_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+                "release": release_3.version,
+            },
+            project_id=self.project.id,
+        )
+
+        group_1.update(times_seen=3)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort_by="date", limit=10, query="release.version:1.2.3"
+        )
+        assert [int(row["id"]) for row in response.data] == [group_1.id]
+        group_data = response.data[0]
+        assert group_data["lifetime"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["filtered"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["lifetime"]["lastSeen"] == release_3_e_1.datetime
+        assert group_data["filtered"]["lastSeen"] == release_1_e_1.datetime
+        assert int(group_data["lifetime"]["count"]) == 3
+        assert int(group_data["filtered"]["count"]) == 1
+
+        response = self.get_success_response(
+            sort_by="date", limit=10, query="release.version:>=1.2.3"
+        )
+        assert [int(row["id"]) for row in response.data] == [group_1.id]
+        group_data = response.data[0]
+        assert group_data["lifetime"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["filtered"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["lifetime"]["lastSeen"] == release_3_e_1.datetime
+        assert group_data["filtered"]["lastSeen"] == release_3_e_1.datetime
+        assert int(group_data["lifetime"]["count"]) == 3
+        assert int(group_data["filtered"]["count"]) == 3
+
+        response = self.get_success_response(
+            sort_by="date", limit=10, query="release.version:=1.2.4"
+        )
+        assert [int(row["id"]) for row in response.data] == [group_1.id]
+        group_data = response.data[0]
+        assert group_data["lifetime"]["firstSeen"] == release_1_e_1.datetime
+        assert group_data["filtered"]["firstSeen"] == release_2_e_1.datetime
+        assert group_data["lifetime"]["lastSeen"] == release_3_e_1.datetime
+        assert group_data["filtered"]["lastSeen"] == release_2_e_1.datetime
+        assert int(group_data["lifetime"]["count"]) == 3
+        assert int(group_data["filtered"]["count"]) == 1
+
     def test_inbox_search(self):
         self.store_event(
             data={
@@ -1264,7 +1337,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.get_response(
-            sort_by="date", limit=10, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+            sort_by="date", limit=10, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1273,18 +1346,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         ]
 
         response = self.get_response(
-            sort_by="date", limit=10, query=f"!{RELEASE_STAGE_ALIAS}:not_adopted"
-        )
-        assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
-            adopted_release_g_1,
-            adopted_release_g_2,
-            replaced_release_g_1,
-            replaced_release_g_2,
-        ]
-
-        response = self.get_response(
-            sort_by="date", limit=10, query=f"{RELEASE_STAGE_ALIAS}:[adopted, replaced]"
+            sort_by="date", limit=10, query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1295,7 +1357,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
         ]
 
         response = self.get_response(
-            sort_by="date", limit=10, query=f"!{RELEASE_STAGE_ALIAS}:[not_adopted, replaced]"
+            sort_by="date",
+            limit=10,
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+        )
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            adopted_release_g_1,
+            adopted_release_g_2,
+            replaced_release_g_1,
+            replaced_release_g_2,
+        ]
+
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}, {ReleaseStages.REPLACED}]",
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1926,6 +2003,101 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
         assert activity.data["version"] == ""
         uo1.delete()
+
+    def test_in_semver_projects_group_resolution_stores_current_release_version(self):
+        """
+        Test that ensures that when we resolve a group in the next release, then
+        GroupResolution.current_release_version is set to the latest release associated with a
+        Group, when the project follows semantic versioning scheme
+        """
+        release_1 = self.create_release(version="fake_package@21.1.0")
+        release_2 = self.create_release(version="fake_package@21.1.1")
+        release_3 = self.create_release(version="fake_package@21.1.2")
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        )
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"]
+
+        # The current_release_version should be to the latest (in semver) release associated with
+        # a group
+        grp_resolution = GroupResolution.objects.filter(group=group)
+
+        assert len(grp_resolution) == 1
+        assert grp_resolution[0].current_release_version == release_2.version
+
+        # Add release that is between 2 and 3 to ensure that any release after release 2 should
+        # not have a resolution
+        release_4 = self.create_release(version="fake_package@21.1.1+1")
+
+        for release in [release_1, release_2]:
+            assert GroupResolution.has_resolution(group=group, release=release)
+
+        for release in [release_3, release_4]:
+            assert not GroupResolution.has_resolution(group=group, release=release)
+
+    def test_in_non_semver_projects_group_resolution_stores_current_release_version(self):
+        """
+        Test that ensures that when we resolve a group in the next release, then
+        GroupResolution.current_release_version is set to the most recent release associated with a
+        Group, when the project does not follow semantic versioning scheme
+        """
+        release_1 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+        )
+        release_2 = self.create_release(version="foobar 2")
+
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"]
+
+        # Add a new release that is between 1 and 2, to make sure that if a the same issue/group
+        # occurs in that issue, then it should not have a resolution
+        release_3 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=30), version="foobar 3"
+        )
+
+        grp_resolution = GroupResolution.objects.filter(group=group)
+
+        assert len(grp_resolution) == 1
+        assert grp_resolution[0].current_release_version == release_1.version
+
+        assert GroupResolution.has_resolution(group=group, release=release_1)
+        for release in [release_2, release_3]:
+            assert not GroupResolution.has_resolution(group=group, release=release)
 
     def test_selective_status_update(self):
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)

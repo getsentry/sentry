@@ -207,7 +207,7 @@ class VitalChart extends Component<Props> {
                 environment={environment}
                 start={start}
                 end={end}
-                interval={getInterval(datetimeSelection, true)}
+                interval={getInterval(datetimeSelection, 'high')}
                 showLoading={false}
                 query={query}
                 includePrevious={false}

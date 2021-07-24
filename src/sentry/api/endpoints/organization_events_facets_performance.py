@@ -35,7 +35,10 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
         return features.has("organizations:performance-tag-page", organization, actor=request.user)
 
     def setup(self, request, organization):
-        if not self.has_feature(organization, request):
+        if not (
+            self.has_feature(organization, request)
+            or self.has_tag_page_feature(organization, request)
+        ):
             raise Http404
 
         params = self.get_snuba_params(request, organization)
@@ -174,7 +177,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not top_tags:
-                    return {"data": []}
+                    return {"data": []}, []
 
                 results = query_facet_performance_key_histogram(
                     top_tags=top_tags,
@@ -188,7 +191,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not results:
-                    return {"data": []}
+                    return {"data": []}, top_tags
 
                 for row in results["data"]:
                     row["tags_value"] = tagstore.get_tag_value_label(
@@ -232,6 +235,8 @@ def query_tag_data(
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
 
+    translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
+
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         # Get the average and count to use to filter the next request to facets
         tag_data = discover.query(
@@ -240,6 +245,9 @@ def query_tag_data(
                 f"avg({aggregate_column}) as aggregate",
                 f"max({aggregate_column}) as max",
                 f"min({aggregate_column}) as min",
+            ],
+            conditions=[
+                [translated_aggregate_column, "IS NOT NULL", None],
             ],
             query=filter_query,
             params=params,

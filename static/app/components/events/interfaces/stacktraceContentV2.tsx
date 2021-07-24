@@ -1,9 +1,8 @@
-import {cloneElement, Fragment, MouseEvent, useEffect, useState} from 'react';
+import {cloneElement, Fragment, MouseEvent, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Client} from 'app/api';
-import Line from 'app/components/events/interfaces/frame/line';
+import Line from 'app/components/events/interfaces/frame/lineV2';
 import {isExpandable} from 'app/components/events/interfaces/frame/utils';
 import {
   getImageRange,
@@ -12,20 +11,16 @@ import {
 } from 'app/components/events/interfaces/utils';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
-import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Frame, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
-import withApi from 'app/utils/withApi';
 
 type Props = {
   data: StacktraceType;
   platform: PlatformType;
   event: Event;
-  api: Client;
-  hasGroupingTreeUI?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   newestFirst?: boolean;
   className?: string;
@@ -34,59 +29,19 @@ type Props = {
   expandFirstFrame?: boolean;
 };
 
-type GroupingLevel = {
-  id: number;
-  isCurrent: boolean;
-};
-
 function StackTraceContent({
-  api,
   data,
   platform,
   event,
   newestFirst,
   className,
   isHoverPreviewed,
-  hasGroupingTreeUI,
   groupingCurrentLevel,
   includeSystemFrames = true,
   expandFirstFrame = true,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentGroupingLevel, setCurrentGroupingLevel] = useState<undefined | number>(
-    groupingCurrentLevel
-  );
-
-  useEffect(() => {
-    fetchGroupingLevel();
-  }, []);
-
-  async function fetchGroupingLevel() {
-    const groupID = event.groupID;
-
-    if (groupID === undefined || currentGroupingLevel !== undefined) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response: {levels: GroupingLevel[]} = await api.requestPromise(
-        `/issues/${event.groupID}/grouping/levels/`
-      );
-
-      const currentLevel = response.levels.find(level => level.isCurrent);
-      if (!currentLevel) {
-        return;
-      }
-      setCurrentGroupingLevel(currentLevel.id);
-      setIsLoading(false);
-    } catch (err) {
-      setIsLoading(false);
-    }
-  }
 
   const {frames = [], framesOmitted, registers} = data;
 
@@ -129,22 +84,43 @@ function StackTraceContent({
   function isFrameUsedForGrouping(frame: Frame) {
     const {minGroupingLevel} = frame;
 
-    if (currentGroupingLevel === undefined || minGroupingLevel === undefined) {
+    if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
       return false;
     }
 
-    return minGroupingLevel <= currentGroupingLevel;
+    return minGroupingLevel <= groupingCurrentLevel;
   }
 
-  function hasExpandableFrame() {
-    return frames.some((frame, frameIndex) =>
-      isExpandable({
-        frame,
-        registers: registers ?? {},
-        emptySourceNotation: frames.length - 1 === frameIndex && frameIndex === 0,
-        platform,
-      })
-    );
+  function getFramesDetails() {
+    let haveFramesAtLeastOneExpandedFrame = false;
+    let haveFramesAtLeastOneGroupingBadge = false;
+
+    for (const frameIndex in frames) {
+      const frame = frames[Number(frameIndex)];
+      if (!haveFramesAtLeastOneExpandedFrame) {
+        haveFramesAtLeastOneExpandedFrame = isExpandable({
+          frame,
+          registers: registers ?? {},
+          emptySourceNotation:
+            frames.length - 1 === Number(frameIndex) && Number(frameIndex) === 0,
+          platform,
+        });
+      }
+
+      if (!haveFramesAtLeastOneGroupingBadge) {
+        haveFramesAtLeastOneGroupingBadge =
+          isFrameUsedForGrouping(frame) || !!frame.isPrefix || !!frame.isSentinel;
+      }
+
+      if (haveFramesAtLeastOneExpandedFrame && haveFramesAtLeastOneGroupingBadge) {
+        break;
+      }
+    }
+
+    return {
+      haveFramesAtLeastOneExpandedFrame,
+      haveFramesAtLeastOneGroupingBadge,
+    };
   }
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
@@ -163,7 +139,8 @@ function StackTraceContent({
     const firstFrameOmitted = framesOmitted?.[0] ?? null;
     const lastFrameOmitted = framesOmitted?.[1] ?? null;
     const lastFrameIndex = frames.length - 1;
-    const hasAtLeastOneExpandableFrame = hasExpandableFrame();
+    const {haveFramesAtLeastOneExpandedFrame, haveFramesAtLeastOneGroupingBadge} =
+      getFramesDetails();
 
     let nRepeats = 0;
 
@@ -213,10 +190,9 @@ function StackTraceContent({
         if (isVisible && !repeatedFrame) {
           const lineProps = {
             event,
-            data: frame,
+            frame,
             isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
             emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-            nextFrame,
             prevFrame,
             platform,
             timesRepeated: nRepeats,
@@ -224,17 +200,16 @@ function StackTraceContent({
             onAddressToggle: handleToggleAddresses,
             image: findImageForAddress(frame.instructionAddr, frame.addrMode),
             maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
-            registers: {}, // TODO: Fix registers
+            registers: {},
             includeSystemFrames,
             onFunctionNameToggle: handleToggleFunctionName,
             showCompleteFunctionName,
             isHoverPreviewed,
-            isFirst: newestFirst ? frameIndex === lastFrameIndex : frameIndex === 0,
             isPrefix: !!frame.isPrefix,
             isSentinel: !!frame.isSentinel,
             isUsedForGrouping: isFrameUsedForGrouping(frame),
-            hasGroupingTreeUI,
-            hasAtLeastOneExpandableFrame,
+            haveFramesAtLeastOneExpandedFrame,
+            haveFramesAtLeastOneGroupingBadge,
           };
 
           nRepeats = 0;
@@ -265,7 +240,6 @@ function StackTraceContent({
 
     if (convertedFrames.length > 0 && registers) {
       const lastFrame = convertedFrames.length - 1;
-
       convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
         registers,
       });
@@ -285,33 +259,21 @@ function StackTraceContent({
   }
 
   return (
-    <Wrapper className={getClassName()} isLoading={isLoading}>
-      {isLoading ? (
-        <Placeholder height="24px" />
-      ) : (
-        <Fragment>
-          <StyledPlatformIcon
-            platform={stackTracePlatformIcon(platform, frames)}
-            size="20px"
-            style={{borderRadius: '3px 0 0 3px'}}
-          />
-          <StyledList>{renderConvertedFrames()}</StyledList>
-        </Fragment>
-      )}
+    <Wrapper className={getClassName()}>
+      <StyledPlatformIcon
+        platform={stackTracePlatformIcon(platform, frames)}
+        size="20px"
+        style={{borderRadius: '3px 0 0 3px'}}
+      />
+      <StyledList>{renderConvertedFrames()}</StyledList>
     </Wrapper>
   );
 }
 
-export default withApi(StackTraceContent);
+export default StackTraceContent;
 
-const Wrapper = styled('div')<{isLoading: boolean}>`
+const Wrapper = styled('div')`
   position: relative;
-  ${p =>
-    p.isLoading &&
-    `
-      border: none;
-      border-radius: 0;
-    `}
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
