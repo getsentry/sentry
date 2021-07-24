@@ -684,8 +684,11 @@ class ITunesClient:
 
     def get_dsym_url(
         self, app_id: str, bundle_short_version: str, bundle_version: str, platform: str
-    ) -> str:
-        """Returns the URL for a dsyms bundle.
+    ) -> Optional[str]:
+        """Returns the URL for a dsyms bundle or ``None``.
+
+        :returns: The URL of the dSYM zipfile to download.  If the build was not a bitcode
+           build and there are no dSYMs to download for it ``None`` is returned.
 
         :raises SessionExpiredError:
         """
@@ -708,5 +711,5 @@ class ITunesClient:
                 raise ITunesError(f"Bad status code: {response.status_code}")
 
             data = response.json()
-            dsym_url: str = data["data"]["dsymurl"]
+            dsym_url: Optional[str] = data["data"]["dsymurl"]
             return dsym_url

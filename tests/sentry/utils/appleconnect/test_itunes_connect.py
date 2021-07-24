@@ -78,10 +78,21 @@ def test_get_dsym_url(client: itunes_connect.ITunesClient) -> None:
     client.set_provider(sentry_provider_id)
     app_id = "1549832463"  # Sentry Cocoa Sample iOS Swift
     app_version = "7.2.0"
-    build = "349"
+    build = "332"
     platform = "iOS"
     url = client.get_dsym_url(app_id, app_version, build, platform)
     assert url
+
+
+def test_get_dsym_url_no_dsyms(client: itunes_connect.ITunesClient) -> None:
+    sentry_provider_id = itunes_connect.PublicProviderId("69a6de81-4417-47e3-e053-5b8c7c11a4d1")
+    client.set_provider(sentry_provider_id)
+    app_id = "1549832463"  # Sentry Cocoa Sample iOS Swift
+    app_version = "7.2.0"
+    build = "333"
+    platform = "iOS"
+    url = client.get_dsym_url(app_id, app_version, build, platform)
+    assert url is None
 
 
 if __name__ == "__main__":
