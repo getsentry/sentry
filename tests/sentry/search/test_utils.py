@@ -4,15 +4,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.models import (
-    EventUser,
-    GroupStatus,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    Team,
-    User,
-)
+from sentry.models import EventUser, GroupStatus, Release, Team, User
 from sentry.search.base import ANY
 from sentry.search.utils import (
     InvalidQuery,
@@ -617,29 +609,16 @@ class GetLatestReleaseTest(TestCase):
             environment = None
             get_latest_release([self.project], environment)
 
-        old = Release.objects.create(organization_id=self.project.organization_id, version="old")
-        old.add_project(self.project)
-
+        old = self.create_release(version="old")
         new_date = old.date_added + timedelta(minutes=1)
-        new = Release.objects.create(
+        new = self.create_release(
             version="new-but-in-environment",
-            organization_id=self.project.organization_id,
+            environments=[self.environment],
             date_released=new_date,
         )
-        new.add_project(self.project)
-        ReleaseEnvironment.get_or_create(
-            project=self.project, release=new, environment=self.environment, datetime=new_date
+        newest = self.create_release(
+            version="newest-overall", date_released=old.date_added + timedelta(minutes=5)
         )
-        ReleaseProjectEnvironment.get_or_create(
-            project=self.project, release=new, environment=self.environment, datetime=new_date
-        )
-
-        newest = Release.objects.create(
-            version="newest-overall",
-            organization_id=self.project.organization_id,
-            date_released=old.date_added + timedelta(minutes=5),
-        )
-        newest.add_project(self.project)
 
         # latest overall (no environment filter)
         environment = None
@@ -666,6 +645,17 @@ class GetLatestReleaseTest(TestCase):
             environment = self.create_environment()
             result = get_latest_release([self.project], [environment])
             assert result == new.version
+
+    def test_semver(self):
+        project_2 = self.create_project()
+        release_1 = self.create_release(version="test@2.0.0")
+        self.create_release(version="test@1.3.2")
+        release_3 = self.create_release(version="test@1.0.0")
+
+        # Check when we're using a single project that we sort by semver
+        assert get_latest_release([self.project], None) == release_1.version
+        # Check that if we use > 1 project that we fall back to date sort
+        assert get_latest_release([project_2, self.project], None) == release_3.version
 
 
 class ConvertUserTagTest(TestCase):
