@@ -18,7 +18,6 @@ from sentry.models import (
     AuthProvider,
     InviteStatus,
     OrganizationMember,
-    OrganizationMemberTeam,
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -182,11 +181,6 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
             organization=self.organization,
             user=self.user,
         ).exists()
-
-        for team in self.auth_provider.default_teams.all():
-            assert OrganizationMemberTeam.objects.create(
-                team=team, organizationmember__user=self.user
-            ).exists()
 
         assert AuditLogEntry.objects.filter(
             organization=self.organization,

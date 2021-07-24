@@ -28,7 +28,6 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
-    OrganizationMemberTeam,
     User,
     UserEmail,
 )
@@ -192,10 +191,6 @@ class AuthIdentityHandler:
             flags=OrganizationMember.flags["sso:linked"],
         )
 
-        default_teams = self.auth_provider.default_teams.all()
-        for team in default_teams:
-            OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
-
         AuditLogEntry.objects.create(
             organization=self.organization,
             actor=user,
@@ -329,10 +324,6 @@ class AuthIdentityHandler:
             user=self.user,
             flags=OrganizationMember.flags["sso:linked"],
         )
-
-        default_teams = self.auth_provider.default_teams.all()
-        for team in default_teams:
-            OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
 
         AuditLogEntry.objects.create(
             organization=self.organization,
