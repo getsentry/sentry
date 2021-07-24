@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import AuditLogEntry
+from sentry.utils.db import attach_foreignkey
 
 
 def fix(data):
@@ -17,6 +18,9 @@ def fix(data):
 class AuditLogEntrySerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
+        attach_foreignkey(item_list, AuditLogEntry.user)
+        attach_foreignkey(item_list, AuditLogEntry.target_user)
+
         users = {
             d["id"]: d
             for d in serialize(
