@@ -8,6 +8,10 @@ Firstly you need to create a file named ``credentials.json`` in this directory::
      "password": "your itunes password"
    }
 
+You account needs to have access to the "GetSentry LLC" organisation for all tests to run.
+Tests which require this are marked with ``getsentryllc`` so you can disable these tests
+using `pytest -m 'not getsentryllc'`.
+
 They also need interactive login which you need to do before running the tests::
 
    $ sentry execfile tests/sentry/utils/appleconnect/test_itunes_connect.py
@@ -18,12 +22,12 @@ To test the SMS authentication flow you need to invoke:
    $ sentry execfile tests/sentry/utils/appleconnect/test_itunes_connect.py sms
    sms code: xxxxxx
 
-And finally you can run the tests with ``--itunes``.
+And finally, once logged in you can run the tests with ``--itunes``.
 
    $ pytest --itunes tests/sentry/utils/appleconnect/test_itunes_connect.py
+"""
 
- """
-
+import dataclasses
 import pathlib
 import sys
 
@@ -73,25 +77,73 @@ def test_set_provider(client: itunes_connect.ITunesClient) -> None:
         assert client.request_session_info()
 
 
-def test_get_dsym_url(client: itunes_connect.ITunesClient) -> None:
-    sentry_provider_id = itunes_connect.PublicProviderId("69a6de81-4417-47e3-e053-5b8c7c11a4d1")
-    client.set_provider(sentry_provider_id)
-    app_id = "1549832463"  # Sentry Cocoa Sample iOS Swift
-    app_version = "7.2.0"
-    build = "332"
-    platform = "iOS"
-    url = client.get_dsym_url(app_id, app_version, build, platform)
+@dataclasses.dataclass
+class GetSentryLlcBuild:
+    provider_id: itunes_connect.PublicProviderId
+    app_id: str
+    version: str
+    build: str
+    platform: str
+
+
+@pytest.fixture  # type: ignore
+def getsentryllc_partial() -> GetSentryLlcBuild:
+    """The "Sentry Cocoal Sample iOS Swift" app from "GetSentry LLC"."""
+    # Note that these builds expire on App Store Connect.  If this happens you will need to
+    # create a new build and update the version and build number.
+    # TODO: Include instructions for this.
+    return GetSentryLlcBuild(
+        provider_id=itunes_connect.PublicProviderId("69a6de81-4417-47e3-e053-5b8c7c11a4d1"),
+        app_id="1549832463",  # Sentry Cocoa Sample iOS Swift,
+        version="7.2.0",
+        build="",
+        platform="iOS",
+    )
+
+
+@pytest.fixture  # type: ignore
+def getsentryllc_dsym(getsentryllc_partial: GetSentryLlcBuild) -> GetSentryLlcBuild:
+    # Note that these builds expire on App Store Connect.  If this happens you will need to
+    # create a new build and update the version and build number.
+    # TODO: Include instructions for this.
+    getsentryllc_partial.build = "332"
+    return getsentryllc_partial
+
+
+@pytest.fixture  # type: ignore
+def getsentryllc_no_dsym(getsentryllc_partial: GetSentryLlcBuild) -> GetSentryLlcBuild:
+    # Note that these builds expire on App Store Connect.  If this happens you will need to
+    # create a new build and update the version and build number.
+    # TODO: Include instructions for this.
+    getsentryllc_partial.build = "333"
+    return getsentryllc_partial
+
+
+@pytest.mark.getsentryllc  # type: ignore
+def test_get_dsym_url(
+    client: itunes_connect.ITunesClient, getsentryllc_dsym: GetSentryLlcBuild
+) -> None:
+    client.set_provider(getsentryllc_dsym.provider_id)
+    url = client.get_dsym_url(
+        getsentryllc_dsym.app_id,
+        getsentryllc_dsym.version,
+        getsentryllc_dsym.build,
+        getsentryllc_dsym.platform,
+    )
     assert url
 
 
-def test_get_dsym_url_no_dsyms(client: itunes_connect.ITunesClient) -> None:
-    sentry_provider_id = itunes_connect.PublicProviderId("69a6de81-4417-47e3-e053-5b8c7c11a4d1")
-    client.set_provider(sentry_provider_id)
-    app_id = "1549832463"  # Sentry Cocoa Sample iOS Swift
-    app_version = "7.2.0"
-    build = "333"
-    platform = "iOS"
-    url = client.get_dsym_url(app_id, app_version, build, platform)
+@pytest.mark.getsentryllc  # type: ignore
+def test_get_dsym_url_no_dsyms(
+    client: itunes_connect.ITunesClient, getsentryllc_no_dsym: GetSentryLlcBuild
+) -> None:
+    client.set_provider(getsentryllc_no_dsym.provider_id)
+    url = client.get_dsym_url(
+        getsentryllc_no_dsym.app_id,
+        getsentryllc_no_dsym.version,
+        getsentryllc_no_dsym.build,
+        getsentryllc_no_dsym.platform,
+    )
     assert url is None
 
 
