@@ -33,7 +33,7 @@ type RouteParams = {
 type Props = {
   project?: Project;
   group: Group;
-  environments: Environment[];
+  environments?: Environment[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -69,41 +69,10 @@ class GroupTagValues extends AsyncComponent<
     return this.renderBody();
   }
 
-  renderTagName(tagValue: TagValue) {
-    return (
-      <Fragment>
-        <NameWrapper>
-          {tagValue.key === 'user' ? (
-            <UserBadge
-              user={{...tagValue, id: tagValue.identifier ?? ''}}
-              avatarSize={20}
-              hideEmail
-            />
-          ) : (
-            <Fragment>
-              <DeviceName value={tagValue.name} />
-            </Fragment>
-          )}
-        </NameWrapper>
-
-        {tagValue.email && (
-          <StyledExternalLink href={`mailto:${tagValue.email}`}>
-            <IconMail size="xs" color="gray300" />
-          </StyledExternalLink>
-        )}
-        {isUrl(tagValue.value) && (
-          <StyledExternalLink href={tagValue.value}>
-            <IconOpen size="xs" color="gray300" />
-          </StyledExternalLink>
-        )}
-      </Fragment>
-    );
-  }
-
   renderResults() {
     const {
       project,
-      params: {orgId, groupId},
+      params: {orgId, groupId, tagKey},
     } = this.props;
     const {tagValueList, tag} = this.state;
 
@@ -113,17 +82,10 @@ class GroupTagValues extends AsyncComponent<
         : '--';
       const discoverQuery = {
         id: undefined,
-        name: tagValue.key,
-        fields: [
-          tagValue.key,
-          'title',
-          'release',
-          'environment',
-          'user.display',
-          'timestamp',
-        ],
+        name: tagKey,
+        fields: [tagKey, 'title', 'release', 'environment', 'user.display', 'timestamp'],
         orderby: '-timestamp',
-        query: `issue.id:${groupId} ${tagValue.key}:${tagValue.name}`,
+        query: `issue.id:${groupId} ${tagKey}:${tagValue.name}`,
         projects: [Number(project?.id)],
         version: 2 as SavedQueryVersions,
         range: '90d',
@@ -131,11 +93,34 @@ class GroupTagValues extends AsyncComponent<
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
       const issuesPath = `/organizations/${orgId}/issues/`;
-      const issuesQuery = tagValue.query || `${tag?.key}:"${tagValue.value}"`;
+      const issuesQuery = tagValue.query || `${tagKey}:"${tagValue.value}"`;
 
       return (
         <Fragment key={tagValueIdx}>
-          <NameColumn>{this.renderTagName(tagValue)}</NameColumn>
+          <NameColumn>
+            <NameWrapper>
+              {tagKey === 'user' ? (
+                <UserBadge
+                  user={{...tagValue, id: tagValue.identifier ?? ''}}
+                  avatarSize={20}
+                  hideEmail
+                />
+              ) : (
+                <DeviceName value={tagValue.name} />
+              )}
+            </NameWrapper>
+
+            {tagValue.email && (
+              <StyledExternalLink href={`mailto:${tagValue.email}`}>
+                <IconMail size="xs" color="gray300" />
+              </StyledExternalLink>
+            )}
+            {isUrl(tagValue.value) && (
+              <StyledExternalLink href={tagValue.value}>
+                <IconOpen size="xs" color="gray300" />
+              </StyledExternalLink>
+            )}
+          </NameColumn>
           <RightAlignColumn>{pct}</RightAlignColumn>
           <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
           <RightAlignColumn>
@@ -186,7 +171,7 @@ class GroupTagValues extends AsyncComponent<
       location: {query},
       environments,
     } = this.props;
-    const {tagValueList, tagValueListPageLinks, loading} = this.state;
+    const {tagValueList, tag, tagValueListPageLinks, loading} = this.state;
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
     const title = tagKey === 'user' ? t('Affected Users') : tagKey;
@@ -271,12 +256,12 @@ class GroupTagValues extends AsyncComponent<
           ]}
           emptyMessage={t('Sorry, the tags for this issue could not be found.')}
           emptyAction={
-            environments.length > 0
+            !!environments?.length
               ? t('No tags were found for the currently selected environments')
               : null
           }
         >
-          {this.renderResults()}
+          {tagValueList && tag && this.renderResults()}
         </StyledPanelTable>
         <StyledPagination pageLinks={tagValueListPageLinks} />
       </Fragment>
