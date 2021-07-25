@@ -129,6 +129,7 @@ class GroupTagValues extends AsyncComponent<
           <RightAlignColumn>
             <DropdownLink
               anchorRight
+              alwaysRenderMenu={false}
               caret={false}
               title={
                 <Button
