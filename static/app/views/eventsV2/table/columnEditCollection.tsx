@@ -443,7 +443,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 icon={<IconAdd isCircled size="xs" />}
               >
                 {t('Add an Equation')}
-                <StyledFeatureBadge type="beta" />
+                <StyledFeatureBadge type="new" />
               </Button>
             </Feature>
           </Actions>
