@@ -790,12 +790,6 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
-        # TODO: Test release stage sort here. Not currently supported
-        # response = self.get_valid_response(
-        #     self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[adopted,not_adopted,replaced]", sort="adopted"
-        # )
-        # assert [r["version"] for r in response.data] == [adopted_release.version, replaced_release.version, not_adopted_release.version]
-
         response = self.get_response(
             self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:invalid_stage"
         )
