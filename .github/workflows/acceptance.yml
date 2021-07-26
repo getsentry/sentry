@@ -33,30 +33,35 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - uses: volta-cli/action@v1
-
-      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      - name: Wait for frontend ci image
+        uses: getsentry/action-wait-for-check@v1.1.0
+        id: wait-for-frontend
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+          checkName: prepare frontend ci image
 
       - name: Build CSS
-        run: NODE_ENV=production yarn build-css
+        env:
+          NODE_ENV: production
+        run: |
+          mkdir -p src/sentry/static/sentry/dist
+          docker run -v "$(pwd)/src/sentry/static/sentry/dist":/workspace \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            build-css --output=/workspace
+
+      - name: jest tests
+        id: jest-tests
+        run: |
+          echo "::set-output name=tests::$(docker run ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} -s jest --listTests --json)"
 
       - name: jest
+        env:
+          CI_NODE_TOTAL: ${{ strategy.job-total }}
+          CI_NODE_INDEX: ${{ matrix.instance }}
+          JEST_TESTS: ${{ steps.jest-tests.outputs.tests }}
         run: |
-          CI_NODE_TOTAL=${{ strategy.job-total }} CI_NODE_INDEX=${{ matrix.instance }} JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          docker run \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
@@ -95,43 +100,17 @@ jobs:
       - uses: actions/checkout@v2
         name: Checkout sentry
 
-      - name: Get branch name
-        id: branch
-        # strip `refs/heads/` from $GITHUB_REF and replace `/` with `-` so that
-        # it can be used as a docker tag
-        run: echo "::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/} | tr / -)"
-
-      # We are only using ghcr here for CI as `setup-gcloud` is a bit slow
-      # Should revisit this when we move off of google cloud build (we may want to move these to GCR)
-      - name: Registry login
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-
-      - name: Docker build
-        run: |
-          rm -rf .dockerignore
-          cp docker/frontend-ci.dockerignore .dockerignore
-          docker build . \
-            -f docker/frontend-ci.Dockerfile \
-            --build-arg PYTHON_VERSION=3.8 \
-            --build-arg BUILDKIT_INLINE_CACHE=1 \
-            -t frontend-ci \
-            -t ghcr.io/getsentry/sentry-frontend-ci:latest \
-            -t ghcr.io/getsentry/sentry-frontend-ci:${{ github.sha }} \
-            -t ghcr.io/getsentry/sentry-frontend-ci:${{ steps.branch.outputs.branch }} \
-            --cache-from ghcr.io/getsentry/sentry-frontend-ci:latest \
-            --cache-from ghcr.io/getsentry/sentry-frontend-ci:${{ steps.branch.outputs.branch }} \
-            --cache-from ghcr.io/getsentry/sentry-frontend-ci:${{ github.sha }} \
-
-      - name: Publish images for cache
-        run: |
-          docker push ghcr.io/getsentry/sentry-frontend-ci:${{ steps.branch.outputs.branch }}
-          docker push ghcr.io/getsentry/sentry-frontend-ci:${{ github.sha }}
+      - name: Wait for frontend ci image
+        uses: getsentry/action-wait-for-check@v1.1.0
+        id: wait-for-frontend
+        with:
+          checkName: prepare frontend ci image
 
       - name: webpack
         run: |
           mkdir dist
-          docker run -v "$(pwd)/dist":/workspace frontend-ci
+          docker run -v "$(pwd)/dist":/workspace \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }}
           # We a single archive to save as a GHA artifact
           tar czf dist.tar.gz dist
 
@@ -188,12 +167,10 @@ jobs:
           snuba: true
 
       - name: Wait for frontend build
-        uses: getsentry/action-wait-for-check@v1.0.0
+        uses: getsentry/action-wait-for-check@v1.1.0
         id: wait-for-frontend
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           checkName: create frontend bundle
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Download frontend dist
         uses: actions/download-artifact@v2
@@ -204,7 +181,6 @@ jobs:
         run: |
           mkdir -p src/sentry/static/sentry/dist
           tar xf dist.tar.gz --directory src/sentry/static/sentry
-          ls -la src/sentry/static/sentry/dist
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()

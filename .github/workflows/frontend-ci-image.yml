@@ -1,0 +1,34 @@
+###
+# Creates a docker image for running frontend CI tasks
+#
+# Using GHA's cache actions for caching yarn did not produce good results.
+# Fetching cache from GHA still took > 90 seconds and a yarn install would take
+# > 30 seconds. Compare that to a cached docker build which takes around 30 seconds.
+###
+name: frontend docker
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  docker:
+    name: prepare frontend ci image
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+
+    env:
+      DOCKER_BUILDKIT: 1
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Docker build
+        id: docker
+        uses: ./github/actions/docker
+        with:
+          image: sentry-frontend-ci
+          dockerfile: docker/frontend-ci.Dockerfile
+          buildArgs: --build-arg PYTHON_VERSION=3.8

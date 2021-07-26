@@ -1,0 +1,74 @@
+name: 'Docker'
+description: 'Auth with GHCR and build/push images'
+inputs:
+  image:
+    description: 'Docker image name'
+    required: true
+
+  dockerfile:
+    description: 'Path to Dockerfile'
+    required: true
+    default: 'Dockerfile'
+
+  token:
+    description: 'GitHub token'
+    required: true
+    default: ${{ github.token }}
+
+  buildArgs:
+    description: 'Additional docker build args'
+    required: false
+    default: ''
+
+outputs:
+  image:
+    description: "Docker image name"
+    value: ${{ inputs.image }}
+  branch:
+    description: "Current branch name with 'refs/heads' removed"
+    value: ${{ steps.config.branch.branch }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get branch name
+      shell: bash
+      id: branch
+      # strip `refs/heads/` from $GITHUB_REF and replace `/` with `-` so that
+      # it can be used as a docker tag
+      run: echo "::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/} | tr / -)"
+
+    # We are only using ghcr here for CI as `setup-gcloud` is a bit slow
+    # Should revisit this when we move off of google cloud build (we may want to move these to GCR)
+    - name: Registry login
+      shell: bash
+      run: |
+        echo ${{ inputs.token }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+    - name: Docker build
+      shell: bash
+      env:
+        DOCKER_BUILDKIT: "1"
+      run: |
+        docker build . \
+          -f ${{ inputs.dockerfile }} \
+          --build-arg PYTHON_VERSION=3.8 \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          -t ${{ inputs.image }} \
+          -t ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:latest \
+          -t ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:${{ github.sha }} \
+          -t ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:${{ steps.branch.outputs.branch }} \
+          --cache-from ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:latest \
+          --cache-from ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:${{ steps.branch.outputs.branch }} \
+          --cache-from ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:${{ github.sha }} \
+          ${{ inputs.buildArgs }}
+
+    - name: Publish images
+      shell: bash
+      run: |
+        if [ '${{ steps.branch,outputs.branch }}' == 'master']; then
+          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:latest
+        else
+          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:${{ steps.branch.outputs.branch }}
+        fi
