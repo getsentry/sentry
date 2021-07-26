@@ -32,7 +32,6 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
 FROM builder
 VOLUME ["/workspace"]
 COPY . .
-RUN ls
 ENV NODE_ENV development
 ENV NO_TS_FORK 1
 ENV IS_ACCEPTANCE_TEST 1
