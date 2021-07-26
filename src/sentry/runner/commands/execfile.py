@@ -38,6 +38,6 @@ def execfile(filename):
     script_globals = {"__name__": "__main__", "__file__": str(filename)}
     preamble_code = compile(preamble, filename, "exec")
     exec(preamble_code, script_globals, script_globals)
-    sys.argv = sys.argv[2:]
+    sys.argv = sys.argv[1:]
     script_code = compile(filename.read_text(), filename, "exec")
     exec(script_code, script_globals, script_globals)

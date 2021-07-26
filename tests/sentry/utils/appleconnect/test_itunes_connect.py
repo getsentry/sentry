@@ -133,6 +133,32 @@ def test_get_dsym_url(
     assert url
 
 
+@pytest.mark.getsentryllc  # type: ignore
+def test_get_dsym_url_wrong_org(
+    client: itunes_connect.ITunesClient, getsentryllc_dsym: GetSentryLlcBuild
+) -> None:
+    other_providers = [
+        p
+        for p in client.request_available_providers()
+        if p.publicProviderId != getsentryllc_dsym.provider_id
+    ]
+    try:
+        other_provider = other_providers[0]
+    except IndexError:
+        pytest.skip("Test requires a non-GetSentryLLC provider")
+
+    cookie = client.session_cookie()
+    client2 = itunes_connect.ITunesClient.from_session_cookie(cookie)
+    client2.set_provider(other_provider.publicProviderId)
+    with pytest.raises(itunes_connect.ForbiddenError):
+        client.get_dsym_url(
+            getsentryllc_dsym.app_id,
+            getsentryllc_dsym.version,
+            getsentryllc_dsym.build,
+            getsentryllc_dsym.platform,
+        )
+
+
 def test_to_from_json(client: itunes_connect.ITunesClient) -> None:
     state = client.to_json()
     new_client = itunes_connect.ITunesClient.from_json(state)
@@ -143,6 +169,12 @@ def test_session_cookie_from_session_cookie(client: itunes_connect.ITunesClient)
     cookie = client.session_cookie()
     new_client = itunes_connect.ITunesClient.from_session_cookie(cookie)
     assert new_client.request_session_info()
+
+
+def test_bad_username_password() -> None:
+    client = itunes_connect.ITunesClient()
+    with pytest.raises(itunes_connect.InvalidUsernamePasswordError):
+        client.start_login_sequence(username="not-a-person", password="not-a-password")
 
 
 @pytest.mark.getsentryllc  # type: ignore

@@ -90,12 +90,6 @@ class AppStoreConnectConfig:
     # Password for the iTunes credentials.
     itunesPassword: str
 
-    # Person ID of the iTunes user.
-    #
-    # This is an internal field that some iTunes calls need, but it is also relatively
-    # easily to retrieve via an HTTP request to iTunes.
-    itunesPersonId: str
-
     # The iTunes session cookie.
     #
     # Loading this cookie into ``requests.Session`` (see
@@ -122,11 +116,11 @@ class AppStoreConnectConfig:
     # This is guaranteed to be unique and should map 1:1 to ``appId``.
     bundleId: str
 
-    # The organisation ID according to iTunes.
+    # The publicProviderId of the organisation according to iTunes.
     #
     # An iTunes session can have multiple organisations and needs this ID to be able to
     # select the correct organisation to operate on.
-    orgId: int
+    orgPublicId: itunes_connect.PublicProviderId
 
     # The name of an organisation, as supplied by iTunes.
     orgName: str
@@ -270,15 +264,14 @@ class ITunesClient:
     session.
     """
 
-    def __init__(self, itunes_cookie: str, itunes_org: int):
-        self._session = requests.Session()
-        itunes_connect.load_session_cookie(self._session, itunes_cookie)
-        # itunes_connect.set_provider(self._session, itunes_org)
+    def __init__(self, itunes_cookie: str, itunes_org: itunes_connect.PublicProviderId):
+        self._client = itunes_connect.ITunesClient.from_session_cookie(itunes_cookie)
+        self._client.set_provider(itunes_org)
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
         with sentry_sdk.start_span(op="dsyms", description="Download dSYMs"):
-            url = itunes_connect.get_dsym_url(
-                self._session, build.app_id, build.version, build.build_number, build.platform
+            url = self._client.get_dsym_url(
+                build.app_id, build.version, build.build_number, build.platform
             )
             if not url:
                 raise NoDsymsError
@@ -302,7 +295,7 @@ class AppConnectClient:
         self,
         api_credentials: appstore_connect.AppConnectCredentials,
         itunes_cookie: str,
-        itunes_org: int,
+        itunes_org: itunes_connect.PublicProviderId,
         app_id: str,
     ) -> None:
         """Internal init, use one of the classmethods instead."""
@@ -338,7 +331,7 @@ class AppConnectClient:
         return cls(
             api_credentials=api_credentials,
             itunes_cookie=config.itunesSession,
-            itunes_org=config.orgId,
+            itunes_org=config.orgPublicId,
             app_id=config.appId,
         )
 
