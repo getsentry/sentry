@@ -2370,10 +2370,13 @@ class QueryFields(QueryBase):
                 ):
                     validated.append(OrderBy(selected_column, direction))
                     continue
-
-            # TODO: orderby aggregations
-
-            # TODO: orderby field aliases
+                elif (
+                    isinstance(selected_column, Function)
+                    and is_function(bare_orderby)
+                    and selected_column.alias == get_function_alias(bare_orderby)
+                ):
+                    validated.append(OrderBy(selected_column, direction))
+                    continue
 
         if len(validated) == len(orderby_columns):
             return validated
