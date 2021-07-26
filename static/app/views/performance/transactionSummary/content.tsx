@@ -322,7 +322,7 @@ class SummaryContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.TransactionSummary}
-          hasWebVitals={hasWebVitals ? 'yes' : 'no'}
+          hasWebVitals="maybe"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
           onChangeThreshold={onChangeThreshold}
         />

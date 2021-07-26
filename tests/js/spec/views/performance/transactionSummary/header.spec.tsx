@@ -43,6 +43,8 @@ describe('Performance > Transaction Summary Header', function () {
   let wrapper;
 
   afterEach(function () {
+    // @ts-expect-error
+    MockApiClient.clearMockResponses();
     wrapper.unmount();
   });
 
