@@ -29,7 +29,7 @@ function UserMisery(props: Props) {
   let title: React.ReactNode;
   if (defined(miserableUsers) && defined(totalUsers) && defined(miseryLimit)) {
     title = tct(
-      '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms',
+      '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms (4x the response time threshold)',
       {
         miserableUsers,
         totalUsers,
@@ -38,7 +38,7 @@ function UserMisery(props: Props) {
     );
   } else if (defined(miseryLimit)) {
     title = tct(
-      'User Misery score is [userMisery], representing users who waited more than more than [duration]ms.',
+      'User Misery score is [userMisery], representing users who waited more than more than [duration]ms (4x the response time threshold)',
       {
         duration: 4 * miseryLimit,
         userMisery: userMisery.toFixed(3),
