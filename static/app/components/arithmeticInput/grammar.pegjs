@@ -1,13 +1,12 @@
 {
-  const {TokenConverter} = options;
-  const tc = new TokenConverter();
+  const {tc} = options;
 }
 
 term
   = maybeFactor:maybe_factor remainingAdds:remaining_adds {
     return tc.tokenTerm(maybeFactor, remainingAdds);
   }
- 
+
 remaining_adds = add_sub*
 
 add_sub
@@ -69,15 +68,15 @@ divide
     return "divide";
   }
 
-function_value
+function_value "function"
   = function_name open_paren spaces function_args? spaces closed_paren {
     return text();
   }
-numeric_value
+numeric_value "number"
   = [+-]?[0-9]+ ("." [0-9]*)? {
     return text();
   }
-field_value
+field_value "field"
   = [a-zA-Z_\.]+ {
     return text();
   }
