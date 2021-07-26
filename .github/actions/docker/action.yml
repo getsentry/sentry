@@ -52,7 +52,6 @@ runs:
       run: |
         docker build . \
           -f ${{ inputs.dockerfile }} \
-          --build-arg PYTHON_VERSION=3.8 \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
           -t ${{ inputs.image }} \
           -t ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}:latest \
