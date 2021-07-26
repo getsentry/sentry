@@ -109,6 +109,9 @@ jobs:
       - name: webpack
         run: |
           mkdir dist
+          docker run \
+            --entrypoints /bin/ls \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} || true
           docker run -v "$(pwd)/dist":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }}
           # We a single archive to save as a GHA artifact
