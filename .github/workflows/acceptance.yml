@@ -17,10 +17,10 @@ jobs:
   frontend:
     name: frontend tests
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     strategy:
       matrix:
-        instance: [0, 1]
+        instance: [0]
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -124,10 +124,10 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     strategy:
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0]
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
@@ -208,6 +208,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   chartcuterie:
+    if: false == true
     name: chartcuterie integration
     runs-on: ubuntu-20.04
     timeout-minutes: 30
