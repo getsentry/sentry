@@ -820,7 +820,7 @@ class SearchVisitor(NodeVisitor):
 
         if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
             # Operators are not supported in text_filter.
-            # Push it back into the back before handing the negation.
+            # Push it back into the value before handing the negation.
             search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
             operator = "="
 
