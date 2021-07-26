@@ -2365,16 +2365,11 @@ class QueryFields(QueryBase):
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     continue
-                elif (
-                    isinstance(selected_column, Function) and selected_column.alias == bare_orderby
-                ):
-                    validated.append(OrderBy(selected_column, direction))
-                    continue
-                elif (
-                    isinstance(selected_column, Function)
-                    and is_function(bare_orderby)
-                    and selected_column.alias == get_function_alias(bare_orderby)
-                ):
+
+                if is_function(bare_orderby):
+                    bare_orderby = get_function_alias(bare_orderby)
+
+                if isinstance(selected_column, Function) and selected_column.alias == bare_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     continue
 
