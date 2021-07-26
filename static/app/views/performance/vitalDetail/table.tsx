@@ -335,7 +335,7 @@ class Table extends React.Component<Props, State> {
   };
 
   getSortedEventView(vitalName: WebVital) {
-    const {eventView, organization} = this.props;
+    const {eventView} = this.props;
 
     const aggregateFieldPoor = getAggregateAlias(
       getVitalDetailTablePoorStatusFunction(vitalName)
@@ -352,9 +352,7 @@ class Table extends React.Component<Props, State> {
       ? []
       : [
           {
-            field: organization.features.includes('team-key-transactions')
-              ? 'team_key_transaction'
-              : 'key_transaction',
+            field: 'team_key_transaction',
             kind: 'desc',
           },
           {

@@ -663,6 +663,10 @@ export type Authenticator = {
    */
   allowMultiEnrollment: boolean;
   /**
+   * Allows authenticator's secret to be rotated without disabling
+   */
+  allowRotationInPlace: boolean;
+  /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
@@ -683,6 +687,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+  rotationWarning: string | null;
+  status: string;
   createdAt: string | null;
   lastUsedAt: string | null;
   codes: string[];
@@ -1991,7 +1997,6 @@ export enum FrameBadge {
   SENTINEL = 'sentinel',
   PREFIX = 'prefix',
   GROUPING = 'grouping',
-  IN_APP = 'in_app',
 }
 
 /**
@@ -2086,11 +2091,6 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   enabled: boolean;
 };
-
-/**
- * File storage service options for debug files
- */
-export type DebugFileSource = 'http' | 's3' | 'gcs' | 'appStoreConnect';
 
 /**
  * Base type for series   style API response
@@ -2197,6 +2197,7 @@ export type ExternalUser = {
   memberId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
 };
 
 export type ExternalTeam = {
@@ -2204,4 +2205,5 @@ export type ExternalTeam = {
   teamId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
 };

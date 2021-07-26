@@ -78,7 +78,21 @@ class DemoStartView(BaseView):
             logger.info("post.assigned_org", extra={"organization_slug": org.slug})
 
         auth.login(request, user)
-        resp = self.redirect(get_redirect_url(request, org))
+
+        extra_query_string = request.POST.get("extraQueryString")
+        redirect_url = get_redirect_url(request, org)
+
+        if extra_query_string:
+            hash_param = ""
+
+            if "#" in redirect_url:
+                partition = redirect_url.index("#")
+                hash_param = redirect_url[partition:]
+                redirect_url = redirect_url[:partition]
+
+            separator = "&" if "?" in redirect_url else "?"
+            redirect_url += separator + extra_query_string + hash_param
+        resp = self.redirect(redirect_url)
 
         # set a cookie of whether the user accepted tracking so we know
         # whether to initialize analytics when accepted_tracking=1

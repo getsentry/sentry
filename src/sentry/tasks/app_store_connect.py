@@ -7,6 +7,7 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
+from datetime import datetime
 from typing import List, Mapping
 
 import sentry_sdk
@@ -52,6 +53,8 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             build_state = get_or_create_persisted_build(project, config, build)
             if not build_state.fetched:
                 builds.append((build, build_state))
+
+    update_build_refresh_date(project, config_id)
 
     itunes_client = client.itunes_client()
     for (build, build_state) in builds:
@@ -117,6 +120,18 @@ def get_or_create_persisted_build(
     return build_state
 
 
+def update_build_refresh_date(project: Project, config_id: str) -> None:
+    serialized_option = project.get_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
+    )
+    build_refresh_dates = json.loads(serialized_option)
+    build_refresh_dates[config_id] = datetime.now()
+    serialized_refresh_dates = json.dumps_htmlsafe(build_refresh_dates)
+    project.update_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
+    )
+
+
 # Untyped decorator would stop type-checking of entire function, split into an inner
 # function instead which can be type checked.
 @instrumented_task(  # type: ignore
@@ -160,6 +175,11 @@ def inner_refresh_all_builds() -> None:
                         logger.exception("Malformed symbol source")
                         continue
                     if source_type == appconnect.SYMBOL_SOURCE_TYPE_NAME:
-                        inner_dsym_download(option.project_id, source_id)
+                        dsym_download.apply_async(
+                            kwargs={
+                                "project_id": option.project_id,
+                                "config_id": source_id,
+                            }
+                        )
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")

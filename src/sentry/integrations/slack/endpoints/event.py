@@ -1,14 +1,13 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
-from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.requests.event import SlackEventRequest
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
@@ -16,15 +15,52 @@ from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger, parse_link
-
+from .base import SlackDMEndpoint
+from .command import LINK_FROM_CHANNEL_MESSAGE
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
 # need refactored
-class SlackEventEndpoint(Endpoint):  # type: ignore
+
+
+class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
+
     authentication_classes = ()
     permission_classes = ()
 
-    def _get_access_token(self, integration: Integration) -> str:
+    def is_bot(self, data: Mapping[str, Any]) -> bool:
+        """
+        If it's a message posted by our bot, we don't want to respond since that
+        will cause an infinite loop of messages.
+        """
+        return bool(data.get("bot_id"))
+
+    def get_command_and_args(self, slack_request: SlackRequest) -> Tuple[str, Sequence[str]]:
+        data = slack_request.data.get("event")
+        command = data["text"].lower().split()
+        return command[0], command[1:]
+
+    def reply(self, slack_request: SlackRequest, message: str) -> Response:
+        client = SlackClient()
+        access_token = self._get_access_token(slack_request.integration)
+        headers = {"Authorization": "Bearer %s" % access_token}
+        data = slack_request.data.get("event")
+        channel = data["channel"]
+        payload = {"channel": channel, "text": message}
+
+        try:
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+        except ApiError as e:
+            logger.error("slack.event.on-message-error", extra={"error": str(e)})
+
+        return self.respond()
+
+    def link_team(self, slack_request: SlackRequest) -> Any:
+        return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
+
+    def unlink_team(self, slack_request: SlackRequest) -> Any:
+        return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
+
+    def _get_access_token(self, integration: Integration) -> Any:
         # the classic bot tokens must use the user auth token for URL unfurling
         # we stored the user_access_token there
         # but for workspace apps and new slack bot tokens, we can just use access_token
@@ -37,9 +73,7 @@ class SlackEventEndpoint(Endpoint):  # type: ignore
         self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
     ) -> Response:
         channel = data["channel"]
-        # if it's a message posted by our bot, we don't want to respond since
-        # that will cause an infinite loop of messages
-        if data.get("bot_id"):
+        if self.is_bot(data):
             return self.respond()
         access_token = self._get_access_token(integration)
         headers = {"Authorization": "Bearer %s" % access_token}
@@ -136,12 +170,21 @@ class SlackEventEndpoint(Endpoint):  # type: ignore
                 return resp
 
         if slack_request.type == "message":
-            resp = self.on_message(
-                request,
-                slack_request.integration,
-                slack_request.data.get("token"),
-                slack_request.data.get("event"),
-            )
+            data = slack_request.data.get("event")
+            if self.is_bot(data):
+                return self.respond()
+
+            command = data.get("text")
+            if command in COMMANDS:
+                resp = super().post_dispatcher(slack_request)
+
+            else:
+                resp = self.on_message(
+                    request,
+                    slack_request.integration,
+                    slack_request.data.get("token"),
+                    slack_request.data.get("event"),
+                )
 
             if resp:
                 return resp

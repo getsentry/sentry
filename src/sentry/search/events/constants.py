@@ -25,6 +25,7 @@ TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
+MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -103,6 +104,19 @@ SNQL_FIELD_ALLOWLIST = {
     TIMESTAMP_TO_DAY_ALIAS,
     TRANSACTION_STATUS_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    TEAM_KEY_TRANSACTION_ALIAS,
+    "error.mechanism",
+    "error.type",
+    "error.value",
+    "stack.abs_path",
+    "stack.colno",
+    "stack.filename",
+    "stack.function",
+    "stack.in_app",
+    "stack.lineno",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
 }
 
 OPERATOR_NEGATION_MAP = {

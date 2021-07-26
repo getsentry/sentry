@@ -5,7 +5,14 @@ import {ChildrenRenderFn} from 'app/components/acl/feature';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {IntegrationProvider, Member, Organization, Project, User} from 'app/types';
+import {
+  IntegrationProvider,
+  LightWeightOrganization,
+  Member,
+  Organization,
+  Project,
+  User,
+} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import {NavigationItem, NavigationSection} from 'app/views/settings/types';
 
@@ -253,11 +260,11 @@ type AnalyticsTrackEventV2 = (
      */
     eventKey: string;
     /**
-     * The Amplitude event name
+     * The Amplitude event name. Set to null if event should not go to Amplitude.
      */
     eventName: string | null;
 
-    organization: Organization | null;
+    organization: LightWeightOrganization | null;
     /**
      * Arbitrary data to track
      */
@@ -265,17 +272,19 @@ type AnalyticsTrackEventV2 = (
   },
   options: {
     /**
-     * Sends the event to marketing analytics
+     * If true, send the event to marketing analytics
      */
     sendMarketing?: boolean;
     /**
-     * If true, starts an analytics session
+     * If true, starts an analytics session. This session can be used
+     * to construct funnels. The start of the funnel should have
+     * startSession set to true.
      */
     startSession?: boolean;
     /**
-     * An arbitrary function to map the parameters to new paraameters
+     * An arbitrary function to map the parameters to new parameters
      */
-    mapValuesFn?: (params: object) => object;
+    mapValuesFn?: (params: Record<string, any>) => Record<string, any>;
   }
 ) => void;
 
