@@ -164,6 +164,10 @@ def inner_refresh_all_builds() -> None:
         with sdk.push_scope() as scope:
             scope.set_tag("project", option.project_id)
             try:
+                if not option.value:
+                    # An empty string set as option value, the UI does this when deleting
+                    # all sources.  This is not valid JSON.
+                    continue
                 # We are parsing JSON thus all types are Any, so give the type-checker some
                 # extra help.  We are maybe slightly lying about the type, but the
                 # attributes we do access are all string values.

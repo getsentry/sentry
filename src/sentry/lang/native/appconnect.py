@@ -165,7 +165,14 @@ class AppStoreConnectConfig:
         :raises KeyError: if the config is not found.
         :raises InvalidConfigError if the stored config is somehow invalid.
         """
-        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+
+        # UI bug: the UI writes an empty string when removing the last symbol source from
+        # the list.  So we need to cater for both `None` and `''` being retunred from
+        # .get_option().
+        if not raw:
+            raw = "[]"
+
         all_sources = json.loads(raw)
         for source in all_sources:
             if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
@@ -206,8 +213,8 @@ class AppStoreConnectConfig:
            match.
         """
         with transaction.atomic():
-            all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
-            all_sources = json.loads(all_sources_raw)
+            all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+            all_sources = json.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):
                 if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
                     if source.get("id") != self.id:
