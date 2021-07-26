@@ -1253,7 +1253,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for query, expected_length, use_aggregate_conditions in queries:
-            for query_fn in [discover.query, discover.wip_snql_query]:
+            for query_fn in [discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=[
                         "transaction",
@@ -1294,7 +1294,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for query, expected_length, use_aggregate_conditions in queries:
-            for query_fn in [discover.query, discover.wip_snql_query]:
+            for query_fn in [discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=[
                         "transaction",
@@ -1313,7 +1313,50 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length
                 if expected_length > 0:
-                    assert data[0]["p100_transaction_duration"] == 360000
+                    assert data[0]["p100_transaction_duration"] == 360000.0
+
+    def test_p100_with_measurement(self):
+        project = self.create_project()
+
+        for i in range(6):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+                start_timestamp=before_now(minutes=4 + i),
+            )
+            data["transaction"] = "/p100"
+            data["measurements"]["frames_total"] = {"value": 100 * i}
+            data["measurements"]["frames_slow"] = {"value": 50 * i}
+            self.store_event(data, project_id=project.id)
+
+        queries = [
+            ("", 1, True),
+            ("p100(measurements.frames_slow_rate):>0", 1, False),
+            ("p100(measurements.frames_slow_rate):>0.6", 0, True),
+            ("p100(measurements.frames_slow_rate):>0.4", 1, True),
+        ]
+
+        for query, expected_length, use_aggregate_conditions in queries:
+            for query_fn in [discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=[
+                        "transaction",
+                        "p100(measurements.frames_slow_rate)",
+                    ],
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=20),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                    use_aggregate_conditions=use_aggregate_conditions,
+                )
+                data = result["data"]
+
+                assert len(data) == expected_length
+                if expected_length > 0:
+                    assert data[0]["p100_measurements_frames_slow_rate"] == 0.5
 
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))

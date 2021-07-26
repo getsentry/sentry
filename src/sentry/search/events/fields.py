@@ -2268,14 +2268,10 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "percentile",
                     required_args=[
-                        NumericColumnNoLookup("column"),
+                        FunctionArg("column"),
                         NumberRange("percentile", 0, 1),
                     ],
-                    snql_aggregate=lambda args, alias: Function(
-                        f'quantile({args["percentile"]})',
-                        [self.column(args["column"])],
-                        alias,
-                    ),
+                    snql_aggregate=self._resolve_percentile,
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -2283,62 +2279,47 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "p50",
                     optional_args=[
-                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                        with_default("transaction.duration", FunctionArg("column")),
                     ],
-                    snql_aggregate=lambda args, alias: Function(
-                        "quantile(0.5)",
-                        [self.column(args["column"])],
-                        alias,
-                    ),
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
                     default_result_type="integer",
+                    redundant_grouping=True,
                 ),
                 SnQLFunction(
                     "p75",
                     optional_args=[
-                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                        with_default("transaction.duration", FunctionArg("column")),
                     ],
-                    snql_aggregate=lambda args, alias: Function(
-                        "quantile(0.75)",
-                        [self.column(args["column"])],
-                        alias,
-                    ),
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
                     default_result_type="integer",
+                    redundant_grouping=True,
                 ),
                 SnQLFunction(
                     "p95",
                     optional_args=[
-                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                        with_default("transaction.duration", FunctionArg("column")),
                     ],
-                    snql_aggregate=lambda args, alias: Function(
-                        "quantile(0.95)",
-                        [self.column(args["column"])],
-                        alias,
-                    ),
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
                     default_result_type="integer",
+                    redundant_grouping=True,
                 ),
                 SnQLFunction(
                     "p99",
                     optional_args=[
-                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                        with_default("transaction.duration", FunctionArg("column")),
                     ],
-                    snql_aggregate=lambda args, alias: Function(
-                        "quantile(0.99)",
-                        [self.column(args["column"])],
-                        alias,
-                    ),
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
                     default_result_type="integer",
+                    redundant_grouping=True,
                 ),
                 SnQLFunction(
                     "p100",
                     optional_args=[
-                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                        with_default("transaction.duration", FunctionArg("column")),
                     ],
-                    snql_aggregate=lambda args, alias: Function(
-                        "quantile(1)",
-                        [self.column(args["column"])],
-                        alias,
-                    ),
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 1),
                     default_result_type="integer",
+                    redundant_grouping=True,
                 ),
                 # TODO: implement these
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
@@ -2825,6 +2806,39 @@ class QueryFields(QueryBase):
                 ),
                 0,
             ],
+            alias,
+        )
+
+    def _resolve_percentile(
+        self, args: Mapping[str, str], alias: str, fixed_percentile: float = None
+    ) -> SelectType:
+        measurement_aliases = {
+            MEASUREMENTS_FRAMES_SLOW_RATE,
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+            MEASUREMENTS_STALL_PERCENTAGE,
+        }
+        column = self.column(args["column"])
+        if args["column"] in measurement_aliases:
+            column = Function(
+                "if",
+                [
+                    Function(
+                        "greater",
+                        [self.column("measurements.frames_total"), 0],
+                    ),
+                    Function(
+                        "divide",
+                        [
+                            self.column("measurements.frames_slow"),
+                            self.column("measurements.frames_total"),
+                        ],
+                    ),
+                    0,
+                ],
+            )
+        return Function(
+            f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+            [column],
             alias,
         )
 
