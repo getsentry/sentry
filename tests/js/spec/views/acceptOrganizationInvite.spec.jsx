@@ -126,6 +126,64 @@ describe('AcceptOrganizationInvite', function () {
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 
+  it('enforce required sso authentication for logged in users', function () {
+    addMock({
+      orgSlug: 'test-org',
+      needsAuthentication: false,
+      needs2fa: false,
+      needsSso: true,
+      requireSso: true,
+      existingMember: false,
+    });
+
+    const wrapper = mountWithTheme(
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
+      TestStubs.routerContext()
+    );
+
+    const joinButton = wrapper.find('Button[label="join-organization"]');
+    expect(joinButton.exists()).toBe(false);
+
+    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
+
+    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
+  });
+
+  it('show logout button for logged in users w/ sso and membership', async function () {
+    addMock({
+      orgSlug: 'test-org',
+      needsAuthentication: false,
+      needs2fa: false,
+      needsSso: true,
+      requireSso: true,
+      existingMember: true,
+    });
+
+    const wrapper = mountWithTheme(
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
+      TestStubs.routerContext()
+    );
+
+    const existingMember = wrapper.find('[data-test-id="existing-member"]');
+    expect(existingMember.exists()).toBe(true);
+
+    const {replace} = window.location;
+    window.location.replace = jest.fn();
+
+    existingMember
+      .find('[data-test-id="existing-member-link"]')
+      .hostNodes()
+      .simulate('click');
+    expect(logout).toHaveBeenCalled();
+    await tick();
+    expect(window.location.replace).toHaveBeenCalled();
+
+    window.location.replace = replace;
+  });
+
   it('shows a logout button for existing members', async function () {
     addMock({
       orgSlug: 'test-org',
