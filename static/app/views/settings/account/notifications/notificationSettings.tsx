@@ -16,6 +16,7 @@ import {
   decideDefault,
   getParentIds,
   getStateToPutForDefault,
+  isSufficientlyComplex,
   mergeNotificationSettings,
 } from 'app/views/settings/account/notifications/utils';
 import Form from 'app/views/settings/components/forms/form';
@@ -89,21 +90,35 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 
   getFields(): FieldObject[] {
-    return NOTIFICATION_SETTINGS_TYPES.map(
-      notificationType =>
-        Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
-          getData: data => this.getStateToPutForDefault(data, notificationType),
-          help: (
-            <React.Fragment>
-              {NOTIFICATION_SETTING_FIELDS[notificationType].help}
-              &nbsp;
-              <Link to={`/settings/account/notifications/${notificationType}`}>
-                Fine tune
-              </Link>
-            </React.Fragment>
+    const {notificationSettings} = this.state;
+
+    const fields: FieldObject[] = [];
+    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
+      const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
+        getData: data => this.getStateToPutForDefault(data, notificationType),
+        help: (
+          <React.Fragment>
+            {NOTIFICATION_SETTING_FIELDS[notificationType].help}
+            &nbsp;
+            <Link to={`/settings/account/notifications/${notificationType}`}>
+              Fine tune
+            </Link>
+          </React.Fragment>
+        ),
+      }) as any;
+
+      if (isSufficientlyComplex(notificationType, notificationSettings)) {
+        field.confirm = {
+          message: t(
+            'Setting the default to "never" will irreversibly overwrite all of your fine-tuning settings. Continue?'
           ),
-        }) as FieldObject
-    );
+          values: ['never'],
+        };
+      }
+
+      fields.push(field);
+    }
+    return fields;
   }
 
   renderBody() {

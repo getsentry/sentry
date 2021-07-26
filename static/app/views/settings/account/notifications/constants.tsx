@@ -12,6 +12,7 @@ export const VALUE_MAPPING = {
   committed_only: 40,
 };
 
+export const MIN_PROJECTS_FOR_CONFIRMATION = 3;
 export const MIN_PROJECTS_FOR_SEARCH = 3;
 export const MIN_PROJECTS_FOR_PAGINATION = 100;
 
