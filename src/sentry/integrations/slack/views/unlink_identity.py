@@ -63,8 +63,24 @@ class SlackUnlinkIdentityView(BaseView):  # type: ignore
         }
 
         client = SlackClient()
+        if params["response_url"]:
+            path = params["response_url"]
+            headers = {}
+
+        else:
+            # command has been invoked in a DM, not as a slash command
+            # we do not have a response URL in this case
+            token = (
+                integration.metadata.get("user_access_token")
+                or integration.metadata["access_token"]
+            )
+            headers = {"Authorization": f"Bearer {token}"}
+            payload["token"] = token
+            payload["channel"] = params["slack_id"]
+            path = "/chat.postMessage"
+
         try:
-            client.post(params["response_url"], data=payload, json=True)
+            client.post(path, headers=headers, data=payload, json=True)
         except ApiError as e:
             message = str(e)
             # If the user took their time to link their slack account, we may no
