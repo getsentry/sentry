@@ -2366,7 +2366,7 @@ class QueryFields(QueryBase):
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
             if is_function(bare_orderby):
-                bare_orderby = get_function_alias(bare_orderby)
+                bare_orderby = resolved_orderby.alias
 
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
