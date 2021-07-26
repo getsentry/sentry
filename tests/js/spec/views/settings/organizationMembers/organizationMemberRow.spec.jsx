@@ -41,10 +41,10 @@ describe('OrganizationMemberRow', function () {
     onLeave: () => {},
   };
 
-  const resendButton = 'StyledButton[aria-label="Resend invite"]';
-  const resendSsoButton = 'StyledButton[aria-label="Resend SSO link"]';
+  const resendButton = 'StyledButton[aria-label="Resend Invite"]';
+  const resendSsoButton = 'StyledButton[aria-label="Resend SSO Link"]';
   const leaveButton = 'StyledButton[aria-label="Leave"]';
-  const removeButton = 'StyledButton[aria-label="Remove"]';
+  const removeButton = 'StyledButton[data-test-id="Remove"]';
 
   beforeEach(function () {});
 
@@ -135,7 +135,7 @@ describe('OrganizationMemberRow', function () {
       expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
       // No Resend Invite button
       expect(wrapper.find(resendButton).exists()).toBe(false);
-      expect(wrapper.find('[data-test-id="member-status"]').text()).toBe('Sent!');
+      expect(wrapper.find('[data-test-id="member-status"]').text()).toBe('Sent');
     });
   });
 

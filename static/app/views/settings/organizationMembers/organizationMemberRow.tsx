@@ -9,7 +9,7 @@ import HookOrDefault from 'app/components/hookOrDefault';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelItem} from 'app/components/panels';
-import {IconClose, IconDelete, IconLock, IconMail} from 'app/icons';
+import {IconCheckmark, IconClose, IconDelete, IconLock, IconMail} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarUser, Member} from 'app/types';
@@ -86,10 +86,9 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     }
     if (pending) {
       return (
-        <InvitedRole>
-          <IconMail size="md" />
+        <Column>
           {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
-        </InvitedRole>
+        </Column>
       );
     }
     return roleName;
@@ -127,15 +126,13 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
     return (
       <StyledPanelItem data-test-id={email}>
-        <MemberHeading>
+        <Column>
           <UserAvatar size={32} user={user ?? {id: email, email}} />
           <MemberDescription to={detailsUrl}>
-            <h5 style={{margin: '0 0 3px'}}>
-              <UserName>{name}</UserName>
-            </h5>
+            <UserName>{name}</UserName>
             <Email>{email}</Email>
           </MemberDescription>
-        </MemberHeading>
+        </Column>
 
         <div data-test-id="member-role">{this.renderMemberRole()}</div>
 
@@ -147,27 +144,33 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                   <LoadingIndicator mini />
                 </LoadingContainer>
               )}
-              {isInviteSuccessful && <span>{t('Sent!')}</span>}
+              {isInviteSuccessful && (
+                <span>
+                  <IconCheckmark color="success" />
+                  {t('Sent')}
+                </span>
+              )}
               {!isInviting && !isInviteSuccessful && (
                 <Button
                   disabled={!canAddMembers}
+                  icon={<IconMail />}
                   priority="primary"
                   size="small"
                   onClick={this.handleSendInvite}
                 >
-                  {pending ? t('Resend invite') : t('Resend SSO link')}
+                  {pending ? t('Resend Invite') : t('Resend SSO Link')}
                 </Button>
               )}
             </Fragment>
           ) : (
-            <AuthStatus>
+            <Column>
               {has2fa ? (
                 <IconLock color="success" data-test-id="enabled" />
               ) : (
                 <IconLock color="error" isUnlocked data-test-id="disabled" />
               )}
               {has2fa ? t('2FA Enabled') : t('2FA Disabled')}
-            </AuthStatus>
+            </Column>
           )}
         </div>
 
@@ -181,26 +184,18 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleRemove}
               >
-                <Button
-                  data-test-id="remove"
-                  icon={<IconDelete />}
-                  busy={this.state.busy}
-                  size="small"
-                >
-                  {t('Remove')}
-                </Button>
+                <Button data-test-id="remove" busy={this.state.busy} size="small" />
               </Confirm>
             )}
 
             {showRemoveButton && !canRemoveMember && (
               <Button
                 disabled
+                data-test-id="remove"
                 size="small"
                 title={t('You do not have access to remove members')}
                 icon={<IconDelete />}
-              >
-                {t('Remove')}
-              </Button>
+              />
             )}
 
             {showLeaveButton && memberCanLeave && (
@@ -210,7 +205,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="small" icon={<IconClose size="xs" />}>
+                <Button priority="danger" size="small">
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -242,14 +237,13 @@ const StyledPanelItem = styled(PanelItem)`
   align-items: center;
 `;
 
-const Section = styled('div')`
+const Column = styled('div')`
   display: inline-grid;
   grid-template-columns: max-content auto;
   grid-gap: ${space(1)};
   align-items: center;
 `;
 
-const MemberHeading = styled(Section)``;
 const MemberDescription = styled(Link)`
   overflow: hidden;
 `;
@@ -268,10 +262,7 @@ const Email = styled('div')`
   text-overflow: ellipsis;
 `;
 
-const InvitedRole = styled(Section)``;
 const LoadingContainer = styled('div')`
   margin-top: 0;
   margin-bottom: ${space(1.5)};
 `;
-
-const AuthStatus = styled(Section)``;

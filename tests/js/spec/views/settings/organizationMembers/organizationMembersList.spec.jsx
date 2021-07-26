@@ -272,7 +272,7 @@ describe('OrganizationMembersList', function () {
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper.find('StyledButton[aria-label="Resend SSO link"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Resend SSO Link"]').simulate('click');
 
     await tick();
     expect(inviteMock).toHaveBeenCalled();
@@ -294,7 +294,7 @@ describe('OrganizationMembersList', function () {
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Resend Invite"]').simulate('click');
 
     await tick();
     expect(inviteMock).toHaveBeenCalled();
