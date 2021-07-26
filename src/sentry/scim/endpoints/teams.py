@@ -118,6 +118,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             member = OrganizationMember.objects.get(
                 organization=team.organization, id=member["value"]
             )
+            if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
+                # if a member already belongs to a team, do nothing
+                continue
+
             with transaction.atomic():
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
                 self.create_audit_entry(
@@ -176,7 +180,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     def patch(self, request, organization, team):
         """
-        A SCIM Group PATCH request takes a series of operations to peform on a team.
+        A SCIM Group PATCH request takes a series of operations to perform on a team.
         It does them sequentially and if any of them fail no operations should go through.
         The operations are add members, remove members, replace members, and rename team.
         """
@@ -228,6 +232,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return super().delete(request, team)
 
     def put(self, request, organization, team):
-        # override parent's put since we dont have puts
+        # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

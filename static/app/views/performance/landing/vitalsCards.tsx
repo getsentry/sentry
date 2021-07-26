@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -17,10 +18,16 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {Column, getAggregateAlias, WebVital} from 'app/utils/discover/fields';
+import {
+  Column,
+  generateFieldAsString,
+  getAggregateAlias,
+  WebVital,
+} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
@@ -135,6 +142,7 @@ type GenericCardsProps = BaseCardsProps & {
 
 function GenericCards(props: GenericCardsProps) {
   const {api, eventView: baseEventView, location, organization, functions} = props;
+  const {query} = location;
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
@@ -145,6 +153,17 @@ function GenericCards(props: GenericCardsProps) {
   const end = globalSelection.datetime.end
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
     : undefined;
+  const interval =
+    typeof query.sparkInterval === 'string'
+      ? query.sparkInterval
+      : getInterval(
+          {
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          },
+          'low'
+        );
   const apiPayload = eventView.getEventsAPIPayload(location);
 
   return (
@@ -165,11 +184,7 @@ function GenericCards(props: GenericCardsProps) {
           team={apiPayload.team}
           start={start}
           end={end}
-          interval={getInterval({
-            start: start || null,
-            end: end || null,
-            period: globalSelection.datetime.period,
-          })}
+          interval={interval}
           query={apiPayload.query}
           includePrevious={false}
           yAxis={eventView.getFields()}
@@ -184,19 +199,33 @@ function GenericCards(props: GenericCardsProps) {
 
             return (
               <VitalsContainer>
-                {eventView.getFields().map(fn => {
-                  const {title, tooltip, formatter} = details[fn];
-                  const alias = getAggregateAlias(fn);
+                {functions.map(func => {
+                  let fieldName = generateFieldAsString(func);
+
+                  if (fieldName.includes('apdex')) {
+                    // Replace apdex with explicit thresholds with a generic one for lookup
+                    fieldName = 'apdex()';
+                  }
+
+                  const cardDetail = details[fieldName];
+                  if (!cardDetail) {
+                    Sentry.captureMessage(`Missing field '${fieldName}' in vital cards.`);
+                    return null;
+                  }
+
+                  const {title, tooltip, formatter} = cardDetail;
+                  const alias = getAggregateAlias(fieldName);
                   const rawValue = tableData?.data?.[0]?.[alias];
-                  const data = series?.[fn];
+
+                  const data = series?.[fieldName];
                   const value =
-                    isSummaryLoading || rawValue === undefined
+                    isSummaryLoading || !defined(rawValue)
                       ? '\u2014'
                       : formatter(rawValue);
                   const chart = <SparklineChart data={data} />;
                   return (
                     <VitalCard
-                      key={fn}
+                      key={fieldName}
                       title={title}
                       tooltip={tooltip}
                       value={value}
@@ -240,7 +269,11 @@ function _BackendCards(props: BaseCardsProps) {
 
 export const BackendCards = withApi(_BackendCards);
 
-function _MobileCards(props: BaseCardsProps) {
+type MobileCardsProps = BaseCardsProps & {
+  showStallPercentage: boolean;
+};
+
+function _MobileCards(props: MobileCardsProps) {
   const functions: Column[] = [
     {
       kind: 'function',
@@ -259,6 +292,12 @@ function _MobileCards(props: BaseCardsProps) {
       function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
     },
   ];
+  if (props.showStallPercentage) {
+    functions.push({
+      kind: 'function',
+      function: ['p75', 'measurements.stall_percentage', undefined, undefined],
+    });
+  }
   return <GenericCards {...props} functions={functions} />;
 }
 
@@ -393,7 +432,7 @@ const EmptyVitalBar = styled(EmptyStateWarning)`
 type VitalCardProps = {
   title: string;
   tooltip: string;
-  value: string;
+  value: string | number;
   chart: React.ReactNode;
   minHeight?: number;
   horizontal?: boolean;

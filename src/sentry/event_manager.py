@@ -29,6 +29,7 @@ from sentry.grouping.api import (
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
+    detect_synthetic_exception,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
@@ -501,7 +502,7 @@ class EventManager:
                 )
 
         if is_reprocessed:
-            safe_execute(delete_old_primary_hash, job["event"])
+            safe_execute(delete_old_primary_hash, job["event"], _with_transaction=False)
 
         _eventstream_insert_many(jobs)
 
@@ -644,7 +645,7 @@ def _get_or_create_release_many(jobs, projects):
             if job["dist"]:
                 job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
 
-                # dont allow a conflicting 'dist' tag
+                # don't allow a conflicting 'dist' tag
                 pop_tag(job["data"], "dist")
                 set_tag(job["data"], "sentry:dist", job["dist"].name)
 
@@ -1234,7 +1235,7 @@ def _handle_regression(group, event, release):
     is_regression = bool(
         Group.objects.filter(
             id=group.id,
-            # ensure we cant update things if the status has been set to
+            # ensure we can't update things if the status has been set to
             # ignored
             status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
         )
@@ -1632,10 +1633,14 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
+    metric_tags = {"grouping_config": grouping_config["id"]}
 
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
             event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+
+    # Detect & set synthetic marker if necessary
+    detect_synthetic_exception(event.data, grouping_config)
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the
@@ -1652,7 +1657,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
             ),
         )
 
-    with metrics.timer("event_manager.event.get_hashes"):
+    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
         # event.  If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.

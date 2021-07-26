@@ -27,7 +27,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {filterToField, SpanOperationBreakdownFilter} from './filter';
+import {SpanOperationBreakdownFilter} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -50,20 +50,8 @@ type Props = ReactRouter.WithRouterProps &
     currentFilter: SpanOperationBreakdownFilter;
   };
 
-function generateYAxisValues(filter: SpanOperationBreakdownFilter) {
-  if (filter === SpanOperationBreakdownFilter.None) {
-    return ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
-  }
-
-  const field = filterToField(filter);
-
-  return [
-    `p50(${field})`,
-    `p75(${field})`,
-    `p95(${field})`,
-    `p99(${field})`,
-    `p100(${field})`,
-  ];
+function generateYAxisValues() {
+  return ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
 }
 
 /**
@@ -175,11 +163,11 @@ class DurationChart extends Component<Props> {
               environment={environment}
               start={start}
               end={end}
-              interval={getInterval(datetimeSelection, true)}
+              interval={getInterval(datetimeSelection, 'high')}
               showLoading={false}
               query={query}
               includePrevious={false}
-              yAxis={generateYAxisValues(currentFilter)}
+              yAxis={generateYAxisValues()}
               partial
             >
               {({results, errored, loading, reloading}) => {

@@ -1,8 +1,7 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
 import Role from 'app/components/acl/role';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import Button from 'app/components/button';
@@ -14,7 +13,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {EventAttachment, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
-import withApi from 'app/utils/withApi';
 
 import DataSection from '../dataSection';
 
@@ -23,57 +21,18 @@ import Modal, {modalCss} from './modal';
 
 type Props = {
   event: Event;
-  api: Client;
   organization: Organization;
   projectSlug: Project['slug'];
+  attachments: EventAttachment[];
+  onDelete: (attachmentId: EventAttachment['id']) => void;
 };
 
-function Screenshot({event, api, organization, projectSlug}: Props) {
-  const [attachments, setAttachments] = useState<EventAttachment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+function Screenshot({event, attachments, organization, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
-    if (!event) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/`
-      );
-      setAttachments(response);
-      setIsLoading(false);
-    } catch (_err) {
-      // TODO: Error-handling
-      setAttachments([]);
-      setIsLoading(false);
-    }
-  }
 
   function hasScreenshot(attachment: EventAttachment) {
     const {mimetype} = attachment;
     return mimetype === 'image/jpeg' || mimetype === 'image/png';
-  }
-
-  async function handleDelete(screenshotAttachmentId: string, downloadUrl: string) {
-    try {
-      await api.requestPromise(downloadUrl.split('/api/0')[1], {
-        method: 'DELETE',
-      });
-
-      setAttachments(
-        attachments.filter(attachment => attachment.id !== screenshotAttachmentId)
-      );
-    } catch (_err) {
-      // TODO: Error-handling
-    }
   }
 
   function handleOpenVisualizationModal(
@@ -89,7 +48,7 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
           projectSlug={projectSlug}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
-          onDelete={() => handleDelete(eventAttachment.id, downloadUrl)}
+          onDelete={() => onDelete(eventAttachment.id)}
         />
       ),
       {modalCss}
@@ -143,7 +102,7 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
               <MenuItemActionLink
                 shouldConfirm
                 title={t('Delete')}
-                onAction={() => handleDelete(screenshotAttachment.id, downloadUrl)}
+                onAction={() => onDelete(screenshotAttachment.id)}
                 header={t(
                   'Screenshots help identify what the user saw when the event happened'
                 )}
@@ -163,7 +122,7 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
       {({hasRole}) => {
         const screenshotAttachment = attachments.find(hasScreenshot);
 
-        if (!hasRole || isLoading || !screenshotAttachment) {
+        if (!hasRole || !screenshotAttachment) {
           return null;
         }
 
@@ -182,7 +141,7 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
   );
 }
 
-export default withApi(Screenshot);
+export default Screenshot;
 
 const StyledPanel = styled(Panel)`
   display: flex;

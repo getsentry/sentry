@@ -23,7 +23,7 @@ type Props = ScrollbarManagerChildrenProps & {
   isVisible: boolean;
   hasGuideAnchor: boolean;
   renderedChildren: React.ReactNode[];
-  barColour?: string;
+  barColor?: string;
 };
 
 type State = {
@@ -58,7 +58,7 @@ class TransactionGroup extends React.Component<Props, State> {
       isVisible,
       hasGuideAnchor,
       renderedChildren,
-      barColour,
+      barColor,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -77,7 +77,7 @@ class TransactionGroup extends React.Component<Props, State> {
           toggleExpandedState={this.toggleExpandedState}
           isVisible={isVisible}
           hasGuideAnchor={hasGuideAnchor}
-          barColour={barColour}
+          barColor={barColor}
         />
         {isExpanded && renderedChildren}
       </React.Fragment>

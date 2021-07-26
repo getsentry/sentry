@@ -12,7 +12,9 @@ export type FineTuneField = {
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
     title: 'Project Alerts',
-    description: t('Control alerts that you receive per project.'),
+    description: t(
+      'Notifications from Alert Rules that your team has setup. You’ll always receive notifications from Alerts configured to be sent directly to you.'
+    ),
     type: 'select',
     choices: [
       ['-1', t('Default')],

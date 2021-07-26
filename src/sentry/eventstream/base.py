@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
@@ -34,26 +35,26 @@ class EventStream(Service):
 
     def _dispatch_post_process_group_task(
         self,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
-        skip_consume=False,
-    ):
+        event_id: str,
+        project_id: int,
+        group_id: Optional[int],
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: Optional[str],
+        skip_consume: bool = False,
+    ) -> None:
         if skip_consume:
-            logger.info("post_process.skip.raw_event", extra={"event_id": event.event_id})
+            logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
         else:
-            cache_key = cache_key_for_event(
-                {"project": event.project_id, "event_id": event.event_id}
-            )
+            cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
             post_process_group.delay(
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=primary_hash,
                 cache_key=cache_key,
-                group_id=event.group_id,
+                group_id=group_id,
             )
 
     def insert(
@@ -68,7 +69,14 @@ class EventStream(Service):
         skip_consume=False,
     ):
         self._dispatch_post_process_group_task(
-            event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
+            event.event_id,
+            event.project_id,
+            event.group_id,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            skip_consume,
         )
 
     def start_delete_groups(self, project_id, group_ids):

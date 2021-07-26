@@ -21,6 +21,9 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
+    fine_tuning_key = "deploy"
+    is_message_issue_unfurl = False
+
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.organization = self.project.organization
@@ -104,24 +107,13 @@ class ReleaseActivityNotification(ActivityNotification):
         return self.get_subject()
 
     def get_notification_title(self) -> str:
-        return f"Version {self.version} deployed to {self.environment}"
+        text = "this project"
+        if len(self.projects) > 1:
+            text = "these projects"
+        return f"Release {self.version[:12]} deployed to {self.environment} for {text}"
 
     def get_filename(self) -> str:
         return "activity/release"
 
     def get_category(self) -> str:
         return "release_activity_email"
-
-    @property
-    def fine_tuning_key(self) -> str:
-        return "deploy/"
-
-    def get_message_description(self) -> str:
-        text = ""
-        if self.release:
-            for project in self.projects:
-                project_url = absolute_uri(
-                    f"/organizations/{self.organization.slug}/releases/{self.version}/?project={project.id}&unselectedSeries=Healthy/"
-                )
-                text += f"* <{project_url}|{project.slug}>\n"
-        return text.rstrip()

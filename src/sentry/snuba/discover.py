@@ -198,8 +198,17 @@ def wip_snql_query(
     Replacement API for query using snql, this function is still a work in
     progress and is not ready for use in production
     """
-    builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
+    builder = QueryBuilder(
+        Dataset.Discover,
+        params,
+        query=query,
+        selected_columns=selected_columns,
+        orderby=orderby,
+        use_aggregate_conditions=use_aggregate_conditions,
+        limit=limit,
+    )
     snql_query = builder.get_snql_query()
+
     results = raw_snql_query(snql_query, referrer)
     return results
 
@@ -590,7 +599,7 @@ def top_events_timeseries(
         )
 
         for field in selected_columns:
-            # If we have a project field, we need to limit results by project so we dont hit the result limit
+            # If we have a project field, we need to limit results by project so we don't hit the result limit
             if field in ["project", "project.id"] and top_events["data"]:
                 snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
                 continue
@@ -881,6 +890,7 @@ def histogram_query(
     data_filter=None,
     referrer=None,
     group_by=None,
+    order_by=None,
     limit_by=None,
     extra_conditions=None,
     normalize_results=True,
@@ -904,6 +914,7 @@ def histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Experimental. Allows additional ordering within each alias to serve multifacet histograms.
     :param [str] limit_by: Experimental. Allows limiting within a group when serving multifacet histograms.
     :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
@@ -966,7 +977,7 @@ def histogram_query(
         conditions=conditions,
         query=user_query,
         params=params,
-        orderby=[histogram_alias],
+        orderby=(order_by if order_by else []) + [histogram_alias],
         functions_acl=["array_join", "histogram"],
     )
 

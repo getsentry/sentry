@@ -274,11 +274,11 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_semver(self):
         self.create_release(version="test@1.0.0.0")
         self.create_release(version="test@2.0.0.0")
-        self.run_test(SEMVER_ALIAS, expected=[("test@1.0.0.0", None), ("test@2.0.0.0", None)])
+        self.run_test(SEMVER_ALIAS, expected=[("2.0.0.0", None), ("1.0.0.0", None)])
         self.run_test(SEMVER_ALIAS, query="1.", expected=[("1.0.0.0", None)])
         self.run_test(SEMVER_ALIAS, query="test@1.", expected=[("test@1.0.0.0", None)])
         self.run_test(
-            SEMVER_ALIAS, query="test", expected=[("test@1.0.0.0", None), ("test@2.0.0.0", None)]
+            SEMVER_ALIAS, query="test", expected=[("test@2.0.0.0", None), ("test@1.0.0.0", None)]
         )
 
 

@@ -32,6 +32,6 @@ class ChartRenderer(Service):
     def generate_chart(self, style: ChartType, data: Any, upload: bool = True) -> Union[str, bytes]:
         """
         Produces a chart. You may specify the upload kwarg to have the chart
-        uploaded to storage and recieve a public URL for the chart
+        uploaded to storage and receive a public URL for the chart
         """
         raise NotImplementedError

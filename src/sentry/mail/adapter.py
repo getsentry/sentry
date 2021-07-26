@@ -9,17 +9,17 @@ from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
-from sentry.models import Group, GroupSubscription, NotificationSetting, Project, ProjectOption
+from sentry.models import NotificationSetting, Project, ProjectOption
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.rules import AlertRuleNotification, get_send_to
-from sentry.notifications.types import ActionTargetType, GroupSubscriptionReason
+from sentry.notifications.types import ActionTargetType
+from sentry.notifications.user_report import UserReportNotification
 from sentry.notifications.utils import get_integration_link, has_alert_integration
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
@@ -253,89 +253,19 @@ class MailAdapter:
                 send_to=[user_id],
             )
 
-    def notify_about_activity(self, activity):
+    @staticmethod
+    def notify_about_activity(activity):
         metrics.incr("mail_adapter.notify_about_activity")
         email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
             logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
             return
 
-        email = email_cls(activity)
-        email.send()
+        email_cls(activity).send()
 
-    def handle_user_report(self, payload, project, **kwargs):
+    def handle_user_report(self, payload, project: Project, **kwargs):
         metrics.incr("mail_adapter.handle_user_report")
-        group = Group.objects.get(id=payload["report"]["issue"]["id"])
-
-        participants = GroupSubscription.objects.get_participants(group=group).get(
-            ExternalProviders.EMAIL
-        )
-
-        if not participants:
-            return
-
-        org = group.organization
-        enhanced_privacy = org.flags.enhanced_privacy
-
-        context = {
-            "project": project,
-            "project_link": absolute_uri(f"/{project.organization.slug}/{project.slug}/"),
-            "issue_link": absolute_uri(
-                "/{}/{}/issues/{}/".format(
-                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
-                )
-            ),
-            # TODO(dcramer): we dont have permalinks to feedback yet
-            "link": absolute_uri(
-                "/{}/{}/issues/{}/feedback/".format(
-                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
-                )
-            ),
-            "group": group,
-            "report": payload["report"],
-            "enhanced_privacy": enhanced_privacy,
-        }
-
-        subject_prefix = self._build_subject_prefix(project)
-        subject = force_text(
-            "{}{} - New Feedback from {}".format(
-                subject_prefix, group.qualified_short_id, payload["report"]["name"]
-            )
-        )
-
-        headers = {
-            "X-Sentry-Project": project.slug,
-            "X-SMTPAPI": json.dumps({"category": "user_report_email"}),
-        }
-
-        # TODO(dcramer): this is copypasta'd from activity notifications
-        # and while it'd be nice to re-use all of that, they are currently
-        # coupled to <Activity> instances which makes this tough
-        for user, reason in participants.items():
-            context.update(
-                {
-                    "reason": GroupSubscriptionReason.descriptions.get(
-                        reason, "are subscribed to this issue"
-                    ),
-                    "unsubscribe_link": generate_signed_link(
-                        user.id,
-                        "sentry-account-email-unsubscribe-issue",
-                        kwargs={"issue_id": group.id},
-                    ),
-                }
-            )
-
-            msg = MessageBuilder(
-                subject=subject,
-                template="sentry/emails/activity/new-user-feedback.txt",
-                html_template="sentry/emails/activity/new-user-feedback.html",
-                headers=headers,
-                type="notify.user-report",
-                context=context,
-                reference=group,
-            )
-            msg.add_users([user.id], project=project)
-            msg.send_async()
+        return UserReportNotification(project, payload["report"]).send()
 
     def handle_signal(self, name, payload, **kwargs):
         metrics.incr("mail_adapter.handle_signal")

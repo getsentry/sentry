@@ -39,6 +39,7 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
+import withExperiment from 'app/utils/withExperiment';
 import withOrganization from 'app/utils/withOrganization';
 
 import {ActionButton} from './actions';
@@ -67,11 +68,6 @@ const ACTION_OVERFLOW_WIDTH = 400;
  * Actions are moved to the overflow dropdown after each pixel step is reached.
  */
 const ACTION_OVERFLOW_STEPS = 75;
-
-/**
- * Is the SearchItem a default item
- */
-const isDefaultDropdownItem = (item: SearchItem) => item?.type === ItemType.DEFAULT;
 
 const makeQueryState = (query: string) => ({
   query,
@@ -187,6 +183,10 @@ type Props = WithRouterProps & {
    */
   savedSearchType?: SavedSearchType;
   /**
+   * Indicates the usage of the search bar for analytics
+   */
+  searchSource?: string;
+  /**
    * Get a list of tag values for the passed tag
    */
   onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
@@ -229,6 +229,10 @@ type Props = WithRouterProps & {
    * trigger re-renders.
    */
   members?: User[];
+  /**
+   * Tracks whether the experiment for improved search is active or not
+   */
+  experimentAssignment: 0 | 1;
 };
 
 type State = {
@@ -314,9 +318,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     const {query} = this.props;
     const {query: lastQuery} = prevProps;
 
-    if (query !== lastQuery && defined(query)) {
+    if (query !== lastQuery && (defined(query) || defined(lastQuery))) {
       // eslint-disable-next-line react/no-did-update-set-state
-      this.setState(makeQueryState(addSpace(query)));
+      this.setState(makeQueryState(addSpace(query ?? undefined)));
     }
   }
 
@@ -329,7 +333,10 @@ class SmartSearchBar extends React.Component<Props, State> {
   }
 
   get hasImprovedSearch() {
-    return this.props.organization.features.includes('improved-search');
+    return (
+      this.props.organization.features.includes('improved-search') ||
+      !!this.props.experimentAssignment
+    );
   }
 
   get initialQuery() {
@@ -391,13 +398,19 @@ class SmartSearchBar extends React.Component<Props, State> {
   async doSearch() {
     this.blur();
 
-    if (!this.hasValidSearch && this.hasImprovedSearch) {
+    if (this.hasImprovedSearch && !this.hasValidSearch) {
       return;
     }
 
     const query = removeSpace(this.state.query);
-    const {onSearch, onSavedRecentSearch, api, organization, savedSearchType} =
-      this.props;
+    const {
+      onSearch,
+      onSavedRecentSearch,
+      api,
+      organization,
+      savedSearchType,
+      searchSource,
+    } = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'search.searched',
@@ -405,7 +418,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       organization_id: organization.id,
       query,
       search_type: savedSearchType === 0 ? 'issues' : 'events',
-      search_source: 'main_search',
+      search_source: searchSource,
     });
 
     callIfFunction(onSearch, query);
@@ -542,7 +555,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         childrenIndex !== undefined &&
         searchGroups[groupIndex].children[childrenIndex];
 
-      if (item && !isDefaultDropdownItem(item)) {
+      if (item) {
         this.onAutoComplete(item.value, item);
       }
       return;
@@ -999,10 +1012,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     if (cursorToken.type === Token.FreeText) {
-      const autocompleteGroups = [
-        await this.generateTagAutocompleteGroup(cursorToken.text),
-      ];
-      this.setState({searchTerm: cursorToken.text});
+      const lastToken = cursorToken.text.trim().split(' ').pop() ?? '';
+      const keyText = lastToken.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
+      const autocompleteGroups = [await this.generateTagAutocompleteGroup(keyText)];
+      this.setState({searchTerm: keyText});
       this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
       return;
     }
@@ -1459,7 +1472,14 @@ class SmartSearchBarContainer extends React.Component<Props, ContainerState> {
   }
 }
 
-export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
+const SmartSearchBarContainerWithExperiment = withExperiment(SmartSearchBarContainer, {
+  experiment: 'ImprovedSearchExperiment',
+});
+
+export default withApi(
+  withRouter(withOrganization(SmartSearchBarContainerWithExperiment))
+);
+
 export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`

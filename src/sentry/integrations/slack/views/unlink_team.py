@@ -9,7 +9,6 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     NotificationSetting,
-    OrganizationMember,
     Team,
 )
 from sentry.types.integrations import ExternalProviders
@@ -18,10 +17,9 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import get_identity, is_valid_role, logger, render_error_page, send_confirmation
+from ..utils import get_identity, logger, render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
-from .link_team import INSUFFICIENT_ROLE_MESSAGE, INSUFFICIENT_ROLE_TITLE
 
 SUCCESS_UNLINKED_TITLE = "Team unlinked"
 SUCCESS_UNLINKED_MESSAGE = (
@@ -92,27 +90,8 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             )
             return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
-        try:
-            identity = Identity.objects.select_related("user").get(
-                idp=idp, external_id=params["slack_id"]
-            )
-        except Identity.DoesNotExist:
-            logger.error(
-                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
-            )
+        if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
-
-        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
-
-        if not is_valid_role(org_member, team, organization):
-            return send_confirmation(
-                integration,
-                channel_id,
-                INSUFFICIENT_ROLE_TITLE,
-                INSUFFICIENT_ROLE_MESSAGE,
-                "sentry/integrations/slack-post-linked-team.html",
-                request,
-            )
 
         external_team.delete()
         NotificationSetting.objects.remove_for_team(team, ExternalProviders.SLACK)

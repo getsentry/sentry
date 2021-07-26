@@ -54,10 +54,11 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
-import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
+import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
+import {MeasurementMarker} from './styles';
 import {
   FetchEmbeddedChildrenState,
   ParsedTraceType,
@@ -101,7 +102,7 @@ type SpanBarProps = {
   organization: Organization;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
-  spanBarColour?: string;
+  spanBarColor?: string;
   spanBarHatch?: boolean;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
@@ -112,12 +113,12 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   toggleSpanTree: () => void;
-  isCurrentSpanFilteredOut: boolean;
   showEmbeddedChildren: boolean;
   toggleEmbeddedChildren:
     | ((props: {orgSlug: string; eventSlug: string}) => void)
     | undefined;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  hasCollapsedSpanGroup: boolean;
 };
 
 type SpanBarState = {
@@ -308,6 +309,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       continuingTreeDepths,
       span,
       showSpanTree,
+      hasCollapsedSpanGroup,
     } = this.props;
 
     const spanID = getSpanID(span);
@@ -353,13 +355,38 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <ConnectorBar
           style={{
             right: '16px',
-            height: '10px',
+            height: `${ROW_HEIGHT / 2}px`,
             bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
-          key={`${spanID}-last`}
+          key={`${spanID}-last-bottom`}
           orphanBranch={false}
         />
+      );
+    }
+
+    if (hasCollapsedSpanGroup) {
+      connectorBars.push(
+        <ConnectorBar
+          style={{
+            right: '16px',
+            height: `${ROW_HEIGHT / 2}px`,
+            top: '0',
+          }}
+          key={`${spanID}-last-top`}
+          orphanBranch={false}
+        />
+      );
+
+      return (
+        <TreeConnector
+          isLast
+          hasToggler={hasToggler}
+          orphanBranch={isOrphanSpan(span)}
+          hasCollapsedSpanGroup
+        >
+          {connectorBars}
+        </TreeConnector>
       );
     }
 
@@ -625,32 +652,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   }
 
-  renderCursorGuide() {
-    return (
-      <CursorGuideHandler.Consumer>
-        {({
-          showCursorGuide,
-          traceViewMouseLeft,
-        }: {
-          showCursorGuide: boolean;
-          traceViewMouseLeft: number | undefined;
-        }) => {
-          if (!showCursorGuide || !traceViewMouseLeft) {
-            return null;
-          }
-
-          return (
-            <CursorGuide
-              style={{
-                left: toPercent(traceViewMouseLeft),
-              }}
-            />
-          );
-        }}
-      </CursorGuideHandler.Consumer>
-    );
-  }
-
   renderDivider(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
@@ -745,9 +746,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           title={
             <span>
               {showEmbeddedChildren
-                ? t('This span is showing a direct child. Remove transaction')
-                : t('This span has a direct child. Add to view transaction')}
-              <FeatureBadge type="alpha" noTooltip />
+                ? t('This span is showing a direct child. Remove transaction to hide')
+                : t('This span has a direct child. Add transaction to view')}
+              <FeatureBadge type="beta" noTooltip />
             </span>
           }
           position="top"
@@ -810,7 +811,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null;
     transactions: QuickTraceEvent[] | null;
   }) {
-    const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
+    const {span, spanBarColor, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -855,7 +856,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             <RowRectangle
               spanBarHatch={!!spanBarHatch}
               style={{
-                backgroundColor: spanBarColour,
+                backgroundColor: spanBarColor,
                 left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(bounds.width || 0),
               }}
@@ -871,7 +872,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             </RowRectangle>
           )}
           {this.renderMeasurements()}
-          {this.renderCursorGuide()}
+          <SpanBarCursorGuide />
         </RowCell>
         {!this.state.showDetail && (
           <DividerLineGhostContainer
@@ -923,17 +924,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
-    const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
-
-    const isSpanVisibleInView = bounds.isSpanVisibleInView;
-    const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
+    const {isSpanVisibleInView} = bounds;
 
     return (
       <React.Fragment>
         <Row
           ref={this.spanRowDOMRef}
-          visible={isSpanVisible}
+          visible={isSpanVisibleInView}
           showBorder={this.state.showDetail}
           data-test-id="span-row"
         >
@@ -959,7 +957,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                       </DividerHandlerManager.Consumer>
                     )}
                   </ScrollbarManager.Consumer>
-                  {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
+                  {this.renderDetail({
+                    isVisible: isSpanVisibleInView,
+                    transactions,
+                    errors,
+                  })}
                 </React.Fragment>
               );
             }}
@@ -970,31 +972,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 }
-
-const CursorGuide = styled('div')`
-  position: absolute;
-  top: 0;
-  width: 1px;
-  background-color: ${p => p.theme.red300};
-  transform: translateX(-50%);
-  height: 100%;
-`;
-
-const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
-  position: absolute;
-  top: 0;
-  height: ${ROW_HEIGHT}px;
-  user-select: none;
-  width: 1px;
-  background: repeating-linear-gradient(
-      to bottom,
-      transparent 0 4px,
-      ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
-    )
-    80%/2px 100% no-repeat;
-  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
-  color: ${p => p.theme.textColor};
-`;
 
 const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};

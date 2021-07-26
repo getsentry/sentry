@@ -105,7 +105,15 @@ export function getDefaultDisplayFieldForPlatform(
   return landingField;
 }
 
-export const vitalCardDetails = (organization: LightWeightOrganization) => {
+type VitalCardDetail = {
+  title: string;
+  tooltip: string;
+  formatter: (value: number) => string | number;
+};
+
+export const vitalCardDetails = (
+  organization: LightWeightOrganization
+): {[key: string]: VitalCardDetail | undefined} => {
   return {
     'p75(transaction.duration)': {
       title: t('Duration (p75)'),
@@ -148,6 +156,11 @@ export const vitalCardDetails = (organization: LightWeightOrganization) => {
       title: t('Warm Start (p75)'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
+    },
+    'p75(measurements.stall_percentage)': {
+      title: t('Stall Percentage (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.STALL_PERCENTAGE),
+      formatter: value => formatPercentage(value, 2),
     },
   };
 };

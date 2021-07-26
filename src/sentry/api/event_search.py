@@ -15,6 +15,7 @@ from sentry.search.events.constants import (
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
@@ -817,6 +818,12 @@ class SearchVisitor(NodeVisitor):
         if not search_value.raw_value and not node.children[4].text:
             raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
+        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
+            # Operators are not supported in text_filter.
+            # Push it back into the value before handing the negation.
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+            operator = "="
+
         operator = handle_negation(negation, operator)
 
         return self._handle_text_filter(search_key, operator, search_value)
@@ -973,7 +980,7 @@ class SearchVisitor(NodeVisitor):
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
     percentage_keys={"percentage"},
-    text_operator_keys={SEMVER_ALIAS},
+    text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     numeric_keys={
         "project_id",
         "project.id",

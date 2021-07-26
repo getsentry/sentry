@@ -883,7 +883,7 @@ describe('EventView.generateQueryStringObject()', function () {
       id: undefined,
       name: undefined,
       field: ['id', 'title'],
-      widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
+      widths: [],
       sort: [],
       query: '',
       project: [],
@@ -1476,6 +1476,33 @@ describe('EventView.isValid()', function () {
     });
 
     expect(eventView.isValid()).toBe(false);
+  });
+});
+
+describe('EventView.getWidths()', function () {
+  it('returns widths', function () {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'project.id', width: 2020},
+        {field: 'title', width: COL_WIDTH_UNDEFINED},
+        {field: 'time', width: 420},
+        {field: 'lcp', width: 69},
+        {field: 'lcp', width: COL_WIDTH_UNDEFINED},
+        {field: 'fcp', width: COL_WIDTH_UNDEFINED},
+        {field: 'cls', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [],
+      project: [],
+    });
+
+    expect(eventView.getWidths()).toEqual([
+      COL_WIDTH_UNDEFINED,
+      2020,
+      COL_WIDTH_UNDEFINED,
+      420,
+      69,
+    ]);
   });
 });
 

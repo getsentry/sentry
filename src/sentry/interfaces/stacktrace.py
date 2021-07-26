@@ -234,8 +234,18 @@ class Frame(Interface):
             )
             if is_url(self.data["sourcemap"]):
                 data["mapUrl"] = self.data["sourcemap"]
-        if self.data and "symbolicator_status" in self.data:
-            data["symbolicatorStatus"] = self.data["symbolicator_status"]
+        if self.data:
+            if "symbolicator_status" in self.data:
+                data["symbolicatorStatus"] = self.data["symbolicator_status"]
+
+            if self.data.get("is_sentinel"):
+                data["isSentinel"] = True
+
+            if self.data.get("is_prefix"):
+                data["isPrefix"] = True
+
+            if "min_grouping_level" in self.data:
+                data["minGroupingLevel"] = self.data["min_grouping_level"]
 
         return data
 
@@ -277,7 +287,7 @@ class Frame(Interface):
         return is_url(self.abs_path)
 
     def is_caused_by(self):
-        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
+        # XXX(dcramer): don't compute hash using frames containing the 'Caused by'
         # text as it contains an exception value which may may contain dynamic
         # values (see raven-java#125)
         return self.filename.startswith("Caused by: ")
@@ -376,7 +386,7 @@ class Stacktrace(Interface):
       code in this stacktrace. For example, the frames that might power the
       framework's webserver of your app are probably not relevant, however calls
       to the framework's library once you start handling code likely are. See
-      notes below on implicity ``in_app`` behavior.
+      notes below on implicit ``in_app`` behavior.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
     ``package``
@@ -407,7 +417,7 @@ class Stacktrace(Interface):
     >>>     "frames_omitted": [13, 56]
     >>> }
 
-    Implicity ``in_app`` behavior exists when the value is not specified on all
+    Implicit ``in_app`` behavior exists when the value is not specified on all
     frames within a stacktrace (or collectively within an exception if this is
     part of a chain).
 
