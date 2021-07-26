@@ -38,6 +38,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     # sentry.tasks.assemble uses this.
     with sdk.configure_scope() as scope:
         scope.set_tag("project", project_id)
+        scope.set_tag("config_id", config_id)
 
     project = Project.objects.get(pk=project_id)
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
