@@ -119,7 +119,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 # Only log the user in if there is no two-factor on the
                 # account.
                 if not Authenticator.objects.user_has_2fa(user):
-                    login_user(request, user, backend="sentry.utils.auth.EmailAuthBackend")
+                    login_user(request, user)
 
                 password_hash.delete()
 
