@@ -8,6 +8,10 @@ export type NotificationSettingField = {
   defaultValue?: string;
   defaultFieldName?: string;
   help?: string;
+  confirm?: {
+    message: string;
+    values?: string[];
+  };
 };
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingField> = {

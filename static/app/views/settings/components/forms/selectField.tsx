@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {OptionsType, ValueType} from 'react-select';
 
+import Confirm from 'app/components/confirm';
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import {Choices, SelectValue} from 'app/types';
 import InputField from 'app/views/settings/components/forms/inputField';
@@ -22,6 +23,10 @@ type Props<OptionType> = InputFieldProps &
      * A label that is shown inside the select control.
      */
     inFieldLabel?: string;
+    confirm?: {
+      message: React.ReactNode;
+      values?: string[];
+    };
   };
 
 function getChoices<T>(props: Props<T>): Choices {
@@ -79,18 +84,38 @@ export default class SelectField<
   };
 
   render() {
-    const {multiple, allowClear, small, ...otherProps} = this.props;
+    const {allowClear, confirm, multiple, small, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
         alignRight={small}
         field={({onChange, onBlur, required: _required, ...props}) => (
-          <SelectControl
-            {...props}
-            clearable={allowClear}
-            multiple={multiple}
-            onChange={this.handleChange.bind(this, onBlur, onChange)}
-          />
+          <Confirm
+            message={confirm?.message}
+            onCancel={() => {}}
+            onConfirm={this.handleChange.bind(this, onBlur, onChange)}
+          >
+            {({open}) => (
+              <SelectControl
+                {...props}
+                clearable={allowClear}
+                multiple={multiple}
+                onChange={val => {
+                  const previousValue = props.value.toString();
+                  const newValue = val.value.toString();
+                  if (
+                    confirm &&
+                    (!confirm.values || confirm.values.includes(newValue)) &&
+                    previousValue !== newValue
+                  ) {
+                    open();
+                    return;
+                  }
+                  this.handleChange.bind(this, onBlur, onChange)(val);
+                }}
+              />
+            )}
+          </Confirm>
         )}
       />
     );
