@@ -133,6 +133,18 @@ def test_get_dsym_url(
     assert url
 
 
+def test_to_from_json(client: itunes_connect.ITunesClient) -> None:
+    state = client.to_json()
+    new_client = itunes_connect.ITunesClient.from_json(state)
+    assert new_client.request_session_info()
+
+
+def test_session_cookie_from_session_cookie(client: itunes_connect.ITunesClient) -> None:
+    cookie = client.session_cookie()
+    new_client = itunes_connect.ITunesClient.from_session_cookie(cookie)
+    assert new_client.request_session_info()
+
+
 @pytest.mark.getsentryllc  # type: ignore
 def test_get_dsym_url_no_dsyms(
     client: itunes_connect.ITunesClient, getsentryllc_no_dsym: GetSentryLlcBuild
@@ -150,7 +162,10 @@ def test_get_dsym_url_no_dsyms(
 if __name__ == "__main__":
     use_sms = True if sys.argv[-1] == "sms" else False
 
+    # We want to test .to_json()/.from_json() at every step as well.
     itunes_client = itunes_connect.ITunesClient()
+    state = itunes_client.to_json()
+    itunes_client = itunes_connect.ITunesClient.from_json(state)
 
     parent_dir = pathlib.Path(__file__).parent
     with open(parent_dir / "credentials.json") as fp:
@@ -158,13 +173,19 @@ if __name__ == "__main__":
     credentials = json.loads(raw)
 
     itunes_client.start_login_sequence(credentials["username"], credentials["password"])
+    state = itunes_client.to_json()
+    itunes_client = itunes_connect.ITunesClient.from_json(state)
     if use_sms:
         itunes_client.request_sms_auth()
+        state = itunes_client.to_json()
+        itunes_client = itunes_connect.ITunesClient.from_json(state)
         code = input("sms code: ")
         itunes_client.sms_code(code)
     else:
         code = input("two-factor code: ")
         itunes_client.two_factor_code(code)
+        state = itunes_client.to_json()
+        itunes_client = itunes_connect.ITunesClient.from_json(state)
 
     cookie = {"session-cookie": itunes_client.session_cookie()}
     raw_cookie = json.dumps(cookie)

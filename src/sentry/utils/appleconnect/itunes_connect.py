@@ -134,9 +134,7 @@ def initiate_login(
         return None
 
 
-TrustedPhoneInfo = namedtuple(
-    "TrustedPhoneInfo", ["id", "push_mode", "number_with_dial_code", "obfuscated_number"]
-)
+TrustedPhoneInfo = namedtuple("TrustedPhoneInfo", ["id", "push_mode"])
 
 
 def get_trusted_phone_info(
@@ -165,8 +163,6 @@ def get_trusted_phone_info(
             return TrustedPhoneInfo(
                 id=info["id"],
                 push_mode=info["pushMode"],
-                number_with_dial_code=info["numberWithDialCode"],
-                obfuscated_number=info["obfuscatedNumber"],
             )
         except:  # NOQA
             logger.info("Could not obtain trusted phone info", exc_info=True)
@@ -328,14 +324,8 @@ class ITunesError(Exception):
     pass
 
 
-class InvalidTwoFactorAuthError(ITunesError):
-    """An invalid two-factor authentication code was provided."""
-
-    pass
-
-
-class InvalidSmsAuthError(ITunesError):
-    """An invalid SMS authentication code was provided."""
+class InvalidAuthCodeError(ITunesError):
+    """An invalid authentication code was provided."""
 
     pass
 
@@ -360,15 +350,51 @@ class ITunesProvider:
     subType: str
 
 
+@enum.unique
 class ClientState(enum.Enum):
-    NEW = enum.auto()
-    AUTH_REQUESTED = enum.auto()
-    SMS_AUTH_REQUESTED = enum.auto()
-    AUTHENTICATED = enum.auto()
-    EXPIRED = enum.auto()
+    NEW = "NEW"
+    AUTH_REQUESTED = "AUTH_REQUESTED"
+    SMS_AUTH_REQUESTED = "SMS_AUTH_REQUESTED"
+    AUTHENTICATED = "AUTHENTICATED"
+    EXPIRED = "EXPIRED"
 
 
 class ITunesClient:
+    """Statefull client to talk to iTunes.
+
+    This client allows you to log into iTunes using two-factor authentication and retrieve a
+    URL to download dSYMs from.  It is statefull so that you can only go through the
+    operations correctly:
+
+    1. :meth:`start_login_sequence`
+    2a. :meth:`two_factor_code`
+    2b.1. :meth:`request_sms_auth`
+    2b.2. :meth:`sms_code`
+    3. (optional) :meth:`set_provider`
+
+    TODO: This could possibly be simplified to unify :meth:`sms_code` with
+       :meth:`two_factor_code`.  This would need testing if you are still allowed to submit
+       the 2FA if SMS was requested or not, if not this can be further simplified and more
+       state can be in the client, specifically the AppStoreConnect2FactorAuthEndpoint would
+       no longer need to provide `useSms`.
+
+    Once the state is :attr:`ClientState.AUTHENTICATED` you can use the client:
+
+    - :meth:`request_session_info` (also validates session is still alive)
+    - :meth:`request_available_providers`
+    - :meth:`get_dsym_url`
+
+    There are two ways to export the client state and re-create a new client:
+
+    - For an authenticated client: :meth:`session_cookie` and :meth:`from_session_cookie`.
+    - For the client during any stage of authentication: :meth:`to_json` and
+      :meth:`from_json`.
+
+    :param service_key: Optionally you can create a client with a known service key.  This
+       key is the same long term for the service and providing it can save an extra request
+       to the server.
+    """
+
     SESSION_COOKIE_NAME = "myacinfo"
 
     def __init__(self, service_key: Optional[ITunesServiceKey] = None):
@@ -379,7 +405,7 @@ class ITunesClient:
         self.state = ClientState.NEW
 
         # The x-apple-id-session-id header as populated by :meth:`start_login_sequence`.
-        self._session_id: Optional[str] = None
+        self.session_id: Optional[str] = None
 
         # The scnt header as populated by :meth:`start_login_sequence`.
         self._scnt: Optional[str] = None
@@ -400,6 +426,52 @@ class ITunesClient:
         if client.state is not ClientState.AUTHENTICATED:
             raise SessionExpiredError
         return client
+
+    def to_json(self) -> json.JSONData:
+        """Return an JSON object that can be used to re-create this class.
+
+        This allows to serialise the state of this instance to a JSON object which can be
+        used to recreate the instance using :meth:`from_json_session_context`.
+        """
+        context = {"state": self.state.value, "service_key": self.service_key}
+        if self.session_id is not None:
+            context["session_id"] = self.session_id
+        if self._scnt is not None:
+            context["scnt"] = self._scnt
+        if self._trusted_phone is not None:
+            context["phone_id"] = self._trusted_phone.id
+            context["phone_push_mode"] = self._trusted_phone.push_mode
+        if self.state is ClientState.AUTHENTICATED:
+            context["session_cookie"] = self.session_cookie()
+        return context
+
+    @classmethod
+    def from_json(cls, context: json.JSONData) -> "ITunesClient":
+        """Creates a client from the JSON object created by :meth:`to_json`.
+
+        This will restore the internal state of the client, allowing the client to be
+        reconstructed from a previous state.
+
+        NOTE: This object can come from data which could be manipulated, be careful to not
+        trust this object too much.
+
+        :raises: some exception if the JSON object does not contain the correct state.
+        """
+        obj = cls(service_key=context["service_key"])
+        obj.state = ClientState(context["state"])
+        if obj.state in [
+            ClientState.AUTH_REQUESTED,
+            ClientState.SMS_AUTH_REQUESTED,
+        ]:
+            obj.session_id = context["session_id"]
+            obj._scnt = context["scnt"]
+        if obj.state is ClientState.SMS_AUTH_REQUESTED:
+            obj._trusted_phone = TrustedPhoneInfo(
+                id=context["phone_id"], push_mode=context["phone_push_mode"]
+            )
+        if obj.state in [ClientState.AUTHENTICATED, ClientState.EXPIRED]:
+            obj.load_session_cookie(context["session_cookie"])
+        return obj
 
     def request_auth_service_key(self) -> ITunesServiceKey:
         """Obtains the authentication service key used in X-Apple-Widget-Key header.
@@ -449,7 +521,7 @@ class ITunesClient:
                 f"Two factor auth not enabled for user, status_code={start_login.status_code}"
             )
         if start_login.status_code == http.HTTPStatus.CONFLICT:
-            self._session_id = start_login.headers["x-apple-id-session-id"]
+            self.session_id = start_login.headers["x-apple-id-session-id"]
             self._scnt = start_login.headers["scnt"]
             self.state = ClientState.AUTH_REQUESTED
         else:
@@ -472,13 +544,14 @@ class ITunesClient:
             },
             headers={
                 "scnt": self._scnt,
-                "X-Apple-Id-Session-Id": self._session_id,
+                "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
             },
         )
         if not response.ok:
-            raise InvalidTwoFactorAuthError
+            # TODO: Make invalid code distinguishable from generic error.
+            raise InvalidAuthCodeError
         else:
             self.state = ClientState.AUTHENTICATED
 
@@ -491,7 +564,7 @@ class ITunesClient:
             url,
             headers={
                 "scnt": self._scnt,
-                "X-Apple-Id-Session-Id": self._session_id,
+                "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
             },
@@ -502,8 +575,6 @@ class ITunesClient:
         self._trusted_phone = TrustedPhoneInfo(
             id=info["id"],
             push_mode=info["pushMode"],
-            number_with_dial_code=info["numberWithDialCode"],
-            obfuscated_number=info["obfuscatedNumber"],
         )
 
     def request_sms_auth(self) -> None:
@@ -524,7 +595,7 @@ class ITunesClient:
             },
             headers={
                 "scnt": self._scnt,
-                "X-Apple-Id-Session-Id": self._session_id,
+                "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
                 "Content-Type": "application/json",
@@ -552,13 +623,14 @@ class ITunesClient:
             },
             headers={
                 "scnt": self._scnt,
-                "X-Apple-Id-Session-Id": self._session_id,
+                "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
             },
         )
         if response.status_code != HTTPStatus.OK:
-            raise InvalidSmsAuthError
+            # TODO: Make invalid code distinguishable from generic error.
+            raise InvalidAuthCodeError
         else:
             self.state = ClientState.AUTHENTICATED
 
