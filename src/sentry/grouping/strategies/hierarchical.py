@@ -23,7 +23,7 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         key = f"app-depth-{depth}"
         assert key not in all_variants
 
-        found_app_frame = False
+        found_sentinel = False
 
         for frame, component in frames_iter:
             if not component.contributes:
@@ -34,6 +34,7 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
             # can't be sure that in-app is a good indicator of relevance.
 
             if component.is_sentinel_frame:
+                found_sentinel = True
                 break
 
             # In case we found an application frame before the first sentinel
@@ -43,12 +44,9 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
             # grouping/inverted_hierarchy similar reasoning applies)
 
             if frame["in_app"]:
-                found_app_frame = True
                 break
-        else:
-            break
 
-        if found_app_frame:
+        if not found_sentinel:
             break
 
         add_to_layer = [component]
