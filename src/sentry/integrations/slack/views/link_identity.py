@@ -4,16 +4,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.models import Identity, IdentityStatus, Integration, Organization
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..client import SlackClient
-from ..utils import get_identity, logger
+from ..utils import get_identity
 from . import build_linking_url as base_build_linking_url
-from . import never_cache
+from . import never_cache, send_slack_response
 
 SUCCESS_LINKED_MESSAGE = (
     "Your Slack identity has been linked to your Sentry account. You're good to go!"
@@ -69,40 +67,7 @@ class SlackLinkIdentityView(BaseView):  # type: ignore
         except IntegrityError:
             Identity.reattach(idp, params["slack_id"], request.user, defaults)
 
-        payload = {
-            "replace_original": False,
-            "response_type": "ephemeral",
-            "text": SUCCESS_LINKED_MESSAGE,
-        }
-
-        client = SlackClient()
-        if params["response_url"]:
-            path = params["response_url"]
-            headers = {}
-
-        else:
-            # command has been invoked in a DM, not as a slash command
-            # we do not have a response URL in this case
-            token = (
-                integration.metadata.get("user_access_token")
-                or integration.metadata["access_token"]
-            )
-            headers = {"Authorization": f"Bearer {token}"}
-            payload["token"] = token
-            payload["channel"] = params["slack_id"]
-            path = "/chat.postMessage"
-
-        try:
-            client.post(path, headers=headers, data=payload, json=True)
-        except ApiError as e:
-            message = str(e)
-            # If the user took their time to link their slack account, we may no
-            # longer be able to respond, and we're not guaranteed able to post into
-            # the channel. Ignore Expired url errors.
-            #
-            # XXX(epurkhiser): Yes the error string has a space in it.
-            if message != "Expired url":
-                logger.error("slack.link-notify.response-error", extra={"error": message})
+        send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
 
         return render_to_response(
             "sentry/integrations/slack-linked.html",
