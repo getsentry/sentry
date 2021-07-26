@@ -1365,6 +1365,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("failure_count()", [0, 0, 1, 1, 1, 1, 1, 2]),
             (["-failure_count()"], [2, 1, 1, 1, 1, 1, 0, 0]),
             ("-failure_count()", [2, 1, 1, 1, 1, 1, 0, 0]),
+            ("failure_count", [0, 0, 1, 1, 1, 1, 1, 2]),
+            ("-failure_count", [2, 1, 1, 1, 1, 1, 0, 0]),
         ]
 
         for orderby, expected in orderbys:

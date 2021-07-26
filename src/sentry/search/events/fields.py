@@ -2358,18 +2358,24 @@ class QueryFields(QueryBase):
 
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.resolve_field(bare_orderby)
+            try:
+                resolved_orderby = self.resolve_field(bare_orderby)
+            except NotImplementedError:
+                resolved_orderby = None
+
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
+
+            if is_function(bare_orderby):
+                bare_orderby = get_function_alias(bare_orderby)
 
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     continue
 
-                if is_function(bare_orderby):
-                    bare_orderby = get_function_alias(bare_orderby)
-
-                if isinstance(selected_column, Function) and selected_column.alias == bare_orderby:
+                elif (
+                    isinstance(selected_column, Function) and selected_column.alias == bare_orderby
+                ):
                     validated.append(OrderBy(selected_column, direction))
                     continue
 
