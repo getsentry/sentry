@@ -360,9 +360,13 @@ def _release_stage_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     qs = (
         Release.objects.filter_by_stage(
-            organization_id, search_filter.operator, search_filter.value.value
+            organization_id,
+            search_filter.operator,
+            search_filter.value.value,
+            project_ids=project_ids,
         )
         .values_list("version", flat=True)
         .order_by("date_added")[:MAX_SEARCH_RELEASES]
@@ -401,6 +405,7 @@ def _semver_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
@@ -412,7 +417,11 @@ def _semver_filter_converter(
     if operator.startswith("<"):
         order_by = list(map(_flip_field_sort, order_by))
     qs = (
-        Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+        Release.objects.filter_by_semver(
+            organization_id,
+            parse_semver(version, operator),
+            project_ids=project_ids,
+        )
         .values_list("version", flat=True)
         .order_by(*order_by)[:MAX_SEARCH_RELEASES]
     )
@@ -459,11 +468,14 @@ def _semver_package_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     package: str = search_filter.value.raw_value
 
     versions = list(
         Release.objects.filter_by_semver(
-            organization_id, SemverFilter("exact", [], package)
+            organization_id,
+            SemverFilter("exact", [], package),
+            project_ids=project_ids,
         ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 
@@ -487,11 +499,15 @@ def _semver_build_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     build: str = search_filter.value.raw_value
 
     versions = list(
         Release.objects.filter_by_semver_build(
-            organization_id, OPERATOR_TO_DJANGO[search_filter.operator], build
+            organization_id,
+            OPERATOR_TO_DJANGO[search_filter.operator],
+            build,
+            project_ids=project_ids,
         ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 

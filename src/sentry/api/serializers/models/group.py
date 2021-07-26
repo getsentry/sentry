@@ -767,6 +767,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         collapse=None,
         expand=None,
         organization_id=None,
+        project_ids=None,
     ):
         super().__init__(collapse=collapse, expand=expand)
         from sentry.search.snuba.executors import get_search_filter
@@ -789,7 +790,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.conditions = (
             [
                 convert_search_filter_to_snuba_query(
-                    search_filter, params={"organization_id": organization_id}
+                    search_filter,
+                    params={"organization_id": organization_id, "project_id": project_ids},
                 )
                 for search_filter in search_filters
                 if search_filter.key.name not in self.skip_snuba_fields

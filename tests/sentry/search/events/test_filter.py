@@ -1500,7 +1500,40 @@ class DiscoverFunctionTest(unittest.TestCase):
         assert fn.is_accessible(["fn"]) is True
 
 
-class SemverFilterConverterTest(TestCase):
+class BaseSemverConverterTest:
+    key = None
+
+    def converter(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def run_test(
+        self,
+        operator,
+        version,
+        expected_operator,
+        expected_releases,
+        organization_id=None,
+        project_id=None,
+    ):
+        organization_id = organization_id if organization_id else self.organization.id
+        filter = SearchFilter(SearchKey(self.key), operator, SearchValue(version))
+        params = {}
+        if organization_id:
+            params["organization_id"] = organization_id
+        if project_id:
+            params["project_id"] = project_id
+        converted = self.converter(filter, self.key, params)
+        assert converted[0] == "release"
+        assert converted[1] == expected_operator
+        assert set(converted[2]) == set(expected_releases)
+
+
+class SemverFilterConverterTest(BaseSemverConverterTest, TestCase):
+    key = SEMVER_ALIAS
+
+    def converter(self, *args, **kwargs):
+        return _semver_filter_converter(*args, **kwargs)
+
     def test_invalid_params(self):
         key = SEMVER_ALIAS
         filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.3"))
@@ -1517,18 +1550,6 @@ class SemverFilterConverterTest(TestCase):
             match=INVALID_SEMVER_MESSAGE,
         ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
-
-    def run_test(
-        self, operator, version, expected_operator, expected_releases, organization_id=None
-    ):
-        organization_id = organization_id if organization_id else self.organization.id
-        key = SEMVER_ALIAS
-        filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
-        assert _semver_filter_converter(filter, key, {"organization_id": organization_id}) == [
-            "release",
-            expected_operator,
-            expected_releases,
-        ]
 
     def test_empty(self):
         self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
@@ -1633,20 +1654,39 @@ class SemverFilterConverterTest(TestCase):
         self.run_test(">=", "test@1.0", "IN", [release_1.version, release_2.version])
         self.run_test(">", "test_2@1.0", "IN", [release_3.version])
 
-
-class SemverPackageFilterConverterTest(TestCase):
-    def run_test(
-        self, operator, version, expected_operator, expected_releases, organization_id=None
-    ):
-        organization_id = organization_id if organization_id else self.organization.id
-        key = SEMVER_PACKAGE_ALIAS
-        filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
-        converted = _semver_package_filter_converter(
-            filter, key, {"organization_id": organization_id}
+    def test_projects(self):
+        project_2 = self.create_project()
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0", project=project_2)
+        release_3 = self.create_release(version="test@1.2.3.0")
+        self.run_test(
+            ">=",
+            "test@1.0",
+            "IN",
+            [release_1.version, release_2.version, release_3.version],
+            project_id=[self.project.id, project_2.id],
         )
-        assert converted[0] == "release"
-        assert converted[1] == expected_operator
-        assert set(converted[2]) == set(expected_releases)
+        self.run_test(
+            ">=",
+            "test@1.0",
+            "IN",
+            [release_1.version, release_3.version],
+            project_id=[self.project.id],
+        )
+        self.run_test(
+            ">=",
+            "test@1.0",
+            "IN",
+            [release_2.version],
+            project_id=[project_2.id],
+        )
+
+
+class SemverPackageFilterConverterTest(BaseSemverConverterTest, TestCase):
+    key = SEMVER_PACKAGE_ALIAS
+
+    def converter(self, *args, **kwargs):
+        return _semver_package_filter_converter(*args, **kwargs)
 
     def test_invalid_params(self):
         key = SEMVER_PACKAGE_ALIAS
@@ -1667,20 +1707,27 @@ class SemverPackageFilterConverterTest(TestCase):
         self.run_test("=", "test2", "IN", [release_3.version])
         self.run_test("=", "test3", "IN", [SEMVER_EMPTY_RELEASE])
 
-
-class SemverBuildFilterConverterTest(TestCase):
-    def run_test(
-        self, operator, version, expected_operator, expected_releases, organization_id=None
-    ):
-        organization_id = organization_id if organization_id else self.organization.id
-        key = SEMVER_BUILD_ALIAS
-        filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
-        converted = _semver_build_filter_converter(
-            filter, key, {"organization_id": organization_id}
+    def test_projects(self):
+        project_2 = self.create_project()
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0", project=project_2)
+        self.create_release(version="test2@1.2.3.0")
+        self.run_test("=", "test", "IN", [release_1.version], project_id=[self.project.id])
+        self.run_test("=", "test", "IN", [release_2.version], project_id=[project_2.id])
+        self.run_test(
+            "=",
+            "test",
+            "IN",
+            [release_1.version, release_2.version],
+            project_id=[self.project.id, project_2.id],
         )
-        assert converted[0] == "release"
-        assert converted[1] == expected_operator
-        assert set(converted[2]) == set(expected_releases)
+
+
+class SemverBuildFilterConverterTest(BaseSemverConverterTest, TestCase):
+    key = SEMVER_BUILD_ALIAS
+
+    def converter(self, *args, **kwargs):
+        return _semver_build_filter_converter(*args, **kwargs)
 
     def test_invalid_params(self):
         key = SEMVER_BUILD_ALIAS
