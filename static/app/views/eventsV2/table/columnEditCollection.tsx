@@ -17,7 +17,7 @@ import {
   Column,
   generateFieldAsString,
   hasDuplicate,
-  isEquationColumn,
+  isLegalEquationColumn,
 } from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
@@ -165,7 +165,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const oldColumn = newColumns[index];
     const existingColumn = generateFieldAsString(newColumns[index]);
     const updatedColumnString = generateFieldAsString(updatedColumn);
-    if (hasDuplicate(newColumns, oldColumn) || !isEquationColumn(updatedColumn)) {
+    if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
       return;
     }
     // Find the equations in the list of columns
@@ -185,10 +185,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         // for each field, add the text before it, then the new function and update index
         // to be where we want to start again
         for (const field of fields) {
-          if (
-            field.primary === existingColumn &&
-            lastIndex !== field.location.end.offset
-          ) {
+          if (field.term === existingColumn && lastIndex !== field.location.end.offset) {
             newEquation +=
               newColumn.field.substring(lastIndex, field.location.start.offset) +
               updatedColumnString;

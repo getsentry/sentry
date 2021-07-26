@@ -5,7 +5,11 @@ import isEqual from 'lodash/isEqual';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Column, generateFieldAsString, isEquationColumn} from 'app/utils/discover/fields';
+import {
+  Column,
+  generateFieldAsString,
+  isLegalEquationColumn,
+} from 'app/utils/discover/fields';
 import Input from 'app/views/settings/components/forms/controls/input';
 
 const NONE_SELECTED = -1;
@@ -348,20 +352,20 @@ function makeFieldOptions(
   columns: Column[],
   partialTerm: string | null
 ): DropdownOptionGroup {
-  const fieldValues: string[] = [];
+  const fieldValues = new Set<string>();
   const options = columns
     .filter(({kind}) => kind !== 'equation')
-    .filter(isEquationColumn)
+    .filter(isLegalEquationColumn)
     .map(option => ({
       kind: 'field' as const,
       active: false,
       value: generateFieldAsString(option),
     }))
     .filter(({value}) => {
-      if (fieldValues.includes(value)) {
+      if (fieldValues.has(value)) {
         return false;
       } else {
-        fieldValues.push(value);
+        fieldValues.add(value);
         return true;
       }
     })

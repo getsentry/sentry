@@ -845,7 +845,7 @@ export function isAggregateEquation(field: string): boolean {
   return isEquation(field) && results !== null && results.length > 0;
 }
 
-export function isEquationColumn(column: Column): boolean {
+export function isLegalEquationColumn(column: Column): boolean {
   // Any isn't allowed in arithmetic
   if (column.kind === 'function' && column.function[0] === 'any') {
     return false;
@@ -1136,17 +1136,8 @@ export function getColumnType(column: Column): ColumnType {
 }
 
 export function hasDuplicate(columnList: Column[], column: Column): boolean {
-  return (
-    columnList.filter(newColumn => {
-      return (
-        (column.kind !== 'equation' &&
-          column.kind === 'function' &&
-          newColumn.kind === 'function' &&
-          isEqual(column.function, newColumn.function)) ||
-        (column.kind === 'field' &&
-          newColumn.kind === 'field' &&
-          column.field === newColumn.field)
-      );
-    }).length > 1
-  );
+  if (column.kind !== 'function' && column.kind !== 'field') {
+    return false;
+  }
+  return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
 }
