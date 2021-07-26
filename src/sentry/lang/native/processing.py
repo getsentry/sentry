@@ -36,10 +36,10 @@ MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
 APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
 
-def _merge_frame(new_frame, symbolicated):
+def _merge_frame(new_frame, symbolicated, platform="native"):
     if symbolicated.get("function"):
         raw_func = trim(symbolicated["function"], 256)
-        func = trim(trim_function_name(symbolicated["function"], "native"), 256)
+        func = trim(trim_function_name(symbolicated["function"], platform), 256)
 
         # if function and raw function match, we can get away without
         # storing a raw function
@@ -396,7 +396,8 @@ def process_payload(data):
 
             for complete_frame in complete_frames_by_idx.get(native_frames_idx) or ():
                 merged_frame = dict(raw_frame)
-                _merge_frame(merged_frame, complete_frame)
+                platform = merged_frame.get("platform") or data.get("platform") or "native"
+                _merge_frame(merged_frame, complete_frame, platform)
                 if merged_frame.get("package"):
                     raw_frame["package"] = merged_frame["package"]
                 new_frames.append(merged_frame)
