@@ -27,7 +27,7 @@ jobs:
 
       - name: Docker build
         id: docker
-        uses: ./github/actions/docker
+        uses: ./.github/actions/docker
         with:
           image: sentry-frontend-ci
           dockerfile: docker/frontend-ci.Dockerfile
