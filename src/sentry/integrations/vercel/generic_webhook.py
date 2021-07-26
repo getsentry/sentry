@@ -23,7 +23,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 
-logger = logging.getLogger("sentry.integrations.vercel.uninstall")
+logger = logging.getLogger("sentry.integrations.vercel.webhook")
 
 
 class NoCommitFoundError(IntegrationError):
