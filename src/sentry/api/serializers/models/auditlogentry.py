@@ -18,7 +18,7 @@ def fix(data):
 class AuditLogEntrySerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
-        attach_foreignkey(item_list, AuditLogEntry.user)
+        attach_foreignkey(item_list, AuditLogEntry.actor)
         attach_foreignkey(item_list, AuditLogEntry.target_user)
 
         users = {
