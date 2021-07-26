@@ -115,7 +115,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          badge: () => 'beta',
+          badge: () => 'new',
           show: () => !!organization?.features?.includes('project-transaction-threshold'),
         },
       ],

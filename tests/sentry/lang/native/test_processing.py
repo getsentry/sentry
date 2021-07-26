@@ -4,10 +4,13 @@ service. Most tests live in tests/symbolicator/
 """
 
 
+from unittest import mock
+
 import pytest
 
-from sentry.lang.native.processing import _merge_image
+from sentry.lang.native.processing import _merge_image, process_payload
 from sentry.models.eventerror import EventError
+from sentry.utils.safe import get_path
 
 
 def test_merge_symbolicator_image_empty():
@@ -116,3 +119,36 @@ def test_merge_symbolicator_image_errors(code_file, error):
         "other2": "bar",
         "code_file": code_file,
     }
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.lang.native.processing.Symbolicator")
+def test_cocoa_function_name(mock_symbolicator, default_project):
+
+    data = {
+        "platform": "cocoa",
+        "project": default_project.id,
+        "event_id": "1",
+        "exception": {"values": [{"stacktrace": {"frames": [{"instruction_addr": 0}]}}]},
+    }
+
+    mock_symbolicator.return_value = mock_symbolicator
+    mock_symbolicator.process_payload.return_value = {
+        "status": "completed",
+        "stacktraces": [
+            {
+                "frames": [
+                    {
+                        "original_index": 0,
+                        "function": "thunk for @callee_guaranteed () -> ()",
+                    }
+                ],
+            }
+        ],
+        "modules": [],
+    }
+
+    process_payload(data)
+
+    function_name = get_path(data, "exception", "values", 0, "stacktrace", "frames", 0, "function")
+    assert function_name == "thunk for closure"

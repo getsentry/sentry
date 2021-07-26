@@ -1,5 +1,5 @@
 import logging
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -11,9 +11,10 @@ from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestEr
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
-from sentry.models import ExternalActor
+from sentry.models import ExternalActor, Identity, IdentityProvider, OrganizationMember
 from sentry.types.integrations import ExternalProviders
 
+from ..utils import is_valid_role
 from .base import SlackDMEndpoint
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -30,11 +31,29 @@ LINK_FROM_CHANNEL_MESSAGE = "You must type this command in a channel, not a DM."
 UNLINK_TEAM_MESSAGE = "<{associate_url}|Click here to unlink your team from this channel.>"
 TEAM_NOT_LINKED_MESSAGE = "No team is linked to this channel."
 DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
+INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry admin, manager, or owner to link or unlink teams."
 
 
 class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
+
+    def get_identity(self, slack_request: SlackRequest) -> Optional[Identity]:
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
+        except IdentityProvider.DoesNotExist:
+            logger.error(
+                "slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id}
+            )
+            return None
+        try:
+            identity = Identity.objects.select_related("user").get(
+                idp=idp, external_id=slack_request.user_id
+            )
+        except Identity.DoesNotExist:
+            return None
+
+        return identity
 
     def get_command_and_args(self, payload: SlackRequest) -> Tuple[str, Sequence[str]]:
         payload = payload.data
@@ -58,8 +77,16 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        if not slack_request.has_identity:
+        identity = self.get_identity(slack_request)
+        if not identity:
             return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
+
+        integration = slack_request.integration
+        organization = integration.organizations.all()[0]
+        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
+
+        if not is_valid_role(org_member):
+            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_linking_url(
             integration=slack_request.integration,
@@ -75,7 +102,8 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        if not slack_request.has_identity:
+        identity = self.get_identity(slack_request)
+        if not identity:
             return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
 
         integration = slack_request.integration
@@ -89,6 +117,11 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
             external_id=slack_request.channel_id,
         ).exists():
             return self.reply(slack_request, TEAM_NOT_LINKED_MESSAGE)
+
+        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
+
+        if not is_valid_role(org_member):
+            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_unlinking_url(
             integration=integration,
