@@ -80,12 +80,14 @@ class GroupTagValues extends AsyncComponent<
       const pct = tag?.totalValues
         ? `${percent(tagValue.count, tag?.totalValues).toFixed(2)}%`
         : '--';
+      const key = tagValue.key ?? tagKey;
+      const issuesQuery = tagValue.query || `${key}:"${tagValue.value}"`;
       const discoverQuery = {
         id: undefined,
-        name: tagKey,
-        fields: [tagKey, 'title', 'release', 'environment', 'user.display', 'timestamp'],
+        name: key,
+        fields: [key, 'title', 'release', 'environment', 'user.display', 'timestamp'],
         orderby: '-timestamp',
-        query: `issue.id:${groupId} ${tagKey}:${tagValue.name}`,
+        query: `issue.id:${groupId} ${issuesQuery}`,
         projects: [Number(project?.id)],
         version: 2 as SavedQueryVersions,
         range: '90d',
@@ -93,13 +95,12 @@ class GroupTagValues extends AsyncComponent<
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
       const issuesPath = `/organizations/${orgId}/issues/`;
-      const issuesQuery = tagValue.query || `${tagKey}:"${tagValue.value}"`;
 
       return (
         <Fragment key={tagValueIdx}>
           <NameColumn>
             <NameWrapper>
-              {tagKey === 'user' ? (
+              {key === 'user' ? (
                 <UserBadge
                   user={{...tagValue, id: tagValue.identifier ?? ''}}
                   avatarSize={20}
