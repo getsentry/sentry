@@ -1,3 +1,5 @@
+import {LocationRange} from 'pegjs';
+
 import {t} from 'app/locale';
 
 import grammar from './grammar.pegjs';
@@ -14,6 +16,7 @@ type OperationOpts = {
 
 type Operator = 'plus' | 'minus' | 'multiply' | 'divide';
 type Term = Operation | string | number | null;
+
 export class Operation {
   operator: Operator;
   lhs?: Term;
@@ -26,13 +29,27 @@ export class Operation {
   }
 }
 
+class Primary {
+  primary: Term;
+  location: LocationRange;
+
+  constructor({primary, location}: {primary: Term; location: LocationRange}) {
+    this.primary = primary;
+    this.location = location;
+  }
+}
+
 export class TokenConverter {
   numOperations: number;
   errors: Array<string>;
+  fields: Array<Primary>;
+  functions: Array<Primary>;
 
   constructor() {
     this.numOperations = 0;
     this.errors = [];
+    this.fields = [];
+    this.functions = [];
   }
 
   tokenTerm = (maybeFactor: Term, remainingAdds: Array<Operation>): Term => {
@@ -62,6 +79,18 @@ export class TokenConverter {
     remaining[0].lhs = primary;
     return flatten(remaining);
   };
+
+  tokenField = (primary: Term, location: LocationRange): Term => {
+    const field = new Primary({primary, location});
+    this.fields.push(field);
+    return primary;
+  };
+
+  tokenFunction = (primary: Term, location: LocationRange): Term => {
+    const func = new Primary({primary, location});
+    this.functions.push(func);
+    return primary;
+  };
 }
 
 // Assumes an array with at least one element
@@ -82,15 +111,18 @@ function flatten(remaining: Array<Operation>): Operation {
   return term;
 }
 
-export function parseArithmetic(query: string): {
+type parseResult = {
   result: Term;
   error: string | undefined;
-} {
+  tc: TokenConverter;
+};
+
+export function parseArithmetic(query: string): parseResult {
   const tc = new TokenConverter();
   try {
     const result = grammar.parse(query, {tc});
-    return {result, error: tc.errors[0]};
+    return {result, error: tc.errors[0], tc};
   } catch (error) {
-    return {result: null, error: error.message};
+    return {result: null, error: error.message, tc};
   }
 }

@@ -1,3 +1,5 @@
+import isEqual from 'lodash/isEqual';
+
 import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
@@ -843,6 +845,15 @@ export function isAggregateEquation(field: string): boolean {
   return isEquation(field) && results !== null && results.length > 0;
 }
 
+export function isEquationColumn(column: Column): boolean {
+  // Any isn't allowed in arithmetic
+  if (column.kind === 'function' && column.function[0] === 'any') {
+    return false;
+  }
+  const columnType = getColumnType(column);
+  return columnType === 'number' || columnType === 'integer' || columnType === 'duration';
+}
+
 export function generateAggregateFields(
   organization: LightWeightOrganization,
   eventFields: readonly Field[] | Field[],
@@ -1122,4 +1133,20 @@ export function getColumnType(column: Column): ColumnType {
     }
   }
   return 'string';
+}
+
+export function hasDuplicate(columnList: Column[], column: Column): boolean {
+  return (
+    columnList.filter(newColumn => {
+      return (
+        (column.kind !== 'equation' &&
+          column.kind === 'function' &&
+          newColumn.kind === 'function' &&
+          isEqual(column.function, newColumn.function)) ||
+        (column.kind === 'field' &&
+          newColumn.kind === 'field' &&
+          column.field === newColumn.field)
+      );
+    }).length > 1
+  );
 }
