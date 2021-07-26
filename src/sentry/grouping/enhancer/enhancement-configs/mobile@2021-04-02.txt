@@ -120,7 +120,10 @@ module:android.os.* category=system
 
 family:native package:UIKit category=ui
 family:native package:UIKitCore category=ui
-family:native package:UIKitCore category=ui
+family:native package:SwiftUI category=ui
+family:native package:AttributeGraph category=ui
+family:native package:CoreAutoLayout category=ui
+family:native package:GraphicsServices category=ui
 module:android.view.* category=ui
 module:android.text.* category=ui
 module:android.widget.* category=ui
@@ -201,6 +204,7 @@ family:native function:RaiseException category=throw
 family:native function:RaiseComPlusException category=throw
 family:native function:_CFThrowFormattedException category=throw
 family:native function:objc_exception_throw category=throw
+family:native function:AG::precondition_failure* category=throw
 
 family:native package:"C:/WINDOWS/system32/DriverStore/**" category=driver
 family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bundle/**" category=driver
