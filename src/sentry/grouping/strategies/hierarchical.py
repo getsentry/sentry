@@ -23,10 +23,32 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         key = f"app-depth-{depth}"
         assert key not in all_variants
 
+        found_app_frame = False
+
         for frame, component in frames_iter:
-            if component.contributes and component.is_sentinel_frame:
+            if not component.contributes:
+                continue
+
+            # We found a sentinel frame, which somebody decided was important
+            # to group by. In that case we group only by sentinel frames as we
+            # can't be sure that in-app is a good indicator of relevance.
+
+            if component.is_sentinel_frame:
+                break
+
+            # In case we found an application frame before the first sentinel
+            # frame, use the "fallback logic". Sentinel frames are mostly
+            # useful to identify important frames *called by* app frames that
+            # would otherwise be discarded from grouping (in case of ANR
+            # grouping/inverted_hierarchy similar reasoning applies)
+
+            if frame["in_app"]:
+                found_app_frame = True
                 break
         else:
+            break
+
+        if found_app_frame:
             break
 
         add_to_layer = [component]
