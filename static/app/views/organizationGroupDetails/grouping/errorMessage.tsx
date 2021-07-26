@@ -37,9 +37,9 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
     switch (errorCode) {
       case 'merged_issues':
         return {
-          title: t('An issue can only contain one fingerprint'),
+          title: t('Grouping breakdown is not available in this issue'),
           subTitle: t(
-            'This issue needs to be fully unmerged before grouping levels can be shown'
+            'This issue needs to be fully unmerged before grouping breakdown is available'
           ),
           action: (
             <Button
@@ -52,7 +52,9 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
         };
       case 'missing_feature':
         return {
-          title: t('This project does not have the grouping tree feature'),
+          title: t(
+            'This project does not have the grouping breakdown available. Is your organization still an early adopter?'
+          ),
         };
 
       case 'no_events':
@@ -68,18 +70,16 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
         };
       case 'project_not_hierarchical':
         return {
-          title: t(
-            'Grouping Breakdown is not avaialable in the current grouping strategy'
-          ),
+          title: t('Update your grouping algorithm first'),
           subTitle: t(
-            'You can upgrade grouping to the latest strategy. Note that this is an irreversible operation'
+            'Grouping breakdown is a feature to explore fragments of an issue. It can only be used together with the latest grouping algorithm.'
           ),
           action: (
             <Button
               priority="primary"
               to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
             >
-              {t('Upgrade Grouping Strategy')}
+              {t('Upgrade Grouping Algorithm')}
             </Button>
           ),
         };
