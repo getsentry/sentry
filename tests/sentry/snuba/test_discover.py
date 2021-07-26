@@ -1067,6 +1067,49 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 if expected_length > 1:
                     assert data[1]["failure_rate"] == 0.3
 
+    def test_percentile(self):
+        project = self.create_project()
+
+        for i in range(6):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+                start_timestamp=before_now(minutes=4 + i),
+            )
+            data["transaction"] = "/percentile"
+            self.store_event(data, project_id=project.id)
+
+        queries = [
+            ("", 1, True),
+            ("percentile(transaction.duration, 0.7):>0", 1, False),
+            ("percentile(transaction.duration, 0.7):>500000", 0, True),
+            ("percentile(transaction.duration, 0.7):>100000", 1, True),
+        ]
+
+        for query, expected_length, use_aggregate_conditions in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=[
+                        "transaction",
+                        "percentile(transaction.duration, 0.7)",
+                        "percentile(transaction.duration, 0.5)",
+                    ],
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=20),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                    use_aggregate_conditions=use_aggregate_conditions,
+                )
+                data = result["data"]
+
+                assert len(data) == expected_length
+                if expected_length > 0:
+                    assert data[0]["percentile_transaction_duration_0_7"] == 270000.0
+                    assert data[0]["percentile_transaction_duration_0_5"] == 210000.0
+
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/test_transaction/success"

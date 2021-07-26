@@ -2265,8 +2265,20 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="percentage",
                 ),
+                SnQLFunction(
+                    "percentile",
+                    required_args=[
+                        NumericColumnNoLookup("column"),
+                        NumberRange("percentile", 0, 1),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        f'quantile({args["percentile"]})',
+                        [self.column(args["column"])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
                 # TODO: implement these
-                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
