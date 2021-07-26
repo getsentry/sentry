@@ -4,6 +4,7 @@ from sentry import features
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 
 
 class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
@@ -21,10 +22,10 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
 
         # As long as newstyle:2019-10-29 is the global "latest", allow orgs to upgrade
         # to mobile:2021-02-12 if the appropriate feature flag is on:
-        if latest == "newstyle:2019-10-29" and features.has(
+        if latest == DEFAULT_GROUPING_CONFIG and features.has(
             "organizations:grouping-tree-ui", project.organization, actor=request.user
         ):
             for config in configs:
-                config["latest"] = config["id"] == "mobile:2021-02-12"
+                config["latest"] = config["id"] == BETA_GROUPING_CONFIG
 
         return Response(serialize(configs))
