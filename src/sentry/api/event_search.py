@@ -818,6 +818,12 @@ class SearchVisitor(NodeVisitor):
         if not search_value.raw_value and not node.children[4].text:
             raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
+        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
+            # Operators are not supported in text_filter.
+            # Push it back into the value before handing the negation.
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+            operator = "="
+
         operator = handle_negation(negation, operator)
 
         return self._handle_text_filter(search_key, operator, search_value)
