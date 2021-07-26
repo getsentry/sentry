@@ -99,7 +99,7 @@ class GroupTagValues extends AsyncComponent<
       return (
         <Fragment key={tagValueIdx}>
           <NameColumn>
-            <NameWrapper>
+            <NameWrapper data-test-id="group-tag-value">
               {key === 'user' ? (
                 <UserBadge
                   user={{...tagValue, id: tagValue.identifier ?? ''}}
@@ -112,12 +112,15 @@ class GroupTagValues extends AsyncComponent<
             </NameWrapper>
 
             {tagValue.email && (
-              <StyledExternalLink href={`mailto:${tagValue.email}`}>
+              <StyledExternalLink
+                href={`mailto:${tagValue.email}`}
+                data-test-id="group-tag-mail"
+              >
                 <IconMail size="xs" color="gray300" />
               </StyledExternalLink>
             )}
             {isUrl(tagValue.value) && (
-              <StyledExternalLink href={tagValue.value}>
+              <StyledExternalLink href={tagValue.value} data-test-id="group-tag-url">
                 <IconOpen size="xs" color="gray300" />
               </StyledExternalLink>
             )}
