@@ -2276,14 +2276,71 @@ class QueryFields(QueryBase):
                         [self.column(args["column"])],
                         alias,
                     ),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p50",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "quantile(0.5)",
+                        [self.column(args["column"])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "p75",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "quantile(0.75)",
+                        [self.column(args["column"])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "p95",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "quantile(0.95)",
+                        [self.column(args["column"])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "p99",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "quantile(0.99)",
+                        [self.column(args["column"])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "p100",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "quantile(1)",
+                        [self.column(args["column"])],
+                        alias,
+                    ),
                     default_result_type="integer",
                 ),
                 # TODO: implement these
-                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
