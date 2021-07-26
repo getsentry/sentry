@@ -13,6 +13,7 @@ const validHookNames = new Set<HookName>([
   'analytics:init-user',
   'analytics:track-adhoc-event',
   'analytics:track-event',
+  'analytics:track-event-v2',
   'analytics:log-experiment',
   'component:disabled-member',
   'component:disabled-member-tooltip',

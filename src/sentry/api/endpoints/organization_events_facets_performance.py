@@ -194,9 +194,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     return {"data": []}, top_tags
 
                 for row in results["data"]:
-                    row["tags_value"] = tagstore.get_tag_value_label(
-                        row["tags_key"], row["tags_value"]
-                    )
                     row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
 
                 return results, top_tags
@@ -235,6 +232,8 @@ def query_tag_data(
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
 
+    translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
+
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         # Get the average and count to use to filter the next request to facets
         tag_data = discover.query(
@@ -243,6 +242,9 @@ def query_tag_data(
                 f"avg({aggregate_column}) as aggregate",
                 f"max({aggregate_column}) as max",
                 f"min({aggregate_column}) as min",
+            ],
+            conditions=[
+                [translated_aggregate_column, "IS NOT NULL", None],
             ],
             query=filter_query,
             params=params,
