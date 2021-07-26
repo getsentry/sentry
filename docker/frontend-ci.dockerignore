@@ -6,6 +6,7 @@
 !/static
 !/config/tsconfig*
 !/babel.config.*
+!/config/webpack.css.config.ts
 !/build-utils
 !/src/sentry/locale/catalogs.json
 !/src/sentry/static/sentry/images/logos
