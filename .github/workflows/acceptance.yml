@@ -46,7 +46,7 @@ jobs:
           mkdir -p src/sentry/static/sentry/dist
           docker run -v "$(pwd)/src/sentry/static/sentry/dist":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            build-css --output=/workspace
+            build-css --output-path=/workspace
 
       - name: jest tests
         id: jest-tests
@@ -171,6 +171,10 @@ jobs:
         id: wait-for-frontend
         with:
           checkName: create frontend bundle
+
+      - name: Did frontend build succeed
+        if: steps.wait-for-frontend.outputs.conclusion == 'failed' || steps.wait-for-frontend.outputs.conclusion == 'timed_out'
+        run: exit 1
 
       - name: Download frontend dist
         uses: actions/download-artifact@v2
