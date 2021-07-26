@@ -278,6 +278,7 @@ export default GroupTagValues;
 const TitleWrapper = styled('div')`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
@@ -326,6 +327,7 @@ const Column = styled('div')`
 const NameColumn = styled(Column)`
   ${overflowEllipsis};
   display: flex;
+  min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
