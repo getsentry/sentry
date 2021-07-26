@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import {parseArithmetic} from 'app/components/arithmeticInput/parser';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
 import FeatureBadge from 'app/components/featureBadge';
@@ -36,6 +37,7 @@ type State = {
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
   draggingGrabbedOffset: undefined | {x: number; y: number};
+  error: Map<number, string | undefined>;
   left: undefined | number;
   top: undefined | number;
 };
@@ -55,6 +57,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     draggingIndex: void 0,
     draggingTargetIndex: void 0,
     draggingGrabbedOffset: void 0,
+    error: new Map(),
     left: void 0,
     top: void 0,
   };
@@ -72,6 +75,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
       document.body.appendChild(this.portal);
     }
+    this.checkColumnErrors(this.props.columns);
   }
 
   componentWillUnmount() {
@@ -79,6 +83,20 @@ class ColumnEditCollection extends React.Component<Props, State> {
       document.body.removeChild(this.portal);
     }
     this.cleanUpListeners();
+  }
+
+  checkColumnErrors(columns: Column[]) {
+    const error = new Map();
+    for (let i = 0; i < columns.length; i += 1) {
+      const column = columns[i];
+      if (column.kind === 'equation') {
+        const result = parseArithmetic(column.field);
+        if (result.error) {
+          error.set(i, result.error);
+        }
+      }
+    }
+    this.setState({error});
   }
 
   previousUserSelect: UserSelectValues | null = null;
@@ -120,6 +138,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   handleUpdateColumn = (index: number, column: Column) => {
     const newColumns = [...this.props.columns];
+    if (column.kind === 'equation') {
+      this.setState(prevState => {
+        const error = new Map(prevState.error);
+        error.set(index, parseArithmetic(column.field).error);
+        return {
+          ...prevState,
+          error,
+        };
+      });
+    }
     newColumns.splice(index, 1, column);
     this.props.onChange(newColumns);
   };
@@ -127,6 +155,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   removeColumn(index: number) {
     const newColumns = [...this.props.columns];
     newColumns.splice(index, 1);
+    this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
   }
 
@@ -243,6 +272,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const newColumns = [...this.props.columns];
     const removed = newColumns.splice(sourceIndex, 1);
     newColumns.splice(targetIndex, 0, removed[0]);
+    this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
 
     this.setState({
@@ -337,6 +367,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             gridColumns={gridColumns}
             fieldValue={col}
             onChange={value => this.handleUpdateColumn(i, value)}
+            error={this.state.error.get(i)}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
           />
