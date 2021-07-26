@@ -248,7 +248,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       <React.Fragment>
         <Header closeButton>
           <h4>
-            {t('Transaction Settings')} <FeatureBadge type="beta" />
+            {t('Transaction Settings')} <FeatureBadge type="new" />
           </h4>
         </Header>
         <Body>
