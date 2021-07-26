@@ -1,3 +1,5 @@
+import {LocationRange} from 'pegjs';
+
 import {t} from 'app/locale';
 
 import grammar from './grammar.pegjs';
@@ -8,16 +10,17 @@ const MAX_OPERATOR_MESSAGE = t('Maximum operators exceeded');
 
 type OperationOpts = {
   operator: Operator;
-  lhs?: Term;
-  rhs: Term;
+  lhs?: Expression;
+  rhs: Expression;
 };
 
 type Operator = 'plus' | 'minus' | 'multiply' | 'divide';
-type Term = Operation | string | number | null;
+type Expression = Operation | string | number | null;
+
 export class Operation {
   operator: Operator;
-  lhs?: Term;
-  rhs: Term;
+  lhs?: Expression;
+  rhs: Expression;
 
   constructor({operator, lhs = null, rhs}: OperationOpts) {
     this.operator = operator;
@@ -26,16 +29,30 @@ export class Operation {
   }
 }
 
+class Term {
+  term: Expression;
+  location: LocationRange;
+
+  constructor({term, location}: {term: Expression; location: LocationRange}) {
+    this.term = term;
+    this.location = location;
+  }
+}
+
 export class TokenConverter {
   numOperations: number;
   errors: Array<string>;
+  fields: Array<Term>;
+  functions: Array<Term>;
 
   constructor() {
     this.numOperations = 0;
     this.errors = [];
+    this.fields = [];
+    this.functions = [];
   }
 
-  tokenTerm = (maybeFactor: Term, remainingAdds: Array<Operation>): Term => {
+  tokenTerm = (maybeFactor: Expression, remainingAdds: Array<Operation>): Expression => {
     if (remainingAdds.length > 0) {
       remainingAdds[0].lhs = maybeFactor;
       return flatten(remainingAdds);
@@ -44,7 +61,7 @@ export class TokenConverter {
     }
   };
 
-  tokenOperation = (operator: Operator, rhs: Term): Operation => {
+  tokenOperation = (operator: Operator, rhs: Expression): Operation => {
     this.numOperations += 1;
     if (
       this.numOperations > MAX_OPERATORS &&
@@ -58,9 +75,21 @@ export class TokenConverter {
     return new Operation({operator, rhs});
   };
 
-  tokenFactor = (primary: Term, remaining: Array<Operation>): Operation => {
+  tokenFactor = (primary: Expression, remaining: Array<Operation>): Operation => {
     remaining[0].lhs = primary;
     return flatten(remaining);
+  };
+
+  tokenField = (term: Expression, location: LocationRange): Expression => {
+    const field = new Term({term, location});
+    this.fields.push(field);
+    return term;
+  };
+
+  tokenFunction = (term: Expression, location: LocationRange): Expression => {
+    const func = new Term({term, location});
+    this.functions.push(func);
+    return term;
   };
 }
 
@@ -82,15 +111,18 @@ function flatten(remaining: Array<Operation>): Operation {
   return term;
 }
 
-export function parseArithmetic(query: string): {
-  result: Term;
+type parseResult = {
+  result: Expression;
   error: string | undefined;
-} {
+  tc: TokenConverter;
+};
+
+export function parseArithmetic(query: string): parseResult {
   const tc = new TokenConverter();
   try {
     const result = grammar.parse(query, {tc});
-    return {result, error: tc.errors[0]};
+    return {result, error: tc.errors[0], tc};
   } catch (error) {
-    return {result: null, error: error.message};
+    return {result: null, error: error.message, tc};
   }
 }

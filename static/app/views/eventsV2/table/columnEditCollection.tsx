@@ -12,7 +12,13 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {AGGREGATIONS, Column} from 'app/utils/discover/fields';
+import {
+  AGGREGATIONS,
+  Column,
+  generateFieldAsString,
+  hasDuplicate,
+  isLegalEquationColumn,
+} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
@@ -136,20 +142,66 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.props.onChange([...this.props.columns, newColumn]);
   };
 
-  handleUpdateColumn = (index: number, column: Column) => {
+  handleUpdateColumn = (index: number, updatedColumn: Column) => {
     const newColumns = [...this.props.columns];
-    if (column.kind === 'equation') {
+    if (updatedColumn.kind === 'equation') {
       this.setState(prevState => {
         const error = new Map(prevState.error);
-        error.set(index, parseArithmetic(column.field).error);
+        error.set(index, parseArithmetic(updatedColumn.field).error);
         return {
           ...prevState,
           error,
         };
       });
+    } else {
+      // Update any equations that contain the existing column
+      this.updateEquationFields(newColumns, index, updatedColumn);
     }
-    newColumns.splice(index, 1, column);
+    newColumns.splice(index, 1, updatedColumn);
     this.props.onChange(newColumns);
+  };
+
+  updateEquationFields = (newColumns: Column[], index: number, updatedColumn: Column) => {
+    const oldColumn = newColumns[index];
+    const existingColumn = generateFieldAsString(newColumns[index]);
+    const updatedColumnString = generateFieldAsString(updatedColumn);
+    if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
+      return;
+    }
+    // Find the equations in the list of columns
+    for (let i = 0; i < newColumns.length; i++) {
+      const newColumn = newColumns[i];
+      if (newColumn.kind === 'equation') {
+        const result = parseArithmetic(newColumn.field);
+        let newEquation = '';
+        // Track where to continue from, not reconstructing from result so we don't have to worry
+        // about spacing
+        let lastIndex = 0;
+
+        // the parser separates fields & functions, so we only need to check one
+        const fields =
+          oldColumn.kind === 'function' ? result.tc.functions : result.tc.fields;
+
+        // for each field, add the text before it, then the new function and update index
+        // to be where we want to start again
+        for (const field of fields) {
+          if (field.term === existingColumn && lastIndex !== field.location.end.offset) {
+            newEquation +=
+              newColumn.field.substring(lastIndex, field.location.start.offset) +
+              updatedColumnString;
+            lastIndex = field.location.end.offset;
+          }
+        }
+
+        // Add whatever remains to be added from the equation, if existing field wasn't found
+        // add the entire equation
+        newEquation += newColumn.field.substring(lastIndex);
+        newColumns[i] = {
+          kind: 'equation',
+          field: newEquation,
+        };
+      }
+    }
   };
 
   removeColumn(index: number) {
