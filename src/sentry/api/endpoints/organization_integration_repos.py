@@ -1,5 +1,6 @@
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -30,7 +31,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
         if isinstance(install, RepositoryMixin):
             try:
                 repositories = install.get_repositories(request.GET.get("search"))
-            except IntegrationError as e:
+            except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
             context = {"repos": repositories, "searchable": install.repo_search}
