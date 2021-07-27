@@ -51,8 +51,9 @@ jobs:
         id: jest-tests
         run: |
           docker run --rm -v "$(pwd)":/workspace \
+            --entrypoint /bin/ls \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            --entrypoint /bin/ls /workspace
+            /workspace
           _output=$(docker run --rm -v "$(pwd)":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
             -s jest --listTests --json)
@@ -92,6 +93,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   webpack:
+    if: 1 == 0
     name: create frontend bundle
     runs-on: ubuntu-20.04
     timeout-minutes: 10
