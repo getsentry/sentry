@@ -43,10 +43,7 @@ if (
 // Test setup files however need to remain relative to <rootDir> as
 // module lookup does not work
 const ROOT_DIR = DOCKER_CI ? '/workspace' : '<rootDir>';
-const modulePaths = [
-  '<rootDir>/static',
-  ...(DOCKER_CI ? ['/workspace'] :[])
-]
+const modulePaths = ['<rootDir>/static', ...(DOCKER_CI ? ['/workspace'] : [])];
 
 const config: Config.InitialOptions = {
   verbose: false,
