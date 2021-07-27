@@ -7,7 +7,6 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
-from datetime import datetime
 from typing import List, Mapping
 
 import sentry_sdk
@@ -15,6 +14,7 @@ from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
+from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, sdk
 from sentry.utils.appleconnect import itunes_connect
@@ -52,7 +52,9 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             if not build_state.fetched:
                 builds.append((build, build_state))
 
-    update_build_refresh_date(project, config_id)
+    LatestAppConnectBuildsCheck.objects.create_or_update(
+        project=project, source_id=config_id, values={"last_checked": timezone.now()}
+    )
 
     try:
         itunes_client = client.itunes_client()
@@ -128,18 +130,6 @@ def get_or_create_persisted_build(
         )
         build_state.save()
     return build_state
-
-
-def update_build_refresh_date(project: Project, config_id: str) -> None:
-    serialized_option = project.get_option(
-        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
-    )
-    build_refresh_dates = json.loads(serialized_option)
-    build_refresh_dates[config_id] = datetime.now()
-    serialized_refresh_dates = json.dumps_htmlsafe(build_refresh_dates)
-    project.update_option(
-        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
-    )
 
 
 # Untyped decorator would stop type-checking of entire function, split into an inner

@@ -28,10 +28,6 @@ logger = logging.getLogger(__name__)
 # The key in the project options under which all symbol sources are stored.
 SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
-# The key in the project options under which all of the dates corresponding to the last time sentry
-# checked for new builds in App Store Connect are stored.
-APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
-
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
 
