@@ -24,13 +24,12 @@ class TestAppStoreConnectConfig:
             "appconnectPrivateKey": "---- BEGIN PRIVATE KEY ---- ABC123...",
             "itunesUser": "someone@example.com",
             "itunesPassword": "a secret",
-            "itunesPersonId": "123",
             "itunesSession": "ABC123",
             "itunesCreated": now.isoformat(),
             "appName": "Sample Application",
             "appId": "1234",
             "bundleId": "com.example.app",
-            "orgId": 1234,
+            "orgPublicId": "71105f98-7743-4844-ab70-2c901e2ea13d",
             "orgName": "Example Organisation",
         }
 
@@ -43,12 +42,11 @@ class TestAppStoreConnectConfig:
         assert config.appconnectPrivateKey == data["appconnectPrivateKey"]
         assert config.itunesUser == data["itunesUser"]
         assert config.itunesPassword == data["itunesPassword"]
-        assert config.itunesPersonId == data["itunesPersonId"]
         assert config.itunesSession == data["itunesSession"]
         assert config.itunesCreated == now
         assert config.appName == data["appName"]
         assert config.bundleId == data["bundleId"]
-        assert config.orgId == data["orgId"]
+        assert config.orgPublicId == data["orgPublicId"]
         assert config.orgName == data["orgName"]
 
     def test_from_json_isoformat(self, data, now):
@@ -88,13 +86,12 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             appconnectPrivateKey="----BEGIN PRIVATE KEY---- blabla",
             itunesUser="me@example.com",
             itunesPassword="secret",
-            itunesPersonId="123",
             itunesSession="THE-COOKIE",
             itunesCreated=datetime.utcnow(),
             appName="My App",
             appId="123",
             bundleId="com.example.app",
-            orgId=123,
+            orgPublicId="71105f98-7743-4844-ab70-2c901e2ea13d",
             orgName="Example Com",
         )
 
@@ -142,13 +139,12 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             appconnectPrivateKey=config.appconnectPrivateKey,
             itunesUser=config.itunesUser,
             itunesPassword=config.itunesPassword,
-            itunesPersonId=config.itunesPersonId,
             itunesSession="A NEW COOKIE",
             itunesCreated=datetime.utcnow(),
             appName=config.appName,
             appId=config.appId,
             bundleId=config.bundleId,
-            orgId=config.orgId,
+            orgPublicId=config.orgPublicId,
             orgName=config.orgName,
         )
 
@@ -170,13 +166,12 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             appconnectPrivateKey=config.appconnectPrivateKey,
             itunesUser=config.itunesUser,
             itunesPassword=config.itunesPassword,
-            itunesPersonId=config.itunesPersonId,
             itunesSession="A NEW COOKIE",
             itunesCreated=datetime.utcnow(),
             appName=config.appName,
             appId=config.appId,
             bundleId=config.bundleId,
-            orgId=config.orgId,
+            orgPublicId=config.orgPublicId,
             orgName=config.orgName,
         )
 
