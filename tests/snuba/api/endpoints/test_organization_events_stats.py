@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 from uuid import uuid4
 
+import dateutil.parser as parse_date
 import pytest
 from django.urls import reverse
 from pytz import utc
@@ -814,11 +815,13 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             "organizations:discover-basic": True,
         }
         with self.feature(self.enabled_features):
+            start = iso_format(self.day_ago)
+            end = iso_format(self.day_ago + timedelta(hours=2))
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": start,
+                    "end": end,
                     "interval": "30m",
                     "withoutZerofill": "1",
                 },
@@ -830,6 +833,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 [{"count": 1}],
                 [{"count": 2}],
             ]
+            assert response.data["start"] == parse_date.parse(start).timestamp()
+            assert response.data["end"] == parse_date.parse(end).timestamp()
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
