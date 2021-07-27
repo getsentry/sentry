@@ -86,10 +86,10 @@ class ClientState(enum.Enum):
 
 
 class ITunesClient:
-    """Statefull client to talk to iTunes.
+    """Stateful client to talk to iTunes.
 
     This client allows you to log into iTunes using two-factor authentication and retrieve a
-    URL to download dSYMs from.  It is statefull so that you can only go through the
+    URL to download dSYMs from.  It is stateful so that you can only go through the
     operations correctly:
 
     1. :meth:`start_login_sequence`
@@ -253,7 +253,7 @@ class ITunesClient:
         elif start_login.status_code == http.HTTPStatus.UNAUTHORIZED:
             raise InvalidUsernamePasswordError
         else:
-            raise ITunesError(f"Unexpected status code form signing: {start_login.status_code}")
+            raise ITunesError(f"Unexpected status code form sign in: {start_login.status_code}")
 
     def two_factor_code(self, code: str) -> None:
         """Sends the two-factor authentication code, completing authentication.
@@ -262,7 +262,7 @@ class ITunesClient:
         """
         assert self.state is ClientState.AUTH_REQUESTED
         url = "https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode"
-        logger.debug(f"POST {url}")
+        logger.debug("POST %s", url)
         response = self.session.post(
             url,
             json={
@@ -330,7 +330,7 @@ class ITunesClient:
             },
         )
         if response.status_code != HTTPStatus.OK:
-            raise ITunesError("Unexpected response status: {response.status_code}")
+            raise ITunesError(f"Unexpected response status: {response.status_code}")
         self.state = ClientState.SMS_AUTH_REQUESTED
 
     def sms_code(self, code: str) -> None:
@@ -341,7 +341,7 @@ class ITunesClient:
         assert self.state is ClientState.SMS_AUTH_REQUESTED
         assert self._trusted_phone is not None
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode"
-        logger.debug("PUT {url}")
+        logger.debug("PUT %s", url)
         response = self.session.post(
             url,
             json={
@@ -414,7 +414,7 @@ class ITunesClient:
         return self._request_session_info()
 
     def _request_session_info(self) -> json.JSONData:
-        url = " https://appstoreconnect.apple.com/olympus/v1/session"
+        url = "https://appstoreconnect.apple.com/olympus/v1/session"
         logger.debug("GET %s", url)
         session_response = self.session.get(url)
 

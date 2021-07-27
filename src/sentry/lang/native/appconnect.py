@@ -162,7 +162,7 @@ class AppStoreConnectConfig:
         raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
 
         # UI bug: the UI writes an empty string when removing the last symbol source from
-        # the list.  So we need to cater for both `None` and `''` being retunred from
+        # the list.  So we need to cater for both `None` and `''` being returned from
         # .get_option().
         if not raw:
             raw = "[]"

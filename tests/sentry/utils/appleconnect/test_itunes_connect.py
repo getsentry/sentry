@@ -88,7 +88,7 @@ class GetSentryLlcBuild:
 
 @pytest.fixture  # type: ignore
 def getsentryllc_partial() -> GetSentryLlcBuild:
-    """The "Sentry Cocoal Sample iOS Swift" app from "GetSentry LLC"."""
+    """The "Sentry Cocoa Sample iOS Swift" app from "GetSentry LLC"."""
     # Note that these builds expire on App Store Connect.  If this happens you will need to
     # create a new build and update the version and build number.
     # TODO: Include instructions for this.

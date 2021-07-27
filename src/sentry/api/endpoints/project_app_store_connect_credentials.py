@@ -235,7 +235,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config["itunesSession"] = itunes_client.session_cookie()
 
         # This field is renamed in the backend to represent its actual value, for the UI it
-        # is just a opaque though.
+        # is just an opaque value.
         config["orgPublicId"] = config.pop("orgId")
 
         validated_config = appconnect.AppStoreConnectConfig.from_json(config)
@@ -329,7 +329,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
 
         if "orgId" in data:
             # This field is renamed in the backend to represent its actual value, for the UI
-            # it is just a opaque though.
+            # it is just an opaque value.
             data["orgPublicId"] = data.pop("orgId")
         new_data = symbol_source_config.to_json()
         new_data.update(data)

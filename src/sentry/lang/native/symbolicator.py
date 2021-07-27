@@ -66,7 +66,7 @@ APP_STORE_CONNECT_SCHEMA = {
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgPublicId": {"type": "string", "minLenght": 36, "maxLength": 36},
+        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
