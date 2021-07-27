@@ -553,7 +553,11 @@ class ReleasesList extends AsyncView<Props, State> {
             <SortAndFilterWrapper>
               {hasSemver ? (
                 <GuideAnchor target="releases_search" position="bottom">
-                  <GuideAnchorWrapper target="release_stages" position="bottom" disabled={!hasReleaseStages}>
+                  <GuideAnchorWrapper
+                    target="release_stages"
+                    position="bottom"
+                    disabled={!hasReleaseStages}
+                  >
                     <SmartSearchBar
                       searchSource="releases"
                       query={this.getQuery()}
