@@ -231,19 +231,23 @@ class QueryDefinition:
         if len(raw_fields) == 0:
             raise InvalidField('At least one "field" is required.')
         self.fields = {}
-        self.aggregations = []
+        aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
         self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
         self.end = end
+        self.conditions = [
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+        ]
 
         for key in raw_fields:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
-            self.aggregations.append(field.aggregation(self.dataset))
+            aggregations.append(field.aggregation(self.dataset))
             self.fields[key] = field
 
         self.groupby = []
@@ -267,38 +271,37 @@ class QueryDefinition:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        self.conditions, self.filter_keys = get_filter(query, params)
+        self.group_by = []
+        for key in self.query_groupby:
+            self.group_by.append(Column(key))
+
+        conditions, filter_keys = get_filter(query, params)
+
+        for org in filter_keys["org_id"]:
+            self.conditions.append(
+                Condition(Column("org_id"), Op.EQ, org),
+            )
+        if filter_keys.get("project_id") is not None:
+            self.conditions.append(
+                Condition(Column("project_id"), Op.IN, filter_keys.get("project_id")),
+            )
+        for condition in conditions:
+            self.conditions.append(Condition(Column(condition[0]), Op.IN, condition[2]))
+
+        self.select_params = []
+        for aggregation in aggregations:
+            self.select_params.append(
+                Function(aggregation[0], [Column(aggregation[1])], aggregation[2])
+            )
 
 
 def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
-    group_by = []
-    for key in query.query_groupby:
-        group_by.append(Column(key))
-
-    conditions = [
-        Condition(Column("timestamp"), Op.GTE, query.start),
-        Condition(Column("timestamp"), Op.LT, query.end),
-    ]
-    for org in query.filter_keys["org_id"]:
-        conditions.append(
-            Condition(Column("org_id"), Op.EQ, org),
-        )
-    if query.filter_keys.get("project_id") is not None:
-        conditions.append(
-            Condition(Column("project_id"), Op.IN, query.filter_keys.get("project_id")),
-        )
-    for condition in query.conditions:
-        conditions.append(Condition(Column(condition[0]), Op.IN, condition[2]))
-
-    select_params = []
-    for aggregation in query.aggregations:
-        select_params.append(Function(aggregation[0], [Column(aggregation[1])], aggregation[2]))
     snql_query = Query(
         dataset=query.dataset.value,
         match=Entity("outcomes"),
-        select=select_params,
-        groupby=group_by,
-        where=conditions,
+        select=query.select_params,
+        groupby=query.group_by,
+        where=query.conditions,
         limit=Limit(10000),
         offset=Offset(0),
         granularity=Granularity(query.rollup),
@@ -308,35 +311,12 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
 
 
 def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
-    group_by = [Column(TS_COL)]
-    for key in query.query_groupby:
-        group_by.append(Column(key))
-
-    conditions = [
-        Condition(Column("timestamp"), Op.GTE, query.start),
-        Condition(Column("timestamp"), Op.LT, query.end),
-    ]
-    for org in query.filter_keys["org_id"]:
-        conditions.append(
-            Condition(Column("org_id"), Op.EQ, org),
-        )
-    if query.filter_keys.get("project_id") is not None:
-        conditions.append(
-            Condition(Column("project_id"), Op.IN, query.filter_keys.get("project_id")),
-        )
-    for condition in query.conditions:
-        conditions.append(Condition(Column(condition[0]), Op.IN, condition[2]))
-
-    select_params = []
-    for aggregation in query.aggregations:
-        select_params.append(Function(aggregation[0], [Column(aggregation[1])], aggregation[2]))
-
     snql_query = Query(
         dataset=query.dataset.value,
         match=Entity("outcomes"),
-        select=select_params,
-        groupby=group_by,
-        where=conditions,
+        select=query.select_params,
+        groupby=query.group_by + [Column(TS_COL)],
+        where=query.conditions,
         limit=Limit(10000),
         offset=Offset(0),
         granularity=Granularity(query.rollup),
