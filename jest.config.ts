@@ -57,20 +57,20 @@ const config: Config.InitialOptions = {
   moduleNameMapper: {
     '^sentry-test/(.*)': `${ROOT_DIR}/tests/js/sentry-test/$1`,
     '^sentry-locale/(.*)': `${ROOT_DIR}/src/sentry/locale/$1`,
-    '\\.(css|less|png|jpg|mp4)$': `<rootDir>/tests/js/sentry-test/importStyleMock.js`,
-    '\\.(svg)$': `<rootDir>/tests/js/sentry-test/svgMock.js`,
-    'integration-docs-platforms': `<rootDir>/tests/fixtures/integration-docs/_platforms.json`,
+    '\\.(css|less|png|jpg|mp4)$': `${ROOT_DIR}/tests/js/sentry-test/importStyleMock.js`,
+    '\\.(svg)$': `${ROOT_DIR}/tests/js/sentry-test/svgMock.js`,
+    'integration-docs-platforms': `${ROOT_DIR}/tests/fixtures/integration-docs/_platforms.json`,
   },
   modulePaths,
   moduleDirectories: ['node_modules', '<rootDir>/node_modules'],
   setupFiles: [
-    `<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts`,
-    `<rootDir>/tests/js/throw-on-react-error.js`,
-    `<rootDir>/tests/js/setup.js`,
+    `${ROOT_DIR}/static/app/utils/silence-react-unsafe-warnings.ts`,
+    `${ROOT_DIR}/tests/js/throw-on-react-error.js`,
+    `${ROOT_DIR}/tests/js/setup.js`,
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
-    `<rootDir>/tests/js/setupFramework.ts`,
+    `${ROOT_DIR}/tests/js/setupFramework.ts`,
     '@testing-library/jest-dom/extend-expect',
   ],
   testMatch: testMatch || [`${ROOT_DIR}/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)`],
@@ -83,7 +83,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.pegjs?$': `<rootDir>/tests/js/jest-pegjs-transform.js`,
+    '^.+\\.pegjs?$': `${ROOT_DIR}/tests/js/jest-pegjs-transform.js`,
   },
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
@@ -101,7 +101,7 @@ const config: Config.InitialOptions = {
 
   testRunner: 'jest-circus/runner',
 
-  testEnvironment: `<rootDir>/tests/js/instrumentedEnv`,
+  testEnvironment: `${ROOT_DIR}/tests/js/instrumentedEnv`,
   testEnvironmentOptions: {
     output: path.resolve(
       DOCKER_CI ? '/workspace/' : __dirname,
