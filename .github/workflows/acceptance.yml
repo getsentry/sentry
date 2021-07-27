@@ -44,7 +44,7 @@ jobs:
         with:
           checkName: prepare frontend ci image
 
-      - name: Pull image
+      - name: Pull image (${{ steps.config.outputs.image }})
         run: docker pull ${{ steps.config.outputs.image }}
 
       - name: Build CSS
