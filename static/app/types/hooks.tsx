@@ -270,7 +270,7 @@ type AnalyticsTrackEventV2 = (
      */
     [key: string]: any;
   },
-  options: {
+  options?: {
     /**
      * If true, send the event to marketing analytics
      */

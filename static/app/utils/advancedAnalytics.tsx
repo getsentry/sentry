@@ -1,4 +1,5 @@
 import {Organization} from 'app/types';
+import {Hooks} from 'app/types/hooks';
 import {trackAnalyticsEventV2} from 'app/utils/analytics';
 import {growthEventMap, GrowthEventParameters} from 'app/utils/growthAnalyticsEvents';
 import {uniqueId} from 'app/utils/guid';
@@ -44,8 +45,7 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
   eventKey: T,
   analyticsParams: EventParameters[T],
   org: Organization | null, // if org is undefined, event won't be recorded
-  options?: {startSession: boolean},
-  mapValuesFn?: (params: object) => object
+  options?: Parameters<Hooks['analytics:track-event-v2']>[1]
 ) {
   const eventName = allEventMap[eventKey];
 
@@ -62,8 +62,10 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
     console.log('trackAdvancedAnalytics', params);
   }
 
-  trackAnalyticsEventV2(params, {
-    mapValuesFn,
-    ...options,
-  });
+  // only apply options if required to make mock assertions easier
+  if (options) {
+    trackAnalyticsEventV2(params, options);
+  } else {
+    trackAnalyticsEventV2(params);
+  }
 }
