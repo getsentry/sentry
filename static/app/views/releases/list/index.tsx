@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import GuideAnchorWrapper, {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
@@ -533,6 +533,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const activeDisplay = this.getDisplay();
 
     const hasSemver = organization.features.includes('semver');
+    const hasReleaseStages = organization.features.includes('release-adoption-stage');
 
     return (
       <GlobalSelectionHeader
@@ -552,7 +553,7 @@ class ReleasesList extends AsyncView<Props, State> {
             <SortAndFilterWrapper>
               {hasSemver ? (
                 <GuideAnchor target="releases_search" position="bottom">
-                  <GuideAnchor target="release_stages" position="bottom">
+                  <GuideAnchorWrapper target="release_stages" position="bottom" disabled={!hasReleaseStages}>
                     <SmartSearchBar
                       searchSource="releases"
                       query={this.getQuery()}
@@ -563,7 +564,7 @@ class ReleasesList extends AsyncView<Props, State> {
                       onSearch={this.handleSearch}
                       onGetTagValues={this.getTagValues}
                     />
-                  </GuideAnchor>
+                  </GuideAnchorWrapper>
                 </GuideAnchor>
               ) : (
                 <SearchBar
