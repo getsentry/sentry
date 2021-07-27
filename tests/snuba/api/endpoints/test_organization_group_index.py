@@ -2099,6 +2099,64 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         for release in [release_2, release_3]:
             assert not GroupResolution.has_resolution(group=group, release=release)
 
+    def test_in_non_semver_projects_store_actual_current_release_version_not_cached_version(self):
+        """
+        Test that ensures that the current_release_version is actually the latest version
+        associated with a group, not the cached version because currently
+        `group.get_last_release` fetches the latest release associated with a group and caches
+        that value, and we don't want to cache that value when resolving in next release in case a
+        new release appears to be associated with a group because if we store the cached rather
+        than the actual latest release, we might have unexpected results with the regression
+        algorithm
+        """
+        release_1 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+        )
+        release_2 = self.create_release(version="foobar 2")
+
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        # Call this function to cache the `last_seen` release to release_1
+        # i.e. Set the first last observed by Sentry
+        assert group.get_last_release() == release_1.version
+
+        self.login_as(user=self.user)
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=0)),
+                "fingerprint": ["group-1"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        )
+
+        # Cached (i.e. first last observed release by Sentry) is returned here since `use_cache`
+        # is set to its default of `True`
+        assert Group.objects.get(id=group.id).get_last_release() == release_1.version
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"]
+
+        # Changes here to release_2 and actual latest because `resolvedInNextRelease`,
+        # sets `use_cache` to False when fetching the last release associated with a group
+        assert Group.objects.get(id=group.id).get_last_release() == release_2.version
+
+        grp_resolution = GroupResolution.objects.filter(group=group)
+
+        assert len(grp_resolution) == 1
+        assert grp_resolution[0].current_release_version == release_2.version
+
     def test_selective_status_update(self):
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)

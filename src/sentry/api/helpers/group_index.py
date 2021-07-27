@@ -536,7 +536,11 @@ def get_current_release_version_of_group(group, follows_semver=False):
             ...
     else:
         # This sets current_release_version to the most recent release associated with a group
-        current_release_version = group.get_last_release()
+        # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
+        # group.get_last_release might not return the actual latest release associated with a
+        # group but rather a cached version (which might or might not be the actual latest. It is
+        # the first latest observed by Sentry)
+        current_release_version = group.get_last_release(use_cache=False)
     return current_release_version
 
 
