@@ -5,8 +5,7 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
-from sentry.db.models.manager import OptionManager
-from sentry.db.models.manager.option import Value
+from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
