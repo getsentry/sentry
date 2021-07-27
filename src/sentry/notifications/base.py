@@ -1,4 +1,4 @@
-from typing import Any, Mapping, MutableMapping, Optional, Set
+from typing import Any, Mapping, MutableMapping, Optional, Set, Tuple
 
 from sentry.models import Group, Project, User
 from sentry.types.integrations import ExternalProviders
@@ -9,7 +9,7 @@ class BaseNotification:
     fine_tuning_key: Optional[str] = None
     is_message_issue_unfurl = False
 
-    def __init__(self, project: Project, group: Group) -> None:
+    def __init__(self, project: Project, group: Optional[Group]) -> None:
         self.project = project
         self.organization = self.project.organization
         self.group = group
@@ -62,3 +62,8 @@ class BaseNotification:
 
     def get_type(self) -> str:
         raise NotImplementedError
+
+    def get_unsubscribe_key(self) -> Optional[Tuple[str, int]]:
+        if self.group:
+            return "issue", self.group.id
+        return None
