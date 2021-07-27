@@ -117,6 +117,7 @@ SNQL_FIELD_ALLOWLIST = {
     "stack.module",
     "stack.package",
     "stack.stack_level",
+    "transaction.duration",
 }
 
 OPERATOR_NEGATION_MAP = {
