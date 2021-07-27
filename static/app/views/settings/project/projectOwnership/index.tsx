@@ -229,12 +229,13 @@ tags.sku_class:enterprise #enterprise`;
                   priority="primary"
                   data-test-id="add-codeowner-button"
                 >
-                  {t('Add Codeowner File')}
+                  {t('Add CODEOWNERS File')}
                 </CodeOwnerButton>
               </Feature>
             </Fragment>
           }
         />
+        <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
         <PermissionAlert />
         {this.renderCodeOwnerErrors()}
         <RulesPanel
@@ -243,11 +244,10 @@ tags.sku_class:enterprise #enterprise`;
           raw={ownership.raw || ''}
           dateUpdated={ownership.lastUpdated}
           placeholder={this.getPlaceholder()}
-          detail={this.getDetail()}
           controls={[
             <Button
               key="edit"
-              size="small"
+              size="xsmall"
               onClick={() =>
                 openEditOwnershipRules({
                   organization,
@@ -337,4 +337,8 @@ const ErrorCtaContainer = styled('div')`
   justify-self: flex-end;
   text-align: right;
   line-height: 1.5;
+`;
+
+const IssueOwnerDetails = styled('div')`
+  padding-bottom: ${space(3)};
 `;

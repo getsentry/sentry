@@ -52,7 +52,7 @@ class CodeOwnersPanel extends Component<Props> {
             dateUpdated={dateUpdated}
             provider={provider}
             repoName={repoName}
-            readOnly
+            beta
             controls={[
               <Confirm
                 onConfirm={() => this.handleDelete(codeowner)}
