@@ -18,6 +18,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
+import {Theme} from 'app/utils/theme';
 import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
@@ -30,7 +31,7 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
-const ADOPTION_STAGE_LABELS = {
+const ADOPTION_STAGE_LABELS: Record<string, {name: string; type: keyof Theme['tag']}> = {
   low_adoption: {
     name: t('Low Adoption'),
     type: 'warning',
