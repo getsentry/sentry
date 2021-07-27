@@ -54,9 +54,9 @@ class CodeOwnersPanel extends Component<Props> {
         }
       );
       onUpdate({...codeowner, ...data});
-      addSuccessMessage(t('Sync successful.'));
+      addSuccessMessage(t('CODEOWNERS file sync successful.'));
     } catch (_err) {
-      addErrorMessage(t('An error occurred during sync.'));
+      addErrorMessage(t('An error occurred trying to sync CODEOWNERS file.'));
     }
   };
   render() {
