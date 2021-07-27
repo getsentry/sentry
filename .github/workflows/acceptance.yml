@@ -42,15 +42,11 @@ jobs:
         id: jest-tests
         run: |
           docker run --rm -v "$(pwd)":/workspace \
-            --entrypoint /bin/ls \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            /workspace/tests/js/spec
-          docker run --rm -v "$(pwd)":/workspace \
-            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            -s jest --listTests --json
+            -s jest --listTests --json --roots /workspace
           _output=$(docker run --rm -v "$(pwd)":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            -s jest --listTests --json)
+            -s jest --listTests --json --roots /workspace)
           echo "::set-output name=tests::${_output}"
 
       - name: Build CSS
