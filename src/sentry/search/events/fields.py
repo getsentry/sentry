@@ -2476,7 +2476,7 @@ class QueryFields(QueryBase):
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
         for arg in snql_function.args:
-            if type(arg) == SnQLColumn:
+            if isinstance(arg, SnQLColumn):
                 arguments[arg.name] = self.resolve_field(arguments[arg.name])
 
         if snql_function.snql_aggregate is not None:
