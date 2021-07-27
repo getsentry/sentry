@@ -24,6 +24,7 @@ jobs:
 
     env:
       VISUAL_HTML_ENABLE: 1
+
     steps:
       - uses: actions/checkout@v2
         name: Checkout sentry
@@ -32,22 +33,19 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
+      - name: Configuration
+        id: config
+        run: |
+          echo "::set-output name=image::ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }}"
+
       - name: Wait for frontend ci image
         uses: getsentry/action-wait-for-check@v1.1.0
         id: wait-for-frontend
         with:
           checkName: prepare frontend ci image
 
-      - name: jest tests
-        id: jest-tests
-        run: |
-          docker run --rm -v "$(pwd)":/workspace \
-            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            -s jest --listTests --json --roots /workspace
-          _output=$(docker run --rm -v "$(pwd)":/workspace \
-            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            -s jest --listTests --json --roots /workspace)
-          echo "::set-output name=tests::${_output}"
+      - name: Pull image
+        run: docker pull ${{ steps.config.outputs.image }}
 
       - name: Build CSS
         env:
@@ -55,8 +53,17 @@ jobs:
         run: |
           mkdir -p src/sentry/static/sentry/dist
           docker run --rm -v "$(pwd)/src/sentry/static/sentry/dist":/workspace \
-            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            ${{ steps.config.outputs.image }} \
             build-css --output-path=/workspace
+
+      - name: Collect jest test names
+        id: jest-tests
+        run: |
+          _output=$(docker run --rm \
+            -v "$(pwd)":/workspace \
+            ${{ steps.config.outputs.image }} \
+            -s jest --listTests --json --roots /workspace)
+          echo "::set-output name=tests::${_output}"
 
       - name: jest
         env:
@@ -65,7 +72,8 @@ jobs:
           JEST_TESTS: ${{ steps.jest-tests.outputs.tests }}
         run: |
           docker run --rm \
-            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            -v "$(pwd)":/workspace \
+            ${{ steps.config.outputs.image }} \
             test-ci --roots /workspace --forceExit
 
       - name: Save HTML artifacts
