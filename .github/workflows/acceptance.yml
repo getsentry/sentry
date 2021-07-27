@@ -51,7 +51,10 @@ jobs:
       - name: jest tests
         id: jest-tests
         run: |
-          echo "::set-output name=tests::$(docker run ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} -s jest --listTests --json)"
+          _output=docker run -v "$(pwd)":/workspace \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            -s jest --listTests --json
+          echo "::set-output name=tests::${_output}"
 
       - name: jest
         env:
