@@ -24,8 +24,9 @@ class LatestAppConnectBuildsCheck(Model):
     # AppStoreConnectConfig.
     source_id = models.CharField(max_length=200)
 
-    # When sentry last checked App Store Connect.
-    last_fetched = models.DateTimeField(default=timezone.now)
+    # When sentry last checked App Store Connect for new builds. A check may return zero new builds,
+    # or no builds at all if all existing builds have expired.
+    last_checked = models.DateTimeField(default=timezone.now)
 
     @classmethod
     def update_date(cls, project, source_id, new_date):
@@ -33,13 +34,13 @@ class LatestAppConnectBuildsCheck(Model):
             new_date = timezone.now()
         try:
             latest_check = cls.objects.get(project=project, source_id=source_id)
-            latest_check.last_fetched = new_date
-            latest_check.save(update_fields=["last_fetched"])
+            latest_check.last_checked = new_date
+            latest_check.save(update_fields=["last_checked"])
         except cls.DoesNotExist:
             latest_check = LatestAppConnectBuildsCheck(
                 project=project,
                 source_id=source_id,
-                last_fetched=new_date,
+                last_checked=new_date,
             )
             latest_check.save()
 

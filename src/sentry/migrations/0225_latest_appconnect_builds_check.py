@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("source_id", models.CharField(max_length=200)),
-                ("last_fetched", models.DateTimeField(default=django.utils.timezone.now)),
+                ("last_checked", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "project",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
