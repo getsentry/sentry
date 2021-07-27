@@ -66,7 +66,7 @@ jobs:
         run: |
           docker run --rm \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            test-ci --forceExit
+            test-ci --roots /workspace --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
