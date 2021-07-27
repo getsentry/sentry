@@ -87,7 +87,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     if (pending) {
       return (
         <Column>
-          {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
+          {expired ? t('Expired Invite') : tct('[roleName] Invited', {roleName})}
         </Column>
       );
     }
@@ -128,10 +128,10 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       <StyledPanelItem data-test-id={email}>
         <Column>
           <UserAvatar size={32} user={user ?? {id: email, email}} />
-          <MemberDescription to={detailsUrl}>
+          <StyledMember to={detailsUrl}>
             <UserName>{name}</UserName>
-            <Email>{email}</Email>
-          </MemberDescription>
+            <UserEmail>{email}</UserEmail>
+          </StyledMember>
         </Column>
 
         <div data-test-id="member-role">{this.renderMemberRole()}</div>
@@ -175,7 +175,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </div>
 
         {showRemoveButton || showLeaveButton ? (
-          <div>
+          <Actions>
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
@@ -184,7 +184,12 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleRemove}
               >
-                <Button data-test-id="remove" busy={this.state.busy} size="small" />
+                <Button
+                  data-test-id="remove"
+                  busy={this.state.busy}
+                  size="small"
+                  icon={<IconDelete />}
+                />
               </Confirm>
             )}
 
@@ -223,7 +228,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 {t('Leave')}
               </Button>
             )}
-          </div>
+          </Actions>
         ) : null}
       </StyledPanelItem>
     );
@@ -232,34 +237,32 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: minmax(150px, 2fr) 1fr 1fr max-content;
+  grid-template-columns: minmax(150px, 2fr) 1fr 1fr minmax(60px, max-content);
   grid-gap: ${space(2)};
   align-items: center;
 `;
 
 const Column = styled('div')`
-  display: inline-grid;
+  display: grid;
   grid-template-columns: max-content auto;
   grid-gap: ${space(1)};
   align-items: center;
 `;
 
-const MemberDescription = styled(Link)`
-  overflow: hidden;
+const Actions = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
+
+const StyledMember = styled(Link)``;
 
 const UserName = styled('div')`
-  display: block;
-  font-size: ${p => p.theme.fontSizeLarge};
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: ${p => p.theme.textColor};
+  margin-bottom: ${space(0.5)};
 `;
 
-const Email = styled('div')`
-  color: ${p => p.theme.textColor};
+const UserEmail = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const LoadingContainer = styled('div')`

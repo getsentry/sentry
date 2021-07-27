@@ -289,13 +289,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         </ClassNames>
         {inviteRequests && inviteRequests.length > 0 && (
           <Panel>
-            <PanelHeader>
-              <StyledPanelItem>
-                <div>{t('Pending Members')}</div>
-                <div>{t('Role')}</div>
-                <div>{t('Teams')}</div>
-              </StyledPanelItem>
-            </PanelHeader>
+            <StyledPanelHeader>
+              <div>{t('Pending Members')}</div>
+              <div>{t('Role')}</div>
+              <div>{t('Teams')}</div>
+            </StyledPanelHeader>
             <PanelBody>
               {inviteRequests.map(inviteRequest => (
                 <InviteRequestRow
@@ -380,7 +378,7 @@ const StyledMembersFilter = styled(MembersFilter)`
   }
 `;
 
-const StyledPanelItem = styled('div')`
+const StyledPanelHeader = styled(PanelHeader)`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
   grid-gap: ${space(2)};
