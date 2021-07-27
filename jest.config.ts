@@ -45,11 +45,11 @@ const ROOT_DIR = DOCKER_CI ? '/workspace' : '<rootDir>';
 const config: Config.InitialOptions = {
   verbose: false,
   collectCoverageFrom: [
-    'tests/js/spec/**/*.{js,jsx,tsx}',
-    'static/app/**/*.{js,jsx,ts,tsx}',
+    `${ROOT_DIR}/tests/js/spec/**/*.{js,jsx,tsx}`,
+    `${ROOT_DIR}/static/app/**/*.{js,jsx,ts,tsx}`,
   ],
   coverageReporters: ['html', 'cobertura'],
-  coverageDirectory: '.artifacts/coverage',
+  coverageDirectory: `${ROOT_DIR}/.artifacts/coverage`,
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^sentry-test/(.*)': `${ROOT_DIR}/tests/js/sentry-test/$1`,
@@ -89,7 +89,7 @@ const config: Config.InitialOptions = {
     [
       'jest-junit',
       {
-        outputDirectory: `${DOCKER_CI ? '/workspace/' : ''}.artifacts`,
+        outputDirectory: `${ROOT_DIR}/.artifacts`,
         outputName: 'jest.junit.xml',
       },
     ],
@@ -108,7 +108,5 @@ const config: Config.InitialOptions = {
     SENTRY_DSN: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
   },
 };
-
-console.log({DOCKER_CI, config}); // eslint-disable-line
 
 export default config;

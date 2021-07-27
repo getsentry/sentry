@@ -44,7 +44,10 @@ jobs:
           docker run --rm -v "$(pwd)":/workspace \
             --entrypoint /bin/ls \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            /workspace
+            /workspace/tests/js/spec
+          docker run --rm -v "$(pwd)":/workspace \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            -s jest --listTests --json
           _output=$(docker run --rm -v "$(pwd)":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
             -s jest --listTests --json)
