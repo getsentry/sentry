@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, create_match_frame
 
 
@@ -400,3 +401,20 @@ def test_range_matching_direct():
         ],
         "python",
     )
+
+
+@pytest.mark.parametrize("action", ["+", "-"])
+@pytest.mark.parametrize("type", ["prefix", "sentinel"])
+def test_sentinel_and_prefix(action, type):
+    rule = Enhancements.from_config_string(f"function:foo {action}{type}").rules[0]
+
+    frames = [{"function": "foo"}]
+    actions = _get_matching_frame_actions(rule, frames, "whatever")
+    assert len(actions) == 1
+
+    component = GroupingComponent(id=None)
+    assert not getattr(component, f"is_{type}_frame")
+
+    actions[0][1].update_frame_components_contributions([component], frames, 0)
+    expected = True if action == "+" else False
+    assert getattr(component, f"is_{type}_frame") is expected
