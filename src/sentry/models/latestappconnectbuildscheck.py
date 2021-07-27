@@ -28,16 +28,18 @@ class LatestAppConnectBuildsCheck(Model):
     last_fetched = models.DateTimeField(default=timezone.now)
 
     @classmethod
-    def update_date(cls, project, source_id):
+    def update_date(cls, project, source_id, new_date):
+        if new_date is None:
+            new_date = timezone.now()
         try:
             latest_check = cls.objects.get(project=project, source_id=source_id)
-            latest_check.last_fetched = timezone.now()
+            latest_check.last_fetched = new_date
             latest_check.save(update_fields=["last_fetched"])
         except cls.DoesNotExist:
             latest_check = LatestAppConnectBuildsCheck(
                 project=project,
                 source_id=source_id,
-                last_fetched=timezone.now(),
+                last_fetched=new_date,
             )
             latest_check.save()
 
