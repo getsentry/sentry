@@ -110,7 +110,7 @@ jobs:
         run: |
           mkdir dist
           docker run \
-            --entrypoints /bin/ls \
+            --entrypoint /bin/ls \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} || true
           docker run -v "$(pwd)/dist":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }}
@@ -176,7 +176,7 @@ jobs:
           checkName: create frontend bundle
 
       - name: Did frontend build succeed
-        if: steps.wait-for-frontend.outputs.conclusion == 'failed' || steps.wait-for-frontend.outputs.conclusion == 'timed_out'
+        if: steps.wait-for-frontend.outputs.conclusion == 'failure' || steps.wait-for-frontend.outputs.conclusion == 'timed_out'
         run: exit 1
 
       - name: Download frontend dist
