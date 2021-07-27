@@ -1314,6 +1314,21 @@ def with_default(default, argument):
     return argument
 
 
+class SnQLCountColumn(FunctionArg):
+    def __init__(self, name):
+        super().__init__(name)
+        self.has_default = True
+
+    def get_default(self, params):
+        return None
+
+    def normalize(self, value, _):
+        if value is None:
+            raise InvalidFunctionArgument("a column is required")
+
+        return value
+
+
 class DiscoverFunction:
     def __init__(
         self,
@@ -2190,7 +2205,7 @@ class QueryFields(QueryBase):
                     # Using the generic FunctionArg here temporarily till we
                     # implement a resolver for count columns in SnQL. The only
                     # column to be passed through here for now is `user`.
-                    required_args=[FunctionArg("column")],
+                    required_args=[SnQLCountColumn("column")],
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[
                         {
@@ -2412,6 +2427,9 @@ class QueryFields(QueryBase):
         snql_function = self.function_converter.get(name)
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        for arg in snql_function.args:
+            if type(arg) == SnQLCountColumn:
+                arguments[arg.name] = self.resolve_field(arguments[arg.name])
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
@@ -2719,14 +2737,7 @@ class QueryFields(QueryBase):
             )
         col = args["column"]
 
-        return Function(
-            "uniqIf",
-            [
-                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
-                Function("greater", [lhs, rhs]),
-            ],
-            alias,
-        )
+        return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:

@@ -117,6 +117,7 @@ SNQL_FIELD_ALLOWLIST = {
     "stack.module",
     "stack.package",
     "stack.stack_level",
+    "user",
 }
 
 OPERATOR_NEGATION_MAP = {
