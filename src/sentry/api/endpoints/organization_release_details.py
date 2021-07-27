@@ -299,7 +299,11 @@ class OrganizationReleaseDetailsPaginationMixin:
 
         queryset = add_environment_to_queryset(queryset, proj_and_env_dict)
 
-        return queryset.order_by(*order_by).first().version
+        release = queryset.order_by(*order_by).first()
+
+        if not release:
+            return None
+        return release.version
 
     def get_first_and_last_releases(self, org, environment, project_id, sort):
         """
