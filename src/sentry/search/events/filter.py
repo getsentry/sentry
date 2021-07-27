@@ -1023,6 +1023,10 @@ def format_search_filter(term, params):
     return conditions, projects_to_filter, group_ids
 
 
+# Not a part of search.events.types to avoid a circular loop
+ParsedTerms = Sequence[Union[SearchFilter, AggregateFilter]]
+
+
 class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
@@ -1043,7 +1047,9 @@ class QueryFilter(QueryFields):
             TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
         }
 
-    def parse_query(self, query: Optional[str]) -> Optional[Sequence[SearchFilter]]:
+    def parse_query(self, query: Optional[str]) -> ParsedTerms:
+        """Given a user's query string construct a list of filters that can be
+        then used to construct the conditions of the Query"""
         if query is None:
             return []
 
@@ -1054,10 +1060,9 @@ class QueryFilter(QueryFields):
 
         return parsed_terms
 
-    def resolve_where(self, parsed_terms: Optional[Sequence[SearchFilter]]) -> List[WhereType]:
-        if not parsed_terms:
-            return []
-
+    def resolve_where(self, parsed_terms: ParsedTerms) -> List[WhereType]:
+        """Given a list of parsed terms, construct their equivalent snql where
+        conditions. filtering out any aggregates"""
         where_conditions: List[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, SearchFilter):
@@ -1068,11 +1073,10 @@ class QueryFilter(QueryFields):
         return where_conditions
 
     def resolve_having(
-        self, parsed_terms: Optional[Sequence[SearchFilter]], use_aggregate_conditions: bool = False
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool = False
     ) -> List[WhereType]:
-        if not parsed_terms:
-            return []
-
+        """Given a list of parsed terms, construct their equivalent snql having
+        conditions, filtering only for aggregate conditions"""
         if not use_aggregate_conditions:
             return []
 
@@ -1400,7 +1404,7 @@ class QueryFilter(QueryFields):
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         value = search_filter.value.value
-        key_transaction_expr = self.resolve_field(TEAM_KEY_TRANSACTION_ALIAS)
+        key_transaction_expr = self.resolve_field_alias(TEAM_KEY_TRANSACTION_ALIAS)
 
         if search_filter.value.raw_value == "":
             return Condition(
