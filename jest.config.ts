@@ -43,6 +43,10 @@ if (
 // Test setup files however need to remain relative to <rootDir> as
 // module lookup does not work
 const ROOT_DIR = DOCKER_CI ? '/workspace' : '<rootDir>';
+const modulePaths = [
+  '<rootDir>/static',
+  ...(DOCKER_CI ? ['/workspace'] :[])
+]
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -60,7 +64,8 @@ const config: Config.InitialOptions = {
     '\\.(svg)$': `<rootDir>/tests/js/sentry-test/svgMock.js`,
     'integration-docs-platforms': `<rootDir>/tests/fixtures/integration-docs/_platforms.json`,
   },
-  modulePaths: [`${ROOT_DIR}/static`],
+  modulePaths,
+  moduleDirectories: ['node_modules', '<rootDir>/node_modules'],
   setupFiles: [
     `<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts`,
     `<rootDir>/tests/js/throw-on-react-error.js`,
