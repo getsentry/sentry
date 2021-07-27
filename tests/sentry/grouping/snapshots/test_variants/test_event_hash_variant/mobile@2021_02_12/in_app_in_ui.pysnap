@@ -1,0 +1,431 @@
+---
+created: '2021-07-26T19:40:58.413847Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "2063c1608d6e0baf80249c42e2be5804"
+  tree_label: "value"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "ce1bd3de2f794a0e1d6d33f5a32e6192"
+  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "a058dabbac843ff84703c280824aa0b7"
+  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter | MediaSlideshow.toSource"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSource"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "f0d4d3e4e53b6e74393e32aee11f6f1b"
+  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter | MediaSlideshow.toSource | MediaSlideshow.toSources"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSource"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "db1e8fbcbf95edda89b571a3ce701048"
+  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter | MediaSlideshow.toSource | MediaSlideshow.toSources | MediaSlideshow.toSources"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSource"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "80645b4c3dca9509556da849b8332986"
+  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter | MediaSlideshow.toSource | MediaSlideshow.toSources | MediaSlideshow.toSources | DailyDigestTableViewSection.photoCell | AnyTableViewController.tableView | -[UITableView layoutSubviews] | -[UIView(CALayerDelegate) layoutSublayersOfLayer:] | GSEventRunModal | -[UIApplication _run]"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "main.m"
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "CFRunLoopRunSpecific"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopRun"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopDoObservers"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Transaction::observer_callback"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Transaction::commit"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Context::commit_transaction"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Layer::layout_and_display_if_needed"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Layer::layout_if_needed"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[CALayer layoutSublayers]"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "TableView.layoutSubviews"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UITableView layoutSubviews]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "anytableviewcontroller.swift"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "dailydigesttableviewsection.swift"
+            function*
+              "DailyDigestTableViewSection.photoCell"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "Sequence.compactMap<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSource"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+system:
+  hash: "97083c410d95190ef8b44a4917898dd1"
+  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter | MediaSlideshow.toSource | MediaSlideshow.toSources | MediaSlideshow.toSources | DailyDigestTableViewSection.photoCell | AnyTableViewController.tableView | -[UITableView layoutSubviews] | -[UIView(CALayerDelegate) layoutSublayersOfLayer:] | GSEventRunModal | -[UIApplication _run]"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "main.m"
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "CFRunLoopRunSpecific"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopRun"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopDoObservers"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Transaction::observer_callback"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Transaction::commit"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Context::commit_transaction"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Layer::layout_and_display_if_needed"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Layer::layout_if_needed"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[CALayer layoutSublayers]"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "TableView.layoutSubviews"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UITableView layoutSubviews]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "anytableviewcontroller.swift"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "dailydigesttableviewsection.swift"
+            function*
+              "DailyDigestTableViewSection.photoCell"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "Sequence.compactMap<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSource"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type*
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
