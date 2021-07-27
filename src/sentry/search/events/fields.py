@@ -2483,8 +2483,7 @@ class QueryFields(QueryBase):
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
 
-        if snql_function.snql_column is not None:
-            return snql_function.snql_column(arguments, alias)
+        return snql_function.snql_column(arguments, alias)
 
     def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
         function = match.group("function")
