@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.http import QueryDict
@@ -19,7 +18,7 @@ from sentry.snuba.sessions_v2 import (
     massage_sessions_result,
 )
 from sentry.utils.outcomes import Outcome
-from sentry.utils.snuba import raw_query, raw_snql_query
+from sentry.utils.snuba import raw_snql_query
 
 from .dataset import Dataset
 
@@ -50,7 +49,7 @@ by these fields
 """
 
 ResultSet = List[Dict[str, Any]]
-Conditions = Tuple[str, str, List[Any]]
+QueryCondition = Tuple[str, str, List[Any]]
 
 
 class Field(ABC):
@@ -197,9 +196,9 @@ ONE_HOUR = 3600
 
 def get_filter(
     query: QueryDict, params: Mapping[Any, Any]
-) -> Tuple[List[Conditions], Dict[str, Any]]:
+) -> Tuple[List[QueryCondition], Dict[str, Any]]:
     filter_keys = {}
-    conditions: List[Conditions] = []
+    conditions: List[QueryCondition] = []
     for filter_name in DIMENSION_MAP:
         raw_filter = query.getlist(filter_name, [])
         resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
@@ -309,19 +308,40 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
 
 
 def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
-    result_timeseries = raw_query(
-        dataset=query.dataset,
-        selected_columns=[TS_COL] + query.query_columns,
-        groupby=[TS_COL] + query.query_groupby,
-        aggregations=query.aggregations,
-        conditions=query.conditions,
-        filter_keys=query.filter_keys,
-        start=query.start,
-        end=query.end,
-        rollup=query.rollup,
-        referrer="outcomes.timeseries",
-        limit=10000,
+    group_by = [Column(TS_COL)]
+    for key in query.query_groupby:
+        group_by.append(Column(key))
+
+    conditions = [
+        Condition(Column("timestamp"), Op.GTE, query.start),
+        Condition(Column("timestamp"), Op.LT, query.end),
+    ]
+    for org in query.filter_keys["org_id"]:
+        conditions.append(
+            Condition(Column("org_id"), Op.EQ, org),
+        )
+    if query.filter_keys.get("project_id") is not None:
+        conditions.append(
+            Condition(Column("project_id"), Op.IN, query.filter_keys.get("project_id")),
+        )
+    for condition in query.conditions:
+        conditions.append(Condition(Column(condition[0]), Op.IN, condition[2]))
+
+    select_params = []
+    for aggregation in query.aggregations:
+        select_params.append(Function(aggregation[0], [Column(aggregation[1])], aggregation[2]))
+
+    snql_query = Query(
+        dataset=query.dataset.value,
+        match=Entity("outcomes"),
+        select=select_params,
+        groupby=group_by,
+        where=conditions,
+        limit=Limit(10000),
+        offset=Offset(0),
+        granularity=Granularity(query.rollup),
     )
+    result_timeseries = raw_snql_query(snql_query, referrer="outcomes.timeseries")
     return _format_rows(result_timeseries["data"], query)
 
 
@@ -354,10 +374,6 @@ def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
 def _rename_row_fields(row: Dict[str, Any]) -> None:
     for dimension in DIMENSION_MAP:
         DIMENSION_MAP[dimension].map_row(row)
-    if TS_COL in row:
-        # have to use "time" column -- "timestamp" column doesnt
-        # rollup correctly. TODO: look into this
-        row[TS_COL] = datetime.utcfromtimestamp(row[TS_COL]).isoformat()
 
 
 def _outcomes_dataset(rollup: int) -> Dataset:
