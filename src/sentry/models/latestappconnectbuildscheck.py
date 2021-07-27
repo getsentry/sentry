@@ -1,7 +1,7 @@
 """Database models to keep track of the App Store Connect builds for a project.
 
-If a project enables the App Store Connect source to download dSYMs directly from Apple we
-need to keep track of which builds have already been downloaded.
+For projects using the App Store Connect symbol source this keeps track of the last time we
+did manage to check for available builds.
 """
 
 from django.db import models
