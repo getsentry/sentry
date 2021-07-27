@@ -5,7 +5,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.lang.native import appconnect
-from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.models import LatestAppConnectBuildsCheck
 
 
 class TestCreateOrUpdateBuildCheck:
