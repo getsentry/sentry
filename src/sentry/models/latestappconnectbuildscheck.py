@@ -44,4 +44,4 @@ class LatestAppConnectBuildsCheck(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_latestappconnectbuildscheck"
-        unique_together = (("project", "source_id"),)
+        unique_together = [("project", "source_id")]
