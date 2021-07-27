@@ -32,7 +32,7 @@ def main(argv):
 
     elif argv[0] == "dump-db":
         for build in AppConnectBuild.objects.all():
-            print(
+            print(  # noqa: B314
                 f"{build!r} app_id={build.app_id} bundle_id={build.bundle_id} platform={build.platform} version={build.bundle_short_version} build={build.bundle_version} fetched={build.fetched}"
             )
 
@@ -63,4 +63,7 @@ def appconnect_config():
 
 
 if __name__ == "__main__":
+    if sys.argv[2].startswith("--project="):
+        project_arg = sys.argv.pop(2)
+        PROJECT_ID = int(project_arg[10:])
     main(sys.argv[2:])
