@@ -9,7 +9,12 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import Organization
-from sentry.utils import auth
+from sentry.utils.auth import (
+    get_org_redirect_url,
+    has_user_registration,
+    initiate_login,
+    is_valid_redirect,
+)
 from sentry.web.frontend.auth_login import additional_context
 from sentry.web.frontend.base import OrganizationMixin
 
@@ -31,7 +36,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         next_uri = self.get_next_uri(request)
 
         # we always reset the state on GET so you don't end up at an odd location
-        auth.initiate_login(request, next_uri)
+        initiate_login(request, next_uri)
 
         # Auth login verifies the test cookie is set
         request.session.set_test_cookie()
@@ -53,9 +58,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     def respond_authenticated(self, request):
         next_uri = self.get_next_uri(request)
 
-        if not auth.is_valid_redirect(next_uri, host=request.get_host()):
+        if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
             active_org = self.get_active_organization(request)
-            next_uri = auth.get_org_redirect_url(request, active_org)
+            next_uri = get_org_redirect_url(request, active_org)
 
         return Response({"nextUri": next_uri})
 
@@ -66,7 +71,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def prepare_login_context(self, request, *args, **kwargs):
-        can_register = bool(auth.has_user_registration() or request.session.get("can_register"))
+        can_register = bool(has_user_registration() or request.session.get("can_register"))
 
         context = {
             "serverHostname": get_server_hostname(),

@@ -41,7 +41,7 @@ def auth(request, backend):
         # NOTE: django-sudo's `is_safe_url` is much better at catching bad
         # redirections to different domains than social_auth's
         # `sanitize_redirect` call.
-        if not is_safe_url(redirect, host=request.get_host()):
+        if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
             redirect = DEFAULT_REDIRECT
         request.session[REDIRECT_FIELD_NAME] = redirect or DEFAULT_REDIRECT
 

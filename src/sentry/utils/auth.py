@@ -1,5 +1,6 @@
 import logging
 from time import time
+from typing import Container, Optional
 
 from django.conf import settings
 from django.contrib.auth import login as _login
@@ -111,18 +112,18 @@ def get_login_redirect(request, default=None):
     if not login_url:
         return default
 
-    if not is_valid_redirect(login_url, host=request.get_host()):
+    if not is_valid_redirect(login_url, allowed_hosts=(request.get_host(),)):
         login_url = default
 
     return login_url
 
 
-def is_valid_redirect(url, host=None):
+def is_valid_redirect(url: str, allowed_hosts: Optional[Container] = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
         return False
-    return is_safe_url(url, host=host)
+    return is_safe_url(url, allowed_hosts=allowed_hosts)
 
 
 def mark_sso_complete(request, organization_id):
