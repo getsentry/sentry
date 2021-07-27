@@ -17,14 +17,17 @@ export default function DemoHeader() {
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const saasOrgSlug = getCookie('saas_org_slug');
   const extraQueryString = getCookie('extra_query_string');
-  const extraQueryParameter = extraQueryString?.replaceAll('"', '');
+  // cookies that have = sign are quotes so extra quotes need to be removed
+  const extraQuery = extraQueryString ? extraQueryString.replaceAll('"', '') : '';
   const email = localStorage.getItem('email');
   const queryParameter = email ? `?email=${email}` : '';
-  const extraQuerySeparator = email ? '&' : '?';
+  const emailSeparator = email ? '&' : '?';
+  const getStartedSeparator = extraQueryString ? emailSeparator : '';
+  const extraQueryParameter = extraQueryString ? `?${extraQuery}` : '';
   const getStartedText = saasOrgSlug ? t('Upgrade Now') : t('Sign Up for Free');
   const getStartedUrl = saasOrgSlug
     ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
-    : `https://sentry.io/signup/${queryParameter}${extraQuerySeparator}${extraQueryParameter}`;
+    : `https://sentry.io/signup/${queryParameter}${getStartedSeparator}${extraQuery}`;
 
   const [collapsed, setCollapsed] = useState(PreferencesStore.prefs.collapsed);
 
@@ -52,7 +55,7 @@ export default function DemoHeader() {
       <ButtonBar gap={4}>
         <StyledExternalLink
           onClick={() => trackAdvancedAnalyticsEvent('growth.demo_click_docs', {}, null)}
-          href={`https://docs.sentry.io/?${extraQueryParameter}`}
+          href={`https://docs.sentry.io/${extraQueryParameter}`}
         >
           {t('Documentation')}
         </StyledExternalLink>
@@ -61,7 +64,7 @@ export default function DemoHeader() {
           onClick={() =>
             trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {}, null)
           }
-          href={`https://sentry.io/_/demo/?${extraQueryParameter}`}
+          href={`https://sentry.io/_/demo/${extraQueryParameter}`}
         >
           {t('Request a Demo')}
         </BaseButton>
