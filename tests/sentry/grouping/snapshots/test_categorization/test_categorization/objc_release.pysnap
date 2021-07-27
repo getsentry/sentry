@@ -1,0 +1,30 @@
+---
+created: '2021-07-26T19:20:01.901302Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS:Exception 1, Code 913472160, Subcode 8 (thread_id:_, crashed:_)
+                               libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ category=internals
+                           libdispatch.dylib  _dispatch_main_queue_callback_4CF$VARIANT$mp category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_call_block_and_release category=internals
+                                              __swift_project_boxed_opaque_existential_1 category=internals
+                                              block_destroy_helper category=internals
+                                              __swift_memcpy9_8 category=internals
+                                              block_destroy_helper.53 category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              __swift_project_boxed_opaque_existential_1 category=internals
+                                              block_destroy_helper category=internals
+                             libobjc.A.dylib  objc_release category=free
