@@ -29,6 +29,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupSeen,
             models.GroupShare,
             models.GroupSubscription,
+            models.LatestAppConnectBuildsCheck,
             models.ProjectBookmark,
             models.ProjectKey,
             models.ProjectTeam,
