@@ -56,7 +56,7 @@ class AlertRuleNotification(BaseNotification):
     def get_category(self) -> str:
         return "issue_alert_email"
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         return str(self.event.get_email_subject())
 
     def get_reference(self) -> Any:

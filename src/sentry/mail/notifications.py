@@ -34,14 +34,16 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
 
 
 def get_subject_with_prefix(
-    notification: BaseNotification, mail_option_key: Optional[str] = None
+    notification: BaseNotification,
+    context: Optional[Mapping[str, Any]] = None,
+    mail_option_key: Optional[str] = None,
 ) -> bytes:
     key = mail_option_key or "mail:subject_prefix"
     prefix = str(
         ProjectOption.objects.get_value(notification.project, key)
         or options.get("mail.subject-prefix")
     )
-    return f"{prefix}{notification.get_subject()}".encode("utf-8")
+    return f"{prefix}{notification.get_subject(context)}".encode("utf-8")
 
 
 def get_unsubscribe_link(user_id: int, group_id: int) -> str:
@@ -106,14 +108,15 @@ def send_notification_as_email(
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     headers = get_headers(notification)
-    subject = get_subject_with_prefix(notification)
 
     for user in users:
         extra_context = (extra_context_by_user_id or {}).get(user.id, {})
         log_message(notification, user)
+        context = get_context(notification, user, shared_context, extra_context)
+        subject = get_subject_with_prefix(notification, context=context)
         msg = MessageBuilder(
             subject=subject,
-            context=get_context(notification, user, shared_context, extra_context),
+            context=context,
             template=notification.get_template(),
             html_template=notification.get_html_template(),
             headers=headers,

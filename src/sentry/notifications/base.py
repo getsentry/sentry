@@ -26,7 +26,8 @@ class BaseNotification:
     def get_participants(self) -> Mapping[ExternalProviders, Set[int]]:
         raise NotImplementedError
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+        """The subject line when sending this notifications as an email."""
         raise NotImplementedError
 
     def get_reference(self) -> Any:

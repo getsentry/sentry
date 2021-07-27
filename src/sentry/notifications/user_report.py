@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Optional
 
 from django.utils.encoding import force_text
 
@@ -38,7 +38,7 @@ class UserReportNotification(BaseNotification):
     def get_type(self) -> str:
         return "notify.user-report"
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"
         message = force_text(message)

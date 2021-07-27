@@ -100,7 +100,7 @@ class ReleaseActivityNotification(ActivityNotification):
             "project_count": len(projects),
         }
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         return f"Deployed version {self.version} to {self.environment}"
 
     def get_title(self) -> str:

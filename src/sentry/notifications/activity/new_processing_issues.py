@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
 from sentry.models import Activity, Mapping, NotificationSetting, User
 from sentry.notifications.types import GroupSubscriptionReason
@@ -37,7 +37,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             "text_description": f"Some events failed to process in your project {self.project.slug}",
         }
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         return f"Processing Issues on {self.project.slug}"
 
     def get_title(self) -> str:

@@ -84,10 +84,8 @@ class ActivityNotification(BaseNotification, ABC):
     ) -> MutableMapping[str, Any]:
         return get_reason_context(extra_context)
 
-    def get_subject(self) -> str:
-        group = self.group
-
-        return f"{group.qualified_short_id} - {group.title}"
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+        return f"{self.group.qualified_short_id} - {self.group.title}"
 
     def get_activity_name(self) -> str:
         raise NotImplementedError
