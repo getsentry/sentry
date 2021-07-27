@@ -1097,32 +1097,6 @@ class StringArg(FunctionArg):
         return f"'{value}'"
 
 
-class SnQLStringArg(FunctionArg):
-    def __init__(self, name, unquote=False, unescape_quotes=False, optional_unquote=False):
-        """
-        :param str name: The name of the function, this refers to the name to invoke.
-        :param boolean unquote: Whether to try unquoting the arg or not
-        :param boolean unescape_quotes: Whether quotes within the string should be unescaped
-        :param boolean optional_unquote: Don't error when unable to unquote
-        """
-        super().__init__(name)
-        self.unquote = unquote
-        self.unescape_quotes = unescape_quotes
-        self.optional_unquote = optional_unquote
-
-    def normalize(self, value, params):
-        if self.unquote:
-            if len(value) < 2 or value[0] != '"' or value[-1] != '"':
-                if not self.optional_unquote:
-                    raise InvalidFunctionArgument("string should be quoted")
-            else:
-                value = value[1:-1]
-        if self.unescape_quotes:
-            value = re.sub(r'\\"', '"', value)
-
-        return value
-
-
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
@@ -1182,25 +1156,6 @@ class ColumnArg(FunctionArg):
 class ColumnNoLookup(ColumnArg):
     def normalize(self, value, params):
         super().normalize(value, params)
-        return value
-
-
-class SnQLColumn(FunctionArg):
-    def __init__(self, name, allowed_columns=None):
-        super().__init__(name)
-        self.allowed_columns = allowed_columns or []
-
-    def normalize(self, value, _):
-        if len(self.allowed_columns) > 0:
-            if value in self.allowed_columns:
-                return value
-            else:
-                raise InvalidFunctionArgument(f"{value} is not an allowed column")
-
-        snuba_column = SEARCH_MAP.get(value)
-        if not snuba_column:
-            raise InvalidFunctionArgument(f"{value} is not a valid column")
-
         return value
 
 
@@ -1357,6 +1312,53 @@ def with_default(default, argument):
     argument.has_default = True
     argument.get_default = lambda *_: default
     return argument
+
+
+# Implementation of certain FunctionArg subclasses
+# to validate aggregate functions implemented in SnQL.
+class SnQLColumn(FunctionArg):
+    def __init__(self, name, allowed_columns=None):
+        super().__init__(name)
+        self.allowed_columns = allowed_columns or []
+
+    def normalize(self, value, _):
+        if len(self.allowed_columns) > 0:
+            if value in self.allowed_columns:
+                return value
+            else:
+                raise InvalidFunctionArgument(f"{value} is not an allowed column")
+
+        snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column:
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        return value
+
+
+class SnQLStringArg(FunctionArg):
+    def __init__(self, name, unquote=False, unescape_quotes=False, optional_unquote=False):
+        """
+        :param str name: The name of the function, this refers to the name to invoke.
+        :param boolean unquote: Whether to try unquoting the arg or not
+        :param boolean unescape_quotes: Whether quotes within the string should be unescaped
+        :param boolean optional_unquote: Don't error when unable to unquote
+        """
+        super().__init__(name)
+        self.unquote = unquote
+        self.unescape_quotes = unescape_quotes
+        self.optional_unquote = optional_unquote
+
+    def normalize(self, value, params):
+        if self.unquote:
+            if len(value) < 2 or value[0] != '"' or value[-1] != '"':
+                if not self.optional_unquote:
+                    raise InvalidFunctionArgument("string should be quoted")
+            else:
+                value = value[1:-1]
+        if self.unescape_quotes:
+            value = re.sub(r'\\"', '"', value)
+
+        return value
 
 
 class DiscoverFunction:
@@ -2180,21 +2182,6 @@ class SnQLFunction(DiscoverFunction):
 
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
-
-    FIELD_ALIASES = {
-        ISSUE_ALIAS,
-        ISSUE_ID_ALIAS,
-        PROJECT_ALIAS,
-        PROJECT_NAME_ALIAS,
-        TIMESTAMP_TO_HOUR_ALIAS,
-        TIMESTAMP_TO_DAY_ALIAS,
-        USER_DISPLAY_ALIAS,
-        TRANSACTION_STATUS_ALIAS,
-        PROJECT_THRESHOLD_CONFIG_ALIAS,
-        ERROR_UNHANDLED_ALIAS,
-        ERROR_HANDLED_ALIAS,
-        TEAM_KEY_TRANSACTION_ALIAS,
-    }
 
     def __init__(self, dataset: Dataset, params: ParamsType):
         super().__init__(dataset, params)
