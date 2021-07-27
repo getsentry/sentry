@@ -15,6 +15,7 @@ type Props = {
   organization: Organization;
   project: Project;
   codeowners: CodeOwner[];
+  disabled: boolean;
   onDelete: (data: CodeOwner) => void;
   onUpdate: (data: CodeOwner) => void;
 };
@@ -59,7 +60,7 @@ class CodeOwnersPanel extends Component<Props> {
     }
   };
   render() {
-    const {codeowners} = this.props;
+    const {codeowners, disabled} = this.props;
     return codeowners.map(codeowner => {
       const {dateUpdated, provider, codeMapping, ownershipSyntax} = codeowner;
       return (
@@ -78,13 +79,19 @@ class CodeOwnersPanel extends Component<Props> {
                 icon={<IconSync size="xs" />}
                 size="xsmall"
                 onClick={() => this.handleSync(codeowner)}
+                disabled={disabled}
               />,
               <Confirm
                 onConfirm={() => this.handleDelete(codeowner)}
                 message={t('Are you sure you want to remove this CODEOWNERS file?')}
                 key="confirm-delete"
               >
-                <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />
+                <Button
+                  key="delete"
+                  icon={<IconDelete size="xs" />}
+                  size="xsmall"
+                  disabled={disabled}
+                />
               </Confirm>,
             ]}
           />

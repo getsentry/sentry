@@ -277,6 +277,7 @@ tags.sku_class:enterprise #enterprise`;
             codeowners={codeowners || []}
             onDelete={this.handleCodeOwnerDeleted}
             onUpdate={this.handleCodeOwnerUpdated}
+            disabled={disabled}
             {...this.props}
           />
         </Feature>
