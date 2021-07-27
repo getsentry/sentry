@@ -1048,7 +1048,7 @@ class QueryFilter(QueryFields):
         }
 
     def parse_query(self, query: Optional[str]) -> ParsedTerms:
-        """Given a user's query string construct a list of filters that can be
+        """Given a user's query, string construct a list of filters that can be
         then used to construct the conditions of the Query"""
         if query is None:
             return []
