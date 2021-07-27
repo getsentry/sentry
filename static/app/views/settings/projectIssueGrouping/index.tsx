@@ -25,7 +25,7 @@ type State = {
   groupingConfigs: EventGroupingConfig[] | null;
 } & AsyncView['state'];
 
-class ProjectDebugSymbols extends AsyncView<Props, State> {
+class ProjectIssueGrouping extends AsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -40,7 +40,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['groupingConfigs', '/grouping-configs/']];
+    const {projectId, orgId} = this.props.params;
+    return [['groupingConfigs', `/projects/${orgId}/${projectId}/grouping-configs/`]];
   }
 
   handleSubmit = (response: Project) => {
@@ -125,4 +126,4 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 }
 
-export default ProjectDebugSymbols;
+export default ProjectIssueGrouping;
