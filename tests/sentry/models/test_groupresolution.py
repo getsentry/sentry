@@ -9,16 +9,13 @@ from sentry.testutils import TestCase
 class GroupResolutionTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.old_release = self.create_release(version="a", project=self.project)
-        self.old_release.update(date_added=timezone.now() - timedelta(minutes=30))
-        self.new_release = self.create_release(version="b", project=self.project)
+        self.old_release = self.create_release(
+            version="a", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        self.new_release = self.create_release(version="b")
         self.group = self.create_group()
-        self.old_semver_release = self.create_release(
-            version="foo_package@1.0", project=self.project
-        )
-        self.new_semver_release = self.create_release(
-            version="foo_package@2.0", project=self.project
-        )
+        self.old_semver_release = self.create_release(version="foo_package@1.0")
+        self.new_semver_release = self.create_release(version="foo_package@2.0")
 
     def test_in_next_release_with_new_release(self):
         GroupResolution.objects.create(
@@ -170,6 +167,24 @@ class GroupResolutionTest(TestCase):
             release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
+
+    def test_for_semver_in_release_with_new_release(self):
+        GroupResolution.objects.create(
+            release=self.old_semver_release, group=self.group, type=GroupResolution.Type.in_release
+        )
+        assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
+
+    def test_for_semver_in_release_with_current_release(self):
+        GroupResolution.objects.create(
+            release=self.old_semver_release, group=self.group, type=GroupResolution.Type.in_release
+        )
+        assert not GroupResolution.has_resolution(self.group, self.old_semver_release)
+
+    def test_for_semver_in_release_with_old_release(self):
+        GroupResolution.objects.create(
+            release=self.new_semver_release, group=self.group, type=GroupResolution.Type.in_release
+        )
+        assert GroupResolution.has_resolution(self.group, self.old_semver_release)
 
     def test_no_release_with_resolution(self):
         GroupResolution.objects.create(

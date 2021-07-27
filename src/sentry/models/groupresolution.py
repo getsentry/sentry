@@ -64,11 +64,21 @@ class GroupResolution(Model):
             return res_release == release.id or res_release_datetime > release.date_added
 
         try:
-            res_type, res_release, res_release_datetime, current_release_version = (
+            (
+                res_type,
+                res_release,
+                res_release_version,
+                res_release_datetime,
+                current_release_version,
+            ) = (
                 cls.objects.filter(group=group)
                 .select_related("release")
                 .values_list(
-                    "type", "release__id", "release__date_added", "current_release_version"
+                    "type",
+                    "release__id",
+                    "release__version",
+                    "release__date_added",
+                    "current_release_version",
                 )[0]
             )
         except IndexError:
@@ -79,17 +89,18 @@ class GroupResolution(Model):
         if not release:
             return True
 
+        follows_semver = follows_semver_versioning_scheme(
+            project_id=group.project.id,
+            org_id=group.organization.id,
+            release_version=release.version,
+        )
+
         # if current_release_version was set, then it means that initially Group was resolved in
         # next release, which means a release will have a resolution if it is the same as
         # `current_release_version` or was released before it according to either its semver version
         # or its date. We make that decision based on whether the project follows semantic
         # versioning or not
         if current_release_version:
-            follows_semver = follows_semver_versioning_scheme(
-                project_id=group.project.id,
-                org_id=group.organization.id,
-                release_version=release.version,
-            )
             if follows_semver:
                 try:
                     # If current_release_version == release.version => 0
@@ -127,10 +138,22 @@ class GroupResolution(Model):
                 res_release=res_release, res_release_datetime=res_release_datetime, release=release
             )
         elif res_type == cls.Type.in_release:
+            # If release id provided is the same as resolved release id then return False
+            # regardless of whether it is a semver project or not
             if res_release == release.id:
                 return False
-            if res_release_datetime < release.date_added:
-                return False
-            return True
+
+            if follows_semver:
+                try:
+                    # A resolution only exists if the resolved release is greater (in semver
+                    # terms) than the provided release
+                    res_release_raw = parse_release(res_release_version).get("version_raw")
+                    release_raw = parse_release(release.version).get("version_raw")
+                    return compare_version_relay(res_release_raw, release_raw) == 1
+                except RelayError:
+                    ...
+
+            # Fallback to older model if semver comparison fails due to whatever reason
+            return res_release_datetime >= release.date_added
         else:
             raise NotImplementedError
