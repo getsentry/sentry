@@ -144,8 +144,9 @@ const Content = ({
               adoptionStages?.[project.slug].stage;
 
             const isMobileProject = isProjectMobileForReleases(project.platform);
-            const hasAdoptionStagesLabel =
-              get24hCountByProject && adoptionStage && isMobileProject;
+            const adoptionStageLabel =
+              Boolean(get24hCountByProject && adoptionStage && isMobileProject) &&
+              ADOPTION_STAGE_LABELS[adoptionStage];
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -156,9 +157,9 @@ const Content = ({
 
                   {hasAdoptionStagesColumn && (
                     <AdoptionStageColumn>
-                      {hasAdoptionStagesLabel ? (
-                        <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
-                          {ADOPTION_STAGE_LABELS[adoptionStage].name}
+                      {adoptionStageLabel ? (
+                        <Tag type={adoptionStageLabel.type}>
+                          {adoptionStageLabel.name}
                         </Tag>
                       ) : (
                         <NotAvailable />
