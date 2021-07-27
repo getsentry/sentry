@@ -195,12 +195,12 @@ group: ZeroDivisionError | foo
 level 0*
 bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (4)
 level 1
-64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 c8ef2dd3dedeed29b4b74b9c579eea1a: ZeroDivisionError | foo | bar2 (2)
+64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 aa1c4037371150958f9ea22adb110bbc: ZeroDivisionError | foo | bar (1)
 level 2
-64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 8c0bbfebc194c7aa3e77e95436fd61e5: ZeroDivisionError | foo | bar2 | baz2 (2)
+64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 b8d08a573c62ca8c84de14c12c0e19fe: ZeroDivisionError | foo | bar | baz (1)
 level 3
 64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
