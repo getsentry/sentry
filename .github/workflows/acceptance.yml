@@ -38,15 +38,6 @@ jobs:
         with:
           checkName: prepare frontend ci image
 
-      - name: Build CSS
-        env:
-          NODE_ENV: production
-        run: |
-          mkdir -p src/sentry/static/sentry/dist
-          docker run --rm -v "$(pwd)/src/sentry/static/sentry/dist":/workspace \
-            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
-            build-css --output-path=/workspace
-
       - name: jest tests
         id: jest-tests
         run: |
@@ -58,6 +49,15 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
             -s jest --listTests --json)
           echo "::set-output name=tests::${_output}"
+
+      - name: Build CSS
+        env:
+          NODE_ENV: production
+        run: |
+          mkdir -p src/sentry/static/sentry/dist
+          docker run --rm -v "$(pwd)/src/sentry/static/sentry/dist":/workspace \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            build-css --output-path=/workspace
 
       - name: jest
         env:

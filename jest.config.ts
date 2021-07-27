@@ -109,4 +109,6 @@ const config: Config.InitialOptions = {
   },
 };
 
+console.log({DOCKER_CI, config}); // eslint-disable-line
+
 export default config;
