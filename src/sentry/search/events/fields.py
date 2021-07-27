@@ -2355,7 +2355,7 @@ class QueryFields(QueryBase):
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
-        """Given a list of public discover alias optionally prefixed by a `-` to
+        """Given a list of public discover aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
         """
         validated: List[OrderBy] = []
@@ -2406,7 +2406,7 @@ class QueryFields(QueryBase):
         return field in self.field_alias_converter
 
     def resolve_field_alias(self, alias: str) -> SelectType:
-        """Given a field alias convert it to its corresponding snql"""
+        """Given a field alias, convert it to its corresponding snql"""
         converter = self.field_alias_converter.get(alias)
         if not converter:
             raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
