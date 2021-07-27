@@ -40,6 +40,8 @@ if (
 }
 
 // When using our Docker CI image, we volume mount tests to /workspace
+// Test setup files however need to remain relative to <rootDir> as
+// module lookup does not work
 const ROOT_DIR = DOCKER_CI ? '/workspace' : '<rootDir>';
 
 const config: Config.InitialOptions = {
@@ -54,19 +56,19 @@ const config: Config.InitialOptions = {
   moduleNameMapper: {
     '^sentry-test/(.*)': `${ROOT_DIR}/tests/js/sentry-test/$1`,
     '^sentry-locale/(.*)': `${ROOT_DIR}/src/sentry/locale/$1`,
-    '\\.(css|less|png|jpg|mp4)$': `${ROOT_DIR}/tests/js/sentry-test/importStyleMock.js`,
-    '\\.(svg)$': `${ROOT_DIR}/tests/js/sentry-test/svgMock.js`,
-    'integration-docs-platforms': `${ROOT_DIR}/tests/fixtures/integration-docs/_platforms.json`,
+    '\\.(css|less|png|jpg|mp4)$': `<rootDir>/tests/js/sentry-test/importStyleMock.js`,
+    '\\.(svg)$': `<rootDir>/tests/js/sentry-test/svgMock.js`,
+    'integration-docs-platforms': `<rootDir>/tests/fixtures/integration-docs/_platforms.json`,
   },
   modulePaths: [`${ROOT_DIR}/static`],
   setupFiles: [
-    `${ROOT_DIR}/static/app/utils/silence-react-unsafe-warnings.ts`,
-    `${ROOT_DIR}/tests/js/throw-on-react-error.js`,
-    `${ROOT_DIR}/tests/js/setup.js`,
+    `<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts`,
+    `<rootDir>/tests/js/throw-on-react-error.js`,
+    `<rootDir>/tests/js/setup.js`,
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
-    `${ROOT_DIR}/tests/js/setupFramework.ts`,
+    `<rootDir>/tests/js/setupFramework.ts`,
     '@testing-library/jest-dom/extend-expect',
   ],
   testMatch: testMatch || [`${ROOT_DIR}/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)`],
@@ -97,7 +99,7 @@ const config: Config.InitialOptions = {
 
   testRunner: 'jest-circus/runner',
 
-  testEnvironment: `${ROOT_DIR}/tests/js/instrumentedEnv`,
+  testEnvironment: `<rootDir>/tests/js/instrumentedEnv`,
   testEnvironmentOptions: {
     output: path.resolve(
       DOCKER_CI ? '/workspace/' : __dirname,

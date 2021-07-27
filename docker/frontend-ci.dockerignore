@@ -14,7 +14,7 @@
 !/jest.config.*
 !/scripts/test.js
 !/tests/js/jest-pegjs-transform.*
-# !/tests/js/instrumentedEnv.*
-# !/tests/js/setup.*
-# !/tests/js/throw-on-react-error.*
-# !/tests/js/sentry-test
+!/tests/js/instrumentedEnv.*
+!/tests/js/setup.*
+!/tests/js/throw-on-react-error.*
+!/tests/js/sentry-test/svgMock.*
