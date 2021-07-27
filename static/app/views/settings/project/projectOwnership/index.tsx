@@ -11,7 +11,7 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  CodeOwners,
+  CodeOwner,
   Integration,
   Organization,
   Project,
@@ -35,7 +35,7 @@ type Props = {
 type State = {
   ownership: null | any;
   codeMappings: RepositoryProjectPathConfig[];
-  codeowners?: CodeOwners[];
+  codeowners?: CodeOwner[];
   integrations: Integration[];
 } & AsyncView['state'];
 
@@ -79,7 +79,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
         project={this.props.project}
         codeMappings={codeMappings}
         integrations={integrations}
-        onSave={this.handleCodeownerAdded}
+        onSave={this.handleCodeOwnerAdded}
       />
     ));
   };
@@ -111,16 +111,26 @@ tags.sku_class:enterprise #enterprise`;
     }));
   };
 
-  handleCodeownerAdded = (data: CodeOwners) => {
+  handleCodeOwnerAdded = (data: CodeOwner) => {
     const {codeowners} = this.state;
-    const newCodeowners = codeowners?.concat(data);
+    const newCodeowners = (codeowners || []).concat(data);
     this.setState({codeowners: newCodeowners});
   };
 
-  handleCodeownerDeleted = (data: CodeOwners) => {
+  handleCodeOwnerDeleted = (data: CodeOwner) => {
     const {codeowners} = this.state;
-    const newCodeowners = codeowners?.filter(codeowner => codeowner.id !== data.id);
+    const newCodeowners = (codeowners || []).filter(
+      codeowner => codeowner.id !== data.id
+    );
     this.setState({codeowners: newCodeowners});
+  };
+
+  handleCodeOwnerUpdated = (data: CodeOwner) => {
+    const codeowners = this.state.codeowners || [];
+    const index = codeowners.findIndex(item => item.id === data.id);
+    this.setState({
+      codeowners: [...codeowners.slice(0, index), data, ...codeowners.slice(index + 1)],
+    });
   };
 
   renderCodeOwnerErrors = () => {
@@ -264,8 +274,9 @@ tags.sku_class:enterprise #enterprise`;
         />
         <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
-            codeowners={codeowners}
-            onDelete={this.handleCodeownerDeleted}
+            codeowners={codeowners || []}
+            onDelete={this.handleCodeOwnerDeleted}
+            onUpdate={this.handleCodeOwnerUpdated}
             {...this.props}
           />
         </Feature>
