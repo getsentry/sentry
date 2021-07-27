@@ -27,7 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         name: Checkout sentry
-
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -44,14 +43,17 @@ jobs:
           NODE_ENV: production
         run: |
           mkdir -p src/sentry/static/sentry/dist
-          docker run -v "$(pwd)/src/sentry/static/sentry/dist":/workspace \
+          docker run --rm -v "$(pwd)/src/sentry/static/sentry/dist":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
             build-css --output-path=/workspace
 
       - name: jest tests
         id: jest-tests
         run: |
-          _output=$(docker run -v "$(pwd)":/workspace \
+          docker run --rm -v "$(pwd)":/workspace \
+            ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
+            --entrypoint /bin/ls /workspace
+          _output=$(docker run --rm -v "$(pwd)":/workspace \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
             -s jest --listTests --json)
           echo "::set-output name=tests::${_output}"
@@ -62,7 +64,7 @@ jobs:
           CI_NODE_INDEX: ${{ matrix.instance }}
           JEST_TESTS: ${{ steps.jest-tests.outputs.tests }}
         run: |
-          docker run \
+          docker run --rm \
             ghcr.io/${{ github.repository_owner }}/sentry-frontend-ci:${{ github.sha }} \
             test-ci --forceExit
 
@@ -128,6 +130,7 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    if: 1 == 0
     name: acceptance
     runs-on: ubuntu-20.04
     timeout-minutes: 10
