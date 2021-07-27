@@ -79,7 +79,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.pegjs?$': `${ROOT_DIR}/tests/js/jest-pegjs-transform.js`,
+    '^.+\\.pegjs?$': `<rootDir>/tests/js/jest-pegjs-transform.js`,
   },
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},

@@ -6,13 +6,14 @@
 !/static
 !/config/tsconfig*
 !/babel.config.*
-!/config/webpack.css.config.ts
+!/config/webpack.css.config.*
 !/build-utils
 !/src/sentry/locale/catalogs.json
 !/src/sentry/static/sentry/images/logos
 !/tests/fixtures/integration-docs/_platforms.json
 !/jest.config.*
 !/scripts/test.js
+!/tests/js/jest-pegjs-transform.*
 # !/tests/js/instrumentedEnv.*
 # !/tests/js/setup.*
 # !/tests/js/throw-on-react-error.*
