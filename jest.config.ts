@@ -7,7 +7,7 @@ import type {Config} from '@jest/types';
 
 import babelConfig from './babel.config';
 
-const {JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
+const {DOCKER_CI, JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -39,6 +39,9 @@ if (
   testMatch = tests.slice(offset, offset + chunk);
 }
 
+// When using our Docker CI image, we volume mount tests to /workspace
+const ROOT_DIR = DOCKER_CI ? '/workspace' : '<rootDir>';
+
 const config: Config.InitialOptions = {
   verbose: false,
   collectCoverageFrom: [
@@ -49,35 +52,34 @@ const config: Config.InitialOptions = {
   coverageDirectory: '.artifacts/coverage',
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
-    '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
-    '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
-    '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
-    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
-    'integration-docs-platforms':
-      '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
+    '^sentry-test/(.*)': `${ROOT_DIR}/tests/js/sentry-test/$1`,
+    '^sentry-locale/(.*)': `${ROOT_DIR}/src/sentry/locale/$1`,
+    '\\.(css|less|png|jpg|mp4)$': `${ROOT_DIR}/tests/js/sentry-test/importStyleMock.js`,
+    '\\.(svg)$': `${ROOT_DIR}/tests/js/sentry-test/svgMock.js`,
+    'integration-docs-platforms': `${ROOT_DIR}/tests/fixtures/integration-docs/_platforms.json`,
   },
-  modulePaths: ['<rootDir>/static'],
+  modulePaths: [`${ROOT_DIR}/static`],
   setupFiles: [
-    '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
-    '<rootDir>/tests/js/throw-on-react-error.js',
-    '<rootDir>/tests/js/setup.js',
+    `${ROOT_DIR}/static/app/utils/silence-react-unsafe-warnings.ts`,
+    `${ROOT_DIR}/tests/js/throw-on-react-error.js`,
+    `${ROOT_DIR}/tests/js/setup.js`,
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
-    '<rootDir>/tests/js/setupFramework.ts',
+    `${ROOT_DIR}/tests/js/setupFramework.ts`,
     '@testing-library/jest-dom/extend-expect',
   ],
-  testMatch: testMatch || ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  testMatch: testMatch || [`${ROOT_DIR}/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)`],
+  testPathIgnorePatterns: [`${ROOT_DIR}/tests/sentry/lang/javascript/`],
 
   unmockedModulePathPatterns: [
-    '<rootDir>/node_modules/react',
-    '<rootDir>/node_modules/reflux',
+    `<rootDir>/node_modules/react`,
+    `<rootDir>/node_modules/reflux`,
   ],
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
+    '^.+\\.pegjs?$': `${ROOT_DIR}/tests/js/jest-pegjs-transform.js`,
   },
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
@@ -87,7 +89,7 @@ const config: Config.InitialOptions = {
     [
       'jest-junit',
       {
-        outputDirectory: '.artifacts',
+        outputDirectory: `${DOCKER_CI ? '/workspace/' : ''}.artifacts`,
         outputName: 'jest.junit.xml',
       },
     ],
@@ -95,9 +97,14 @@ const config: Config.InitialOptions = {
 
   testRunner: 'jest-circus/runner',
 
-  testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
+  testEnvironment: `${ROOT_DIR}/tests/js/instrumentedEnv`,
   testEnvironmentOptions: {
-    output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
+    output: path.resolve(
+      DOCKER_CI ? '/workspace/' : __dirname,
+      '.artifacts',
+      'visual-snapshots',
+      'jest'
+    ),
     SENTRY_DSN: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
   },
 };

@@ -12,3 +12,8 @@
 !/src/sentry/static/sentry/images/logos
 !/tests/fixtures/integration-docs/_platforms.json
 !/jest.config.*
+# !/scripts/test.js
+# !/tests/js/instrumentedEnv.*
+# !/tests/js/setup.*
+# !/tests/js/throw-on-react-error.*
+# !/tests/js/sentry-test

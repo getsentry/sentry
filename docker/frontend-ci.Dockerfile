@@ -12,11 +12,12 @@ WORKDIR /app
 # Eventually, this will be removed once static asset building is separated.
 # These versions change infrequently.
 ENV VOLTA_VERSION=0.8.1 \
+    VOLTA_ARCH=linux-openssl-1.1 \
     VOLTA_HOME=/.volta \
     PATH=/.volta/bin:$PATH
 
 COPY package.json .
-RUN curl -fsSL "https://github.com/volta-cli/volta/releases/download/v${VOLTA_VERSION}/volta-${VOLTA_VERSION}-linux-openssl-1.1.tar.gz" \
+RUN curl -fsSL "https://github.com/volta-cli/volta/releases/download/v${VOLTA_VERSION}/volta-${VOLTA_VERSION}-${VOLTA_ARCH}.tar.gz" \
     | tar -xz -C /usr/local/bin \
     && volta -v \
     && node -v \
@@ -35,5 +36,6 @@ COPY . .
 ENV NODE_ENV development
 ENV NO_TS_FORK 1
 ENV IS_ACCEPTANCE_TEST 1
+ENV DOCKER_CI 1
 ENTRYPOINT ["yarn"]
 CMD ["build-acceptance", "--output-path=/workspace"]
