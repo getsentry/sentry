@@ -615,12 +615,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         test_cases = [
             (columns1, "", ["this", "this", "this", "that", "that"], "to_other_release__aaaa"),
             (columns2, "", ["new", "new", "new", "old", "old"], "to_other_release__aaaa__old_new"),
-            (
-                columns1,
-                'to_other(release,"aaaa"):this',
-                ["this", "this", "this"],
-                "to_other_release__aaaa",
-            ),
         ]
 
         for cols, query, expected, alias in test_cases:

@@ -2326,7 +2326,7 @@ class QueryFields(QueryBase):
                     snql_column=lambda args, alias: Function(
                         "if",
                         [
-                            Function("equals", [self.resolve_field(args["column"]), args["value"]]),
+                            Function("equals", [args["column"], args["value"]]),
                             args["this"],
                             args["that"],
                         ],
@@ -2475,6 +2475,9 @@ class QueryFields(QueryBase):
         snql_function = self.function_converter.get(name)
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        for arg in snql_function.args:
+            if type(arg) == SnQLColumn:
+                arguments[arg.name] = self.column(arguments[arg.name])
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
