@@ -1,5 +1,3 @@
-import startCase from 'lodash/startCase';
-
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {KeyValueListData} from 'app/types';
 
@@ -13,7 +11,7 @@ function getUnknownData(
     .map(([key, value]) => ({
       key,
       value,
-      subject: startCase(key),
+      subject: key,
       meta: getMeta(allData, key),
     }));
 }
