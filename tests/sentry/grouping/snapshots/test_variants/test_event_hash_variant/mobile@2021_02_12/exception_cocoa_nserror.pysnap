@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T10:36:07.105939Z'
+created: '2021-07-26T19:40:57.788760Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,15 +24,28 @@ app-depth-1:
         stacktrace*
           frame*
             function*
-              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication sendAction:to:from:forEvent:]"
+              "ViewController.captureError"
 --------------------------------------------------------------------------
 app-depth-2:
   hash: null
   component:
     app-depth-2 (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame*
+            function*
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: null
+  component:
+    app-depth-3 (exception of app takes precedence)
       threads (exception of app takes precedence)
         stacktrace*
           frame*
@@ -47,6 +60,34 @@ app-depth-2:
           frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: null
+  component:
+    app-depth-4 (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "__eventFetcherSourceCallback"
+          frame*
+            function*
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null

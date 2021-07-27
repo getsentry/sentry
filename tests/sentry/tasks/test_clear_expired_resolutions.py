@@ -21,7 +21,10 @@ class ClearExpiredResolutionsTest(TestCase):
             project=project, status=GroupStatus.RESOLVED, active_at=timezone.now()
         )
         resolution1 = GroupResolution.objects.create(
-            group=group1, release=old_release, type=GroupResolution.Type.in_next_release
+            group=group1,
+            release=old_release,
+            current_release_version=old_release.version,
+            type=GroupResolution.Type.in_next_release,
         )
         activity1 = Activity.objects.create(
             group=group1,
@@ -40,7 +43,10 @@ class ClearExpiredResolutionsTest(TestCase):
 
         group2 = self.create_group(status=GroupStatus.UNRESOLVED, active_at=timezone.now())
         resolution2 = GroupResolution.objects.create(
-            group=group2, release=new_release, type=GroupResolution.Type.in_next_release
+            group=group2,
+            release=new_release,
+            current_release_version=new_release.version,
+            type=GroupResolution.Type.in_next_release,
         )
         activity2 = Activity.objects.create(
             group=group2,
@@ -62,12 +68,15 @@ class ClearExpiredResolutionsTest(TestCase):
         assert resolution1.status == GroupResolution.Status.resolved
         assert resolution1.release == new_release
         assert resolution1.type == GroupResolution.Type.in_release
+        assert resolution1.current_release_version == old_release.version
 
         resolution2 = GroupResolution.objects.get(id=resolution2.id)
         assert resolution2.status == GroupResolution.Status.pending
 
         activity1 = Activity.objects.get(id=activity1.id)
         assert activity1.data["version"] == new_release.version
+        assert activity1.data["current_release_version"] == old_release.version
 
         activity2 = Activity.objects.get(id=activity2.id)
         assert activity2.data["version"] == ""
+        assert "current_release_version" not in activity2.data

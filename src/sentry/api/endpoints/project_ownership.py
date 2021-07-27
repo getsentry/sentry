@@ -1,13 +1,11 @@
-from typing import List
-
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership, resolve_actors
-from sentry.ownership.grammar import CODEOWNERS, ParseError, Rule, dump_schema, parse_rules
+from sentry.models import ProjectOwnership
+from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 
 
@@ -17,13 +15,13 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     autoAssignment = serializers.BooleanField()
 
     @staticmethod
-    def _validate_no_codeowners(rules: List[Rule]):
+    def _validate_no_codeowners(rules):
         """
         codeowner matcher types cannot be added via ProjectOwnership, only through codeowner
         specific serializers
         """
         for rule in rules:
-            if rule.matcher.type == CODEOWNERS:
+            if rule["matcher"]["type"] == CODEOWNERS:
                 raise serializers.ValidationError(
                     {"raw": "Codeowner type paths can only be added by importing CODEOWNER files"}
                 )
@@ -31,36 +29,10 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     def validate(self, attrs):
         if "raw" not in attrs:
             return attrs
-        try:
-            rules = parse_rules(attrs["raw"])
-        except ParseError as e:
-            raise serializers.ValidationError(
-                {
-                    "raw": "Parse error: %r (line %d, column %d)"
-                    % (e.expr.name, e.line(), e.column())
-                }
-            )
 
-        schema = dump_schema(rules)
+        schema = create_schema_from_issue_owners(attrs["raw"], self.context["ownership"].project_id)
 
-        self._validate_no_codeowners(rules)
-
-        owners = {o for rule in rules for o in rule.owners}
-        actors = resolve_actors(owners, self.context["ownership"].project_id)
-
-        bad_actors = []
-        for owner, actor in actors.items():
-            if actor is None:
-                if owner.type == "user":
-                    bad_actors.append(owner.identifier)
-                elif owner.type == "team":
-                    bad_actors.append(f"#{owner.identifier}")
-
-        if bad_actors:
-            bad_actors.sort()
-            raise serializers.ValidationError(
-                {"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))}
-            )
+        self._validate_no_codeowners(schema["rules"])
 
         attrs["schema"] = schema
         return attrs

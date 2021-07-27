@@ -21,6 +21,26 @@ from sentry.tagstore.types import TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 
+exception = {
+    "values": [
+        {
+            "type": "ValidationError",
+            "value": "Bad request",
+            "stacktrace": {
+                "frames": [
+                    {
+                        "function": "?",
+                        "filename": "http://localhost:1337/error.js",
+                        "lineno": 29,
+                        "colno": 3,
+                        "in_app": False,
+                    }
+                ]
+            },
+        }
+    ]
+}
+
 
 class TagStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
@@ -35,26 +55,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
             organization_id=self.proj1.organization_id, name="test3"
         )
         self.now = timezone.now().replace(microsecond=0)
-
-        exception = {
-            "values": [
-                {
-                    "type": "ValidationError",
-                    "value": "Bad request",
-                    "stacktrace": {
-                        "frames": [
-                            {
-                                "function": "?",
-                                "filename": "http://localhost:1337/error.js",
-                                "lineno": 29,
-                                "colno": 3,
-                                "in_app": False,
-                            }
-                        ]
-                    },
-                }
-            ]
-        }
 
         self.store_event(
             data={
@@ -663,6 +663,56 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 times_seen=1,
                 first_seen=self.now - timedelta(seconds=2),
                 last_seen=self.now - timedelta(seconds=2),
+            ),
+        ]
+
+    def test_get_group_tag_value_paginator_times_seen(self):
+        from sentry.tagstore.types import GroupTagValue
+
+        self.store_event(
+            data={
+                "event_id": "5" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "environment": self.proj1env1.name,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "tags": {
+                    "foo": "bar",
+                    "baz": "quux",
+                    "sentry:release": 100,
+                    "sentry:user": "id:user2",
+                },
+                "user": {"id": "user2"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        assert list(
+            self.ts.get_group_tag_value_paginator(
+                self.proj1.id,
+                self.proj1group1.id,
+                [self.proj1env1.id],
+                "sentry:user",
+                order_by="-times_seen",
+            ).get_result(10)
+        ) == [
+            GroupTagValue(
+                group_id=self.proj1group1.id,
+                key="sentry:user",
+                value="id:user2",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2),
+            ),
+            GroupTagValue(
+                group_id=self.proj1group1.id,
+                key="sentry:user",
+                value="id:user1",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=1),
+                last_seen=self.now - timedelta(seconds=1),
             ),
         ]
 

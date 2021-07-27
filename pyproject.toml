@@ -22,6 +22,8 @@ addopts = "-ra --tb=short --strict-markers -p no:celery"
 # currently we have a few relative imports that don't work with that.
 markers = [
     "snuba: mark a test as requiring snuba",
+    "itunes: test requires iTunes interaction, skipped unless --itunes is provided",
+    "getsentryllc: test requires credentials for the GetSentry LLC organisation in Apple App Store Connect",
 ]
 selenium_driver = "chrome"
 filterwarnings = [
@@ -29,9 +31,6 @@ filterwarnings = [
     "error",
     # This is just to prevent pytest from exiting if pytest-xdist isn't installed.
     "ignore:Unknown config option.*looponfailroots:pytest.PytestConfigWarning",
-
-    # TODO(joshuarli): Enable this and address all after Django 2.0 lands.
-    "ignore::django.utils.deprecation.RemovedInDjango21Warning",
 
     "ignore::django.utils.deprecation.RemovedInDjango30Warning",
 
