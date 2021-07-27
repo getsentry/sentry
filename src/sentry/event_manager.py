@@ -1633,7 +1633,10 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-    metric_tags = {"grouping_config": grouping_config["id"]}
+    metric_tags = {
+        "grouping_config": grouping_config["id"],
+        "platform": event.platform or "unknown",
+    }
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
