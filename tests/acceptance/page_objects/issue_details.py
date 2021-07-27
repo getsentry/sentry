@@ -18,7 +18,7 @@ class IssueDetailsPage(BasePage):
 
     def visit_tag_values(self, org, groupid, tag):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/tags/{tag}/")
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until('[data-test-id="group-tag-value"]')
 
     def get_environment(self):
         return self.browser.find_element_by_css_selector('[data-test-id="env-label"').text.lower()

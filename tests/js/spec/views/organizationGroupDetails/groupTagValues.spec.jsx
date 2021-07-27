@@ -1,11 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {cleanup, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import DetailedError from 'app/components/errors/detailedError';
 import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 
 describe('GroupTagValues', () => {
-  const {routerContext, router} = initializeOrg({});
+  const {routerContext, router, project} = initializeOrg({});
   const group = TestStubs.Group();
   const tags = TestStubs.Tags();
 
@@ -17,27 +16,28 @@ describe('GroupTagValues', () => {
   });
 
   afterEach(() => {
+    cleanup();
     MockApiClient.clearMockResponses();
   });
 
-  it('navigates to issue details events tab with correct query params', async () => {
+  it('navigates to issue details events tab with correct query params', () => {
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/values/',
       body: TestStubs.TagValues(),
     });
-    const wrapper = mountWithTheme(
+    const {getByLabelText, getByText} = mountWithTheme(
       <GroupTagValues
         group={group}
+        project={project}
+        environments={[]}
         location={{query: {}}}
         params={{orgId: 'org-slug', groupId: group.id, tagKey: 'user'}}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('Link').first().simulate('click', {button: 0});
+    fireEvent.click(getByLabelText('Show more'));
+    fireEvent.click(getByText('Search All Issues with Tag Value'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
@@ -45,14 +45,15 @@ describe('GroupTagValues', () => {
     });
   });
 
-  it('renders an error message if no tag values are returned because of environment selection', async () => {
+  it('renders an error message if no tag values are returned because of environment selection', () => {
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/values/',
       body: [],
     });
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <GroupTagValues
         group={group}
+        project={project}
         location={{query: {}}}
         params={{
           orgId: 'org-slug',
@@ -61,12 +62,11 @@ describe('GroupTagValues', () => {
         }}
         environments={['staging']}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find(DetailedError)).toHaveLength(1);
+    expect(container).toHaveTextContent(
+      'No tags were found for the currently selected environments'
+    );
   });
 });
