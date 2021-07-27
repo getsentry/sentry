@@ -105,7 +105,6 @@ def _get_org_level_pages():
         "discover",
         "projects",
         "performance",
-        "releases",
         "alerts",
         "dashboards",
         "stats",
