@@ -28,7 +28,7 @@ class LatestAppConnectBuildsCheck(Model):
     last_fetched = models.DateTimeField(default=timezone.now)
 
     @classmethod
-    def refresh_date(cls, project, source_id):
+    def update_date(cls, project, source_id):
         try:
             latest_check = cls.objects.get(project=project, source_id=source_id)
             latest_check.last_fetched = timezone.now()
