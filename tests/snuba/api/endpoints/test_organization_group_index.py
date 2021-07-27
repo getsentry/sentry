@@ -2202,6 +2202,50 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
         assert activity.data["version"] == release.version
 
+    def test_in_semver_projects_set_resolved_in_explicit_release(self):
+        release_1 = self.create_release(version="fake_package@3.0.0")
+        release_2 = self.create_release(version="fake_package@2.0.0")
+        release_3 = self.create_release(version="fake_package@3.0.1")
+
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inRelease": release_1.version},
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inRelease"] == release_1.version
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release_1
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        assert activity.data["version"] == release_1.version
+
+        assert GroupResolution.has_resolution(group=group, release=release_2)
+        assert not GroupResolution.has_resolution(group=group, release=release_3)
+
     def test_set_resolved_in_next_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
