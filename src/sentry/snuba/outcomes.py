@@ -235,7 +235,9 @@ class QueryDefinition:
         aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
-        self.dataset = _outcomes_dataset(rollup, query.get("interval", "1h"))
+        interval = parse_stats_period(query.get("interval", "1h"))
+        interval = int(3600 if interval is None else interval.total_seconds())
+        self.dataset = _outcomes_dataset(rollup, interval)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -358,9 +360,7 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
         DIMENSION_MAP[dimension].map_row(row)
 
 
-def _outcomes_dataset(rollup: int, interval: str) -> Dataset:
-    interval = parse_stats_period(interval)
-    interval = int(3600 if interval is None else interval.total_seconds())
+def _outcomes_dataset(rollup: int, interval: int) -> Dataset:
     outcomes_dataset = {}
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
