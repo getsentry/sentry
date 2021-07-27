@@ -34,8 +34,7 @@ class LatestAppConnectBuildsCheck(DefaultFieldsModel):
             new_date = timezone.now()
         try:
             latest_check = cls.objects.get(project=project, source_id=source_id)
-            latest_check.last_checked = new_date
-            latest_check.save(update_fields=["last_checked"])
+            latest_check.update(update_fields=["last_checked"])
         except cls.DoesNotExist:
             latest_check = LatestAppConnectBuildsCheck(
                 project=project,
