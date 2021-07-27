@@ -11,3 +11,4 @@
 !/src/sentry/locale/catalogs.json
 !/src/sentry/static/sentry/images/logos
 !/tests/fixtures/integration-docs/_platforms.json
+!/jest.config.*

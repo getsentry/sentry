@@ -25,6 +25,13 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
+      # This is supposed to work with buildkit, but it doesn't...
+      # so we have to remove the repo .dockerignore, and move the frontend one
+      - name: Dockerignore
+        run: |
+          rm -rf .dockerignore
+          cp docker/frontend-ci.dockerignore .dockerignore
+
       - name: Docker build
         id: docker
         uses: ./.github/actions/docker
