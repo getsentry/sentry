@@ -17,6 +17,7 @@ from sentry.snuba.sessions_v2 import (
     get_constrained_date_range,
     massage_sessions_result,
 )
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
@@ -234,7 +235,7 @@ class QueryDefinition:
         aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
-        self.dataset = _outcomes_dataset(rollup)
+        self.dataset = _outcomes_dataset(rollup, query.get("interval", "1h"))
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -247,7 +248,7 @@ class QueryDefinition:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
-            aggregations.append(field.aggregation(self.dataset))
+            aggregations.append(field.aggregation(self.dataset["dataset"]))
             self.fields[key] = field
 
         self.groupby = []
@@ -277,7 +278,7 @@ class QueryDefinition:
 
         conditions, filter_keys = get_filter(query, params)
 
-        for org in filter_keys["org_id"]:
+        for org in filter_keys.get("org_id", []):
             self.conditions.append(
                 Condition(Column("org_id"), Op.EQ, org),
             )
@@ -290,15 +291,16 @@ class QueryDefinition:
 
         self.select_params = []
         for aggregation in aggregations:
+            aggregation_field = aggregation[2] if aggregation[1] == "" else aggregation[1]
             self.select_params.append(
-                Function(aggregation[0], [Column(aggregation[1])], aggregation[2])
+                Function(aggregation[0], [Column(aggregation_field)], aggregation[2])
             )
 
 
 def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
     snql_query = Query(
-        dataset=query.dataset.value,
-        match=Entity("outcomes"),
+        dataset=query.dataset["dataset"].value,
+        match=Entity(query.dataset["match"]),
         select=query.select_params,
         groupby=query.group_by,
         where=query.conditions,
@@ -312,8 +314,8 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
 
 def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
     snql_query = Query(
-        dataset=query.dataset.value,
-        match=Entity("outcomes"),
+        dataset=query.dataset["dataset"].value,
+        match=Entity(query.dataset["match"]),
         select=query.select_params,
         groupby=query.group_by + [Column(TS_COL)],
         where=query.conditions,
@@ -356,12 +358,21 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
         DIMENSION_MAP[dimension].map_row(row)
 
 
-def _outcomes_dataset(rollup: int) -> Dataset:
+def _outcomes_dataset(rollup: int, interval: str) -> Dataset:
+    interval = parse_stats_period(interval)
+    interval = int(3600 if interval is None else interval.total_seconds())
+    outcomes_dataset = {}
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
-        return Dataset.Outcomes
+        outcomes_dataset["dataset"] = Dataset.Outcomes
     else:
-        return Dataset.OutcomesRaw
+        outcomes_dataset["dataset"] = Dataset.OutcomesRaw
+
+    if interval >= ONE_HOUR:
+        outcomes_dataset["match"] = "outcomes"
+    else:
+        outcomes_dataset["match"] = "outcomes_raw"
+    return outcomes_dataset
 
 
 def massage_outcomes_result(
