@@ -28,21 +28,6 @@ class LatestAppConnectBuildsCheck(DefaultFieldsModel):
     # or no builds at all if all existing builds have expired.
     last_checked = models.DateTimeField(default=timezone.now)
 
-    @classmethod
-    def update_date(cls, project, source_id, new_date):
-        if new_date is None:
-            new_date = timezone.now()
-        try:
-            latest_check = cls.objects.get(project=project, source_id=source_id)
-            latest_check.update(last_checked=new_date)
-        except cls.DoesNotExist:
-            latest_check = LatestAppConnectBuildsCheck(
-                project=project,
-                source_id=source_id,
-                last_checked=new_date,
-            )
-            latest_check.save()
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_latestappconnectbuildscheck"
