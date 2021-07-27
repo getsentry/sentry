@@ -22,7 +22,7 @@ class LatestAppConnectBuildsCheck(Model):
 
     # The symbol source's unique identifier in the project. Also known as the id on an
     # AppStoreConnectConfig.
-    source_id = models.CharField(max_length=200, default="")
+    source_id = models.CharField(max_length=200)
 
     # When sentry last checked App Store Connect.
     last_fetched = models.DateTimeField(default=timezone.now)
