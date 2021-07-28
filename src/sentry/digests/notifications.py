@@ -3,20 +3,33 @@ import itertools
 import logging
 from collections import OrderedDict, defaultdict, namedtuple
 from functools import reduce
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from sentry.app import tsdb
 from sentry.digests import Record
+from sentry.eventstore.models import Event
 from sentry.models import Group, GroupStatus, Project, Rule
 from sentry.utils.dates import to_timestamp
+
+if TYPE_CHECKING:
+    from sentry.mail.adapter import ActionTargetType
 
 logger = logging.getLogger("sentry.digests")
 
 Notification = namedtuple("Notification", "event rules")
 
 
-def split_key(key):
-    from sentry.mail.adapter import ActionTargetType
-
+def split_key(key: str) -> Tuple["Project", "ActionTargetType", Optional[str]]:
     key_parts = key.split(":", 4)
     project_id = key_parts[2]
     # XXX: We transitioned to new style keys (len == 5) a while ago on sentry.io. But
@@ -31,13 +44,15 @@ def split_key(key):
     return Project.objects.get(pk=project_id), target_type, target_identifier
 
 
-def unsplit_key(project, target_type, target_identifier):
+def unsplit_key(
+    project: "Project", target_type: ActionTargetType, target_identifier: Optional[str]
+) -> str:
     return "mail:p:{}:{}:{}".format(
         project.id, target_type.value, target_identifier if target_identifier is not None else ""
     )
 
 
-def event_to_record(event, rules):
+def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
     if not rules:
         logger.warning("Creating record for %r that does not contain any rules!", event)
 
@@ -48,7 +63,7 @@ def event_to_record(event, rules):
     )
 
 
-def fetch_state(project, records):
+def fetch_state(project: "Project", records: Sequence[Record]) -> Mapping[str, Any]:
     # This reads a little strange, but remember that records are returned in
     # reverse chronological order, and we query the database in chronological
     # order.
@@ -70,7 +85,13 @@ def fetch_state(project, records):
     }
 
 
-def attach_state(project, groups, rules, event_counts, user_counts):
+def attach_state(
+    project: "Project",
+    groups: MutableMapping[int, "Group"],
+    rules: Mapping[int, Rule],
+    event_counts: Mapping[int, int],
+    user_counts: Mapping[int, int],
+) -> Mapping[str, Any]:
     for id, group in groups.items():
         assert group.project_id == project.id, "Group must belong to Project"
         group.project = project
@@ -134,7 +155,12 @@ class Pipeline:
         return self
 
 
-def rewrite_record(record, project, groups, rules):
+def rewrite_record(
+    record: Record,
+    project: "Project",
+    groups: Mapping[int, "Group"],
+    rules: Mapping[str, Rule],
+) -> Optional[Record]:
     event = record.value.event
 
     # Reattach the group to the event.
@@ -143,7 +169,7 @@ def rewrite_record(record, project, groups, rules):
         event.group = group
     else:
         logger.debug("%r could not be associated with a group.", record)
-        return
+        return None
 
     return Record(
         record.key,
@@ -152,7 +178,9 @@ def rewrite_record(record, project, groups, rules):
     )
 
 
-def group_records(groups, record):
+def group_records(
+    groups: MutableMapping[str, Mapping[str, List[Record]]], record: Record
+) -> Mapping[str, Mapping[str, List[Record]]]:
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
@@ -164,7 +192,9 @@ def group_records(groups, record):
     return groups
 
 
-def sort_group_contents(rules):
+def sort_group_contents(
+    rules: MutableMapping[str, Mapping["Group", Sequence[Record]]]
+) -> Mapping[str, Mapping["Group", Sequence[Record]]]:
     for key, groups in rules.items():
         rules[key] = OrderedDict(
             sorted(
@@ -177,7 +207,7 @@ def sort_group_contents(rules):
     return rules
 
 
-def sort_rule_groups(rules):
+def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
     return OrderedDict(
         sorted(
             rules.items(),
@@ -188,10 +218,14 @@ def sort_rule_groups(rules):
     )
 
 
-def build_digest(project, records, state=None):
+def build_digest(
+    project: "Project",
+    records: Sequence[Record],
+    state: Optional[Mapping[str, Any]] = None,
+) -> Optional[Any]:
     records = list(records)
     if not records:
-        return
+        return None
 
     # XXX: This is a hack to allow generating a mock digest without actually
     # doing any real IO!
@@ -200,8 +234,10 @@ def build_digest(project, records, state=None):
 
     state = attach_state(**state)
 
-    def check_group_state(record):
-        return record.value.event.group.get_status() == GroupStatus.UNRESOLVED
+    def check_group_state(record: Record) -> bool:
+        # Explicitly typing to satisfy mypy.
+        is_unresolved: bool = record.value.event.group.get_status() == GroupStatus.UNRESOLVED
+        return is_unresolved
 
     pipeline = (
         Pipeline()
