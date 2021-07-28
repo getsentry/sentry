@@ -71,11 +71,13 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
+  const hasReleaseStages = organization.features.includes('release-adoption-stage');
   const anyProjectMobile =
     projects.filter(
       project => project.platform && isProjectMobileForReleases(project.platform)
     ).length > 0;
-  const hasAdoptionStagesColumn: boolean = anyProjectMobile && showAdoptionStageLabels;
+  const hasAdoptionStagesColumn: boolean =
+    hasReleaseStages && anyProjectMobile && showAdoptionStageLabels;
   return (
     <Fragment>
       <Header>
