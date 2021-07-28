@@ -929,7 +929,11 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
 
     if "assignedTo" in result:
         assigned_actor = result["assignedTo"]
-        assigned_by = request.data.get("assignedBy")
+        assigned_by = (
+            request.data.get("assignedBy")
+            if request.data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
+            else None
+        )
         if assigned_actor:
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
