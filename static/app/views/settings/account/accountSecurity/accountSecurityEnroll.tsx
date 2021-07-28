@@ -10,11 +10,13 @@ import {
 } from 'app/actionCreators/indicator';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
 import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CircleIndicator from 'app/components/circleIndicator';
 import {PanelItem} from 'app/components/panels';
 import U2fsign from 'app/components/u2f/u2fsign';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Authenticator} from 'app/types';
@@ -334,7 +336,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     }
 
     // `authenticator.authId` is NOT the same as `props.params.authId` This is
-    // for backwards compatability with API endpoint
+    // for backwards compatibility with API endpoint
     try {
       await this.api.requestPromise(this.authenticatorEndpoint, {method: 'DELETE'});
     } catch (err) {
@@ -384,7 +386,10 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
           title={
             <Fragment>
               <span>{authenticator.name}</span>
-              <CircleIndicator css={{marginLeft: 6}} enabled={authenticator.isEnrolled} />
+              <CircleIndicator
+                css={{marginLeft: 6}}
+                enabled={authenticator.isEnrolled || authenticator.status === 'rotation'}
+              />
             </Fragment>
           }
           action={
@@ -398,6 +403,12 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
         />
 
         <TextBlock>{authenticator.description}</TextBlock>
+
+        {authenticator.rotationWarning && authenticator.status === 'rotation' && (
+          <Alert type="warning" icon={<IconWarning size="md" />}>
+            {authenticator.rotationWarning}
+          </Alert>
+        )}
 
         {!!authenticator.form?.length && (
           <Form

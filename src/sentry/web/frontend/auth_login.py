@@ -13,7 +13,14 @@ from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
 from sentry.signals import join_request_link_viewed, user_signup
-from sentry.utils import auth, metrics
+from sentry.utils import metrics
+from sentry.utils.auth import (
+    get_login_redirect,
+    has_user_registration,
+    initiate_login,
+    is_valid_redirect,
+    login,
+)
 from sentry.utils.sdk import capture_exception
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -79,7 +86,7 @@ class AuthLoginView(BaseView):
         )
 
     def can_register(self, request):
-        return bool(auth.has_user_registration() or request.session.get("can_register"))
+        return bool(has_user_registration() or request.session.get("can_register"))
 
     def get_join_request_link(self, organization):
         if not organization:
@@ -133,7 +140,7 @@ class AuthLoginView(BaseView):
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-            auth.login(request, user, organization_id=organization.id if organization else None)
+            login(request, user, organization_id=organization.id if organization else None)
 
             # can_register should only allow a single registration
             request.session.pop("can_register", None)
@@ -160,7 +167,7 @@ class AuthLoginView(BaseView):
 
                 return response
 
-            return self.redirect(auth.get_login_redirect(request))
+            return self.redirect(get_login_redirect(request))
 
         elif request.method == "POST":
             from sentry.app import ratelimiter
@@ -186,7 +193,7 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                auth.login(request, user, organization_id=organization.id if organization else None)
+                login(request, user, organization_id=organization.id if organization else None)
                 metrics.incr(
                     "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
                 )
@@ -215,7 +222,7 @@ class AuthLoginView(BaseView):
                             if om.user is None:
                                 request.session.pop("_next", None)
 
-                return self.redirect(auth.get_login_redirect(request))
+                return self.redirect(get_login_redirect(request))
             else:
                 metrics.incr(
                     "login.attempt", instance="failure", skip_internal=True, sample_rate=1.0
@@ -235,7 +242,7 @@ class AuthLoginView(BaseView):
 
     def handle_authenticated(self, request):
         next_uri = self.get_next_uri(request)
-        if auth.is_valid_redirect(next_uri, host=request.get_host()):
+        if is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
             return self.redirect(next_uri)
         return self.redirect_to_org(request)
 
@@ -255,8 +262,8 @@ class AuthLoginView(BaseView):
 
         request.session.set_test_cookie()
 
-        # we always reset the state on GET so you dont end up at an odd location
-        auth.initiate_login(request, next_uri)
+        # we always reset the state on GET so you don't end up at an odd location
+        initiate_login(request, next_uri)
 
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:

@@ -329,7 +329,7 @@ function generateEventsEventView(
   if (breakdown !== SpanOperationBreakdownFilter.None) {
     fields.splice(2, 1, `spans.${breakdown}`);
   } else {
-    fields.push(...SPAN_OP_BREAKDOWN_FIELDS, 'spans.total.time');
+    fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
   }
   const webVital = getWebVital(location);
   if (webVital) {

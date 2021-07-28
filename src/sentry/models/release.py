@@ -139,7 +139,11 @@ class ReleaseQuerySet(models.QuerySet):
         return self.filter(major__isnull=False)
 
     def filter_by_semver_build(
-        self, organization_id: int, operator: str, build: str, project_ids: Sequence[int] = None
+        self,
+        organization_id: int,
+        operator: str,
+        build: str,
+        project_ids: Optional[Sequence[int]] = None,
     ) -> models.QuerySet:
         """
         Filters released by build. If the passed `build` is a numeric string, we'll filter on
@@ -170,7 +174,7 @@ class ReleaseQuerySet(models.QuerySet):
         self,
         organization_id: int,
         semver_filter: SemverFilter,
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
     ) -> models.QuerySet:
         """
         Filters releases based on a based `SemverFilter` instance.
@@ -214,13 +218,13 @@ class ReleaseQuerySet(models.QuerySet):
         value,
         project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
-        from sentry.models import ReleaseProjectEnvironment
+        from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
 
         filters = {
-            "adopted": Q(adopted__isnull=False, unadopted__isnull=True),
-            "replaced": Q(adopted__isnull=False, unadopted__isnull=False),
-            "not_adopted": Q(adopted__isnull=True, unadopted__isnull=True),
+            ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
+            ReleaseStages.REPLACED: Q(adopted__isnull=False, unadopted__isnull=False),
+            ReleaseStages.LOW_ADOPTION: Q(adopted__isnull=True, unadopted__isnull=True),
         }
         value = to_list(value)
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
@@ -261,14 +265,21 @@ class ReleaseModelManager(models.Manager):
         return self.get_queryset().filter_to_semver()
 
     def filter_by_semver_build(
-        self, organization_id: int, operator: str, build: str, project_ids: Sequence[int] = None
+        self,
+        organization_id: int,
+        operator: str,
+        build: str,
+        project_ids: Optional[Sequence[int]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
             organization_id, operator, build, project_ids
         )
 
     def filter_by_semver(
-        self, organization_id: int, semver_filter: SemverFilter, project_ids: Sequence[int] = None
+        self,
+        organization_id: int,
+        semver_filter: SemverFilter,
+        project_ids: Optional[Sequence[int]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 

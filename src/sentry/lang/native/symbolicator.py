@@ -3,6 +3,7 @@ import logging
 import random
 import sys
 import time
+import uuid
 from urllib.parse import urljoin
 
 import jsonschema
@@ -61,12 +62,11 @@ APP_STORE_CONNECT_SCHEMA = {
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
         "itunesCreated": {"type": "string", "format": "date-time"},
         "itunesPassword": {"type": "string"},
-        "itunesPersonId": {"type": "string"},
         "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgId": {"type": "integer"},
+        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
@@ -80,11 +80,10 @@ APP_STORE_CONNECT_SCHEMA = {
         "itunesCreated",
         "itunesPassword",
         "itunesSession",
-        "itunesPersonId",
         "appName",
         "appId",
         "bundleId",
-        "orgId",
+        "orgPublicId",
         "orgName",
     ],
     "additionalProperties": False,
@@ -411,6 +410,11 @@ def get_sources_for_project(project):
 
 
 class SymbolicatorSession:
+
+    # used in x-sentry-worker-id http header
+    # to keep it static for celery worker process keep it as class attribute
+    _worker_id = None
+
     def __init__(
         self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
     ):
@@ -489,6 +493,7 @@ class SymbolicatorSession:
         # required for load balancing
         kwargs.setdefault("headers", {})["x-sentry-project-id"] = self.project_id
         kwargs.setdefault("headers", {})["x-sentry-event-id"] = self.event_id
+        kwargs.setdefault("headers", {})["x-sentry-worker-id"] = self.get_worker_id()
 
         attempts = 0
         wait = 0.5
@@ -550,7 +555,10 @@ class SymbolicatorSession:
 
     def _create_task(self, path, **kwargs):
         params = {"timeout": self.timeout, "scope": self.project_id}
-        with metrics.timer("events.symbolicator.create_task", tags={"path": path}):
+        with metrics.timer(
+            "events.symbolicator.create_task",
+            tags={"path": path, "worker_id": self.get_worker_id()},
+        ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
@@ -588,11 +596,21 @@ class SymbolicatorSession:
             "scope": self.project_id,
         }
 
-        with metrics.timer("events.symbolicator.query_task"):
+        with metrics.timer(
+            "events.symbolicator.query_task", tags={"worker_id": self.get_worker_id()}
+        ):
             return self._request("get", task_url, params=params)
 
     def healthcheck(self):
         return self._request("get", "healthcheck")
+
+    @classmethod
+    def get_worker_id(cls):
+        # as class attribute to keep it static for life of process
+        if cls._worker_id is None:
+            # %5000 to reduce cardinality of metrics tagging with worker id
+            cls._worker_id = str(uuid.uuid4().int % 5000)
+        return cls._worker_id
 
 
 def reverse_aliases_map(builtin_sources):

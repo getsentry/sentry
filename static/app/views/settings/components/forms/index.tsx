@@ -14,7 +14,6 @@ export {default as JSONForm} from './jsonForm';
 export {default as NumberField} from './numberField';
 export {default as RadioBooleanField} from './radioBooleanField';
 export {default as RangeField} from './rangeField';
-export {default as RichListField} from './richListField';
 export {default as SelectField} from './selectField';
 export {default as TextareaField} from './textareaField';
 export {default as TestCopyInput} from './textCopyInput';

@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Match, Optional, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -30,6 +30,9 @@ from sentry.search.events.constants import (
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
+    MEASUREMENTS_FRAMES_FROZEN_RATE,
+    MEASUREMENTS_FRAMES_SLOW_RATE,
+    MEASUREMENTS_STALL_PERCENTAGE,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -438,6 +441,45 @@ FIELD_ALIASES = {
             ),
             result_type="boolean",
         ),
+        PseudoField(
+            MEASUREMENTS_FRAMES_SLOW_RATE,
+            MEASUREMENTS_FRAMES_SLOW_RATE,
+            expression=[
+                "if",
+                [
+                    ["greater", ["measurements.frames_total", 0]],
+                    ["divide", ["measurements.frames_slow", "measurements.frames_total"]],
+                    None,
+                ],
+            ],
+            result_type="percentage",
+        ),
+        PseudoField(
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+            expression=[
+                "if",
+                [
+                    ["greater", ["measurements.frames_total", 0]],
+                    ["divide", ["measurements.frames_frozen", "measurements.frames_total"]],
+                    None,
+                ],
+            ],
+            result_type="percentage",
+        ),
+        PseudoField(
+            MEASUREMENTS_STALL_PERCENTAGE,
+            MEASUREMENTS_STALL_PERCENTAGE,
+            expression=[
+                "if",
+                [
+                    ["greater", ["transaction.duration", 0]],
+                    ["divide", ["measurements.stall_total_time", "transaction.duration"]],
+                    None,
+                ],
+            ],
+            result_type="percentage",
+        ),
     ]
 }
 
@@ -705,9 +747,9 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     if equations is not None:
-        equation_aliases = [equation[-1] for equation in equations]
+        equation_aliases = {equation[-1]: equation for equation in equations}
     else:
-        equation_aliases = []
+        equation_aliases = {}
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
@@ -717,7 +759,10 @@ def resolve_orderby(orderby, fields, aggregations, equations):
             continue
 
         if equation_aliases and bare_column in equation_aliases:
-            validated.append(column)
+            equation = equation_aliases[bare_column]
+            prefix = "-" if column.startswith("-") else ""
+            # Drop alias because if prefix was included snuba thinks we're shadow aliasing
+            validated.append([prefix + equation[0], equation[1]])
             continue
 
         if is_function(bare_column):
@@ -1145,6 +1190,12 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
+    measurement_aliases = {
+        MEASUREMENTS_FRAMES_SLOW_RATE,
+        MEASUREMENTS_FRAMES_FROZEN_RATE,
+        MEASUREMENTS_STALL_PERCENTAGE,
+    }
+
     def __init__(self, name, allow_array_value=False):
         super().__init__(name)
         self.allow_array_value = allow_array_value
@@ -1158,8 +1209,24 @@ class NumericColumnNoLookup(NumericColumn):
             if value in {"measurements_value", "span_op_breakdowns_value"}:
                 return ["arrayJoin", [value]]
 
+        if value in self.measurement_aliases:
+            field = FIELD_ALIASES[value]
+            return field.get_expression(params)
+
         super().normalize(value, params)
         return value
+
+    def get_type(self, value):
+        # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
+        # to a percentage value, since they are expressions rather than columns, we special
+        # case them here
+        if isinstance(value, list):
+            for name in self.measurement_aliases:
+                field = FIELD_ALIASES[name]
+                expression = field.get_expression(None)
+                if expression == value:
+                    return field.result_type
+        return super().get_type(value)
 
 
 class DurationColumn(FunctionArg):
@@ -1665,7 +1732,7 @@ FUNCTIONS = {
                                             for name in ["ok", "cancelled", "unknown"]
                                         ],
                                     ],
-                                    "transaction_status",
+                                    "transaction.status",
                                 ],
                             ],
                         ],
@@ -2040,6 +2107,31 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
+class SnQLFunction(DiscoverFunction):
+    def __init__(self, *args, **kwargs):
+        self.snql_aggregate = kwargs.pop("snql_aggregate", None)
+        super().__init__(*args, **kwargs)
+
+    def validate(self):
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), f"{self.name}: optional argument at index {i} does not have default"
+
+        assert self.snql_aggregate is not None
+
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
+            names.add(arg.name)
+
+        self.validate_result_type(self.default_result_type)
+
+
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
@@ -2060,9 +2152,160 @@ class QueryFields(QueryBase):
             PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
-            # TODO: implement these
-            KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
-            TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
+            TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
+        }
+
+        self.function_converter: Mapping[str, SnQLFunction] = {
+            function.name: function
+            for function in [
+                SnQLFunction(
+                    "failure_count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                "notIn",
+                                [
+                                    self.column("transaction.status"),
+                                    (
+                                        SPAN_STATUS_NAME_TO_CODE["ok"],
+                                        SPAN_STATUS_NAME_TO_CODE["cancelled"],
+                                        SPAN_STATUS_NAME_TO_CODE["unknown"],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "apdex",
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    snql_aggregate=self._resolve_apdex_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "count_miserable",
+                    # Using the generic FunctionArg here temporarily till we
+                    # implement a resolver for count columns in SnQL. The only
+                    # column to be passed through here for now is `user`.
+                    required_args=[FunctionArg("column")],
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        }
+                    ],
+                    snql_aggregate=self._resolve_count_miserable_function,
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "user_misery",
+                    # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+                    # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+                    # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+                    # with the user misery being adjusted for each fast/slow unique transaction. See:
+                    # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+                    # for an intuitive explanation of the Beta Distribution Function.
+                    optional_args=[
+                        NullableNumberRange("satisfaction", 0, None),
+                        with_default(5.8875, NumberRange("alpha", 0, None)),
+                        with_default(111.8625, NumberRange("beta", 0, None)),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        },
+                        {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+                    ],
+                    snql_aggregate=self._resolve_user_misery_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "count",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda _, alias: Function(
+                        "max",
+                        [self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="date",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "latest_event",
+                    snql_aggregate=lambda _, alias: Function(
+                        "argMax",
+                        [self.column("id"), self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="string",
+                ),
+                SnQLFunction(
+                    "failure_rate",
+                    snql_aggregate=lambda _, alias: Function(
+                        "failure_rate",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                # TODO: implement these
+                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("avg", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("var", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("stddev", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("cov", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "percentile_range", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("avg_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("variance_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
+            ]
         }
 
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
@@ -2083,7 +2326,7 @@ class QueryFields(QueryBase):
     def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+            return self.resolve_function(field, match)
 
         if self.is_field_alias(field):
             return self.resolve_field_alias(field)
@@ -2115,22 +2358,26 @@ class QueryFields(QueryBase):
 
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.resolve_field(bare_orderby)
+            try:
+                resolved_orderby = self.resolve_field(bare_orderby)
+            except NotImplementedError:
+                resolved_orderby = None
+
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
+
+            if is_function(bare_orderby):
+                bare_orderby = resolved_orderby.alias
 
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     continue
+
                 elif (
                     isinstance(selected_column, Function) and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
                     continue
-
-            # TODO: orderby aggregations
-
-            # TODO: orderby field aliases
 
         if len(validated) == len(orderby_columns):
             return validated
@@ -2148,6 +2395,43 @@ class QueryFields(QueryBase):
             raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
         return converter(alias)
 
+    def is_function(self, function: str) -> bool:
+        return function in self.function_converter
+
+    def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
+        if match is None:
+            match = is_function(function)
+
+        if not match:
+            raise InvalidSearchQuery(f"Invalid characters in field {function}")
+
+        if function in self.params.get("aliases", {}):
+            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
+
+        name, arguments, alias = self.parse_function(match)
+        snql_function = self.function_converter.get(name)
+
+        arguments = snql_function.format_as_arguments(name, arguments, self.params)
+
+        if snql_function.snql_aggregate is not None:
+            self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
+        return snql_function.snql_aggregate(arguments, alias)
+
+    def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
+        function = match.group("function")
+        if not self.is_function(function):
+            raise InvalidSearchQuery(f"{function} is not a valid function")
+
+        arguments = match.group("columns")
+        arguments = parse_arguments(function, arguments)
+        alias = match.group("alias")
+
+        if alias is None:
+            alias = get_function_alias_with_columns(function, arguments)
+
+        return (function, arguments, alias)
+
+    # Field Aliases
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
         """The state of having no issues is represented differently on transactions vs
         other events. On the transactions table, it is represented by 0 whereas it is
@@ -2332,6 +2616,46 @@ class QueryFields(QueryBase):
 
         return _project_threshold_config(PROJECT_THRESHOLD_CONFIG_ALIAS)
 
+    def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
+        org_id = self.params.get("organization_id")
+        project_ids = self.params.get("project_id")
+        team_ids = self.params.get("team_id")
+
+        if org_id is None or team_ids is None or project_ids is None:
+            raise TypeError("Team key transactions parameters cannot be None")
+
+        team_key_transactions = list(
+            TeamKeyTransaction.objects.filter(
+                organization_id=org_id,
+                project_team__in=ProjectTeam.objects.filter(
+                    project_id__in=project_ids, team_id__in=team_ids
+                ),
+            )
+            .order_by("transaction", "project_team__project_id")
+            .values_list("project_team__project_id", "transaction")
+            .distinct("transaction", "project_team__project_id")[
+                :MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+            ]
+        )
+
+        count = len(team_key_transactions)
+
+        # NOTE: this raw count is not 100% accurate because if it exceeds
+        # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
+        sentry_sdk.set_tag("team_key_txns.count", count)
+        sentry_sdk.set_tag(
+            "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
+        )
+
+        if count == 0:
+            return Function("toInt8", [0], TEAM_KEY_TRANSACTION_ALIAS)
+
+        return Function(
+            "in",
+            [(self.column("project_id"), self.column("transaction")), team_key_transactions],
+            TEAM_KEY_TRANSACTION_ALIAS,
+        )
+
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
 
@@ -2342,8 +2666,109 @@ class QueryFields(QueryBase):
             "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
         )
 
-    def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
+    def _project_threshold_multi_if_function(self) -> SelectType:
+        """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
+        this returns the right duration value (for example, lcp or duration) based
+        on project or transaction thresholds that have been configured by the user.
+        """
+
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "equals",
+                    [
+                        Function(
+                            "tupleElement",
+                            [self.resolve_field("project_threshold_config"), 1],
+                        ),
+                        "lcp",
+                    ],
+                ),
+                self.column("measurements.lcp"),
+                self.column("transaction.duration"),
+            ],
+        )
+
+    def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            function_args = [self.column("transaction.duration"), int(args["satisfaction"])]
+        else:
+            function_args = [
+                self._project_threshold_multi_if_function(),
+                Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
+            ]
+
+        return Function("apdex", function_args, alias)
+
+    def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            lhs = self.column("transaction.duration")
+            rhs = int(args["tolerated"])
+        else:
+            lhs = self._project_threshold_multi_if_function()
+            rhs = Function(
+                "multiply",
+                [
+                    Function(
+                        "tupleElement",
+                        [self.resolve_field("project_threshold_config"), 2],
+                    ),
+                    4,
+                ],
+            )
+        col = args["column"]
+
+        return Function(
+            "uniqIf",
+            [
+                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
+                Function("greater", [lhs, rhs]),
+            ],
+            alias,
+        )
+
+    def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            count_miserable_agg = self.resolve_function(
+                f"count_miserable(user,{args['satisfaction']})"
+            )
+        else:
+            count_miserable_agg = self.resolve_function("count_miserable(user)")
+
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                count_miserable_agg,
+                                args["alpha"],
+                            ],
+                        ),
+                        Function(
+                            "plus",
+                            [
+                                Function("uniq", [self.column("user")]),
+                                args["parameter_sum"],
+                            ],
+                        ),
+                    ],
+                ),
+                0,
+            ],
+            alias,
+        )
+
+    def _resolve_unimplemented_function(
+        self,
+        _: List[str],
+        alias: str,
+    ) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
-        Can be deleted once all field aliases have been implemented.
+        Can be deleted once all functions have been implemented.
         """
         raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")

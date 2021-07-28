@@ -176,8 +176,7 @@ class AuthIdentityHandler:
         # organization, do so, otherwise handle new membership
         if invite_helper:
             if invite_helper.invite_approved:
-                invite_helper.accept_invite(user)
-                return None
+                return invite_helper.accept_invite(user)
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
             # and is able to join the organization without an invite through the SSO flow.
@@ -275,7 +274,7 @@ class AuthIdentityHandler:
             )
 
         if member is None:
-            member = self._get_organization_member()
+            member = self._get_organization_member(auth_identity)
         self._set_linked_flag(member)
 
         if auth_is_new:
@@ -317,33 +316,15 @@ class AuthIdentityHandler:
 
         return deletion_result
 
-    def _get_organization_member(self) -> OrganizationMember:
+    def _get_organization_member(self, auth_identity: AuthIdentity) -> OrganizationMember:
+        """
+        Check to see if the user has a member associated, if not, create a new membership
+        based on the auth_identity email.
+        """
         try:
             return OrganizationMember.objects.get(user=self.user, organization=self.organization)
         except OrganizationMember.DoesNotExist:
-            pass
-
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            role=self.organization.default_role,
-            user=self.user,
-            flags=OrganizationMember.flags["sso:linked"],
-        )
-
-        default_teams = self.auth_provider.default_teams.all()
-        for team in default_teams:
-            OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-
-        AuditLogEntry.objects.create(
-            organization=self.organization,
-            actor=self.user,
-            ip_address=self.request.META["REMOTE_ADDR"],
-            target_object=member.id,
-            target_user=self.user,
-            event=AuditLogEntryEvent.MEMBER_ADD,
-            data=member.get_audit_log_data(),
-        )
-        return member
+            return self._handle_new_membership(auth_identity)
 
     def _respond(
         self,
@@ -432,7 +413,7 @@ class AuthIdentityHandler:
             else:
                 # force them to create a new account
                 acting_user = None
-        # without a usable password they cant login, so let's clear the acting_user
+        # without a usable password they can't login, so let's clear the acting_user
         elif acting_user and not acting_user.has_usable_password():
             acting_user = None
 

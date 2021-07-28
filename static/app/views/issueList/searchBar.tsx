@@ -32,13 +32,13 @@ const SEARCH_ITEMS: SearchItem[] = [
   {
     title: t('Time or Count'),
     desc: 'firstSeen, lastSeen, event.timestamp, timesSeen',
-    value: '',
+    value: 'firstSeen:',
     type: ItemType.DEFAULT,
   },
   {
     title: t('Assigned'),
     desc: 'assigned, assigned_or_suggested:[me|[me, none]|user@example.com|#team-example]',
-    value: '',
+    value: 'assigned:',
     type: ItemType.DEFAULT,
   },
   {

@@ -76,6 +76,7 @@ class PerformanceContent extends Component<Props, State> {
       eventKey: 'performance_views.overview.view',
       eventName: 'Performance Views: Transaction overview view',
       organization_id: parseInt(organization.id, 10),
+      show_onboarding: this.shouldShowOnboarding(),
     });
   }
 
