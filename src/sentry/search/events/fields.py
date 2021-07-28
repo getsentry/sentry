@@ -1314,6 +1314,35 @@ def with_default(default, argument):
     return argument
 
 
+# Implementation of certain FunctionArg subclasses
+# to validate aggregate functions implemented in SnQL.
+class SnQLColumn(FunctionArg):
+    def __init__(self, name, allowed_columns=None):
+        super().__init__(name)
+        self.allowed_columns = allowed_columns or []
+
+    def normalize(self, value, _):
+        if len(self.allowed_columns) > 0:
+            if value in self.allowed_columns:
+                return value
+            else:
+                raise InvalidFunctionArgument(f"{value} is not an allowed column")
+
+        snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column:
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        return value
+
+
+class SnQLStringArg(StringArg):
+    def normalize(self, value, params):
+        value = super().normalize(value, params)
+        # SnQL interprets string types as string, so strip the
+        # quotes added in StringArg.normalize.
+        return value[1:-1]
+
+
 class DiscoverFunction:
     def __init__(
         self,
@@ -2110,6 +2139,7 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs):
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
+        self.snql_column = kwargs.pop("snql_column", None)
         super().__init__(*args, **kwargs)
 
     def validate(self):
@@ -2119,7 +2149,7 @@ class SnQLFunction(DiscoverFunction):
                 arg.has_default
             ), f"{self.name}: optional argument at index {i} does not have default"
 
-        assert self.snql_aggregate is not None
+        assert sum([self.snql_aggregate is not None, self.snql_column is not None]) == 1
 
         # assert that no duplicate argument names are used
         names = set()
@@ -2265,6 +2295,26 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="percentage",
                 ),
+                SnQLFunction(
+                    "to_other",
+                    required_args=[
+                        SnQLColumn("column", allowed_columns=["release", "trace.parent_span"]),
+                        SnQLStringArg("value", unquote=True, unescape_quotes=True),
+                    ],
+                    optional_args=[
+                        with_default("that", SnQLStringArg("that")),
+                        with_default("this", SnQLStringArg("this")),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "if",
+                        [
+                            Function("equals", [args["column"], args["value"]]),
+                            args["this"],
+                            args["that"],
+                        ],
+                        alias,
+                    ),
+                ),
                 # TODO: implement these
                 SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
@@ -2304,7 +2354,6 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
                 ),
-                SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
 
@@ -2433,10 +2482,15 @@ class QueryFields(QueryBase):
         snql_function = self.function_converter.get(name)
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        for arg in snql_function.args:
+            if isinstance(arg, SnQLColumn):
+                arguments[arg.name] = self.resolve_field(arguments[arg.name])
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
-        return snql_function.snql_aggregate(arguments, alias)
+            return snql_function.snql_aggregate(arguments, alias)
+
+        return snql_function.snql_column(arguments, alias)
 
     def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
         """Given a FUNCTION_PATTERN match, seperate the function name, arguments

@@ -590,6 +590,50 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 r[1] for r in expected_project_threshold_config
             ]
 
+    def test_to_other_function(self):
+        project = self.create_project()
+
+        for i in range(3):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["transaction"] = f"/to_other/{i}"
+            data["release"] = "aaaa"
+            self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/to_other/y"
+        data["release"] = "yyyy"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/to_other/z"
+        data["release"] = "zzzz"
+        self.store_event(data, project_id=project.id)
+
+        columns1 = ["transaction", 'to_other(release,"aaaa")']
+        columns2 = ["transaction", 'to_other(release,"aaaa",old,new)']
+
+        test_cases = [
+            (columns1, "", ["this", "this", "this", "that", "that"], "to_other_release__aaaa"),
+            (columns2, "", ["new", "new", "new", "old", "old"], "to_other_release__aaaa__old_new"),
+        ]
+
+        for cols, query, expected, alias in test_cases:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=cols,
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                )
+
+                data = result["data"]
+                assert len(data) == len(expected)
+                assert [x[alias] for x in data] == expected
+
     def test_failure_count_function(self):
         project = self.create_project()
 
