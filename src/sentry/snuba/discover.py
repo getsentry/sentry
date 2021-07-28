@@ -463,7 +463,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     return snuba_filter, translated_columns
 
 
-def timeseries_query(selected_columns, query, params, rollup, referrer=None):
+def timeseries_query(selected_columns, query, params, rollup, referrer=None, zerofill_results=True):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -517,7 +517,11 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
         op="discover.discover", description="timeseries.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+        result = (
+            zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+            if zerofill_results
+            else result["data"]
+        )
 
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
@@ -551,6 +555,7 @@ def top_events_timeseries(
     referrer=None,
     top_events=None,
     allow_empty=True,
+    zerofill_results=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -648,7 +653,11 @@ def top_events_timeseries(
 
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
-            {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
+            {
+                "data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")
+                if zerofill_results
+                else [],
+            },
             snuba_filter.start,
             snuba_filter.end,
             rollup,
@@ -695,7 +704,9 @@ def top_events_timeseries(
                 {
                     "data": zerofill(
                         item["data"], snuba_filter.start, snuba_filter.end, rollup, "time"
-                    ),
+                    )
+                    if zerofill_results
+                    else item["data"],
                     "order": item["order"],
                 },
                 snuba_filter.start,
