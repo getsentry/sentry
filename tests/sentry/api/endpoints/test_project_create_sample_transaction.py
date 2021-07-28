@@ -3,8 +3,9 @@ from django.urls import reverse
 from sentry.testutils import APITestCase
 
 
-class ProjectCreateSampleTest(APITestCase):
+class ProjectCreateSampleTransactionTest(APITestCase):
     def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
         self.team = self.create_team()
 
