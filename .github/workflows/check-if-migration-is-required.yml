@@ -23,8 +23,9 @@ jobs:
 
   main:
     name: check migration
-    if: needs.should-check.outputs.changed == 'true'
     runs-on: ubuntu-20.04
+    needs: [should-check]
+    if: needs.should-check.outputs.changed == 'true'
 
     steps:
       - name: Checkout sentry
