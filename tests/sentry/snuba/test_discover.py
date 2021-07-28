@@ -1107,8 +1107,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length
                 if expected_length > 0:
-                    assert data[0]["percentile_transaction_duration_0_7"] == 270000.0
-                    assert data[0]["percentile_transaction_duration_0_5"] == 210000.0
+                    assert round(data[0]["percentile_transaction_duration_0_7"]) == 270000
+                    assert round(data[0]["percentile_transaction_duration_0_5"]) == 210000
 
     def test_p50(self):
         project = self.create_project()
@@ -1149,7 +1149,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length
                 if expected_length > 0:
-                    assert data[0]["p50_transaction_duration"] == 210000.0
+                    assert round(data[0]["p50_transaction_duration"]) == 210000
 
     def test_p75(self):
         project = self.create_project()
@@ -1190,7 +1190,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length
                 if expected_length > 0:
-                    assert data[0]["p75_transaction_duration"] == 285000.0
+                    assert round(data[0]["p75_transaction_duration"]) == 285000
 
     def test_p95(self):
         project = self.create_project()
@@ -1231,7 +1231,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length
                 if expected_length > 0:
-                    assert data[0]["p95_transaction_duration"] == 345000.0
+                    assert round(data[0]["p95_transaction_duration"]) == 345000
 
     def test_p99(self):
         project = self.create_project()
@@ -1272,7 +1272,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length
                 if expected_length > 0:
-                    assert data[0]["p99_transaction_duration"] == 357000.0
+                    assert round(data[0]["p99_transaction_duration"]) == 357000
 
     def test_p100(self):
         project = self.create_project()
@@ -1313,7 +1313,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length
                 if expected_length > 0:
-                    assert data[0]["p100_transaction_duration"] == 360000.0
+                    assert round(data[0]["p100_transaction_duration"]) == 360000
 
     def test_p100_with_measurement(self):
         project = self.create_project()
