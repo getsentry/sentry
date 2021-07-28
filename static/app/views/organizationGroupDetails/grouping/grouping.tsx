@@ -1,15 +1,17 @@
-import {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
+import Button from 'app/components/button';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PaginationCaption from 'app/components/pagination/paginationCaption';
 import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
+import {IconMegaphone} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'app/types';
@@ -245,11 +247,28 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           />
         </Content>
       </Body>
+      <Footer>
+        {/* TODO(markus): Add docs btn here */}
+        <Button
+          external
+          href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
+            'Grouping Feedback'
+          )}&body=${encodeURIComponent(
+            `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
+          )}`}
+        >
+          <StyledIconMegaphone /> {t('Give Feedback')}
+        </Button>
+      </Footer>
     </Wrapper>
   );
 }
 
 export default withApi(Grouping);
+
+const StyledIconMegaphone = styled(IconMegaphone)`
+  margin-right: ${space(0.5)};
+`;
 
 const Wrapper = styled('div')`
   flex: 1;
@@ -262,6 +281,12 @@ const Wrapper = styled('div')`
 const Header = styled('p')`
   && {
     margin-bottom: ${space(2)};
+  }
+`;
+
+const Footer = styled('p')`
+  && {
+    margin-top: ${space(2)};
   }
 `;
 
