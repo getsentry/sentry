@@ -352,6 +352,7 @@ class ProjectSerializer(Serializer):
             "dateCreated": obj.date_added,
             "firstEvent": obj.first_event,
             "firstTransactionEvent": True if obj.flags.has_transactions else False,
+            "hasSessions": True if obj.flags.has_sessions else False,
             "features": attrs["features"],
             "status": status_label,
             "platform": obj.platform,
