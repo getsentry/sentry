@@ -139,6 +139,8 @@ family:native package:AudioToolbox* category=av
 family:native package:libAudioToolboxUtility.dylib category=av
 
 family:native function:std::_* category=internals
+family:native function:__swift_* category=internals
+family:native function:block_destroy_helper* category=internals
 
 family:native package:/usr/lib/system/** function:start category=threadbase
 family:native package:libdyld.dylib function:start category=threadbase
@@ -221,6 +223,7 @@ family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
 family:native function:std::_Deallocate category=free
 family:native function:free category=free
+family:native function:objc_release category=free
 
 family:native package:C:/Windows/SYSTEM32/OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl

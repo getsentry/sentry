@@ -1,5 +1,5 @@
 ---
-created: '2021-07-26T15:07:31.216418Z'
+created: '2021-07-28T09:43:50.334536Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,10 +24,45 @@ app-depth-1:
         stacktrace*
           frame*
             function*
+              "ViewController.captureError"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: null
+  component:
+    app-depth-2 (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame*
+            function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
           frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: null
+  component:
+    app-depth-3 (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "__eventFetcherSourceCallback"
+          frame*
+            function*
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null

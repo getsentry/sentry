@@ -1,6 +1,7 @@
 import logging
 
 from django.db import IntegrityError, models
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -12,6 +13,7 @@ from sentry.db.models import (
     Model,
 )
 from sentry.signals import integration_added
+from sentry.tasks.code_owners import update_code_owners_schema
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +164,14 @@ class Integration(DefaultFieldsModel):
 
             return org_integration
 
+
+post_save.connect(
+    lambda instance, **kwargs: update_code_owners_schema.apply_async(
+        kwargs={"organization": instance.project.organization, "projects": [instance.project]}
+    ),
+    sender=RepositoryProjectPathConfig,
+    weak=False,
+)
 
 # REQUIRED for migrations to run
 from sentry.types.integrations import ExternalProviders  # NOQA
