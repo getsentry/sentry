@@ -100,7 +100,7 @@ type Props = {
    */
   tooltip?: EChartOption.Tooltip &
     Truncateable & {
-      filter?: (value: number) => boolean;
+      filter?: (value: number, seriesParam: EChartOption.Tooltip.Format) => boolean;
       formatAxisLabel?: (
         value: number,
         isTimestamp: boolean,
