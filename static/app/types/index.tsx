@@ -2160,13 +2160,15 @@ export type IssueOwnership = {
   autoAssignment: boolean;
 };
 
-export type CodeOwners = {
+export type CodeOwner = {
   id: string;
   raw: string;
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
   codeMapping?: RepositoryProjectPathConfig;
+  codeMappingId: string;
+  ownershipSyntax?: string;
   errors: {
     missing_external_teams: string[];
     missing_external_users: string[];
@@ -2206,4 +2208,10 @@ export type ExternalTeam = {
   externalName: string;
   provider: string;
   integrationId: string;
+};
+
+export type CodeownersFile = {
+  raw: string;
+  filepath: string;
+  html_url: string;
 };
