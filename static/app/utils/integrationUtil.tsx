@@ -43,13 +43,9 @@ export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
   org: Organization, // integration events should always be tied to an org
   options?: Parameters<typeof trackAdvancedAnalyticsEvent>[3]
 ) {
-  return trackAdvancedAnalyticsEvent(
-    eventKey,
-    analyticsParams,
-    org,
-    options,
-    mapIntegrationParams
-  );
+  options = options || {};
+  options.mapValuesFn = mapIntegrationParams;
+  return trackAdvancedAnalyticsEvent(eventKey, analyticsParams, org, options);
 }
 
 /**
