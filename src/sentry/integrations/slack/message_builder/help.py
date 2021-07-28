@@ -2,6 +2,7 @@ from typing import Iterable, List, Mapping, Optional
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.utils import metrics
 
 UNKNOWN_COMMAND_MESSAGE = "Unknown command: `{command}`"
 HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-install the app!"
@@ -53,7 +54,12 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
 
     def get_header_blocks(self) -> Iterable[SlackBlock]:
         blocks: List[SlackBlock] = []
-        if self.command:
+        if self.command != "help":
+            metrics.incr(
+                "slack.unknown_command",
+                sample_rate=1.0,
+                tags={"command": self.command},
+            )
             blocks.append(
                 self.get_markdown_block(UNKNOWN_COMMAND_MESSAGE.format(command=self.command))
             )
