@@ -415,7 +415,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 symbol_source_cfg.itunesSession
             )
         except itunes_connect.SessionExpiredError:
-            itunes_client = None
             itunes_session_info = None
         else:
             try:
