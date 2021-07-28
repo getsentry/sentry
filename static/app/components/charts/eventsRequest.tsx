@@ -26,6 +26,7 @@ export type TimeSeriesData = {
   originalPreviousTimeseriesData?: EventsStatsData | null;
   previousTimeseriesData?: Series | null;
   timeAggregatedData?: Series | {};
+  timeframe?: {start: string; end: string};
 };
 
 type LoadingStatus = {
@@ -158,6 +159,10 @@ type EventsRequestPartialProps = {
    * Hide error toast (used for pages which also query eventsV2)
    */
   hideError?: boolean;
+  /**
+   * Whether or not to zerofill results
+   */
+  withoutZerofill?: boolean;
 };
 
 type TimeAggregationProps =
@@ -420,6 +425,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         reloading,
         errored,
         results,
+        timeframe,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
