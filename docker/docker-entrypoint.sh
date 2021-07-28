@@ -3,7 +3,10 @@
 set -e
 
 if [ "$(ls -A /usr/local/share/ca-certificates/)" ]; then
+  echo "Found custom ca certificates, loading ..."
   update-ca-certificates
+else
+  echo "No custom ca certificates, skipping ..."
 fi
 
 # first check if we're passing flags, if so
