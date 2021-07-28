@@ -40,7 +40,7 @@ def should_get_personalized_digests(target_type: ActionTargetType, project_id: i
 
 def get_personalized_digests(
     target_type: ActionTargetType, project_id: int, digest: Digest, user_ids: Iterable[int]
-) -> Mapping[int, Digest]:
+) -> Iterable[Tuple[int, Digest]]:
     """
     TODO(mgaeta): I know this is inefficient. In the case that ProjectOwnership
      does exist, I do the same query twice. Once with this statement and again
@@ -54,12 +54,11 @@ def get_personalized_digests(
         events = get_event_from_groups_in_digest(digest)
         events_by_actor = build_events_by_actor(project_id, events, user_ids)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)
-        return {
-            user_id: build_custom_digest(digest, user_events)
-            for user_id, user_events in events_by_user.items()
-        }
+        for user_id, user_events in events_by_user.items():
+            yield user_id, build_custom_digest(digest, user_events)
     else:
-        return {user_id: digest for user_id in user_ids}
+        for user_id in user_ids:
+            yield user_id, digest
 
 
 def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
