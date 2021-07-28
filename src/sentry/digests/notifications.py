@@ -112,14 +112,14 @@ def attach_state(
 
 
 class Pipeline:
-    def __init__(self):
-        self.operations = []
+    def __init__(self) -> None:
+        self.operations: List[Callable[..., Any]] = []
 
-    def __call__(self, sequence):
-        return reduce(lambda x, operation: operation(x), self.operations, sequence)
+    def __call__(self, sequence: Sequence[Any]) -> Any:
+        return reduce(lambda x, operation: operation(x), self.operations, sequence)  # type: ignore
 
-    def apply(self, function):
-        def operation(sequence):
+    def apply(self, function: Callable[[Any], Any]) -> "Pipeline":
+        def operation(sequence: Sequence[Any]) -> Any:
             result = function(sequence)
             logger.debug("%r applied to %s items.", function, len(sequence))
             return result
@@ -127,8 +127,8 @@ class Pipeline:
         self.operations.append(operation)
         return self
 
-    def filter(self, function):
-        def operation(sequence):
+    def filter(self, function: Callable[[Record], bool]) -> "Pipeline":
+        def operation(sequence: Sequence[Any]) -> Sequence[Any]:
             result = [s for s in sequence if function(s)]
             logger.debug("%r filtered %s items to %s.", function, len(sequence), len(result))
             return result
@@ -136,8 +136,8 @@ class Pipeline:
         self.operations.append(operation)
         return self
 
-    def map(self, function):
-        def operation(sequence):
+    def map(self, function: Callable[[Sequence[Any]], Any]) -> "Pipeline":
+        def operation(sequence: Sequence[Any]) -> Sequence[Any]:
             result = [function(s) for s in sequence]
             logger.debug("%r applied to %s items.", function, len(sequence))
             return result
@@ -145,8 +145,10 @@ class Pipeline:
         self.operations.append(operation)
         return self
 
-    def reduce(self, function, initializer):
-        def operation(sequence):
+    def reduce(
+        self, function: Callable[[Any, Any], Any], initializer: Callable[[Sequence[Any]], Any]
+    ) -> "Pipeline":
+        def operation(sequence: Sequence[Any]) -> Any:
             result = reduce(function, sequence, initializer(sequence))
             logger.debug("%r reduced %s items to %s.", function, len(sequence), len(result))
             return result
