@@ -238,7 +238,7 @@ def get_one_transaction(org: Organization, project_slug: Optional[str]):
 
     transaction_id = result["data"][0]["id"]
 
-    return f"/organizations/{org.slug}/discover/{project.slug}:{transaction_id}/"
+    return f"/organizations/{org.slug}/performance/{project.slug}:{transaction_id}/"
 
 
 def get_one_discover_query(org: Organization):
