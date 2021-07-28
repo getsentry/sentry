@@ -19,6 +19,7 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
+    GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -423,3 +424,11 @@ def get_fallback_settings(
 
                 data[type_str][user_scope_str][user.id][provider_str] = value_str
     return data
+
+
+def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, str]:
+    """Get user-specific context. Do not call get_context() here."""
+    reason = extra_context.get("reason", 0)
+    return {
+        "reason": GroupSubscriptionReason.descriptions.get(reason, "are subscribed to this issue")
+    }

@@ -71,7 +71,7 @@ class IntegrationSetup extends Component<Props, State> {
 
   get platformDocs() {
     // TODO: make dynamic based on the integration
-    return 'https://docs.sentry.io/product/integrations/aws-lambda/';
+    return 'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
   }
 
   fetchData = async () => {
@@ -150,7 +150,14 @@ class IntegrationSetup extends Component<Props, State> {
           {tct(
             "Don't have have permissions to create a Cloudformation stack? [link:Invite your team instead].",
             {
-              link: <Button priority="link" onClick={openInviteMembersModal} />,
+              link: (
+                <Button
+                  priority="link"
+                  onClick={() => {
+                    openInviteMembersModal();
+                  }}
+                />
+              ),
             }
           )}
         </motion.p>

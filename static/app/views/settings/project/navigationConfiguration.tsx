@@ -50,6 +50,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
+          badge: () => 'beta',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -115,7 +116,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          badge: () => 'beta',
+          badge: () => 'new',
           show: () => !!organization?.features?.includes('project-transaction-threshold'),
         },
       ],

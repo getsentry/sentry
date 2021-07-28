@@ -1,7 +1,8 @@
-from django.db import DatabaseError, IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, router
 
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.deletion import MAX_RETRIES
+from sentry.utils.db import atomic_transaction
 
 
 @instrumented_task(
@@ -41,7 +42,7 @@ def delete_unreferenced_blobs(blob_ids):
             pass
         else:
             try:
-                with transaction.atomic():
+                with atomic_transaction(using=router.db_for_write(FileBlob)):
                     # Need to delete the record to ensure django hooks run.
                     blob.delete()
             except IntegrityError:

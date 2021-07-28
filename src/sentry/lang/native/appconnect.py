@@ -14,6 +14,7 @@ from typing import Any, Dict, List
 import dateutil
 import jsonschema
 import requests
+import sentry_sdk
 from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
@@ -27,6 +28,9 @@ logger = logging.getLogger(__name__)
 # The key in the project options under which all symbol sources are stored.
 SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
+# The key in the project options under which all of the dates corresponding to the last time sentry
+# checked for new builds in App Store Connect are stored.
+APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
 
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
@@ -86,13 +90,7 @@ class AppStoreConnectConfig:
     # Password for the iTunes credentials.
     itunesPassword: str
 
-    # Person ID of the iTunes user.
-    #
-    # This is an internal field that some iTunes calls need, but it is also relatively
-    # easily to retrieve via an HTTP request to iTunes.
-    itunesPersonId: str
-
-    # The iTuness session cookie.
+    # The iTunes session cookie.
     #
     # Loading this cookie into ``requests.Session`` (see
     # ``sentry.utils.appleconnect.itunes_connect.load_session_cookie``) will allow this
@@ -118,11 +116,11 @@ class AppStoreConnectConfig:
     # This is guaranteed to be unique and should map 1:1 to ``appId``.
     bundleId: str
 
-    # The organisation ID according to iTunes.
+    # The publicProviderId of the organisation according to iTunes.
     #
     # An iTunes session can have multiple organisations and needs this ID to be able to
     # select the correct organisation to operate on.
-    orgId: int
+    orgPublicId: itunes_connect.PublicProviderId
 
     # The name of an organisation, as supplied by iTunes.
     orgName: str
@@ -139,7 +137,7 @@ class AppStoreConnectConfig:
 
         This will include the JSON schema validation.  It accepts both a str or a datetime
         for the ``itunesCreated``.  Thus you can safely use this to create and validate the
-        config as desrialised by both plain JSON deserialiser or by Django Rest Framework's
+        config as deserialised by both plain JSON deserialiser or by Django Rest Framework's
         deserialiser.
 
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
@@ -161,10 +159,17 @@ class AppStoreConnectConfig:
         :raises KeyError: if the config is not found.
         :raises InvalidConfigError if the stored config is somehow invalid.
         """
-        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+
+        # UI bug: the UI writes an empty string when removing the last symbol source from
+        # the list.  So we need to cater for both `None` and `''` being returned from
+        # .get_option().
+        if not raw:
+            raw = "[]"
+
         all_sources = json.loads(raw)
         for source in all_sources:
-            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and source.get("id") == config_id:
+            if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
                 return cls.from_json(source)
         else:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
@@ -202,8 +207,8 @@ class AppStoreConnectConfig:
            match.
         """
         with transaction.atomic():
-            all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
-            all_sources = json.loads(all_sources_raw)
+            all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+            all_sources = json.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):
                 if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
                     if source.get("id") != self.id:
@@ -230,9 +235,9 @@ class BuildInfo:
     # The app ID
     app_id: str
 
-    # A platform identifying e.g. iOS, TvOS etc.
+    # A platform identifier, e.g. iOS, TvOS etc.
     #
-    # These are not always human readable but some opaque string supplied by apple.
+    # These are not always human-readable and can be some opaque string supplied by Apple.
     platform: str
 
     # The human-readable version, e.g. "7.2.0".
@@ -246,6 +251,9 @@ class BuildInfo:
     # Apple naming calls this the "bundle_version".
     build_number: str
 
+    # The date and time the build was uploaded to App Store Connect.
+    uploaded_date: datetime
+
 
 class ITunesClient:
     """A client for the legacy iTunes API.
@@ -256,23 +264,23 @@ class ITunesClient:
     session.
     """
 
-    def __init__(self, itunes_cookie: str, itunes_org: int):
-        self._session = requests.Session()
-        itunes_connect.load_session_cookie(self._session, itunes_cookie)
-        # itunes_connect.set_provider(self._session, itunes_org)
+    def __init__(self, itunes_cookie: str, itunes_org: itunes_connect.PublicProviderId):
+        self._client = itunes_connect.ITunesClient.from_session_cookie(itunes_cookie)
+        self._client.set_provider(itunes_org)
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
-        url = itunes_connect.get_dsym_url(
-            self._session, build.app_id, build.version, build.build_number, build.platform
-        )
-        if not url:
-            raise NoDsymsError
-        logger.debug("Fetching dSYM from: %s", url)
-        with requests.get(url, stream=True) as req:
-            req.raise_for_status()
-            with open(path, "wb") as fp:
-                for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
-                    fp.write(chunk)
+        with sentry_sdk.start_span(op="dsyms", description="Download dSYMs"):
+            url = self._client.get_dsym_url(
+                build.app_id, build.version, build.build_number, build.platform
+            )
+            if not url:
+                raise NoDsymsError
+            logger.debug("Fetching dSYM from: %s", url)
+            with requests.get(url, stream=True) as req:
+                req.raise_for_status()
+                with open(path, "wb") as fp:
+                    for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        fp.write(chunk)
 
 
 class AppConnectClient:
@@ -287,7 +295,7 @@ class AppConnectClient:
         self,
         api_credentials: appstore_connect.AppConnectCredentials,
         itunes_cookie: str,
-        itunes_org: int,
+        itunes_org: itunes_connect.PublicProviderId,
         app_id: str,
     ) -> None:
         """Internal init, use one of the classmethods instead."""
@@ -323,7 +331,7 @@ class AppConnectClient:
         return cls(
             api_credentials=api_credentials,
             itunes_cookie=config.itunesSession,
-            itunes_org=config.orgId,
+            itunes_org=config.orgPublicId,
             app_id=config.appId,
         )
 
@@ -336,7 +344,6 @@ class AppConnectClient:
 
     def list_builds(self) -> List[BuildInfo]:
         """Returns the available AppStore builds."""
-
         builds = []
         all_results = appstore_connect.get_build_info(
             self._session, self._api_credentials, self._app_id
@@ -348,6 +355,7 @@ class AppConnectClient:
                     platform=build["platform"],
                     version=build["version"],
                     build_number=build["build_number"],
+                    uploaded_date=build["uploaded_date"],
                 )
             )
 

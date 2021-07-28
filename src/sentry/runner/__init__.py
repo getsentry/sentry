@@ -59,6 +59,7 @@ list(
             "sentry.runner.commands.devserver.devserver",
             "sentry.runner.commands.django.django",
             "sentry.runner.commands.exec.exec_",
+            "sentry.runner.commands.execfile.execfile",
             "sentry.runner.commands.files.files",
             "sentry.runner.commands.help.help",
             "sentry.runner.commands.init.init",

@@ -416,14 +416,14 @@ urlpatterns += [
                     name="sentry-organization-settings",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/teams/$",
+                    react_page_view,
+                    name="sentry-organization-teams",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/members/$",
                     react_page_view,
                     name="sentry-organization-members",
-                ),
-                url(
-                    r"^(?P<organization_slug>[\w_-]+)/members/requests/$",
-                    react_page_view,
-                    name="sentry-organization-members-requests",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",

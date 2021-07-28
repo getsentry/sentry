@@ -4,20 +4,28 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
+PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
+PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
+ERROR_HANDLED_ALIAS = "error.handled"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
+RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "release.version"
 SEMVER_PACKAGE_ALIAS = "release.package"
+SEMVER_BUILD_ALIAS = "release.build"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
+MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
+MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
+MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -31,6 +39,9 @@ ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
     fr"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
 )
+
+DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
+
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
@@ -66,12 +77,14 @@ SEARCH_MAP = {
     "last_seen": "last_seen",
     "times_seen": "times_seen",
     SEMVER_ALIAS: SEMVER_ALIAS,
+    RELEASE_STAGE_ALIAS: RELEASE_STAGE_ALIAS,
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 # Allow list of fields that are compatible with the Snql Query Builder.
 # Once we reach a certain threshold of fields handled should turn this into a denylist
@@ -80,6 +93,7 @@ SNQL_FIELD_ALLOWLIST = {
     "environment",
     "message",
     "project",
+    "transaction",
     "project.id",
     "release",
     USER_DISPLAY_ALIAS,
@@ -89,6 +103,20 @@ SNQL_FIELD_ALLOWLIST = {
     TIMESTAMP_TO_HOUR_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TRANSACTION_STATUS_ALIAS,
+    ERROR_UNHANDLED_ALIAS,
+    TEAM_KEY_TRANSACTION_ALIAS,
+    "error.mechanism",
+    "error.type",
+    "error.value",
+    "stack.abs_path",
+    "stack.colno",
+    "stack.filename",
+    "stack.function",
+    "stack.in_app",
+    "stack.lineno",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
 }
 
 OPERATOR_NEGATION_MAP = {
@@ -101,7 +129,6 @@ OPERATOR_NEGATION_MAP = {
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
-SEMVER_MAX_SEARCH_RELEASES = 1000
+MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
-SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 SEMVER_WILDCARDS = frozenset(["X", "*"])

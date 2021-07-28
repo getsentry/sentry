@@ -119,7 +119,8 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     // TODO: make dynamic when adding more integrations
-    const docsLink = 'https://docs.sentry.io/product/integrations/aws-lambda/';
+    const docsLink =
+      'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
 
     return (
       <OuterWrapper>

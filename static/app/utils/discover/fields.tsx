@@ -1,3 +1,6 @@
+import isEqual from 'lodash/isEqual';
+
+import {RELEASE_ADOPTION_STAGES} from 'app/constants';
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
 
@@ -143,6 +146,7 @@ export const AGGREGATIONS = {
           'number',
           'duration',
           'date',
+          'percentage',
         ]),
         required: true,
       },
@@ -160,6 +164,7 @@ export const AGGREGATIONS = {
           'number',
           'duration',
           'date',
+          'percentage',
         ]),
         required: true,
       },
@@ -172,7 +177,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -185,7 +190,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         required: true,
       },
     ],
@@ -215,7 +220,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -228,7 +233,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -241,7 +246,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -255,7 +260,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -268,7 +273,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -281,7 +286,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -381,7 +386,10 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['string', 'duration'],
+        columnTypes: validateDenyListColumns(
+          ['string', 'duration'],
+          ['id', 'issue', 'user.display']
+        ),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -603,6 +611,27 @@ export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
 );
 
+export const SEMVER_TAGS = {
+  'release.version': {
+    key: 'release.version',
+    name: 'release.version',
+  },
+  'release.build': {
+    key: 'release.build',
+    name: 'release.build',
+  },
+  'release.package': {
+    key: 'release.package',
+    name: 'release.package',
+  },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+    predefined: true,
+    values: RELEASE_ADOPTION_STAGES,
+  },
+};
+
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
@@ -622,6 +651,12 @@ export enum MobileVital {
   FramesTotal = 'measurements.frames_total',
   FramesSlow = 'measurements.frames_slow',
   FramesFrozen = 'measurements.frames_frozen',
+  FramesSlowRate = 'measurements.frames_slow_rate',
+  FramesFrozenRate = 'measurements.frames_frozen_rate',
+  StallCount = 'measurements.stall_count',
+  StallTotalTime = 'measurements.stall_total_time',
+  StallLongestTime = 'measurements.stall_longest_time',
+  StallPercentage = 'measurements.stall_percentage',
 }
 
 const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
@@ -634,9 +669,15 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.RequestTime]: 'duration',
   [MobileVital.AppStartCold]: 'duration',
   [MobileVital.AppStartWarm]: 'duration',
-  [MobileVital.FramesTotal]: 'number',
-  [MobileVital.FramesSlow]: 'number',
-  [MobileVital.FramesFrozen]: 'number',
+  [MobileVital.FramesTotal]: 'integer',
+  [MobileVital.FramesSlow]: 'integer',
+  [MobileVital.FramesFrozen]: 'integer',
+  [MobileVital.FramesSlowRate]: 'percentage',
+  [MobileVital.FramesFrozenRate]: 'percentage',
+  [MobileVital.StallCount]: 'integer',
+  [MobileVital.StallTotalTime]: 'duration',
+  [MobileVital.StallLongestTime]: 'duration',
+  [MobileVital.StallPercentage]: 'percentage',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
@@ -804,6 +845,15 @@ export function isAggregateEquation(field: string): boolean {
   return isEquation(field) && results !== null && results.length > 0;
 }
 
+export function isLegalEquationColumn(column: Column): boolean {
+  // Any isn't allowed in arithmetic
+  if (column.kind === 'function' && column.function[0] === 'any') {
+    return false;
+  }
+  const columnType = getColumnType(column);
+  return columnType === 'number' || columnType === 'integer' || columnType === 'duration';
+}
+
 export function generateAggregateFields(
   organization: LightWeightOrganization,
   eventFields: readonly Field[] | Field[],
@@ -961,6 +1011,9 @@ export function aggregateFunctionOutputType(
  * Get the multi-series chart type for an aggregate function.
  */
 export function aggregateMultiPlotType(field: string): PlotType {
+  if (isEquation(field)) {
+    return 'line';
+  }
   const result = parseFunction(field);
   // Handle invalid data.
   if (!result) {
@@ -989,6 +1042,15 @@ function validateForNumericAggregate(
     }
 
     return validColumnTypes.includes(dataType);
+  };
+}
+
+function validateDenyListColumns(
+  validColumnTypes: ColumnType[],
+  deniedColumns: string[]
+): ValidateColumnValueFunction {
+  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+    return validColumnTypes.includes(dataType) && !deniedColumns.includes(name);
   };
 }
 
@@ -1071,4 +1133,11 @@ export function getColumnType(column: Column): ColumnType {
     }
   }
   return 'string';
+}
+
+export function hasDuplicate(columnList: Column[], column: Column): boolean {
+  if (column.kind !== 'function' && column.kind !== 'field') {
+    return false;
+  }
+  return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
 }

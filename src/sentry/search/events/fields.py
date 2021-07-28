@@ -2,14 +2,12 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Match, Optional, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-
-# TODO remove import aliases on snql Functions&Columns
-from snuba_sdk.column import Column as SnqlColumn
-from snuba_sdk.function import Function as SnqlFunction
+from snuba_sdk.column import Column
+from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
@@ -25,23 +23,37 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
+    DURATION_PATTERN,
+    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
+    ISSUE_ALIAS,
+    ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
+    MEASUREMENTS_FRAMES_FROZEN_RATE,
+    MEASUREMENTS_FRAMES_SLOW_RATE,
+    MEASUREMENTS_STALL_PERCENTAGE,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
+    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     RESULT_TYPES,
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_TO_DAY_ALIAS,
+    TIMESTAMP_TO_HOUR_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
-from sentry.search.events.types import SelectType
+from sentry.search.events.types import ParamsType, SelectType
+from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
+    Dataset,
     get_json_type,
     is_duration_measurement,
     is_measurement,
@@ -184,6 +196,39 @@ def project_threshold_config_expression(organization_id, project_ids):
             f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
         )
 
+    project_threshold_config_index = [
+        "indexOf",
+        [
+            [
+                "array",
+                [["toUInt64", [config["project_id"]]] for config in project_threshold_configs],
+            ],
+            "project_id",
+        ],
+        PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+    ]
+
+    project_transaction_override_config_index = [
+        "indexOf",
+        [
+            [
+                "array",
+                [
+                    [
+                        "tuple",
+                        [
+                            ["toUInt64", [config["project_id"]]],
+                            "'{}'".format(config["transaction"]),
+                        ],
+                    ]
+                    for config in transaction_threshold_configs
+                ],
+            ],
+            ["tuple", ["project_id", "transaction"]],
+        ],
+        PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+    ]
+
     project_config_query = (
         [
             "if",
@@ -191,19 +236,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                 [
                     "equals",
                     [
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        ["toUInt64", [config["project_id"]]]
-                                        for config in project_threshold_configs
-                                    ],
-                                ],
-                                "project_id",
-                            ],
-                        ],
+                        project_threshold_config_index,
                         0,
                     ],
                 ],
@@ -224,19 +257,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                                 for config in project_threshold_configs
                             ],
                         ],
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        ["toUInt64", [config["project_id"]]]
-                                        for config in project_threshold_configs
-                                    ],
-                                ],
-                                "project_id",
-                            ],
-                        ],
+                        project_threshold_config_index,
                     ],
                 ],
             ],
@@ -252,25 +273,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                 [
                     "equals",
                     [
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        [
-                                            "tuple",
-                                            [
-                                                ["toUInt64", [config["project_id"]]],
-                                                "'{}'".format(config["transaction"]),
-                                            ],
-                                        ]
-                                        for config in transaction_threshold_configs
-                                    ],
-                                ],
-                                ["tuple", ["project_id", "transaction"]],
-                            ],
-                        ],
+                        project_transaction_override_config_index,
                         0,
                     ],
                 ],
@@ -291,25 +294,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                                 for config in transaction_threshold_configs
                             ],
                         ],
-                        [
-                            "indexOf",
-                            [
-                                [
-                                    "array",
-                                    [
-                                        [
-                                            "tuple",
-                                            [
-                                                ["toUInt64", [config["project_id"]]],
-                                                "'{}'".format(config["transaction"]),
-                                            ],
-                                        ]
-                                        for config in transaction_threshold_configs
-                                    ],
-                                ],
-                                ["tuple", ["project_id", "transaction"]],
-                            ],
-                        ],
+                        project_transaction_override_config_index,
                     ],
                 ],
             ],
@@ -374,13 +359,19 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     eg. duration = numeric_value, and not duration = string_value
     """
     column = args["column"]
-    condition = args["condition"]
     value = args["value"]
     if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
-        try:
-            normalized_value = float(value.strip("'"))
-        except Exception:
-            raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
+        duration_match = DURATION_PATTERN.match(value.strip("'"))
+        if duration_match:
+            try:
+                normalized_value = parse_duration(*duration_match.groups())
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+        else:
+            try:
+                normalized_value = float(value.strip("'"))
+            except Exception:
+                raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
     elif column == "transaction.status":
         code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
         if code is None:
@@ -392,9 +383,6 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     # TODO: not supporting field aliases or arrays yet
     elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
-    # At this point only string or tag columns are left
-    elif condition not in ["equals", "notEquals"]:
-        raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
     else:
         normalized_value = value
 
@@ -404,6 +392,8 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
+
+# TODO: I think I have to support the release stage alias here maybe?
 FIELD_ALIASES = {
     field.name: field
     for field in [
@@ -450,6 +440,45 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
             result_type="boolean",
+        ),
+        PseudoField(
+            MEASUREMENTS_FRAMES_SLOW_RATE,
+            MEASUREMENTS_FRAMES_SLOW_RATE,
+            expression=[
+                "if",
+                [
+                    ["greater", ["measurements.frames_total", 0]],
+                    ["divide", ["measurements.frames_slow", "measurements.frames_total"]],
+                    None,
+                ],
+            ],
+            result_type="percentage",
+        ),
+        PseudoField(
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+            expression=[
+                "if",
+                [
+                    ["greater", ["measurements.frames_total", 0]],
+                    ["divide", ["measurements.frames_frozen", "measurements.frames_total"]],
+                    None,
+                ],
+            ],
+            result_type="percentage",
+        ),
+        PseudoField(
+            MEASUREMENTS_STALL_PERCENTAGE,
+            MEASUREMENTS_STALL_PERCENTAGE,
+            expression=[
+                "if",
+                [
+                    ["greater", ["transaction.duration", 0]],
+                    ["divide", ["measurements.stall_total_time", "transaction.duration"]],
+                    None,
+                ],
+            ],
+            result_type="percentage",
         ),
     ]
 }
@@ -718,9 +747,9 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     if equations is not None:
-        equation_aliases = [equation[-1] for equation in equations]
+        equation_aliases = {equation[-1]: equation for equation in equations}
     else:
-        equation_aliases = []
+        equation_aliases = {}
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
@@ -730,7 +759,10 @@ def resolve_orderby(orderby, fields, aggregations, equations):
             continue
 
         if equation_aliases and bare_column in equation_aliases:
-            validated.append(column)
+            equation = equation_aliases[bare_column]
+            prefix = "-" if column.startswith("-") else ""
+            # Drop alias because if prefix was included snuba thinks we're shadow aliasing
+            validated.append([prefix + equation[0], equation[1]])
             continue
 
         if is_function(bare_column):
@@ -1101,7 +1133,7 @@ class ConditionArg(FunctionArg):
         return value
 
 
-class Column(FunctionArg):
+class ColumnArg(FunctionArg):
     def __init__(self, name, allowed_columns=None):
         super().__init__(name)
         # make sure to map the allowed columns to their snuba names
@@ -1121,7 +1153,7 @@ class Column(FunctionArg):
         return snuba_column
 
 
-class ColumnNoLookup(Column):
+class ColumnNoLookup(ColumnArg):
     def normalize(self, value, params):
         super().normalize(value, params)
         return value
@@ -1158,6 +1190,12 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
+    measurement_aliases = {
+        MEASUREMENTS_FRAMES_SLOW_RATE,
+        MEASUREMENTS_FRAMES_FROZEN_RATE,
+        MEASUREMENTS_STALL_PERCENTAGE,
+    }
+
     def __init__(self, name, allow_array_value=False):
         super().__init__(name)
         self.allow_array_value = allow_array_value
@@ -1171,8 +1209,24 @@ class NumericColumnNoLookup(NumericColumn):
             if value in {"measurements_value", "span_op_breakdowns_value"}:
                 return ["arrayJoin", [value]]
 
+        if value in self.measurement_aliases:
+            field = FIELD_ALIASES[value]
+            return field.get_expression(params)
+
         super().normalize(value, params)
         return value
+
+    def get_type(self, value):
+        # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
+        # to a percentage value, since they are expressions rather than columns, we special
+        # case them here
+        if isinstance(value, list):
+            for name in self.measurement_aliases:
+                field = FIELD_ALIASES[name]
+                expression = field.get_expression(None)
+                if expression == value:
+                    return field.result_type
+        return super().get_type(value)
 
 
 class DurationColumn(FunctionArg):
@@ -1260,7 +1314,7 @@ def with_default(default, argument):
     return argument
 
 
-class Function:
+class DiscoverFunction:
     def __init__(
         self,
         name,
@@ -1474,7 +1528,7 @@ class Function:
 FUNCTIONS = {
     function.name: function
     for function in [
-        Function(
+        DiscoverFunction(
             "percentile",
             required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
             aggregate=["quantile({percentile:g})", ArgValue("column"), None],
@@ -1482,7 +1536,7 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "p50",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=["quantile(0.5)", ArgValue("column"), None],
@@ -1490,7 +1544,7 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=["quantile(0.75)", ArgValue("column"), None],
@@ -1498,7 +1552,7 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=["quantile(0.95)", ArgValue("column"), None],
@@ -1506,7 +1560,7 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "p99",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=["quantile(0.99)", ArgValue("column"), None],
@@ -1514,7 +1568,7 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "p100",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=["max", ArgValue("column"), None],
@@ -1522,30 +1576,30 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "eps",
             optional_args=[IntervalDefault("interval", 1, None)],
             transform="divide(count(), {interval:g})",
             default_result_type="number",
         ),
-        Function(
+        DiscoverFunction(
             "epm",
             optional_args=[IntervalDefault("interval", 1, None)],
             transform="divide(count(), divide({interval:g}, 60))",
             default_result_type="number",
         ),
-        Function(
+        DiscoverFunction(
             "last_seen",
             aggregate=["max", "timestamp", "last_seen"],
             default_result_type="date",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "latest_event",
             aggregate=["argMax", ["id", "timestamp"], "latest_event"],
             default_result_type="string",
         ),
-        Function(
+        DiscoverFunction(
             "apdex",
             optional_args=[NullableNumberRange("satisfaction", 0, None)],
             conditional_transform=ConditionalFunction(
@@ -1575,7 +1629,7 @@ FUNCTIONS = {
             ),
             default_result_type="number",
         ),
-        Function(
+        DiscoverFunction(
             "count_miserable",
             required_args=[CountColumn("column")],
             optional_args=[NullableNumberRange("satisfaction", 0, None)],
@@ -1607,7 +1661,7 @@ FUNCTIONS = {
             ),
             default_result_type="number",
         ),
-        Function(
+        DiscoverFunction(
             "user_misery",
             # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
             # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
@@ -1657,8 +1711,10 @@ FUNCTIONS = {
             ),
             default_result_type="number",
         ),
-        Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
-        Function(
+        DiscoverFunction(
+            "failure_rate", transform="failure_rate()", default_result_type="percentage"
+        ),
+        DiscoverFunction(
             "failure_count",
             aggregate=[
                 "countIf",
@@ -1676,7 +1732,7 @@ FUNCTIONS = {
                                             for name in ["ok", "cancelled", "unknown"]
                                         ],
                                     ],
-                                    "transaction_status",
+                                    "transaction.status",
                                 ],
                             ],
                         ],
@@ -1686,14 +1742,14 @@ FUNCTIONS = {
             ],
             default_result_type="integer",
         ),
-        Function(
+        DiscoverFunction(
             "array_join",
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
             default_result_type="string",
             private=True,
         ),
-        Function(
+        DiscoverFunction(
             "histogram",
             required_args=[
                 NumericColumnNoLookup("column", allow_array_value=True),
@@ -1744,19 +1800,19 @@ FUNCTIONS = {
             default_result_type="number",
             private=True,
         ),
-        Function(
+        DiscoverFunction(
             "count_unique",
             optional_args=[CountColumn("column")],
             aggregate=["uniq", ArgValue("column"), None],
             default_result_type="integer",
         ),
-        Function(
+        DiscoverFunction(
             "count",
             optional_args=[NullColumn("column")],
             aggregate=["count", None, None],
             default_result_type="integer",
         ),
-        Function(
+        DiscoverFunction(
             "count_at_least",
             required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
             aggregate=[
@@ -1766,7 +1822,7 @@ FUNCTIONS = {
             ],
             default_result_type="integer",
         ),
-        Function(
+        DiscoverFunction(
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
@@ -1774,7 +1830,7 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "max",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["max", ArgValue("column"), None],
@@ -1782,7 +1838,7 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "avg",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["avg", ArgValue("column"), None],
@@ -1790,42 +1846,42 @@ FUNCTIONS = {
             default_result_type="duration",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "var",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["varSamp", ArgValue("column"), None],
             default_result_type="number",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "stddev",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["stddevSamp", ArgValue("column"), None],
             default_result_type="number",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "cov",
             required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
             aggregate=["covarSamp", [ArgValue("column1"), ArgValue("column2")], None],
             default_result_type="number",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "corr",
             required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
             aggregate=["corr", [ArgValue("column1"), ArgValue("column2")], None],
             default_result_type="number",
             redundant_grouping=True,
         ),
-        Function(
+        DiscoverFunction(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
-        Function(
+        DiscoverFunction(
             "any",
             required_args=[FieldColumn("column")],
             aggregate=["min", ArgValue("column"), None],
@@ -1833,7 +1889,7 @@ FUNCTIONS = {
             redundant_grouping=True,
         ),
         # Currently only being used by the baseline PoC
-        Function(
+        DiscoverFunction(
             "absolute_delta",
             required_args=[DurationColumnNoLookup("column"), NumberRange("target", 0, None)],
             column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
@@ -1842,7 +1898,7 @@ FUNCTIONS = {
         # These range functions for performance trends, these aren't If functions
         # to avoid allowing arbitrary if statements
         # Not yet supported in Discover, and shouldn't be added to fields.tsx
-        Function(
+        DiscoverFunction(
             "percentile_range",
             required_args=[
                 NumericColumnNoLookup("column"),
@@ -1878,7 +1934,7 @@ FUNCTIONS = {
             ],
             default_result_type="duration",
         ),
-        Function(
+        DiscoverFunction(
             "avg_range",
             required_args=[
                 NumericColumnNoLookup("column"),
@@ -1896,7 +1952,7 @@ FUNCTIONS = {
             ],
             default_result_type="duration",
         ),
-        Function(
+        DiscoverFunction(
             "variance_range",
             required_args=[
                 NumericColumnNoLookup("column"),
@@ -1914,7 +1970,7 @@ FUNCTIONS = {
             ],
             default_result_type="duration",
         ),
-        Function(
+        DiscoverFunction(
             "count_range",
             required_args=[ConditionArg("condition"), DateArg("middle")],
             aggregate=[
@@ -1925,7 +1981,7 @@ FUNCTIONS = {
             ],
             default_result_type="integer",
         ),
-        Function(
+        DiscoverFunction(
             "percentage",
             required_args=[FunctionArg("numerator"), FunctionArg("denominator")],
             # Since percentage is only used on aggregates, it needs to be an aggregate and not a column
@@ -1938,7 +1994,7 @@ FUNCTIONS = {
             default_result_type="percentage",
         ),
         # Calculate the Welch's t-test value, this is used to help identify which of our trends are significant or not
-        Function(
+        DiscoverFunction(
             "t_test",
             required_args=[
                 FunctionAliasArg("avg_1"),
@@ -1955,13 +2011,13 @@ FUNCTIONS = {
             ],
             default_result_type="number",
         ),
-        Function(
+        DiscoverFunction(
             "minus",
             required_args=[FunctionArg("minuend"), FunctionArg("subtrahend")],
             aggregate=["minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
             default_result_type="duration",
         ),
-        Function(
+        DiscoverFunction(
             "absolute_correlation",
             aggregate=[
                 "abs",
@@ -1971,7 +2027,7 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         # The calculated arg will cast the string value according to the value in the column
-        Function(
+        DiscoverFunction(
             "count_if",
             required_args=[
                 # This is a FunctionArg cause the column can be a tag as well
@@ -2000,7 +2056,7 @@ FUNCTIONS = {
             ],
             default_result_type="integer",
         ),
-        Function(
+        DiscoverFunction(
             "compare_numeric_aggregate",
             required_args=[
                 FunctionAliasArg("aggregate_alias"),
@@ -2016,7 +2072,7 @@ FUNCTIONS = {
             ],
             default_result_type="number",
         ),
-        Function(
+        DiscoverFunction(
             "to_other",
             required_args=[
                 ColumnNoLookup("column", allowed_columns=["release", "trace.parent_span"]),
@@ -2051,8 +2107,206 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
+class SnQLFunction(DiscoverFunction):
+    def __init__(self, *args, **kwargs):
+        self.snql_aggregate = kwargs.pop("snql_aggregate", None)
+        super().__init__(*args, **kwargs)
+
+    def validate(self):
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), f"{self.name}: optional argument at index {i} does not have default"
+
+        assert self.snql_aggregate is not None
+
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
+            names.add(arg.name)
+
+        self.validate_result_type(self.default_result_type)
+
+
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
+
+    def __init__(self, dataset: Dataset, params: ParamsType):
+        super().__init__(dataset, params)
+
+        self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
+            # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
+            # is required to insert the true issue short id into the response.
+            ISSUE_ALIAS: self._resolve_issue_id_alias,
+            ISSUE_ID_ALIAS: self._resolve_issue_id_alias,
+            PROJECT_ALIAS: self._resolve_project_slug_alias,
+            PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
+            TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
+            USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
+            TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
+            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
+            ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
+            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
+            TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
+        }
+
+        self.function_converter: Mapping[str, SnQLFunction] = {
+            function.name: function
+            for function in [
+                SnQLFunction(
+                    "failure_count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                "notIn",
+                                [
+                                    self.column("transaction.status"),
+                                    (
+                                        SPAN_STATUS_NAME_TO_CODE["ok"],
+                                        SPAN_STATUS_NAME_TO_CODE["cancelled"],
+                                        SPAN_STATUS_NAME_TO_CODE["unknown"],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "apdex",
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    snql_aggregate=self._resolve_apdex_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "count_miserable",
+                    # Using the generic FunctionArg here temporarily till we
+                    # implement a resolver for count columns in SnQL. The only
+                    # column to be passed through here for now is `user`.
+                    required_args=[FunctionArg("column")],
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        }
+                    ],
+                    snql_aggregate=self._resolve_count_miserable_function,
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "user_misery",
+                    # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+                    # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+                    # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+                    # with the user misery being adjusted for each fast/slow unique transaction. See:
+                    # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+                    # for an intuitive explanation of the Beta Distribution Function.
+                    optional_args=[
+                        NullableNumberRange("satisfaction", 0, None),
+                        with_default(5.8875, NumberRange("alpha", 0, None)),
+                        with_default(111.8625, NumberRange("beta", 0, None)),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        },
+                        {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+                    ],
+                    snql_aggregate=self._resolve_user_misery_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "count",
+                    snql_aggregate=lambda _, alias: Function(
+                        "count",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda _, alias: Function(
+                        "max",
+                        [self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="date",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "latest_event",
+                    snql_aggregate=lambda _, alias: Function(
+                        "argMax",
+                        [self.column("id"), self.column("timestamp")],
+                        alias,
+                    ),
+                    default_result_type="string",
+                ),
+                SnQLFunction(
+                    "failure_rate",
+                    snql_aggregate=lambda _, alias: Function(
+                        "failure_rate",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                # TODO: implement these
+                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("avg", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("var", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("stddev", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("cov", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "percentile_range", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("avg_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("variance_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
+                ),
+                SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
+            ]
+        }
 
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
         if selected_columns is None:
@@ -2072,7 +2326,7 @@ class QueryFields(QueryBase):
     def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+            return self.resolve_function(field, match)
 
         if self.is_field_alias(field):
             return self.resolve_field_alias(field)
@@ -2104,23 +2358,26 @@ class QueryFields(QueryBase):
 
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.resolve_field(bare_orderby)
+            try:
+                resolved_orderby = self.resolve_field(bare_orderby)
+            except NotImplementedError:
+                resolved_orderby = None
+
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
+            if is_function(bare_orderby):
+                bare_orderby = resolved_orderby.alias
+
             for selected_column in self.columns:
-                if isinstance(selected_column, SnqlColumn) and selected_column == resolved_orderby:
+                if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     continue
+
                 elif (
-                    isinstance(selected_column, SnqlFunction)
-                    and selected_column.alias == bare_orderby
+                    isinstance(selected_column, Function) and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
                     continue
-
-            # TODO: orderby aggregations
-
-            # TODO: orderby field aliases
 
         if len(validated) == len(orderby_columns):
             return validated
@@ -2128,3 +2385,390 @@ class QueryFields(QueryBase):
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
         # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+
+    def is_field_alias(self, alias: str) -> bool:
+        return alias in self.field_alias_converter
+
+    def resolve_field_alias(self, alias: str) -> SelectType:
+        converter = self.field_alias_converter.get(alias)
+        if not converter:
+            raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
+        return converter(alias)
+
+    def is_function(self, function: str) -> bool:
+        return function in self.function_converter
+
+    def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
+        if match is None:
+            match = is_function(function)
+
+        if not match:
+            raise InvalidSearchQuery(f"Invalid characters in field {function}")
+
+        if function in self.params.get("aliases", {}):
+            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
+
+        name, arguments, alias = self.parse_function(match)
+        snql_function = self.function_converter.get(name)
+
+        arguments = snql_function.format_as_arguments(name, arguments, self.params)
+
+        if snql_function.snql_aggregate is not None:
+            self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
+        return snql_function.snql_aggregate(arguments, alias)
+
+    def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
+        function = match.group("function")
+        if not self.is_function(function):
+            raise InvalidSearchQuery(f"{function} is not a valid function")
+
+        arguments = match.group("columns")
+        arguments = parse_arguments(function, arguments)
+        alias = match.group("alias")
+
+        if alias is None:
+            alias = get_function_alias_with_columns(function, arguments)
+
+        return (function, arguments, alias)
+
+    # Field Aliases
+    def _resolve_issue_id_alias(self, _: str) -> SelectType:
+        """The state of having no issues is represented differently on transactions vs
+        other events. On the transactions table, it is represented by 0 whereas it is
+        represented by NULL everywhere else. We use coalesce here so we can treat this
+        consistently
+        """
+        return Function("coalesce", [self.column("issue.id"), 0], ISSUE_ID_ALIAS)
+
+    def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        project_ids = {
+            project_id
+            for project_id in self.params.get("project_id", [])
+            if isinstance(project_id, int)
+        }
+
+        # Try to reduce the size of the transform by using any existing conditions on projects
+        if len(self.projects_to_filter) > 0:
+            project_ids &= self.projects_to_filter
+
+        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
+
+        return Function(
+            "transform",
+            [
+                self.column("project.id"),
+                [project["id"] for project in projects],
+                [project["slug"] for project in projects],
+                "",
+            ],
+            alias,
+        )
+
+    def _resolve_timestamp_to_hour_alias(self, _: str) -> SelectType:
+        return Function("toStartOfHour", [self.column("timestamp")], TIMESTAMP_TO_HOUR_ALIAS)
+
+    def _resolve_timestamp_to_day_alias(self, _: str) -> SelectType:
+        return Function("toStartOfDay", [self.column("timestamp")], TIMESTAMP_TO_DAY_ALIAS)
+
+    def _resolve_user_display_alias(self, _: str) -> SelectType:
+        columns = ["user.email", "user.username", "user.ip"]
+        return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
+
+    def _resolve_transaction_status(self, _: str) -> SelectType:
+        # TODO: Remove the `toUInt8` once Column supports aliases
+        return Function(
+            "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
+        )
+
+    def _resolve_project_threshold_config(self, _: str) -> SelectType:
+        org_id = self.params.get("organization_id")
+        project_ids = self.params.get("project_id")
+
+        project_threshold_configs = (
+            ProjectTransactionThreshold.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values_list("project_id", "threshold", "metric")
+        )
+
+        transaction_threshold_configs = (
+            ProjectTransactionThresholdOverride.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values_list("transaction", "project_id", "threshold", "metric")
+        )
+
+        num_project_thresholds = project_threshold_configs.count()
+        sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
+        sentry_sdk.set_tag(
+            "project_threshold.count.grouped",
+            format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
+        )
+
+        num_transaction_thresholds = transaction_threshold_configs.count()
+        sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
+        sentry_sdk.set_tag(
+            "txn_threshold.count.grouped",
+            format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
+        )
+
+        if (
+            num_project_thresholds + num_transaction_thresholds
+            > MAX_QUERYABLE_TRANSACTION_THRESHOLDS
+        ):
+            raise InvalidSearchQuery(
+                f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
+            )
+
+        # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
+        # that can store listed argument types, which means the comparison will fail because of mismatched types
+        project_threshold_config_keys = []
+        project_threshold_config_values = []
+        for project_id, threshold, metric in project_threshold_configs:
+            project_threshold_config_keys.append(Function("toUInt64", [project_id]))
+            project_threshold_config_values.append((TRANSACTION_METRICS[metric], threshold))
+
+        project_threshold_override_config_keys = []
+        project_threshold_override_config_values = []
+        for transaction, project_id, threshold, metric in transaction_threshold_configs:
+            project_threshold_override_config_keys.append(
+                (Function("toUInt64", [project_id]), transaction)
+            )
+            project_threshold_override_config_values.append(
+                (TRANSACTION_METRICS[metric], threshold)
+            )
+
+        project_threshold_config_index: SelectType = Function(
+            "indexOf",
+            [
+                project_threshold_config_keys,
+                self.column("project_id"),
+            ],
+            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+        )
+
+        project_threshold_override_config_index: SelectType = Function(
+            "indexOf",
+            [
+                project_threshold_override_config_keys,
+                (self.column("project_id"), self.column("transaction")),
+            ],
+            PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+        )
+
+        def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
+            return (
+                Function(
+                    "if",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                project_threshold_config_index,
+                                0,
+                            ],
+                        ),
+                        (DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD),
+                        Function(
+                            "arrayElement",
+                            [
+                                project_threshold_config_values,
+                                project_threshold_config_index,
+                            ],
+                        ),
+                    ],
+                    alias,
+                )
+                if project_threshold_configs
+                else Function(
+                    "tuple",
+                    [DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD],
+                    alias,
+                )
+            )
+
+        if transaction_threshold_configs:
+            return Function(
+                "if",
+                [
+                    Function(
+                        "equals",
+                        [
+                            project_threshold_override_config_index,
+                            0,
+                        ],
+                    ),
+                    _project_threshold_config(),
+                    Function(
+                        "arrayElement",
+                        [
+                            project_threshold_override_config_values,
+                            project_threshold_override_config_index,
+                        ],
+                    ),
+                ],
+                PROJECT_THRESHOLD_CONFIG_ALIAS,
+            )
+
+        return _project_threshold_config(PROJECT_THRESHOLD_CONFIG_ALIAS)
+
+    def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
+        org_id = self.params.get("organization_id")
+        project_ids = self.params.get("project_id")
+        team_ids = self.params.get("team_id")
+
+        if org_id is None or team_ids is None or project_ids is None:
+            raise TypeError("Team key transactions parameters cannot be None")
+
+        team_key_transactions = list(
+            TeamKeyTransaction.objects.filter(
+                organization_id=org_id,
+                project_team__in=ProjectTeam.objects.filter(
+                    project_id__in=project_ids, team_id__in=team_ids
+                ),
+            )
+            .order_by("transaction", "project_team__project_id")
+            .values_list("project_team__project_id", "transaction")
+            .distinct("transaction", "project_team__project_id")[
+                :MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+            ]
+        )
+
+        count = len(team_key_transactions)
+
+        # NOTE: this raw count is not 100% accurate because if it exceeds
+        # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
+        sentry_sdk.set_tag("team_key_txns.count", count)
+        sentry_sdk.set_tag(
+            "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
+        )
+
+        if count == 0:
+            return Function("toInt8", [0], TEAM_KEY_TRANSACTION_ALIAS)
+
+        return Function(
+            "in",
+            [(self.column("project_id"), self.column("transaction")), team_key_transactions],
+            TEAM_KEY_TRANSACTION_ALIAS,
+        )
+
+    def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
+        return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
+
+    def _resolve_error_handled_alias(self, _: str) -> SelectType:
+        # Columns in snuba doesn't support aliasing right now like Function does.
+        # Adding a no-op here to get the alias.
+        return Function(
+            "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
+        )
+
+    def _project_threshold_multi_if_function(self) -> SelectType:
+        """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
+        this returns the right duration value (for example, lcp or duration) based
+        on project or transaction thresholds that have been configured by the user.
+        """
+
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "equals",
+                    [
+                        Function(
+                            "tupleElement",
+                            [self.resolve_field("project_threshold_config"), 1],
+                        ),
+                        "lcp",
+                    ],
+                ),
+                self.column("measurements.lcp"),
+                self.column("transaction.duration"),
+            ],
+        )
+
+    def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            function_args = [self.column("transaction.duration"), int(args["satisfaction"])]
+        else:
+            function_args = [
+                self._project_threshold_multi_if_function(),
+                Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
+            ]
+
+        return Function("apdex", function_args, alias)
+
+    def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            lhs = self.column("transaction.duration")
+            rhs = int(args["tolerated"])
+        else:
+            lhs = self._project_threshold_multi_if_function()
+            rhs = Function(
+                "multiply",
+                [
+                    Function(
+                        "tupleElement",
+                        [self.resolve_field("project_threshold_config"), 2],
+                    ),
+                    4,
+                ],
+            )
+        col = args["column"]
+
+        return Function(
+            "uniqIf",
+            [
+                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
+                Function("greater", [lhs, rhs]),
+            ],
+            alias,
+        )
+
+    def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            count_miserable_agg = self.resolve_function(
+                f"count_miserable(user,{args['satisfaction']})"
+            )
+        else:
+            count_miserable_agg = self.resolve_function("count_miserable(user)")
+
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                count_miserable_agg,
+                                args["alpha"],
+                            ],
+                        ),
+                        Function(
+                            "plus",
+                            [
+                                Function("uniq", [self.column("user")]),
+                                args["parameter_sum"],
+                            ],
+                        ),
+                    ],
+                ),
+                0,
+            ],
+            alias,
+        )
+
+    def _resolve_unimplemented_function(
+        self,
+        _: List[str],
+        alias: str,
+    ) -> SelectType:
+        """Used in the interim as a stub for ones that have not be implemented in SnQL yet.
+        Can be deleted once all functions have been implemented.
+        """
+        raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")

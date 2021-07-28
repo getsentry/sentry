@@ -59,7 +59,7 @@
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
             },
             {
@@ -74,14 +74,26 @@
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "<compiler-generated>",
+              "filename": "<compiler-generated>",
+              "function": "closure",
+              "package": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
             },
             {
               "function": "stripped_application_code"
@@ -89,43 +101,31 @@
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
-              "package": "stripped_application_code"
-            },
-            {
-              "function": "stripped_application_code"
-            },
-            {
-              "function": "stripped_application_code"
-            },
-            {
-              "abs_path": "<compiler-generated>",
-              "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "@callee_guaranteed",
+              "function": "closure",
               "package": "stripped_application_code"
             },
             {

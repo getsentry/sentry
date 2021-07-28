@@ -237,11 +237,11 @@ class Issues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:${version}`] || 0,
-            new: issueResponse[`${IssuesQuery.NEW}:${version}`] || 0,
+            all: issueResponse[`${IssuesQuery.ALL}:"${version}"`] || 0,
+            new: issueResponse[`${IssuesQuery.NEW}:"${version}"`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`] ||
+              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
               0,
           },
         });
@@ -257,9 +257,9 @@ class Issues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.NEW}:${version}`,
-      `${IssuesQuery.ALL}:${version}`,
-      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`,
+      `${IssuesQuery.NEW}:"${version}"`,
+      `${IssuesQuery.ALL}:"${version}"`,
+      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -359,18 +359,18 @@ class Issues extends Component<Props, State> {
     const {path, queryParams} = this.getIssuesEndpoint();
     const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
+      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
       {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
-      {
-        value: IssuesType.RESOLVED,
-        label: t('Resolved Issues'),
-        issueCount: count.resolved,
-      },
       {
         value: IssuesType.UNHANDLED,
         label: t('Unhandled Issues'),
         issueCount: count.unhandled,
       },
-      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
+      {
+        value: IssuesType.RESOLVED,
+        label: t('Resolved Issues'),
+        issueCount: count.resolved,
+      },
     ];
 
     return (

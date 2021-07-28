@@ -3,7 +3,6 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import FeatureBadge from 'app/components/featureBadge';
@@ -36,6 +35,7 @@ import {
   FRONTEND_OTHER_COLUMN_TITLES,
   FRONTEND_PAGELOAD_COLUMN_TITLES,
   MOBILE_COLUMN_TITLES,
+  REACT_NATIVE_COLUMN_TITLES,
 } from './data';
 import {
   getCurrentLandingDisplay,
@@ -46,7 +46,7 @@ import {
   LEFT_AXIS_QUERY_KEY,
   RIGHT_AXIS_QUERY_KEY,
 } from './utils';
-import {BackendCards, FrontendCards} from './vitalsCards';
+import {BackendCards, FrontendCards, MobileCards} from './vitalsCards';
 
 type Props = {
   organization: Organization;
@@ -205,10 +205,22 @@ class LandingContent extends Component<Props, State> {
     const axisOptions = getMobileAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
-    const columnTitles = MOBILE_COLUMN_TITLES;
+    // only react native should contain the stall percentage column
+    const isReactNative = Boolean(
+      eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
+    );
+    const columnTitles = isReactNative
+      ? REACT_NATIVE_COLUMN_TITLES
+      : MOBILE_COLUMN_TITLES;
 
     return (
       <Fragment>
+        <MobileCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          showStallPercentage={isReactNative}
+        />
         <DoubleAxisDisplay
           eventView={eventView}
           organization={organization}
@@ -266,6 +278,7 @@ class LandingContent extends Component<Props, State> {
       <Fragment>
         <SearchContainer>
           <SearchBar
+            searchSource="performance_landing"
             organization={organization}
             projectIds={eventView.project}
             query={filterString}
@@ -297,22 +310,14 @@ class LandingContent extends Component<Props, State> {
             ))}
           </DropdownControl>
         </SearchContainer>
-        <Feature organization={organization} features={['team-key-transactions']}>
-          {({hasFeature}) =>
-            hasFeature ? (
-              <TeamKeyTransactionManager.Provider
-                organization={organization}
-                teams={userTeams}
-                selectedTeams={['myteams']}
-                selectedProjects={eventView.project.map(String)}
-              >
-                {this.renderSelectedDisplay(currentLandingDisplay.field)}
-              </TeamKeyTransactionManager.Provider>
-            ) : (
-              this.renderSelectedDisplay(currentLandingDisplay.field)
-            )
-          }
-        </Feature>
+        <TeamKeyTransactionManager.Provider
+          organization={organization}
+          teams={userTeams}
+          selectedTeams={['myteams']}
+          selectedProjects={eventView.project.map(String)}
+        >
+          {this.renderSelectedDisplay(currentLandingDisplay.field)}
+        </TeamKeyTransactionManager.Provider>
       </Fragment>
     );
   }

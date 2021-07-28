@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from typing import (
+    TYPE_CHECKING,
     Any,
     Iterable,
     List,
@@ -10,6 +11,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    Union,
     cast,
 )
 
@@ -38,8 +40,16 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.notifications.notify import notify
+from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+    from sentry.notifications.activity.base import ActivityNotification
+    from sentry.notifications.user_report import UserReportNotification
+
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +123,7 @@ def get_users_by_emails(emails: Iterable[str], organization: Organization) -> Ma
 
 def get_repos(
     commits: Iterable[Commit], users_by_email: Mapping[str, User], organization: Organization
-) -> Iterable[Mapping[str, Any]]:
+) -> Iterable[Mapping[str, Union[str, Iterable[Tuple[Commit, Optional[User]]]]]]:
     repos = {
         r_id: {"name": r_name, "commits": []}
         for r_id, r_name in Repository.objects.filter(
@@ -145,7 +155,9 @@ def get_environment_for_deploy(deploy: Optional[Deploy]) -> str:
     return "Default Environment"
 
 
-def summarize_issues(issues: Iterable[Any]) -> Iterable[Mapping[str, str]]:
+def summarize_issues(
+    issues: Iterable[Mapping[str, Mapping[str, Any]]]
+) -> Iterable[Mapping[str, str]]:
     rv = []
     for issue in issues:
         extra_info = None
@@ -185,7 +197,7 @@ def get_rules(
     ]
 
 
-def get_commits(project: Project, event: Any) -> Sequence[Mapping[str, Any]]:
+def get_commits(project: Project, event: "Event") -> Sequence[Mapping[str, Any]]:
     # lets identify possibly suspect commits and owners
     commits: MutableMapping[int, Mapping[str, Any]] = {}
     try:
@@ -236,7 +248,7 @@ def has_alert_integration(project: Project) -> bool:
     return any(plugin.get_plugin_type() == "notification" for plugin in project_plugins)
 
 
-def get_interface_list(event: Any) -> Sequence[Any]:
+def get_interface_list(event: "Event") -> Sequence[Tuple[str, str, str]]:
     interface_list = []
     for interface in event.interfaces.values():
         body = interface.to_email_html(event)
@@ -245,3 +257,21 @@ def get_interface_list(event: Any) -> Sequence[Any]:
         text_body = interface.to_string(event)
         interface_list.append((interface.get_title(), mark_safe(body), text_body))
     return interface_list
+
+
+def send_activity_notification(
+    notification: Union["ActivityNotification", "UserReportNotification"]
+) -> None:
+    if not notification.should_email():
+        return
+
+    participants_by_provider = notification.get_participants_with_group_subscription_reason()
+    if not participants_by_provider:
+        return
+
+    # Only calculate shared context once.
+    shared_context = notification.get_context()
+
+    for provider, participants_with_reasons in participants_by_provider.items():
+        participants_, extra_context = split_participants_and_context(participants_with_reasons)
+        notify(provider, notification, participants_, shared_context, extra_context)

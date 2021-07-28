@@ -494,16 +494,16 @@ class Group(Model):
     def _get_cache_key(self, project_id, group_id, first):
         return f"g-r:{group_id}-{project_id}-{first}"
 
-    def __get_release(self, project_id, group_id, first=True):
+    def __get_release(self, project_id, group_id, first=True, use_cache=True):
         from sentry.models import GroupRelease, Release
 
         orderby = "first_seen" if first else "-last_seen"
         cache_key = self._get_cache_key(project_id, group_id, first)
         try:
-            release_version = cache.get(cache_key)
+            release_version = cache.get(cache_key) if use_cache else None
             if release_version is None:
                 release_version = Release.objects.get(
-                    id__in=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                    id__in=GroupRelease.objects.filter(group_id=group_id)
                     .order_by(orderby)
                     .values("release_id")[:1]
                 ).version
@@ -522,8 +522,8 @@ class Group(Model):
 
         return self.first_release.version
 
-    def get_last_release(self):
-        return self.__get_release(self.project_id, self.id, False)
+    def get_last_release(self, use_cache=True):
+        return self.__get_release(self.project_id, self.id, False, use_cache=use_cache)
 
     def get_event_type(self):
         """

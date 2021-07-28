@@ -1,93 +1,68 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
+import {openModal} from 'app/actionCreators/modal';
 import Role from 'app/components/acl/role';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
-import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
-import {IconDownload, IconEllipsis} from 'app/icons';
+import {IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {EventAttachment, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
-import withApi from 'app/utils/withApi';
 
 import DataSection from '../dataSection';
 
-import EmptyState from './emptyState';
-import {platformsMobileWithAttachmentsFeature} from './utils';
+import ImageVisualization from './imageVisualization';
+import Modal, {modalCss} from './modal';
 
 type Props = {
   event: Event;
-  api: Client;
   organization: Organization;
   projectSlug: Project['slug'];
+  attachments: EventAttachment[];
+  onDelete: (attachmentId: EventAttachment['id']) => void;
 };
 
-function Screenshot({event, api, organization, projectSlug}: Props) {
-  const [attachments, setAttachments] = useState<EventAttachment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+function Screenshot({event, attachments, organization, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
-  const eventPlatform = event.platform;
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
-    if (!event) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/`
-      );
-      setAttachments(response);
-      setIsLoading(false);
-    } catch (_err) {
-      // TODO: Error-handling
-      setAttachments([]);
-      setIsLoading(false);
-    }
+  function hasScreenshot(attachment: EventAttachment) {
+    const {mimetype} = attachment;
+    return mimetype === 'image/jpeg' || mimetype === 'image/png';
   }
 
-  function hasPreview(attachment: EventAttachment) {
-    switch (attachment.mimetype) {
-      case 'image/jpeg':
-      case 'image/png':
-      case 'image/gif':
-        return true;
-      default:
-        return false;
-    }
+  function handleOpenVisualizationModal(
+    eventAttachment: EventAttachment,
+    downloadUrl: string
+  ) {
+    openModal(
+      modalProps => (
+        <Modal
+          {...modalProps}
+          event={event}
+          orgSlug={orgSlug}
+          projectSlug={projectSlug}
+          eventAttachment={eventAttachment}
+          downloadUrl={downloadUrl}
+          onDelete={() => onDelete(eventAttachment.id)}
+        />
+      ),
+      {modalCss}
+    );
   }
 
-  function renderContent() {
-    if (isLoading) {
-      return <LoadingIndicator mini />;
-    }
-
-    const firstAttachmenteWithPreview = attachments.find(hasPreview);
-
-    if (!firstAttachmenteWithPreview) {
-      return <EmptyState platform={eventPlatform} />;
-    }
-
-    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/attachments/${firstAttachmenteWithPreview.id}/`;
+  function renderContent(screenshotAttachment: EventAttachment) {
+    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/attachments/${screenshotAttachment.id}/`;
 
     return (
       <Fragment>
         <StyledPanelBody>
-          <StyledImageViewer
-            attachment={firstAttachmenteWithPreview}
+          <ImageVisualization
+            attachment={screenshotAttachment}
             orgId={orgSlug}
             projectId={projectSlug}
             event={event}
@@ -95,7 +70,17 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
         </StyledPanelBody>
         <StyledPanelFooter>
           <StyledButtonbar gap={1}>
-            <Button size="xsmall">{t('View screenshot')}</Button>
+            <Button
+              size="xsmall"
+              onClick={() =>
+                handleOpenVisualizationModal(
+                  screenshotAttachment,
+                  `${downloadUrl}?download=1`
+                )
+              }
+            >
+              {t('View screenshot')}
+            </Button>
             <DropdownLink
               caret={false}
               customTitle={
@@ -109,11 +94,21 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
             >
               <MenuItemActionLink
                 shouldConfirm={false}
-                icon={<IconDownload size="xs" />}
                 title={t('Download')}
                 href={`${downloadUrl}?download=1`}
               >
                 {t('Download')}
+              </MenuItemActionLink>
+              <MenuItemActionLink
+                shouldConfirm
+                title={t('Delete')}
+                onAction={() => onDelete(screenshotAttachment.id)}
+                header={t(
+                  'Screenshots help identify what the user saw when the event happened'
+                )}
+                message={t('Are you sure you wish to delete this screenshot?')}
+              >
+                {t('Delete')}
               </MenuItemActionLink>
             </DropdownLink>
           </StyledButtonbar>
@@ -122,30 +117,23 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
     );
   }
 
-  // the UI should only render the screenshots feature in events with platforms that support screenshots
-  if (
-    !eventPlatform ||
-    !platformsMobileWithAttachmentsFeature.includes(eventPlatform as any)
-  ) {
-    return null;
-  }
-
   return (
     <Role role={organization.attachmentsRole}>
       {({hasRole}) => {
-        if (!hasRole) {
-          // if the user has no access to the attachments,
-          // the UI shall not display the screenshot section
+        const screenshotAttachment = attachments.find(hasScreenshot);
+
+        if (!hasRole || !screenshotAttachment) {
           return null;
         }
+
         return (
           <DataSection
             title={t('Screenshots')}
             description={t(
-              'Screenshots help identify what the user saw when the exception happened'
+              'Screenshots help identify what the user saw when the event happened'
             )}
           >
-            <StyledPanel>{renderContent()}</StyledPanel>
+            <StyledPanel>{renderContent(screenshotAttachment)}</StyledPanel>
           </DataSection>
         );
       }}
@@ -153,7 +141,7 @@ function Screenshot({event, api, organization, projectSlug}: Props) {
   );
 }
 
-export default withApi(Screenshot);
+export default Screenshot;
 
 const StyledPanel = styled(Panel)`
   display: flex;
@@ -161,14 +149,19 @@ const StyledPanel = styled(Panel)`
   justify-content: center;
   align-items: center;
   margin-bottom: 0;
-  min-width: 175px;
   min-height: 200px;
+  min-width: 175px;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
   height: 175px;
-  width: 100%;
   overflow: hidden;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  margin: -1px;
+  width: calc(100% + 2px);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
@@ -180,16 +173,5 @@ const StyledButtonbar = styled(ButtonBar)`
   justify-content: space-between;
   .dropdown {
     height: 24px;
-  }
-`;
-
-const StyledImageViewer = styled(ImageViewer)`
-  padding: 0;
-  height: 100%;
-  img {
-    width: auto;
-    height: 100%;
-    object-fit: cover;
-    flex: 1;
   }
 `;

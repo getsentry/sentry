@@ -126,8 +126,8 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     from_reprocessing = process_task is process_event_from_reprocessing
 
     with metrics.timer("tasks.store.preprocess_event.organization.get_from_cache"):
-        project._organization_cache = Organization.objects.get_from_cache(
-            id=project.organization_id
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
     if should_process_with_symbolicator(data):
@@ -421,8 +421,8 @@ def _do_process_event(
         project = Project.objects.get_from_cache(id=project_id)
 
     with metrics.timer("tasks.store.process_event.organization.get_from_cache"):
-        project._organization_cache = Organization.objects.get_from_cache(
-            id=project.organization_id
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
     has_changed = bool(data_has_changed)
@@ -466,7 +466,9 @@ def _do_process_event(
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
             ):
-                new_data = safe_execute(scrub_data, project=project, event=data.data)
+                new_data = safe_execute(
+                    scrub_data, project=project, event=data.data, _with_transaction=False
+                )
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII

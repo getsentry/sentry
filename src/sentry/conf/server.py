@@ -575,6 +575,7 @@ CELERY_QUEUES = [
     Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("cleanup", routing_key="cleanup"),
+    Queue("code_owners", routing_key="code_owners"),
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
@@ -738,6 +739,11 @@ CELERYBEAT_SCHEDULE = {
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         "schedule": timedelta(minutes=5),
+        "options": {"expires": 3600},
+    },
+    "fetch-appstore-builds": {
+        "task": "sentry.tasks.app_store_connect.refresh_all_builds",
+        "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {
@@ -1187,9 +1193,6 @@ SENTRY_ENABLE_INVITES = True
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
 
-# Enable scraping of javascript context for source code
-SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
-
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
 SENTRY_BUFFER_OPTIONS = {}
@@ -1546,7 +1549,7 @@ SENTRY_WATCHERS = (
             "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
                 )
             ),
         ],

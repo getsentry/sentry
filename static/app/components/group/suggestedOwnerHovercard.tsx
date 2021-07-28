@@ -46,6 +46,14 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
   render() {
     const {actor, commits, rules, ...props} = this.props;
     const {commitsExpanded, rulesExpanded} = this.state;
+    const modalData = {
+      initialData: [
+        {
+          emails: actor.email ? new Set([actor.email]) : new Set([]),
+        },
+      ],
+      source: 'suggested_assignees',
+    };
 
     return (
       <Hovercard
@@ -62,20 +70,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                   {
                     actorEmail: <strong>{actor.email}</strong>,
                     accountSettings: <Link to="/settings/account/emails/" />,
-                    inviteUser: (
-                      <a
-                        onClick={() =>
-                          openInviteMembersModal({
-                            initialData: [
-                              {
-                                emails: new Set([actor.email]),
-                              },
-                            ],
-                            source: 'suggested_assignees',
-                          })
-                        }
-                      />
-                    ),
+                    inviteUser: <a onClick={() => openInviteMembersModal(modalData)} />,
                   }
                 )}
               </EmailAlert>
@@ -141,6 +136,7 @@ const tagColors = {
   url: theme.green200,
   path: theme.purple300,
   tag: theme.blue300,
+  codeowners: theme.orange300,
 };
 
 const CommitIcon = styled(IconCommit)`
@@ -193,7 +189,6 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   border-radius: 2px;
   font-weight: bold;
-  min-width: 34px;
   text-align: center;
 `;
 
