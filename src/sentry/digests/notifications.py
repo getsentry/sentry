@@ -3,26 +3,14 @@ import itertools
 import logging
 from collections import OrderedDict, defaultdict, namedtuple
 from functools import reduce
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-)
+from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry.app import tsdb
 from sentry.digests import Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, GroupStatus, Project, Rule
+from sentry.notifications.types import ActionTargetType
 from sentry.utils.dates import to_timestamp
-
-if TYPE_CHECKING:
-    from sentry.mail.adapter import ActionTargetType
 
 logger = logging.getLogger("sentry.digests")
 
