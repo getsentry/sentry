@@ -659,7 +659,7 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: [['confidence()', '<-6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.REGRESSION,
       value: TransactionsListOption.REGRESSION,
       label: t('Trending Regressions'),
