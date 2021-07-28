@@ -22,7 +22,6 @@ from .base import ActivityNotification
 
 class ReleaseActivityNotification(ActivityNotification):
     fine_tuning_key = "deploy"
-    is_message_issue_unfurl = False
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)

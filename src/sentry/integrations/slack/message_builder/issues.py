@@ -20,8 +20,8 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.base import BaseNotification
-from sentry.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri

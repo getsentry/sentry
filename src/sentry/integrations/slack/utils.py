@@ -20,8 +20,8 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,

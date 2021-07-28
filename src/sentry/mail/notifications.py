@@ -3,10 +3,10 @@ from typing import Any, Mapping, Optional, Set
 
 from sentry import options
 from sentry.models import ProjectOption, User
-from sentry.notifications.activity.base import ActivityNotification
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.notifications.rules import AlertRuleNotification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email

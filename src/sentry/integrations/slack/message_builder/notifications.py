@@ -9,8 +9,8 @@ from sentry.integrations.slack.message_builder.issues import (
     get_title_link,
 )
 from sentry.models import Team, User
-from sentry.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_release
 from sentry.utils.http import absolute_uri
 

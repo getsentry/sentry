@@ -1,7 +1,6 @@
-from typing import Any, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
-from sentry.models import Group, Project, User
-from sentry.types.integrations import ExternalProviders
+from sentry.models import Project, User
 from sentry.utils.http import absolute_uri
 
 
@@ -9,21 +8,14 @@ class BaseNotification:
     fine_tuning_key: Optional[str] = None
     is_message_issue_unfurl = False
 
-    def __init__(self, project: Project, group: Optional[Group]) -> None:
+    def __init__(self, project: Project) -> None:
         self.project = project
         self.organization = self.project.organization
-        self.group = group
 
     def get_filename(self) -> str:
         raise NotImplementedError
 
     def get_category(self) -> str:
-        raise NotImplementedError
-
-    def get_title(self) -> str:
-        raise NotImplementedError
-
-    def get_participants(self) -> Mapping[ExternalProviders, Set[int]]:
         raise NotImplementedError
 
     def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
@@ -64,6 +56,4 @@ class BaseNotification:
         raise NotImplementedError
 
     def get_unsubscribe_key(self) -> Optional[Tuple[str, int]]:
-        if self.group:
-            return "issue", self.group.id
         return None

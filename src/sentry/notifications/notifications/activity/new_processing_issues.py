@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping, Optional
+from typing import Any, MutableMapping, Optional, Tuple
 
 from sentry.models import Activity, Mapping, NotificationSetting, User
 from sentry.notifications.types import GroupSubscriptionReason
@@ -6,10 +6,10 @@ from sentry.notifications.utils import summarize_issues
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityNotification
+from .base import GroupActivityNotification
 
 
-class NewProcessingIssuesActivityNotification(ActivityNotification):
+class NewProcessingIssuesActivityNotification(GroupActivityNotification):
     is_message_issue_unfurl = False
 
     def __init__(self, activity: Activity) -> None:
@@ -25,16 +25,22 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             for provider, users in users_by_provider.items()
         }
 
+    def get_activity_name(self) -> str:
+        # TODO MARCOS make sure this doesn't cause an error
+        return "New Processing Issues"
+
+    def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+        return f"Some events failed to process in your project {self.project.slug}", {}, {}
+
     def get_context(self) -> MutableMapping[str, Any]:
         return {
-            **self.get_base_context(),
+            **self.get_context(),
             "project": self.project,
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
             "info_url": absolute_uri(
                 f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
             ),
-            "text_description": f"Some events failed to process in your project {self.project.slug}",
         }
 
     def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
