@@ -49,7 +49,13 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         )
 
     def store_transaction(
-        self, name="exampleTransaction", duration=100, tags=None, project_id=None, lcp=None
+        self,
+        name="exampleTransaction",
+        duration=100,
+        tags=None,
+        project_id=None,
+        lcp=None,
+        user_id=None,
     ):
         if tags is None:
             tags = []
@@ -65,6 +71,14 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
                 "timestamp": iso_format(self.two_mins_ago),
             }
         )
+        if user_id:
+            event["user"] = {
+                "email": "foo@example.com",
+                "id": user_id,
+                "ip_address": "127.0.0.1",
+                "username": "foo",
+            }
+
         if lcp:
             event["measurements"]["lcp"]["value"] = lcp
         else:
@@ -190,6 +204,28 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         assert tag_data[0]["tags_value"] == "red"
         assert tag_data[1]["tags_value"] == "blue"
 
+    def test_no_top_tags(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "tagKeyLimit": 10,
+            "numBucketsPerKey": 10,
+            "tagKey": "color",
+            "query": "(color:teal or color:oak)",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        histogram_data = data_response.data["histogram"]["data"]
+        assert histogram_data == []
+
+        tag_data = data_response.data["tags"]["data"]
+        assert tag_data == []
+
     def test_tag_key_histogram_buckets(self):
         request = {
             "aggregateColumn": "transaction.duration",
@@ -277,3 +313,30 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         assert histogram_data[2]["histogram_measurements_lcp_750_750_1"] == 4500.0
         assert histogram_data[2]["tags_value"] == "green"
         assert histogram_data[2]["tags_key"] == "color"
+
+    def test_histogram_user_field(self):
+        self.store_transaction(
+            tags=[["color", "blue"], ["many", "yes"]], duration=4000, user_id=555
+        )
+
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "per_page": 5,
+            "tagKeyLimit": 1,
+            "numBucketsPerKey": 2,
+            "tagKey": "user",
+            "query": "(user.id:555)",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        histogram_data = data_response.data["histogram"]["data"]
+        assert histogram_data[0]["count"] == 1
+        assert histogram_data[0]["tags_value"] == "id:555"
+        assert histogram_data[0]["tags_key"] == "user"
+
+        tag_data = data_response.data["tags"]["data"]
+        assert tag_data[0]["count"] == 1
+        assert tag_data[0]["tags_value"] == "id:555"

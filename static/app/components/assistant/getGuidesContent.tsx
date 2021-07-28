@@ -185,19 +185,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'release_adoption',
-      requiredTargets: ['release_adoption'],
-      steps: [
-        {
-          title: t('Recalculating Adoption'),
-          target: 'release_adoption',
-          description: t(
-            `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
-          ),
-        },
-      ],
-    },
-    {
       guide: 'stack_trace_preview',
       requiredTargets: ['issue_stream_title'],
       dateThreshold: new Date(2021, 2, 15),
@@ -337,6 +324,27 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             }
           ),
           nextText: t('Got it'),
+        },
+      ],
+    },
+    {
+      guide: 'semver',
+      requiredTargets: ['releases_search'],
+      dateThreshold: new Date(2021, 6, 1),
+      steps: [
+        {
+          title: t('Filter by Semver'),
+          target: 'releases_search',
+          description: tct(
+            'You can now filter releases by semver. For example: release.version:>14.0 [br] [link:View the docs]',
+            {
+              br: <br />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
+              ),
+            }
+          ),
+          nextText: t('Leave me alone'),
         },
       ],
     },

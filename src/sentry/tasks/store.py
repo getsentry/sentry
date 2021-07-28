@@ -466,7 +466,9 @@ def _do_process_event(
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
             ):
-                new_data = safe_execute(scrub_data, project=project, event=data.data)
+                new_data = safe_execute(
+                    scrub_data, project=project, event=data.data, _with_transaction=False
+                )
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII

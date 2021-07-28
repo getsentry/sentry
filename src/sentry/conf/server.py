@@ -575,6 +575,7 @@ CELERY_QUEUES = [
     Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("cleanup", routing_key="cleanup"),
+    Queue("code_owners", routing_key="code_owners"),
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
@@ -1193,9 +1194,6 @@ SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
-
-# Enable scraping of javascript context for source code
-SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"

@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 
+import pytz
 from django.template.defaultfilters import slugify
 from django.urls import reverse
 from django.utils import timezone
@@ -274,6 +275,7 @@ def alert(request):
             "rule": rule,
             "group": group,
             "event": event,
+            "timezone": pytz.timezone("Europe/Vienna"),
             "link": "http://example.com/link",
             "interfaces": interface_list,
             "tags": event.tags,
@@ -537,9 +539,7 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
         },
     ).render(request)
@@ -559,9 +559,7 @@ def request_access_for_another_member(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
             "requester": request.user.get_display_name(),
         },

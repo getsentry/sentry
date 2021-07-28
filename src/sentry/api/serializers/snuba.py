@@ -346,4 +346,8 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         elif "order" in result.data:
             res["order"] = result.data["order"]
 
+        if hasattr(result, "start") and hasattr(result, "end"):
+            res["start"] = result.start.timestamp()
+            res["end"] = result.end.timestamp()
+
         return res

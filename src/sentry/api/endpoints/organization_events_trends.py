@@ -268,6 +268,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     organization,
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
+                    zerofill_results=zerofill_results,
                 )
 
             stats_results = (

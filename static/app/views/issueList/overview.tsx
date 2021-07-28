@@ -2,6 +2,7 @@ import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -28,7 +29,11 @@ import {Panel, PanelBody} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {
+  DEFAULT_QUERY,
+  DEFAULT_STATS_PERIOD,
+  RELEASE_ADOPTION_STAGES,
+} from 'app/constants';
 import {tct} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
@@ -459,6 +464,13 @@ class IssueListOverview extends React.Component<Props, State> {
       },
       complete: () => {
         this._lastStatsRequest = null;
+
+        // End navigation transaction to prevent additional page requests from impacting page metrics.
+        // Other transactions include stacktrace preview request
+        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        if (currentTransaction?.op === 'navigation') {
+          currentTransaction.finish();
+        }
       },
     });
   };
@@ -1055,6 +1067,12 @@ class IssueListOverview extends React.Component<Props, State> {
       tags['release.package'] = {
         key: 'release.package',
         name: 'release.package',
+      };
+      tags['release.stage'] = {
+        key: 'release.stage',
+        name: 'release.stage',
+        predefined: true,
+        values: RELEASE_ADOPTION_STAGES,
       };
     }
 

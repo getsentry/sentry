@@ -644,7 +644,20 @@ class EventView {
   }
 
   getWidths(): number[] {
-    return this.fields.map(field => (field.width ? field.width : COL_WIDTH_UNDEFINED));
+    const result = this.fields.map(field =>
+      field.width ? field.width : COL_WIDTH_UNDEFINED
+    );
+
+    while (result.length > 0) {
+      const width = result[result.length - 1];
+      if (width === COL_WIDTH_UNDEFINED) {
+        result.pop();
+        continue;
+      }
+      break;
+    }
+
+    return result;
   }
 
   getFields(): string[] {

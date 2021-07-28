@@ -58,7 +58,7 @@ function ReleaseComparisonChart({
 
     const sessionsMarkLines = generateReleaseMarkLines(
       release,
-      project.slug,
+      project,
       theme,
       location,
       {
@@ -84,16 +84,10 @@ function ReleaseComparisonChart({
     ];
 
     if (hasUsers) {
-      const usersMarkLines = generateReleaseMarkLines(
-        release,
-        project.slug,
-        theme,
-        location,
-        {
-          hideLabel: true,
-          axisIndex: 1,
-        }
-      );
+      const usersMarkLines = generateReleaseMarkLines(release, project, theme, location, {
+        hideLabel: true,
+        axisIndex: 1,
+      });
 
       series.push(...usersMarkLines);
       series.push({
@@ -179,6 +173,17 @@ function ReleaseComparisonChart({
       truncate: 80,
       valueFormatter: (value: number, label?: string) =>
         label && Object.values(releaseMarkLinesLabels).includes(label) ? '' : `${value}%`,
+      filter: (_, seriesParam) => {
+        const {seriesName, axisIndex} = seriesParam;
+        // do not display tooltips for "Users Adopted" marklines
+        if (
+          axisIndex === 1 &&
+          Object.values(releaseMarkLinesLabels).includes(seriesName)
+        ) {
+          return false;
+        }
+        return true;
+      },
     },
   };
 

@@ -317,10 +317,8 @@ def get_identities_by_user(idp, users):
     return {identity.user: identity for identity in identity_models}
 
 
-def is_valid_role(org_member, team, organization):
-    return org_member.role in ALLOWED_ROLES and (
-        organization.flags.allow_joinleave or team in org_member.teams.all()
-    )
+def is_valid_role(org_member):
+    return org_member.role in ALLOWED_ROLES
 
 
 def render_error_page(request: Request, body_text: str) -> HttpResponse:
@@ -372,7 +370,9 @@ def get_referrer_qstring(notification: BaseNotification) -> str:
 
 
 def get_settings_url(notification: BaseNotification) -> str:
-    url_str = f"/settings/account/notifications/{notification.fine_tuning_key}"
+    url_str = "/settings/account/notifications/"
+    if notification.fine_tuning_key:
+        url_str += f"{notification.fine_tuning_key}/"
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 

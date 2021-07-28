@@ -1,22 +1,20 @@
+import {Fragment} from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {Item as ListItem} from 'app/components/dropdownAutoComplete/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource} from 'app/types/debugFiles';
+import {BuiltinSymbolSource, CustomRepo} from 'app/types/debugFiles';
 
-import BuildInSymbolSources from './buildInSymbolSources';
-import SymbolSources from './symbolSources';
+import BuiltInRepositories from './builtInRepositories';
+import CustomRepositories from './customRepositories';
 
 type Props = {
   api: Client;
   organization: Organization;
   projectSlug: Project['slug'];
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
-  symbolSources: ListItem[];
+  customRepositories: CustomRepo[];
   builtinSymbolSources: string[];
   router: InjectedRouter;
   location: Location;
@@ -25,7 +23,7 @@ type Props = {
 function ExternalSources({
   api,
   organization,
-  symbolSources,
+  customRepositories,
   builtinSymbolSources,
   builtinSymbolSourceOptions,
   projectSlug,
@@ -33,26 +31,23 @@ function ExternalSources({
   router,
 }: Props) {
   return (
-    <Panel>
-      <PanelHeader>{t('External Sources')}</PanelHeader>
-      <PanelBody>
-        <SymbolSources
-          api={api}
-          location={location}
-          router={router}
-          organization={organization}
-          symbolSources={symbolSources}
-          projectSlug={projectSlug}
-        />
-        <BuildInSymbolSources
-          api={api}
-          organization={organization}
-          builtinSymbolSources={builtinSymbolSources}
-          builtinSymbolSourceOptions={builtinSymbolSourceOptions}
-          projectSlug={projectSlug}
-        />
-      </PanelBody>
-    </Panel>
+    <Fragment>
+      <BuiltInRepositories
+        api={api}
+        organization={organization}
+        builtinSymbolSources={builtinSymbolSources}
+        builtinSymbolSourceOptions={builtinSymbolSourceOptions}
+        projectSlug={projectSlug}
+      />
+      <CustomRepositories
+        api={api}
+        location={location}
+        router={router}
+        organization={organization}
+        customRepositories={customRepositories}
+        projectSlug={projectSlug}
+      />
+    </Fragment>
   );
 }
 

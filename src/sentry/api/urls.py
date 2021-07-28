@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
@@ -165,6 +166,9 @@ from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoi
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
     OrganizationEventsFacetsPerformanceHistogramEndpoint,
+)
+from .endpoints.organization_events_has_measurements import (
+    OrganizationEventsHasMeasurementsEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
@@ -988,6 +992,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-vitals/$",
                     OrganizationEventsVitalsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-vitals",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-has-measurements/$",
+                    OrganizationEventsHasMeasurementsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-has-measurements",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
@@ -1888,6 +1897,12 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",
                     ProjectRepoPathParsingEndpoint.as_view(),
                     name="sentry-api-0-project-repo-path-parsing",
+                ),
+                # Grouping configs
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/grouping-configs/$",
+                    ProjectGroupingConfigsEndpoint.as_view(),
+                    name="sentry-api-0-project-grouping-configs",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/$",

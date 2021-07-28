@@ -85,7 +85,7 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme
 const StyledTextBlock = styled('span')`
   line-height: 1.5;
   position: relative;
-  margin-right: auto;
+  flex: 1;
 `;
 
 const MessageContainer = styled('div')`

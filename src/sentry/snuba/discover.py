@@ -198,8 +198,17 @@ def wip_snql_query(
     Replacement API for query using snql, this function is still a work in
     progress and is not ready for use in production
     """
-    builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
+    builder = QueryBuilder(
+        Dataset.Discover,
+        params,
+        query=query,
+        selected_columns=selected_columns,
+        orderby=orderby,
+        use_aggregate_conditions=use_aggregate_conditions,
+        limit=limit,
+    )
     snql_query = builder.get_snql_query()
+
     results = raw_snql_query(snql_query, referrer)
     return results
 
@@ -546,6 +555,7 @@ def top_events_timeseries(
     referrer=None,
     top_events=None,
     allow_empty=True,
+    zerofill_results=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -594,7 +604,7 @@ def top_events_timeseries(
         )
 
         for field in selected_columns:
-            # If we have a project field, we need to limit results by project so we dont hit the result limit
+            # If we have a project field, we need to limit results by project so we don't hit the result limit
             if field in ["project", "project.id"] and top_events["data"]:
                 snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
                 continue
@@ -643,7 +653,11 @@ def top_events_timeseries(
 
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
-            {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
+            {
+                "data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")
+                if zerofill_results
+                else [],
+            },
             snuba_filter.start,
             snuba_filter.end,
             rollup,
@@ -690,7 +704,9 @@ def top_events_timeseries(
                 {
                     "data": zerofill(
                         item["data"], snuba_filter.start, snuba_filter.end, rollup, "time"
-                    ),
+                    )
+                    if zerofill_results
+                    else item["data"],
                     "order": item["order"],
                 },
                 snuba_filter.start,
