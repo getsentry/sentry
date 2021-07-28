@@ -53,7 +53,9 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 return self.unlink_team(request)
 
         # If we cannot interpret the command, print help text.
-        return self.respond(SlackHelpMessageBuilder(command).build())
+        request_data = request.data
+        unknown_command = request_data.get("text", "").lower()
+        return self.respond(SlackHelpMessageBuilder(unknown_command).build())
 
     def get_command_and_args(self, request: SlackRequest) -> Tuple[str, Sequence[str]]:
         raise NotImplementedError

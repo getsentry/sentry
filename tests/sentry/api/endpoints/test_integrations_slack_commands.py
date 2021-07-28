@@ -55,6 +55,12 @@ def assert_is_help_text(data: SlackBody, expected_command: Optional[str] = None)
         assert expected_command in text
 
 
+def assert_unknown_command_text(data: SlackBody, unknown_command: Optional[str] = None) -> None:
+    text = get_response_text(data)
+    assert f"Unknown command: `{unknown_command}`" in text
+    assert "Here are the commands you can use" in text
+
+
 class SlackCommandsTest(APITestCase, TestCase):
     endpoint = "sentry-integration-slack-commands"
     method = "post"
@@ -159,7 +165,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
 
     def test_invalid_command(self):
         data = self.send_slack_message("invalid command")
-        assert_is_help_text(data, "invalid")
+        assert_unknown_command_text(data, "invalid command")
 
     def test_help_command(self):
         data = self.send_slack_message("help")
