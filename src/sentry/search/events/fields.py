@@ -1335,30 +1335,12 @@ class SnQLColumn(FunctionArg):
         return value
 
 
-class SnQLStringArg(FunctionArg):
-    def __init__(self, name, unquote=False, unescape_quotes=False, optional_unquote=False):
-        """
-        :param str name: The name of the function, this refers to the name to invoke.
-        :param boolean unquote: Whether to try unquoting the arg or not
-        :param boolean unescape_quotes: Whether quotes within the string should be unescaped
-        :param boolean optional_unquote: Don't error when unable to unquote
-        """
-        super().__init__(name)
-        self.unquote = unquote
-        self.unescape_quotes = unescape_quotes
-        self.optional_unquote = optional_unquote
-
+class SnQLStringArg(StringArg):
     def normalize(self, value, params):
-        if self.unquote:
-            if len(value) < 2 or value[0] != '"' or value[-1] != '"':
-                if not self.optional_unquote:
-                    raise InvalidFunctionArgument("string should be quoted")
-            else:
-                value = value[1:-1]
-        if self.unescape_quotes:
-            value = re.sub(r'\\"', '"', value)
-
-        return value
+        value = super().normalize(value, params)
+        # SnQL interprets string types as string, so strip the
+        # quotes added in StringArg.normalize.
+        return value[1:-1]
 
 
 class DiscoverFunction:
