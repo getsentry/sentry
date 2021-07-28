@@ -90,12 +90,6 @@ class DigestNotification(BaseNotification):
             "start": start,
         }
 
-    def get_user_context(
-        self, user: "User", extra_context: Mapping[str, Any]
-    ) -> MutableMapping[str, Any]:
-        # Basically a noop.
-        return {**extra_context}
-
     def get_extra_context(self, recipient_ids: Iterable[int]) -> Mapping[int, Mapping[str, Any]]:
         extra_context = {}
         for user_id, digest in get_personalized_digests(
