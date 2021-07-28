@@ -188,4 +188,48 @@ describe('Transaction Summary Content', function () {
     expect(transactionListProps.generatePerformanceTransactionEventsView).toBeDefined();
     expect(transactionListProps.handleOpenAllEventsClick).toBeDefined();
   });
+
+  it('Renders TransactionSummaryCharts withoutZerofill when feature flagged', async function () {
+    // @ts-expect-error
+    const projects = [TestStubs.Project()];
+    const {
+      organization,
+      location,
+      eventView,
+      spanOperationBreakdownFilter,
+      transactionName,
+    } = initialize(projects, {}, [
+      'performance-events-page',
+      'performance-chart-interpolation',
+    ]);
+    // @ts-expect-error
+    const routerContext = TestStubs.routerContext([{organization}]);
+
+    const wrapper = mountWithTheme(
+      <SummaryContent
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        transactionName={transactionName}
+        isLoading={false}
+        totalValues={null}
+        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+        error={null}
+        onChangeFilter={() => {}}
+      />,
+      routerContext
+    );
+
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
+
+    const transactionSummaryChartsProps = wrapper
+      .find('TransactionSummaryCharts')
+      .first()
+      .props();
+    expect(transactionSummaryChartsProps.withoutZerofill).toEqual(true);
+  });
 });

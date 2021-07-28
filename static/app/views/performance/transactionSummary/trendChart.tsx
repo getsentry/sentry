@@ -48,6 +48,7 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
     queryExtra: Query;
     trendDisplay: string;
+    withoutZerofill: boolean;
   };
 
 class TrendChart extends Component<Props> {
@@ -79,6 +80,7 @@ class TrendChart extends Component<Props> {
       router,
       trendDisplay,
       queryExtra,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -95,30 +97,6 @@ class TrendChart extends Component<Props> {
       start,
       end,
       period: statsPeriod,
-    };
-
-    const chartOptions = {
-      grid: {
-        left: '10px',
-        right: '10px',
-        top: '40px',
-        bottom: '0px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis' as const,
-        valueFormatter: value => tooltipFormatter(value, 'p50()'),
-      },
-      yAxis: {
-        min: 0,
-        axisLabel: {
-          color: theme.chartLabel,
-          // p50() coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-        },
-      },
     };
 
     return (
@@ -154,8 +132,9 @@ class TrendChart extends Component<Props> {
               yAxis={trendDisplay}
               currentSeriesName={trendDisplay}
               partial
+              withoutZerofill={withoutZerofill}
             >
-              {({errored, loading, reloading, timeseriesData}) => {
+              {({errored, loading, reloading, timeseriesData, timeframe}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -163,6 +142,36 @@ class TrendChart extends Component<Props> {
                     </ErrorPanel>
                   );
                 }
+
+                const chartOptions = {
+                  grid: {
+                    left: '10px',
+                    right: '10px',
+                    top: '40px',
+                    bottom: '0px',
+                  },
+                  seriesOptions: {
+                    showSymbol: false,
+                  },
+                  tooltip: {
+                    trigger: 'axis' as const,
+                    valueFormatter: value => tooltipFormatter(value, 'p50()'),
+                  },
+                  xAxis: timeframe
+                    ? {
+                        min: timeframe.start,
+                        max: timeframe.end,
+                      }
+                    : undefined,
+                  yAxis: {
+                    min: 0,
+                    axisLabel: {
+                      color: theme.chartLabel,
+                      // p50() coerces the axis to be time based
+                      formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+                    },
+                  },
+                };
 
                 const series = timeseriesData
                   ? timeseriesData

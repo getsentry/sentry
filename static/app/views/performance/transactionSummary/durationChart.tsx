@@ -48,6 +48,7 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
     queryExtra: Query;
     currentFilter: SpanOperationBreakdownFilter;
+    withoutZerofill: boolean;
   };
 
 function generateYAxisValues() {
@@ -87,6 +88,7 @@ class DurationChart extends Component<Props> {
       router,
       queryExtra,
       currentFilter,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -103,29 +105,6 @@ class DurationChart extends Component<Props> {
       start,
       end,
       period: statsPeriod,
-    };
-
-    const chartOptions = {
-      grid: {
-        left: '10px',
-        right: '10px',
-        top: '40px',
-        bottom: '0px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis' as const,
-        valueFormatter: tooltipFormatter,
-      },
-      yAxis: {
-        axisLabel: {
-          color: theme.chartLabel,
-          // p50() coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-        },
-      },
     };
 
     const headerTitle =
@@ -169,8 +148,9 @@ class DurationChart extends Component<Props> {
               includePrevious={false}
               yAxis={generateYAxisValues()}
               partial
+              withoutZerofill={withoutZerofill}
             >
-              {({results, errored, loading, reloading}) => {
+              {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -178,6 +158,36 @@ class DurationChart extends Component<Props> {
                     </ErrorPanel>
                   );
                 }
+
+                const chartOptions = {
+                  grid: {
+                    left: '10px',
+                    right: '10px',
+                    top: '40px',
+                    bottom: '0px',
+                  },
+                  seriesOptions: {
+                    showSymbol: false,
+                  },
+                  tooltip: {
+                    trigger: 'axis' as const,
+                    valueFormatter: tooltipFormatter,
+                  },
+                  xAxis: timeframe
+                    ? {
+                        min: timeframe.start,
+                        max: timeframe.end,
+                      }
+                    : undefined,
+                  yAxis: {
+                    axisLabel: {
+                      color: theme.chartLabel,
+                      // p50() coerces the axis to be time based
+                      formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+                    },
+                  },
+                };
+
                 const colors =
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
 
