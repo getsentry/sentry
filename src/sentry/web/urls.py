@@ -84,36 +84,6 @@ if settings.DEBUG:
         ),
     ]
 
-
-def _get_org_level_pages():
-    r"""Pattern for org-level pages to go to react_page_view.
-
-    The URL pattern that uses this list is not necessary to direct
-    users to the correct view. However, it *is* necessary to ensure
-    that a user who is not logged in, and lands directly on one of
-    these addresses, is correctly redirected to their org's branded
-    login if that org requires SSO.
-
-    A general fix (i.e., replacing the whole thing with `[\w-]+`)
-    would be preferable, but runs into a bug where a query string is
-    stripped from the URL. This can be removed if the bug is fixed.
-    """
-    # TODO(RyanSkonnord): Fix bug mentioned above; simplify this
-
-    tokens = [
-        "settings",
-        "discover",
-        "projects",
-        "performance",
-        "alerts",
-        "dashboards",
-        "stats",
-        "user-feedback",
-        "activity",
-    ]
-    return "|".join(re.escape(token) for token in tokens)
-
-
 urlpatterns += [
     url(
         r"^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$",
@@ -573,10 +543,7 @@ urlpatterns += [
                     name="sentry-organization-disabled-member",
                 ),
                 # need to force these to React and ensure organization_slug is captured
-                # TODO(RyanSkonnord): Generalize to all pages without regressing
-                url(
-                    rf"^(?P<organization_slug>[\w_-]+)/({_get_org_level_pages()})/", react_page_view
-                ),
+                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/", react_page_view),
             ]
         ),
     ),
