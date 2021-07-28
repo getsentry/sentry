@@ -2570,7 +2570,7 @@ class QueryFields(QueryBase):
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
         for arg in snql_function.args:
             if type(arg) in [SnQLNumericColumnNoLookup, SnQLColumn]:
-                arguments[arg.name] = self.resolve_field(arguments[arg.name])
+                arguments[arg.name] = self.resolve_column(arguments[arg.name])
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
