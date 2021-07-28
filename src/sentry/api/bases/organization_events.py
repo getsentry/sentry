@@ -359,16 +359,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
                 )
-            if hasattr(result, "start") and hasattr(result, "end"):
-                if is_multiple_axis:
-                    for value in serialized_result.values():
-                        value["start"] = result.start
-                        value["end"] = result.end
-                else:
-                    serialized_result["start"] = result.start
-                    serialized_result["end"] = result.end
-
-            return serialized_result
 
             return serialized_result
 
