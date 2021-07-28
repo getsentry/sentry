@@ -4,8 +4,8 @@ from sentry.features.helpers import any_organization_has_feature
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.models import Integration
-from sentry.utils import metrics
 
+from ..utils import logger
 from .help import UNKNOWN_COMMAND_MESSAGE
 
 EVENT_MESSAGE = (
@@ -22,11 +22,7 @@ class SlackEventMessageBuilder(SlackHelpMessageBuilder):
     def get_header_block(self) -> Iterable[SlackBlock]:
         blocks: List[SlackBlock] = []
         if self.command != "help":
-            metrics.incr(
-                "slack.unknown_command",
-                sample_rate=1.0,
-                tags={"command": self.command},
-            )
+            logger.info("slack.event.unknown-command", extra={"command": self.command})
             blocks.append(
                 self.get_markdown_block(UNKNOWN_COMMAND_MESSAGE.format(command=self.command))
             )
