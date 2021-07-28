@@ -553,6 +553,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": True if obj.flags.has_transactions else False,
+            "hasSessions": True if obj.flags.has_sessions else False,
             "platform": obj.platform,
             "platforms": attrs["platforms"],
             "latestRelease": attrs["latest_release"],
