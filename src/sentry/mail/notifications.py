@@ -21,12 +21,13 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
         "X-SMTPAPI": json.dumps({"category": notification.get_category()}),
     }
 
-    if notification.group:
+    group = getattr(notification, "group", None)
+    if group:
         headers.update(
             {
-                "X-Sentry-Logger": notification.group.logger,
-                "X-Sentry-Logger-Level": notification.group.get_level_display(),
-                "X-Sentry-Reply-To": group_id_to_email(notification.group.id),
+                "X-Sentry-Logger": group.logger,
+                "X-Sentry-Logger-Level": group.get_level_display(),
+                "X-Sentry-Reply-To": group_id_to_email(group.id),
             }
         )
 
@@ -59,8 +60,9 @@ def log_message(notification: BaseNotification, user: User) -> None:
         "project_id": notification.project.id,
         "user_id": user.id,
     }
-    if notification.group:
-        extra.update({"group": notification.group.id})
+    group = getattr(notification, "group", None)
+    if group:
+        extra.update({"group": group.id})
 
     if isinstance(notification, AlertRuleNotification):
         extra.update(

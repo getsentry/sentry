@@ -1,5 +1,4 @@
 from typing import Any, Dict, List, Mapping, Union
-from urllib.parse import urljoin
 
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -14,11 +13,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_release
 from sentry.utils.http import absolute_uri
 
-from ..utils import build_notification_footer, get_referrer_qstring
-
-
-def get_group_url(notification: BaseNotification) -> str:
-    return str(urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification)))
+from ..utils import build_notification_footer
 
 
 def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, str]]:
@@ -54,9 +49,10 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.recipient = recipient
 
     def build(self) -> SlackBody:
+        group = getattr(self.notification, "group", None)
         if self.notification.is_message_issue_unfurl:
             return SlackIssuesMessageBuilder(
-                group=self.notification.group,
+                group=group,
                 event=getattr(self.notification, "event", None),
                 tags=self.context.get("tags", None),
                 rules=getattr(self.notification, "rules", None),
@@ -73,10 +69,8 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
             )
 
         return self._build(
-            title=build_attachment_title(self.notification.group),
-            title_link=get_title_link(
-                self.notification.group, None, False, False, self.notification
-            ),
+            title=build_attachment_title(group),
+            title_link=get_title_link(group, None, False, False, self.notification),
             text=self.notification.get_message_description(),
             footer=build_notification_footer(self.notification, self.recipient),
             color="info",

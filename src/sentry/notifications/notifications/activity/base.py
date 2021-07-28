@@ -47,6 +47,14 @@ class ActivityNotification(BaseNotification, ABC):
     def get_type(self) -> str:
         return f"notify.activity.{self.activity.get_type_display()}"
 
+    def get_context(self) -> MutableMapping[str, Any]:
+        raise NotImplementedError
+
+    def get_participants_with_group_subscription_reason(
+        self,
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+        raise NotImplementedError
+
     def send(self) -> None:
         return send_activity_notification(self)
 
