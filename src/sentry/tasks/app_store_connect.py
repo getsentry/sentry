@@ -12,9 +12,15 @@ from typing import List, Mapping
 import sentry_sdk
 from django.utils import timezone
 
+from sentry import projectoptions
 from sentry.lang.native import appconnect
-from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
-from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.models import (
+    AppConnectBuild,
+    LatestAppConnectBuildsCheck,
+    Project,
+    ProjectOption,
+    debugfile,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, sdk
 from sentry.utils.appleconnect import itunes_connect
@@ -51,6 +57,12 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             build_state = get_or_create_persisted_build(project, config, build)
             if not build_state.fetched:
                 builds.append((build, build_state))
+
+    # All existing usages of this option are internal, so it's fine if we don't carry these over
+    # to the table
+    # TODO: Clean this up by App Store Connect GA
+    if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
+        project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
 
     LatestAppConnectBuildsCheck.objects.create_or_update(
         project=project, source_id=config_id, values={"last_checked": timezone.now()}

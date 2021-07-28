@@ -31,6 +31,11 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
 
+# The key in the project options under which all of the dates corresponding to the last time sentry
+# checked for new builds in App Store Connect are stored.
+# TODO: Remove this before App Store Connect GA
+APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
+
 
 class InvalidCredentialsError(Exception):
     """Invalid credentials for the App Store Connect API."""

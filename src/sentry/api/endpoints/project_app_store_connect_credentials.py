@@ -58,7 +58,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, projectoptions
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
@@ -66,8 +66,7 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
-from sentry.models import AppConnectBuild, AuditLogEntryEvent, Project
-from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
@@ -436,15 +435,22 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
 
+        # All existing usages of this option are internal, so it's fine if we don't carry these over
+        # to the table
+        # TODO: Clean this up by App Store Connect GA
+        if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
+            project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
+
         try:
             check_entry = LatestAppConnectBuildsCheck.objects.get(
                 project=project, source_id=symbol_source_cfg.id
             )
-            last_checked_builds = check_entry.last_checked
         # If the source was only just created then it's possible that sentry hasn't checked for any
         # new builds for it yet.
         except LatestAppConnectBuildsCheck.DoesNotExist:
             last_checked_builds = None
+        else:
+            last_checked_builds = check_entry.last_checked
 
         return Response(
             {
