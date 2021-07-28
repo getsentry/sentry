@@ -466,7 +466,6 @@ const ControlsWrapper = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
     ${ButtonGrid} {
@@ -476,9 +475,7 @@ const ControlsWrapper = styled('div')`
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin-top: ${space(1)};
-  }
+  margin: ${space(1)} 0;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
