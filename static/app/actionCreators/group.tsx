@@ -8,6 +8,7 @@ import {Actor, Group, Member, Note, User} from 'app/types';
 import {buildTeamId, buildUserId} from 'app/utils';
 import {uniqueId} from 'app/utils/guid';
 
+type AssignedBy = {assignedBy: 'suggested_assignee' | 'assignee_selector'};
 type AssignToUserParams = {
   /**
    * Issue id
@@ -15,7 +16,7 @@ type AssignToUserParams = {
   id: string;
   user: User | Actor;
   member?: Member;
-};
+} & AssignedBy;
 
 export function assignToUser(params: AssignToUserParams) {
   const api = new Client();
@@ -35,6 +36,7 @@ export function assignToUser(params: AssignToUserParams) {
     // current assignee.
     data: {
       assignedTo: params.user ? buildUserId(params.user.id) : '',
+      assignedBy: params.assignedBy,
     },
   });
 
@@ -85,9 +87,9 @@ type AssignToActorParams = {
    */
   id: string;
   actor: Pick<Actor, 'id' | 'type'>;
-};
+} & AssignedBy;
 
-export function assignToActor({id, actor}: AssignToActorParams) {
+export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
   const api = new Client();
 
   const endpoint = `/issues/${id}/`;
@@ -116,7 +118,7 @@ export function assignToActor({id, actor}: AssignToActorParams) {
   return api
     .requestPromise(endpoint, {
       method: 'PUT',
-      data: {assignedTo: actorId},
+      data: {assignedTo: actorId, assignedBy},
     })
     .then(data => {
       GroupActions.assignToSuccess(guid, id, data);

@@ -179,6 +179,8 @@ class GroupAssigneeManager(BaseManager):
             ):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
+        return created
+
     def deassign(self, group, acting_user=None):
         from sentry import features
 
