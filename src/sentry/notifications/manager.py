@@ -29,6 +29,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
@@ -73,17 +74,22 @@ class NotificationsManager(BaseManager):  # type: ignore
         target_id: int,
     ) -> None:
         """Save a NotificationSettings row."""
-        with transaction.atomic():
-            setting, created = self.get_or_create(
-                provider=provider.value,
-                type=type.value,
-                scope_type=scope_type.value,
-                scope_identifier=scope_identifier,
-                target_id=target_id,
-                defaults={"value": value.value},
-            )
-            if not created and setting.value != value.value:
-                setting.update(value=value.value)
+        with configure_scope() as scope:
+            with transaction.atomic():
+                setting, created = self.get_or_create(
+                    provider=provider.value,
+                    type=type.value,
+                    scope_type=scope_type.value,
+                    scope_identifier=scope_identifier,
+                    target_id=target_id,
+                    defaults={"value": value.value},
+                )
+                if not created and setting.value != value.value:
+                    scope.set_tag("notif_setting_type", setting.type_str)
+                    scope.set_tag("notif_setting_value", setting.value_str)
+                    scope.set_tag("notif_setting_provider", setting.provider_str)
+                    scope.set_tag("notif_setting_scope", setting.scope_str)
+                    setting.update(value=value.value)
 
     def update_settings(
         self,
@@ -329,7 +335,6 @@ class NotificationsManager(BaseManager):  # type: ignore
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
         """
-
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:

@@ -42,6 +42,9 @@ SAMPLED_URL_NAMES = {
     "sentry-extensions-vercel-configure": settings.SAMPLED_DEFAULT_RATE,
     "sentry-extensions-vercel-ui-hook": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-group-integration-details": settings.SAMPLED_DEFAULT_RATE,
+    # notification platform
+    "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
