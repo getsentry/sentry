@@ -2340,7 +2340,7 @@ class QueryFields(QueryBase):
             return self.resolve_field(field)
 
     def resolve_field(self, field: str) -> Column:
-        """Given a public discover field, resolve the alias based on the Query's
+        """Given a public field, resolve the alias based on the Query's
         dataset and return the Snql Column
         """
         tag_match = TAG_KEY_RE.search(field)
@@ -2355,7 +2355,7 @@ class QueryFields(QueryBase):
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
-        """Given a list of public discover aliases, optionally prefixed by a `-` to
+        """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
         """
         validated: List[OrderBy] = []
@@ -2402,7 +2402,7 @@ class QueryFields(QueryBase):
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
-        """Given a public discover field, check if it's a field alias"""
+        """Given a public field, check if it's a field alias"""
         return field in self.field_alias_converter
 
     def resolve_field_alias(self, alias: str) -> SelectType:
@@ -2413,11 +2413,11 @@ class QueryFields(QueryBase):
         return converter(alias)
 
     def is_function(self, function: str) -> bool:
-        """ "Given a public discover field, check if it's a supported function"""
+        """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
 
     def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
-        """Given a public discover function, resolve to the corresponding Snql
+        """Given a public function, resolve to the corresponding Snql
         function
         """
         if match is None:
