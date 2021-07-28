@@ -1321,24 +1321,14 @@ class SnQLNumericColumnNoLookup(NumericColumn):
         MEASUREMENTS_STALL_PERCENTAGE,
     }
 
-    def __init__(self, name, allow_array_value=False):
+    def __init__(self, name):
         super().__init__(name)
-        self.allow_array_value = allow_array_value
 
     def normalize(self, value, params):
         super().normalize(value, params)
         return value
 
     def get_type(self, value):
-        # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
-        # to a percentage value, since they are expressions rather than columns, we special
-        # case them here
-        if isinstance(value, list):
-            for name in self.measurement_aliases:
-                field = FIELD_ALIASES[name]
-                expression = field.get_expression(None)
-                if expression == value:
-                    return field.result_type
         return super().get_type(value)
 
 
@@ -2928,7 +2918,10 @@ class QueryFields(QueryBase):
         )
 
     def _resolve_percentile(
-        self, args: Mapping[str, str], alias: str, fixed_percentile: float = None
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+        fixed_percentile: float = None,
     ) -> SelectType:
         return Function(
             f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
