@@ -29,7 +29,6 @@ OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 Digest = Mapping[str, Mapping[str, Any]]
 
 
-
 def get_option_key(plugin: str, option: str) -> str:
     assert option in OPTIONS
     return f"digests:{plugin}:{option}"
