@@ -575,6 +575,7 @@ CELERY_QUEUES = [
     Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("cleanup", routing_key="cleanup"),
+    Queue("code_owners", routing_key="code_owners"),
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
@@ -964,6 +965,8 @@ SENTRY_FEATURES = {
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
     "organizations:performance-events-page": False,
+    # Enable interpolation of null data points in charts instead of zerofilling in performance
+    "organizations:performance-chart-interpolation": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1111,6 +1114,9 @@ SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
+# sample rate for Apple App Store Connect tasks transactions
+SENTRY_APPCONNECT_APM_SAMPLING = 1
+
 # ----
 # end APM config
 # ----
@@ -1191,9 +1197,6 @@ SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
-
-# Enable scraping of javascript context for source code
-SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"

@@ -4,8 +4,8 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import FeatureBadge from 'app/components/featureBadge';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Tag from 'app/components/tag';
 import {IconGithub, IconGitlab, IconSentry} from 'app/icons';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
@@ -15,10 +15,9 @@ type Props = {
   dateUpdated: string | null;
   provider?: string;
   repoName?: string;
-  readOnly?: boolean;
+  beta?: boolean;
   type: 'codeowners' | 'issueowners';
   placeholder?: string;
-  detail?: React.ReactNode;
   controls?: React.ReactNode[];
   'data-test-id': string;
 };
@@ -53,26 +52,22 @@ class RulesPanel extends React.Component<Props, State> {
       dateUpdated,
       provider,
       repoName,
-      readOnly,
       placeholder,
-      detail,
       controls,
+      beta,
       ['data-test-id']: dataTestId,
     } = this.props;
     return (
-      <Container data-test-id={dataTestId}>
-        <RulesHeader>
-          <TitleContainer>
-            {this.renderIcon(provider ?? '')}
-            <Title>{this.renderTitle()}</Title>
-          </TitleContainer>
-          {readOnly && <ReadOnlyTag type="default">{'Read Only'}</ReadOnlyTag>}
-          {repoName && <Repository>{repoName}</Repository>}
-          {detail && <Detail>{detail}</Detail>}
-        </RulesHeader>
-        <RulesView>
-          <InnerPanel>
-            <InnerPanelHeader>
+      <Panel data-test-id={dataTestId}>
+        <PanelHeader>
+          {[
+            <Container key="title">
+              {this.renderIcon(provider ?? '')}
+              <Title>{this.renderTitle()}</Title>
+              {repoName && <Repository>{`- ${repoName}`}</Repository>}
+              {beta && <FeatureBadge type="beta" />}
+            </Container>,
+            <Container key="control">
               <SyncDate>
                 {dateUpdated && `Last synced ${moment(dateUpdated).fromNow()}`}
               </SyncDate>
@@ -81,20 +76,23 @@ class RulesPanel extends React.Component<Props, State> {
                   <span key={n}> {c}</span>
                 ))}
               </Controls>
-            </InnerPanelHeader>
-            <InnerPanelBody>
-              <StyledTextArea
-                value={raw}
-                spellCheck="false"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                placeholder={placeholder}
-              />
-            </InnerPanelBody>
-          </InnerPanel>
-        </RulesView>
-      </Container>
+            </Container>,
+          ]}
+        </PanelHeader>
+
+        <PanelBody>
+          <InnerPanelBody>
+            <StyledTextArea
+              value={raw}
+              spellCheck="false"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              placeholder={placeholder}
+            />
+          </InnerPanelBody>
+        </PanelBody>
+      </Panel>
     );
   }
 }
@@ -102,76 +100,17 @@ class RulesPanel extends React.Component<Props, State> {
 export default withTheme(RulesPanel);
 
 const Container = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  grid-template-areas: 'rules-header rules-view';
-  margin-bottom: ${space(3)};
-`;
-
-const RulesHeader = styled('div')`
-  grid-area: rules-header;
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: 45px 1fr 1fr 1fr 1fr;
-  grid-template-areas: 'title tag' 'repository repository' '. .' '. .' 'detail detail';
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 4px 0 0 4px;
-  border-right: none;
-  box-shadow: 0 2px 0 rgb(37 11 54 / 4%);
-  background-color: ${p => p.theme.background};
-`;
-const TitleContainer = styled('div')`
-  grid-area: title;
-  align-self: center;
-  padding-left: ${space(2)};
   display: flex;
-  * {
-    padding-right: ${space(0.5)};
-  }
-`;
-const Title = styled('div')`
-  align-self: center;
-`;
-const ReadOnlyTag = styled(Tag)`
-  grid-area: tag;
-  align-self: center;
-  justify-self: end;
-  padding-right: ${space(1)};
-`;
-const Repository = styled('div')`
-  grid-area: repository;
-  padding-left: calc(${space(2)} + ${space(3)});
-  color: ${p => p.theme.textColor};
-  font-size: 14px;
-`;
-const Detail = styled('div')`
-  grid-area: detail;
-  align-self: end;
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
-  color: ${p => p.theme.textColor};
-  font-size: 14px;
-  line-height: 1.4;
-`;
-
-const RulesView = styled('div')`
-  grid-area: rules-view;
-`;
-
-const InnerPanel = styled(Panel)`
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0px;
-  margin: 0px;
-  height: 100%;
-`;
-
-const InnerPanelHeader = styled(PanelHeader)`
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-areas: 'sync-date controis';
+  align-items: center;
   text-transform: none;
-  font-size: 16px;
-  font-weight: 400;
 `;
+
+const Title = styled('div')`
+  padding: 0 ${space(0.5)} 0 ${space(1)};
+  font-size: initial;
+`;
+
+const Repository = styled('div')``;
 
 const InnerPanelBody = styled(PanelBody)`
   height: auto;
@@ -204,7 +143,8 @@ const StyledTextArea = styled(TextareaAutosize)`
 `;
 
 const SyncDate = styled('div')`
-  grid-area: sync-date;
+  padding: 0 ${space(1)};
+  font-weight: normal;
 `;
 const Controls = styled('div')`
   display: grid;

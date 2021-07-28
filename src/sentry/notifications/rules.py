@@ -65,18 +65,21 @@ class AlertRuleNotification(BaseNotification):
     def get_user_context(
         self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
+        user_context = {"timezone": pytz.timezone("UTC")}
         try:
             # AlertRuleNotification is shared among both email and slack notifications, and in slack
             # notifications, the `user` arg could be of type `Team` which is why we need this check
             if isinstance(user, User):
-                return {
-                    "timezone": pytz.timezone(
-                        UserOption.objects.get_value(user=user, key="timezone", default="UTC")
-                    )
-                }
+                user_context.update(
+                    {
+                        "timezone": pytz.timezone(
+                            UserOption.objects.get_value(user=user, key="timezone", default="UTC")
+                        )
+                    }
+                )
         except pytz.UnknownTimeZoneError:
             ...
-        return super().get_user_context(user, extra_context)
+        return user_context
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
@@ -115,6 +118,9 @@ class AlertRuleNotification(BaseNotification):
                 title_str += f" (+{len(self.rules) - 1} other)"
 
         return title_str
+
+    def get_type(self) -> str:
+        return "notify.error"
 
     def send(self) -> None:
         from sentry.notifications.notify import notify
