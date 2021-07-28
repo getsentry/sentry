@@ -5,7 +5,8 @@ import pytest
 
 from sentry.lang.native import appconnect
 from sentry.models.appconnectbuilds import AppConnectBuild
-from sentry.tasks.app_store_connect import get_or_create_persisted_build
+from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.tasks.app_store_connect import get_or_create_persisted_build, process_builds
 
 
 class TestUpdateDsyms:
@@ -37,6 +38,108 @@ class TestUpdateDsyms:
             version="3.1.5",
             build_number="20200220",
             uploaded_date=datetime.utcnow(),
+        )
+
+    @pytest.mark.django_db
+    def process_no_builds(self, default_project, config):
+        pending = process_builds(project=default_project, config=config, to_process=[])
+
+        assert pending == []
+
+        try:
+            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
+        except LatestAppConnectBuildsCheck.DoesNotExist:
+            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
+
+    @pytest.mark.django_db
+    def process_new_build(self, default_project, config, build):
+        pending = process_builds(project=default_project, config=config, to_process=[build])
+
+        assert len(pending) == 1
+
+        (build, state) = pending[0]
+        assert not state.fetched
+
+        try:
+            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
+        except LatestAppConnectBuildsCheck.DoesNotExist:
+            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
+
+    @pytest.mark.django_db
+    def process_existing_fetched_build(self, default_project, config, build):
+        AppConnectBuild.objects.create(
+            project=default_project,
+            app_id=build.app_id,
+            bundle_id=config.bundleId,
+            platform=build.platform,
+            bundle_short_version=build.version,
+            bundle_version=build.build_number,
+            uploaded_to_appstore=build.uploaded_date,
+            first_seen=datetime.now(),
+            fetched=True,
+        )
+
+        newer_build = appconnect.BuildInfo(
+            app_id="123",
+            platform="iOS",
+            version="3.1.9",
+            build_number="20200224",
+            uploaded_date=datetime.utcnow(),
+        )
+
+        pending = process_builds(
+            project=default_project, config=config, to_process=[build, newer_build]
+        )
+
+        assert len(pending) == 1
+
+        (build, state) = pending[0]
+        assert not state.fetched
+        assert state.bundle_version == "20200224"
+
+        try:
+            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
+        except LatestAppConnectBuildsCheck.DoesNotExist:
+            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
+
+    @pytest.mark.django_db
+    def process_existing_unfetched_build(self, default_project, config, build):
+        AppConnectBuild.objects.create(
+            project=default_project,
+            app_id=build.app_id,
+            bundle_id=config.bundleId,
+            platform=build.platform,
+            bundle_short_version=build.version,
+            bundle_version=build.build_number,
+            uploaded_to_appstore=build.uploaded_date,
+            first_seen=datetime.now(),
+            fetched=False,
+        )
+
+        pending = process_builds(project=default_project, config=config, to_process=[build])
+
+        assert len(pending) == 1
+
+        (build, state) = pending[0]
+        assert not state.fetched
+
+        try:
+            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
+        except LatestAppConnectBuildsCheck.DoesNotExist:
+            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
+
+    @pytest.mark.django_db
+    def process_multiple_builds(self, default_project, config, build):
+        AppConnectBuild.objects.create(
+            project=default_project,
+            app_id=build.app_id,
+            bundle_id=config.bundleId,
+            platform=build.platform,
+            bundle_short_version=build.version,
+            bundle_version=build.build_number,
+            uploaded_to_appstore=build.uploaded_date,
+            first_seen=datetime.now(),
+            fetched=True,
         )
 
     @pytest.mark.django_db

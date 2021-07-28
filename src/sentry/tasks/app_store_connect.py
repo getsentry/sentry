@@ -7,7 +7,7 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
-from typing import List, Mapping
+from typing import List, Mapping, Tuple
 
 import sentry_sdk
 from django.utils import timezone
@@ -47,26 +47,8 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
     client = appconnect.AppConnectClient.from_config(config)
 
-    # persist all fetched builds into the database as "pending"
-    builds = []
     listed_builds = client.list_builds()
-    with sentry_sdk.start_span(
-        op="appconnect-update-builds", description="Update AppStoreConnect builds in database"
-    ):
-        for build in listed_builds:
-            build_state = get_or_create_persisted_build(project, config, build)
-            if not build_state.fetched:
-                builds.append((build, build_state))
-
-    # All existing usages of this option are internal, so it's fine if we don't carry these over
-    # to the table
-    # TODO: Clean this up by App Store Connect GA
-    if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
-        project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
-
-    LatestAppConnectBuildsCheck.objects.create_or_update(
-        project=project, source_id=config_id, values={"last_checked": timezone.now()}
-    )
+    builds = process_builds(project=project, config=config, to_process=listed_builds)
 
     try:
         itunes_client = client.itunes_client()
@@ -142,6 +124,41 @@ def get_or_create_persisted_build(
         )
         build_state.save()
     return build_state
+
+
+def process_builds(
+    project: Project,
+    config: appconnect.AppStoreConnectConfig,
+    to_process: List[appconnect.BuildInfo],
+) -> List[Tuple[appconnect.BuildInfo, AppConnectBuild]]:
+    """Returns a list of builds whose dSYMs need to be updated or fetched.
+
+    This will create a new "pending" :class:`AppConnectBuild` for any :class:`appconnect.BuildInfo`
+    that cannot be found in the DB. These pending :class:`AppConnectBuild`s are immediately saved
+    upon creation.
+    """
+
+    pending_builds = []
+
+    with sentry_sdk.start_span(
+        op="appconnect-update-builds", description="Update AppStoreConnect builds in database"
+    ):
+        for build in to_process:
+            build_state = get_or_create_persisted_build(project, config, build)
+            if not build_state.fetched:
+                pending_builds.append((build, build_state))
+
+    # All existing usages of this option are internal, so it's fine if we don't carry these over
+    # to the table
+    # TODO: Clean this up by App Store Connect GA
+    if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
+        project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
+
+    LatestAppConnectBuildsCheck.objects.create_or_update(
+        project=project, source_id=config.id, values={"last_checked": timezone.now()}
+    )
+
+    return pending_builds
 
 
 # Untyped decorator would stop type-checking of entire function, split into an inner
