@@ -1,20 +1,34 @@
 name: check migration
-on:
-  pull_request:
-    paths:
-      # Matches all python files regardless of directory depth.
-      - '**.py'
-      - requirements*.txt
-      - .github/workflows/check-if-migration-is-required.yml
-      - .github/workflows/scripts/migration-check.sh
+on: pull_request
 
 jobs:
+  should-check:
+    name: check if migration is needed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      changed: ${{ steps.changes.outputs.migration_lockfile }}
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: check if files have changed
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+
   main:
     name: check migration
+    if: needs.should-check.outputs.changed == 'true'
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout sentry
+        uses: actions/checkout@v2
 
       - name: Set python version output
         id: python-version
