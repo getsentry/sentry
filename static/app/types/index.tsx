@@ -453,6 +453,8 @@ export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
+  start?: number;
+  end?: number;
 };
 
 // API response format for multiple series
