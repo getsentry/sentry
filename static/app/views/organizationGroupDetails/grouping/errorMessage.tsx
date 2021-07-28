@@ -1,3 +1,5 @@
+import React from 'react';
+
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
@@ -71,10 +73,31 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
       case 'project_not_hierarchical':
         return {
           title: t('Update your grouping algorithm first'),
-          subTitle: t(
-            'Grouping breakdown is a feature to explore fragments of an issue. It can only be used together with the latest grouping algorithm.'
+          subTitle: (
+            <React.Fragment>
+              <p>
+                {t(
+                  'Advanced grouping features can only be used together with the latest grouping algorithm:'
+                )}
+              </p>
+
+              <ul>
+                <li>
+                  {t(
+                    'Grouping Breakdown: Explore fragments of an issue by additional frames.'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'Stacktrace annotations: Show directly on stacktrace which frames Sentry groups by, and why.'
+                  )}
+                </li>
+              </ul>
+            </React.Fragment>
           ),
+          leftAligned: true,
           action: (
+            /* TODO(markus): docs link */
             <Button
               priority="primary"
               to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
@@ -94,7 +117,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
 
   if (error.status === 403 && error.responseJSON?.detail) {
     const {code, message} = error.responseJSON.detail;
-    const {action, title, subTitle} = getErrorDetails(code);
+    const {action, title, subTitle, leftAligned} = getErrorDetails(code);
 
     return (
       <Panel>
@@ -103,6 +126,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
           title={title ?? message}
           description={subTitle}
           action={action}
+          leftAligned={leftAligned}
         />
       </Panel>
     );
