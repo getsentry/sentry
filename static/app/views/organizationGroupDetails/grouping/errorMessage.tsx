@@ -97,7 +97,6 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
           ),
           leftAligned: true,
           action: (
-            /* TODO(markus): docs link */
             <Button
               priority="primary"
               to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}

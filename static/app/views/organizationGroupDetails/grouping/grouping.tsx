@@ -47,6 +47,24 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
+function LinkFooter() {
+  return (
+    <Footer>
+      {/* TODO(markus): Add docs btn here */}
+      <Button
+        external
+        href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
+          'Grouping Feedback'
+        )}&body=${encodeURIComponent(
+          `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
+        )}`}
+      >
+        <StyledIconMegaphone /> {t('Give Feedback')}
+      </Button>
+    </Footer>
+  );
+}
+
 function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
@@ -171,13 +189,16 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   if (error) {
     return (
-      <ErrorMessage
-        onRetry={fetchGroupingLevels}
-        groupId={groupId}
-        error={error}
-        projSlug={projSlug}
-        orgSlug={organization.slug}
-      />
+      <React.Fragment>
+        <ErrorMessage
+          onRetry={fetchGroupingLevels}
+          groupId={groupId}
+          error={error}
+          projSlug={projSlug}
+          orgSlug={organization.slug}
+        />
+        <LinkFooter />
+      </React.Fragment>
     );
   }
 
@@ -247,19 +268,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           />
         </Content>
       </Body>
-      <Footer>
-        {/* TODO(markus): Add docs btn here */}
-        <Button
-          external
-          href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
-            'Grouping Feedback'
-          )}&body=${encodeURIComponent(
-            `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
-          )}`}
-        >
-          <StyledIconMegaphone /> {t('Give Feedback')}
-        </Button>
-      </Footer>
+      <LinkFooter />
     </Wrapper>
   );
 }
