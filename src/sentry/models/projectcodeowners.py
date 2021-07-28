@@ -49,10 +49,12 @@ class ProjectCodeOwners(DefaultFieldsModel):
         cache_key = self.get_cache_key(project_id)
         codeowners = cache.get(cache_key)
         if codeowners is None:
-            try:
-                codeowners = self.objects.get(project_id=project_id)
-            except self.DoesNotExist:
-                codeowners = False
+            # TODO(nisanthan): Revisit for supporting multiple CODEOWNERS.
+            # For now we support the first CODEOWNERS uploaded.
+            codeowners = (
+                self.objects.filter(project_id=project_id).order_by("-date_added").first() or False
+            )
+
             cache.set(cache_key, codeowners, READ_CACHE_DURATION)
         return codeowners or None
 
