@@ -47,10 +47,13 @@ def get_subject_with_prefix(
     return f"{prefix}{notification.get_subject(context)}".encode("utf-8")
 
 
-def get_unsubscribe_link(user_id: int, resource_id: int, key: str = "issue") -> str:
+def get_unsubscribe_link(
+    user_id: int, resource_id: int, key: str = "issue", referrer: Optional[str] = None
+) -> str:
     return generate_signed_link(
         user_id,
         f"sentry-account-email-unsubscribe-{key}",
+        referrer,
         kwargs={f"{key}_id": resource_id},
     )
 
@@ -93,8 +96,10 @@ def get_context(
         **notification.get_user_context(user, extra_context),
     }
     if notification.get_unsubscribe_key():
-        key, resource_id = notification.get_unsubscribe_key()
-        context.update({"unsubscribe_link": get_unsubscribe_link(user.id, resource_id, key)})
+        key, resource_id, referrer = notification.get_unsubscribe_key()
+        context.update(
+            {"unsubscribe_link": get_unsubscribe_link(user.id, resource_id, key, referrer)}
+        )
 
     return context
 

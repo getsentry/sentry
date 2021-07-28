@@ -55,5 +55,5 @@ class BaseNotification:
     def get_type(self) -> str:
         raise NotImplementedError
 
-    def get_unsubscribe_key(self) -> Optional[Tuple[str, int]]:
+    def get_unsubscribe_key(self) -> Optional[Tuple[str, int, Optional[str]]]:
         return None
