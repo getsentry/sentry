@@ -407,10 +407,13 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
 
-        itunes_client = itunes_connect.ITunesClient.from_session_cookie(
-            symbol_source_cfg.itunesSession
-        )
-        itunes_session_info = itunes_client.request_session_info()
+        try:
+            itunes_client = itunes_connect.ITunesClient.from_session_cookie(
+                symbol_source_cfg.itunesSession
+            )
+            itunes_session_info = itunes_client.request_session_info()
+        except itunes_connect.SessionExpiredError:
+            itunes_session_info = None
 
         pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
 
