@@ -22,13 +22,12 @@ class TestUpdateDsyms:
             appconnectPrivateKey="----BEGIN PRIVATE KEY---- blabla",
             itunesUser="me@example.com",
             itunesPassword="secret",
-            itunesPersonId="123",
             itunesSession="THE-COOKIE",
             itunesCreated=datetime.utcnow(),
             appName="My App",
             appId="123",
             bundleId="com.example.app",
-            orgId=123,
+            orgPublicId="71105f98-7743-4844-ab70-2c901e2ea13d",
             orgName="Example Com",
         )
 

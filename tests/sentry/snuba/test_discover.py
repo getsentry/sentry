@@ -590,6 +590,50 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 r[1] for r in expected_project_threshold_config
             ]
 
+    def test_to_other_function(self):
+        project = self.create_project()
+
+        for i in range(3):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["transaction"] = f"/to_other/{i}"
+            data["release"] = "aaaa"
+            self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/to_other/y"
+        data["release"] = "yyyy"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/to_other/z"
+        data["release"] = "zzzz"
+        self.store_event(data, project_id=project.id)
+
+        columns1 = ["transaction", 'to_other(release,"aaaa")']
+        columns2 = ["transaction", 'to_other(release,"aaaa",old,new)']
+
+        test_cases = [
+            (columns1, "", ["this", "this", "this", "that", "that"], "to_other_release__aaaa"),
+            (columns2, "", ["new", "new", "new", "old", "old"], "to_other_release__aaaa__old_new"),
+        ]
+
+        for cols, query, expected, alias in test_cases:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=cols,
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                )
+
+                data = result["data"]
+                assert len(data) == len(expected)
+                assert [x[alias] for x in data] == expected
+
     def test_failure_count_function(self):
         project = self.create_project()
 
@@ -1297,6 +1341,93 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert len(data[0]["exception_frames.filename"]) == len(expected_filenames)
         assert sorted(data[0]["exception_frames.filename"]) == expected_filenames
+
+    def test_orderby_field_alias(self):
+        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "is handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            data["event_id"] = event[0]
+            data["transaction"] = event[0]
+            data["message"] = event[1]
+            data["exception"]["values"][0]["value"] = event[1]
+            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            (["error.unhandled"], [0, 0, 1]),
+            ("error.unhandled", [0, 0, 1]),
+            (["-error.unhandled"], [1, 0, 0]),
+            ("-error.unhandled", [1, 0, 0]),
+        ]
+
+        for orderby, expected in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction", "error.unhandled"],
+                    query="",
+                    orderby=orderby,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                )
+
+                data = result["data"]
+                assert [x["error.unhandled"] for x in data] == expected
+
+    def test_orderby_aggregate_function(self):
+        project = self.create_project()
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/success"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/unknown"
+        data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(data, project_id=project.id)
+
+        for i in range(6):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["transaction"] = f"/failure_count/{i}"
+            data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["transaction"] = "/failure_count/0"
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data, project_id=project.id)
+
+        orderbys = [
+            (["failure_count()"], [0, 0, 1, 1, 1, 1, 1, 2]),
+            ("failure_count()", [0, 0, 1, 1, 1, 1, 1, 2]),
+            (["-failure_count()"], [2, 1, 1, 1, 1, 1, 0, 0]),
+            ("-failure_count()", [2, 1, 1, 1, 1, 1, 0, 0]),
+            ("failure_count", [0, 0, 1, 1, 1, 1, 1, 2]),
+            ("-failure_count", [2, 1, 1, 1, 1, 1, 0, 0]),
+        ]
+
+        for orderby, expected in orderbys:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=["transaction", "failure_count()"],
+                    query="",
+                    orderby=orderby,
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                )
+                data = result["data"]
+
+                assert [x["failure_count"] for x in data] == expected
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(

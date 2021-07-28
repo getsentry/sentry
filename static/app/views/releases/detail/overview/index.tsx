@@ -13,7 +13,7 @@ import TransactionsList, {DropdownOption} from 'app/components/discover/transact
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/organizations/timeRangeSelector/pageTimeRangeSelector';
+import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';

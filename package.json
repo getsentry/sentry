@@ -230,10 +230,22 @@
   },
   "browserslist": {
     "production": [
-      "defaults"
+      "last 10 Chrome versions",
+      "last 10 Firefox versions",
+      "last 2 Edge major versions",
+      "last 2 Safari major versions",
+      "last 3 iOS major versions",
+      "last 1 OperaMobile version",
+      "Firefox ESR"
     ],
     "development": [
-      "defaults"
+      "last 10 Chrome versions",
+      "last 10 Firefox versions",
+      "last 2 Edge major versions",
+      "last 2 Safari major versions",
+      "last 3 iOS major versions",
+      "last 1 OperaMobile version",
+      "Firefox ESR"
     ],
     "test": [
       "current node"
