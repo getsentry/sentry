@@ -1037,6 +1037,7 @@ class QueryFilter(QueryFields):
             str, Callable[[SearchFilter], Optional[WhereType]]
         ] = {
             "environment": self._environment_filter_converter,
+            "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
@@ -1260,6 +1261,44 @@ class QueryFilter(QueryFields):
             return Or(conditions=env_conditions)
         else:
             return env_conditions[0]
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        if search_filter.value.is_wildcard():
+            # XXX: We don't want the '^$' values at the beginning and end of
+            # the regex since we want to find the pattern anywhere in the
+            # message. Strip off here
+            value = search_filter.value.value[1:-1]
+            return Condition(
+                Function("match", [self.column("message"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
+        elif value == "":
+            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
+            return Condition(Function("equals", [self.column("message"), value]), operator, 1)
+        else:
+            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+            # so we should flip the operator here
+            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
+            if search_filter.is_in_filter:
+                return Condition(
+                    Function(
+                        "multiSearchFirstPositionCaseInsensitive",
+                        [self.column("message"), Function("array", value)],
+                    ),
+                    operator,
+                    0,
+                )
+
+            # make message search case insensitive
+            return Condition(
+                Function("positionCaseInsensitive", [self.column("message"), value]),
+                operator,
+                0,
+            )
+        return None
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Convert project slugs to ids and create a filter based on those.
