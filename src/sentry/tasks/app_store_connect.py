@@ -54,7 +54,14 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
 
     update_build_refresh_date(project, config_id)
 
-    itunes_client = client.itunes_client()
+    try:
+        itunes_client = client.itunes_client()
+    except itunes_connect.SessionExpiredError:
+        logger.debug("Error fetching dSYMs: expired iTunes session")
+        # Silently log, swallow the error and not report it because this is
+        # an expected error and not actionable.
+        return
+
     for (build, build_state) in builds:
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
