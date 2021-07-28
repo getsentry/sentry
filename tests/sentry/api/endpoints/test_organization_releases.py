@@ -417,11 +417,11 @@ class OrganizationReleaseListTest(APITestCase):
         response = self.get_valid_response(
             self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]"
         )
+
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
         response = self.get_valid_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.LOW_ADOPTION},{ReleaseStages.REPLACED}]",
             sort="adoption",
         )
         assert [r["version"] for r in response.data] == [
@@ -429,18 +429,74 @@ class OrganizationReleaseListTest(APITestCase):
             replaced_release.version,
             not_adopted_release.version,
         ]
-
         adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
 
         # Replaced should come first now.
         response = self.get_valid_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.LOW_ADOPTION},{ReleaseStages.REPLACED}]",
             sort="adoption",
         )
         assert [r["version"] for r in response.data] == [
             replaced_release.version,
             adopted_release.version,
+            not_adopted_release.version,
+        ]
+
+        response = self.get_valid_response(self.organization.slug, sort="adoption", per_page=1)
+        assert [r["version"] for r in response.data] == [
+            replaced_release.version,
+        ]
+        next_cursor = self.get_cursor_headers(response)[1]
+        response = self.get_valid_response(
+            self.organization.slug,
+            sort="adoption",
+            per_page=1,
+            cursor=next_cursor,
+        )
+        assert [r["version"] for r in response.data] == [
+            adopted_release.version,
+        ]
+        next_cursor = self.get_cursor_headers(response)[1]
+        response = self.get_valid_response(
+            self.organization.slug,
+            sort="adoption",
+            per_page=1,
+            cursor=next_cursor,
+        )
+        prev_cursor = self.get_cursor_headers(response)[0]
+        assert [r["version"] for r in response.data] == [
+            not_adopted_release.version,
+        ]
+        response = self.get_valid_response(
+            self.organization.slug,
+            sort="adoption",
+            per_page=1,
+            cursor=prev_cursor,
+        )
+        prev_cursor = self.get_cursor_headers(response)[0]
+        assert [r["version"] for r in response.data] == [
+            adopted_release.version,
+        ]
+        response = self.get_valid_response(
+            self.organization.slug,
+            sort="adoption",
+            per_page=1,
+            cursor=prev_cursor,
+        )
+        prev_cursor = self.get_cursor_headers(response)[0]
+        assert [r["version"] for r in response.data] == [
+            replaced_release.version,
+        ]
+
+        adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
+
+        response = self.get_valid_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION},{ReleaseStages.REPLACED}]",
+            sort="adoption",
+        )
+        assert [r["version"] for r in response.data] == [
+            replaced_release.version,
             not_adopted_release.version,
         ]
 

@@ -303,12 +303,9 @@ class OrganizationReleasesEndpoint(
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            project_ids = filter_params["project_id"]
-            environments = filter_params.get("environment")
-            queryset = queryset.annotate_adoption_date_column(project_ids, environments).order_by(
-                "-adopted"
-            )
-            paginator_kwargs["order_by"] = "-adopted"
+            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by)
+            paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
