@@ -125,7 +125,7 @@ class DemoStartTest(TestCase):
             ("oneIssue", base_issue_url),
             ("oneBreadcrumb", base_issue_url + "#breadcrumbs"),
             ("oneStackTrace", base_issue_url + "#exception"),
-            ("oneTransaction", f"/organizations/{org.slug}/discover/"),
+            ("oneTransaction", f"/organizations/{org.slug}/performance/"),
             (
                 "oneWebVitals",
                 f"/organizations/{org.slug}/performance/summary/vitals/?project={project.id}",
