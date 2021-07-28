@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import ReleaseTableData from 'app/components/discover/performanceCardTable';
 import {t} from 'app/locale';
 import EventView, {
   isAPIPayloadSimilar,
@@ -14,6 +15,7 @@ export type GenericChildrenProps<T> = {
   error: null | string;
   tableData: T | null;
   pageLinks: null | string;
+  releaseTableData?: T | ReleaseTableData | null;
 };
 
 export type DiscoverQueryProps = {
@@ -24,6 +26,7 @@ export type DiscoverQueryProps = {
   location: Location;
   eventView: EventView;
   orgSlug: string;
+  releaseEventView?: EventView;
   /**
    * Record limit to get.
    */
@@ -97,6 +100,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     error: null,
 
     tableData: null,
+    releaseTableData: null,
     pageLinks: null,
   };
 
@@ -112,11 +116,20 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     const eventViewValidation =
       prevProps.eventView.isValid() === false && this.props.eventView.isValid();
 
+    const releaseEventViewValidation =
+      prevProps.releaseEventView?.isValid() === false &&
+      this.props.releaseEventView?.isValid();
+
     const shouldRefetchExternal = this.props.shouldRefetchData
       ? this.props.shouldRefetchData(prevProps, this.props)
       : false;
 
-    if (refetchCondition || eventViewValidation || shouldRefetchExternal) {
+    if (
+      refetchCondition ||
+      eventViewValidation ||
+      releaseEventViewValidation ||
+      shouldRefetchExternal
+    ) {
       this.fetchData();
     }
   }
@@ -125,7 +138,12 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     if (this.props.getRequestPayload) {
       return this.props.getRequestPayload(props);
     }
-    return props.eventView.getEventsAPIPayload(props.location);
+    const eventViewPayload = props.eventView.getEventsAPIPayload(props.location);
+    const releaseEventViewPayload = props.releaseEventView?.getEventsAPIPayload(
+      props.location
+    );
+
+    return [eventViewPayload, releaseEventViewPayload];
   }
 
   _shouldRefetchData = (prevProps: Props<T, P>): boolean => {
@@ -168,30 +186,38 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     setError?.(undefined);
 
-    if (limit) {
-      apiPayload.per_page = limit;
-    }
-    if (noPagination) {
-      apiPayload.noPagination = noPagination;
-    }
-    if (cursor) {
-      apiPayload.cursor = cursor;
-    }
-    if (referrer) {
-      apiPayload.referrer = referrer;
+    if (apiPayload[1] !== undefined) {
+      if (limit) {
+        apiPayload[0].per_page = limit;
+      }
+      if (noPagination) {
+        apiPayload[0].noPagination = noPagination;
+      }
+      if (cursor) {
+        apiPayload[0].cursor = cursor;
+      }
+      if (referrer) {
+        apiPayload[0].referrer = referrer;
+      }
     }
 
     beforeFetch?.(api);
 
     try {
-      const [data, , jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload);
+      const [data, , jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload[0]);
+      const [releaseData] = apiPayload[1]
+        ? await doDiscoverQuery<T>(api, url, apiPayload[1])
+        : await doDiscoverQuery<T>(api, url, apiPayload[0]);
+      const tableData = afterFetch ? afterFetch(data, this.props) : data;
+      const releaseTableData = afterFetch
+        ? afterFetch(releaseData, this.props)
+        : releaseData;
+      didFetch?.(tableData);
+
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
         return;
       }
-
-      const tableData = afterFetch ? afterFetch(data, this.props) : data;
-      didFetch?.(tableData);
 
       this.setState(prevState => ({
         isLoading: false,
@@ -199,6 +225,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         error: null,
         pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
         tableData,
+        releaseTableData,
       }));
     } catch (err) {
       const error = err?.responseJSON?.detail || t('An unknown error occurred.');
@@ -207,6 +234,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         tableFetchID: undefined,
         error,
         tableData: null,
+        releaseTableData: null,
       });
       if (setError) {
         setError(error);
@@ -215,12 +243,13 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   };
 
   render() {
-    const {isLoading, error, tableData, pageLinks} = this.state;
+    const {isLoading, error, tableData, pageLinks, releaseTableData} = this.state;
 
     const childrenProps: GenericChildrenProps<T> = {
       isLoading,
       error,
       tableData,
+      releaseTableData,
       pageLinks,
     };
     const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children

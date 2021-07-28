@@ -2115,6 +2115,21 @@ export enum ReleaseComparisonChartType {
   USER_COUNT = 'userCount',
 }
 
+export enum PerformanceCardType {
+  USER_MISERY = 'userMisery',
+  APDEX = 'apdex',
+  WEB_VITALS = 'webVitals',
+  FIRST_CONTENTFUL_PAINT = 'firstContentfulPaint',
+  FIRST_INPUT_DELAY = 'firstInputDelay',
+  LARGEST_CONTENTFUL_PAINT = 'largestContentfulPaint',
+  CUMULATIVE_LAYOUT_SHIFT = 'cumulativeLayoutShift',
+  SPAN_OPERATIONS = 'spanOperations',
+  HTTP = 'http',
+  DB = 'db',
+  BROWSER = 'browser',
+  RESOURCE = 'resource',
+}
+
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',
   TWENTY_FOUR_HOURS = '24h',

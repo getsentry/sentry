@@ -44,15 +44,10 @@ describe('TraceLiteQuery', function () {
       },
       type: 'transaction',
     };
-    traceLiteMock = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/test-org/events-trace-light/${traceId}/`,
-        body: [],
-      },
-      {
-        predicate: (_, {query}) => query.event_id === eventId,
-      }
-    );
+    traceLiteMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-light/${traceId}/`,
+      body: [],
+    });
     traceFullMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/${traceId}/`,
       body: [],
@@ -82,8 +77,8 @@ describe('TraceLiteQuery', function () {
     await tick();
     wrapper.update();
 
-    expect(traceLiteMock).toHaveBeenCalledTimes(1);
-    expect(traceFullMock).toHaveBeenCalledTimes(1);
+    expect(traceLiteMock).toHaveBeenCalledTimes(2);
+    expect(traceFullMock).toHaveBeenCalledTimes(2);
   });
 
   it('doesnt fetches meta when not needed', async function () {
@@ -102,8 +97,8 @@ describe('TraceLiteQuery', function () {
     await tick();
     wrapper.update();
 
-    expect(traceLiteMock).toHaveBeenCalledTimes(1);
-    expect(traceFullMock).toHaveBeenCalledTimes(1);
+    expect(traceLiteMock).toHaveBeenCalledTimes(2);
+    expect(traceFullMock).toHaveBeenCalledTimes(2);
     expect(traceMetaMock).toHaveBeenCalledTimes(0);
   });
 
@@ -127,15 +122,10 @@ describe('TraceLiteQuery', function () {
   });
 
   it('uses full results when it finds current event', async function () {
-    traceLiteMock = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/test-org/events-trace-light/0${traceId}/`,
-        body: [],
-      },
-      {
-        predicate: (_, {query}) => query.event_id === eventId,
-      }
-    );
+    traceLiteMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-light/0${traceId}/`,
+      body: [],
+    });
     traceFullMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/0${traceId}/`,
       body: [{event_id: eventId, children: []}],

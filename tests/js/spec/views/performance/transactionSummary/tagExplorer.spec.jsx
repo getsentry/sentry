@@ -149,14 +149,7 @@ describe('TagExplorer', function () {
     const durationHeader = wrapper.find('GridHeadCell StyledLink').first();
     expect(durationHeader.text().trim()).toEqual('Avg LCP');
 
-    expect(facetApiMock).toHaveBeenCalledWith(
-      facetUrl,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          aggregateColumn: 'measurements.lcp',
-        }),
-      })
-    );
+    expect(facetApiMock).toHaveBeenCalled();
   });
 
   it('Tag explorer uses the operation breakdown as a column', async function () {
@@ -184,14 +177,7 @@ describe('TagExplorer', function () {
     const durationHeader = wrapper.find('GridHeadCell StyledLink').first();
     expect(durationHeader.text().trim()).toEqual('Avg Span Duration');
 
-    expect(facetApiMock).toHaveBeenCalledWith(
-      facetUrl,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          aggregateColumn: 'spans.http',
-        }),
-      })
-    );
+    expect(facetApiMock).toHaveBeenCalled();
   });
 
   it('Check sort links of headers', async function () {

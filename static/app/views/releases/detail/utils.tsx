@@ -11,6 +11,7 @@ import {
   FilesByRepository,
   GlobalSelection,
   LightWeightOrganization,
+  PerformanceCardType,
   ReleaseComparisonChartType,
   ReleaseWithHealth,
   Repository,
@@ -144,6 +145,21 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free Users'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
+};
+
+export const performanceCardLabels = {
+  [PerformanceCardType.USER_MISERY]: t('User Misery'),
+  [PerformanceCardType.APDEX]: t('Apdex'),
+  [PerformanceCardType.WEB_VITALS]: t('Web Vitals'),
+  [PerformanceCardType.FIRST_CONTENTFUL_PAINT]: t('First Contentful Paint (FCP)'),
+  [PerformanceCardType.FIRST_INPUT_DELAY]: t('First Input Delay (FID)'),
+  [PerformanceCardType.LARGEST_CONTENTFUL_PAINT]: t('Largest Contentful Paint (LCP)'),
+  [PerformanceCardType.CUMULATIVE_LAYOUT_SHIFT]: t('Cumulative Layout Shift (CLS)'),
+  [PerformanceCardType.SPAN_OPERATIONS]: t('Span Operations'),
+  [PerformanceCardType.HTTP]: t('HTTP'),
+  [PerformanceCardType.DB]: t('DB'),
+  [PerformanceCardType.BROWSER]: t('Browser'),
+  [PerformanceCardType.RESOURCE]: t('Resource'),
 };
 
 export const releaseComparisonChartHelp = {

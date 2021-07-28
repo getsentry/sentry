@@ -9,12 +9,14 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import {DateTimeObject} from 'app/components/charts/utils';
 import DateTime from 'app/components/dateTime';
+import PerformanceCardList from 'app/components/discover/performanceCardList';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/organizations/timeRangeSelector/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
+import {backend, frontend, mobile, serverless} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types';
@@ -52,6 +54,8 @@ import ReleaseStats from './releaseStats';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
 const RELEASE_PERIOD_KEY = 'release';
+const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
+const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
 export enum TransactionsListOption {
   FAILURE_COUNT = 'failure_count',
@@ -60,6 +64,19 @@ export enum TransactionsListOption {
   SLOW_LCP = 'slow_lcp',
   REGRESSION = 'regression',
   IMPROVEMENT = 'improved',
+}
+
+export enum DiscoverField {
+  USER_MISERY = 'user_misery(300)',
+  FIRST_CONTENTFUL_PAINT = 'p75(measurements.fcp)',
+  FIRST_INPUT_DELAY = 'p75(measurements.fid)',
+  LARGEST_CONTENTFUL_PAINT = 'p75(measurements.lcp)',
+  CUMULATIVE_LAYOUT_SHIFT = 'p75(measurements.cls)',
+  SPANS_HTTP = 'p75(spans.http)',
+  SPANS_DB = 'p75(spans.db)',
+  SPANS_BROWSER = 'p75(spans.browser)',
+  SPANS_RESOURCE = 'p75(spans.resource)',
+  APDEX = 'apdex(300)',
 }
 
 type RouteParams = {
@@ -200,6 +217,166 @@ class ReleaseOverview extends AsyncView<Props> {
     }
 
     return WebVital.LCP;
+  }
+
+  getPerformanceEventView(
+    version: string,
+    project: ReleaseProject,
+    projectId: number,
+    releaseBounds: ReleaseBounds,
+    defaultStatsPeriod: string
+  ): EventView {
+    const {selection, location, organization} = this.props;
+    const {environments} = selection;
+    let eventView;
+
+    const {start, end, statsPeriod} = getReleaseParams({
+      location,
+      releaseBounds,
+      defaultStatsPeriod,
+      allowEmptyPeriod: organization.features.includes('release-comparison'),
+    });
+
+    if (FRONTEND_PLATFORMS.includes(project.platform as string)) {
+      eventView = EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `Release ${formatVersion(version)}`,
+        fields: [
+          DiscoverField.USER_MISERY,
+          '',
+          DiscoverField.FIRST_CONTENTFUL_PAINT,
+          DiscoverField.FIRST_INPUT_DELAY,
+          DiscoverField.LARGEST_CONTENTFUL_PAINT,
+          DiscoverField.CUMULATIVE_LAYOUT_SHIFT,
+          '',
+          DiscoverField.SPANS_HTTP,
+          DiscoverField.SPANS_DB,
+          DiscoverField.SPANS_BROWSER,
+          DiscoverField.SPANS_RESOURCE,
+        ],
+        query: '',
+        range: statsPeriod || undefined,
+        environment: environments,
+        projects: [projectId],
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      }) as EventView;
+    } else if (BACKEND_PLATFORMS.includes(project.platform as string)) {
+      eventView = EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `Release ${formatVersion(version)}`,
+        fields: [
+          DiscoverField.USER_MISERY,
+          DiscoverField.APDEX,
+          '',
+          DiscoverField.SPANS_HTTP,
+          DiscoverField.SPANS_DB,
+        ],
+        query: '',
+        range: statsPeriod || undefined,
+        environment: environments,
+        projects: [projectId],
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      }) as EventView;
+    } else {
+      eventView = EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `Release ${formatVersion(version)}`,
+        fields: [DiscoverField.USER_MISERY],
+        query: '',
+        range: statsPeriod || undefined,
+        environment: environments,
+        projects: [projectId],
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      }) as EventView;
+    }
+
+    return eventView;
+  }
+
+  getPerformanceReleaseEventView(
+    version: string,
+    project: ReleaseProject,
+    projectId: number,
+    releaseBounds: ReleaseBounds,
+    defaultStatsPeriod: string
+  ): EventView {
+    const {selection, location, organization} = this.props;
+    const {environments} = selection;
+    let releaseEventView;
+
+    const {start, end, statsPeriod} = getReleaseParams({
+      location,
+      releaseBounds,
+      defaultStatsPeriod,
+      allowEmptyPeriod: organization.features.includes('release-comparison'),
+    });
+
+    if (FRONTEND_PLATFORMS.includes(project.platform as string)) {
+      releaseEventView = EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `Release ${formatVersion(version)}`,
+        fields: [
+          DiscoverField.USER_MISERY,
+          '',
+          DiscoverField.FIRST_CONTENTFUL_PAINT,
+          DiscoverField.FIRST_INPUT_DELAY,
+          DiscoverField.LARGEST_CONTENTFUL_PAINT,
+          DiscoverField.CUMULATIVE_LAYOUT_SHIFT,
+          '',
+          DiscoverField.SPANS_HTTP,
+          DiscoverField.SPANS_DB,
+          DiscoverField.SPANS_BROWSER,
+          DiscoverField.SPANS_RESOURCE,
+        ],
+        query: `release:${version}`,
+        range: statsPeriod || undefined,
+        environment: environments,
+        projects: [projectId],
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      }) as EventView;
+    } else if (BACKEND_PLATFORMS.includes(project.platform as string)) {
+      releaseEventView = EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `Release ${formatVersion(version)}`,
+        fields: [
+          DiscoverField.USER_MISERY,
+          DiscoverField.APDEX,
+          '',
+          DiscoverField.SPANS_HTTP,
+          DiscoverField.SPANS_DB,
+        ],
+        query: `release:${version}`,
+        range: statsPeriod || undefined,
+        environment: environments,
+        projects: [projectId],
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      }) as EventView;
+    } else {
+      releaseEventView = EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `Release ${formatVersion(version)}`,
+        fields: ['user_misery(300)'],
+        query: `release:${version}`,
+        range: statsPeriod || undefined,
+        environment: environments,
+        projects: [projectId],
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      }) as EventView;
+    }
+
+    return releaseEventView;
   }
 
   getReleaseEventView(
@@ -374,6 +551,8 @@ class ReleaseOverview extends AsyncView<Props> {
           const {commitCount, version} = release;
           const hasDiscover = organization.features.includes('discover-basic');
           const hasPerformance = organization.features.includes('performance-view');
+          const hasReleaseComparison =
+            organization.features.includes('release-comparison');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
           const vitalType = this.getVitalType(yAxis);
@@ -383,6 +562,20 @@ class ReleaseOverview extends AsyncView<Props> {
             version,
             project.id,
             selectedSort,
+            releaseBounds,
+            defaultStatsPeriod
+          );
+          const performanceEventView = this.getPerformanceEventView(
+            version,
+            project,
+            project.id,
+            releaseBounds,
+            defaultStatsPeriod
+          );
+          const performanceReleaseEventView = this.getPerformanceReleaseEventView(
+            version,
+            project,
+            project.id,
             releaseBounds,
             defaultStatsPeriod
           );
@@ -511,17 +704,28 @@ class ReleaseOverview extends AsyncView<Props> {
                       withChart
                     />
                     <Feature features={['performance-view']}>
-                      <TransactionsList
-                        location={location}
-                        organization={organization}
-                        eventView={releaseEventView}
-                        trendView={releaseTrendView}
-                        selected={selectedSort}
-                        options={sortOptions}
-                        handleDropdownChange={this.handleTransactionsListSortChange}
-                        titles={titles}
-                        generateLink={generateLink}
-                      />
+                      {hasReleaseComparison ? (
+                        <PerformanceCardList
+                          location={location}
+                          organization={organization}
+                          project={project}
+                          eventView={performanceEventView}
+                          releaseEventView={performanceReleaseEventView}
+                          generateLink={generateLink}
+                        />
+                      ) : (
+                        <TransactionsList
+                          location={location}
+                          organization={organization}
+                          eventView={releaseEventView}
+                          trendView={releaseTrendView}
+                          selected={selectedSort}
+                          options={sortOptions}
+                          handleDropdownChange={this.handleTransactionsListSortChange}
+                          titles={titles}
+                          generateLink={generateLink}
+                        />
+                      )}
                     </Feature>
                   </Main>
                   <Side>
