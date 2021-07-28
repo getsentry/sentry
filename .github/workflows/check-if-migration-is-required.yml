@@ -3,7 +3,7 @@ on: pull_request
 
 jobs:
   should-check:
-    name: check if migration is needed
+    name: did files change
     runs-on: ubuntu-20.04
     timeout-minutes: 3
     # Map a step output to a job output

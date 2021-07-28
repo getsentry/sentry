@@ -77,5 +77,5 @@ migrations_modified:
 migration_lockfile:
   - *backend_dependencies
   - *backend_lintable
-  # - .github/workflows/check-if-migration-is-required.yml
+  - .github/workflows/check-if-migration-is-required.yml
   - .github/workflows/scripts/migration-check.sh
