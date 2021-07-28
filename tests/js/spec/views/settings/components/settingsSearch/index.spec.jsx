@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {navigateTo} from 'app/actionCreators/navigation';
 import FormSearchStore from 'app/stores/formSearchStore';
-import {SettingsSearch} from 'app/views/settings/components/settingsSearch';
+import SettingsSearch from 'app/views/settings/components/settingsSearch';
 
 jest.mock('app/actionCreators/formSearch');
 jest.mock('app/actionCreators/navigation');

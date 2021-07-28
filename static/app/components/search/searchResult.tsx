@@ -7,7 +7,6 @@ import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
-import {StyledSettingsSearch} from 'app/views/settings/components/settingsSearch';
 
 import {Result} from './sources/types';
 
@@ -102,7 +101,7 @@ class SearchResult extends Component<Props> {
     return (
       <Wrapper>
         <Content>{this.renderContent()}</Content>
-        <IconWrapper>{this.renderResultType()}</IconWrapper>
+        <div>{this.renderResultType()}</div>
       </Wrapper>
     );
   }
@@ -140,12 +139,6 @@ const Wrapper = styled('div')`
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
-`;
-
-const IconWrapper = styled('div')`
-  ${/* sc-selector */ StyledSettingsSearch} & {
-    color: inherit;
-  }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
