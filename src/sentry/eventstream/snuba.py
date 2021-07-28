@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Any, Mapping, Optional, Tuple
 from uuid import uuid4
 
 import pytz
@@ -74,19 +73,6 @@ class SnubaProtocolEventStream(EventStream):
     # non-prefixed variations occur in a response.
     UNEXPECTED_TAG_KEYS = frozenset(["dist", "release", "user"])
 
-    def _get_headers_for_insert(
-        self,
-        group,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
-        received_timestamp,  # type: float
-        skip_consume,
-    ) -> Mapping[str, str]:
-        return {"Received-Timestamp": str(received_timestamp)}
-
     def insert(
         self,
         group,
@@ -111,17 +97,6 @@ class SnubaProtocolEventStream(EventStream):
         }
         if unexpected_tags:
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
-
-        headers = self._get_headers_for_insert(
-            group,
-            event,
-            is_new,
-            is_regression,
-            is_new_group_environment,
-            primary_hash,
-            received_timestamp,
-            skip_consume,
-        )
 
         self._send(
             project.id,
@@ -148,7 +123,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers=headers,
+            headers={"Received-Timestamp": str(received_timestamp)},
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -301,11 +276,11 @@ class SnubaProtocolEventStream(EventStream):
 
     def _send(
         self,
-        project_id: int,
-        _type: str,
-        extra_data: Tuple[Any, ...] = (),
-        asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        project_id,
+        _type,
+        extra_data=(),
+        asynchronous=True,
+        headers=None,  # Optional[Mapping[str, str]]
     ):
         raise NotImplementedError
 
@@ -313,11 +288,11 @@ class SnubaProtocolEventStream(EventStream):
 class SnubaEventStream(SnubaProtocolEventStream):
     def _send(
         self,
-        project_id: int,
-        _type: str,
-        extra_data: Tuple[Any, ...] = (),
-        asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        project_id,
+        _type,
+        extra_data=(),
+        asynchronous=True,
+        headers=None,  # Optional[Mapping[str, str]]
     ):
         if headers is None:
             headers = {}
