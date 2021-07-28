@@ -568,6 +568,10 @@ function generateMobilePerformanceEventView(
       selectedProjects.length > 0 &&
       selectedProjects.every(project => project.platform === 'react-native')
     ) {
+      // TODO(tonyx): remove these once the SDKs are ready
+      fields.pop();
+      fields.pop();
+
       fields.push('p75(measurements.stall_percentage)');
     }
   }
