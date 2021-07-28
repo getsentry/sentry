@@ -28,10 +28,10 @@
         "explode": true
       },
       {
-        "name": "environment",
+        "name": "field",
         "in": "query",
-        "description": "The name of environments to filter by.",
-        "required": false,
+        "description": "The list of fields to query.\n\nThe available fields are `sum(session)`, `count_unique(user)`, and the following functions applied to the `session.duration` metric: `avg`, `p50`, `p75`, `p90`, `p95`, `p99` and `max`.\n\nFor example, `p99(session.duration)`.",
+        "required": true,
         "schema": {
           "type": "array",
           "items": {
@@ -42,9 +42,9 @@
         "explode": true
       },
       {
-        "name": "field",
+        "name": "environment",
         "in": "query",
-        "description": "The list of fields to query.\n\nThe available fields are `sum(session)`, `count_unique(user)`, and the following functions applied to the `session.duration` metric: `avg`, `p50`, `p75`, `p90`, `p95`, `p99` and `max`.\n\nFor example, `p99(session.duration)`.",
+        "description": "The name of environments to filter by.",
         "required": false,
         "schema": {
           "type": "array",
