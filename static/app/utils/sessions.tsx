@@ -182,7 +182,9 @@ export function filterSessionsInTimeWindow(
   const filteredIndexes: number[] = [];
 
   const intervals = sessions.intervals.filter((interval, index) => {
-    const isBetween = moment(interval).isBetween(start, end, undefined, '[]');
+    const isBetween = moment
+      .utc(interval)
+      .isBetween(moment.utc(start), moment.utc(end), undefined, '[]');
     if (isBetween) {
       filteredIndexes.push(index);
     }
