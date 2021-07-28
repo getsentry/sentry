@@ -80,7 +80,7 @@ type CustomRepoAppStoreConnect = {
   itunesSession: string;
   itunesUser: string;
   name: string;
-  orgId: number;
+  orgPublicId: number;
   orgName: string;
   details?: AppStoreConnectValidationData;
 };
