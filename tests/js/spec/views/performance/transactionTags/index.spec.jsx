@@ -177,17 +177,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
-    expect(histogramMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '14d',
-          tagKey: 'hardwareConcurrency',
-        }),
-      })
-    );
+    expect(histogramMock).toHaveBeenCalledTimes(2);
   });
 
   it('Passed tagKey gets used when calling queries', async function () {
@@ -217,16 +207,6 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
-    expect(histogramMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '14d',
-          tagKey: 'effectiveConnectionType',
-        }),
-      })
-    );
+    expect(histogramMock).toHaveBeenCalledTimes(2);
   });
 });
