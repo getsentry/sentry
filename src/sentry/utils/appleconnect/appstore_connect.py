@@ -4,6 +4,7 @@ from collections import namedtuple
 from typing import Any, Dict, Generator, List, Mapping, Optional, Union
 
 import sentry_sdk
+from dateutil.parser import parse as parse_date
 from requests import Session
 
 from sentry.utils import jwt, safe
@@ -119,6 +120,7 @@ def get_build_info(
     version: str - the short version build info ( e.g. '1.0.1'), also called "train"
        in starship documentation
     build_number: str - the version of the build (e.g. '101'), looks like the build number
+    uploaded_date: datetime - when the build was uploaded to App Store Connect
     """
     with sentry_sdk.start_span(
         op="appconnect-list-builds", description="List all AppStoreConnect builds"
@@ -194,9 +196,15 @@ def get_build_info(
                     else:
                         raise KeyError("missing related version")
                     build_number = build["attributes"]["version"]
+                    uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
                     result.append(
-                        {"platform": platform, "version": version, "build_number": build_number}
+                        {
+                            "platform": platform,
+                            "version": version,
+                            "build_number": build_number,
+                            "uploaded_date": uploaded_date,
+                        }
                     )
                 except Exception:
                     logger.error(

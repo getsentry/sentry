@@ -7,15 +7,17 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
+from datetime import datetime
 from typing import List, Mapping
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, sdk
-from sentry.utils.appleconnect.itunes_connect import ITunesSessionExpiredException
+from sentry.utils.appleconnect import itunes_connect
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +33,9 @@ def dsym_download(project_id: int, config_id: str) -> None:
 
 def inner_dsym_download(project_id: int, config_id: str) -> None:
     """Downloads the dSYMs from App Store Connect and stores them in the Project's debug files."""
-    # TODO(flub): we should only run one task ever for a project.  Is
-    # sentry.cache.default_cache the right thing to put a "mutex" into?  See how
-    # sentry.tasks.assemble uses this.
     with sdk.configure_scope() as scope:
         scope.set_tag("project", project_id)
+        scope.set_tag("config_id", config_id)
 
     project = Project.objects.get(pk=project_id)
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
@@ -52,6 +52,8 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             if not build_state.fetched:
                 builds.append((build, build_state))
 
+    update_build_refresh_date(project, config_id)
+
     itunes_client = client.itunes_client()
     for (build, build_state) in builds:
         with tempfile.NamedTemporaryFile() as dsyms_zip:
@@ -59,12 +61,17 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
                 itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
-            except ITunesSessionExpiredException:
+            except itunes_connect.SessionExpiredError:
                 logger.debug("Error fetching dSYMs: expired iTunes session")
                 # we early-return here to avoid trying all the other builds
                 # as well, since an expired token will error for all of them.
                 # we also swallow the error and not report it because this is
                 # a totally expected error and not actionable.
+                return
+            except itunes_connect.ForbiddenError:
+                sentry_sdk.capture_message(
+                    "Forbidden iTunes dSYM download, probably switched to wrong org", level="info"
+                )
                 return
             else:
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
@@ -108,11 +115,24 @@ def get_or_create_persisted_build(
             platform=build.platform,
             bundle_short_version=build.version,
             bundle_version=build.build_number,
+            uploaded_to_appstore=build.uploaded_date,
+            first_seen=timezone.now(),
             fetched=False,
-            # TODO: persist the `uploadedDate` attribute as well.
         )
         build_state.save()
     return build_state
+
+
+def update_build_refresh_date(project: Project, config_id: str) -> None:
+    serialized_option = project.get_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
+    )
+    build_refresh_dates = json.loads(serialized_option)
+    build_refresh_dates[config_id] = datetime.now()
+    serialized_refresh_dates = json.dumps_htmlsafe(build_refresh_dates)
+    project.update_option(
+        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
+    )
 
 
 # Untyped decorator would stop type-checking of entire function, split into an inner
@@ -146,6 +166,10 @@ def inner_refresh_all_builds() -> None:
         with sdk.push_scope() as scope:
             scope.set_tag("project", option.project_id)
             try:
+                if not option.value:
+                    # An empty string set as option value, the UI does this when deleting
+                    # all sources.  This is not valid JSON.
+                    continue
                 # We are parsing JSON thus all types are Any, so give the type-checker some
                 # extra help.  We are maybe slightly lying about the type, but the
                 # attributes we do access are all string values.
@@ -158,6 +182,11 @@ def inner_refresh_all_builds() -> None:
                         logger.exception("Malformed symbol source")
                         continue
                     if source_type == appconnect.SYMBOL_SOURCE_TYPE_NAME:
-                        inner_dsym_download(option.project_id, source_id)
+                        dsym_download.apply_async(
+                            kwargs={
+                                "project_id": option.project_id,
+                                "config_id": source_id,
+                            }
+                        )
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")

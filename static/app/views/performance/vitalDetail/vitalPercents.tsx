@@ -19,20 +19,21 @@ type Props = {
   showVitalPercentNames?: boolean;
 };
 
-function getVitalStateText(vital, vitalState) {
+function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
+  const unit = !Array.isArray(vital) && vital !== WebVital.CLS ? 'ms' : '';
   switch (vitalState) {
     case VitalState.POOR:
       return Array.isArray(vital)
         ? t('Poor')
-        : tct('Poor: >[threshold]ms', {threshold: webVitalPoor[vital]});
+        : tct('Poor: >[threshold][unit]', {threshold: webVitalPoor[vital], unit});
     case VitalState.MEH:
       return Array.isArray(vital)
         ? t('Meh')
-        : tct('Meh: >[threshold]ms', {threshold: webVitalMeh[vital]});
+        : tct('Meh: >[threshold][unit]', {threshold: webVitalMeh[vital], unit});
     case VitalState.GOOD:
       return Array.isArray(vital)
         ? t('Good')
-        : tct('Good: <[threshold]ms', {threshold: webVitalMeh[vital]});
+        : tct('Good: <[threshold][unit]', {threshold: webVitalMeh[vital], unit});
     default:
       return null;
   }

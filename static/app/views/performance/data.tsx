@@ -1,8 +1,9 @@
 import {Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {LightWeightOrganization, NewQuery, SelectValue} from 'app/types';
+import {LightWeightOrganization, NewQuery, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -46,6 +47,9 @@ export enum PERFORMANCE_TERM {
   APDEX_NEW = 'apdexNew',
   APP_START_COLD = 'appStartCold',
   APP_START_WARM = 'appStartWarm',
+  SLOW_FRAMES = 'slowFrames',
+  FROZEN_FRAMES = 'frozenFrames',
+  STALL_PERCENTAGE = 'stallPercentage',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -380,6 +384,12 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Cold start is a measure of the application start up time from scratch.'),
   appStartWarm: () =>
     t('Warm start is a measure of the application start up time while still in memory.'),
+  slowFrames: () => t('The count of the number of slow frames in the transaction.'),
+  frozenFrames: () => t('The count of the number of frozen frames in the transaction.'),
+  stallPercentage: () =>
+    t(
+      'The percentage of the transaction duration in which the application is in a stalled state.'
+    ),
 };
 
 export function getTermHelp(
@@ -399,9 +409,7 @@ function generateGenericPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'tpm()',
@@ -467,9 +475,7 @@ function generateBackendPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'transaction.op',
@@ -532,29 +538,43 @@ function generateBackendPerformanceEventView(
 
 function generateMobilePerformanceEventView(
   organization: LightWeightOrganization,
-  location: Location
+  location: Location,
+  projects: Project[],
+  genericEventView: EventView
 ): EventView {
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'transaction.op',
     'tpm()',
-    'p50(measurements.app_start_cold)',
-    'p95(measurements.app_start_cold)',
-    'p50(measurements.app_start_warm)',
-    'p95(measurements.app_start_warm)',
-    'failure_rate()',
+    'p75(measurements.app_start_cold)',
+    'p75(measurements.app_start_warm)',
+    'p75(measurements.frames_slow_rate)',
+    'p75(measurements.frames_frozen_rate)',
   ];
 
+  // At this point, all projects are mobile projects.
+  // If in addition to that, all projects are react-native projects,
+  // then show the stall percentage as well.
+  const projectIds = genericEventView.project;
+  if (projectIds.length > 0 && projectIds[0] !== ALL_ACCESS_PROJECTS) {
+    const selectedProjects = projects.filter(p =>
+      projectIds.includes(parseInt(p.id, 10))
+    );
+    if (
+      selectedProjects.length > 0 &&
+      selectedProjects.every(project => project.platform === 'react-native')
+    ) {
+      fields.push('p75(measurements.stall_percentage)');
+    }
+  }
+
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
+    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
-        `apdex(${organization.apdexThreshold})`,
         'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
@@ -608,9 +628,7 @@ function generateFrontendPageloadPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'tpm()',
@@ -678,9 +696,7 @@ function generateFrontendOtherPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    organization.features.includes('team-key-transactions')
-      ? 'team_key_transaction'
-      : 'key_transaction',
+    'team_key_transaction',
     'transaction',
     'project',
     'transaction.op',
@@ -761,14 +777,19 @@ export function generatePerformanceEventView(
     case LandingDisplayField.BACKEND:
       return generateBackendPerformanceEventView(organization, location);
     case LandingDisplayField.MOBILE:
-      return generateMobilePerformanceEventView(organization, location);
+      return generateMobilePerformanceEventView(
+        organization,
+        location,
+        projects,
+        eventView
+      );
     default:
       return eventView;
   }
 }
 
 export function generatePerformanceVitalDetailView(
-  organization: LightWeightOrganization,
+  _organization: LightWeightOrganization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -782,9 +803,7 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      organization.features.includes('team-key-transactions')
-        ? 'team_key_transaction'
-        : 'key_transaction',
+      'team_key_transaction',
       'transaction',
       'project',
       'count_unique(user)',

@@ -8,7 +8,7 @@ HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-in
 DM_COMMAND_HEADER = "*Direct Message Commands:*"
 CHANNEL_COMMANDS_HEADER = "*Channel Commands:*"
 CONTACT_HEADER = "*Contact:*"
-GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/alerts-notifications/alerts/|documentation>."
+GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/integrations/notification-incidents/slack/|documentation>."
 
 DM_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
@@ -25,7 +25,7 @@ CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.i
 def list_commands(commands: Mapping[str, str]) -> str:
     return "\n".join(
         (
-            f"• `/sentry {command}`: {description}"
+            f"`/sentry {command}`: {description}"
             for command, description in sorted(tuple(commands.items()))
         )
     )

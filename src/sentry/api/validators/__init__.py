@@ -1,4 +1,4 @@
-# XXX(dcramer): we dont use rest framework's serializers module for actual serialization,
+# XXX(dcramer): we don't use rest framework's serializers module for actual serialization,
 # but rather we use it for validation. Consider this the appropriate place to put these
 # components going forward, though many live in sentry/api/serializers/rest_framework for
 # legacy reasons.

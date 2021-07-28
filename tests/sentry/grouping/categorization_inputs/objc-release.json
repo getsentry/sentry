@@ -1,0 +1,114 @@
+{
+  "event_id": "64c43e36c5fd482e9260c4e9287de3f2",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "[Filtered]"
+          },
+          "handled": false,
+          "meta": {
+            "mach_exception": {
+              "code": 913472160,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": true,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_call_block_and_release",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "__swift_project_boxed_opaque_existential_1"
+            },
+            {
+              "function": "block_destroy_helper"
+            },
+            {
+              "function": "__swift_memcpy9_8"
+            },
+            {
+              "function": "block_destroy_helper.53"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "__swift_project_boxed_opaque_existential_1"
+            },
+            {
+              "function": "block_destroy_helper"
+            },
+            {
+              "function": "objc_release",
+              "package": "libobjc.A.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "Exception 1, Code 913472160, Subcode 8"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

@@ -100,7 +100,7 @@ export default class DetailsBody extends React.Component<Props> {
       return `${timeWindow}m`;
     }
 
-    return getInterval({start, end}, true);
+    return getInterval({start, end}, 'high');
   }
 
   getFilter() {
@@ -310,6 +310,9 @@ export default class DetailsBody extends React.Component<Props> {
                               <DropdownItem
                                 key={value}
                                 eventKey={value}
+                                isActive={
+                                  !timePeriod.custom && timePeriod.period === value
+                                }
                                 onSelect={this.props.handleTimePeriodChange}
                               >
                                 {label}

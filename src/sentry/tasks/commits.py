@@ -190,7 +190,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             organization_id=release.organization_id, release=release, notified=False
         ).values_list("id", "environment_id", "date_finished")
 
-        # XXX(dcramer): i dont know why this would have multiple environments, but for
+        # XXX(dcramer): i don't know why this would have multiple environments, but for
         # our sanity lets assume it can
         pending_notifications = []
         last_deploy_per_environment = {}
