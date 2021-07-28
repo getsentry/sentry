@@ -286,7 +286,7 @@ class AuditLogEntry(Model):
                     + self.data["new_slug"]
                 )
             return "edited project settings " + (
-                " ".join(f" in {key} to {value}" for (key, value) in self.data.items())
+                " ".join(f"in {key} to {value}" for (key, value) in self.data.items())
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project {}".format(self.data["slug"])
