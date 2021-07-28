@@ -36,7 +36,7 @@ from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
-from sentry.utils.hashlib import md5_text
+from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
@@ -1096,35 +1096,44 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
         Boolean that indicates if we should follow semantic version or not
     """
     # ToDo(ahmed): Move this function else where to be easily accessible for re-use
-    follows_semver = True
+    cache_key = "follows_semver:1:%s" % hash_values([org_id, project_id])
+    follows_semver = cache.get(cache_key)
 
-    # Check if the latest ten releases are semver compliant
-    releases_list = Release.objects.filter(
-        organization=org_id, projects__id__in=[project_id]
-    ).order_by("-date_added")[:10]
+    if follows_semver is None:
+        follows_semver = True
 
-    # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
-    # A project is said to be following semver versioning schemes if it satisfies the following
-    # conditions:-
-    # 1: Atleast one semver compliant in the most recent 3 releases
-    # 2: Atleast 3 semver compliant releases in the most recent 10 releases
-    if len(releases_list) <= 2:
-        # Most recent release is considered to decide if project follows semver
-        follows_semver = follows_semver and releases_list[0].is_semver_release
-    elif len(releases_list) < 10:
-        # We forego condition 2 and it is enough if condition 1 is satisfied to consider this
-        # project to have semver compliant releases
-        follows_semver = follows_semver and any(
-            release.is_semver_release for release in releases_list[0:3]
-        )
-    else:
-        # Count number of semver releases in the last ten
-        semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
+        # Check if the latest ten releases are semver compliant
+        releases_list = Release.objects.filter(
+            organization_id=org_id, projects__id__in=[project_id]
+        ).order_by("-date_added")[:10]
 
-        atleast_three_in_last_ten = semver_matches >= 3
-        atleast_one_in_last_three = any(release.is_semver_release for release in releases_list[0:3])
+        # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
+        # A project is said to be following semver versioning schemes if it satisfies the following
+        # conditions:-
+        # 1: Atleast one semver compliant in the most recent 3 releases
+        # 2: Atleast 3 semver compliant releases in the most recent 10 releases
+        if len(releases_list) <= 2:
+            # Most recent release is considered to decide if project follows semver
+            follows_semver = follows_semver and releases_list[0].is_semver_release
+        elif len(releases_list) < 10:
+            # We forego condition 2 and it is enough if condition 1 is satisfied to consider this
+            # project to have semver compliant releases
+            follows_semver = follows_semver and any(
+                release.is_semver_release for release in releases_list[0:3]
+            )
+        else:
+            # Count number of semver releases in the last ten
+            semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
 
-        follows_semver = follows_semver and atleast_one_in_last_three and atleast_three_in_last_ten
+            atleast_three_in_last_ten = semver_matches >= 3
+            atleast_one_in_last_three = any(
+                release.is_semver_release for release in releases_list[0:3]
+            )
+
+            follows_semver = (
+                follows_semver and atleast_one_in_last_three and atleast_three_in_last_ten
+            )
+        cache.set(cache_key, follows_semver, 3600)
 
     # Check release_version that is passed is semver compliant
     if release_version:
