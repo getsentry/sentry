@@ -144,6 +144,11 @@ export function getSessionsInterval(
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
+  if (moment(datetimeObj.start).isSameOrBefore(moment().subtract(30, 'days'))) {
+    // we cannot use sub-hour session resolution on buckets older than 30 days
+    highFidelity = false;
+  }
+
   if (diffInMinutes > TWO_WEEKS) {
     return '1d';
   }
