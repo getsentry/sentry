@@ -659,14 +659,14 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: [['t_test()', '<-6']],
+      query: [['confidence()', '<-6']],
       trendType: TrendChangeType.REGRESSION,
       value: TransactionsListOption.REGRESSION,
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: [['t_test()', '>6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.IMPROVED,
       value: TransactionsListOption.IMPROVEMENT,
       label: t('Trending Improvements'),
