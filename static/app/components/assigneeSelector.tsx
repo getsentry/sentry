@@ -207,7 +207,7 @@ class AssigneeSelector extends React.Component<Props, State> {
 
   clearAssignTo = (e: React.MouseEvent<HTMLDivElement>) => {
     // clears assignment
-    clearAssignment(this.props.id);
+    clearAssignment(this.props.id, 'assignee_selector');
     this.setState({loading: true});
     e.stopPropagation();
   };
