@@ -1,3 +1,4 @@
+import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -20,6 +21,17 @@ const ForcedTrialModal = ({closeModal}: Props) => {
   const emailSeparator = email ? '&' : '?';
   const getStartedSeparator = extraQueryString ? emailSeparator : '';
   const signupUrl = `https://sentry.io/signup/${queryParameter}${getStartedSeparator}${extraQuery}`;
+
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setShow(true);
+    }, 6000);
+  }, [show]);
+
+  if (!show) return null;
+
   return (
     <HighlightModalContainer>
       <div>
