@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,28 +21,20 @@ const ForcedTrialModal = ({closeModal}: Props) => {
   const getStartedSeparator = extraQueryString ? emailSeparator : '';
   const signupUrl = `https://sentry.io/signup/${queryParameter}${getStartedSeparator}${extraQuery}`;
 
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setShow(true);
-    }, 6000);
-  }, [show]);
-
-  if (!show) return null;
-
   return (
     <HighlightModalContainer>
       <div>
         <TrialCheckInfo>
           <Subheader>{t('Sandbox Signup')}</Subheader>
           <h2>{t('Hey, love what you see?')}</h2>
-          <p>{t('Sign up now to setup your own project to see problems within yourå')}</p>
-          <br />
-          <p>{t('code and learn how to quickly improve your project.')}</p>
+          <p>
+            {t(
+              'Sign up now to setup your own project to see problems within your code and learn how to quickly improve your project.'
+            )}
+          </p>
         </TrialCheckInfo>
         <StyledButtonBar gap={2}>
-          <Button priority="default" href={signupUrl}>
+          <Button priority="primary" href={signupUrl}>
             {t('Sign up now')}
           </Button>
           <Button priority="default" onClick={closeModal}>
