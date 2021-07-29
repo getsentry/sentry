@@ -8,6 +8,7 @@ from typing import (
     Callable,
     Dict,
     Generic,
+    Iterator,
     Mapping,
     MutableMapping,
     Optional,
@@ -107,7 +108,7 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
 
     @staticmethod
     @contextmanager
-    def local_cache() -> Any:
+    def local_cache() -> Iterator[None]:
         """Enables local caching for the entire process."""
         global _local_cache_enabled, _local_cache_generation
         if _local_cache_enabled:
