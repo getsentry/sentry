@@ -5,6 +5,7 @@ from django.utils import timezone
 from sentry.eventstore.processing import event_processing_store
 from sentry.models import (
     Group,
+    GroupAssignee,
     GroupInbox,
     GroupInboxReason,
     GroupOwner,
@@ -548,7 +549,7 @@ class PostProcessGroupAssignmentTest(TestCase):
         if extra_rules:
             rules.extend(extra_rules)
 
-        ProjectOwnership.objects.create(
+        self.prj_ownership = ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema(rules),
             fallthrough=True,
@@ -741,3 +742,56 @@ class PostProcessGroupAssignmentTest(TestCase):
         )
         assignee = event.group.assignee_set.first()
         assert assignee is None
+
+    def test_owner_assignment_when_owners_have_been_unassigned(self):
+        """
+        Test that ensures that if certain assignees get unassigned, and project rules are changed
+        then the new group assignees should be re-calculated and re-assigned
+        """
+        # Create rules and check assignees
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == self.user
+
+        user_3 = self.create_user()
+        self.create_team_membership(self.team, user=user_3)
+
+        # De-assign group assignees
+        GroupAssignee.objects.deassign(event.group, self.user)
+        assert event.group.assignee_set.first() is None
+
+        # Change ProjectOwnership rules
+        rules = [
+            Rule(Matcher("path", "src/*"), [Owner("user", user_3.email)]),
+        ]
+        self.prj_ownership.schema = dump_schema(rules)
+        self.prj_ownership.save()
+
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+
+        # Group should be re-assigned to the new group owner
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == user_3
