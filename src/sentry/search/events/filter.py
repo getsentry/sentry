@@ -1286,7 +1286,7 @@ class QueryFilter(QueryFields):
                 return Condition(
                     Function(
                         "multiSearchFirstPositionCaseInsensitive",
-                        [self.column("message"), Function("array", value)],
+                        [self.column("message"), value],
                     ),
                     operator,
                     0,
@@ -1298,7 +1298,6 @@ class QueryFilter(QueryFields):
                 operator,
                 0,
             )
-        return None
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Convert project slugs to ids and create a filter based on those.
