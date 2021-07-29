@@ -280,7 +280,7 @@ class QueryDefinition:
 
         conditions, filter_keys = get_filter(query, params)
 
-        for org in filter_keys.get("org_id", []):
+        for org in filter_keys.get("org_id"):
             self.conditions.append(
                 Condition(Column("org_id"), Op.EQ, org),
             )

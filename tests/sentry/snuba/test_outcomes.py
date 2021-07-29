@@ -59,7 +59,10 @@ class OutcomesQueryDefinitionTests(TestCase):
             )
 
     def test_correct_category_mapping(self):
-        query = _make_query("statsPeriod=4d&interval=1d&category=error&field=sum(quantity)")
+        query = _make_query(
+            "statsPeriod=4d&interval=1d&category=error&field=sum(quantity)",
+            {"organization_id": 1},
+        )
 
         assert (
             Condition(
@@ -71,13 +74,15 @@ class OutcomesQueryDefinitionTests(TestCase):
 
     def test_correct_reason_mapping(self):
         query = _make_query(
-            "statsPeriod=4d&interval=1d&groupBy=category&reason=spike_protection&field=sum(quantity)"
+            "statsPeriod=4d&interval=1d&groupBy=category&reason=spike_protection&field=sum(quantity)",
+            {"organization_id": 1},
         )
         assert Condition(Column("reason"), Op.IN, ["smart_rate_limit"]) in query.conditions
 
     def test_correct_outcome_mapping(self):
         query = _make_query(
-            "statsPeriod=4d&interval=1d&groupBy=category&outcome=accepted&field=sum(quantity)"
+            "statsPeriod=4d&interval=1d&groupBy=category&outcome=accepted&field=sum(quantity)",
+            {"organization_id": 1},
         )
 
         assert Condition(Column("outcome"), Op.IN, [Outcome.ACCEPTED]) in query.conditions
@@ -85,14 +90,14 @@ class OutcomesQueryDefinitionTests(TestCase):
     def test_correct_times_seen_aggregate(self):
         query = _make_query(
             "statsPeriod=6h&interval=10m&groupBy=category&field=sum(times_seen)",
-            {},
+            {"organization_id": 1},
             True,
         )
         assert Function("count()", [Column("times_seen")], "times_seen") in query.select_params
 
         query = _make_query(
             "statsPeriod=6h&interval=1d&groupBy=category&field=sum(times_seen)",
-            {},
+            {"organization_id": 1},
             True,
         )
         assert Function("sum", [Column("times_seen")], "times_seen") in query.select_params
