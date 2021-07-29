@@ -1189,14 +1189,11 @@ class QueryFilter(QueryFields):
         name = search_filter.key.name
         value = search_filter.value.value
 
-        if name not in self.field_allowlist:
-            raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")
-
-        lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
+        lhs = self.resolve_column(name)
 
         if name in ARRAY_FIELDS:
             if search_filter.value.is_wildcard():
-                condition = Condition(
+                return Condition(
                     lhs,
                     Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
                     search_filter.value.raw_value.replace("%", "\\%")
@@ -1204,38 +1201,77 @@ class QueryFilter(QueryFields):
                     .replace("*", "%"),
                 )
             elif name in ARRAY_FIELDS and search_filter.is_in_filter:
-                condition = Condition(
+                return Condition(
                     Function("hasAny", [self.column(name), value]),
                     Op.EQ if search_filter.operator == "IN" else Op.NEQ,
                     1,
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
-                condition = Condition(
+                return Condition(
                     Function("hasAny", [self.column(name), []]),
                     Op.EQ if search_filter.operator == "=" else Op.NEQ,
                     1,
                 )
-            else:
-                condition = Condition(lhs, Op(search_filter.operator), value)
+
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
+            value = int(to_timestamp(value)) * 1000
+
+        # Validate event ids are uuids
+        if name == "id":
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+            elif not search_filter.value.is_event_id():
+                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
+
+        # Tags are never null, but promoted tags are columns and so can be null.
+        # To handle both cases, use `ifNull` to convert to an empty string and
+        # compare so we need to check for empty values.
+        if search_filter.key.is_tag:
+            name = ["ifNull", [name, "''"]]
+            lhs = Function("ifNull", [lhs, ""])
 
         # Handle checks for existence
-        elif search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if search_filter.key.is_tag:
-                condition = Condition(lhs, Op(search_filter.operator), value)
+                return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
-                condition = Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
+                return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
-        elif search_filter.value.is_wildcard():
+        is_null_condition = None
+        # TODO(wmak): Skip this for all non-nullable keys not just event.type
+        if (
+            search_filter.operator in ("!=", "NOT IN")
+            and not search_filter.key.is_tag
+            and name != "event.type"
+        ):
+            # Handle null columns on inequality comparisons. Any comparison
+            # between a value and a null will result to null, so we need to
+            # explicitly check for whether the condition is null, and OR it
+            # together with the inequality check.
+            # We don't need to apply this for tags, since if they don't exist
+            # they'll always be an empty string.
+            is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
+
+        if search_filter.value.is_wildcard():
             condition = Condition(
-                Function("match", [lhs, f"'(?i){value}'"]),
+                Function("match", [lhs, f"(?i){value}"]),
                 Op(search_filter.operator),
                 1,
             )
         else:
             condition = Condition(lhs, Op(search_filter.operator), value)
 
-        return condition
+        if is_null_condition:
+            return Or(conditions=[is_null_condition, condition])
+        else:
+            return condition
 
     def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         # conditions added to env_conditions can be OR'ed

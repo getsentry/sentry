@@ -2386,20 +2386,17 @@ class QueryFields(QueryBase):
         elif self.is_field_alias(field):
             return self.resolve_field_alias(field)
         else:
-            return self.resolve_field(field)
+            return self.resolve_field(field, alias=True)
 
-    def resolve_field(self, field: str) -> Column:
+    def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         """Given a public field, resolve the alias based on the Query's
         dataset and return the Snql Column
         """
-        tag_match = TAG_KEY_RE.search(field)
-        field = tag_match.group("tag") if tag_match else field
+        tag_match = TAG_KEY_RE.search(raw_field)
+        field = tag_match.group("tag") if tag_match else raw_field
 
         if VALID_FIELD_PATTERN.match(field):
-            if field in self.field_allowlist:
-                return self.column(field)
-            else:
-                raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+            return self.column(field, alias=raw_field if alias else None)
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 

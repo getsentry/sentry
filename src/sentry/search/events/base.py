@@ -1,12 +1,12 @@
-from typing import List, Mapping, Set
+from typing import List, Mapping, Optional, Set
 
 from django.utils.functional import cached_property
 from snuba_sdk.column import Column
-from snuba_sdk.function import CurriedFunction
+from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
-from sentry.search.events.constants import SNQL_FIELD_ALLOWLIST
+from sentry.search.events.constants import SNQL_FIELD_ALLOWLIST, TAG_KEY_RE
 from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset, resolve_column
 
@@ -39,5 +39,16 @@ class QueryBase:
 
         return {p.slug: p.id for p in project_slugs}
 
-    def column(self, name: str) -> Column:
-        return Column(self.resolve_column_name(name))
+    def column(self, name: str, alias: Optional[str] = None) -> Column:
+        resolved_column = self.resolve_column_name(name)
+        column = Column(resolved_column)
+
+        if alias:
+            # TODO(txiao): Remove this once column aliases are possible
+            resolved_tag_match = TAG_KEY_RE.search(resolved_column)
+            # if the alias is of the form `tags[...]` already,
+            # do not use trick because it confuses snuba
+            if resolved_tag_match and alias != resolved_column:
+                column = Function("toString", [column], alias)
+
+        return column
