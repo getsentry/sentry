@@ -124,6 +124,7 @@ family:native package:SwiftUI category=ui
 family:native package:AttributeGraph category=ui
 family:native package:CoreAutoLayout category=ui
 family:native package:GraphicsServices category=ui
+family:native function:"-\[NSISEngine*" category=ui  # auto-layout engine
 module:android.view.* category=ui
 module:android.text.* category=ui
 module:android.widget.* category=ui
