@@ -2385,9 +2385,19 @@ class QueryFields(QueryBase):
                         alias,
                     ),
                 ),
+                SnQLFunction(
+                    "eps",
+                    snql_aggregate=lambda args, alias: self._resolve_eps(args, alias),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "epm",
+                    snql_aggregate=lambda args, alias: self._resolve_epm(args, alias),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
                 # TODO: implement these
-                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
@@ -2952,6 +2962,14 @@ class QueryFields(QueryBase):
 
     def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
         return self._resolve_division("measurements.stall_total_time", "transaction.duration")
+
+    def _resolve_eps(self, args: Mapping[str, str], alias: str) -> SelectType:
+        return Function("divide", [Function("count", []), args["interval"]], alias)
+
+    def _resolve_epm(self, args: Mapping[str, str], alias: str) -> SelectType:
+        return Function(
+            "divide", [Function("count", []), Function("divide", [args["interval"], 60])], alias
+        )
 
     def _resolve_unimplemented_function(
         self,
