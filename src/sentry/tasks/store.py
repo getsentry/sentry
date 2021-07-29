@@ -209,6 +209,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
+    def _continue_to_process_event():
+        process_task = process_event_from_reprocessing if from_reprocessing else process_event
+        _do_process_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            process_task=process_task,
+            data=data,
+            data_has_changed=has_changed,
+            from_symbolicate=True,
+        )
+
     symbolication_function = get_symbolication_function(data)
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
@@ -221,7 +233,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             "symbolication_function": symbolication_function_name,
         },
     ):
-        symbolication_function = None
+        _continue_to_process_event()
+        return
 
     has_changed = False
 
@@ -237,9 +250,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         ):
             while True:
                 try:
-                    if symbolication_function is None:
-                        break
-
                     with sentry_sdk.start_span(
                         op="tasks.store.symbolicate_event.%s" % symbolication_function_name
                     ) as span:
@@ -309,16 +319,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if has_changed:
         cache_key = event_processing_store.store(data)
 
-    process_task = process_event_from_reprocessing if from_reprocessing else process_event
-    _do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        process_task=process_task,
-        data=data,
-        data_has_changed=has_changed,
-        from_symbolicate=True,
-    )
+    _continue_to_process_event()
 
 
 @instrumented_task(
