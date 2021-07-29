@@ -1,0 +1,124 @@
+{
+  "event_id": "00043830bf0f487392d51c698d42f4f6",
+  "project": 6422,
+  "release": "checkout-app@3.2",
+  "dist": null,
+  "platform": "python",
+  "message": "",
+  "tags": [
+    ["browser", "Chrome 86.0.4240"],
+    ["browser.name", "Chrome"],
+    ["client_os", "Mac OS X 10.11.6"],
+    ["client_os.name", "Mac OS X"],
+    ["environment", "prod"],
+    ["level", "info"],
+    ["os", "Mac OS X 10.15.6"],
+    ["os.name", "Mac OS X"],
+    ["runtime", "CPython 2.7.18"],
+    ["runtime.name", "CPython"],
+    ["release", "checkout-app@3.2"],
+    ["user", "id:4292"],
+    ["transaction", "getProductList"],
+    ["url", "https://app.example.com/products"]
+  ],
+  "_metrics": {"bytes.ingested.event": 3448, "bytes.stored.event": 3591},
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "86.0.4240", "type": "browser"},
+    "client_os": {"name": "Mac OS X", "version": "10.11.6", "type": "os"},
+    "os": {"name": "Mac OS X", "version": "10.15.6", "type": "os"},
+    "runtime": {
+      "name": "CPython",
+      "version": "2.7.18",
+      "build": "2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "span_id": "1756e116945a4360",
+      "parent_span_id": "d71f841b69164c33",
+      "op": "http.server",
+      "status": "ok",
+      "type": "trace"
+    }
+  },
+  "culprit": "getProductList",
+  "environment": "prod",
+  "extra": {
+    "inventory": {"hammer": 1, "nails": 1, "wrench": 0},
+    "sys.argv": ["/usr/local/bin/flask", "run", "--host=0.0.0.0", "-p", "8080"]
+  },
+  "level": "info",
+  "logger": "",
+  "metadata": {},
+  "received": 1627581737.872369,
+  "request": {
+    "url": "https://app.example.com/products",
+    "method": "GET",
+    "env": {"SERVER_NAME": "0.0.0.0", "SERVER_PORT": "8080"}
+  },
+  "spans": [
+    {
+      "timestamp": 1627579982.301401,
+      "start_timestamp": 1627579979.397719,
+      "op": "db function: get all products",
+      "span_id": "99bbfb48193a4ddb",
+      "parent_span_id": "1756e116945a4360",
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "data": {"duration": 2.903681993484497, "offset": 0},
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1627579980.383624,
+      "start_timestamp": 1627579979.397719,
+      "op": "connect to db",
+      "span_id": "a3c3c7064e6d4fba",
+      "parent_span_id": "99bbfb48193a4ddb",
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "data": {"duration": 0.9859052112667244, "offset": 0},
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1627579982.059427,
+      "start_timestamp": 1627579980.383624,
+      "op": "run query",
+      "span_id": "65d005a5b31d4614",
+      "parent_span_id": "99bbfb48193a4ddb",
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "data": {"duration": 1.6758032827607312, "offset": 0.9859052112667244},
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1627579982.059427,
+      "start_timestamp": 1627579980.383624,
+      "description": "SELECT * FROM products",
+      "op": "db",
+      "span_id": "b501702695634df2",
+      "parent_span_id": "65d005a5b31d4614",
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "data": {"duration": 1.675803282760731, "offset": 0.9859052112667244},
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1627579982.301401,
+      "start_timestamp": 1627579982.059427,
+      "op": "format results",
+      "span_id": "500c7624ca2c4df6",
+      "parent_span_id": "99bbfb48193a4ddb",
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "data": {"duration": 0.24197349945704172, "offset": 2.6617084940274554},
+      "same_process_as_parent": true
+    }
+  ],
+  "start_timestamp": 1627579979.397719,
+  "timestamp": 1627579982.301401,
+  "transaction": "getProductList",
+  "type": "transaction",
+  "user": {
+    "id": "4292",
+    "email": "selia@example.com",
+    "ip_address": "185.196.94.82",
+    "name": "Selia",
+    "geo": {"country_code": "AU", "city": "Melbourne", "region": "VIC"}
+  },
+  "version": "5"
+}

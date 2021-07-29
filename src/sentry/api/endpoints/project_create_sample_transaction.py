@@ -11,6 +11,19 @@ from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import create_sample_event_basic
 
+base_platforms_with_transactions = ["javascript", "python", "apple-ios"]
+
+
+def get_json_name(project):
+    for base_platform in base_platforms_with_transactions:
+        if project.platform and project.platform.startswith(base_platform):
+            # special case for javascript
+            if base_platform == "javascript":
+                return "react-transaction.json"
+            return f"{base_platform}-transaction.json"
+    # default
+    return "react-transaction.json"
+
 
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
     # Members should be able to create sample events.
@@ -19,7 +32,7 @@ class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         samples_root = os.path.join(DATA_ROOT, "samples")
-        with open(os.path.join(samples_root, "react-transaction.json")) as fp:
+        with open(os.path.join(samples_root, get_json_name(project))) as fp:
             data = json.load(fp)
 
         timestamp = datetime.utcnow() - timedelta(minutes=1)
