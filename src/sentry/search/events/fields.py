@@ -1314,6 +1314,35 @@ def with_default(default, argument):
     return argument
 
 
+# Implementation of certain FunctionArg subclasses
+# to validate aggregate functions implemented in SnQL.
+class SnQLColumn(FunctionArg):
+    def __init__(self, name, allowed_columns=None):
+        super().__init__(name)
+        self.allowed_columns = allowed_columns or []
+
+    def normalize(self, value, _):
+        if len(self.allowed_columns) > 0:
+            if value in self.allowed_columns:
+                return value
+            else:
+                raise InvalidFunctionArgument(f"{value} is not an allowed column")
+
+        snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column:
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        return value
+
+
+class SnQLStringArg(StringArg):
+    def normalize(self, value, params):
+        value = super().normalize(value, params)
+        # SnQL interprets string types as string, so strip the
+        # quotes added in StringArg.normalize.
+        return value[1:-1]
+
+
 class DiscoverFunction:
     def __init__(
         self,
@@ -2110,6 +2139,7 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs):
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
+        self.snql_column = kwargs.pop("snql_column", None)
         super().__init__(*args, **kwargs)
 
     def validate(self):
@@ -2119,7 +2149,7 @@ class SnQLFunction(DiscoverFunction):
                 arg.has_default
             ), f"{self.name}: optional argument at index {i} does not have default"
 
-        assert self.snql_aggregate is not None
+        assert sum([self.snql_aggregate is not None, self.snql_column is not None]) == 1
 
         # assert that no duplicate argument names are used
         names = set()
@@ -2180,6 +2210,55 @@ class QueryFields(QueryBase):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "apdex",
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    snql_aggregate=self._resolve_apdex_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "count_miserable",
+                    # Using the generic FunctionArg here temporarily till we
+                    # implement a resolver for count columns in SnQL. The only
+                    # column to be passed through here for now is `user`.
+                    required_args=[FunctionArg("column")],
+                    optional_args=[NullableNumberRange("satisfaction", 0, None)],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        }
+                    ],
+                    snql_aggregate=self._resolve_count_miserable_function,
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "user_misery",
+                    # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+                    # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+                    # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+                    # with the user misery being adjusted for each fast/slow unique transaction. See:
+                    # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+                    # for an intuitive explanation of the Beta Distribution Function.
+                    optional_args=[
+                        NullableNumberRange("satisfaction", 0, None),
+                        with_default(5.8875, NumberRange("alpha", 0, None)),
+                        with_default(111.8625, NumberRange("beta", 0, None)),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "tolerated",
+                            "fn": lambda args: args["satisfaction"] * 4.0
+                            if args["satisfaction"] is not None
+                            else None,
+                        },
+                        {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+                    ],
+                    snql_aggregate=self._resolve_user_misery_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
                     "count",
                     snql_aggregate=lambda _, alias: Function(
                         "count",
@@ -2216,6 +2295,26 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="percentage",
                 ),
+                SnQLFunction(
+                    "to_other",
+                    required_args=[
+                        SnQLColumn("column", allowed_columns=["release", "trace.parent_span"]),
+                        SnQLStringArg("value", unquote=True, unescape_quotes=True),
+                    ],
+                    optional_args=[
+                        with_default("that", SnQLStringArg("that")),
+                        with_default("this", SnQLStringArg("this")),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "if",
+                        [
+                            Function("equals", [args["column"], args["value"]]),
+                            args["this"],
+                            args["that"],
+                        ],
+                        alias,
+                    ),
+                ),
                 # TODO: implement these
                 SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
@@ -2225,14 +2324,8 @@ class QueryFields(QueryBase):
                 SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("apdex", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "count_miserable", snql_aggregate=self._resolve_unimplemented_function
-                ),
-                SnQLFunction("user_misery", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
@@ -2256,37 +2349,49 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
                 ),
+                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
                 ),
-                SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
 
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+        """Given a public list of discover fields, construct the corresponding
+        list of Snql Columns or Functions. Duplicate columns are ignored
+        """
         if selected_columns is None:
             return []
 
         columns = []
 
-        for field in selected_columns:
-            if field.strip() == "":
+        for column in selected_columns:
+            if column.strip() == "":
                 continue
-            resolved_field = self.resolve_field(field)
-            if resolved_field not in self.columns:
-                columns.append(resolved_field)
+            resolved_column = self.resolve_column(column)
+            if resolved_column not in self.columns:
+                columns.append(resolved_column)
 
         return columns
 
-    def resolve_field(self, field: str) -> SelectType:
+    def resolve_column(self, field: str) -> SelectType:
+        """Given a public discover field, construct the corresponding Snql, this
+        function will determine the type of the field alias, whether its a
+        column, field alias or function and call the corresponding resolver
+        """
         match = is_function(field)
         if match:
             return self.resolve_function(field, match)
-
-        if self.is_field_alias(field):
+        elif self.is_field_alias(field):
             return self.resolve_field_alias(field)
+        else:
+            return self.resolve_field(field)
 
+    def resolve_field(self, field: str) -> Column:
+        """Given a public field, resolve the alias based on the Query's
+        dataset and return the Snql Column
+        """
         tag_match = TAG_KEY_RE.search(field)
         field = tag_match.group("tag") if tag_match else field
 
@@ -2299,6 +2404,9 @@ class QueryFields(QueryBase):
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+        """Given a list of public aliases, optionally prefixed by a `-` to
+        represent direction, construct a list of Snql Orderbys
+        """
         validated: List[OrderBy] = []
 
         if orderby is None:
@@ -2314,22 +2422,26 @@ class QueryFields(QueryBase):
 
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.resolve_field(bare_orderby)
+            try:
+                resolved_orderby = self.resolve_column(bare_orderby)
+            except NotImplementedError:
+                resolved_orderby = None
+
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
+
+            if is_function(bare_orderby):
+                bare_orderby = resolved_orderby.alias
 
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     continue
+
                 elif (
                     isinstance(selected_column, Function) and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
                     continue
-
-            # TODO: orderby aggregations
-
-            # TODO: orderby field aliases
 
         if len(validated) == len(orderby_columns):
             return validated
@@ -2338,19 +2450,25 @@ class QueryFields(QueryBase):
         # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
 
-    def is_field_alias(self, alias: str) -> bool:
-        return alias in self.field_alias_converter
+    def is_field_alias(self, field: str) -> bool:
+        """Given a public field, check if it's a field alias"""
+        return field in self.field_alias_converter
 
     def resolve_field_alias(self, alias: str) -> SelectType:
+        """Given a field alias, convert it to its corresponding snql"""
         converter = self.field_alias_converter.get(alias)
         if not converter:
             raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
         return converter(alias)
 
     def is_function(self, function: str) -> bool:
+        """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
 
     def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
+        """Given a public function, resolve to the corresponding Snql
+        function
+        """
         if match is None:
             match = is_function(function)
 
@@ -2362,11 +2480,22 @@ class QueryFields(QueryBase):
 
         name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter.get(name)
+
+        arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        for arg in snql_function.args:
+            if isinstance(arg, SnQLColumn):
+                arguments[arg.name] = self.resolve_field(arguments[arg.name])
+
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
-        return snql_function.snql_aggregate(arguments, alias)
+            return snql_function.snql_aggregate(arguments, alias)
+
+        return snql_function.snql_column(arguments, alias)
 
     def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
+        """Given a FUNCTION_PATTERN match, seperate the function name, arguments
+        and alias out
+        """
         function = match.group("function")
         if not self.is_function(function):
             raise InvalidSearchQuery(f"{function} is not a valid function")
@@ -2613,6 +2742,103 @@ class QueryFields(QueryBase):
         # Adding a no-op here to get the alias.
         return Function(
             "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
+        )
+
+    def _project_threshold_multi_if_function(self) -> SelectType:
+        """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
+        this returns the right duration value (for example, lcp or duration) based
+        on project or transaction thresholds that have been configured by the user.
+        """
+
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "equals",
+                    [
+                        Function(
+                            "tupleElement",
+                            [self.resolve_field_alias("project_threshold_config"), 1],
+                        ),
+                        "lcp",
+                    ],
+                ),
+                self.column("measurements.lcp"),
+                self.column("transaction.duration"),
+            ],
+        )
+
+    def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            function_args = [self.column("transaction.duration"), int(args["satisfaction"])]
+        else:
+            function_args = [
+                self._project_threshold_multi_if_function(),
+                Function("tupleElement", [self.resolve_field_alias("project_threshold_config"), 2]),
+            ]
+
+        return Function("apdex", function_args, alias)
+
+    def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            lhs = self.column("transaction.duration")
+            rhs = int(args["tolerated"])
+        else:
+            lhs = self._project_threshold_multi_if_function()
+            rhs = Function(
+                "multiply",
+                [
+                    Function(
+                        "tupleElement",
+                        [self.resolve_field_alias("project_threshold_config"), 2],
+                    ),
+                    4,
+                ],
+            )
+        col = args["column"]
+
+        return Function(
+            "uniqIf",
+            [
+                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
+                Function("greater", [lhs, rhs]),
+            ],
+            alias,
+        )
+
+    def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
+        if args["satisfaction"]:
+            count_miserable_agg = self.resolve_function(
+                f"count_miserable(user,{args['satisfaction']})"
+            )
+        else:
+            count_miserable_agg = self.resolve_function("count_miserable(user)")
+
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                count_miserable_agg,
+                                args["alpha"],
+                            ],
+                        ),
+                        Function(
+                            "plus",
+                            [
+                                Function("uniq", [self.column("user")]),
+                                args["parameter_sum"],
+                            ],
+                        ),
+                    ],
+                ),
+                0,
+            ],
+            alias,
         )
 
     def _resolve_unimplemented_function(

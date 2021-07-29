@@ -130,7 +130,14 @@ def _query_snuba(group: Group, id: int, offset=None, limit=None):
             ]
         )
         .set_groupby([Column("new_materialized_hash")])
-        .set_orderby([OrderBy(Column("latest_event_timestamp"), Direction.DESC)])
+        .set_orderby(
+            [
+                OrderBy(Column("event_count"), Direction.DESC),
+                # Completely useless sorting key, only there to achieve stable sort
+                # order in tests.
+                OrderBy(Column("latest_event_timestamp"), Direction.DESC),
+            ]
+        )
     )
 
     levels_overview = get_levels_overview(group)

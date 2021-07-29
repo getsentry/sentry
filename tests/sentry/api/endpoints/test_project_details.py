@@ -121,13 +121,13 @@ class ProjectDetailsTest(APITestCase):
         assert (
             AuditLogEntry.objects.get(
                 organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
-            ).data["old_slug"]
+            ).data.get("old_slug")
             == project.slug
         )
         assert (
             AuditLogEntry.objects.get(
                 organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
-            ).data["new_slug"]
+            ).data.get("new_slug")
             == "foobar"
         )
         assert response.data["slug"] == "foobar"

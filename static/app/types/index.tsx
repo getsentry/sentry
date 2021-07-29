@@ -454,10 +454,14 @@ export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
+  start?: number;
+  end?: number;
 };
 
 // API response format for multiple series
-export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
+export type MultiSeriesEventsStats = {
+  [seriesName: string]: EventsStats;
+};
 
 /**
  * Avatars are a more primitive version of User.
@@ -663,6 +667,10 @@ export type Authenticator = {
    */
   allowMultiEnrollment: boolean;
   /**
+   * Allows authenticator's secret to be rotated without disabling
+   */
+  allowRotationInPlace: boolean;
+  /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
@@ -683,6 +691,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+  rotationWarning: string | null;
+  status: string;
   createdAt: string | null;
   lastUsedAt: string | null;
   codes: string[];
@@ -2154,13 +2164,15 @@ export type IssueOwnership = {
   autoAssignment: boolean;
 };
 
-export type CodeOwners = {
+export type CodeOwner = {
   id: string;
   raw: string;
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
   codeMapping?: RepositoryProjectPathConfig;
+  codeMappingId: string;
+  ownershipSyntax?: string;
   errors: {
     missing_external_teams: string[];
     missing_external_users: string[];
@@ -2200,4 +2212,10 @@ export type ExternalTeam = {
   externalName: string;
   provider: string;
   integrationId: string;
+};
+
+export type CodeownersFile = {
+  raw: string;
+  filepath: string;
+  html_url: string;
 };

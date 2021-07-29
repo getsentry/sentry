@@ -10,7 +10,6 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     NotificationSetting,
-    OrganizationMember,
     Team,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
@@ -19,14 +18,12 @@ from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 
-from ..utils import is_valid_role, logger, render_error_page, send_confirmation
+from ..utils import logger, render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
 ALLOWED_METHODS = ["GET", "POST"]
 
-INSUFFICIENT_ROLE_TITLE = "Insufficient role"
-INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher to link teams."
 ALREADY_LINKED_TITLE = "Already linked"
 ALREADY_LINKED_MESSAGE = "The {slug} team has already been linked to a Slack channel."
 SUCCESS_LINKED_TITLE = "Team linked"
@@ -101,27 +98,9 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             )
             return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
-        try:
-            identity = Identity.objects.select_related("user").get(
-                idp=idp, external_id=params["slack_id"]
-            )
-        except Identity.DoesNotExist:
-            logger.error(
-                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
-            )
+        if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
-        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
-
-        if not is_valid_role(org_member, team, organization):
-            return send_confirmation(
-                integration,
-                channel_id,
-                INSUFFICIENT_ROLE_TITLE,
-                INSUFFICIENT_ROLE_MESSAGE,
-                "sentry/integrations/slack-post-linked-team.html",
-                request,
-            )
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=organization,

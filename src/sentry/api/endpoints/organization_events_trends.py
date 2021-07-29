@@ -256,7 +256,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         self, request, organization, params, trend_function, selected_columns, orderby, query
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup):
+            def get_event_stats(query_columns, query, params, rollup, zerofill_results):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
@@ -268,6 +268,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     organization,
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
+                    zerofill_results=zerofill_results,
                 )
 
             stats_results = (

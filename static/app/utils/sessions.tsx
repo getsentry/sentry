@@ -144,6 +144,11 @@ export function getSessionsInterval(
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
+  if (moment(datetimeObj.start).isSameOrBefore(moment().subtract(30, 'days'))) {
+    // we cannot use sub-hour session resolution on buckets older than 30 days
+    highFidelity = false;
+  }
+
   if (diffInMinutes > TWO_WEEKS) {
     return '1d';
   }
@@ -177,7 +182,9 @@ export function filterSessionsInTimeWindow(
   const filteredIndexes: number[] = [];
 
   const intervals = sessions.intervals.filter((interval, index) => {
-    const isBetween = moment(interval).isBetween(start, end, undefined, '[]');
+    const isBetween = moment
+      .utc(interval)
+      .isBetween(moment.utc(start), moment.utc(end), undefined, '[]');
     if (isBetween) {
       filteredIndexes.push(index);
     }

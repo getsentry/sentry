@@ -18,6 +18,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
+import {Theme} from 'app/utils/theme';
 import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
@@ -30,7 +31,7 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
-const ADOPTION_STAGE_LABELS = {
+const ADOPTION_STAGE_LABELS: Record<string, {name: string; type: keyof Theme['tag']}> = {
   low_adoption: {
     name: t('Low Adoption'),
     type: 'warning',
@@ -70,11 +71,13 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
+  const hasReleaseStages = organization.features.includes('release-adoption-stage');
   const anyProjectMobile =
     projects.filter(
       project => project.platform && isProjectMobileForReleases(project.platform)
     ).length > 0;
-  const hasAdoptionStagesColumn: boolean = anyProjectMobile && showAdoptionStageLabels;
+  const hasAdoptionStagesColumn: boolean =
+    hasReleaseStages && anyProjectMobile && showAdoptionStageLabels;
   return (
     <Fragment>
       <Header>
@@ -144,8 +147,9 @@ const Content = ({
               adoptionStages?.[project.slug].stage;
 
             const isMobileProject = isProjectMobileForReleases(project.platform);
-            const hasAdoptionStagesLabel =
-              get24hCountByProject && adoptionStage && isMobileProject;
+            const adoptionStageLabel =
+              Boolean(get24hCountByProject && adoptionStage && isMobileProject) &&
+              ADOPTION_STAGE_LABELS[adoptionStage];
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -156,9 +160,9 @@ const Content = ({
 
                   {hasAdoptionStagesColumn && (
                     <AdoptionStageColumn>
-                      {hasAdoptionStagesLabel ? (
-                        <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
-                          {ADOPTION_STAGE_LABELS[adoptionStage].name}
+                      {adoptionStageLabel ? (
+                        <Tag type={adoptionStageLabel.type}>
+                          {adoptionStageLabel.name}
                         </Tag>
                       ) : (
                         <NotAvailable />

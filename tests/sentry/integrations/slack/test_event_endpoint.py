@@ -193,10 +193,11 @@ class LinkSharedEventTest(BaseEventTest):
 class MessageIMEventTest(BaseEventTest):
     def get_block_type_text(self, block_type, data):
         block = filter(lambda x: x["type"] == block_type, data["blocks"])[0]
-        if block_type == "section":
-            return block["text"]["text"]
-
         return block["elements"][0]["text"]["text"]
+
+    def get_block_section_text(self, data):
+        blocks = data["blocks"]
+        return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
 
     @responses.activate
     def test_user_message_im(self):
@@ -206,8 +207,10 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
+        heading, contents = self.get_block_section_text(data)
+        assert heading == "Unknown command: `helloo`"
         assert (
-            self.get_block_type_text("section", data)
+            contents
             == "Want to learn more about configuring alerts in Sentry? Check out our documentation."
         )
         assert self.get_block_type_text("actions", data) == "Sentry Docs"
@@ -221,8 +224,10 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
+        heading, contents = self.get_block_section_text(data)
+        assert heading == "Unknown command: `helloo`"
         assert (
-            self.get_block_type_text("section", data)
+            contents
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
 

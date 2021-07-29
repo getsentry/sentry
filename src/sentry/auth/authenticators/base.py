@@ -1,4 +1,7 @@
+from enum import Enum
+
 from django.core.cache import cache
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.utils.otp import TOTP, generate_secret_key
@@ -28,23 +31,37 @@ class ActivationChallengeResult(ActivationResult):
         self.challenge = challenge
 
 
+class EnrollmentStatus(Enum):
+    NEW = "new"
+    MULTI = "multi"
+    ROTATION = "rotation"
+    EXISTING = "existing"
+
+
 class AuthenticatorInterface:
     type = -1
     interface_id = None
     name = None
     description = None
+    rotation_warning = None
     is_backup_interface = False
     enroll_button = _("Enroll")
     configure_button = _("Info")
     remove_button = _("Remove")
     is_available = True
     allow_multi_enrollment = False
+    allow_rotation_in_place = False
 
-    def __init__(self, authenticator=None):
-        if authenticator is None:
-            self.authenticator = None
-        else:
-            self.authenticator = authenticator
+    def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
+        self.authenticator = authenticator
+        self.status = status
+
+    @classmethod
+    def generate(cls, status):
+        # Convenience method to build new instances either from the
+        # class or existing instances. That is, it's nicer than doing
+        # `type(interface)()`.
+        return cls(status=status)
 
     def is_enrolled(self):
         """Returns `True` if the interfaces is enrolled (eg: has an
@@ -110,6 +127,17 @@ class AuthenticatorInterface:
                 raise Authenticator.AlreadyEnrolled()
             self.authenticator.config = self.config
             self.authenticator.save()
+
+    def rotate_in_place(self):
+        if not self.allow_rotation_in_place:
+            raise Exception("This interface does not allow rotation in place")
+        if self.authenticator is None:
+            raise Exception("There is no Authenticator to rotate")
+
+        self.authenticator.config = self.config
+        self.authenticator.created_at = timezone.now()
+        self.authenticator.last_used_at = None
+        self.authenticator.save()
 
     def validate_otp(self, otp):
         """This method is invoked for an OTP response and has to return

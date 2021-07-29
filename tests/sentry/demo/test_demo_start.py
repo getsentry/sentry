@@ -7,6 +7,7 @@ from exam import fixture
 from sentry.demo.demo_start import MEMBER_ID_COOKIE, SAAS_ORG_SLUG, SKIP_EMAIL_COOKIE
 from sentry.demo.models import DemoOrganization
 from sentry.demo.settings import DEMO_DATA_GEN_PARAMS, DEMO_DATA_QUICK_GEN_PARAMS
+from sentry.incidents.models import Incident, IncidentProject
 from sentry.models import Group, Organization, OrganizationStatus, Project, Release, User
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
@@ -124,7 +125,7 @@ class DemoStartTest(TestCase):
             ("oneIssue", base_issue_url),
             ("oneBreadcrumb", base_issue_url + "#breadcrumbs"),
             ("oneStackTrace", base_issue_url + "#exception"),
-            ("oneTransaction", f"/organizations/{org.slug}/discover/"),
+            ("oneTransaction", f"/organizations/{org.slug}/performance/"),
             (
                 "oneWebVitals",
                 f"/organizations/{org.slug}/performance/summary/vitals/?project={project.id}",
@@ -182,3 +183,24 @@ class DemoStartTest(TestCase):
         mock_assign_demo_org.return_value = (self.org, self.user)
         resp = self.client.post(self.path, data={"saasOrgSlug": "my-org"})
         assert resp.cookies[SAAS_ORG_SLUG].value == "my-org"
+
+    @override_settings(
+        DEMO_DATA_QUICK_GEN_PARAMS=DEMO_DATA_QUICK_GEN_PARAMS,
+        DEMO_DATA_GEN_PARAMS=DEMO_DATA_GEN_PARAMS,
+        DEMO_ORG_OWNER_EMAIL=org_owner_email,
+    )
+    def test_metric_alerts(self):
+        User.objects.create(email=org_owner_email)
+        self.client.post(self.path)
+        org = Organization.objects.get(demoorganization__isnull=False)
+
+        incidents = Incident.objects.filter(organization=org)
+        assert len(incidents) >= 2
+
+        project_slugs = []
+        for incident in incidents:
+            for incident_project in IncidentProject.objects.filter(incident=incident):
+                project_slugs.append(incident_project.project.slug)
+
+        assert "python" in project_slugs
+        assert "android" in project_slugs

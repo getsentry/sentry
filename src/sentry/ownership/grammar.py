@@ -1,9 +1,13 @@
+import operator
 import re
 from collections import namedtuple
+from functools import reduce
 from typing import List, Pattern, Tuple
 
+from django.db.models import Q
 from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
+from rest_framework.serializers import ValidationError
 
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
@@ -140,7 +144,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
         """
         spec = _path_to_regex(self.pattern)
-        keys = ["abs_path"]
+        keys = ["filename", "abs_path"]
         for frame in _iter_frames(data):
             value = next((frame.get(key) for key in keys if frame.get(key)), None)
 
@@ -391,25 +395,33 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
     return teams, usernames, emails
 
 
-def convert_codeowners_syntax(data, associations, code_mapping):
+def convert_codeowners_syntax(codeowners, associations, code_mapping):
     """Converts CODEOWNERS text into IssueOwner syntax
-    data: CODEOWNERS text
+    codeowners: CODEOWNERS text
     associations: dict of {externalName: sentryName}
     code_mapping: RepositoryProjectPathConfig object
     """
 
     result = ""
 
-    for rule in data.splitlines():
+    for rule in codeowners.splitlines():
         if rule.startswith("#") or not len(rule):
             # We want to preserve comments from CODEOWNERS
             result += f"{rule}\n"
             continue
 
-        path, *codeowners = rule.split()
+        path, *code_owners = (x.strip() for x in rule.split())
+        # Escape invalid paths https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners#syntax-exceptions
+        # Check if path has whitespace
+        # Check if path has '#' not as first character
+        # Check if path contains '!'
+        # Check if path has a '[' followed by a ']'
+        if re.search(r"(\[([^]^\s]*)\])|[\s!#]", path):
+            continue
+
         sentry_assignees = []
 
-        for owner in codeowners:
+        for owner in code_owners:
             try:
                 sentry_assignees.append(associations[owner])
             except KeyError:
@@ -423,7 +435,99 @@ def convert_codeowners_syntax(data, associations, code_mapping):
                 continue
 
         if sentry_assignees:
-            formatted_path = path.replace(code_mapping.source_root, code_mapping.stack_root, 1)
-            result += f'path:{formatted_path} {" ".join(sentry_assignees)}\n'
+            # Replace source_root with stack_root for anchored paths
+            # /foo/dir -> anchored
+            # foo/dir -> anchored
+            # foo/dir/ -> anchored
+            # foo/ -> not anchored
+            if re.search(r"[\/].{1}", path):
+                path_with_stack_root = path.replace(
+                    code_mapping.source_root, code_mapping.stack_root, 1
+                )
+                # flatten multiple '/' if not protocol
+                formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
+                result += f'codeowners:{formatted_path} {" ".join(sentry_assignees)}\n'
+            else:
+                result += f'codeowners:{path} {" ".join(sentry_assignees)}\n'
 
     return result
+
+
+def resolve_actors(owners, project_id):
+    """Convert a list of Owner objects into a dictionary
+    of {Owner: Actor} pairs. Actors not identified are returned
+    as None."""
+    from sentry.models import ActorTuple, Team, User
+
+    if not owners:
+        return {}
+
+    users, teams = [], []
+    owners_lookup = {}
+
+    for owner in owners:
+        # teams aren't technical case insensitive, but teams also
+        # aren't allowed to have non-lowercase in slugs, so
+        # this kinda works itself out correctly since they won't match
+        owners_lookup[(owner.type, owner.identifier.lower())] = owner
+        if owner.type == "user":
+            users.append(owner)
+        elif owner.type == "team":
+            teams.append(owner)
+
+    actors = {}
+    if users:
+        actors.update(
+            {
+                ("user", email.lower()): ActorTuple(u_id, User)
+                for u_id, email in User.objects.filter(
+                    reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
+                    # We don't require verified emails
+                    # emails__is_verified=True,
+                    is_active=True,
+                    sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
+                )
+                .distinct()
+                .values_list("id", "emails__email")
+            }
+        )
+
+    if teams:
+        actors.update(
+            {
+                ("team", slug): ActorTuple(t_id, Team)
+                for t_id, slug in Team.objects.filter(
+                    slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
+                ).values_list("id", "slug")
+            }
+        )
+
+    return {o: actors.get((o.type, o.identifier.lower())) for o in owners}
+
+
+def create_schema_from_issue_owners(issue_owners, project_id):
+    try:
+        rules = parse_rules(issue_owners)
+    except ParseError as e:
+        raise ValidationError(
+            {"raw": f"Parse error: {e.expr.name} (line {e.line()}, column {e.column()})"}
+        )
+
+    schema = dump_schema(rules)
+
+    owners = {o for rule in rules for o in rule.owners}
+    actors = resolve_actors(owners, project_id)
+
+    bad_actors = []
+    for owner, actor in actors.items():
+        if actor is None:
+            if owner.type == "user":
+                bad_actors.append(owner.identifier)
+            elif owner.type == "team":
+                bad_actors.append(f"#{owner.identifier}")
+
+    if bad_actors:
+        bad_actors.sort()
+        raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
+
+    return schema

@@ -1,6 +1,5 @@
 {
-  const {TokenConverter} = options;
-  const tc = new TokenConverter();
+  const {tc, term} = options;
 }
 
 term
@@ -69,17 +68,17 @@ divide
     return "divide";
   }
 
-function_value
+function_value "function"
   = function_name open_paren spaces function_args? spaces closed_paren {
-    return text();
+    return tc.tokenFunction(text(), location());
   }
-numeric_value
+numeric_value "number"
   = [+-]?[0-9]+ ("." [0-9]*)? {
     return text();
   }
-field_value
+field_value "field"
   = [a-zA-Z_\.]+ {
-    return text();
+    return tc.tokenField(text(), location());
   }
 
 function_args
