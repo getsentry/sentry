@@ -91,18 +91,18 @@ def handle_owner_assignment(project, group, event):
         assignee_key = "assignee_exists:1:%s" % group.id
         assignees_exists = cache.get(assignee_key)
         if assignees_exists is None:
-            assignee_exists = group.assignee_set.exists()
+            assignees_exists = group.assignee_set.exists()
             # Cache for an hour if it's assigned. We don't need to move that fast.
-            cache.set(assignee_key, assignees_exists, 3600 if assignee_exists else 60)
+            cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
 
-        if owners_exists and assignee_exists:
+        if owners_exists and assignees_exists:
             return
 
         auto_assignment, owners, assigned_by_codeowners = ProjectOwnership.get_autoassign_owners(
             group.project_id, event.data
         )
 
-        if auto_assignment and owners and not assignee_exists:
+        if auto_assignment and owners and not assignees_exists:
             GroupAssignee.objects.assign(group, owners[0])
             if assigned_by_codeowners:
                 analytics.record(
