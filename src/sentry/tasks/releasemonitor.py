@@ -4,13 +4,14 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from django.db import IntegrityError
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 from snuba_sdk import Column, Condition, Direction, Entity, Granularity, Op, OrderBy, Query
 
 from sentry.models import (
     Environment,
+    Project,
     Release,
     ReleaseEnvironment,
     ReleaseProject,
@@ -103,6 +104,13 @@ def process_projects_with_sessions(org_id, project_ids):
     # Takes a single org id and a list of project ids
 
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core"):
+        # Set the `has_sessions` flag for these projects
+        Project.objects.filter(
+            organization_id=org_id,
+            id__in=project_ids,
+            flags=F("flags").bitand(~Project.flags.has_sessions),
+        ).update(flags=F("flags").bitor(Project.flags.has_sessions))
+
         totals = sum_sessions_and_releases(org_id, project_ids)
 
         adopted_ids = adopt_releases(org_id, totals)
