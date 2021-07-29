@@ -315,11 +315,15 @@ register("store.reprocessing-force-disable", default=False)
 register("store.race-free-group-creation-force-disable", default=False)
 
 
-# Killswitch for dropping events if they were to create groups
+# ## sentry.killswitches
+#
+# The following options are documented in sentry.killswitches in more detail
 register("store.load-shed-group-creation-projects", type=Any, default=[])
-
-# Killswitch for dropping events in ingest consumer
 register("store.load-shed-pipeline-projects", type=Any, default=[])
+register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
+register("store.load-shed-save-event-projects", type=Any, default=[])
+register("store.load-shed-process-event-projects", type=Any, default=[])
+register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -332,15 +336,6 @@ register("store.background-grouping-sample-rate", default=0.0)
 
 # True if background grouping should run before secondary and primary grouping
 register("store.background-grouping-before", default=False)
-
-# Killswitch for dropping events in ingest consumer (after parsing them)
-register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
-
-# Killswitch for skipping processing events in process_event
-register("store.load-shed-process-event-projects", type=Any, default=[])
-
-# Killswitch for skipping processing events in symbolicate_event
-register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # Store release files bundled as zip files
 register("processing.save-release-archives", default=False)  # unused
@@ -360,6 +355,3 @@ register("eventstream:kafka-headers", default=False)
 
 # Post process forwarder gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=False)
-
-# Killswitch for dropping events in save_event
-register("store.load-shed-save-event-projects", type=Any, default=[])
