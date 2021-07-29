@@ -171,7 +171,7 @@ const ListToken = ({
   token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
   cursor: number;
 }) => (
-  <InList>
+  <InList hasClosing={token.text.endsWith(']')}>
     {token.items.map(({value, separator}) => [
       <ListComma key="comma">{separator}</ListComma>,
       renderToken(value, cursor),
@@ -288,17 +288,20 @@ const ListComma = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const InList = styled('span')`
+const InList = styled('span')<{hasClosing: boolean}>`
   &:before {
     content: '[';
     font-weight: bold;
     color: ${p => p.theme.purple300};
   }
-  &:after {
+
+  ${p =>
+    p.hasClosing &&
+    `&:after {
     content: ']';
     font-weight: bold;
-    color: ${p => p.theme.purple300};
-  }
+    color: ${p.theme.purple300};
+  }`}
 
   ${Value} {
     color: ${p => p.theme.purple300};

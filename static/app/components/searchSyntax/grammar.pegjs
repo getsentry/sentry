@@ -57,6 +57,7 @@ filter
   / has_filter
   / is_filter
   / text_in_filter
+  / partial_text_in_filter
   / text_filter
 
 // filter for dates
@@ -179,6 +180,14 @@ text_in_filter
       return tc.tokenFilter(FilterType.TextIn, key, value, opDefault, !!negation);
     }
 
+// partial in filter key:[val1, val2
+partial_text_in_filter
+  = negation:negation? key:text_key sep value:partial_text_in_list &{
+      return tc.predicateFilter(FilterType.PartialTextIn, key)
+    } {
+      return tc.tokenFilter(FilterType.PartialTextIn, key, value, opDefault, !!negation);
+    }
+
 // standard key:val filter
 //
 // The text_filter is a little special since it may not have an operator
@@ -268,6 +277,15 @@ text_in_list
     closed_bracket
     &end_value {
       return tc.tokenValueTextList(item1, items);
+    }
+
+partial_text_in_list
+  = open_bracket
+    item1:text_in_value
+    items:(spaces comma spaces text_in_value)*
+    end_items:(spaces comma spaces search_value)*
+    &end_value {
+      return tc.partialTokenValueTextList(item1, items, end_items);
     }
 
 numeric_in_list

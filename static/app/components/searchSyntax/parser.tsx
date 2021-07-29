@@ -79,6 +79,7 @@ export enum BooleanOperator {
 export enum FilterType {
   Text = 'text',
   TextIn = 'textIn',
+  PartialTextIn = 'partialTextIn',
   Date = 'date',
   SpecificDate = 'specificDate',
   RelativeDate = 'relativeDate',
@@ -140,6 +141,12 @@ export const filterTypeConfig = {
     canNegate: true,
   },
   [FilterType.TextIn]: {
+    validKeys: textKeys,
+    validOps: [],
+    validValues: [Token.ValueTextList],
+    canNegate: true,
+  },
+  [FilterType.PartialTextIn]: {
     validKeys: textKeys,
     validOps: [],
     validValues: [Token.ValueTextList],
@@ -488,6 +495,20 @@ export class TokenConverter {
     this.makeToken({
       type: Token.ValueTextList as const,
       items: [{separator: '', value: item1}, ...items.map(listJoiner)],
+    });
+
+  partialTokenValueTextList = (
+    item1: ReturnType<TokenConverter['tokenValueText']>,
+    items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[],
+    endItems?: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
+  ) =>
+    this.makeToken({
+      type: Token.ValueTextList as const,
+      items: [
+        {separator: '', value: item1},
+        ...items.map(listJoiner),
+        ...(endItems ? endItems.map(listJoiner) : []),
+      ],
     });
 
   tokenValueText = (value: string, quoted: boolean) =>
