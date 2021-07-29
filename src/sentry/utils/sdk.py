@@ -42,6 +42,9 @@ SAMPLED_URL_NAMES = {
     "sentry-extensions-vercel-configure": settings.SAMPLED_DEFAULT_RATE,
     "sentry-extensions-vercel-ui-hook": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-group-integration-details": settings.SAMPLED_DEFAULT_RATE,
+    # notification platform
+    "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
@@ -69,7 +72,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.assemble.assemble_dif": 0.1,
-    "sentry.tasks.app_store_connect.dsym_download": 1,
+    "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
+    "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
 }
 
 
