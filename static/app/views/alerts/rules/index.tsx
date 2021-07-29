@@ -179,7 +179,8 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         pathname: location.pathname,
                         query: {
                           ...currentQuery,
-                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
+                          // sort by name should start by ascending on first click
+                          asc: sort.field === 'name' && sort.asc ? undefined : '1',
                           sort: 'name',
                         },
                       }}
