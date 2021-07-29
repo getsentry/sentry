@@ -244,3 +244,34 @@ class QueryBuilderTest(TestCase):
                 )
             ],
         )
+
+    def test_count_if(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count_if(event.type,equals,transaction)",
+                'count_if(event.type,notEquals,"transaction")',
+            ],
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.aggregates,
+            [
+                Function(
+                    "countIf",
+                    [
+                        Function("equals", [Column("type"), "transaction"]),
+                    ],
+                    "count_if_event_type_equals_transaction",
+                ),
+                Function(
+                    "countIf",
+                    [
+                        Function("notEquals", [Column("type"), "transaction"]),
+                    ],
+                    "count_if_event_type_notEquals__transaction",
+                ),
+            ],
+        )

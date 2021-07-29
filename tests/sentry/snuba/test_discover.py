@@ -634,6 +634,60 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data) == len(expected)
                 assert [x[alias] for x in data] == expected
 
+    def test_count_if_function(self):
+        for i in range(3):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["release"] = "aaaa"
+            self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["release"] = "bbbb"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["release"] = "cccc"
+        self.store_event(data, project_id=self.project.id)
+
+        columns1 = ["count()", "count_if(release,equals,aaaa)", "count_if(release,notEquals,aaaa)"]
+        columns2 = ["count()", "count_if(release,less,bbbb)", "count_if(release,lessOrEquals,bbbb)"]
+
+        test_cases = [
+            (
+                columns1,
+                "",
+                {
+                    "count": 5,
+                    "count_if_release_equals_aaaa": 3,
+                    "count_if_release_notEquals_aaaa": 2,
+                },
+            ),
+            (
+                columns2,
+                "",
+                {
+                    "count": 5,
+                    "count_if_release_less_bbbb": 3,
+                    "count_if_release_lessOrEquals_bbbb": 4,
+                },
+            ),
+        ]
+
+        for cols, query, expected in test_cases:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=cols,
+                    query=query,
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [self.project.id],
+                    },
+                )
+
+                data = result["data"]
+                assert len(data) == 1
+                assert data[0] == expected
+
     def test_failure_count_function(self):
         project = self.create_project()
 

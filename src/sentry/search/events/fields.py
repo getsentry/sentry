@@ -2385,6 +2385,37 @@ class QueryFields(QueryBase):
                         alias,
                     ),
                 ),
+                SnQLFunction(
+                    "count_if",
+                    required_args=[
+                        # This is a FunctionArg cause the column can be a tag as well
+                        SnQLColumn("column"),
+                        ConditionArg("condition"),
+                        SnQLStringArg(
+                            "value", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "typed_value",
+                            "fn": normalize_count_if_value,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                args["condition"],
+                                [
+                                    args["column"],
+                                    args["typed_value"],
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
                 # TODO: implement these
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
@@ -2414,7 +2445,6 @@ class QueryFields(QueryBase):
                     "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
                 ),
                 SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
                 ),
