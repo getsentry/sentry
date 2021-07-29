@@ -38,7 +38,7 @@ class TestUpdateDsyms:
             platform="iOS",
             version="3.1.5",
             build_number="20200220",
-            uploaded_date=datetime.utcnow(),
+            uploaded_date=timezone.now(),
         )
 
     @pytest.mark.django_db
@@ -104,7 +104,7 @@ class TestUpdateDsyms:
         assert entry.last_checked >= before
 
     @pytest.mark.django_db
-    def process_existing_unfetched_build(self, default_project, config, build):
+    def test_process_existing_unfetched_build(self, default_project, config, build):
         AppConnectBuild.objects.create(
             project=default_project,
             app_id=build.app_id,
@@ -113,10 +113,11 @@ class TestUpdateDsyms:
             bundle_short_version=build.version,
             bundle_version=build.build_number,
             uploaded_to_appstore=build.uploaded_date,
-            first_seen=datetime.now(),
+            first_seen=timezone.now(),
             fetched=False,
         )
 
+        before = timezone.now()
         pending = process_builds(project=default_project, config=config, to_process=[build])
 
         assert len(pending) == 1
@@ -124,49 +125,35 @@ class TestUpdateDsyms:
         (build, state) = pending[0]
         assert not state.fetched
 
-        try:
-            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
-        except LatestAppConnectBuildsCheck.DoesNotExist:
-            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
-
-    @pytest.mark.django_db
-    def process_multiple_builds(self, default_project, config, build):
-        AppConnectBuild.objects.create(
-            project=default_project,
-            app_id=build.app_id,
-            bundle_id=config.bundleId,
-            platform=build.platform,
-            bundle_short_version=build.version,
-            bundle_version=build.build_number,
-            uploaded_to_appstore=build.uploaded_date,
-            first_seen=datetime.now(),
-            fetched=True,
+        entry = LatestAppConnectBuildsCheck.objects.get(
+            project=default_project, source_id=config.id
         )
+        assert entry.last_checked >= before
 
     @pytest.mark.django_db
-    def create_new_persisted_build(self, default_project, config, build):
+    def test_create_new_persisted_build(self, default_project, config, build):
         returned_build = get_or_create_persisted_build(default_project, config, build)
 
         expected_build = AppConnectBuild(
             project=default_project,
-            app_id=build.app_id,
+            app_id=int(build.app_id),
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
             bundle_version=build.build_number,
             uploaded_to_appstore=build.uploaded_date,
-            first_seen=datetime.now(),
+            first_seen=timezone.now(),
             fetched=False,
         )
 
         assert returned_build.fetched == expected_build.fetched
         assert returned_build.project == expected_build.project
         assert returned_build.app_id == expected_build.app_id
-        assert returned_build.bundle_id == expected_build.bundleId
+        assert returned_build.bundle_id == expected_build.bundle_id
         assert returned_build.platform == expected_build.platform
-        assert returned_build.bundle_short_version == expected_build.version
-        assert returned_build.bundle_version == expected_build.build_number
-        assert returned_build.uploaded_to_appstore == expected_build.uploaded_date
+        assert returned_build.bundle_short_version == expected_build.bundle_short_version
+        assert returned_build.bundle_version == expected_build.bundle_version
+        assert returned_build.uploaded_to_appstore == expected_build.uploaded_to_appstore
 
         saved_build = AppConnectBuild.objects.get(
             project=default_project,
@@ -179,14 +166,14 @@ class TestUpdateDsyms:
         assert saved_build.fetched == expected_build.fetched
         assert saved_build.project == expected_build.project
         assert saved_build.app_id == expected_build.app_id
-        assert saved_build.bundle_id == expected_build.bundleId
+        assert saved_build.bundle_id == expected_build.bundle_id
         assert saved_build.platform == expected_build.platform
-        assert saved_build.bundle_short_version == expected_build.version
-        assert saved_build.bundle_version == expected_build.build_number
-        assert saved_build.uploaded_to_appstore == expected_build.uploaded_date
+        assert saved_build.bundle_short_version == expected_build.bundle_short_version
+        assert saved_build.bundle_version == expected_build.bundle_version
+        # assert saved_build.uploaded_to_appstore == expected_build.uploaded_to_appstore
 
     @pytest.mark.django_db
-    def get_persisted_build(self, default_project, config, build):
+    def test_get_persisted_build(self, default_project, config, build):
         seen = datetime(2020, 2, 20)
 
         AppConnectBuild.objects.create(
@@ -205,7 +192,7 @@ class TestUpdateDsyms:
 
         assert existing_build.fetched
         assert existing_build.project == default_project
-        assert existing_build.app_id == build.app_id
+        assert str(existing_build.app_id) == build.app_id
         assert existing_build.bundle_id == config.bundleId
         assert existing_build.platform == build.platform
         assert existing_build.bundle_short_version == build.version
@@ -213,7 +200,7 @@ class TestUpdateDsyms:
         assert existing_build.uploaded_to_appstore == build.uploaded_date
 
     @pytest.mark.django_db
-    def get_persisted_build_preserves_existing_fetched(self, default_project, config, build):
+    def test_get_persisted_build_preserves_existing_fetched(self, default_project, config, build):
         seen = datetime(2020, 2, 20)
 
         AppConnectBuild.objects.create(
@@ -232,7 +219,7 @@ class TestUpdateDsyms:
 
         assert not existing_build.fetched
         assert existing_build.project == default_project
-        assert existing_build.app_id == build.app_id
+        assert str(existing_build.app_id) == build.app_id
         assert existing_build.bundle_id == config.bundleId
         assert existing_build.platform == build.platform
         assert existing_build.bundle_short_version == build.version
