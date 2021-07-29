@@ -1315,21 +1315,9 @@ def with_default(default, argument):
 
 
 class SnQLNumericColumnNoLookup(NumericColumn):
-    measurement_aliases = {
-        MEASUREMENTS_FRAMES_SLOW_RATE,
-        MEASUREMENTS_FRAMES_FROZEN_RATE,
-        MEASUREMENTS_STALL_PERCENTAGE,
-    }
-
-    def __init__(self, name):
-        super().__init__(name)
-
     def normalize(self, value, params):
         super().normalize(value, params)
         return value
-
-    def get_type(self, value):
-        return super().get_type(value)
 
 
 # Implementation of certain FunctionArg subclasses
@@ -2923,10 +2911,18 @@ class QueryFields(QueryBase):
         alias: str,
         fixed_percentile: float = None,
     ) -> SelectType:
-        return Function(
-            f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
-            [args["column"]],
-            alias,
+        return (
+            Function(
+                "max",
+                [args["column"]],
+                alias,
+            )
+            if fixed_percentile == 1
+            else Function(
+                f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                [args["column"]],
+                alias,
+            )
         )
 
     def _resolve_division(self, dividend: str, divisor: str) -> SelectType:
