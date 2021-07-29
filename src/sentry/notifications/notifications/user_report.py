@@ -46,7 +46,7 @@ class UserReportNotification(BaseNotification):
 
     def get_notification_title(self) -> str:
         # This shouldn't be possible but adding a message just in case.
-        return "Weekly Report"
+        return self.get_subject()
 
     def get_reference(self) -> Any:
         return self.project
