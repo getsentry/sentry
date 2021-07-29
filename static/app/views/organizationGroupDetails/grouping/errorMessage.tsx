@@ -4,7 +4,7 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
 import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Group, Organization, Project} from 'app/types';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -72,24 +72,26 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
         };
       case 'project_not_hierarchical':
         return {
-          title: t('Update your grouping algorithm first'),
+          title: t('Update your Grouping Config'),
           subTitle: (
             <React.Fragment>
               <p>
                 {t(
-                  'Advanced grouping features can only be used together with the latest grouping algorithm:'
+                  'Enable advanced grouping insights and functionality by updating this project to the latest Grouping Config:'
                 )}
               </p>
 
               <ul>
                 <li>
-                  {t(
-                    'Grouping Breakdown: Explore fragments of an issue by additional frames.'
+                  {tct(
+                    '[strong:Breakdowns:] Explore events in this issue by call hierarchy.',
+                    {strong: <strong />}
                   )}
                 </li>
                 <li>
-                  {t(
-                    'Stacktrace annotations: Show directly on stacktrace which frames Sentry groups by, and why.'
+                  {tct(
+                    '[strong:Stack trace annotations:] See important frames Sentry uses to group issues directly in the stack trace.',
+                    {strong: <strong />}
                   )}
                 </li>
               </ul>
@@ -101,7 +103,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
               priority="primary"
               to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
             >
-              {t('Upgrade Grouping Algorithm')}
+              {t('Upgrade Grouping Config')}
             </Button>
           ),
         };
