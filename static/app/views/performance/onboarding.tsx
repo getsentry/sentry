@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
@@ -6,6 +7,7 @@ import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
 import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import FeatureTourModal, {
@@ -15,8 +17,10 @@ import FeatureTourModal, {
 } from 'app/components/modals/featureTourModal';
 import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withApi from 'app/utils/withApi';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -79,9 +83,11 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
 
 type Props = {
   organization: Organization;
+  api: Client;
+  project: Project;
 };
 
-function Onboarding({organization}: Props) {
+function Onboarding({organization, project, api}: Props) {
   function handleAdvance(step: number, duration: number) {
     trackAnalyticsEvent({
       eventKey: 'performance_views.tour.advance',
@@ -101,6 +107,54 @@ function Onboarding({organization}: Props) {
       duration,
     });
   }
+  const showSampleTransactionBtn = organization.features.includes(
+    'performance-create-sample-transaction'
+  );
+  const featureTourBtn = (
+    <FeatureTourModal
+      steps={PERFORMANCE_TOUR_STEPS}
+      onAdvance={handleAdvance}
+      onCloseModal={handleClose}
+      doneUrl={performanceSetupUrl}
+      doneText={t('Start Setup')}
+    >
+      {({showModal}) => (
+        <Button
+          priority={showSampleTransactionBtn ? 'link' : 'default'}
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'performance_views.tour.start',
+              eventName: 'Performance Views: Tour Start',
+              organization_id: parseInt(organization.id, 10),
+            });
+            showModal();
+          }}
+        >
+          {t('Take a Tour')}
+        </Button>
+      )}
+    </FeatureTourModal>
+  );
+  const secondaryBtn = showSampleTransactionBtn ? (
+    <Button
+      onClick={async () => {
+        trackAdvancedAnalyticsEvent(
+          'growth.performance_sample_transaction',
+          {platform: project.platform},
+          organization
+        );
+        const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
+        const eventData = await api.requestPromise(url, {method: 'POST'});
+        browserHistory.push(
+          `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+        );
+      }}
+    >
+      {t('Create Sample Transaction')}
+    </Button>
+  ) : (
+    featureTourBtn
+  );
 
   return (
     <OnboardingPanel image={<PerfImage src={emptyStateImg} />}>
@@ -118,30 +172,9 @@ function Onboarding({organization}: Props) {
         >
           {t('Start Setup')}
         </Button>
-        <FeatureTourModal
-          steps={PERFORMANCE_TOUR_STEPS}
-          onAdvance={handleAdvance}
-          onCloseModal={handleClose}
-          doneUrl={performanceSetupUrl}
-          doneText={t('Start Setup')}
-        >
-          {({showModal}) => (
-            <Button
-              priority="default"
-              onClick={() => {
-                trackAnalyticsEvent({
-                  eventKey: 'performance_views.tour.start',
-                  eventName: 'Performance Views: Tour Start',
-                  organization_id: parseInt(organization.id, 10),
-                });
-                showModal();
-              }}
-            >
-              {t('Take a Tour')}
-            </Button>
-          )}
-        </FeatureTourModal>
+        {secondaryBtn}
       </ButtonList>
+      {showSampleTransactionBtn && featureTourBtn}
     </OnboardingPanel>
   );
 }
@@ -169,6 +202,7 @@ const PerfImage = styled('img')`
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  margin-bottom: 16px;
 `;
 
-export default Onboarding;
+export default withApi(Onboarding);

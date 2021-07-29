@@ -34,6 +34,10 @@ type SampleEventParam = {
   platform?: PlatformKey;
 };
 
+type SampleTransactionParam = {
+  platform?: PlatformKey;
+};
+
 type InviteRequestParam = {
   member_id: number;
   invite_status: string;
@@ -59,6 +63,7 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
+  'growth.performance_sample_transaction': SampleTransactionParam;
   'invite_request.approved': InviteRequestParam;
   'invite_request.denied': InviteRequestParam;
 };
@@ -89,6 +94,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
+  'growth.performance_sample_transaction': 'Growth: Performance Sample Transaction',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
 };
