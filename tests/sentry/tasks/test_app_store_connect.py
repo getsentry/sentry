@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 import pytest
+from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.models.appconnectbuilds import AppConnectBuild
@@ -41,26 +42,31 @@ class TestUpdateDsyms:
         )
 
     @pytest.mark.django_db
-    def process_no_builds(self, default_project, config):
+    def test_process_no_builds(self, default_project, config):
+        before = timezone.now()
         pending = process_builds(project=default_project, config=config, to_process=[])
-
-        assert pending == []
-
-        LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
+        assert not pending
+        entry = LatestAppConnectBuildsCheck.objects.get(
+            project=default_project, source_id=config.id
+        )
+        assert entry.last_checked >= before
 
     @pytest.mark.django_db
-    def process_new_build(self, default_project, config, build):
+    def test_process_new_build(self, default_project, config, build):
+        before = timezone.now()
         pending = process_builds(project=default_project, config=config, to_process=[build])
-
         assert len(pending) == 1
 
         (build, state) = pending[0]
         assert not state.fetched
 
-        LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
+        entry = LatestAppConnectBuildsCheck.objects.get(
+            project=default_project, source_id=config.id
+        )
+        assert entry.last_checked >= before
 
     @pytest.mark.django_db
-    def process_existing_fetched_build(self, default_project, config, build):
+    def test_process_existing_fetched_build(self, default_project, config, build):
         AppConnectBuild.objects.create(
             project=default_project,
             app_id=build.app_id,
@@ -69,16 +75,17 @@ class TestUpdateDsyms:
             bundle_short_version=build.version,
             bundle_version=build.build_number,
             uploaded_to_appstore=build.uploaded_date,
-            first_seen=datetime.now(),
+            first_seen=timezone.now(),
             fetched=True,
         )
 
+        before = timezone.now()
         newer_build = appconnect.BuildInfo(
             app_id="123",
             platform="iOS",
             version="3.1.9",
             build_number="20200224",
-            uploaded_date=datetime.utcnow(),
+            uploaded_date=timezone.now(),
         )
 
         pending = process_builds(
@@ -91,10 +98,10 @@ class TestUpdateDsyms:
         assert not state.fetched
         assert state.bundle_version == "20200224"
 
-        try:
-            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
-        except LatestAppConnectBuildsCheck.DoesNotExist:
-            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
+        entry = LatestAppConnectBuildsCheck.objects.get(
+            project=default_project, source_id=config.id
+        )
+        assert entry.last_checked >= before
 
     @pytest.mark.django_db
     def process_existing_unfetched_build(self, default_project, config, build):
