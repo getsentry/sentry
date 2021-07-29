@@ -17,7 +17,6 @@ from sentry.snuba.sessions_v2 import (
     get_constrained_date_range,
     massage_sessions_result,
 )
-from sentry.utils.dates import parse_stats_period
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
@@ -235,9 +234,7 @@ class QueryDefinition:
         aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
-        interval = parse_stats_period(query.get("interval", "1h"))
-        interval = int(3600 if interval is None else interval.total_seconds())
-        self.dataset = _outcomes_dataset(rollup, interval)
+        self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -360,17 +357,14 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
         DIMENSION_MAP[dimension].map_row(row)
 
 
-def _outcomes_dataset(rollup: int, interval: int) -> Dataset:
+def _outcomes_dataset(rollup: int) -> Dataset:
     outcomes_dataset = {}
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
         outcomes_dataset["dataset"] = Dataset.Outcomes
-    else:
-        outcomes_dataset["dataset"] = Dataset.OutcomesRaw
-
-    if interval >= ONE_HOUR:
         outcomes_dataset["match"] = "outcomes"
     else:
+        outcomes_dataset["dataset"] = Dataset.OutcomesRaw
         outcomes_dataset["match"] = "outcomes_raw"
     return outcomes_dataset
 
