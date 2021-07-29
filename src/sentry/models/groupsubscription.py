@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Sequence, TYPE_CHECKING, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, Optional, Sequence, Union
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
