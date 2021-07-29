@@ -40,6 +40,7 @@ export enum Token {
   KeyExplicitTag = 'keyExplicitTag',
   KeyAggregate = 'keyAggregate',
   KeyAggregateArgs = 'keyAggregateArgs',
+  KeyAggregateParam = 'keyAggregateParam',
   ValueIso8601Date = 'valueIso8601Date',
   ValueRelativeDate = 'valueRelativeDate',
   ValueDuration = 'valueDuration',
@@ -401,6 +402,13 @@ export class TokenConverter {
       key,
     });
 
+  tokenKeyAggregateParam = (value: string, quoted: boolean) =>
+    this.makeToken({
+      type: Token.KeyAggregateParam as const,
+      value,
+      quoted,
+    });
+
   tokenKeyAggregate = (
     name: ReturnType<TokenConverter['tokenKeySimple']>,
     args: ReturnType<TokenConverter['tokenKeyAggregateArgs']> | null,
@@ -416,8 +424,8 @@ export class TokenConverter {
     });
 
   tokenKeyAggregateArgs = (
-    arg1: ReturnType<TokenConverter['tokenKeySimple']>,
-    args: ListItem<ReturnType<TokenConverter['tokenKeySimple']>>[]
+    arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
+    args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
   ) =>
     this.makeToken({
       type: Token.KeyAggregateArgs as const,

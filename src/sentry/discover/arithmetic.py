@@ -114,13 +114,15 @@ divide               = ~r"[/÷]"
 # subtraction, but event_search needs to treat that as a single field since `-`
 # is a valid tag character, which isn't supported in Arithmetic
 
-function_value       = function_name open_paren spaces function_args? spaces closed_paren
-function_args        = function_arg (spaces comma spaces function_arg)*
+function_value         = function_name open_paren spaces function_args? spaces closed_paren
+function_args          = aggregate_param (spaces comma spaces aggregate_param)*
+aggregate_param        = quoted_aggregate_param / raw_aggregate_param
+raw_aggregate_param    = ~r"[^()\t\n, \"]+"
+quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 # Different from a field value, since a function arg may not be a valid field
-function_arg         = ~r"[a-zA-Z_\.0-9]+"
-function_name        = ~r"[a-zA-Z_0-9]+"
-numeric_value        = ~r"[+-]?[0-9]+\.?[0-9]*"
-field_value          = ~r"[a-zA-Z_\.]+"
+function_name          = ~r"[a-zA-Z_0-9]+"
+numeric_value          = ~r"[+-]?[0-9]+\.?[0-9]*"
+field_value            = ~r"[a-zA-Z_\.]+"
 
 comma                = ","
 open_paren           = "("

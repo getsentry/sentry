@@ -81,8 +81,18 @@ field_value "field"
     return tc.tokenField(text(), location());
   }
 
-function_args        = function_arg (spaces comma spaces function_arg)*
-function_arg         = [a-zA-Z_\.0-9]+
+function_args
+  = aggregate_param (spaces comma spaces aggregate_param)*
+
+aggregate_param
+  = quoted_aggregate_param / raw_aggregate_param
+
+raw_aggregate_param
+  = param:[^()\t\n, \"]+
+
+quoted_aggregate_param
+  = '"' param:('\\"' / [^\t\n\"])* '"'
+
 function_name        = [a-zA-Z_0-9]+
 comma                = ","
 open_paren           = "("
