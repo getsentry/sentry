@@ -1347,7 +1347,13 @@ class SmartSearchBar extends React.Component<Props, State> {
               query
             )}
           </Highlight>
-          {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
+          {useFormWrapper ? (
+            <form data-test-id="search-form" onSubmit={this.onSubmit}>
+              {input}
+            </form>
+          ) : (
+            input
+          )}
         </InputWrapper>
 
         <ActionsBar gap={0.5}>

@@ -37,7 +37,7 @@ function SavedSearchTab({
   );
 
   const title = (
-    <TitleWrapper>
+    <TitleWrapper data-test-id="saved-search-title">
       {isActive ? (
         <Fragment>
           <TitleTextOverflow>
