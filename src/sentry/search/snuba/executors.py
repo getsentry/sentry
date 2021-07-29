@@ -363,6 +363,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 if sf.key.name not in self.postgres_only_fields.union(["date"])
             ]
         ):
+            metrics.incr("postgres_snuba_query_executor.inbox_sort")
             # We just filter on `GroupInbox.date_added` here, and don't filter by date
             # on the group. This keeps the query simpler and faster in some edge cases,
             # and date_added is a good enough proxy when we're using this sort.
