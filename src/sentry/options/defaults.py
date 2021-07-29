@@ -336,10 +336,10 @@ register("store.background-grouping-before", default=False)
 # Killswitch for dropping events in ingest consumer (after parsing them)
 register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
 
-# Killswitch for dropping events in process_event
+# Killswitch for skipping processing events in process_event
 register("store.load-shed-process-event-projects", type=Any, default=[])
 
-# Killswitch for dropping events in symbolicate_event
+# Killswitch for skipping processing events in symbolicate_event
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # Store release files bundled as zip files
@@ -360,3 +360,6 @@ register("eventstream:kafka-headers", default=False)
 
 # Post process forwarder gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=False)
+
+# Killswitch for dropping events in save_event
+register("store.load-shed-save-event-projects", type=Any, default=[])

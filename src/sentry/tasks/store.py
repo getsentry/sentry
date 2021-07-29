@@ -209,17 +209,19 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
+    symbolication_function = get_symbolication_function(data)
+    symbolication_function_name = getattr(symbolication_function, "__name__", "none")
+
     if killswitch_matches_context(
         "store.load-shed-symbolicate-event-projects",
         {
             "project_id": project_id,
             "event_id": event_id,
             "platform": data.get("platform") or "null",
+            "symbolication_function": symbolication_function_name,
         },
     ):
-        return
-
-    symbolication_function = get_symbolication_function(data)
+        symbolication_function = None
 
     has_changed = False
 
@@ -228,15 +230,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     symbolication_start_time = time()
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
-        span.set_data("symbolicaton_function", symbolication_function.__name__)
+        span.set_data("symbolication_function", symbolication_function_name)
         with metrics.timer(
             "tasks.store.symbolicate_event.symbolication",
-            tags={"symbolication_function": symbolication_function.__name__},
+            tags={"symbolication_function": symbolication_function_name},
         ):
             while True:
                 try:
+                    if symbolication_function is None:
+                        break
+
                     with sentry_sdk.start_span(
-                        op="tasks.store.symbolicate_event.%s" % symbolication_function.__name__
+                        op="tasks.store.symbolicate_event.%s" % symbolication_function_name
                     ) as span:
                         symbolicated_data = symbolication_function(data)
                         span.set_data("symbolicated_data", bool(symbolicated_data))
@@ -263,7 +268,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                             "tasks.store.symbolicate_event.fatal",
                             tags={
                                 "reason": "timeout",
-                                "symbolication_function": symbolication_function.__name__,
+                                "symbolication_function": symbolication_function_name,
                             },
                         )
                         error_logger.exception(
@@ -278,7 +283,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                         # sleep for `retry_after` but max 5 seconds and try again
                         metrics.incr(
                             "tasks.store.symbolicate_event.retry",
-                            tags={"symbolication_function": symbolication_function.__name__},
+                            tags={"symbolication_function": symbolication_function_name},
                         )
                         sleep(min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER))
                         continue
@@ -287,7 +292,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                         "tasks.store.symbolicate_event.fatal",
                         tags={
                             "reason": "error",
-                            "symbolication_function": symbolication_function.__name__,
+                            "symbolication_function": symbolication_function_name,
                         },
                     )
                     error_logger.exception("tasks.store.symbolicate_event.symbolication")
@@ -393,6 +398,10 @@ def _do_process_event(
     if data is None:
         data = event_processing_store.get(cache_key)
 
+    def _continue_to_save_event():
+        from_reprocessing = process_task is process_event_from_reprocessing
+        submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
+
     if data is None:
         metrics.incr(
             "events.failed", tags={"reason": "cache", "stage": "process"}, skip_internal=False
@@ -415,6 +424,7 @@ def _do_process_event(
             "platform": data.get("platform") or "null",
         },
     ):
+        _continue_to_save_event()
         return
 
     with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
@@ -539,8 +549,7 @@ def _do_process_event(
 
         cache_key = event_processing_store.store(data)
 
-    from_reprocessing = process_task is process_event_from_reprocessing
-    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
+    _continue_to_save_event()
 
 
 @instrumented_task(
@@ -760,6 +769,16 @@ def _do_save_event(
             return
 
         try:
+            if killswitch_matches_context(
+                "store.load-shed-save-event-projects",
+                {
+                    "project_id": project_id,
+                    "event_type": event_type,
+                    "platform": data.get("platform") or "none",
+                },
+            ):
+                raise HashDiscarded("Load shedding save_event")
+
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
