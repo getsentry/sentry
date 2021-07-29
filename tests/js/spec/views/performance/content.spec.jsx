@@ -516,4 +516,46 @@ describe('Performance > Content', function () {
       expect(link).toHaveLength(1);
     }
   });
+
+  it('Display Create Sample Transaction Button with feature flag on', async function () {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: false}),
+    ];
+    const data = initializeData(projects, {view: undefined}, [
+      'performance-create-sample-transaction',
+    ]);
+
+    const wrapper = mountWithTheme(
+      <PerformanceContent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    expect(
+      wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
+    ).toBe(true);
+  });
+
+  it('Do not display Create Sample Transaction Button with feature flag turned off', async function () {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: false}),
+    ];
+    const data = initializeData(projects, {view: undefined}, []);
+
+    const wrapper = mountWithTheme(
+      <PerformanceContent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    expect(
+      wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
+    ).toBe(false);
+  });
 });
