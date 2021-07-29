@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple, Union
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from django.core.exceptions import ValidationError
@@ -376,7 +376,7 @@ def get_settings_url(notification: BaseNotification) -> str:
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 
-def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> Any:
+def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.group.project.organization.slug}/teams/{team.slug}/notifications/"

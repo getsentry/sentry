@@ -70,16 +70,22 @@ def get_assignee(group: Group) -> Optional[Mapping[str, str]]:
         return None
 
 
-def build_attachment_title(obj: Union[Group, Event]) -> Any:
+def build_attachment_title(obj: Union[Group, Event]) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
     if ev_type == "error" and "type" in ev_metadata:
-        return ev_metadata["type"]
+        title = ev_metadata["type"]
+
     elif ev_type == "csp":
-        return "{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
+        title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
+
     else:
-        return obj.title
+        title = obj.title
+
+    # Explicitly typing to satisfy mypy.
+    title_str: str = title
+    return title_str
 
 
 def build_attachment_text(group: Group, event: Optional[Event] = None) -> Optional[Any]:
@@ -136,11 +142,14 @@ def build_action_text(group: Group, identity: Identity, action: Mapping[str, Any
     )
 
 
-def build_rule_url(rule: Any, group: Group, project: Project) -> Any:
+def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
     rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
-    return absolute_uri(rule_url)
+
+    # Explicitly typing to satisfy mypy.
+    url: str = absolute_uri(rule_url)
+    return url
 
 
 def build_footer(group: Group, project: Project, rules: Optional[Sequence[Rule]] = None) -> str:
@@ -260,15 +269,20 @@ def get_title_link(
     link_to_event: bool,
     issue_details: bool,
     notification: Optional[BaseNotification],
-) -> Any:
+) -> str:
     if event and link_to_event:
-        return group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
+        url = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
 
-    if issue_details:
+    elif issue_details:
         referrer = re.sub("Notification$", "Slack", notification.__class__.__name__)
-        return group.get_absolute_url(params={"referrer": referrer})
+        url = group.get_absolute_url(params={"referrer": referrer})
 
-    return group.get_absolute_url(params={"referrer": "slack"})
+    else:
+        url = group.get_absolute_url(params={"referrer": "slack"})
+
+    # Explicitly typing to satisfy mypy.
+    url_str: str = url
+    return url_str
 
 
 def get_timestamp(group: Group, event: Optional[Event]) -> float:
