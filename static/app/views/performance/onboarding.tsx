@@ -134,6 +134,7 @@ function Onboarding({organization, project, api}: Props) {
   );
   const secondaryBtn = showSampleTransactionBtn ? (
     <Button
+      data-test-id="create-sample-transaction-btn"
       onClick={async () => {
         trackAdvancedAnalyticsEvent(
           'performance_views.create_sample_transaction',
