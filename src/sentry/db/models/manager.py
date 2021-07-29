@@ -284,9 +284,9 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
         super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
-    def get(self, **kwargs: Any) -> M:
+    def get(self, *args: Any, **kwargs: Any) -> M:
         # Explicitly typing to satisfy mypy.
-        model: M = super().get(**kwargs)
+        model: M = super().get(*args, **kwargs)
         return model
 
     def get_from_cache(self, **kwargs: Any) -> M:
