@@ -48,6 +48,13 @@ MESSAGE_IM_EVENT = """{
     "message_ts": "123456789.9875"
 }"""
 
+MESSAGE_IM_EVENT_NO_TEXT = """{
+    "type": "message",
+    "channel": "DOxxxxxx",
+    "user": "Uxxxxxxx",
+    "message_ts": "123456789.9875"
+}"""
+
 MESSAGE_IM_EVENT_UNLINK = """{
         "type": "message",
         "text": "unlink",
@@ -312,3 +319,10 @@ class MessageIMEventTest(BaseEventTest):
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))
         assert resp.status_code == 200, resp.content
+
+    @responses.activate
+    def test_user_message_im_no_text(self):
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_NO_TEXT))
+        assert resp.status_code == 200, resp.content
+        assert len(responses.calls) == 0

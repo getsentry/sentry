@@ -73,11 +73,11 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
     ) -> Response:
         channel = data["channel"]
-        if self.is_bot(data):
+        command = request.data.get("event", {}).get("text", "").lower()
+        if self.is_bot(data) or not command:
             return self.respond()
         access_token = self._get_access_token(integration)
         headers = {"Authorization": "Bearer %s" % access_token}
-        command = request.data.get("event", {}).get("text", {}).lower()
         payload = {"channel": channel, **SlackEventMessageBuilder(integration, command).build()}
         client = SlackClient()
         try:
