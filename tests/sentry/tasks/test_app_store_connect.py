@@ -46,10 +46,7 @@ class TestUpdateDsyms:
 
         assert pending == []
 
-        try:
-            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
-        except LatestAppConnectBuildsCheck.DoesNotExist:
-            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
+        LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
 
     @pytest.mark.django_db
     def process_new_build(self, default_project, config, build):
@@ -60,10 +57,7 @@ class TestUpdateDsyms:
         (build, state) = pending[0]
         assert not state.fetched
 
-        try:
-            LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
-        except LatestAppConnectBuildsCheck.DoesNotExist:
-            pytest.fail("Did not record when sentry checked for builds on App Store Connect")
+        LatestAppConnectBuildsCheck.objects.get(project=default_project, source_id=config.id)
 
     @pytest.mark.django_db
     def process_existing_fetched_build(self, default_project, config, build):
