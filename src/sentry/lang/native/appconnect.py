@@ -338,7 +338,7 @@ class AppConnectClient:
     def itunes_client(self) -> ITunesClient:
         """Returns an iTunes client capable of downloading dSYMs.
 
-        This will raise an exception if the session cookie is expired.
+        :raises itunes_connect.SessionExpired: if the session cookie is expired.
         """
         return ITunesClient(itunes_cookie=self._itunes_cookie, itunes_org=self._itunes_org)
 
