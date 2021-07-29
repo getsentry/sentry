@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Counter, Mapping, Optional
 
 from django.utils import dateformat
 
-from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base import Notification
 
@@ -42,6 +41,8 @@ def send_as_alert_notification(
     target_identifier: Optional[int] = None,
 ) -> None:
     """If there is more than one record for a group, just choose the most recent one."""
+    from sentry.mail import mail_adapter
+
     record = max(
         itertools.chain.from_iterable(
             groups.get(context["group"], []) for groups in context["digest"].values()
@@ -49,4 +50,4 @@ def send_as_alert_notification(
         key=get_timestamp,
     )
     notification = Notification(record.value.event, rules=record.value.rules)
-    AlertRuleNotification(notification, target_type, target_identifier).send()
+    mail_adapter.notify(notification, target_type, target_identifier)

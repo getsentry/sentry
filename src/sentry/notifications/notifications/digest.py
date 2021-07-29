@@ -140,7 +140,7 @@ class DigestNotification(BaseNotification):
         digest_participants: Set["User"] = set()
         for participant in participants:
             # It's annoying to hydrate context twice, but whatever.
-            context = {**shared_context, **extra_context[participant.id]}
+            context = {**shared_context, **extra_context.get(participant.id, {})}
 
             if should_send_as_alert_notification(context):
                 send_as_alert_notification(context, self.target_type, self.target_identifier)
