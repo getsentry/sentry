@@ -2,6 +2,7 @@
 /* eslint import/no-nodejs-modules:0 */
 
 import path from 'path';
+import process from 'process';
 
 import type {Config} from '@jest/types';
 
@@ -96,8 +97,20 @@ const config: Config.InitialOptions = {
 
   testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
   testEnvironmentOptions: {
+    sentryConfig: {
+      init: {
+        dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
+        environment: !!process.env.CI ? 'ci' : 'local',
+        tracesSampleRate: 1.0,
+      },
+      transactionOptions: {
+        tags: {
+          branch: process.env.GITHUB_REF,
+          commit: process.env.GITHUB_SHA,
+        },
+      },
+    },
     output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
-    SENTRY_DSN: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
   },
 };
 
