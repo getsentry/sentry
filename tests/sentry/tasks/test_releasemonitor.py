@@ -126,6 +126,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
                 for i in range(1)
             ]
         )
+        assert self.project1.flags.has_sessions.is_set is False
         now = timezone.now()
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -159,6 +160,8 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             },
         ]
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
+        self.project1.refresh_from_db()
+        assert self.project1.flags.has_sessions.is_set is True
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
