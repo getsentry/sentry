@@ -125,6 +125,8 @@ module:android.view.* category=ui
 module:android.text.* category=ui
 module:android.widget.* category=ui
 module:android.app.Dialog category=ui
+module:androidx.*.widget.* category=ui
+module:com.google.android.material.* category=ui
 category:ui function:handleMessage category=indirection
 category:ui function:run category=indirection
 
@@ -162,6 +164,7 @@ family:native package:UIKit function:UIApplicationMain category=threadbase
 module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=threadbase
 module:android.os.* function:call category=threadbase
 module:android.app.ActivityThread function:main category=threadbase
+module:android.view.View function:layout category=threadbase
 
 family:native package:"**/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
