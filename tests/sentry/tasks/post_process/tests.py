@@ -22,6 +22,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.utils.cache import cache
 from sentry.utils.compat.mock import ANY, Mock, patch
 
 
@@ -538,6 +539,15 @@ class PostProcessGroupTest(TestCase):
 
 
 class PostProcessGroupAssignmentTest(TestCase):
+    def setUp(self):
+        self.cache_keys_to_delete = set()
+
+    def tearDown(self):
+        for key in self.cache_keys_to_delete:
+            cache.delete(key)
+
+        super().tearDown()
+
     def make_ownership(self, extra_rules=None):
         self.user_2 = self.create_user()
         rules = [
@@ -795,3 +805,30 @@ class PostProcessGroupAssignmentTest(TestCase):
         # Group should be re-assigned to the new group owner
         assignee = event.group.assignee_set.first()
         assert assignee.user == user_3
+
+    def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+
+        assignee_cache_key = "assignee_exists:1:%s" % event.group.id
+        owner_cache_key = "owner_exists:1:%s" % event.group.id
+
+        for key in [assignee_cache_key, owner_cache_key]:
+            cache.set(key, True)
+            self.cache_keys_to_delete.add(key)
+
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
