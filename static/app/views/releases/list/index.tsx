@@ -536,13 +536,10 @@ class ReleasesList extends AsyncView<Props, State> {
 
     const hasSemver = organization.features.includes('semver');
     const hasReleaseStages = organization.features.includes('release-adoption-stage');
-    const hasAnyMobileProject =
-      selection.projects
-        .map(id => `${id}`)
-        .map(ProjectsStore.getById)
-        .filter(
-          project => project?.platform && isProjectMobileForReleases(project.platform)
-        ).length > 0;
+    const hasAnyMobileProject = selection.projects
+      .map(id => `${id}`)
+      .map(ProjectsStore.getById)
+      .some(project => project?.platform && isProjectMobileForReleases(project.platform));
     const showReleaseAdoptionStages =
       hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
 
