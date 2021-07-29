@@ -2369,16 +2369,24 @@ class QueryFields(QueryBase):
         for column in selected_columns:
             if column.strip() == "":
                 continue
-            resolved_column = self.resolve_column(column)
+            # need to make sure the column is resolved with the appropriate alias
+            # because the resolved snuba name may be different
+            resolved_column = self.resolve_column(column, alias=True)
             if resolved_column not in self.columns:
                 columns.append(resolved_column)
 
         return columns
 
-    def resolve_column(self, field: str) -> SelectType:
-        """Given a public discover field, construct the corresponding Snql, this
+    def resolve_column(self, field: str, alias: bool = False) -> SelectType:
+        """Given a public field, construct the corresponding Snql, this
         function will determine the type of the field alias, whether its a
         column, field alias or function and call the corresponding resolver
+
+        :param field: The public field string to resolve into Snql. This may
+                      be a column, field alias, or even a function.
+        :param alias: Whether or not the resolved column is aliased to the
+                      original name. If false, it may still have an alias
+                      but is not guaranteed.
         """
         match = is_function(field)
         if match:
@@ -2386,7 +2394,7 @@ class QueryFields(QueryBase):
         elif self.is_field_alias(field):
             return self.resolve_field_alias(field)
         else:
-            return self.resolve_field(field, alias=True)
+            return self.resolve_field(field, alias=alias)
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         """Given a public field, resolve the alias based on the Query's

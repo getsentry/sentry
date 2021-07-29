@@ -1396,10 +1396,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for query, expected_len in queries:
-            for query_fn, expected_alias in [
-                (discover.query, "stack.filename"),
-                (discover.wip_snql_query, "exception_frames.filename"),
-            ]:
+            for query_fn in [discover.query, discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=["stack.filename"],
                     query=query,
@@ -1415,8 +1412,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data) == expected_len
                 if len(data) == 0:
                     continue
-                assert len(data[0][expected_alias]) == len(expected_filenames)
-                assert sorted(data[0][expected_alias]) == expected_filenames
+                assert len(data[0]["stack.filename"]) == len(expected_filenames)
+                assert sorted(data[0]["stack.filename"]) == expected_filenames
 
         result = discover.wip_snql_query(
             selected_columns=["stack.filename"],
@@ -1431,8 +1428,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         data = result["data"]
         assert len(data) == 1
-        assert len(data[0]["exception_frames.filename"]) == len(expected_filenames)
-        assert sorted(data[0]["exception_frames.filename"]) == expected_filenames
+        assert len(data[0]["stack.filename"]) == len(expected_filenames)
+        assert sorted(data[0]["stack.filename"]) == expected_filenames
 
     def test_orderby_field_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
