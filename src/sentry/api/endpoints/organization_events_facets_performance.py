@@ -434,7 +434,7 @@ def query_facet_performance(
             offset=offset,
         )
 
-        results["meta"] = discover.transform_meta(results, {})
+        results = discover.transform_results(results, {}, translated_columns, snuba_filter)
 
         return results
 
