@@ -276,7 +276,9 @@ class ITunesClient:
             if not url:
                 raise NoDsymsError
             logger.debug("Fetching dSYM from: %s", url)
-            with requests.get(url, stream=True) as req:
+            # The download timeout is just above how long it would take a
+            # 4MB/s connection to download 2GB.
+            with requests.get(url, stream=True, timeout=315.0) as req:
                 req.raise_for_status()
                 with open(path, "wb") as fp:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
