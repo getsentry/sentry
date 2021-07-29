@@ -19,7 +19,6 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200
-        print("keys", response.data)
         assert response.data["title"] == "/productstore"
 
     def test_react(self):
