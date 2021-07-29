@@ -6,7 +6,7 @@ import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 
 export default {
-  title: 'Features/Issues/StreamGroup',
+  title: 'Features/Issues/Stream Group',
 };
 
 const selection = {
@@ -180,7 +180,7 @@ class LocationContext extends Component {
   }
 }
 
-export const Default = () => {
+export const _StreamGroup = () => {
   loadGroups();
   return (
     <LocationContext>
@@ -252,3 +252,4 @@ export const Default = () => {
     </LocationContext>
   );
 };
+_StreamGroup.storyName = 'Stream Group';
