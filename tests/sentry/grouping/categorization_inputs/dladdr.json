@@ -1,0 +1,106 @@
+{
+  "event_id": "1fd5468193cb46c8870174d98e40e5b7",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "[Filtered]"
+          },
+          "handled": false,
+          "meta": {
+            "mach_exception": {
+              "code": 272,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": true,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_async_and_wait_invoke",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[UIApplication __beginBackgroundTaskWithExpirationHandler:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "dladdr",
+              "package": "libdyld.dylib"
+            },
+            {
+              "function": "dladdr",
+              "package": "dyld_sim"
+            },
+            {
+              "function": "ImageLoaderMachO::findClosestSymbol",
+              "package": "dyld_sim"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "Exception 1, Code 272, Subcode 8 >\nAttempted to dereference garbage pointer 0x110."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}
