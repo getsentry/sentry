@@ -50,14 +50,14 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     listed_builds = client.list_builds()
     builds = process_builds(project=project, config=config, to_process=listed_builds)
 
+    if not builds:
+        # No point in trying to see if we have valid iTunes credentials.
+        return
     try:
         itunes_client = client.itunes_client()
     except itunes_connect.SessionExpiredError:
-        logger.debug("Error fetching dSYMs: expired iTunes session")
-        # Silently log, swallow the error and not report it because this is
-        # an expected error and not actionable.
+        logger.debug("No valid iTunes session, can not download dSYMs")
         return
-
     for (build, build_state) in builds:
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
