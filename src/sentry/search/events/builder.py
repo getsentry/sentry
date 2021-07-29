@@ -32,7 +32,7 @@ class QueryBuilder(QueryFilter):
             parsed_terms, use_aggregate_conditions=use_aggregate_conditions
         )
 
-        # params depends on get_filter since there may be projects in the query
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
         self.where += self.resolve_params()
 
         self.columns = self.resolve_select(selected_columns)
