@@ -33,16 +33,16 @@ const DemoSignUpModal = ({closeModal}: Props) => {
           <Button
             priority="primary"
             href={signupUrl}
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.demo_modal_signup', {}, null);
-            }}
+            onClick={() =>
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_signup', {}, null)
+            }
           >
             {t('Sign up now')}
           </Button>
           <Button
             priority="default"
             onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.demo_modal_continue', {}, null);
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_continue', {}, null);
               closeModal();
             }}
           >
