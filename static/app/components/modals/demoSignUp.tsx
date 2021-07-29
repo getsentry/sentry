@@ -7,19 +7,15 @@ import ButtonBar from 'app/components/buttonBar';
 import HighlightModalContainer from 'app/components/highlightModalContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import getCookie from 'app/utils/getCookie';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {emailQueryParameter, extraQueryParameter} from 'app/utils/demoMode';
 
 type Props = ModalRenderProps;
 
-const ForcedTrialModal = ({closeModal}: Props) => {
-  const email = localStorage.getItem('email');
-  const queryParameter = email ? `?email=${email}` : '';
-  const extraQueryString = getCookie('extra_query_string');
-  // cookies that have = sign are quotes so extra quotes need to be removed
-  const extraQuery = extraQueryString ? extraQueryString.replaceAll('"', '') : '';
-  const emailSeparator = email ? '&' : '?';
-  const getStartedSeparator = extraQueryString ? emailSeparator : '';
-  const signupUrl = `https://sentry.io/signup/${queryParameter}${getStartedSeparator}${extraQuery}`;
+const DemoSignUpModal = ({closeModal}: Props) => {
+  const queryParameter = emailQueryParameter();
+  const getStartedExtraParameter = extraQueryParameter(true);
+  const signupUrl = `https://sentry.io/signup/${queryParameter}${getStartedExtraParameter}`;
 
   return (
     <HighlightModalContainer>
@@ -34,10 +30,22 @@ const ForcedTrialModal = ({closeModal}: Props) => {
           </p>
         </TrialCheckInfo>
         <StyledButtonBar gap={2}>
-          <Button priority="primary" href={signupUrl}>
+          <Button
+            priority="primary"
+            href={signupUrl}
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.demo_modal_signup', {}, null);
+            }}
+          >
             {t('Sign up now')}
           </Button>
-          <Button priority="default" onClick={closeModal}>
+          <Button
+            priority="default"
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.demo_modal_continue', {}, null);
+              closeModal();
+            }}
+          >
             {t('Keep Exploring')}
           </Button>
         </StyledButtonBar>
@@ -80,4 +88,4 @@ const StyledButtonBar = styled(ButtonBar)`
   max-width: fit-content;
 `;
 
-export default ForcedTrialModal;
+export default DemoSignUpModal;

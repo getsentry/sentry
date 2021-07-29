@@ -61,6 +61,8 @@ export type GrowthEventParameters = {
   'growth.onboarding_view_sample_event': SampleEventParam;
   'invite_request.approved': InviteRequestParam;
   'invite_request.denied': InviteRequestParam;
+  'growth.demo_modal_signup': {};
+  'growth.demo_modal_continue': {};
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -91,4 +93,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
+  'growth.demo_modal_signup': 'Growth: Demo Modal Signup',
+  'growth.demo_modal_continue': 'Growth: Demo Modal Continue',
 };
