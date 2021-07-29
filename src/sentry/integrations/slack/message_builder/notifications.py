@@ -8,6 +8,9 @@ from sentry.integrations.slack.message_builder.issues import (
     get_title_link,
 )
 from sentry.models import Team, User
+from sentry.notifications.notifications.activity.new_processing_issues import (
+    NewProcessingIssuesActivityNotification,
+)
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_release
@@ -65,6 +68,13 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
             return self._build(
                 text="",
                 actions=build_deploy_buttons(self.notification),
+                footer=build_notification_footer(self.notification, self.recipient),
+            )
+
+        if isinstance(self.notification, NewProcessingIssuesActivityNotification):
+            return self._build(
+                title=self.notification.get_title(),
+                text=self.notification.get_message_description(),
                 footer=build_notification_footer(self.notification, self.recipient),
             )
 

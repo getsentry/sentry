@@ -16,6 +16,8 @@ from sentry.types.integrations import ExternalProviders
 
 
 class ActivityNotification(BaseNotification, ABC):
+    fine_tuning_key = "workflow"
+
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity.project)
         self.activity = activity
@@ -60,7 +62,6 @@ class ActivityNotification(BaseNotification, ABC):
 
 
 class GroupActivityNotification(ActivityNotification, ABC):
-    fine_tuning_key = "workflow"
     is_message_issue_unfurl = True
 
     def __init__(self, activity: Activity) -> None:

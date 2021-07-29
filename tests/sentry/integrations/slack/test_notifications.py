@@ -359,7 +359,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         notification = NewProcessingIssuesActivityNotification(
             Activity(
                 project=self.project,
-                group=self.group,
                 user=self.user,
                 type=ActivityType.NEW_PROCESSING_ISSUES,
                 data={
