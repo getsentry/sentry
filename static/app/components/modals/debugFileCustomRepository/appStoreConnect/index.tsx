@@ -46,6 +46,7 @@ type ItunesRevalidationSessionContext = SessionContext & {
 };
 
 type InitialData = {
+  type: string;
   appId: string;
   appName: string;
   appconnectIssuer: string;
@@ -59,9 +60,8 @@ type InitialData = {
   itunesSession: string;
   itunesUser: string;
   name: string;
-  orgId: number;
+  orgPublicId: number;
   orgName: string;
-  type: string;
 };
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
@@ -136,8 +136,8 @@ function AppStoreConnect({
 
   const [stepFifthData, setStepFifthData] = useState<StepFifthData>({
     org:
-      initialData?.orgId && initialData?.name
-        ? {organizationId: initialData.orgId, name: initialData.name}
+      initialData?.orgPublicId && initialData?.name
+        ? {organizationId: initialData.orgPublicId, name: initialData.name}
         : undefined,
   });
 
