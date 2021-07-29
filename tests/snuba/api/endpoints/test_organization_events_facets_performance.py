@@ -253,3 +253,26 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         assert data[0]["count"] == 14
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "red"
+
+    def test_aggregate_zero(self):
+        # LCP-less transaction should be ignored in total counts for frequency.
+        self.store_transaction(tags=[["color", "purple"]], duration=0)
+
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "tagKey": "color",
+            "query": "(color:purple)",
+        }
+
+        response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count"] == 1
+        assert data[0]["comparison"] == 0
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "purple"
