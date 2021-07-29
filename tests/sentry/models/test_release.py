@@ -989,7 +989,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         """
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org, project_id=self.proj_1.id, release_version="fake_package@2.0.0"
+                org_id=self.org.id, project_id=self.proj_1.id, release_version="fake_package@2.0.0"
             )
             is True
         )
@@ -999,7 +999,9 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         Test that ensures that when the last 10 releases follow semver versioning and no release
         version is passed in as an argument, then True should be returned
         """
-        assert follows_semver_versioning_scheme(org_id=self.org, project_id=self.proj_1.id) is True
+        assert (
+            follows_semver_versioning_scheme(org_id=self.org.id, project_id=self.proj_1.id) is True
+        )
 
     def test_follows_semver_with_all_releases_semver_and_non_semver_release_version(self):
         """
@@ -1009,7 +1011,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         """
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org, project_id=self.proj_1.id, release_version="fizbuzz"
+                org_id=self.org.id, project_id=self.proj_1.id, release_version="fizbuzz"
             )
             is False
         )
@@ -1031,7 +1033,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org,
+                org_id=self.org.id,
                 project_id=proj.id,
             )
             is True
@@ -1053,7 +1055,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org,
+                org_id=self.org.id,
                 project_id=proj.id,
             )
             is False
@@ -1073,7 +1075,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org,
+                org_id=self.org.id,
                 project_id=proj.id,
             )
             is False
@@ -1093,7 +1095,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org,
+                org_id=self.org.id,
                 project_id=proj.id,
             )
             is True
@@ -1112,7 +1114,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org,
+                org_id=self.org.id,
                 project_id=proj.id,
             )
             is True
@@ -1129,7 +1131,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         self.create_release(version=f"{self.fake_package}{proj.id}@1.0", project=proj)
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org,
+                org_id=self.org.id,
                 project_id=proj.id,
             )
             is True
@@ -1141,7 +1143,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         self.create_release(version="helloworld 1", project=proj_2)
         assert (
             follows_semver_versioning_scheme(
-                org_id=self.org,
+                org_id=self.org.id,
                 project_id=proj_2.id,
             )
             is False
