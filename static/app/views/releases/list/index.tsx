@@ -542,7 +542,7 @@ class ReleasesList extends AsyncView<Props, State> {
         .map(ProjectsStore.getById)
         .filter(
           project =>
-            project && project.platform && isProjectMobileForReleases(project.platform)
+            project?.platform && isProjectMobileForReleases(project.platform)
         ).length > 0;
     const showReleaseAdoptionStages =
       hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
