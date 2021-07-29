@@ -648,6 +648,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_config",
             "sentry:grouping_enhancements",
             "sentry:grouping_enhancements_base",
+            "sentry:secondary_grouping_config",
+            "sentry:secondary_grouping_expiry",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
@@ -793,6 +795,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
             }
         )
+
         return data
 
 
