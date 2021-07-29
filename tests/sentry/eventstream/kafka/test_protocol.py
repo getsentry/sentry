@@ -5,6 +5,7 @@ from sentry.eventstream.kafka.protocol import (
     InvalidVersion,
     UnexpectedOperation,
     get_task_kwargs_for_message,
+    get_task_kwargs_for_message_from_headers,
 )
 from sentry.testutils.helpers import override_options
 from sentry.utils import json
@@ -71,3 +72,27 @@ def test_get_task_kwargs_for_message_version_1_unsupported_operation():
 def test_get_task_kwargs_for_message_version_1_unexpected_operation():
     with pytest.raises(UnexpectedOperation):
         get_task_kwargs_for_message(json.dumps([1, "invalid", {}, {}]))
+
+
+@pytest.mark.django_db
+def test_get_task_kwargs_for_message_version_1_kafka_headers():
+    kafka_headers = [
+        ("Received-Timestamp", b"1626301534.910839"),
+        ("event_id", b"00000000000010008080808080808080"),
+        ("project_id", b"1"),
+        ("is_new", b"1"),
+        ("is_new_group_environment", b"1"),
+        ("is_regression", b"0"),
+        ("version", b"2"),
+        ("operation", b"insert"),
+        ("skip_consume", b"0"),
+    ]
+
+    kwargs = get_task_kwargs_for_message_from_headers(kafka_headers)
+    assert kwargs["project_id"] == 1
+    assert kwargs["event_id"] == "00000000000010008080808080808080"
+    assert kwargs["group_id"] is None
+    assert kwargs["primary_hash"] is None
+    assert kwargs["is_new"] is True
+    assert kwargs["is_regression"] is False
+    assert kwargs["is_new_group_environment"] is True
