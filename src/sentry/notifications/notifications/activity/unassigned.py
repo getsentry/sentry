@@ -1,9 +1,9 @@
 from typing import Any, Mapping, Tuple
 
-from .base import ActivityNotification
+from .base import GroupActivityNotification
 
 
-class UnassignedActivityNotification(ActivityNotification):
+class UnassignedActivityNotification(GroupActivityNotification):
     def get_activity_name(self) -> str:
         return "Unassigned"
 

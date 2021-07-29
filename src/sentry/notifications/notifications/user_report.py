@@ -1,11 +1,11 @@
 import logging
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Optional
 
 from django.utils.encoding import force_text
 
 from sentry.models import Group, GroupSubscription, Project, User
-from sentry.notifications.base import BaseNotification
 from sentry.notifications.helpers import get_reason_context
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import send_activity_notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 class UserReportNotification(BaseNotification):
     def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
-        group = Group.objects.get(id=report["issue"]["id"])
-        super().__init__(project, group)
+        super().__init__(project)
+        self.group = Group.objects.get(id=report["issue"]["id"])
         self.report = report
 
     def get_participants_with_group_subscription_reason(
@@ -38,11 +38,15 @@ class UserReportNotification(BaseNotification):
     def get_type(self) -> str:
         return "notify.user-report"
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"
         message = force_text(message)
         return message
+
+    def get_notification_title(self) -> str:
+        # This shouldn't be possible but adding a message just in case.
+        return self.get_subject()
 
     def get_reference(self) -> Any:
         return self.project

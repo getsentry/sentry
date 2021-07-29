@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple, Union
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from django.core.exceptions import ValidationError
@@ -16,12 +16,11 @@ from sentry.models import (
     IdentityStatus,
     Integration,
     Organization,
-    Project,
     Team,
     User,
 )
-from sentry.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
@@ -376,10 +375,10 @@ def get_settings_url(notification: BaseNotification) -> str:
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 
-def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> Any:
+def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
-        url_str = f"/settings/{notification.group.project.organization.slug}/teams/{team.slug}/notifications/"
+        url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
         settings_url = str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
     else:
         settings_url = get_settings_url(notification)
@@ -390,8 +389,9 @@ def build_notification_footer(notification: BaseNotification, recipient: Union[T
             return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
 
-    footer = Project.objects.get_from_cache(id=notification.group.project_id).slug
-    latest_event = notification.group.get_latest_event()
+    footer = notification.project.slug
+    group = getattr(notification, "group", None)
+    latest_event = group.get_latest_event() if group else None
     environment = None
     if latest_event:
         try:

@@ -47,8 +47,8 @@ from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.notifications.activity.base import ActivityNotification
-    from sentry.notifications.user_report import UserReportNotification
+    from sentry.notifications.notifications.activity.base import ActivityNotification
+    from sentry.notifications.notifications.user_report import UserReportNotification
 
 
 logger = logging.getLogger(__name__)

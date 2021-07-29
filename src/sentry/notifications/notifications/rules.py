@@ -4,7 +4,7 @@ from typing import Any, Mapping, MutableMapping, Optional, Set
 import pytz
 
 from sentry.models import User, UserOption
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
     get_commits,
@@ -36,7 +36,8 @@ class AlertRuleNotification(BaseNotification):
         event = notification.event
         group = event.group
         project = group.project
-        super().__init__(project, group)
+        super().__init__(project)
+        self.group = group
         self.event = event
         self.target_type = target_type
         self.target_identifier = target_identifier
@@ -56,7 +57,7 @@ class AlertRuleNotification(BaseNotification):
     def get_category(self) -> str:
         return "issue_alert_email"
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         return str(self.event.get_email_subject())
 
     def get_reference(self) -> Any:

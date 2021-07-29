@@ -29,7 +29,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
-from sentry.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.notifications.utils.participants import (
     get_send_to,

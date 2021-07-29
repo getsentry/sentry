@@ -2,10 +2,10 @@ from typing import Any, Mapping, Tuple
 
 from sentry.models import Team, User
 
-from .base import ActivityNotification
+from .base import GroupActivityNotification
 
 
-class AssignedActivityNotification(ActivityNotification):
+class AssignedActivityNotification(GroupActivityNotification):
     def get_activity_name(self) -> str:
         return "Assigned"
 

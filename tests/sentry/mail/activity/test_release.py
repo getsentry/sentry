@@ -1,7 +1,7 @@
 from django.core import mail
 
 from sentry.models import Activity, Environment, NotificationSetting, Repository
-from sentry.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,

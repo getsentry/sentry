@@ -32,7 +32,7 @@ from sentry.models import (
     Rule,
     Team,
 )
-from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
+from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
