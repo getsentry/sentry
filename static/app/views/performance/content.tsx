@@ -206,8 +206,6 @@ class PerformanceContent extends Component<Props, State> {
     const eventView = this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
 
-    const project = projects && projects.length > 0 ? projects[0] : undefined;
-
     return (
       <PageContent>
         <LightWeightNoProjectMessage organization={organization}>
@@ -225,8 +223,8 @@ class PerformanceContent extends Component<Props, State> {
           </PageHeader>
           <GlobalSdkUpdateAlert />
           {this.renderError()}
-          {showOnboarding && project ? (
-            <Onboarding organization={organization} project={project} />
+          {showOnboarding ? (
+            <Onboarding organization={organization} project={projects[0]} />
           ) : (
             <LandingContent
               eventView={eventView}

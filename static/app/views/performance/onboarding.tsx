@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import tourAlert from 'sentry-images/spot/performance-tour-alert.svg';
@@ -7,6 +8,11 @@ import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
 import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -19,7 +25,6 @@ import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 
 const performanceSetupUrl =
@@ -89,23 +94,19 @@ type Props = {
 
 function Onboarding({organization, project, api}: Props) {
   function handleAdvance(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.tour.advance',
-      eventName: 'Performance Views: Tour Advance',
-      organization_id: parseInt(organization.id, 10),
-      step,
-      duration,
-    });
+    trackAdvancedAnalyticsEvent(
+      'performance_views.tour.advance',
+      {step, duration},
+      organization
+    );
   }
 
   function handleClose(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.tour.close',
-      eventName: 'Performance Views: Tour Close',
-      organization_id: parseInt(organization.id, 10),
-      step,
-      duration,
-    });
+    trackAdvancedAnalyticsEvent(
+      'performance_views.tour.close',
+      {step, duration},
+      organization
+    );
   }
   const showSampleTransactionBtn = organization.features.includes(
     'performance-create-sample-transaction'
@@ -122,11 +123,7 @@ function Onboarding({organization, project, api}: Props) {
         <Button
           priority={showSampleTransactionBtn ? 'link' : 'default'}
           onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'performance_views.tour.start',
-              eventName: 'Performance Views: Tour Start',
-              organization_id: parseInt(organization.id, 10),
-            });
+            trackAdvancedAnalyticsEvent('performance_views.tour.start', {}, organization);
             showModal();
           }}
         >
@@ -139,15 +136,29 @@ function Onboarding({organization, project, api}: Props) {
     <Button
       onClick={async () => {
         trackAdvancedAnalyticsEvent(
-          'growth.performance_sample_transaction',
+          'performance_views.create_sample_transaction',
           {platform: project.platform},
           organization
         );
+        addLoadingMessage(t('Processing sample event...'), {
+          duration: 15000,
+        });
         const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
-        const eventData = await api.requestPromise(url, {method: 'POST'});
-        browserHistory.push(
-          `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
-        );
+        try {
+          const eventData = await api.requestPromise(url, {method: 'POST'});
+          browserHistory.push(
+            `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+          );
+          clearIndicators();
+        } catch (error) {
+          Sentry.withScope(scope => {
+            scope.setExtra('error', error);
+            Sentry.captureException(new Error('Failed to create sample event'));
+          });
+          clearIndicators();
+          addErrorMessage(t('Failed to create a new sample event'));
+          return;
+        }
       }}
     >
       {t('Create Sample Transaction')}
@@ -184,7 +195,7 @@ const PerfImage = styled('img')`
     max-width: unset;
     user-select: none;
     position: absolute;
-    top: 50px;
+    top: 75px;
     bottom: 0;
     width: 450px;
     margin-top: auto;
