@@ -3,18 +3,18 @@ from sentry.testutils import APITestCase
 
 
 class GroupParticipantsTest(APITestCase):
+    endpoint = "sentry-api-0-group-stats"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
     def test_simple(self):
-        self.login_as(user=self.user)
-
         group = self.create_group()
-
         GroupSubscription.objects.create(
             user=self.user, group=group, project=group.project, is_active=True
         )
 
-        url = f"/api/0/issues/{group.id}/participants/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
+        response = self.get_success_response(group.id)
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.user.id)
