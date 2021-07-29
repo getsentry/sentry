@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
-class UserOptionManager(OptionManager):
+class UserOptionManager(OptionManager["User"]):
     def _make_key(
         self,
         user: "User",

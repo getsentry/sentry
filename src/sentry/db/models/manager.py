@@ -3,7 +3,19 @@ import logging
 import threading
 import weakref
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from celery.signals import task_postrun  # type: ignore
 from django.conf import settings
@@ -30,6 +42,7 @@ _local_cache_enabled = False
 
 Value = Any
 ValidateFunction = Callable[[Value], bool]
+M = TypeVar("M", bound=Model)
 
 
 def __prep_value(model: Any, key: str, value: Union[Model, int, str]) -> str:
@@ -73,7 +86,7 @@ class BaseQuerySet(QuerySet, abc.ABC):  # type: ignore
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 
 
-class BaseManager(Manager):  # type: ignore
+class BaseManager(Manager, Generic[M]):  # type: ignore
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
@@ -106,7 +119,7 @@ class BaseManager(Manager):  # type: ignore
             _local_cache_enabled = False
             _local_cache_generation += 1
 
-    def _get_local_cache(self) -> Optional[MutableMapping[str, Any]]:
+    def _get_local_cache(self) -> Optional[MutableMapping[str, M]]:
         if not _local_cache_enabled:
             return None
 
@@ -168,7 +181,7 @@ class BaseManager(Manager):  # type: ignore
         post_save.connect(self.__post_save, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
 
-    def __cache_state(self, instance: Any) -> None:
+    def __cache_state(self, instance: M) -> None:
         """
         Updates the tracked state of an instance.
         """
@@ -177,13 +190,13 @@ class BaseManager(Manager):  # type: ignore
                 f: self.__value_for_field(instance, f) for f in self.cache_fields
             }
 
-    def __post_init(self, instance: Any, **kwargs: Any) -> None:
+    def __post_init(self, instance: M, **kwargs: Any) -> None:
         """
         Stores the initial state of an instance.
         """
         self.__cache_state(instance)
 
-    def __post_save(self, instance: Any, **kwargs: Any) -> None:
+    def __post_save(self, instance: M, **kwargs: Any) -> None:
         """
         Pushes changes to an instance into the cache, and removes invalid (changed)
         lookup values.
@@ -270,7 +283,12 @@ class BaseManager(Manager):  # type: ignore
         super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
-    def get_from_cache(self, **kwargs: Any) -> Model:  # TODO(typing): Properly type this
+    def get(self, **kwargs: Any) -> M:
+        # Explicitly typing to satisfy mypy.
+        model: M = super().get(**kwargs)
+        return model
+
+    def get_from_cache(self, **kwargs: Any) -> M:
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
@@ -331,7 +349,9 @@ class BaseManager(Manager):  # type: ignore
 
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
-            return retval
+            # Explicitly typing to satisfy mypy.
+            r: M = retval
+            return r
         else:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
@@ -482,7 +502,7 @@ class BaseManager(Manager):  # type: ignore
         return self._queryset_class(self.model, using=self._db)
 
 
-class OptionManager(BaseManager):
+class OptionManager(BaseManager[M]):
     @property
     def _option_cache(self) -> Dict[str, Dict[str, Any]]:
         if not hasattr(_local_cache, "option_cache"):

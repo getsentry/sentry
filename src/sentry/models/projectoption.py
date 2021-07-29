@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sentry.models import Project
 
 
-class ProjectOptionManager(OptionManager):
+class ProjectOptionManager(OptionManager["Project"]):
     def get_value_bulk(self, instances: Sequence["Project"], key: str) -> Mapping["Project", Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(project__in=instances, key=key)
