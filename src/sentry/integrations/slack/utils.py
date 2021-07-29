@@ -16,7 +16,6 @@ from sentry.models import (
     IdentityStatus,
     Integration,
     Organization,
-    Project,
     Team,
     User,
 )
@@ -379,7 +378,7 @@ def get_settings_url(notification: BaseNotification) -> str:
 def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
-        url_str = f"/settings/{notification.group.project.organization.slug}/teams/{team.slug}/notifications/"
+        url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
         settings_url = str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
     else:
         settings_url = get_settings_url(notification)
@@ -390,8 +389,9 @@ def build_notification_footer(notification: BaseNotification, recipient: Union[T
             return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
 
-    footer = Project.objects.get_from_cache(id=notification.group.project_id).slug
-    latest_event = notification.group.get_latest_event()
+    footer = notification.project.slug
+    group = getattr(notification, "group", None)
+    latest_event = group.get_latest_event() if group else None
     environment = None
     if latest_event:
         try:
