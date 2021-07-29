@@ -5,7 +5,7 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
-import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PaginationCaption from 'app/components/pagination/paginationCaption';
@@ -51,8 +51,7 @@ function LinkFooter() {
   return (
     <Footer>
       {/* TODO(markus): Add docs btn here */}
-      <Button
-        external
+      <ExternalLink
         href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
           'Grouping Feedback'
         )}&body=${encodeURIComponent(
@@ -60,7 +59,7 @@ function LinkFooter() {
         )}`}
       >
         <StyledIconMegaphone /> {t('Give Feedback')}
-      </Button>
+      </ExternalLink>
     </Footer>
   );
 }
