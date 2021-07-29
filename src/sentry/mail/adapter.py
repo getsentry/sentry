@@ -10,11 +10,12 @@ from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.models import NotificationSetting, Project, ProjectOption
-from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
-from sentry.notifications.rules import AlertRuleNotification, get_send_to
+from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
+from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.user_report import UserReportNotification
 from sentry.notifications.types import ActionTargetType
-from sentry.notifications.user_report import UserReportNotification
 from sentry.notifications.utils import get_integration_link, has_alert_integration
+from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders

@@ -3,10 +3,10 @@ from typing import Any, Mapping, Tuple
 from sentry.utils.html import escape
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityNotification
+from .base import GroupActivityNotification
 
 
-class RegressionActivityNotification(ActivityNotification):
+class RegressionActivityNotification(GroupActivityNotification):
     def get_activity_name(self) -> str:
         return "Regression"
 
