@@ -281,6 +281,7 @@ class GroupEventDetails extends Component<Props, State> {
                 {group.status === 'resolved' && (
                   <ResolutionBox
                     statusDetails={group.statusDetails}
+                    activities={activities}
                     projectId={project.id}
                   />
                 )}
