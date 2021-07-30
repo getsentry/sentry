@@ -200,8 +200,14 @@ def _assert_matcher(matcher: Matcher, path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "baz.txt"}, {"abs_path": "/usr/local/src/config/subdir/baz.txt"}], True),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        (
+            [
+                {"filename": "config/subdir/baz.txt"},
+                {"abs_path": "/usr/local/src/config/subdir/baz.txt"},
+            ],
+            True,
+        ),
         ([{"filename": "not_in_repo.py"}, {"abs_path": "/root/not_in_repo.py"}], True),
     ],
 )
@@ -214,10 +220,28 @@ def test_codeowners_match_any_file(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "baz.txt"}, {"abs_path": "/usr/local/src/config/subdir/baz.txt"}], False),
-        ([{"filename": "baz.py"}, {"abs_path": "/usr/local/src/config/subdir/baz.py"}], True),
-        ([{"filename": "baz.js"}, {"abs_path": "/usr/local/src/config/dir.py/baz.js"}], True),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        (
+            [
+                {"filename": "config/subdir/baz.txt"},
+                {"abs_path": "/usr/local/src/config/subdir/baz.txt"},
+            ],
+            False,
+        ),
+        (
+            [
+                {"filename": "config/subdir/baz.py"},
+                {"abs_path": "/usr/local/src/config/subdir/baz.py"},
+            ],
+            True,
+        ),
+        (
+            [
+                {"filename": "config/dir.py/baz.js"},
+                {"abs_path": "/usr/local/src/config/dir.py/baz.js"},
+            ],
+            True,
+        ),
     ],
 )
 def test_codeowners_match_extension(path_details, expected):
@@ -228,12 +252,24 @@ def test_codeowners_match_extension(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "baz.py"}, {"abs_path": "/usr/local/src/config/subdir/baz.py"}], False),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/subdir/test.py"}], True),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
         (
             [
-                {"filename": "not_test.json"},
+                {"filename": "config/subdir/baz.py"},
+                {"abs_path": "/usr/local/src/config/subdir/baz.py"},
+            ],
+            False,
+        ),
+        (
+            [
+                {"config/subdir/filename": "test.py"},
+                {"abs_path": "/usr/local/src/config/subdir/test.py"},
+            ],
+            True,
+        ),
+        (
+            [
+                {"filename": "config/test.py/not_test.json"},
                 {"abs_path": "/usr/local/src/config/test.py/not_test.json"},
             ],
             True,
@@ -248,11 +284,11 @@ def test_codeowners_match_specific_filename(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/foo/test.py"}], False),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/foo/test.py"}], False),
         (
             [
-                {"filename": "dir_allowed"},
+                {"filename": "foo/test.py/dir_allowed"},
                 {"abs_path": "/usr/local/src/foo/test.py/dir_allowed"},
             ],
             True,
@@ -270,10 +306,19 @@ def test_codeowners_match_specific_path(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "py_dir.txt"}, {"abs_path": "/usr/local/src/foo/dir.py/py_dir.txt"}], True),
-        ([{"filename": "test.txt"}, {"abs_path": "/usr/local/src/foo/test.txt"}], False),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/foo/test.py"}], False),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        (
+            [
+                {"filename": "foo/dir.py/py_dir.txt"},
+                {"abs_path": "/usr/local/src/foo/dir.py/py_dir.txt"},
+            ],
+            True,
+        ),
+        ([{"filename": "foo/test.txt"}, {"abs_path": "/usr/local/src/foo/test.txt"}], False),
+        (
+            [{"filename": "config/foo/test.py"}, {"abs_path": "/usr/local/src/config/foo/test.py"}],
+            False,
+        ),
     ],
 )
 def test_codeowners_match_abs_wildcard(path_details, expected):
@@ -284,19 +329,31 @@ def test_codeowners_match_abs_wildcard(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "baz.py"}, {"abs_path": "/usr/local/src/foo/subdir/baz.py"}], True),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        (
+            [{"filename": "foo/subdir/baz.py"}, {"abs_path": "/usr/local/src/foo/subdir/baz.py"}],
+            True,
+        ),
         ([{"filename": "foo"}, {"abs_path": "/usr/local/src/foo"}], False),
         (
-            [{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/subdir/test.py"}],
+            [
+                {"filename": "config/subdir/test.py"},
+                {"abs_path": "/usr/local/src/config/subdir/test.py"},
+            ],
             False,
         ),
         (
-            [{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/src/foo/test.py"}],
+            [
+                {"filename": "config/src/test.py"},
+                {"abs_path": "/usr/local/src/config/src/foo/test.py"},
+            ],
             False,
         ),
         (
-            [{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/src/foo/subdir/test.py"}],
+            [
+                {"filename": "config/src/foo/subdir/test.py"},
+                {"abs_path": "/usr/local/src/config/src/foo/subdir/test.py"},
+            ],
             False,
         ),
     ],
@@ -313,14 +370,23 @@ def test_codeowners_match_recursive_directory(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "baz.py"}, {"abs_path": "/usr/local/src/foo/subdir/baz.py"}], False),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
         (
-            [{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/subdir/test.py"}],
+            [{"filename": "foo/subdir/baz.py"}, {"abs_path": "/usr/local/src/foo/subdir/baz.py"}],
             False,
         ),
         (
-            [{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/src/foo/test.py"}],
+            [
+                {"filename": "config/subdir/test.py"},
+                {"abs_path": "/usr/local/src/config/subdir/test.py"},
+            ],
+            False,
+        ),
+        (
+            [
+                {"filename": "config/src/foo/test.py"},
+                {"abs_path": "/usr/local/src/config/src/foo/test.py"},
+            ],
             False,
         ),
     ],
@@ -336,13 +402,20 @@ def test_codeowners_match_nonrecursive_directory(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, single_star_expected, double_star_expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/bar/test.py"}], True, True),
         (
-            [{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/bar/baz/test.py"}],
+            [{"filename": "foo/bar/test.py"}, {"abs_path": "/usr/local/src/foo/bar/test.py"}],
+            True,
+            True,
+        ),
+        (
+            [
+                {"filename": "foo/bar/baz/test.py"},
+                {"abs_path": "/usr/local/src/foo/bar/baz/test.py"},
+            ],
             False,
             True,
         ),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], False, True),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], False, True),
         ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/test.py"}], False, False),
     ],
 )
@@ -353,9 +426,11 @@ def test_codeowners_match_wildcard_directory(
     /src/foo/*/test.py should only match with test.py 1 directory deeper than foo
     /src/foo/**/test.py can match with test.py anywhere under foo
     """
+    _assert_matcher(Matcher("codeowners", "foo/*/test.py"), path_details, single_star_expected)
     _assert_matcher(
         Matcher("codeowners", "/usr/local/src/foo/*/test.py"), path_details, single_star_expected
     )
+    _assert_matcher(Matcher("codeowners", "foo/**/test.py"), path_details, double_star_expected)
     _assert_matcher(
         Matcher("codeowners", "/usr/local/src/foo/**/test.py"), path_details, double_star_expected
     )
@@ -364,11 +439,11 @@ def test_codeowners_match_wildcard_directory(
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.jy"}], True),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.;y"}], True),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.pt"}], False),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test./y"}], False),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        ([{"filename": "foo/test.jy"}, {"abs_path": "/usr/local/src/foo/test.jy"}], True),
+        ([{"filename": "foo/test.;y"}, {"abs_path": "/usr/local/src/foo/test.;y"}], True),
+        ([{"filename": "foo/test.pt"}, {"abs_path": "/usr/local/src/foo/test.pt"}], False),
+        ([{"filename": "foo/test./y"}, {"abs_path": "/usr/local/src/foo/test./y"}], False),
     ],
 )
 def test_codeowners_match_question_mark(path_details, expected):
@@ -381,9 +456,9 @@ def test_codeowners_match_question_mark(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/bar/foo/test.jy"}], True),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo"}], False),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        ([{"filename": "bar/foo/test.py"}, {"abs_path": "/usr/local/src/bar/foo/test.jy"}], True),
+        ([{"filename": "foo"}, {"abs_path": "/usr/local/src/foo"}], False),
     ],
 )
 def test_codeowners_match_loose_directory(path_details, expected):
@@ -396,11 +471,11 @@ def test_codeowners_match_loose_directory(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
-        ([{"filename": "test.js"}, {"abs_path": "/usr/local/src/foo/test.js"}], True),
-        ([{"filename": "test."}, {"abs_path": "/usr/local/src/foo/test."}], True),
-        ([{"filename": "file"}, {"abs_path": "/usr/local/src/foo/test.d/file"}], True),
-        ([{"filename": "file"}, {"abs_path": "/usr/local/src/foo/test./file"}], True),
+        ([{"filename": "foo/test.py"}, {"abs_path": "/usr/local/src/foo/test.py"}], True),
+        ([{"filename": "foo/test.js"}, {"abs_path": "/usr/local/src/foo/test.js"}], True),
+        ([{"filename": "foo/test."}, {"abs_path": "/usr/local/src/foo/test."}], True),
+        ([{"filename": "foo/test.d/file"}, {"abs_path": "/usr/local/src/foo/test.d/file"}], True),
+        ([{"filename": "foo/test./file"}, {"abs_path": "/usr/local/src/foo/test./file"}], True),
     ],
 )
 def test_codeowners_match_wildcard_extension(path_details, expected):
@@ -413,16 +488,28 @@ def test_codeowners_match_wildcard_extension(path_details, expected):
 @pytest.mark.parametrize(
     "path_details, expected",
     [
-        ([{"filename": "\\"}, {"abs_path": "/usr/local/src/foo/\\"}], True),
-        ([{"filename": "\\filename"}, {"abs_path": "/usr/local/src/foo/subdir/\\filename"}], False),
+        ([{"filename": "foo/\\"}, {"abs_path": "/usr/local/src/foo/\\"}], True),
         (
             [
-                {"filename": "backslash_dir"},
+                {"filename": "foo/subdir/\\filename"},
+                {"abs_path": "/usr/local/src/foo/subdir/\\filename"},
+            ],
+            False,
+        ),
+        (
+            [
+                {"filename": "foo/subdir/\\/backslash_dir"},
                 {"abs_path": "/usr/local/src/foo/subdir/\\/backslash_dir"},
             ],
             True,
         ),
-        ([{"filename": "test.py"}, {"abs_path": "/usr/local/src/config/subdir/test.py"}], False),
+        (
+            [
+                {"filename": "config/subdir/test.py"},
+                {"abs_path": "/usr/local/src/config/subdir/test.py"},
+            ],
+            False,
+        ),
     ],
 )
 def test_codeowners_match_backslash(path_details, expected):

@@ -5,7 +5,6 @@ import range from 'lodash/range';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import ErrorRobot from 'app/components/errorRobot';
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
@@ -1518,7 +1517,7 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
+      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
     });
 
     it('does not display when no projects selected and any projects have a first event', async function () {
@@ -1561,7 +1560,7 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find(ErrorRobot)).toHaveLength(0);
+      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
     });
 
     it('displays when all selected projects do not have first event', async function () {
@@ -1614,7 +1613,7 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
+      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
     });
 
     it('does not display when any selected projects have first event', function () {
@@ -1661,7 +1660,7 @@ describe('IssueList', function () {
         }),
       });
 
-      expect(wrapper.find(ErrorRobot)).toHaveLength(0);
+      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
     });
   });
 

@@ -106,7 +106,8 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     trackAdvancedAnalyticsEvent(
       'growth.onboarding_view_sample_event',
       {platform: project.platform},
-      organization
+      organization,
+      {sendMarketing: true}
     );
 
     addLoadingMessage(t('Processing sample event...'), {

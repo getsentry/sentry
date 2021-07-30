@@ -220,6 +220,9 @@ class SummaryContent extends React.Component<Props, State> {
     const hasPerformanceEventsPage = organization.features.includes(
       'performance-events-page'
     );
+    const hasPerformanceChartInterpolation = organization.features.includes(
+      'performance-chart-interpolation'
+    );
 
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
@@ -322,7 +325,7 @@ class SummaryContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.TransactionSummary}
-          hasWebVitals={hasWebVitals}
+          hasWebVitals="maybe"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
           onChangeThreshold={onChangeThreshold}
         />
@@ -354,6 +357,7 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               totalValues={totalCount}
               currentFilter={spanOperationBreakdownFilter}
+              withoutZerofill={hasPerformanceChartInterpolation}
             />
             <TransactionsList
               location={location}

@@ -20,7 +20,7 @@ from sentry.models import (
     Rule,
     UserOption,
 )
-from sentry.notifications.activity import (
+from sentry.notifications.notifications.activity import (
     AssignedActivityNotification,
     NewProcessingIssuesActivityNotification,
     NoteActivityNotification,
@@ -30,7 +30,7 @@ from sentry.notifications.activity import (
     ResolvedInReleaseActivityNotification,
     UnassignedActivityNotification,
 )
-from sentry.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
     NotificationSettingOptionValues,
@@ -359,7 +359,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         notification = NewProcessingIssuesActivityNotification(
             Activity(
                 project=self.project,
-                group=self.group,
                 user=self.user,
                 type=ActivityType.NEW_PROCESSING_ISSUES,
                 data={

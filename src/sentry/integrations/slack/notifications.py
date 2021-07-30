@@ -5,10 +5,10 @@ from typing import AbstractSet, Any, Mapping, Set, Union
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
-from sentry.notifications.activity.base import ActivityNotification
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.notifications.rules import AlertRuleNotification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics

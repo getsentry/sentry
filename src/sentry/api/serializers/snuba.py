@@ -304,7 +304,9 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
-    def serialize(self, result, column="count", order=None, allow_partial_buckets=False):
+    def serialize(
+        self, result, column="count", order=None, allow_partial_buckets=False, zerofill_results=True
+    ):
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
@@ -332,6 +334,8 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
                 result.rollup,
                 allow_partial_buckets=allow_partial_buckets,
             )
+            if zerofill_results
+            else rv
         }
 
         if result.data.get("totals"):
@@ -341,5 +345,9 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             res["order"] = order
         elif "order" in result.data:
             res["order"] = result.data["order"]
+
+        if hasattr(result, "start") and hasattr(result, "end"):
+            res["start"] = result.start.timestamp()
+            res["end"] = result.end.timestamp()
 
         return res

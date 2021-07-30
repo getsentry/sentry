@@ -6,7 +6,7 @@ import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 
 export default {
-  title: 'Features/Issues/StreamGroup',
+  title: 'Features/Issues/Stream Group',
 };
 
 const selection = {
@@ -69,7 +69,7 @@ function loadGroups() {
     inbox: {
       date_added: '2020-11-24T13:17:42.248751Z',
       reason: 0,
-      reason_details: null,
+      reason_details: {},
     },
   };
 
@@ -92,7 +92,7 @@ function loadGroups() {
     inbox: {
       date_added: '2020-11-24T13:17:42.248751Z',
       reason: 2,
-      reason_details: null,
+      reason_details: {},
     },
   };
 
@@ -131,7 +131,7 @@ function loadGroups() {
     inbox: {
       date_added: '2020-11-24T13:17:42.248751Z',
       reason: 3,
-      reason_details: null,
+      reason_details: {},
     },
   };
 
@@ -148,7 +148,7 @@ function loadGroups() {
     inbox: {
       date_added: '2020-11-24T13:17:42.248751Z',
       reason: 1,
-      reason_details: null,
+      reason_details: {},
     },
   };
 
@@ -180,7 +180,7 @@ class LocationContext extends Component {
   }
 }
 
-export const Default = () => {
+export const _StreamGroup = () => {
   loadGroups();
   return (
     <LocationContext>
@@ -252,76 +252,4 @@ export const Default = () => {
     </LocationContext>
   );
 };
-
-export const WithInbox = () => {
-  loadGroups();
-  return (
-    <LocationContext>
-      <StreamGroup
-        id="1"
-        canSelect
-        withChart={null}
-        memberList={[]}
-        organization={organization}
-        selection={selection}
-        query=""
-        isGlobalSelectionReady
-      />
-
-      <StreamGroup
-        id="2"
-        canSelect
-        withChart={null}
-        memberList={[]}
-        organization={organization}
-        selection={selection}
-        query=""
-        isGlobalSelectionReady
-      />
-
-      <StreamGroup
-        id="3"
-        canSelect
-        withChart={null}
-        memberList={[]}
-        organization={organization}
-        selection={selection}
-        query=""
-        isGlobalSelectionReady
-      />
-
-      <StreamGroup
-        id="4"
-        canSelect
-        withChart={null}
-        memberList={[]}
-        organization={organization}
-        selection={selection}
-        query=""
-        isGlobalSelectionReady
-      />
-
-      <StreamGroup
-        id="5"
-        canSelect
-        withChart={null}
-        memberList={[]}
-        organization={organization}
-        selection={selection}
-        query=""
-        isGlobalSelectionReady
-      />
-
-      <StreamGroup
-        id="6"
-        canSelect
-        withChart={null}
-        memberList={[]}
-        organization={organization}
-        selection={selection}
-        query=""
-        isGlobalSelectionReady
-      />
-    </LocationContext>
-  );
-};
+_StreamGroup.storyName = 'Stream Group';

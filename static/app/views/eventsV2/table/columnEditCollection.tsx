@@ -12,7 +12,13 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {AGGREGATIONS, Column} from 'app/utils/discover/fields';
+import {
+  AGGREGATIONS,
+  Column,
+  generateFieldAsString,
+  hasDuplicate,
+  isLegalEquationColumn,
+} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
@@ -136,20 +142,66 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.props.onChange([...this.props.columns, newColumn]);
   };
 
-  handleUpdateColumn = (index: number, column: Column) => {
+  handleUpdateColumn = (index: number, updatedColumn: Column) => {
     const newColumns = [...this.props.columns];
-    if (column.kind === 'equation') {
+    if (updatedColumn.kind === 'equation') {
       this.setState(prevState => {
         const error = new Map(prevState.error);
-        error.set(index, parseArithmetic(column.field).error);
+        error.set(index, parseArithmetic(updatedColumn.field).error);
         return {
           ...prevState,
           error,
         };
       });
+    } else {
+      // Update any equations that contain the existing column
+      this.updateEquationFields(newColumns, index, updatedColumn);
     }
-    newColumns.splice(index, 1, column);
+    newColumns.splice(index, 1, updatedColumn);
     this.props.onChange(newColumns);
+  };
+
+  updateEquationFields = (newColumns: Column[], index: number, updatedColumn: Column) => {
+    const oldColumn = newColumns[index];
+    const existingColumn = generateFieldAsString(newColumns[index]);
+    const updatedColumnString = generateFieldAsString(updatedColumn);
+    if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
+      return;
+    }
+    // Find the equations in the list of columns
+    for (let i = 0; i < newColumns.length; i++) {
+      const newColumn = newColumns[i];
+      if (newColumn.kind === 'equation') {
+        const result = parseArithmetic(newColumn.field);
+        let newEquation = '';
+        // Track where to continue from, not reconstructing from result so we don't have to worry
+        // about spacing
+        let lastIndex = 0;
+
+        // the parser separates fields & functions, so we only need to check one
+        const fields =
+          oldColumn.kind === 'function' ? result.tc.functions : result.tc.fields;
+
+        // for each field, add the text before it, then the new function and update index
+        // to be where we want to start again
+        for (const field of fields) {
+          if (field.term === existingColumn && lastIndex !== field.location.end.offset) {
+            newEquation +=
+              newColumn.field.substring(lastIndex, field.location.start.offset) +
+              updatedColumnString;
+            lastIndex = field.location.end.offset;
+          }
+        }
+
+        // Add whatever remains to be added from the equation, if existing field wasn't found
+        // add the entire equation
+        newEquation += newColumn.field.substring(lastIndex);
+        newColumns[i] = {
+          kind: 'equation',
+          field: newEquation,
+        };
+      }
+    }
   };
 
   removeColumn(index: number) {
@@ -317,9 +369,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
     i: number,
     {
       canDelete = true,
+      canDrag = true,
       isGhost = false,
       gridColumns = 2,
-    }: {canDelete?: boolean; isGhost?: boolean; gridColumns: number}
+    }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
     const {columns, fieldOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
@@ -350,7 +403,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       <React.Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer className={isGhost ? '' : DRAG_CLASS}>
-          {canDelete ? (
+          {canDrag ? (
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
@@ -371,7 +424,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
           />
-          {canDelete ? (
+          {canDelete || col.kind === 'equation' ? (
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
@@ -389,11 +442,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   render() {
     const {className, columns, organization} = this.props;
-    const canDelete =
-      columns.filter(
-        field =>
-          field.kind === 'function' || (field.kind === 'field' && field.field !== '')
-      ).length > 1;
+    const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
+    const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
       ? undefined
@@ -419,7 +469,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           </Heading>
         </RowContainer>
         {columns.map((col: Column, i: number) =>
-          this.renderItem(col, i, {canDelete, gridColumns})
+          this.renderItem(col, i, {canDelete, canDrag, gridColumns})
         )}
         <RowContainer>
           <Actions>
@@ -443,7 +493,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 icon={<IconAdd isCircled size="xs" />}
               >
                 {t('Add an Equation')}
-                <StyledFeatureBadge type="beta" />
+                <StyledFeatureBadge type="new" />
               </Button>
             </Feature>
           </Actions>

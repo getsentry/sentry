@@ -454,10 +454,14 @@ export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
+  start?: number;
+  end?: number;
 };
 
 // API response format for multiple series
-export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
+export type MultiSeriesEventsStats = {
+  [seriesName: string]: EventsStats;
+};
 
 /**
  * Avatars are a more primitive version of User.
@@ -905,10 +909,11 @@ type GroupActivityRegression = GroupActivityBase & {
   };
 };
 
-type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
   data: {
     version?: string;
+    current_release_version?: string;
   };
 };
 
@@ -1000,7 +1005,6 @@ export type GroupActivity =
   | GroupActivitySetUnresolved
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
-  | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
@@ -2160,13 +2164,15 @@ export type IssueOwnership = {
   autoAssignment: boolean;
 };
 
-export type CodeOwners = {
+export type CodeOwner = {
   id: string;
   raw: string;
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
   codeMapping?: RepositoryProjectPathConfig;
+  codeMappingId: string;
+  ownershipSyntax?: string;
   errors: {
     missing_external_teams: string[];
     missing_external_users: string[];
@@ -2206,4 +2212,10 @@ export type ExternalTeam = {
   externalName: string;
   provider: string;
   integrationId: string;
+};
+
+export type CodeownersFile = {
+  raw: string;
+  filepath: string;
+  html_url: string;
 };
