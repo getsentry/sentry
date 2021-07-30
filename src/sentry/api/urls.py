@@ -415,6 +415,7 @@ from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEnd
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
+from .endpoints.user_identities import UserUnlinkedIdentitiesEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -677,6 +678,11 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/subscriptions/$",
                     UserSubscriptionsEndpoint.as_view(),
                     name="sentry-api-0-user-subscriptions",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/identities/$",
+                    UserUnlinkedIdentitiesEndpoint.as_view(),
+                    name="sentry-api-0-user-unlinked-identities",
                 ),
             ]
         ),

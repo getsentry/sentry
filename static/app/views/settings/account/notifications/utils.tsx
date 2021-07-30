@@ -1,7 +1,7 @@
 import set from 'lodash/set';
 
 import {t} from 'app/locale';
-import {OrganizationSummary, Project} from 'app/types';
+import {OrganizationSummary, Project, Identity} from 'app/types';
 import {
   ALL_PROVIDERS,
   NotificationSettingsByProviderObject,
@@ -394,3 +394,27 @@ export const getParentField = (
     help: undefined,
   }) as any;
 };
+
+export const unlinkedSlacks = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject,
+  identities: Identity,
+  ) => {
+    console.log({identities})
+    // first check if Slack is the delivery method
+    let hasSlack = false;
+    const choice = Object.values(notificationSettings[notificationType]?.user);
+    for (const [key, value] of Object.entries(choice[0])) {
+      if (key == 'slack' && value !== 'never') {
+        hasSlack = true;
+      }
+    }
+    if (hasSlack == false) {
+      return [];
+    }
+    return [];
+    // then check if for each org that has Slack, the user has an identity
+    // integration model external_id matches idp external_id
+    // look up identity with idp and user
+    // return list of unlinked orgs
+  };

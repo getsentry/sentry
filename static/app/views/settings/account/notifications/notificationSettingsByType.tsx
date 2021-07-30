@@ -2,11 +2,13 @@ import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
+// import {Identity} from 'app/types';
 import {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'app/views/settings/account/notifications/constants';
 import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
+import UnlinkedAlert from 'app/views/settings/account/notifications/unlinkedAlert';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
@@ -18,6 +20,7 @@ import {
   getStateToPutForDefault,
   getStateToPutForParent,
   getStateToPutForProvider,
+  unlinkedSlacks,
   isEverythingDisabled,
   isGroupedByProject,
   mergeNotificationSettings,
@@ -34,6 +37,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
+  // identities: Identity[] | null;
   notificationSettings: NotificationSettingsObject;
 } & AsyncComponent['state'];
 
@@ -41,8 +45,40 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
+      // identities: [],
       notificationSettings: {},
     };
+  }
+
+  getSlackIdentities = (data) => {
+    console.log({data})
+    return data;
+    // let slackIdentities = [];
+    // for (const identity of data) {
+    //   if (identity.provider == "slack") {
+    //     slackIdentities.push(identity);
+    //   }
+    // }
+    // console.log(slackIdentities);
+    // return slackIdentities;
+  }
+
+  getIdentities = () => {
+    const endpoint = '/users/me/identities/';
+    const stateKey = 'identities';
+    this.api.request(endpoint, {
+      method: 'GET',
+      // query,
+      success: (data, _, jqXHR) => {
+        const slackIdentities = this.getSlackIdentities(data);
+        return slackIdentities;
+        // this.handleRequestSuccess({stateKey, data, jqXHR}, true);
+      },
+      error: error => {
+        this.handleError(error, [stateKey, endpoint, null, null]);
+      },
+    });
+    // return slackIdentities? | [];
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -166,6 +202,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   renderBody() {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
+    const identities = this.getIdentities();
+    console.log({identities});
+    // const temp = unlinkedSlacks(notificationType, notificationSettings, identities);
+    // console.log(temp);
 
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
 
@@ -173,6 +213,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       <React.Fragment>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
+        <UnlinkedAlert />
         <FeedbackAlert />
         <Form
           saveOnBlur
