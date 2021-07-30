@@ -920,7 +920,7 @@ def parse_function(field, match=None, err_msg=None):
     )
 
 
-def is_function(field: str) -> Optional[Match]:
+def is_function(field: str) -> Optional[Match[str]]:
     function_match = FUNCTION_PATTERN.search(field)
     if function_match:
         return function_match
