@@ -1114,7 +1114,7 @@ class EventView {
   getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
     return {
       pathname: `/organizations/${slug}/discover/results/`,
-      query: {...this.generateQueryStringObject()},
+      query: this.generateQueryStringObject(),
     };
   }
 
