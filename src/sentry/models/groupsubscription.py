@@ -143,7 +143,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         return result
 
     @staticmethod
-    def get_participating_users(group) -> Sequence["User"]:
+    def get_participating_users(group: "Group") -> Sequence["User"]:
         """Return the list of users participating in this issue."""
         from sentry.models import User
 

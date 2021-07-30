@@ -7,8 +7,8 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Generic,
-    Iterator,
     Mapping,
     MutableMapping,
     Optional,
@@ -108,7 +108,7 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
 
     @staticmethod
     @contextmanager
-    def local_cache() -> Iterator[None]:
+    def local_cache() -> Generator[None, None, None]:
         """Enables local caching for the entire process."""
         global _local_cache_enabled, _local_cache_generation
         if _local_cache_enabled:
@@ -246,7 +246,7 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
 
         self.__cache_state(instance)
 
-    def __post_delete(self, instance: Any, **kwargs: Any) -> None:
+    def __post_delete(self, instance: M, **kwargs: Any) -> None:
         """
         Drops instance from all cache storages.
         """
@@ -267,7 +267,7 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
     def __get_lookup_cache_key(self, **kwargs: Any) -> str:
         return make_key(self.model, "modelcache", kwargs)
 
-    def __value_for_field(self, instance: Any, key: str) -> Any:
+    def __value_for_field(self, instance: M, key: str) -> Any:
         """
         Return the cacheable value for a field.
 
@@ -280,7 +280,7 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
         field = instance._meta.get_field(key)
         return getattr(instance, field.attname)
 
-    def contribute_to_class(self, model: Any, name: str) -> None:
+    def contribute_to_class(self, model: M, name: str) -> None:
         super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
@@ -474,21 +474,19 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
         return final_results
 
     def create_or_update(self, **kwargs: Any) -> Tuple[Any, bool]:
-        model, created = create_or_update(self.model, **kwargs)
-        # Explicitly typing to satisfy mypy.
-        return model, created
+        return create_or_update(self.model, **kwargs)  # type: ignore
 
     def uncache_object(self, instance_id: int) -> None:
         pk_name = self.model._meta.pk.name
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, instance: Any, **kwargs: Any) -> None:
+    def post_save(self, instance: M, **kwargs: Any) -> None:
         """
         Triggered when a model bound to this manager is saved.
         """
 
-    def post_delete(self, instance: Any, **kwargs: Any) -> None:
+    def post_delete(self, instance: M, **kwargs: Any) -> None:
         """
         Triggered when a model bound to this manager is deleted.
         """
@@ -516,7 +514,7 @@ class OptionManager(BaseManager[M]):
     def clear_local_cache(self, **kwargs: Any) -> None:
         self._option_cache.clear()
 
-    def contribute_to_class(self, model: Any, name: str) -> None:
+    def contribute_to_class(self, model: M, name: str) -> None:
         super().contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
