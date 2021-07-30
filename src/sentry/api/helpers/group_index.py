@@ -729,6 +729,29 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                             resolution_params.update(
                                 {"current_release_version": current_release_version}
                             )
+
+                            # Sets `current_release_version` for activity, since there is no point
+                            # waiting for when a new release is created i.e.
+                            # clear_expired_resolutions task to be run.
+                            # Activity should look like "... resolved in version
+                            # >current_release_version" in the UI
+                            if follows_semver:
+                                activity_data.update(
+                                    {"current_release_version": current_release_version}
+                                )
+
+                                # In semver projects, and thereby semver releases, we determine
+                                # resolutions by comparing against an expression rather than a
+                                # specific release (i.e. >current_release_version). Consequently,
+                                # at this point we can consider this GroupResolution as resolved
+                                # in release
+                                resolution_params.update(
+                                    {
+                                        "type": GroupResolution.Type.in_release,
+                                        "status": GroupResolution.Status.resolved,
+                                    }
+                                )
+
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params
                     )
