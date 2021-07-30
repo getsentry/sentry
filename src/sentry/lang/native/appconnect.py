@@ -8,6 +8,7 @@ import dataclasses
 import io
 import logging
 import pathlib
+import time
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -19,7 +20,7 @@ from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
-from sentry.utils import json
+from sentry.utils import json, sdk
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
@@ -276,12 +277,19 @@ class ITunesClient:
             if not url:
                 raise NoDsymsError
             logger.debug("Fetching dSYM from: %s", url)
-            # The download timeout is just above how long it would take a
-            # 4MB/s connection to download 2GB.
-            with requests.get(url, stream=True, timeout=315.0) as req:
+            # The 315s is just above how long it would take a 4MB/s connection to download
+            # 2GB.
+            with requests.get(url, stream=True, timeout=15) as req:
                 req.raise_for_status()
+                start = time.time()
+                bytes_count = 0
                 with open(path, "wb") as fp:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        if (time.time() - start) > 315:
+                            with sdk.configure_scope() as scope:
+                                scope.set_extra("dSYM.bytes_fetched", bytes_count)
+                            raise requests.Timeout("Timeout during dSYM download")
+                        bytes_count += len(chunk)
                         fp.write(chunk)
 
 
