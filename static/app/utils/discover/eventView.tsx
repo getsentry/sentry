@@ -13,6 +13,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {
   aggregateOutputType,
@@ -1109,14 +1110,16 @@ class EventView {
   }
 
   getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+    const user = ConfigStore.get('user');
     return {
       pathname: `/organizations/${slug}/discover/results/`,
-      query: this.generateQueryStringObject(),
+      query: {...this.generateQueryStringObject(), user: user.id},
     };
   }
 
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
-    const output = {id: this.id};
+    const user = ConfigStore.get('user');
+    const output = {id: this.id, user: user.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       if (this[field] && this[field].length) {
         output[field] = this[field];
