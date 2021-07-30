@@ -2436,6 +2436,9 @@ class QueryFields(QueryBase):
                 ),
             ]
         }
+        # In Performance TPM is used as an alias to EPM
+        for alias, name in FUNCTION_ALIASES.items():
+            self.function_converter[alias] = self.function_converter[name].alias_as(alias)
 
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
         """Given a public list of discover fields, construct the corresponding
