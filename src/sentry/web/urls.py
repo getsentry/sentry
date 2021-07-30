@@ -543,8 +543,7 @@ urlpatterns += [
                     name="sentry-organization-disabled-member",
                 ),
                 # need to force these to React and ensure organization_slug is captured
-                # TODO(RyanSkonnord): Generalize to all pages without regressing
-                url(r"^(?P<organization_slug>[\w_-]+)/(settings|discover)/", react_page_view),
+                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/", react_page_view),
             ]
         ),
     ),

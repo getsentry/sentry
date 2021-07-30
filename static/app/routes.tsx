@@ -34,7 +34,8 @@ import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 const appendTrailingSlash: EnterHook = (nextState, replace) => {
   const lastChar = nextState.location.pathname.slice(-1);
   if (lastChar !== '/') {
-    replace(nextState.location.pathname + '/');
+    const pathname = nextState.location.pathname + '/';
+    replace(pathname + nextState.location.search + nextState.location.hash);
   }
 };
 

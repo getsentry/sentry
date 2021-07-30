@@ -78,15 +78,11 @@ class ReactPageViewTest(TestCase):
         org = self.create_organization(owner=owner)
         # User is *not* logged in. Check for redirect to org's auth login.
 
-        # TODO(RyanSkonnord): Generalize URL pattern; add
-        #  f"/organizations/{org.slug}/new_page_that_does_not_exist_yet/"
-        #  to list of test paths without causing other regressions.
-        #  See OrganizationReleasesTest.test_detail_global_header,
-        #  which exposes a buggy interaction with appendTrailingSlash
-        #  in static/app/routes.tsx.
         for path in [
             f"/organizations/{org.slug}/settings/",
             f"/organizations/{org.slug}/discover/",
+            f"/organizations/{org.slug}/releases/1.0/?project=1",
+            f"/organizations/{org.slug}/new_page_that_does_not_exist_yet/",
             f"/settings/{org.slug}/developer-settings/",
             f"/settings/{org.slug}/new_page_that_does_not_exist_yet/",
         ]:
