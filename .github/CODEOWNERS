@@ -241,8 +241,9 @@ build-utils/        @getsentry/owners-js-build
 
 ### Native ###
 
-/src/sentry/tasks/assemble.py           @getsentry/owners-native
 /src/sentry/api/endpoints/chunk.py      @getsentry/owners-native
+/src/sentry/lang/native/                @getsentry/owners-native
 /src/sentry/tasks/app_store_connect.py  @getsentry/owners-native
+/src/sentry/tasks/assemble.py           @getsentry/owners-native
 
 ## End of Native ##
