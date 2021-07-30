@@ -12,6 +12,7 @@ type Data = {
     webVital?: WebVital;
   };
 };
+
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   // @ts-expect-error
@@ -139,6 +140,11 @@ describe('Performance > TransactionSummary', function () {
         },
       }
     );
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
   });
 
   afterEach(function () {

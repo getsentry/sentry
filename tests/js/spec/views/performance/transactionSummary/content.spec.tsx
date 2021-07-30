@@ -54,41 +54,51 @@ describe('Transaction Summary Content', function () {
       url: '/prompts-activity/',
       body: {},
     });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
   });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/sdk-updates/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/eventsv2/',
-    body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/users/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-facets/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/releases/stats/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-stats/',
-    body: [],
+
+  afterEach(function () {
+    // @ts-expect-error
+    MockApiClient.clearMockResponses();
   });
 
   it('Basic Rendering', async function () {

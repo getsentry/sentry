@@ -25,7 +25,6 @@ import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 
@@ -124,10 +123,7 @@ class EventsPageContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.Events}
-          hasWebVitals={
-            getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
-          }
+          hasWebVitals="maybe"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>

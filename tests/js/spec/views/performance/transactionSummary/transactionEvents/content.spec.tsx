@@ -152,6 +152,11 @@ describe('Performance Transaction Events Content', function () {
         },
       }
     );
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
     initialData = initializeData({features: ['performance-events-page']});
     eventView = EventView.fromNewQueryWithLocation(
       {

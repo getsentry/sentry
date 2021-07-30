@@ -16,8 +16,11 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import HasMeasurementsQuery from 'app/utils/performance/vitals/hasMeasurementsQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
+
+import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
@@ -41,7 +44,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   currentTab: Tab;
-  hasWebVitals: boolean;
+  hasWebVitals: 'maybe' | 'yes' | 'no';
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
@@ -159,18 +162,74 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  render() {
-    const {organization, location, transactionName, currentTab, hasWebVitals} =
-      this.props;
+  renderWebVitalsTab() {
+    const {
+      organization,
+      eventView,
+      location,
+      projects,
+      transactionName,
+      currentTab,
+      hasWebVitals,
+    } = this.props;
 
-    const summaryTarget = transactionSummaryRouteWithQuery({
+    const vitalsTarget = vitalsRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transactionName,
       projectID: decodeScalar(location.query.project),
       query: location.query,
     });
 
-    const vitalsTarget = vitalsRouteWithQuery({
+    const tab = (
+      <ListLink
+        data-test-id="web-vitals-tab"
+        to={vitalsTarget}
+        isActive={() => currentTab === Tab.RealUserMonitoring}
+        onClick={this.trackVitalsTabClick}
+      >
+        {t('Web Vitals')}
+      </ListLink>
+    );
+
+    switch (hasWebVitals) {
+      case 'maybe':
+        // need to check if the web vitals tab should be shown
+
+        // frontend projects should always show the web vitals tab
+        if (
+          getCurrentLandingDisplay(location, projects, eventView).field ===
+          LandingDisplayField.FRONTEND_PAGELOAD
+        ) {
+          return tab;
+        }
+
+        // if it is not a frontend project, then we check to see if there
+        // are any web vitals associated with the transaction recently
+        return (
+          <HasMeasurementsQuery
+            location={location}
+            orgSlug={organization.slug}
+            eventView={eventView}
+            transaction={transactionName}
+            type="web"
+          >
+            {({hasMeasurements}) => (hasMeasurements ? tab : null)}
+          </HasMeasurementsQuery>
+        );
+      case 'yes':
+        // always show the web vitals tab
+        return tab;
+      case 'no':
+      default:
+        // never show the web vitals tab
+        return null;
+    }
+  }
+
+  render() {
+    const {organization, location, transactionName, currentTab} = this.props;
+
+    const summaryTarget = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transactionName,
       projectID: decodeScalar(location.query.project),
@@ -219,15 +278,7 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Overview')}
             </ListLink>
-            {hasWebVitals && (
-              <ListLink
-                to={vitalsTarget}
-                isActive={() => currentTab === Tab.RealUserMonitoring}
-                onClick={this.trackVitalsTabClick}
-              >
-                {t('Web Vitals')}
-              </ListLink>
-            )}
+            {this.renderWebVitalsTab()}
             <Feature features={['organizations:performance-tag-page']}>
               <ListLink
                 to={tagsTarget}

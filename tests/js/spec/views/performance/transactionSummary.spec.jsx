@@ -243,6 +243,10 @@ describe('Performance > TransactionSummary', function () {
         keyed: [],
       })),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
   });
 
   afterEach(function () {

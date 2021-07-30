@@ -405,7 +405,7 @@ function formatQuery(query: string) {
  * are directly added as a tag value, we have to escape them to mean
  * the literal.
  */
-function escapeTagValue(value: string) {
+export function escapeTagValue(value: string) {
   // TODO(txiao): The types here are definitely wrong.
   // Need to dig deeper to see where exactly it's wrong.
   //

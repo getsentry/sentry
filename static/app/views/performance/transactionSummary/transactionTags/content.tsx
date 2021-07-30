@@ -19,7 +19,6 @@ import SegmentExplorerQuery, {
 import {decodeScalar} from 'app/utils/queryString';
 import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
 
-import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 import {getTransactionField} from '../tagExplorer';
@@ -57,10 +56,7 @@ const TagsPageContent = (props: Props) => {
         projects={projects}
         transactionName={transactionName}
         currentTab={Tab.Tags}
-        hasWebVitals={
-          getCurrentLandingDisplay(location, projects, eventView).field ===
-          LandingDisplayField.FRONTEND_PAGELOAD
-        }
+        hasWebVitals="maybe"
         handleIncompatibleQuery={handleIncompatibleQuery}
       />
 
