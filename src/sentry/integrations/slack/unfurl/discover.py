@@ -46,12 +46,11 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         query_id = params.get("id", None)
         user_id = params.get("user", None)
 
-        projects = [
-            f"{project_id}"
-            for project_id in Project.objects.filter(
+        projects = list(
+            Project.objects.filter(
                 organization=org, teams__organizationmember__user_id=user_id
             ).values_list("id", flat=True)
-        ]
+        )
 
         saved_query = {}
         if query_id:
