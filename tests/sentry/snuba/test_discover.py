@@ -52,6 +52,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
                 "timestamp": iso_format(self.event_time),
+                "tags": [["key1", "value1"]],
             },
             project_id=self.project.id,
         )
@@ -237,6 +238,97 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 # The query will translate `issue` into `issue.id`. Additional post processing
                 # is required to insert the `issue` column.
                 assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
+
+    def test_tags_orderby(self):
+        self.event = self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(self.event_time),
+                "tags": [["key1", "value2"]],
+            },
+            project_id=self.project.id,
+        )
+
+        tests = [
+            ("key1", "key1", ["value1", "value2"]),
+            ("key1", "-key1", ["value2", "value1"]),
+            ("tags[key1]", "tags[key1]", ["value1", "value2"]),
+            ("tags[key1]", "-tags[key1]", ["value2", "value1"]),
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for column, orderby, expected in tests:
+                result = query_fn(
+                    selected_columns=[column],
+                    query="",
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                    orderby=orderby,
+                )
+                data = result["data"]
+                assert len(data) == len(expected), query_fn
+                assert [item[column] for item in data] == expected, query_fn
+
+    def test_tags_filter(self):
+        self.event = self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(self.event_time),
+                "tags": [["key1", "value2"]],
+            },
+            project_id=self.project.id,
+        )
+
+        tests = [
+            ("key1", "", ["value1", "value2"]),
+            ("key1", "has:key1", ["value1", "value2"]),
+            ("key1", "!has:key1", []),
+            ("key1", "key1:value1", ["value1"]),
+            ("key1", "key1:value2", ["value2"]),
+            ("key1", 'key1:""', []),
+            ("key1", "key1:value*", ["value1", "value2"]),
+            ("key1", 'key1:["value1"]', ["value1"]),
+            ("key1", 'key1:["value1", "value2"]', ["value1", "value2"]),
+            ("tags[key1]", "", ["value1", "value2"]),
+            # has does not work with tags[...] syntax
+            # ("tags[key1]", 'has:"tags[key1]"', ["value1", "value2"]),
+            # ("tags[key1]", '!has:"tags[key1]"', []),
+            ("tags[key1]", "tags[key1]:value1", ["value1"]),
+            ("tags[key1]", "tags[key1]:value2", ["value2"]),
+            ("tags[key1]", 'tags[key1]:""', []),
+            ("tags[key1]", "tags[key1]:value*", ["value1", "value2"]),
+            ("tags[key1]", 'tags[key1]:["value1"]', ["value1"]),
+            ("tags[key1]", 'tags[key1]:["value1", "value2"]', ["value1", "value2"]),
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for column, query, expected in tests:
+                result = query_fn(
+                    selected_columns=[column],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                    orderby=column,
+                )
+                data = result["data"]
+                assert len(data) == len(expected), (query_fn, column, query, expected)
+                assert [item[column] for item in data] == expected, query_fn
 
     def test_reverse_sorting_issue(self):
         other_event = self.store_event(
@@ -1673,10 +1765,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for query, expected_len in queries:
-            for query_fn, expected_alias in [
-                (discover.query, "stack.filename"),
-                (discover.wip_snql_query, "exception_frames.filename"),
-            ]:
+            for query_fn in [discover.query, discover.wip_snql_query]:
                 result = query_fn(
                     selected_columns=["stack.filename"],
                     query=query,
@@ -1692,8 +1781,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data) == expected_len
                 if len(data) == 0:
                     continue
-                assert len(data[0][expected_alias]) == len(expected_filenames)
-                assert sorted(data[0][expected_alias]) == expected_filenames
+                assert len(data[0]["stack.filename"]) == len(expected_filenames)
+                assert sorted(data[0]["stack.filename"]) == expected_filenames
 
         result = discover.wip_snql_query(
             selected_columns=["stack.filename"],
@@ -1708,8 +1797,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         data = result["data"]
         assert len(data) == 1
-        assert len(data[0]["exception_frames.filename"]) == len(expected_filenames)
-        assert sorted(data[0]["exception_frames.filename"]) == expected_filenames
+        assert len(data[0]["stack.filename"]) == len(expected_filenames)
+        assert sorted(data[0]["stack.filename"]) == expected_filenames
 
     def test_orderby_field_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))

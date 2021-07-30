@@ -2434,16 +2434,24 @@ class QueryFields(QueryBase):
         for column in selected_columns:
             if column.strip() == "":
                 continue
-            resolved_column = self.resolve_column(column)
+            # need to make sure the column is resolved with the appropriate alias
+            # because the resolved snuba name may be different
+            resolved_column = self.resolve_column(column, alias=True)
             if resolved_column not in self.columns:
                 columns.append(resolved_column)
 
         return columns
 
-    def resolve_column(self, field: str) -> SelectType:
-        """Given a public discover field, construct the corresponding Snql, this
+    def resolve_column(self, field: str, alias: bool = False) -> SelectType:
+        """Given a public field, construct the corresponding Snql, this
         function will determine the type of the field alias, whether its a
         column, field alias or function and call the corresponding resolver
+
+        :param field: The public field string to resolve into Snql. This may
+                      be a column, field alias, or even a function.
+        :param alias: Whether or not the resolved column is aliased to the
+                      original name. If false, it may still have an alias
+                      but is not guaranteed.
         """
         match = is_function(field)
         if match:
@@ -2451,20 +2459,17 @@ class QueryFields(QueryBase):
         elif self.is_field_alias(field):
             return self.resolve_field_alias(field)
         else:
-            return self.resolve_field(field)
+            return self.resolve_field(field, alias=alias)
 
-    def resolve_field(self, field: str) -> Column:
+    def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         """Given a public field, resolve the alias based on the Query's
         dataset and return the Snql Column
         """
-        tag_match = TAG_KEY_RE.search(field)
-        field = tag_match.group("tag") if tag_match else field
+        tag_match = TAG_KEY_RE.search(raw_field)
+        field = tag_match.group("tag") if tag_match else raw_field
 
         if VALID_FIELD_PATTERN.match(field):
-            if field in self.field_allowlist:
-                return self.column(field)
-            else:
-                raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+            return self.aliased_column(field, raw_field) if alias else self.column(field)
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
