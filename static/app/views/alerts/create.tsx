@@ -128,7 +128,7 @@ class Create extends Component<Props, State> {
           </StyledHeaderContent>
         </Layout.Header>
         <AlertConditionsBody>
-          <AlertMain fullWidth>
+          <StyledLayoutMain fullWidth>
             {(!hasMetricAlerts || alertType === 'issue') && (
               <IssueRuleEditor {...this.props} project={project} />
             )}
@@ -143,7 +143,7 @@ class Create extends Component<Props, State> {
                 isCustomMetric={wizardAlertType === 'custom'}
               />
             )}
-          </AlertMain>
+          </StyledLayoutMain>
         </AlertConditionsBody>
       </Fragment>
     );
@@ -154,7 +154,7 @@ const AlertConditionsBody = styled(Layout.Body)`
   margin-bottom: -${space(3)};
 `;
 
-const AlertMain = styled(Layout.Main)`
+const StyledLayoutMain = styled(Layout.Main)`
   max-width: 1000px;
 `;
 
