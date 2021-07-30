@@ -47,7 +47,6 @@ const config: Config.InitialOptions = {
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
-  snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',

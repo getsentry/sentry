@@ -80,20 +80,29 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        # Is the issue already assigned to a team or user?
-        key = "assignee_exists:1:%s" % group.id
-        owners_exists = cache.get(key)
+        owner_key = "owner_exists:1:%s" % group.id
+        owners_exists = cache.get(owner_key)
         if owners_exists is None:
-            owners_exists = group.assignee_set.exists() or group.groupowner_set.exists()
+            owners_exists = group.groupowner_set.exists()
             # Cache for an hour if it's assigned. We don't need to move that fast.
-            cache.set(key, owners_exists, 3600 if owners_exists else 60)
-        if owners_exists:
+            cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
+
+        # Is the issue already assigned to a team or user?
+        assignee_key = "assignee_exists:1:%s" % group.id
+        assignees_exists = cache.get(assignee_key)
+        if assignees_exists is None:
+            assignees_exists = group.assignee_set.exists()
+            # Cache for an hour if it's assigned. We don't need to move that fast.
+            cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+
+        if owners_exists and assignees_exists:
             return
 
         auto_assignment, owners, assigned_by_codeowners = ProjectOwnership.get_autoassign_owners(
             group.project_id, event.data
         )
-        if auto_assignment and owners:
+
+        if auto_assignment and owners and not assignees_exists:
             GroupAssignee.objects.assign(group, owners[0])
             if assigned_by_codeowners:
                 analytics.record(
@@ -103,7 +112,7 @@ def handle_owner_assignment(project, group, event):
                     group_id=group.id,
                 )
 
-        if owners:
+        if owners and not owners_exists:
             try:
                 handle_group_owners(project, group, owners)
             except Exception:
