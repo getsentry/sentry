@@ -120,11 +120,17 @@ module:android.os.* category=system
 
 family:native package:UIKit category=ui
 family:native package:UIKitCore category=ui
-family:native package:UIKitCore category=ui
+family:native package:SwiftUI category=ui
+family:native package:AttributeGraph category=ui
+family:native package:CoreAutoLayout category=ui
+family:native package:GraphicsServices category=ui
+family:native function:"-\[NSISEngine*" category=ui  # auto-layout engine
 module:android.view.* category=ui
 module:android.text.* category=ui
 module:android.widget.* category=ui
 module:android.app.Dialog category=ui
+module:androidx.*.widget.* category=ui
+module:com.google.android.material.* category=ui
 category:ui function:handleMessage category=indirection
 category:ui function:run category=indirection
 
@@ -136,6 +142,8 @@ family:native package:AudioToolbox* category=av
 family:native package:libAudioToolboxUtility.dylib category=av
 
 family:native function:std::_* category=internals
+family:native function:__swift_* category=internals
+family:native function:block_destroy_helper* category=internals
 
 family:native package:/usr/lib/system/** function:start category=threadbase
 family:native package:libdyld.dylib function:start category=threadbase
@@ -160,6 +168,7 @@ family:native package:UIKit function:UIApplicationMain category=threadbase
 module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=threadbase
 module:android.os.* function:call category=threadbase
 module:android.app.ActivityThread function:main category=threadbase
+module:android.view.View function:layout category=threadbase
 
 family:native package:"**/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
@@ -174,6 +183,7 @@ family:native function:__dynamic_cast category=indirection
 family:native function:boost::function* category=indirection
 family:native function:boost::_bi::* category=indirection
 family:native function:boost::detail::function::functor_manager* category=indirection
+family:native function:Array.subscript.* category=indirection
 module:java.lang.reflect.* category=indirection
 module:java.lang.Class function:getMethod category=indirection
 module:androidx.work.impl.utils.ForceStopRunnable category=indirection
@@ -201,6 +211,7 @@ family:native function:RaiseException category=throw
 family:native function:RaiseComPlusException category=throw
 family:native function:_CFThrowFormattedException category=throw
 family:native function:objc_exception_throw category=throw
+family:native function:AG::precondition_failure* category=throw
 
 family:native package:"C:/WINDOWS/system32/DriverStore/**" category=driver
 family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bundle/**" category=driver
@@ -217,6 +228,7 @@ family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
 family:native function:std::_Deallocate category=free
 family:native function:free category=free
+family:native function:objc_release category=free
 
 family:native package:C:/Windows/SYSTEM32/OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
@@ -243,6 +255,8 @@ module:com.lenovo.payplus.analytics.* category=telemetry
 package:"**/libBugly.so" category=telemetry
 
 family:native function:dlopen category=load
+family:native function:dladdr category=load
+family:native function:ImageLoaderMachO::findClosestSymbol category=load
 family:native package:/system/lib/libnativeloader.so function:android::OpenNativeLibrary category=load
 module:java.lang.System function:loadLibrary category=load
 module:java.lang.Runtime function:loadLibrary* category=load

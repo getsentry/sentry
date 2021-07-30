@@ -369,9 +369,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
     i: number,
     {
       canDelete = true,
+      canDrag = true,
       isGhost = false,
       gridColumns = 2,
-    }: {canDelete?: boolean; isGhost?: boolean; gridColumns: number}
+    }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
     const {columns, fieldOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
@@ -402,7 +403,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       <React.Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer className={isGhost ? '' : DRAG_CLASS}>
-          {canDelete ? (
+          {canDrag ? (
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
@@ -423,7 +424,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
           />
-          {canDelete ? (
+          {canDelete || col.kind === 'equation' ? (
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
@@ -441,11 +442,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   render() {
     const {className, columns, organization} = this.props;
-    const canDelete =
-      columns.filter(
-        field =>
-          field.kind === 'function' || (field.kind === 'field' && field.field !== '')
-      ).length > 1;
+    const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
+    const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
       ? undefined
@@ -471,7 +469,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           </Heading>
         </RowContainer>
         {columns.map((col: Column, i: number) =>
-          this.renderItem(col, i, {canDelete, gridColumns})
+          this.renderItem(col, i, {canDelete, canDrag, gridColumns})
         )}
         <RowContainer>
           <Actions>

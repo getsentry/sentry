@@ -360,9 +360,13 @@ def _release_stage_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     qs = (
         Release.objects.filter_by_stage(
-            organization_id, search_filter.operator, search_filter.value.value
+            organization_id,
+            search_filter.operator,
+            search_filter.value.value,
+            project_ids=project_ids,
         )
         .values_list("version", flat=True)
         .order_by("date_added")[:MAX_SEARCH_RELEASES]
@@ -401,6 +405,7 @@ def _semver_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
@@ -412,7 +417,11 @@ def _semver_filter_converter(
     if operator.startswith("<"):
         order_by = list(map(_flip_field_sort, order_by))
     qs = (
-        Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+        Release.objects.filter_by_semver(
+            organization_id,
+            parse_semver(version, operator),
+            project_ids=project_ids,
+        )
         .values_list("version", flat=True)
         .order_by(*order_by)[:MAX_SEARCH_RELEASES]
     )
@@ -459,11 +468,14 @@ def _semver_package_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     package: str = search_filter.value.raw_value
 
     versions = list(
         Release.objects.filter_by_semver(
-            organization_id, SemverFilter("exact", [], package)
+            organization_id,
+            SemverFilter("exact", [], package),
+            project_ids=project_ids,
         ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 
@@ -487,11 +499,15 @@ def _semver_build_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     build: str = search_filter.value.raw_value
 
     versions = list(
         Release.objects.filter_by_semver_build(
-            organization_id, OPERATOR_TO_DJANGO[search_filter.operator], build
+            organization_id,
+            OPERATOR_TO_DJANGO[search_filter.operator],
+            build,
+            project_ids=project_ids,
         ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 
@@ -1007,6 +1023,10 @@ def format_search_filter(term, params):
     return conditions, projects_to_filter, group_ids
 
 
+# Not a part of search.events.types to avoid a circular loop
+ParsedTerms = Sequence[Union[SearchFilter, AggregateFilter]]
+
+
 class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
@@ -1017,6 +1037,7 @@ class QueryFilter(QueryFields):
             str, Callable[[SearchFilter], Optional[WhereType]]
         ] = {
             "environment": self._environment_filter_converter,
+            "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
@@ -1027,7 +1048,9 @@ class QueryFilter(QueryFields):
             TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
         }
 
-    def parse_query(self, query: Optional[str]) -> Optional[Sequence[SearchFilter]]:
+    def parse_query(self, query: Optional[str]) -> ParsedTerms:
+        """Given a user's query, string construct a list of filters that can be
+        then used to construct the conditions of the Query"""
         if query is None:
             return []
 
@@ -1038,10 +1061,9 @@ class QueryFilter(QueryFields):
 
         return parsed_terms
 
-    def resolve_where(self, parsed_terms: Optional[Sequence[SearchFilter]]) -> List[WhereType]:
-        if not parsed_terms:
-            return []
-
+    def resolve_where(self, parsed_terms: ParsedTerms) -> List[WhereType]:
+        """Given a list of parsed terms, construct their equivalent snql where
+        conditions. filtering out any aggregates"""
         where_conditions: List[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, SearchFilter):
@@ -1052,11 +1074,10 @@ class QueryFilter(QueryFields):
         return where_conditions
 
     def resolve_having(
-        self, parsed_terms: Optional[Sequence[SearchFilter]], use_aggregate_conditions: bool = False
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool = False
     ) -> List[WhereType]:
-        if not parsed_terms:
-            return []
-
+        """Given a list of parsed terms, construct their equivalent snql having
+        conditions, filtering only for aggregate conditions"""
         if not use_aggregate_conditions:
             return []
 
@@ -1169,14 +1190,11 @@ class QueryFilter(QueryFields):
         name = search_filter.key.name
         value = search_filter.value.value
 
-        if name not in self.field_allowlist:
-            raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")
-
-        lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
+        lhs = self.resolve_column(name)
 
         if name in ARRAY_FIELDS:
             if search_filter.value.is_wildcard():
-                condition = Condition(
+                return Condition(
                     lhs,
                     Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
                     search_filter.value.raw_value.replace("%", "\\%")
@@ -1184,38 +1202,77 @@ class QueryFilter(QueryFields):
                     .replace("*", "%"),
                 )
             elif name in ARRAY_FIELDS and search_filter.is_in_filter:
-                condition = Condition(
+                return Condition(
                     Function("hasAny", [self.column(name), value]),
                     Op.EQ if search_filter.operator == "IN" else Op.NEQ,
                     1,
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
-                condition = Condition(
+                return Condition(
                     Function("hasAny", [self.column(name), []]),
                     Op.EQ if search_filter.operator == "=" else Op.NEQ,
                     1,
                 )
-            else:
-                condition = Condition(lhs, Op(search_filter.operator), value)
+
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
+            value = int(to_timestamp(value)) * 1000
+
+        # Validate event ids are uuids
+        if name == "id":
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+            elif not search_filter.value.is_event_id():
+                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
+
+        # Tags are never null, but promoted tags are columns and so can be null.
+        # To handle both cases, use `ifNull` to convert to an empty string and
+        # compare so we need to check for empty values.
+        if search_filter.key.is_tag:
+            name = ["ifNull", [name, "''"]]
+            lhs = Function("ifNull", [lhs, ""])
 
         # Handle checks for existence
-        elif search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if search_filter.key.is_tag:
-                condition = Condition(lhs, Op(search_filter.operator), value)
+                return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
-                condition = Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
+                return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
-        elif search_filter.value.is_wildcard():
+        is_null_condition = None
+        # TODO(wmak): Skip this for all non-nullable keys not just event.type
+        if (
+            search_filter.operator in ("!=", "NOT IN")
+            and not search_filter.key.is_tag
+            and name != "event.type"
+        ):
+            # Handle null columns on inequality comparisons. Any comparison
+            # between a value and a null will result to null, so we need to
+            # explicitly check for whether the condition is null, and OR it
+            # together with the inequality check.
+            # We don't need to apply this for tags, since if they don't exist
+            # they'll always be an empty string.
+            is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
+
+        if search_filter.value.is_wildcard():
             condition = Condition(
-                Function("match", [lhs, f"'(?i){value}'"]),
+                Function("match", [lhs, f"(?i){value}"]),
                 Op(search_filter.operator),
                 1,
             )
         else:
             condition = Condition(lhs, Op(search_filter.operator), value)
 
-        return condition
+        if is_null_condition:
+            return Or(conditions=[is_null_condition, condition])
+        else:
+            return condition
 
     def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         # conditions added to env_conditions can be OR'ed
@@ -1240,6 +1297,43 @@ class QueryFilter(QueryFields):
             return Or(conditions=env_conditions)
         else:
             return env_conditions[0]
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        if search_filter.value.is_wildcard():
+            # XXX: We don't want the '^$' values at the beginning and end of
+            # the regex since we want to find the pattern anywhere in the
+            # message. Strip off here
+            value = search_filter.value.value[1:-1]
+            return Condition(
+                Function("match", [self.column("message"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
+        elif value == "":
+            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
+            return Condition(Function("equals", [self.column("message"), value]), operator, 1)
+        else:
+            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+            # so we should flip the operator here
+            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
+            if search_filter.is_in_filter:
+                return Condition(
+                    Function(
+                        "multiSearchFirstPositionCaseInsensitive",
+                        [self.column("message"), value],
+                    ),
+                    operator,
+                    0,
+                )
+
+            # make message search case insensitive
+            return Condition(
+                Function("positionCaseInsensitive", [self.column("message"), value]),
+                operator,
+                0,
+            )
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Convert project slugs to ids and create a filter based on those.
@@ -1384,7 +1478,7 @@ class QueryFilter(QueryFields):
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         value = search_filter.value.value
-        key_transaction_expr = self.resolve_field(TEAM_KEY_TRANSACTION_ALIAS)
+        key_transaction_expr = self.resolve_field_alias(TEAM_KEY_TRANSACTION_ALIAS)
 
         if search_filter.value.raw_value == "":
             return Condition(
