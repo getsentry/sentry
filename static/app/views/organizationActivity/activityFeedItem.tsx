@@ -15,7 +15,7 @@ import {t, tct, tn} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
-import {Activity, Organization} from 'app/types';
+import {Activity, GroupActivity, Organization} from 'app/types';
 import marked from 'app/utils/marked';
 
 const defaultProps = {
@@ -54,13 +54,26 @@ class ActivityItem extends Component<Props, State> {
     }
   }
 
+  renderVersionLink(version: string, item: GroupActivity) {
+    const {organization} = this.props;
+    const {project} = item;
+    return version ? (
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={project.slug}
+        releaseVersion={version}
+      >
+        <Version version={version} projectId={project.id} />
+      </VersionHoverCard>
+    ) : null;
+  }
+
   activityBubbleRef = createRef<HTMLDivElement>();
 
   formatProjectActivity = (author, item) => {
     const data = item.data;
     const {organization} = this.props;
     const orgId = organization.slug;
-    const project = item.project;
     const issue = item.issue;
     const basePath = `/organizations/${orgId}/issues/`;
 
@@ -70,15 +83,7 @@ class ActivityItem extends Component<Props, State> {
       </IssueLink>
     ) : null;
 
-    const versionLink = data.version ? (
-      <VersionHoverCard
-        organization={organization}
-        projectSlug={project.slug}
-        releaseVersion={data.version}
-      >
-        <Version version={data.version} projectId={project.id} />
-      </VersionHoverCard>
-    ) : null;
+    const versionLink = this.renderVersionLink(data.version, item);
 
     switch (item.type) {
       case 'note':
@@ -106,7 +111,15 @@ class ActivityItem extends Component<Props, State> {
           issue: issueLink,
         });
       case 'set_resolved_in_release':
-        if (data.version) {
+        const {current_release_version, version} = item.data;
+        if (current_release_version) {
+          return tct('[author] marked [issue] as resolved in releases >[version]', {
+            author,
+            version: this.renderVersionLink(current_release_version, item),
+            issue: issueLink,
+          });
+        }
+        if (version) {
           return tct('[author] marked [issue] as resolved in [version]', {
             author,
             version: versionLink,

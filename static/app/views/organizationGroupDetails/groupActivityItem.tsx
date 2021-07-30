@@ -116,15 +116,24 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
         });
       case GroupActivityType.SET_RESOLVED_IN_RELEASE:
-        return activity.data.version
+        const {current_release_version, version} = activity.data;
+        if (current_release_version) {
+          return tct('[author] marked this issue as resolved in releases >[version]', {
+            author,
+            version: (
+              <Version
+                version={current_release_version}
+                projectId={projectId}
+                tooltipRawVersion
+              />
+            ),
+          });
+        }
+        return version
           ? tct('[author] marked this issue as resolved in [version]', {
               author,
               version: (
-                <Version
-                  version={activity.data.version}
-                  projectId={projectId}
-                  tooltipRawVersion
-                />
+                <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {

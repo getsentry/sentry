@@ -905,10 +905,11 @@ type GroupActivityRegression = GroupActivityBase & {
   };
 };
 
-type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
   data: {
     version?: string;
+    current_release_version?: string;
   };
 };
 
@@ -1000,7 +1001,6 @@ export type GroupActivity =
   | GroupActivitySetUnresolved
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
-  | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
