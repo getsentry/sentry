@@ -200,7 +200,7 @@ describe('AssigneeSelector', function () {
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
       expect.objectContaining({
-        data: {assignedTo: 'user:1'},
+        data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
       })
     );
 
@@ -229,7 +229,7 @@ describe('AssigneeSelector', function () {
     expect(assignMock).toHaveBeenCalledWith(
       '/issues/1337/',
       expect.objectContaining({
-        data: {assignedTo: 'team:3'},
+        data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
       })
     );
 
@@ -254,7 +254,7 @@ describe('AssigneeSelector', function () {
     expect(assignMock).toHaveBeenCalledWith(
       '/issues/1337/',
       expect.objectContaining({
-        data: {assignedTo: 'team:3'},
+        data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
       })
     );
 
@@ -273,7 +273,7 @@ describe('AssigneeSelector', function () {
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
       expect.objectContaining({
-        data: {assignedTo: ''},
+        data: {assignedTo: '', assignedBy: 'assignee_selector'},
       })
     );
   });
@@ -310,7 +310,7 @@ describe('AssigneeSelector', function () {
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
       expect.objectContaining({
-        data: {assignedTo: 'user:2'},
+        data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
       })
     );
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
@@ -351,7 +351,7 @@ describe('AssigneeSelector', function () {
     expect(assignGroup2Mock).toHaveBeenCalledWith(
       '/issues/1338/',
       expect.objectContaining({
-        data: {assignedTo: 'user:1'},
+        data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
       })
     );
 
