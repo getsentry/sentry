@@ -50,7 +50,8 @@ class OnboardingPlatform extends Component<Props, State> {
     trackAdvancedAnalyticsEvent(
       'growth.onboarding_load_choose_platform',
       {},
-      this.props.organization ?? null
+      this.props.organization ?? null,
+      {sendMarketing: true}
     );
   }
 
@@ -114,7 +115,8 @@ class OnboardingPlatform extends Component<Props, State> {
     trackAdvancedAnalyticsEvent(
       'growth.onboarding_set_up_your_project',
       {platform},
-      this.props.organization ?? null
+      this.props.organization ?? null,
+      {sendMarketing: true}
     );
 
     // Create their first project if they don't already have one. This is a

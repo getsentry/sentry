@@ -43,7 +43,8 @@ class OnboardingWelcome extends Component<Props> {
     trackAdvancedAnalyticsEvent(
       'growth.onboarding_start_onboarding',
       {},
-      this.props.organization ?? null
+      this.props.organization ?? null,
+      {sendMarketing: true}
     );
   }
 

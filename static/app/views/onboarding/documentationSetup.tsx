@@ -81,7 +81,9 @@ class DocumentationSetup extends React.Component<Props, State> {
 
   handleFullDocsClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization, {
+      sendMarketing: true,
+    });
   };
 
   /**
