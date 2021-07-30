@@ -11,6 +11,7 @@ from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.utils import logger
 from sentry.models import ApiKey
+from sentry.models.project import Project
 from sentry.search.events.filter import to_list
 
 from . import Handler, UnfurlableUrl, UnfurledUrl
@@ -43,6 +44,14 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
 
         params = link.args["query"]
         query_id = params.get("id", None)
+        user_id = params.get("user", None)
+
+        projects = [
+            f"{project_id}"
+            for project_id in Project.objects.filter(
+                organization=org, teams__organizationmember__user_id=user_id
+            ).values_list("id", flat=True)
+        ]
 
         saved_query = {}
         if query_id:
@@ -62,12 +71,21 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
                 saved_query = response.data
 
         # Override params from Discover Saved Query if they aren't in the URL
-        params.setlist("order", params.getlist("sort") or to_list(saved_query.get("orderby")))
+        params.setlist(
+            "order",
+            params.getlist("sort") or to_list(saved_query.get("orderby"))
+            if saved_query.get("orderby")
+            else [],
+        )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
         params.setlist(
             "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", "count()"))
         )
         params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
+
+        params.setlist(
+            "project", params.getlist("project") or to_list(saved_query.get("project") or projects)
+        )
 
         # Only override if key doesn't exist since we want to account for
         # an intermediate state where the query could have been cleared
