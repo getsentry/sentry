@@ -637,3 +637,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 return hits
 
         return None
+
+
+class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    pass

@@ -26,7 +26,7 @@ from sentry.models import (
 )
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
-from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
+from sentry.search.snuba.executors import CdcPostgresSnubaQueryExecutor, PostgresSnubaQueryExecutor
 
 
 def assigned_to_filter(actors, projects, field_filter="id"):
@@ -503,3 +503,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 }
             )
         return queryset_conditions
+
+
+class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
+    def _get_query_executor(self, *args, **kwargs):
+        return CdcPostgresSnubaQueryExecutor()
