@@ -90,7 +90,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     if trend_type == REGRESSION
                     else aggregate_filter.operator,
                     -1 * aggregate_filter.value.value
-                    if trend_type == IMPROVED
+                    if trend_type == REGRESSION
                     else aggregate_filter.value.value,
                 ],
                 None,

@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
 from sentry.models import Activity, Mapping, NotificationSetting, User
 from sentry.notifications.types import GroupSubscriptionReason
@@ -10,8 +10,6 @@ from .base import ActivityNotification
 
 
 class NewProcessingIssuesActivityNotification(ActivityNotification):
-    is_message_issue_unfurl = False
-
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.issues = summarize_issues(self.activity.data["issues"])
@@ -25,6 +23,9 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             for provider, users in users_by_provider.items()
         }
 
+    def get_message_description(self) -> str:
+        return f"Some events failed to process in your project {self.project.slug}"
+
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **self.get_base_context(),
@@ -34,10 +35,9 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             "info_url": absolute_uri(
                 f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
             ),
-            "text_description": f"Some events failed to process in your project {self.project.slug}",
         }
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         return f"Processing Issues on {self.project.slug}"
 
     def get_title(self) -> str:
@@ -54,6 +54,3 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
         )
         return f"Processing issues on <{self.project.slug}|{project_url}"
-
-    def get_message_description(self) -> Any:
-        return self.get_context()["text_description"]

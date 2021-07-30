@@ -8,6 +8,7 @@ import dataclasses
 import io
 import logging
 import pathlib
+import time
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -19,7 +20,7 @@ from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
-from sentry.utils import json
+from sentry.utils import json, sdk
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
@@ -28,12 +29,13 @@ logger = logging.getLogger(__name__)
 # The key in the project options under which all symbol sources are stored.
 SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
-# The key in the project options under which all of the dates corresponding to the last time sentry
-# checked for new builds in App Store Connect are stored.
-APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
-
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
+
+# The key in the project options under which all of the dates corresponding to the last time sentry
+# checked for new builds in App Store Connect are stored.
+# TODO: Remove this before App Store Connect GA
+APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
 
 
 class InvalidCredentialsError(Exception):
@@ -276,10 +278,19 @@ class ITunesClient:
             if not url:
                 raise NoDsymsError
             logger.debug("Fetching dSYM from: %s", url)
-            with requests.get(url, stream=True) as req:
+            # The 315s is just above how long it would take a 4MB/s connection to download
+            # 2GB.
+            with requests.get(url, stream=True, timeout=15) as req:
                 req.raise_for_status()
+                start = time.time()
+                bytes_count = 0
                 with open(path, "wb") as fp:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        if (time.time() - start) > 315:
+                            with sdk.configure_scope() as scope:
+                                scope.set_extra("dSYM.bytes_fetched", bytes_count)
+                            raise requests.Timeout("Timeout during dSYM download")
+                        bytes_count += len(chunk)
                         fp.write(chunk)
 
 
@@ -338,7 +349,7 @@ class AppConnectClient:
     def itunes_client(self) -> ITunesClient:
         """Returns an iTunes client capable of downloading dSYMs.
 
-        This will raise an exception if the session cookie is expired.
+        :raises itunes_connect.SessionExpired: if the session cookie is expired.
         """
         return ITunesClient(itunes_cookie=self._itunes_cookie, itunes_org=self._itunes_org)
 

@@ -8,6 +8,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.committers import get_event_file_committers
+from sentry.utils.sdk import set_current_event_project
 
 PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
@@ -24,6 +25,8 @@ logger = logging.getLogger("tasks.groupowner")
 )
 def process_suspect_commits(event_id, event_platform, event_frames, group_id, project_id, **kwargs):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
+    set_current_event_project(project_id)
+
     project = Project.objects.get_from_cache(id=project_id)
     owners = GroupOwner.objects.filter(
         group_id=group_id,
