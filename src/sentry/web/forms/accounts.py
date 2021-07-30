@@ -299,7 +299,9 @@ class EmailForm(forms.Form):
         self.user = user
         super().__init__(*args, **kwargs)
 
-        if not user.password:
+        needs_password = user.has_usable_password()
+
+        if not needs_password:
             del self.fields["password"]
 
     def clean_password(self):

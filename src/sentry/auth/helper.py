@@ -403,7 +403,7 @@ class AuthIdentityHandler:
                 try:
                     self._login(acting_user)
                 except self._NotCompletedSecurityChecks:
-                    if acting_user.password:
+                    if acting_user.has_usable_password():
                         return self._post_login_redirect()
                     else:
                         acting_user = None
