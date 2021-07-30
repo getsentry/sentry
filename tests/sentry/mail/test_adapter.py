@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.mail import mail_adapter, send_notification_as_email
+from sentry.mail import build_subject_prefix, mail_adapter, send_notification_as_email
 from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
@@ -216,6 +216,18 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         )
 
         assert user4 not in self.adapter.get_sendable_user_objects(project)
+
+
+class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
+    def test_default_prefix(self):
+        assert build_subject_prefix(self.project) == "[Sentry] "
+
+    def test_project_level_prefix(self):
+        prefix = "[Example prefix] "
+        ProjectOption.objects.set_value(
+            project=self.project, key="mail:subject_prefix", value=prefix
+        )
+        assert build_subject_prefix(self.project) == prefix
 
 
 class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):

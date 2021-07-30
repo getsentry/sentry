@@ -1,8 +1,10 @@
 import logging
 from typing import Any, Mapping, Optional, Set
 
+from django.utils.encoding import force_text
+
 from sentry import options
-from sentry.models import ProjectOption, User
+from sentry.models import Project, ProjectOption, User
 from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -34,16 +36,20 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     return headers
 
 
+def build_subject_prefix(project: Project, mail_option_key: Optional[str] = None) -> str:
+    key = mail_option_key or "mail:subject_prefix"
+    return force_text(
+        ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
+    )
+
+
 def get_subject_with_prefix(
     notification: BaseNotification,
     context: Optional[Mapping[str, Any]] = None,
     mail_option_key: Optional[str] = None,
 ) -> bytes:
-    key = mail_option_key or "mail:subject_prefix"
-    prefix = str(
-        ProjectOption.objects.get_value(notification.project, key)
-        or options.get("mail.subject-prefix")
-    )
+
+    prefix = build_subject_prefix(notification.project, mail_option_key)
     return f"{prefix}{notification.get_subject(context)}".encode("utf-8")
 
 
