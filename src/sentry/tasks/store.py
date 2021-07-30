@@ -233,8 +233,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             "symbolication_function": symbolication_function_name,
         },
     ):
-        _continue_to_process_event()
-        return
+        return _continue_to_process_event()
 
     has_changed = False
 
@@ -319,7 +318,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if has_changed:
         cache_key = event_processing_store.store(data)
 
-    _continue_to_process_event()
+    return _continue_to_process_event()
 
 
 @instrumented_task(
@@ -425,8 +424,7 @@ def _do_process_event(
             "platform": data.get("platform") or "null",
         },
     ):
-        _continue_to_save_event()
-        return
+        return _continue_to_save_event()
 
     with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
         project = Project.objects.get_from_cache(id=project_id)
@@ -550,7 +548,7 @@ def _do_process_event(
 
         cache_key = event_processing_store.store(data)
 
-    _continue_to_save_event()
+    return _continue_to_save_event()
 
 
 @instrumented_task(
