@@ -85,6 +85,15 @@ export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Pr
   );
 }
 
+export function isSummaryViewFrontend(eventView: EventView, projects: Project[]) {
+  return (
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+      PROJECT_PERFORMANCE_TYPE.FRONTEND ||
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
+  );
+}
+
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
 }
