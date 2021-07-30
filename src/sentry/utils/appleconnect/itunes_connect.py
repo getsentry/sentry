@@ -27,7 +27,7 @@ ITunesServiceKey = NewType("ITunesServiceKey", str)
 
 TrustedPhoneInfo = namedtuple("TrustedPhoneInfo", ["id", "push_mode"])
 
-request_timeout = 15.0
+REQUEST_TIMEOUT = 15.0
 
 
 class ITunesError(Exception):
@@ -213,7 +213,7 @@ class ITunesClient:
         """
         url = "https://appstoreconnect.apple.com/olympus/v1/app/config?hostname=itunesconnect.apple.com"
         logger.debug("GET %s", url)
-        response = self.session.get(url, timeout=request_timeout)
+        response = self.session.get(url, timeout=REQUEST_TIMEOUT)
         data = response.json()
         return ITunesServiceKey(data["authServiceKey"])
 
@@ -242,7 +242,7 @@ class ITunesClient:
                 "X-Apple-Widget-Key": self.service_key,
                 "Accept": "application/json, text/javascript",
             },
-            timeout=request_timeout,
+            timeout=REQUEST_TIMEOUT,
         )
 
         if start_login.status_code == http.HTTPStatus.OK:
@@ -279,7 +279,7 @@ class ITunesClient:
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
             },
-            timeout=request_timeout,
+            timeout=REQUEST_TIMEOUT,
         )
         if not response.ok:
             # TODO: Make invalid code distinguishable from generic error.
@@ -300,7 +300,7 @@ class ITunesClient:
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
             },
-            timeout=request_timeout,
+            timeout=REQUEST_TIMEOUT,
         )
         if response.status_code != HTTPStatus.OK:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
@@ -333,7 +333,7 @@ class ITunesClient:
                 "X-Apple-Widget-Key": self.service_key,
                 "Content-Type": "application/json",
             },
-            timeout=request_timeout,
+            timeout=REQUEST_TIMEOUT,
         )
         if response.status_code != HTTPStatus.OK:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
@@ -361,7 +361,7 @@ class ITunesClient:
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
             },
-            timeout=request_timeout,
+            timeout=REQUEST_TIMEOUT,
         )
         if response.status_code != HTTPStatus.OK:
             # TODO: Make invalid code distinguishable from generic error.
@@ -423,7 +423,7 @@ class ITunesClient:
     def _request_session_info(self) -> json.JSONData:
         url = "https://appstoreconnect.apple.com/olympus/v1/session"
         logger.debug("GET %s", url)
-        session_response = self.session.get(url, timeout=request_timeout)
+        session_response = self.session.get(url, timeout=REQUEST_TIMEOUT)
 
         if session_response.ok:
             self.state = ClientState.AUTHENTICATED
@@ -485,7 +485,7 @@ class ITunesClient:
                 }
             },
             headers={"Content-Type": "application/json"},
-            timeout=request_timeout,
+            timeout=REQUEST_TIMEOUT,
         )
         if response.status_code != HTTPStatus.CREATED:
             raise ITunesError(f"Bad status code: {response.status_code}")
@@ -510,7 +510,7 @@ class ITunesClient:
                 f"{bundle_version}/details"
             )
             logger.debug("GET %s", details_url)
-            response = self.session.get(details_url, timeout=request_timeout)
+            response = self.session.get(details_url, timeout=REQUEST_TIMEOUT)
 
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 self.state = ClientState.EXPIRED
