@@ -44,6 +44,10 @@ class QueryBase:
         :param name: The unresolved sentry name.
         :param alias: The expected alias in the result.
         """
+
+        # TODO: This method should use an aliased column from the SDK once
+        # that is available to skip these hacks that we currently have to
+        # do aliasing.
         resolved = self.resolve_column_name(name)
         column = Column(resolved)
 
@@ -62,6 +66,10 @@ class QueryBase:
 
         if TAG_KEY_RE.search(resolved):
             # since tags are strings, we can use `toString` to alias it
+            return Function("toString", [column], alias)
+
+        # string type arguments
+        if alias in {"user.email"}:
             return Function("toString", [column], alias)
 
         # columns that are resolved into a snuba name are not supported
