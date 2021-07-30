@@ -60,6 +60,7 @@ type ChartProps = {
     | React.ComponentType<AreaChart['props']>
     | React.ComponentType<LineChart['props']>;
   height?: number;
+  timeframe?: {start: number; end: number};
 };
 
 type State = {
@@ -159,6 +160,7 @@ class Chart extends React.Component<ChartProps, State> {
       previousSeriesTransformer,
       colors,
       height,
+      timeframe,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -226,6 +228,12 @@ class Chart extends React.Component<ChartProps, State> {
         truncate: 80,
         valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
       },
+      xAxis: timeframe
+        ? {
+            min: timeframe.start,
+            max: timeframe.end,
+          }
+        : undefined,
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
@@ -361,6 +369,7 @@ type ChartDataProps = {
   timeseriesData?: Series[];
   previousTimeseriesData?: Series | null;
   releaseSeries?: Series[];
+  timeframe?: {start: number; end: number};
 };
 
 class EventsChart extends React.Component<EventsChartProps> {
@@ -400,6 +409,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       chartComponent,
       usePageZoom,
       height,
+      organization,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -415,6 +425,10 @@ class EventsChart extends React.Component<EventsChartProps> {
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, 'high');
 
+    const hasPerformanceChartInterpolation = organization.features.includes(
+      'performance-chart-interpolation'
+    );
+
     let chartImplementation = ({
       zoomRenderProps,
       releaseSeries,
@@ -424,6 +438,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       results,
       timeseriesData,
       previousTimeseriesData,
+      timeframe,
     }: ChartDataProps) => {
       if (errored) {
         return (
@@ -465,6 +480,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             disableableSeries={disableableSeries}
             chartComponent={chartComponent}
             height={height}
+            timeframe={timeframe}
           />
         </TransitionChart>
       );
@@ -502,6 +518,7 @@ class EventsChart extends React.Component<EventsChartProps> {
         {zoomRenderProps => (
           <EventsRequest
             {...props}
+            organization={organization}
             api={api}
             period={period}
             project={projects}
@@ -519,6 +536,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             topEvents={topEvents}
             confirmedQuery={confirmedQuery}
             partial
+            withoutZerofill={hasPerformanceChartInterpolation}
           >
             {eventData =>
               chartImplementation({
