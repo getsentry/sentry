@@ -80,7 +80,7 @@ class VitalsContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.RealUserMonitoring}
-          hasWebVitals
+          hasWebVitals="yes"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Histogram location={location} zoomKeys={ZOOM_KEYS}>
