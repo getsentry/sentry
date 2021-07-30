@@ -901,6 +901,9 @@ SENTRY_FEATURES = {
     "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in getsentry. No effect in sentry
+    "organizations:issue-search-use-cdc-primary": False,
+    "organizations:issue-search-use-cdc-secondary": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
     # Automatically extract metrics during ingestion.
