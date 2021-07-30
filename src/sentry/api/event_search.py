@@ -119,22 +119,25 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep operator? search_value
 
-key              = ~r"[a-zA-Z0-9_.-]+"
-quoted_key       = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
-explicit_tag_key = "tags" open_bracket search_key closed_bracket
-aggregate_key    = key open_paren spaces function_args? spaces closed_paren
-function_args    = key (spaces comma spaces key)*
-search_key       = key / quoted_key
-text_key         = explicit_tag_key / search_key
-value            = ~r"[^()\t\n ]*"
-quoted_value     = '"' ('\\"' / ~r'[^"]')* '"'
-in_value         = (&in_value_termination in_value_char)+
-text_in_value    = quoted_value / in_value
-search_value     = quoted_value / value
-numeric_value    = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
-boolean_value    = ~r"(true|1|false|0)"i &end_value
-text_in_list     = open_bracket text_in_value (spaces comma spaces text_in_value)* closed_bracket &end_value
-numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket &end_value
+key                    = ~r"[a-zA-Z0-9_.-]+"
+quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
+explicit_tag_key       = "tags" open_bracket search_key closed_bracket
+aggregate_key          = key open_paren spaces function_args? spaces closed_paren
+function_args          = aggregate_param (spaces comma spaces aggregate_param)*
+aggregate_param        = quoted_aggregate_param / raw_aggregate_param
+raw_aggregate_param    = ~r"[^()\t\n, \"]+"
+quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+search_key             = key / quoted_key
+text_key               = explicit_tag_key / search_key
+value                  = ~r"[^()\t\n ]*"
+quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
+in_value               = (&in_value_termination in_value_char)+
+text_in_value          = quoted_value / in_value
+search_value           = quoted_value / value
+numeric_value          = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
+boolean_value          = ~r"(true|1|false|0)"i &end_value
+text_in_list           = open_bracket text_in_value (spaces comma spaces text_in_value)* closed_bracket &end_value
+numeric_in_list        = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket &end_value
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -863,6 +866,17 @@ class SearchVisitor(NodeVisitor):
 
     def visit_function_args(self, node, children):
         return process_list(children[0], children[1])
+
+    def visit_aggregate_param(self, node, children):
+        return children[0]
+
+    def visit_raw_aggregate_param(self, node, children):
+        return node.text
+
+    def visit_quoted_aggregate_param(self, node, children):
+        value = "".join(node.text for node in flatten(children[1]))
+
+        return f'"{value}"'
 
     def visit_search_key(self, node, children):
         key = children[0]

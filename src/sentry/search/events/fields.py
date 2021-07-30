@@ -1314,6 +1314,12 @@ def with_default(default, argument):
     return argument
 
 
+class SnQLNumericColumnNoLookup(NumericColumn):
+    def normalize(self, value, params):
+        super().normalize(value, params)
+        return value
+
+
 # Implementation of certain FunctionArg subclasses
 # to validate aggregate functions implemented in SnQL.
 class SnQLColumn(FunctionArg):
@@ -2183,6 +2189,9 @@ class QueryFields(QueryBase):
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
+            MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
+            MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
+            MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
         }
 
         self.function_converter: Mapping[str, SnQLFunction] = {
@@ -2296,6 +2305,67 @@ class QueryFields(QueryBase):
                     default_result_type="percentage",
                 ),
                 SnQLFunction(
+                    "percentile",
+                    required_args=[
+                        SnQLNumericColumnNoLookup("column"),
+                        NumberRange("percentile", 0, 1),
+                    ],
+                    snql_aggregate=self._resolve_percentile,
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p50",
+                    optional_args=[
+                        with_default("transaction.duration", SnQLNumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p75",
+                    optional_args=[
+                        with_default("transaction.duration", SnQLNumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p95",
+                    optional_args=[
+                        with_default("transaction.duration", SnQLNumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p99",
+                    optional_args=[
+                        with_default("transaction.duration", SnQLNumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p100",
+                    optional_args=[
+                        with_default("transaction.duration", SnQLNumericColumnNoLookup("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 1),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
                     "to_other",
                     required_args=[
                         SnQLColumn("column", allowed_columns=["release", "trace.parent_span"]),
@@ -2316,12 +2386,6 @@ class QueryFields(QueryBase):
                     ),
                 ),
                 # TODO: implement these
-                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
@@ -2488,8 +2552,8 @@ class QueryFields(QueryBase):
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
         for arg in snql_function.args:
-            if isinstance(arg, SnQLColumn):
-                arguments[arg.name] = self.resolve_field(arguments[arg.name])
+            if type(arg) in [SnQLNumericColumnNoLookup, SnQLColumn]:
+                arguments[arg.name] = self.resolve_column(arguments[arg.name])
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
@@ -2845,6 +2909,54 @@ class QueryFields(QueryBase):
             ],
             alias,
         )
+
+    def _resolve_percentile(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+        fixed_percentile: float = None,
+    ) -> SelectType:
+        return (
+            Function(
+                "max",
+                [args["column"]],
+                alias,
+            )
+            if fixed_percentile == 1
+            else Function(
+                f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                [args["column"]],
+                alias,
+            )
+        )
+
+    def _resolve_division(self, dividend: str, divisor: str) -> SelectType:
+        return Function(
+            "if",
+            [
+                Function(
+                    "greater",
+                    [self.column(divisor), 0],
+                ),
+                Function(
+                    "divide",
+                    [
+                        self.column(dividend),
+                        self.column(divisor),
+                    ],
+                ),
+                None,
+            ],
+        )
+
+    def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
+        return self._resolve_division("measurements.frames_slow", "measurements.frames_total")
+
+    def _resolve_measurements_frames_frozen_rate(self, _: str) -> SelectType:
+        return self._resolve_division("measurements.frozen_rate", "measurements.frames_total")
+
+    def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
+        return self._resolve_division("measurements.stall_total_time", "transaction.duration")
 
     def _resolve_unimplemented_function(
         self,

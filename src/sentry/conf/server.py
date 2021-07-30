@@ -967,6 +967,8 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
+    # Allow the user to create a sample transaction while onboarding
+    "organizations:performance-create-sample-transaction": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1116,6 +1118,9 @@ SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
 # sample rate for Apple App Store Connect tasks transactions
 SENTRY_APPCONNECT_APM_SAMPLING = 1
+
+# sample rate for suspect commits task
+SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 
 # ----
 # end APM config

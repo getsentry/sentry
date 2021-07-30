@@ -46,8 +46,4 @@ def clear_expired_resolutions(release_id):
         except IndexError:
             continue
 
-        data = {"version": release.version}
-        if resolution.current_release_version:
-            data.update({"current_release_version": resolution.current_release_version})
-
-        activity.update(data=data)
+        activity.update(data={"version": release.version})

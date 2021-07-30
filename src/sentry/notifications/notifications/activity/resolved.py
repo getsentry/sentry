@@ -1,9 +1,9 @@
 from typing import Any, Mapping, Tuple
 
-from .base import ActivityNotification
+from .base import GroupActivityNotification
 
 
-class ResolvedActivityNotification(ActivityNotification):
+class ResolvedActivityNotification(GroupActivityNotification):
     def get_activity_name(self) -> str:
         return "Resolved Issue"
 

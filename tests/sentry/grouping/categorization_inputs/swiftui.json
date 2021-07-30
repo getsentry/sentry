@@ -1,0 +1,315 @@
+{
+  "event_id": "9b1b721b8ecd4d23a81ed28265475121",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x00000001b240d7b0"
+          },
+          "handled": false,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "type": "signal"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoObservers",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_afterCACommitHandler",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "_cleanUpAfterCAFlushAndRunDeferredBlocks",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "_runAfterCACommitDeferredBlocks",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[_UIAfterCACommitBlock run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "__56-[UIPresentationController runTransitionForCurrentState]_block_invoke.466",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "_UIViewControllerTransitioningRunCustomTransition",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "+[UIView(Animation) _setAlongsideAnimations:toRunByEndOfBlock:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "___UIViewControllerTransitioningRunCustomTransition_block_invoke.641",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "+[UIInputResponderController _pinInputViewsForInputResponderController:onBehalfOfResponder:duringBlock:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "___UIViewControllerTransitioningRunCustomTransition_block_invoke_2",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIViewControllerBuiltinTransitionViewAnimator animateTransition:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UITransitionView transition:fromView:toView:removeFromView:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _addSubview:positioned:relativeTo:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Hierarchy) _postMovedFromSuperview:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[NSISEngine withBehaviors:performModifications:]",
+              "package": "CoreAutoLayout"
+            },
+            {
+              "function": "__45-[UIView _postMovedFromSuperview:]_block_invoke",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIScrollView _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(Internal) _didMoveFromWindow:toWindow:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "_UIHostingView.didMoveToWindow",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "_UIHostingView.didMoveToWindow",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "_UIHostingView.updateRemovedState",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "GraphHost.updateRemovedState",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "AG::Subgraph::apply",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "AGSubgraphRef.didReinsert",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "AppearanceEffect.didReinsert",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "AppearanceEffect.updateValue",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "AppearanceEffect.phase.getter",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "AGGraphGetValue",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "AG::Graph::value_ref",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "AG::Graph::update_attribute",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "AG::Graph::UpdateStack::update",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "Attribute.init<T>",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "DynamicContainerInfo.updateValue",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "DynamicContainerInfo.tryRemovingItem",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "DynamicContainerInfo.eraseItem",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "AG::Subgraph::apply",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "AGSubgraphRef.willRemove",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "PlatformViewChild.willRemove",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "PreferenceBridge.removedStateDidChange",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "GraphHost.updateRemovedState",
+              "package": "SwiftUI"
+            },
+            {
+              "function": "AG::Subgraph::add_child",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "AG::precondition_failure",
+              "package": "AttributeGraph"
+            },
+            {
+              "function": "abort",
+              "package": "libsystem_c.dylib"
+            },
+            {
+              "function": "pthread_kill",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "SIGABRT",
+        "value": "AttributeGraph precondition failure: %s.\n > AttributeGraph precondition failure: child already attached to new parent.\n"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

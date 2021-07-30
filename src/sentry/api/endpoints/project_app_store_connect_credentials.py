@@ -58,7 +58,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, projectoptions
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
@@ -66,9 +66,8 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
-from sentry.models import AppConnectBuild, AuditLogEntryEvent, Project
+from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
-from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
@@ -76,9 +75,6 @@ logger = logging.getLogger(__name__)
 
 # The name of the feature flag which enables the App Store Connect symbol source.
 APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
-
-# iTunes session token validity is 10-14 days so we like refreshing after 1 week.
-ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
@@ -366,22 +362,24 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     {
         "appstoreCredentialsValid": true,
         "itunesSessionValid": true,
+        "promptItunesSession": false,
         "pendingDownloads": 123,
-        "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
         "latestBuildVersion: "9.8.7" | null,
         "latestBuildNumber": "987000" | null,
         "lastCheckedBuilds": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
     }
     ```
 
-    Here the ``itunesSessionRefreshAt`` is when we recommend to refresh the
-    iTunes session, and ``pendingDownloads`` is the number of pending build
-    downloads, and an indicator if we do need the session to fetch new builds.
-    ``latestBuildVersion`` and ``latestBuildNumber`` together form a unique
-    identifier for the latest build recognized by Sentry.
+    * ``pendingDownloads`` is the number of pending build dSYM downloads.
 
-    ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
-    of whether there were any or no builds in App Store Connect at the time.
+    * ``latestBuildVersion`` and ``latestBuildNumber`` together form a unique identifier for
+      the latest build recognized by Sentry.
+
+    * ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
+      of whether there were any or no builds in App Store Connect at the time.
+
+    * ``promptItunesSession`` indicates whether the user should be prompted to refresh the
+      iTunes session since we know we need to fetch more dSYMs.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -399,8 +397,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         except KeyError:
             return Response(status=404)
 
-        expiration_date = symbol_source_cfg.itunesCreated + ITUNES_TOKEN_VALIDITY
-
         credentials = appstore_connect.AppConnectCredentials(
             key_id=symbol_source_cfg.appconnectKey,
             key=symbol_source_cfg.appconnectPrivateKey,
@@ -410,10 +406,13 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
 
-        itunes_client = itunes_connect.ITunesClient.from_session_cookie(
-            symbol_source_cfg.itunesSession
-        )
-        itunes_session_info = itunes_client.request_session_info()
+        try:
+            itunes_client = itunes_connect.ITunesClient.from_session_cookie(
+                symbol_source_cfg.itunesSession
+            )
+            itunes_session_info = itunes_client.request_session_info()
+        except itunes_connect.SessionExpiredError:
+            itunes_session_info = None
 
         pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
 
@@ -429,24 +428,32 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
 
-        serialized_check_dates = project.get_option(
-            appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
-        )
-        build_check_dates = json.loads(serialized_check_dates)
-        # This is sent over as a part of a JSON response already, so there's no need to
-        # parse this only to have it serialized again.  When the source is only just created
-        # this might not exist yet.
-        last_checked_builds = build_check_dates.get(symbol_source_cfg.id)
+        # All existing usages of this option are internal, so it's fine if we don't carry these over
+        # to the table
+        # TODO: Clean this up by App Store Connect GA
+        if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
+            project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
+
+        try:
+            check_entry = LatestAppConnectBuildsCheck.objects.get(
+                project=project, source_id=symbol_source_cfg.id
+            )
+        # If the source was only just created then it's possible that sentry hasn't checked for any
+        # new builds for it yet.
+        except LatestAppConnectBuildsCheck.DoesNotExist:
+            last_checked_builds = None
+        else:
+            last_checked_builds = check_entry.last_checked
 
         return Response(
             {
                 "appstoreCredentialsValid": apps is not None,
                 "itunesSessionValid": itunes_session_info is not None,
-                "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
                 "lastCheckedBuilds": last_checked_builds,
+                "promptItunesSession": pending_downloads and itunes_session_info is None,
             },
             status=200,
         )

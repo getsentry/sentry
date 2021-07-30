@@ -301,12 +301,18 @@ class OrganizationReleasesEndpoint(
                 .order_by(*order_by, "-date_added")
             )
             paginator_kwargs["order_by"] = order_by
+        elif sort == "adoption":
+            # sort by adoption date (most recently adopted first)
+            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by)
+            paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
                     {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
                     status=400,
                 )
+
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
                 data_load_func=lambda offset, limit: get_project_releases_by_stability(
