@@ -86,39 +86,6 @@ DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
-# Allow list of fields that are compatible with the Snql Query Builder.
-# Once we reach a certain threshold of fields handled should turn this into a denylist
-# use public facing field/function names for this list
-SNQL_FIELD_ALLOWLIST = {
-    "environment",
-    "message",
-    "project",
-    "transaction",
-    "project.id",
-    "release",
-    USER_DISPLAY_ALIAS,
-    "user.email",
-    ISSUE_ALIAS,
-    ISSUE_ID_ALIAS,
-    TIMESTAMP_TO_HOUR_ALIAS,
-    TIMESTAMP_TO_DAY_ALIAS,
-    TRANSACTION_STATUS_ALIAS,
-    ERROR_UNHANDLED_ALIAS,
-    TEAM_KEY_TRANSACTION_ALIAS,
-    "error.mechanism",
-    "error.type",
-    "error.value",
-    "stack.abs_path",
-    "stack.colno",
-    "stack.filename",
-    "stack.function",
-    "stack.in_app",
-    "stack.lineno",
-    "stack.module",
-    "stack.package",
-    "stack.stack_level",
-    "transaction.duration",
-}
 
 OPERATOR_NEGATION_MAP = {
     "=": "!=",

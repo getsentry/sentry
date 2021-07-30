@@ -49,7 +49,7 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.select,
             [
-                Column("email"),
+                Function("toString", [Column("email")], "user.email"),
                 Column("release"),
             ],
         )
@@ -64,7 +64,10 @@ class QueryBuilderTest(TestCase):
         )
 
         self.assertCountEqual(query.where, self.default_conditions)
-        self.assertCountEqual(query.orderby, [OrderBy(Column("email"), Direction.ASC)])
+        self.assertCountEqual(
+            query.orderby,
+            [OrderBy(Function("toString", [Column("email")], "user.email"), Direction.ASC)],
+        )
         query.get_snql_query().validate()
 
         query = QueryBuilder(
@@ -75,7 +78,10 @@ class QueryBuilderTest(TestCase):
         )
 
         self.assertCountEqual(query.where, self.default_conditions)
-        self.assertCountEqual(query.orderby, [OrderBy(Column("email"), Direction.DESC)])
+        self.assertCountEqual(
+            query.orderby,
+            [OrderBy(Function("toString", [Column("email")], "user.email"), Direction.DESC)],
+        )
         query.get_snql_query().validate()
 
     def test_environment_filter(self):
