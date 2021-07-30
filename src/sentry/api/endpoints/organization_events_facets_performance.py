@@ -194,9 +194,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     return {"data": []}, top_tags
 
                 for row in results["data"]:
-                    row["tags_value"] = tagstore.get_tag_value_label(
-                        row["tags_key"], row["tags_value"]
-                    )
                     row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
 
                 return results, top_tags
@@ -437,7 +434,7 @@ def query_facet_performance(
             offset=offset,
         )
 
-        results["meta"] = discover.transform_meta(results, {})
+        results = discover.transform_results(results, {}, translated_columns, snuba_filter)
 
         return results
 

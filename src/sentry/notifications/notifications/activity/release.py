@@ -22,10 +22,10 @@ from .base import ActivityNotification
 
 class ReleaseActivityNotification(ActivityNotification):
     fine_tuning_key = "deploy"
-    is_message_issue_unfurl = False
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
+        self.group = None
         self.organization = self.project.organization
         self.user_id_team_lookup: Optional[Mapping[int, List[int]]] = None
         self.email_list: Set[str] = set()
@@ -100,7 +100,7 @@ class ReleaseActivityNotification(ActivityNotification):
             "project_count": len(projects),
         }
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         return f"Deployed version {self.version} to {self.environment}"
 
     def get_title(self) -> str:

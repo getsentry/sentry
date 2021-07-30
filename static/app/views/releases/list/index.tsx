@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import GuideAnchorWrapper, {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
@@ -23,6 +23,7 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {desktop, mobile, PlatformKey, releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
+import ProjectsStore from 'app/stores/projectsStore';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {
@@ -457,7 +458,7 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 
-  renderInnerBody(activeDisplay: DisplayOption) {
+  renderInnerBody(activeDisplay: DisplayOption, showReleaseAdoptionStages: boolean) {
     const {location, selection, organization, router} = this.props;
     const {hasSessions, releases, reloading, releasesPageLinks} = this.state;
 
@@ -514,6 +515,7 @@ class ReleasesList extends AsyncView<Props, State> {
                   showHealthPlaceholders={isHealthLoading}
                   isTopRelease={index === 0}
                   getHealthData={getHealthData}
+                  showReleaseAdoptionStages={showReleaseAdoptionStages}
                 />
               ))}
               <Pagination pageLinks={releasesPageLinks} />
@@ -525,7 +527,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, selection} = this.props;
     const {releases, reloading, error} = this.state;
 
     const activeSort = this.getSort();
@@ -533,6 +535,13 @@ class ReleasesList extends AsyncView<Props, State> {
     const activeDisplay = this.getDisplay();
 
     const hasSemver = organization.features.includes('semver');
+    const hasReleaseStages = organization.features.includes('release-adoption-stage');
+    const hasAnyMobileProject = selection.projects
+      .map(id => `${id}`)
+      .map(ProjectsStore.getById)
+      .some(project => project?.platform && isProjectMobileForReleases(project.platform));
+    const showReleaseAdoptionStages =
+      hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
 
     return (
       <GlobalSelectionHeader
@@ -552,16 +561,22 @@ class ReleasesList extends AsyncView<Props, State> {
             <SortAndFilterWrapper>
               {hasSemver ? (
                 <GuideAnchor target="releases_search" position="bottom">
-                  <SmartSearchBar
-                    searchSource="releases"
-                    query={this.getQuery()}
-                    placeholder={t('Search by release version')}
-                    maxSearchItems={5}
-                    hasRecentSearches={false}
-                    supportedTags={supportedTags}
-                    onSearch={this.handleSearch}
-                    onGetTagValues={this.getTagValues}
-                  />
+                  <GuideAnchorWrapper
+                    target="release_stages"
+                    position="bottom"
+                    disabled={!showReleaseAdoptionStages}
+                  >
+                    <SmartSearchBar
+                      searchSource="releases"
+                      query={this.getQuery()}
+                      placeholder={t('Search by release version')}
+                      maxSearchItems={5}
+                      hasRecentSearches={false}
+                      supportedTags={supportedTags}
+                      onSearch={this.handleSearch}
+                      onGetTagValues={this.getTagValues}
+                    />
+                  </GuideAnchorWrapper>
                 </GuideAnchor>
               ) : (
                 <SearchBar
@@ -594,7 +609,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
             {error
               ? super.renderError(new Error('Unable to load all required endpoints'))
-              : this.renderInnerBody(activeDisplay)}
+              : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>

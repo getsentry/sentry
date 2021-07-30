@@ -4,7 +4,7 @@ from typing import Any, Mapping, MutableMapping, Optional, Set
 import pytz
 
 from sentry.models import User, UserOption
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
     get_commits,
@@ -36,7 +36,8 @@ class AlertRuleNotification(BaseNotification):
         event = notification.event
         group = event.group
         project = group.project
-        super().__init__(project, group)
+        super().__init__(project)
+        self.group = group
         self.event = event
         self.target_type = target_type
         self.target_identifier = target_identifier
@@ -56,7 +57,7 @@ class AlertRuleNotification(BaseNotification):
     def get_category(self) -> str:
         return "issue_alert_email"
 
-    def get_subject(self) -> str:
+    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         return str(self.event.get_email_subject())
 
     def get_reference(self) -> Any:
@@ -65,18 +66,21 @@ class AlertRuleNotification(BaseNotification):
     def get_user_context(
         self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
+        user_context = {"timezone": pytz.timezone("UTC")}
         try:
             # AlertRuleNotification is shared among both email and slack notifications, and in slack
             # notifications, the `user` arg could be of type `Team` which is why we need this check
             if isinstance(user, User):
-                return {
-                    "timezone": pytz.timezone(
-                        UserOption.objects.get_value(user=user, key="timezone", default="UTC")
-                    )
-                }
+                user_context.update(
+                    {
+                        "timezone": pytz.timezone(
+                            UserOption.objects.get_value(user=user, key="timezone", default="UTC")
+                        )
+                    }
+                )
         except pytz.UnknownTimeZoneError:
             ...
-        return super().get_user_context(user, extra_context)
+        return user_context
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")

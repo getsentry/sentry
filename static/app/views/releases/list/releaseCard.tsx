@@ -45,6 +45,7 @@ type Props = {
   showHealthPlaceholders: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  showReleaseAdoptionStages: boolean;
 };
 
 const ReleaseCard = ({
@@ -57,6 +58,7 @@ const ReleaseCard = ({
   showHealthPlaceholders,
   isTopRelease,
   getHealthData,
+  showReleaseAdoptionStages,
 }: Props) => {
   const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
 
@@ -100,6 +102,7 @@ const ReleaseCard = ({
           selection={selection}
           isTopRelease={isTopRelease}
           getHealthData={getHealthData}
+          showReleaseAdoptionStages={showReleaseAdoptionStages}
         />
       </ReleaseProjects>
     </StyledPanel>

@@ -134,7 +134,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ):
                 continue
             converted_filter = convert_search_filter_to_snuba_query(
-                search_filter, params={"organization_id": organization_id}
+                search_filter,
+                params={"organization_id": organization_id, "project_id": project_ids},
             )
             converted_filter = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
@@ -362,6 +363,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 if sf.key.name not in self.postgres_only_fields.union(["date"])
             ]
         ):
+            metrics.incr("postgres_snuba_query_executor.inbox_sort")
             # We just filter on `GroupInbox.date_added` here, and don't filter by date
             # on the group. This keeps the query simpler and faster in some edge cases,
             # and date_added is a good enough proxy when we're using this sort.
