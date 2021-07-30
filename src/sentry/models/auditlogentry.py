@@ -278,8 +278,15 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ADD:
             return "created project {}".format(self.data["slug"])
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
+            if self.data.get("old_slug") is not None:
+                return (
+                    "renamed project slug from "
+                    + self.data["old_slug"]
+                    + " to "
+                    + self.data["new_slug"]
+                )
             return "edited project settings " + (
-                " ".join(f" in {key} to {value}" for (key, value) in self.data.items())
+                " ".join(f"in {key} to {value}" for (key, value) in self.data.items())
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project {}".format(self.data["slug"])

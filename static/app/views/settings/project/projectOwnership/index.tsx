@@ -11,7 +11,7 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  CodeOwners,
+  CodeOwner,
   Integration,
   Organization,
   Project,
@@ -35,7 +35,7 @@ type Props = {
 type State = {
   ownership: null | any;
   codeMappings: RepositoryProjectPathConfig[];
-  codeowners?: CodeOwners[];
+  codeowners?: CodeOwner[];
   integrations: Integration[];
 } & AsyncView['state'];
 
@@ -79,7 +79,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
         project={this.props.project}
         codeMappings={codeMappings}
         integrations={integrations}
-        onSave={this.handleCodeownerAdded}
+        onSave={this.handleCodeOwnerAdded}
       />
     ));
   };
@@ -111,16 +111,26 @@ tags.sku_class:enterprise #enterprise`;
     }));
   };
 
-  handleCodeownerAdded = (data: CodeOwners) => {
+  handleCodeOwnerAdded = (data: CodeOwner) => {
     const {codeowners} = this.state;
-    const newCodeowners = codeowners?.concat(data);
+    const newCodeowners = (codeowners || []).concat(data);
     this.setState({codeowners: newCodeowners});
   };
 
-  handleCodeownerDeleted = (data: CodeOwners) => {
+  handleCodeOwnerDeleted = (data: CodeOwner) => {
     const {codeowners} = this.state;
-    const newCodeowners = codeowners?.filter(codeowner => codeowner.id !== data.id);
+    const newCodeowners = (codeowners || []).filter(
+      codeowner => codeowner.id !== data.id
+    );
     this.setState({codeowners: newCodeowners});
+  };
+
+  handleCodeOwnerUpdated = (data: CodeOwner) => {
+    const codeowners = this.state.codeowners || [];
+    const index = codeowners.findIndex(item => item.id === data.id);
+    this.setState({
+      codeowners: [...codeowners.slice(0, index), data, ...codeowners.slice(index + 1)],
+    });
   };
 
   renderCodeOwnerErrors = () => {
@@ -228,13 +238,16 @@ tags.sku_class:enterprise #enterprise`;
                   size="small"
                   priority="primary"
                   data-test-id="add-codeowner-button"
+                  // TODO(nisanthan): Remove disabled logic when implementing support for multiple CODEOWNERS
+                  disabled={codeowners && codeowners.length > 0}
                 >
-                  {t('Add Codeowner File')}
+                  {t('Add CODEOWNERS File')}
                 </CodeOwnerButton>
               </Feature>
             </Fragment>
           }
         />
+        <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
         <PermissionAlert />
         {this.renderCodeOwnerErrors()}
         <RulesPanel
@@ -243,11 +256,10 @@ tags.sku_class:enterprise #enterprise`;
           raw={ownership.raw || ''}
           dateUpdated={ownership.lastUpdated}
           placeholder={this.getPlaceholder()}
-          detail={this.getDetail()}
           controls={[
             <Button
               key="edit"
-              size="small"
+              size="xsmall"
               onClick={() =>
                 openEditOwnershipRules({
                   organization,
@@ -264,8 +276,10 @@ tags.sku_class:enterprise #enterprise`;
         />
         <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
-            codeowners={codeowners}
-            onDelete={this.handleCodeownerDeleted}
+            codeowners={codeowners || []}
+            onDelete={this.handleCodeOwnerDeleted}
+            onUpdate={this.handleCodeOwnerUpdated}
+            disabled={disabled}
             {...this.props}
           />
         </Feature>
@@ -337,4 +351,8 @@ const ErrorCtaContainer = styled('div')`
   justify-self: flex-end;
   text-align: right;
   line-height: 1.5;
+`;
+
+const IssueOwnerDetails = styled('div')`
+  padding-bottom: ${space(3)};
 `;

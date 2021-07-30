@@ -19,6 +19,7 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
+    GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -103,11 +104,14 @@ def where_should_user_be_notified(
 
 
 def should_be_participating(
-    subscriptions_by_user_id: Mapping[int, "GroupSubscription"],
-    user: "User",
+    subscription: Optional[Any],
     value: NotificationSettingOptionValues,
 ) -> bool:
-    subscription = subscriptions_by_user_id.get(user.id)
+    """
+    Give a user's subscription (on, off, or null) to a group and their
+    notification setting value(on, off, or sometimes), decide whether or not to
+    send the user a notification.
+    """
     return (
         subscription and subscription.is_active and value != NotificationSettingOptionValues.NEVER
     ) or (not subscription and value == NotificationSettingOptionValues.ALWAYS)
@@ -115,7 +119,7 @@ def should_be_participating(
 
 def where_should_be_participating(
     user: "User",
-    subscriptions_by_user_id: Mapping[int, "GroupSubscription"],
+    subscription: Optional["GroupSubscription"],
     notification_settings_by_user: Mapping[
         "User",
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -136,7 +140,7 @@ def where_should_be_participating(
     return [
         provider
         for provider, value in mapping.items()
-        if should_be_participating(subscriptions_by_user_id, user, value)
+        if should_be_participating(subscription, value)
     ]
 
 
@@ -423,3 +427,11 @@ def get_fallback_settings(
 
                 data[type_str][user_scope_str][user.id][provider_str] = value_str
     return data
+
+
+def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, str]:
+    """Get user-specific context. Do not call get_context() here."""
+    reason = extra_context.get("reason", 0)
+    return {
+        "reason": GroupSubscriptionReason.descriptions.get(reason, "are subscribed to this issue")
+    }

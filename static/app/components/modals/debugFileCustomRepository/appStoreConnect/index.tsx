@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
@@ -46,6 +46,7 @@ type ItunesRevalidationSessionContext = SessionContext & {
 };
 
 type InitialData = {
+  type: string;
   appId: string;
   appName: string;
   appconnectIssuer: string;
@@ -59,9 +60,8 @@ type InitialData = {
   itunesSession: string;
   itunesUser: string;
   name: string;
-  orgId: number;
+  orgPublicId: number;
   orgName: string;
-  type: string;
 };
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
@@ -136,8 +136,8 @@ function AppStoreConnect({
 
   const [stepFifthData, setStepFifthData] = useState<StepFifthData>({
     org:
-      initialData?.orgId && initialData?.name
-        ? {organizationId: initialData.orgId, name: initialData.name}
+      initialData?.orgPublicId && initialData?.name
+        ? {organizationId: initialData.orgPublicId, name: initialData.name}
         : undefined,
   });
 
@@ -320,13 +320,16 @@ function AppStoreConnect({
       if (shouldGoNext) {
         setIsLoading(false);
         goNext();
+        return;
       }
+
+      addSuccessMessage(t('An iTunes verification code has been sent'));
     } catch {
       if (shouldGoNext) {
         setIsLoading(false);
       }
       addErrorMessage(
-        t('The iTunes authentication failed. Please check the entered credentials.')
+        t('The iTunes authentication failed. Please check the provided credentials')
       );
     }
   }
@@ -346,6 +349,7 @@ function AppStoreConnect({
       );
 
       setSessionContext(response.sessionContext);
+      addSuccessMessage(t("We've sent a SMS code to your phone"));
     } catch {
       addErrorMessage(t('An error occured while sending the SMS. Please try again'));
     }

@@ -26,10 +26,10 @@ describe('Release Issues', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0%20release%3A1.0.0&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&statsPeriod=14d`,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0%20release%3A1.0.0&statsPeriod=24h`,
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&statsPeriod=24h`,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
@@ -142,7 +142,7 @@ describe('Release Issues', function () {
         id: undefined,
         name: `Release ${props.version}`,
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        widths: [-1, -1, -1, -1, -1],
+        widths: [],
         sort: ['-count'],
         environment: [],
         project: [],

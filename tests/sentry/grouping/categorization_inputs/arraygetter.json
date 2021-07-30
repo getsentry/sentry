@@ -1,0 +1,119 @@
+{
+  "event_id": "2d0db6a514574c2c9de0d1586f3983ec",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "[Filtered]"
+          },
+          "handled": false,
+          "meta": {
+            "mach_exception": {
+              "code": 18862328,
+              "exception": 6,
+              "name": "EXC_BREAKPOINT",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGTRAP",
+              "number": 5
+            }
+          },
+          "synthetic": true,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoTimers",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoTimer",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_TIMER_CALLBACK_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "<compiler-generated>",
+              "filename": "<compiler-generated>",
+              "function": "closure"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "<compiler-generated>",
+              "filename": "<compiler-generated>",
+              "function": "Collection.map<T>"
+            },
+            {
+              "abs_path": "<compiler-generated>",
+              "filename": "<compiler-generated>",
+              "function": "closure"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/Users/vagrant/git/iOS",
+              "filename": "iOS",
+              "function": "Array.subscript.getter"
+            },
+            {
+              "abs_path": "<compiler-generated>",
+              "filename": "<compiler-generated>",
+              "function": "Array._getElement"
+            },
+            {
+              "abs_path": "<compiler-generated>",
+              "filename": "<compiler-generated>",
+              "function": "_ArrayBuffer._nativeTypeChecked.getter"
+            },
+            {
+              "abs_path": "<compiler-generated>",
+              "filename": "<compiler-generated>",
+              "function": "range"
+            }
+          ]
+        },
+        "type": "EXC_BREAKPOINT",
+        "value": "Iz\t\u05a1A"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

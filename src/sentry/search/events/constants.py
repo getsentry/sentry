@@ -105,6 +105,19 @@ SNQL_FIELD_ALLOWLIST = {
     TRANSACTION_STATUS_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    "error.mechanism",
+    "error.type",
+    "error.value",
+    "stack.abs_path",
+    "stack.colno",
+    "stack.filename",
+    "stack.function",
+    "stack.in_app",
+    "stack.lineno",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
+    "transaction.duration",
 }
 
 OPERATOR_NEGATION_MAP = {

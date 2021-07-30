@@ -1,8 +1,11 @@
+import React from 'react';
+
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import LoadingError from 'app/components/loadingError';
 import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Group, Organization, Project} from 'app/types';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -37,9 +40,9 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
     switch (errorCode) {
       case 'merged_issues':
         return {
-          title: t('An issue can only contain one fingerprint'),
+          title: t('Grouping breakdown is not available in this issue'),
           subTitle: t(
-            'This issue needs to be fully unmerged before grouping levels can be shown'
+            'This issue needs to be fully unmerged before grouping breakdown is available'
           ),
           action: (
             <Button
@@ -52,7 +55,9 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
         };
       case 'missing_feature':
         return {
-          title: t('This project does not have the grouping tree feature'),
+          title: t(
+            'This project does not have the grouping breakdown available. Is your organization still an early adopter?'
+          ),
         };
 
       case 'no_events':
@@ -68,19 +73,44 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
         };
       case 'project_not_hierarchical':
         return {
-          title: t(
-            'Grouping Breakdown is not avaialable in the current grouping strategy'
+          title: t('Update your Grouping Config'),
+          subTitle: (
+            <React.Fragment>
+              <p>
+                {t(
+                  'Enable advanced grouping insights and functionality by updating this project to the latest Grouping Config:'
+                )}
+              </p>
+
+              <ul>
+                <li>
+                  {tct(
+                    '[strong:Breakdowns:] Explore events in this issue by call hierarchy.',
+                    {strong: <strong />}
+                  )}
+                </li>
+                <li>
+                  {tct(
+                    '[strong:Stack trace annotations:] See important frames Sentry uses to group issues directly in the stack trace.',
+                    {strong: <strong />}
+                  )}
+                </li>
+              </ul>
+            </React.Fragment>
           ),
-          subTitle: t(
-            'You can upgrade grouping to the latest strategy. Note that this is an irreversible operation'
-          ),
+          leftAligned: true,
           action: (
-            <Button
-              priority="primary"
-              to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/`}
-            >
-              {t('Upgrade Grouping Strategy')}
-            </Button>
+            <ButtonBar gap={1}>
+              <Button
+                priority="primary"
+                to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
+              >
+                {t('Upgrade Grouping Config')}
+              </Button>
+              <Button href="https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/">
+                {t('Read the docs')}
+              </Button>
+            </ButtonBar>
           ),
         };
       default:
@@ -94,7 +124,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
 
   if (error.status === 403 && error.responseJSON?.detail) {
     const {code, message} = error.responseJSON.detail;
-    const {action, title, subTitle} = getErrorDetails(code);
+    const {action, title, subTitle, leftAligned} = getErrorDetails(code);
 
     return (
       <Panel>
@@ -103,6 +133,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
           title={title ?? message}
           description={subTitle}
           action={action}
+          leftAligned={leftAligned}
         />
       </Panel>
     );

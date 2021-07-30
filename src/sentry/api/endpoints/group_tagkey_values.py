@@ -34,6 +34,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             order_by = "-last_seen"
         elif sort == "age":
             order_by = "-first_seen"
+        elif sort == "count":
+            order_by = "-times_seen"
         else:
             order_by = "-id"
 

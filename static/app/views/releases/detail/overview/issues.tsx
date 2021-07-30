@@ -237,11 +237,11 @@ class Issues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:${version}`] || 0,
-            new: issueResponse[`${IssuesQuery.NEW}:${version}`] || 0,
+            all: issueResponse[`${IssuesQuery.ALL}:"${version}"`] || 0,
+            new: issueResponse[`${IssuesQuery.NEW}:"${version}"`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`] ||
+              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
               0,
           },
         });
@@ -257,9 +257,9 @@ class Issues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.NEW}:${version}`,
-      `${IssuesQuery.ALL}:${version}`,
-      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`,
+      `${IssuesQuery.NEW}:"${version}"`,
+      `${IssuesQuery.ALL}:"${version}"`,
+      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -438,9 +438,7 @@ class Issues extends Component<Props, State> {
                 </DiscoverButton>
               </GuideAnchor>
             )}
-            {!hasReleaseComparison && (
-              <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
-            )}
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
@@ -465,9 +463,9 @@ class Issues extends Component<Props, State> {
 
 const ControlsWrapper = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
     ${ButtonGrid} {
@@ -477,9 +475,7 @@ const ControlsWrapper = styled('div')`
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin-top: ${space(1)};
-  }
+  margin: ${space(1)} 0;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

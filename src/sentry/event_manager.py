@@ -356,7 +356,9 @@ class EventManager:
         secondary_hashes = None
 
         try:
-            if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
+            secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+            secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+            if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
                 with metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
@@ -1288,7 +1290,17 @@ def _handle_regression(group, event, release):
                 # XXX: handle missing data, as its not overly important
                 pass
             else:
-                activity.update(data={"version": release.version})
+                try:
+                    # We should only update last activity version prior to the regression in the
+                    # case where we have "Resolved in upcoming release" i.e. version == ""
+                    # We also should not override the `data` attribute here because it might have
+                    # a `current_release_version` for semver releases and we wouldn't want to
+                    # lose that
+                    if activity.data["version"] == "":
+                        activity.update(data={**activity.data, "version": release.version})
+                except KeyError:
+                    # Safeguard in case there is no "version" key. However, should not happen
+                    activity.update(data={"version": release.version})
 
     if is_regression:
         activity = Activity.objects.create(
@@ -1633,7 +1645,12 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+    metric_tags = {
+        "grouping_config": grouping_config["id"],
+        "platform": event.platform or "unknown",
+    }
+
+    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
             event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
@@ -1655,7 +1672,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
             ),
         )
 
-    with metrics.timer("event_manager.event.get_hashes"):
+    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
         # event.  If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.

@@ -27,6 +27,7 @@ ACCEPTED_TRACKING_COOKIE = "accepted_tracking"
 MEMBER_ID_COOKIE = "demo_member_id"
 SKIP_EMAIL_COOKIE = "skip_email"
 SAAS_ORG_SLUG = "saas_org_slug"
+EXTRA_QUERY_STRING = "extra_query_string"
 
 
 class DemoStartView(BaseView):
@@ -78,7 +79,21 @@ class DemoStartView(BaseView):
             logger.info("post.assigned_org", extra={"organization_slug": org.slug})
 
         auth.login(request, user)
-        resp = self.redirect(get_redirect_url(request, org))
+
+        extra_query_string = request.POST.get("extraQueryString")
+        redirect_url = get_redirect_url(request, org)
+
+        if extra_query_string:
+            hash_param = ""
+
+            if "#" in redirect_url:
+                partition = redirect_url.index("#")
+                hash_param = redirect_url[partition:]
+                redirect_url = redirect_url[:partition]
+
+            separator = "&" if "?" in redirect_url else "?"
+            redirect_url += separator + extra_query_string + hash_param
+        resp = self.redirect(redirect_url)
 
         # set a cookie of whether the user accepted tracking so we know
         # whether to initialize analytics when accepted_tracking=1
@@ -99,6 +114,9 @@ class DemoStartView(BaseView):
         saas_org_slug = request.POST.get("saasOrgSlug")
         if saas_org_slug:
             resp.set_cookie(SAAS_ORG_SLUG, saas_org_slug)
+
+        if extra_query_string:
+            resp.set_cookie(EXTRA_QUERY_STRING, extra_query_string)
 
         # set the member id
         resp.set_signed_cookie(MEMBER_ID_COOKIE, member.id)
@@ -220,7 +238,7 @@ def get_one_transaction(org: Organization, project_slug: Optional[str]):
 
     transaction_id = result["data"][0]["id"]
 
-    return f"/organizations/{org.slug}/discover/{project.slug}:{transaction_id}/"
+    return f"/organizations/{org.slug}/performance/{project.slug}:{transaction_id}/"
 
 
 def get_one_discover_query(org: Organization):

@@ -1,6 +1,16 @@
 import logging
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from sentry.models import (
     Group,
@@ -29,6 +39,9 @@ from sentry.notifications.types import (
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +157,7 @@ def get_send_to(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: Optional[int] = None,
-    event: Optional[Any] = None,
+    event: Optional["Event"] = None,
 ) -> Mapping[ExternalProviders, Union[Set[User], Set[Team]]]:
     """
     Returns a mapping of providers to a list of user IDs for the users that
@@ -166,7 +179,7 @@ def get_send_to(
     return {}
 
 
-def get_send_to_owners(event: Any, project: Project) -> Mapping[ExternalProviders, Set[User]]:
+def get_send_to_owners(event: "Event", project: Project) -> Mapping[ExternalProviders, Set[User]]:
     owners, _ = ProjectOwnership.get_owners(project.id, event.data)
     if owners == ProjectOwnership.Everyone:
         metrics.incr(

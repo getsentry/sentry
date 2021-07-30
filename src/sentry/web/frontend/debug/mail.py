@@ -32,7 +32,7 @@ from sentry.models import (
     Rule,
     Team,
 )
-from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
+from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -539,9 +539,7 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
         },
     ).render(request)
@@ -561,9 +559,7 @@ def request_access_for_another_member(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
             "requester": request.user.get_display_name(),
         },

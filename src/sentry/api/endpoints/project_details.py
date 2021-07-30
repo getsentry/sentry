@@ -260,10 +260,15 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
             )
-        if not (0 < value - time.time() < (91 * 24 * 3600)):
+        now = time.time()
+        if value < now:
             raise serializers.ValidationError(
                 "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
             )
+
+        max_expiry_date = now + (91 * 24 * 3600)
+        if value > max_expiry_date:
+            value = max_expiry_date
 
         return value
 
@@ -420,6 +425,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.slug = result["slug"]
             changed = True
             changed_proj_settings["new_slug"] = project.slug
+            changed_proj_settings["old_slug"] = old_slug
 
         if result.get("name"):
             project.name = result["name"]
