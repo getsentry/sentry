@@ -19,7 +19,6 @@ from sentry.models import (
     GroupSubscription,
     Integration,
 )
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.models.groupowner import GroupOwner
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
@@ -1783,60 +1782,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         assert results[:2] == [self.group1, fewer_events_group]
         # These will be arbitrarily ordered since their trend values are all 0
         assert set(results[2:]) == {self.group2, no_before_group, no_after_group}
-
-    def test_sort_inbox(self):
-        start = self.group1.first_seen - timedelta(days=1)
-        inbox_group_1 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group1"],
-                "event_id": "2" * 32,
-                "message": "something",
-                "timestamp": iso_format(self.base_datetime),
-            },
-            project_id=self.project.id,
-        ).group
-        inbox_1 = add_group_to_inbox(inbox_group_1, GroupInboxReason.NEW)
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group2"],
-                "event_id": "3" * 32,
-                "message": "something",
-                "timestamp": iso_format(self.base_datetime),
-            },
-            project_id=self.project.id,
-        ).group
-
-        inbox_group_2 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group3"],
-                "event_id": "4" * 32,
-                "message": "something",
-                "timestamp": iso_format(self.base_datetime),
-            },
-            project_id=self.project.id,
-        ).group
-        inbox_2 = add_group_to_inbox(inbox_group_2, GroupInboxReason.NEW)
-        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
-
-        results = self.make_query(
-            [self.project, self.create_project()],
-            sort_by="inbox",
-            date_from=start,
-            search_filter_query="is:unresolved is:for_review",
-        )
-        assert results.results == [inbox_group_1, inbox_group_2]
-
-    def test_sort_inbox_invalid(self):
-        with pytest.raises(InvalidSearchQuery):
-            self.make_query([self.project], sort_by="inbox")
-
-        with pytest.raises(InvalidSearchQuery):
-            self.make_query(
-                [self.project], sort_by="inbox", search_filter_query="is:for_review abc:no_tags"
-            )
-
-        with pytest.raises(InvalidSearchQuery):
-            self.make_query([self.project], sort_by="inbox", search_filter_query="!is:for_review")
 
     def test_in_syntax_is_invalid(self):
         with pytest.raises(InvalidSearchQuery, match='"in" syntax invalid for "is" search'):
