@@ -617,6 +617,7 @@ class EventView {
   }
 
   generateQueryStringObject(): Query {
+    const user = ConfigStore.get('user');
     const output = {
       id: this.id,
       name: this.name,
@@ -629,6 +630,7 @@ class EventView {
       yAxis: this.yAxis,
       display: this.display,
       interval: this.interval,
+      user: user.id,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -1110,10 +1112,9 @@ class EventView {
   }
 
   getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
-    const user = ConfigStore.get('user');
     return {
       pathname: `/organizations/${slug}/discover/results/`,
-      query: {...this.generateQueryStringObject(), user: user.id},
+      query: {...this.generateQueryStringObject()},
     };
   }
 
