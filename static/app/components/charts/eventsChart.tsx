@@ -346,6 +346,10 @@ export type EventsChartProps = {
    * Chart zoom will change 'pageStart' instead of 'start'
    */
   usePageZoom?: boolean;
+  /**
+   * Whether or not to zerofill results
+   */
+  withoutZerofill?: boolean;
 } & Pick<
   ChartProps,
   | 'currentSeriesName'
@@ -373,6 +377,10 @@ type ChartDataProps = {
 };
 
 class EventsChart extends React.Component<EventsChartProps> {
+  isStacked() {
+    return typeof this.props.topEvents === 'number' && this.props.topEvents > 0;
+  }
+
   render() {
     const {
       api,
@@ -409,7 +417,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       chartComponent,
       usePageZoom,
       height,
-      organization,
+      withoutZerofill,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -424,10 +432,6 @@ class EventsChart extends React.Component<EventsChartProps> {
     const currentSeriesName = currentName ?? yAxisLabel;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, 'high');
-
-    const hasPerformanceChartInterpolation = organization.features.includes(
-      'performance-chart-interpolation'
-    );
 
     let chartImplementation = ({
       zoomRenderProps,
@@ -471,7 +475,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             previousSeriesName={previousSeriesName}
             seriesTransformer={seriesTransformer}
             previousSeriesTransformer={previousSeriesTransformer}
-            stacked={typeof topEvents === 'number' && topEvents > 0}
+            stacked={this.isStacked()}
             yAxis={yAxis}
             showDaily={showDaily}
             colors={colors}
@@ -518,7 +522,6 @@ class EventsChart extends React.Component<EventsChartProps> {
         {zoomRenderProps => (
           <EventsRequest
             {...props}
-            organization={organization}
             api={api}
             period={period}
             project={projects}
@@ -536,7 +539,8 @@ class EventsChart extends React.Component<EventsChartProps> {
             topEvents={topEvents}
             confirmedQuery={confirmedQuery}
             partial
-            withoutZerofill={hasPerformanceChartInterpolation}
+            // Cannot do interpolation when stacking series
+            withoutZerofill={withoutZerofill && !this.isStacked()}
           >
             {eventData =>
               chartImplementation({
