@@ -539,15 +539,6 @@ class PostProcessGroupTest(TestCase):
 
 
 class PostProcessGroupAssignmentTest(TestCase):
-    def setUp(self):
-        self.cache_keys_to_delete = set()
-
-    def tearDown(self):
-        for key in self.cache_keys_to_delete:
-            cache.delete(key)
-
-        super().tearDown()
-
     def make_ownership(self, extra_rules=None):
         self.user_2 = self.create_user()
         rules = [
@@ -823,7 +814,6 @@ class PostProcessGroupAssignmentTest(TestCase):
 
         for key in [assignee_cache_key, owner_cache_key]:
             cache.set(key, True)
-            self.cache_keys_to_delete.add(key)
 
         post_process_group(
             is_new=False,
