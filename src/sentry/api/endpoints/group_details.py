@@ -31,33 +31,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_activity(self, request, group, num):
-        activity_items = set()
-        activity = []
-        activity_qs = (
-            Activity.objects.filter(group=group).order_by("-datetime").select_related("user")
-        )
-        # we select excess so we can filter dupes
-        for item in activity_qs[: num * 2]:
-            sig = (item.type, item.ident, item.user_id)
-            # TODO: we could just generate a signature (hash(text)) for notes
-            # so there's no special casing
-            if item.type == Activity.NOTE:
-                activity.append(item)
-            elif sig not in activity_items:
-                activity_items.add(sig)
-                activity.append(item)
-
-        activity.append(
-            Activity(
-                id=0,
-                project=group.project,
-                group=group,
-                type=Activity.FIRST_SEEN,
-                datetime=group.first_seen,
-            )
-        )
-
-        return activity[:num]
+        return Activity.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request, group):
         seen_by = list(

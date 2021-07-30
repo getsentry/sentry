@@ -950,6 +950,20 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                         kwargs={"project_id": group.project_id, "group_id": group.id}
                     )
 
+    # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
+    # what performance impact this might have & this possibly should be moved else where
+    try:
+        if len(group_list) == 1:
+            if res_type in (
+                GroupResolution.Type.in_next_release,
+                GroupResolution.Type.in_release,
+            ):
+                result["activity"] = serialize(
+                    Activity.get_activities_for_group(group=group_list[0], num=100), acting_user
+                )
+    except UnboundLocalError:
+        ...
+
     if "assignedTo" in result:
         assigned_actor = result["assignedTo"]
         if assigned_actor:
