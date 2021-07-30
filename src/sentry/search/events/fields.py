@@ -47,6 +47,7 @@ from sentry.search.events.constants import (
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
+    FUNCTION_ALIASES,
 )
 from sentry.search.events.types import ParamsType, SelectType
 from sentry.search.utils import InvalidQuery, parse_duration
@@ -2131,10 +2132,6 @@ FUNCTIONS = {
 
 
 # In Performance TPM is used as an alias to EPM
-FUNCTION_ALIASES = {
-    "tpm": "epm",
-    "tps": "eps",
-}
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
@@ -2436,7 +2433,6 @@ class QueryFields(QueryBase):
                 ),
             ]
         }
-        # In Performance TPM is used as an alias to EPM
         for alias, name in FUNCTION_ALIASES.items():
             self.function_converter[alias] = self.function_converter[name].alias_as(alias)
 
