@@ -234,7 +234,7 @@ class QueryDefinition:
         aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
-        self.dataset = _outcomes_dataset(rollup)
+        self.dataset, self.match = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -247,7 +247,7 @@ class QueryDefinition:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
-            aggregations.append(field.aggregation(self.dataset["dataset"]))
+            aggregations.append(field.aggregation(self.dataset))
             self.fields[key] = field
 
         self.groupby = []
@@ -277,10 +277,9 @@ class QueryDefinition:
 
         conditions, filter_keys = get_filter(query, params)
 
-        for org in filter_keys.get("org_id"):
-            self.conditions.append(
-                Condition(Column("org_id"), Op.EQ, org),
-            )
+        self.conditions.append(
+            Condition(Column("org_id"), Op.EQ, filter_keys["org_id"][0]),
+        )
         if filter_keys.get("project_id") is not None:
             self.conditions.append(
                 Condition(Column("project_id"), Op.IN, filter_keys.get("project_id")),
@@ -288,18 +287,13 @@ class QueryDefinition:
         for condition in conditions:
             self.conditions.append(Condition(Column(condition[0]), Op.IN, condition[2]))
 
-        self.select_params = []
-        for aggregation in aggregations:
-            aggregation_field = aggregation[2] if aggregation[1] == "" else aggregation[1]
-            self.select_params.append(
-                Function(aggregation[0], [Column(aggregation_field)], aggregation[2])
-            )
+        self.select_params = _get_select_params(aggregations)
 
 
 def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
     snql_query = Query(
-        dataset=query.dataset["dataset"].value,
-        match=Entity(query.dataset["match"]),
+        dataset=query.dataset.value,
+        match=Entity(query.match),
         select=query.select_params,
         groupby=query.group_by,
         where=query.conditions,
@@ -313,8 +307,8 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
 
 def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
     snql_query = Query(
-        dataset=query.dataset["dataset"].value,
-        match=Entity(query.dataset["match"]),
+        dataset=query.dataset.value,
+        match=Entity(query.match),
         select=query.select_params,
         groupby=query.group_by + [Column(TS_COL)],
         where=query.conditions,
@@ -358,15 +352,23 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
 
 
 def _outcomes_dataset(rollup: int) -> Dataset:
-    outcomes_dataset = {}
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
-        outcomes_dataset["dataset"] = Dataset.Outcomes
-        outcomes_dataset["match"] = "outcomes"
+        dataset = Dataset.Outcomes
+        match = "outcomes"
     else:
-        outcomes_dataset["dataset"] = Dataset.OutcomesRaw
-        outcomes_dataset["match"] = "outcomes_raw"
-    return outcomes_dataset
+        dataset = Dataset.OutcomesRaw
+        match = "outcomes_raw"
+    return dataset, match
+
+
+def _get_select_params(aggregations):
+    # this select param is the select field on the snql query
+    select_params = []
+    for aggregation in aggregations:
+        aggregation_field = aggregation[2] if aggregation[1] == "" else aggregation[1]
+        select_params.append(Function(aggregation[0], [Column(aggregation_field)], aggregation[2]))
+    return select_params
 
 
 def massage_outcomes_result(
