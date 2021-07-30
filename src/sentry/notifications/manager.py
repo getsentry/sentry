@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
 
 
-class NotificationsManager(BaseManager):  # type: ignore
+class NotificationsManager(BaseManager["NotificationSetting"]):
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """
