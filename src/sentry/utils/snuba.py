@@ -771,6 +771,7 @@ def _bulk_snuba_query(
             "snuba.snql.query.type",
             tags={"type": query_type, "referrer": query_referrer},
         )
+        span.set_tag("snuba.query.type", query_type)
 
         if len(snuba_param_list) > 1:
             query_results = list(
