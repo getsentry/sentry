@@ -244,3 +244,10 @@ export async function openReprocessEventModal({
 
   openModal(deps => <Modal {...deps} {...options} />, {onClose});
 }
+
+export async function demoSignupModal(options: ModalOptions = {}) {
+  const mod = await import('app/components/modals/demoSignUp');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
