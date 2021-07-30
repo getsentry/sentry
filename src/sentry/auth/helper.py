@@ -339,9 +339,9 @@ class AuthIdentityHandler:
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def _post_login_redirect(self, is_new_user: bool = False) -> HttpResponseRedirect:
+    def _post_login_redirect(self) -> HttpResponseRedirect:
         url = auth.get_login_redirect(self.request)
-        if is_new_user:
+        if self.request.POST.get("op") == "newuser":
             # add events that we can hanlde on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
