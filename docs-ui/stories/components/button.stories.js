@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
@@ -8,6 +8,7 @@ import ButtonBar from 'app/components/buttonBar';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownLink from 'app/components/dropdownLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
+import SwitchButton from 'app/components/switchButton';
 import {IconDelete} from 'app/icons/iconDelete';
 
 const Item = styled('span')`
@@ -188,6 +189,35 @@ _DropdownButton.parameters = {
   docs: {
     description: {
       story: 'A button meant to be used with some sort of dropdown',
+    },
+  },
+};
+
+export const _SwitchButton = () => {
+  const [isActive, setActive] = useState(false);
+  const [isLargeActive, setLargeActive] = useState(false);
+  return (
+    <Fragment>
+      <div className="section">
+        <Item>
+          <SwitchButton isActive={isActive} toggle={() => setActive(!isActive)} />
+        </Item>
+        <Item>
+          <SwitchButton
+            size="lg"
+            isActive={isLargeActive}
+            toggle={() => setLargeActive(!isLargeActive)}
+          />
+        </Item>
+      </div>
+    </Fragment>
+  );
+};
+_SwitchButton.storyName = 'Switch Button';
+_SwitchButton.parameters = {
+  docs: {
+    description: {
+      story: 'A button meant to be used to switch boolean states',
     },
   },
 };
