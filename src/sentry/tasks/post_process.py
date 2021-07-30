@@ -111,6 +111,13 @@ def handle_owner_assignment(project, group, event):
                     project_id=project.id,
                     group_id=group.id,
                 )
+            else:
+                analytics.record(
+                    "issueowners.assignment",
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    group_id=group.id,
+                )
 
         if owners and not owners_exists:
             try:
