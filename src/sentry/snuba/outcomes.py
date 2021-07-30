@@ -362,7 +362,7 @@ def _outcomes_dataset(rollup: int) -> Dataset:
     return dataset, match
 
 
-def _get_select_params(aggregations: list) -> list:
+def _get_select_params(aggregations: List) -> List:
     # this select param is the select field on the snql query
     select_params = []
     for aggregation in aggregations:
