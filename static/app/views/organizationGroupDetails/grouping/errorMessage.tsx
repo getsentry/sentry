@@ -2,6 +2,7 @@ import React from 'react';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import LoadingError from 'app/components/loadingError';
 import {Panel} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -99,12 +100,17 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
           ),
           leftAligned: true,
           action: (
-            <Button
-              priority="primary"
-              to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
-            >
-              {t('Upgrade Grouping Config')}
-            </Button>
+            <ButtonBar gap={1}>
+              <Button
+                priority="primary"
+                to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
+              >
+                {t('Upgrade Grouping Config')}
+              </Button>
+              <Button href="https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/">
+                {t('Read the docs')}
+              </Button>
+            </ButtonBar>
           ),
         };
       default:
