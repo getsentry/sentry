@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "issuer_id"])
 
+REQUEST_TIMEOUT = 15.0
+
 
 def _get_authorization_header(
     credentials: AppConnectCredentials, expiry_sec: Optional[int] = None
@@ -67,7 +69,7 @@ def _get_appstore_json(
         full_url += url
         logger.debug(f"GET {full_url}")
         with sentry_sdk.start_span(op="http", description="AppStoreConnect request"):
-            response = session.get(full_url, headers=headers)
+            response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
         if not response.ok:
             raise ValueError("Request failed", full_url, response.status_code, response.text)
         try:
