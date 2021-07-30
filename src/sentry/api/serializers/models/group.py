@@ -1001,6 +1001,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     result_totals = raw_query(
                         selected_columns=["sessions"],
                         dataset=Dataset.Sessions,
+                        # TODO: Query to the nearest past hour. Cache that value.
+                        # Divide it by length of time to find proper 15 min, 1 min, etc...
+                        # TODO: Think about if this is only something to do if the start/end are under 1 hour.
                         start=self.start,
                         end=self.end,
                         filter_keys=filters,
@@ -1081,20 +1084,20 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return result
 
     def _build_session_cache_key(self, project_id):
-        session_count_key = f"w-s:{project_id}"
-
+        start_key = end_key = env_key = ""
         if self.start:
-            session_count_key = f"{session_count_key}-{self.start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
-                " ", ""
-            )
+            start_key = self.start.replace(second=0, microsecond=0, tzinfo=None)
 
         if self.end:
-            session_count_key = f"{session_count_key}-{self.end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
-                " ", ""
-            )
+            end_key = self.end.replace(second=0, microsecond=0, tzinfo=None)
+
+        if self.end and self.start and self.end - self.start >= timedelta(minutes=60):
+            # Cache to the hour for longer time range queries, and to the minute if the query if for a time period under 1 hour
+            end_key = end_key.replace(minute=0)
+            start_key = start_key.replace(minute=0)
 
         if self.environment_ids:
-            envs = "-".join(str(eid) for eid in self.environment_ids)
-            session_count_key = f"{session_count_key}-{envs}"
+            env_key = "-".join(str(eid) for eid in self.environment_ids)
 
-        return session_count_key
+        session_cache_key = f"w-s:{project_id}-{start_key}-{end_key}-{env_key}".replace(" ", "")
+        return session_cache_key
