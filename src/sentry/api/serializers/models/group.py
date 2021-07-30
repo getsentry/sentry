@@ -1001,15 +1001,13 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     result_totals = raw_query(
                         selected_columns=["sessions"],
                         dataset=Dataset.Sessions,
-                        # TODO: Query to the nearest past hour. Cache that value.
-                        # Divide it by length of time to find proper 15 min, 1 min, etc...
-                        # TODO: Think about if this is only something to do if the start/end are under 1 hour.
                         start=self.start,
                         end=self.end,
                         filter_keys=filters,
                         groupby=["project_id"],
                         referrer="serializers.GroupSerializerSnuba.session_totals",
                     )
+
                     results = {}
                     for data in result_totals["data"]:
                         cache_key = self._build_session_cache_key(data["project_id"])
