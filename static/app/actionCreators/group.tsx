@@ -8,6 +8,7 @@ import {Actor, Group, Member, Note, User} from 'app/types';
 import {buildTeamId, buildUserId} from 'app/utils';
 import {uniqueId} from 'app/utils/guid';
 
+type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 type AssignToUserParams = {
   /**
    * Issue id
@@ -15,6 +16,7 @@ type AssignToUserParams = {
   id: string;
   user: User | Actor;
   member?: Member;
+  assignedBy: AssignedBy;
 };
 
 export function assignToUser(params: AssignToUserParams) {
@@ -35,6 +37,7 @@ export function assignToUser(params: AssignToUserParams) {
     // current assignee.
     data: {
       assignedTo: params.user ? buildUserId(params.user.id) : '',
+      assignedBy: params.assignedBy,
     },
   });
 
@@ -49,7 +52,7 @@ export function assignToUser(params: AssignToUserParams) {
   return request;
 }
 
-export function clearAssignment(groupId: string) {
+export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
   const api = new Client();
 
   const endpoint = `/issues/${groupId}/`;
@@ -65,6 +68,7 @@ export function clearAssignment(groupId: string) {
     // Sending an empty value to assignedTo is the same as "clear"
     data: {
       assignedTo: '',
+      assignedBy,
     },
   });
 
@@ -85,9 +89,10 @@ type AssignToActorParams = {
    */
   id: string;
   actor: Pick<Actor, 'id' | 'type'>;
+  assignedBy: AssignedBy;
 };
 
-export function assignToActor({id, actor}: AssignToActorParams) {
+export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
   const api = new Client();
 
   const endpoint = `/issues/${id}/`;
@@ -116,7 +121,7 @@ export function assignToActor({id, actor}: AssignToActorParams) {
   return api
     .requestPromise(endpoint, {
       method: 'PUT',
-      data: {assignedTo: actorId},
+      data: {assignedTo: actorId, assignedBy},
     })
     .then(data => {
       GroupActions.assignToSuccess(guid, id, data);
