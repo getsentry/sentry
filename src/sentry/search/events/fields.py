@@ -26,6 +26,7 @@ from sentry.search.events.constants import (
     DURATION_PATTERN,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    FUNCTION_ALIASES,
     FUNCTION_PATTERN,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
@@ -47,7 +48,6 @@ from sentry.search.events.constants import (
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
-    FUNCTION_ALIASES,
 )
 from sentry.search.events.types import ParamsType, SelectType
 from sentry.search.utils import InvalidQuery, parse_duration
