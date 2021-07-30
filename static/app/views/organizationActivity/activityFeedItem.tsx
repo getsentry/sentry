@@ -113,11 +113,14 @@ class ActivityItem extends Component<Props, State> {
       case 'set_resolved_in_release':
         const {current_release_version, version} = item.data;
         if (current_release_version) {
-          return tct('[author] marked [issue] as resolved in releases >[version]', {
-            author,
-            version: this.renderVersionLink(current_release_version, item),
-            issue: issueLink,
-          });
+          return tct(
+            '[author] marked [issue] as resolved in releases greater than [version]',
+            {
+              author,
+              version: this.renderVersionLink(current_release_version, item),
+              issue: issueLink,
+            }
+          );
         }
         if (version) {
           return tct('[author] marked [issue] as resolved in [version]', {

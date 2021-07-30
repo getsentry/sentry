@@ -12,14 +12,14 @@ import space from 'app/styles/space';
 import {
   GroupActivity,
   GroupActivitySetByResolvedInRelease,
+  GroupActivityType,
   ResolutionStatusDetails,
 } from 'app/types';
-import {defined} from 'app/utils';
 
 type Props = {
   statusDetails: ResolutionStatusDetails;
   projectId: string;
-  activities: GroupActivity[];
+  activities?: GroupActivity[];
 };
 
 function renderReason(
@@ -34,10 +34,8 @@ function renderReason(
     </strong>
   ) : null;
 
-  const relevantActivity = activities.find(activity =>
-    defined(
-      (activity as GroupActivitySetByResolvedInRelease).data?.current_release_version
-    )
+  const relevantActivity = activities.find(
+    activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   ) as GroupActivitySetByResolvedInRelease | undefined;
 
   const currentReleaseVersion = relevantActivity?.data.current_release_version!;
@@ -50,7 +48,7 @@ function renderReason(
     return t('This issue has been marked as resolved in the upcoming release.');
   } else if (statusDetails.inRelease && statusDetails.actor) {
     return currentReleaseVersion
-      ? tct('[actor] marked this issue as resolved in versions >[version].', {
+      ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
           actor,
           version: (
             <Version
@@ -72,15 +70,18 @@ function renderReason(
         });
   } else if (statusDetails.inRelease) {
     return currentReleaseVersion
-      ? tct('This issue has been marked as resolved in versions >[version].', {
-          version: (
-            <Version
-              version={currentReleaseVersion}
-              projectId={projectId}
-              tooltipRawVersion
-            />
-          ),
-        })
+      ? tct(
+          'This issue has been marked as resolved in versions greater than [version].',
+          {
+            version: (
+              <Version
+                version={currentReleaseVersion}
+                projectId={projectId}
+                tooltipRawVersion
+              />
+            ),
+          }
+        )
       : tct('This issue has been marked as resolved in version [version].', {
           version: (
             <Version
@@ -106,7 +107,7 @@ function renderReason(
   return t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox({statusDetails, projectId, activities}: Props) {
+function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
