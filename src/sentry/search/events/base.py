@@ -1,4 +1,4 @@
-from typing import List, Mapping, Optional, Set
+from typing import List, Mapping, Set
 
 from django.utils.functional import cached_property
 from snuba_sdk.column import Column
