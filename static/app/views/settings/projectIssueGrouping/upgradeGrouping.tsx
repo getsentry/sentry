@@ -41,9 +41,14 @@ function UpgradeGrouping({
   const {riskNote, alertType} = getGroupingRisk(riskLevel);
   const noUpdates = !latestGroupingConfig;
 
-  const newData: Record<string, string> = {};
+  const newData: Record<string, string | number> = {};
   if (latestGroupingConfig) {
+    const now = Math.floor(new Date().getTime() / 1000);
+    const ninety_days = 3600 * 24 * 90;
+
     newData.groupingConfig = latestGroupingConfig.id;
+    newData.secondaryGroupingConfig = project.groupingConfig;
+    newData.secondaryGroupingExpiry = now + ninety_days;
   }
 
   const handleUpgrade = async () => {

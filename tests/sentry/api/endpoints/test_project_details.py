@@ -1,3 +1,5 @@
+from time import time
+
 import pytest
 
 from sentry.api.endpoints.project_details import (
@@ -721,6 +723,32 @@ class ProjectUpdateTest(APITestCase):
         assert new_ids == [4, 5, 2, 6]
         new_next_id = saved_config["next_id"]
         assert new_next_id == 7
+
+    def test_cap_secondary_grouping_expiry(self):
+        now = time()
+
+        response = self.get_response(self.org_slug, self.proj_slug, secondaryGroupingExpiry=0)
+        assert response.status_code == 400
+
+        expiry = int(now + 3600 * 24 * 1)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        assert response.data["secondaryGroupingExpiry"] == expiry
+
+        expiry = int(now + 3600 * 24 * 89)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        assert response.data["secondaryGroupingExpiry"] == expiry
+
+        # Larger timestamps are capped to 91 days:
+        expiry = int(now + 3600 * 24 * 365)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        expiry = response.data["secondaryGroupingExpiry"]
+        assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
 
 
 class CopyProjectSettingsTest(APITestCase):

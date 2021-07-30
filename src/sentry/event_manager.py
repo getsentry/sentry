@@ -356,7 +356,9 @@ class EventManager:
         secondary_hashes = None
 
         try:
-            if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
+            secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+            secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+            if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
                 with metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
