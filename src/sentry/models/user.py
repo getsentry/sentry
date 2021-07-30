@@ -182,6 +182,11 @@ class User(BaseModel, AbstractBaseUser):
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
 
+    def has_usable_password(self):
+        if self.password == "" or self.password is None:
+            return False
+        return super().has_usable_password()
+
     def get_label(self):
         return self.email or self.username or self.id
 
