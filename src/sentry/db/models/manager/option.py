@@ -3,13 +3,13 @@ from typing import Any, Dict, TypeVar, Union
 from celery.signals import task_postrun  # type: ignore
 from django.core.signals import request_finished
 
-from sentry.db.models import BaseManager, Model
-from sentry.db.models.manager.base import _local_cache
+from sentry.db.models import Model
+from sentry.db.models.manager.base import BaseManager, _local_cache
 
 M = TypeVar("M", bound=Model)
 
 
-class OptionManager(BaseManager[M]):  # type: ignore
+class OptionManager(BaseManager[M]):
     @property
     def _option_cache(self) -> Dict[str, Dict[str, Any]]:
         if not hasattr(_local_cache, "option_cache"):
