@@ -57,6 +57,13 @@ repos:
       language: system
       files: requirements-base.txt
       pass_filenames: false
+    - id: mypy
+      name: mypy
+      entry: mypy
+      args: ['--strict','--warn-unreachable','--config-file','mypy.ini']
+      language: system
+      types: [python]
+
 
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0
