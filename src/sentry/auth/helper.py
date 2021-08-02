@@ -348,7 +348,7 @@ class AuthIdentityHandler:
                 "marketing_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
             }
             url = add_params_to_url(url, params)
-        response = HttpResponseRedirect(auth.get_login_redirect(url))
+        response = HttpResponseRedirect(url)
 
         # Always remove any pending invite cookies, pending invites will have been
         # accepted during the SSO flow.
