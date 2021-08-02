@@ -154,7 +154,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         expand = request.GET.getlist("expand", [])
         expand.append("errors")
 
-        codeowners = list(ProjectCodeOwners.objects.filter(project=project))
+        codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
 
         return Response(
             serialize(
@@ -187,14 +187,6 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
             },
             data={**request.data},
         )
-
-        # TODO(nisanthan): Revisit for supporting multiple CODEOWNERS.
-        # For now we will prevent adding multiple CODEOWNERS for a project.
-        if ProjectCodeOwners.objects.filter(project=project).exists():
-            return Response(
-                data={"details": "There exists a CODEOWNERS file for this project."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         if serializer.is_valid():
             project_codeowners = serializer.save()

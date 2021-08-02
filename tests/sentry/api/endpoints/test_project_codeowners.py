@@ -234,7 +234,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             assert response.status_code == 201, response.content
             response = self.client.post(self.url, self.data)
             assert response.status_code == 400
-            assert response.data == {"details": "There exists a CODEOWNERS file for this project."}
+            assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
 
     def test_schema_is_correct(self):
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -321,5 +321,4 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.create_codeowners(code_mapping=code_mapping_2)
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {"details": "There exists a CODEOWNERS file for this project."}
+        assert response.status_code == 201
