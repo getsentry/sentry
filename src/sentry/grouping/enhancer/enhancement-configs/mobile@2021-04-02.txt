@@ -88,6 +88,8 @@ family:native function:memcpy category=system
 family:native function:__memcpy category=system
 family:native function:memcmp category=system
 family:native package:CoreFoundation category=system
+family:native package:Foundation category=system
+family:native package:CFNetwork category=system
 family:native package:IOKit category=system
 family:native package:QuartzCore category=system
 family:native package:IOMobileFramebuffer category=system
@@ -229,6 +231,8 @@ family:native function:RtlFreeUnicodeString category=free
 family:native function:std::_Deallocate category=free
 family:native function:free category=free
 family:native function:objc_release category=free
+family:native function:_swift_release_dealloc category=free
+family:native function:_CFRelease category=free
 
 family:native package:C:/Windows/SYSTEM32/OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
