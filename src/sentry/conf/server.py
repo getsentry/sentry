@@ -891,6 +891,9 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable experimental new version of stacktrace component where additional
+    # data related to grouping is shown on each frame
+    "organizations:grouping-stacktrace-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
