@@ -113,7 +113,7 @@ tags.sku_class:enterprise #enterprise`;
 
   handleCodeOwnerAdded = (data: CodeOwner) => {
     const {codeowners} = this.state;
-    const newCodeowners = (codeowners || []).concat(data);
+    const newCodeowners = [data, ...(codeowners || [])];
     this.setState({codeowners: newCodeowners});
   };
 
