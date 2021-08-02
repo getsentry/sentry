@@ -3,7 +3,16 @@ import itertools
 import logging
 from collections import OrderedDict, defaultdict, namedtuple
 from functools import reduce
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from sentry.app import tsdb
 from sentry.digests import Record
@@ -101,7 +110,7 @@ def attach_state(
 
 class Pipeline:
     def __init__(self) -> None:
-        self.operations: List[Callable[..., Any]] = []
+        self.operations: MutableSequence[Callable[..., Any]] = []
 
     def __call__(self, sequence: Sequence[Any]) -> Any:
         # Explicitly typing to satisfy mypy.
@@ -171,7 +180,7 @@ def rewrite_record(
 
 
 def group_records(
-    groups: MutableMapping[str, Mapping[str, List[Record]]], record: Record
+    groups: MutableMapping[str, Mapping[str, MutableSequence[Record]]], record: Record
 ) -> Mapping[str, Mapping[str, Sequence[Record]]]:
     group = record.value.event.group
     rules = record.value.rules
