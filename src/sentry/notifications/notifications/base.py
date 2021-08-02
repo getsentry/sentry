@@ -1,14 +1,16 @@
-from typing import Any, Mapping, MutableMapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple
 
-from sentry.models import Project, User
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.models import Project, User
 
 
 class BaseNotification:
     fine_tuning_key: Optional[str] = None
     is_message_issue_unfurl = False
 
-    def __init__(self, project: Project) -> None:
+    def __init__(self, project: "Project") -> None:
         self.project = project
         self.organization = self.project.organization
 
@@ -41,9 +43,10 @@ class BaseNotification:
         return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
 
     def get_user_context(
-        self, user: User, extra_context: Mapping[str, Any]
+        self, user: "User", extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        return {}
+        # Basically a noop.
+        return {**extra_context}
 
     def get_notification_title(self) -> str:
         raise NotImplementedError
@@ -55,5 +58,5 @@ class BaseNotification:
     def get_type(self) -> str:
         raise NotImplementedError
 
-    def get_unsubscribe_key(self) -> Optional[Tuple[str, int]]:
+    def get_unsubscribe_key(self) -> Optional[Tuple[str, int, Optional[str]]]:
         return None

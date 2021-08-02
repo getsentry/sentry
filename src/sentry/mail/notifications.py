@@ -1,8 +1,10 @@
 import logging
 from typing import Any, Mapping, Optional, Set
 
+from django.utils.encoding import force_text
+
 from sentry import options
-from sentry.models import ProjectOption, User
+from sentry.models import Project, ProjectOption, User
 from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -34,23 +36,30 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     return headers
 
 
+def build_subject_prefix(project: Project, mail_option_key: Optional[str] = None) -> str:
+    key = mail_option_key or "mail:subject_prefix"
+    return force_text(
+        ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
+    )
+
+
 def get_subject_with_prefix(
     notification: BaseNotification,
     context: Optional[Mapping[str, Any]] = None,
     mail_option_key: Optional[str] = None,
 ) -> bytes:
-    key = mail_option_key or "mail:subject_prefix"
-    prefix = str(
-        ProjectOption.objects.get_value(notification.project, key)
-        or options.get("mail.subject-prefix")
-    )
+
+    prefix = build_subject_prefix(notification.project, mail_option_key)
     return f"{prefix}{notification.get_subject(context)}".encode("utf-8")
 
 
-def get_unsubscribe_link(user_id: int, resource_id: int, key: str = "issue") -> str:
+def get_unsubscribe_link(
+    user_id: int, resource_id: int, key: str = "issue", referrer: Optional[str] = None
+) -> str:
     return generate_signed_link(
         user_id,
         f"sentry-account-email-unsubscribe-{key}",
+        referrer,
         kwargs={f"{key}_id": resource_id},
     )
 
@@ -93,8 +102,10 @@ def get_context(
         **notification.get_user_context(user, extra_context),
     }
     if notification.get_unsubscribe_key():
-        key, resource_id = notification.get_unsubscribe_key()
-        context.update({"unsubscribe_link": get_unsubscribe_link(user.id, resource_id, key)})
+        key, resource_id, referrer = notification.get_unsubscribe_key()
+        context.update(
+            {"unsubscribe_link": get_unsubscribe_link(user.id, resource_id, key, referrer)}
+        )
 
     return context
 
