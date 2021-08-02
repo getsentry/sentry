@@ -336,19 +336,20 @@ export class TokenConverter {
   };
 
   /**
-   * Creates a token with common `text` and `location` keys.
+   * Creates shared `text` and `location` keys.
    */
-  makeToken = <T,>(args: T) => ({
-    text: this.text(),
-    location: this.location(),
-    ...args,
-  });
+  get defaultTokenFields() {
+    return {
+      text: this.text(),
+      location: this.location(),
+    };
+  }
 
-  tokenSpaces = (value: string) =>
-    this.makeToken({
-      type: Token.Spaces as const,
-      value,
-    });
+  tokenSpaces = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.Spaces as const,
+    value,
+  });
 
   tokenFilter = <T extends FilterType>(
     filter: T,
@@ -356,23 +357,29 @@ export class TokenConverter {
     value: FilterMap[T]['value'],
     operator: FilterMap[T]['operator'] | undefined,
     negated: FilterMap[T]['negated']
-  ) =>
-    this.makeToken({
-      type: Token.Filter,
+  ) => {
+    const filterToken = {
+      type: Token.Filter as const,
       filter,
       key,
       value,
       negated,
       operator: operator ?? TermOperator.Default,
       invalid: this.checkInvalidFilter(filter, key, value),
-    } as FilterResult);
+    } as FilterResult;
 
-  tokenFreeText = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.FreeText as const,
-      value,
-      quoted,
-    });
+    return {
+      ...this.defaultTokenFields,
+      ...filterToken,
+    };
+  };
+
+  tokenFreeText = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.FreeText as const,
+    value,
+    quoted,
+  });
 
   tokenLogicGroup = (
     inner: Array<
@@ -380,151 +387,138 @@ export class TokenConverter {
       | ReturnType<TokenConverter['tokenFilter']>
       | ReturnType<TokenConverter['tokenFreeText']>
     >
-  ) =>
-    this.makeToken({
-      type: Token.LogicGroup as const,
-      inner,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.LogicGroup as const,
+    inner,
+  });
 
-  tokenLogicBoolean = (bool: BooleanOperator) =>
-    this.makeToken({
-      type: Token.LogicBoolean as const,
-      value: bool,
-    });
+  tokenLogicBoolean = (bool: BooleanOperator) => ({
+    ...this.defaultTokenFields,
+    type: Token.LogicBoolean as const,
+    value: bool,
+  });
 
-  tokenKeySimple = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.KeySimple as const,
-      value,
-      quoted,
-    });
+  tokenKeySimple = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeySimple as const,
+    value,
+    quoted,
+  });
 
   tokenKeyExplicitTag = (
     prefix: string,
     key: ReturnType<TokenConverter['tokenKeySimple']>
-  ) =>
-    this.makeToken({
-      type: Token.KeyExplicitTag as const,
-      prefix,
-      key,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyExplicitTag as const,
+    prefix,
+    key,
+  });
 
-  tokenKeyAggregateParam = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.KeyAggregateParam as const,
-      value,
-      quoted,
-    });
+  tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyAggregateParam as const,
+    value,
+    quoted,
+  });
 
   tokenKeyAggregate = (
     name: ReturnType<TokenConverter['tokenKeySimple']>,
     args: ReturnType<TokenConverter['tokenKeyAggregateArgs']> | null,
     argsSpaceBefore: ReturnType<TokenConverter['tokenSpaces']>,
     argsSpaceAfter: ReturnType<TokenConverter['tokenSpaces']>
-  ) =>
-    this.makeToken({
-      type: Token.KeyAggregate as const,
-      name,
-      args,
-      argsSpaceBefore,
-      argsSpaceAfter,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyAggregate as const,
+    name,
+    args,
+    argsSpaceBefore,
+    argsSpaceAfter,
+  });
 
   tokenKeyAggregateArgs = (
     arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
     args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
-  ) =>
-    this.makeToken({
-      type: Token.KeyAggregateArgs as const,
-      args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyAggregateArgs as const,
+    args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
+  });
 
-  tokenValueIso8601Date = (value: string) =>
-    this.makeToken({
-      type: Token.ValueIso8601Date as const,
-      value: moment(value),
-    });
+  tokenValueIso8601Date = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueIso8601Date as const,
+    value: moment(value),
+  });
 
   tokenValueRelativeDate = (
     value: string,
     sign: '-' | '+',
     unit: 'w' | 'd' | 'h' | 'm'
-  ) =>
-    this.makeToken({
-      type: Token.ValueRelativeDate as const,
-      value: Number(value),
-      sign,
-      unit,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueRelativeDate as const,
+    value: Number(value),
+    sign,
+    unit,
+  });
 
   tokenValueDuration = (
     value: string,
     unit: 'ms' | 's' | 'min' | 'm' | 'hr' | 'h' | 'day' | 'd' | 'wk' | 'w'
-  ) =>
-    this.makeToken({
-      type: Token.ValueDuration as const,
-      value: Number(value),
-      unit,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
 
-  tokenValuePercentage = (value: string) =>
-    this.makeToken({
-      type: Token.ValuePercentage as const,
-      value: Number(value),
-    });
+    type: Token.ValueDuration as const,
+    value: Number(value),
+    unit,
+  });
 
-  tokenValueBoolean = (value: string) =>
-    this.makeToken({
-      type: Token.ValueBoolean as const,
-      value: ['1', 'true'].includes(value.toLowerCase()),
-    });
+  tokenValuePercentage = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValuePercentage as const,
+    value: Number(value),
+  });
 
-  tokenValueNumber = (value: string, unit: string) =>
-    this.makeToken({
-      type: Token.ValueNumber as const,
-      value,
-      rawValue: Number(value) * (numberUnits[unit] ?? 1),
-      unit,
-    });
+  tokenValueBoolean = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueBoolean as const,
+    value: ['1', 'true'].includes(value.toLowerCase()),
+  });
+
+  tokenValueNumber = (value: string, unit: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueNumber as const,
+    value,
+    rawValue: Number(value) * (numberUnits[unit] ?? 1),
+    unit,
+  });
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
     items: ListItem<ReturnType<TokenConverter['tokenValueNumber']>>[]
-  ) =>
-    this.makeToken({
-      type: Token.ValueNumberList as const,
-      items: [{separator: '', value: item1}, ...items.map(listJoiner)],
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueNumberList as const,
+    items: [{separator: '', value: item1}, ...items.map(listJoiner)],
+  });
 
   tokenValueTextList = (
     item1: ReturnType<TokenConverter['tokenValueText']>,
     items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
-  ) =>
-    this.makeToken({
-      type: Token.ValueTextList as const,
-      items: [{separator: '', value: item1}, ...items.map(listJoiner)],
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueTextList as const,
+    items: [{separator: '', value: item1}, ...items.map(listJoiner)],
+  });
 
-  partialTokenValueTextList = (
-    item1: ReturnType<TokenConverter['tokenValueText']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[],
-    endItems?: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
-  ) =>
-    this.makeToken({
-      type: Token.ValueTextList as const,
-      items: [
-        {separator: '', value: item1},
-        ...items.map(listJoiner),
-        ...(endItems ? endItems.map(listJoiner) : []),
-      ],
-    });
-
-  tokenValueText = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.ValueText as const,
-      value,
-      quoted,
-    });
+  tokenValueText = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueText as const,
+    value,
+    quoted,
+  });
 
   /**
    * This method is used while tokenizing to predicate whether a filter should
