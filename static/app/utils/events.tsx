@@ -67,9 +67,9 @@ export function getTreeLabelPartDetails(part: TreeLabelPart) {
   };
 }
 
-function computeTitleWithTreeLabel(metadata: EventMetadata) {
+function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] = []) {
   const {type, current_tree_label, finest_tree_label} = metadata;
-  const treeLabel = current_tree_label || finest_tree_label;
+  const treeLabel = features.includes('grouping-tree-ui') ? (current_tree_label || finest_tree_label) : undefined;
   const formattedTreeLabel = treeLabel
     ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart).label).join(' | ')
     : undefined;
@@ -111,7 +111,7 @@ export function getTitle(event: Event | BaseGroup, features: string[] = []) {
 
       return {
         subtitle: culprit,
-        ...computeTitleWithTreeLabel(metadata),
+        ...computeTitleWithTreeLabel(metadata, features),
       };
     }
     case EventOrGroupType.CSP:
