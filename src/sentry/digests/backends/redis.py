@@ -3,8 +3,8 @@ import time
 from contextlib import contextmanager
 from typing import Any, Iterable, Optional, Tuple
 
-from rb.clients import LocalClient  # type: ignore
-from redis.client import ResponseError  # type: ignore
+from rb.clients import LocalClient
+from redis.exceptions import ResponseError
 
 from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
