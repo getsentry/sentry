@@ -434,7 +434,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachment["title"] == f"{self.group.title}"
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=NoteActivitySlack"
         )
         assert attachment["text"] == notification.activity.data["text"]
         assert (
