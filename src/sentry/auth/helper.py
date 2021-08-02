@@ -342,7 +342,7 @@ class AuthIdentityHandler:
     def _post_login_redirect(self) -> HttpResponseRedirect:
         url = auth.get_login_redirect(self.request)
         if self.request.POST.get("op") == "newuser":
-            # add events that we can hanlde on the front end
+            # add events that we can handle on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
                 "marketing_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
