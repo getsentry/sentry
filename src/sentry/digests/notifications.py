@@ -104,7 +104,9 @@ class Pipeline:
         self.operations: List[Callable[..., Any]] = []
 
     def __call__(self, sequence: Sequence[Any]) -> Any:
-        return reduce(lambda x, operation: operation(x), self.operations, sequence)  # type: ignore
+        # Explicitly typing to satisfy mypy.
+        func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
+        return reduce(func, self.operations, sequence)
 
     def apply(self, function: Callable[[Any], Any]) -> "Pipeline":
         def operation(sequence: Sequence[Any]) -> Any:
