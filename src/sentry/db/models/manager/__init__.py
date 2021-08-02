@@ -1,4 +1,4 @@
-from typing import Any, Callable, Mapping, Union
+from typing import Any, Callable, Mapping, TypeVar, Union
 
 from django.db.models import Model
 from django.utils.encoding import smart_text
@@ -7,6 +7,7 @@ from sentry.utils.hashlib import md5_text
 
 __all__ = ("BaseManager", "OptionManager", "Value", "ValidateFunction")
 
+M = TypeVar("M", bound=Model)
 Value = Any
 ValidateFunction = Callable[[Value], bool]
 

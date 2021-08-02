@@ -2,17 +2,7 @@ import logging
 import threading
 import weakref
 from contextlib import contextmanager
-from typing import (
-    Any,
-    Generator,
-    Generic,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypeVar,
-)
+from typing import Any, Generator, Generic, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.conf import settings
 from django.db import router
@@ -20,7 +10,7 @@ from django.db.models import Model
 from django.db.models.manager import Manager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 
-from sentry.db.models.manager import make_key
+from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
 from sentry.utils.cache import cache
@@ -32,8 +22,6 @@ logger = logging.getLogger("sentry")
 _local_cache = threading.local()
 _local_cache_generation = 0
 _local_cache_enabled = False
-
-M = TypeVar("M", bound=Model)
 
 
 class BaseManager(Manager, Generic[M]):  # type: ignore

@@ -1,12 +1,10 @@
-from typing import Any, Dict, TypeVar, Union
+from typing import Any, Dict, Union
 
 from celery.signals import task_postrun  # type: ignore
 from django.core.signals import request_finished
 
-from sentry.db.models import Model
+from sentry.db.models.manager import M
 from sentry.db.models.manager.base import BaseManager, _local_cache
-
-M = TypeVar("M", bound=Model)
 
 
 class OptionManager(BaseManager[M]):
