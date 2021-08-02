@@ -75,8 +75,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
         assert resp.status_code == 200
 
-        marketing_events = {"event_name": "Sign Up", "event_label": "dummy"}
-        marketing_query = urlencode({"marketing_events": json.dumps(marketing_events)})
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
 
         with self.settings(
             TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
@@ -170,8 +170,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["existing_user"] == user
         assert resp.context["login_form"]
 
-        marketing_events = {"event_name": "Sign Up", "event_label": "dummy"}
-        marketing_query = urlencode({"marketing_events": json.dumps(marketing_events)})
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
@@ -406,8 +406,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not resp.context["existing_user"]
         assert resp.context["login_form"]
 
-        marketing_events = {"event_name": "Sign Up", "event_label": "dummy"}
-        marketing_query = urlencode({"marketing_events": json.dumps(marketing_events)})
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [

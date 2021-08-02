@@ -100,8 +100,8 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302, (
             resp.context["register_form"].errors if resp.status_code == 200 else None
         )
-        marketing_events = {"event_name": "Sign Up"}
-        marketing_query = urlencode({"marketing_events": json.dumps(marketing_events)})
+        frontend_events = {"event_name": "Sign Up"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
         assert marketing_query in resp.url
 
         user = User.objects.get(username="test-a-really-long-email-address@example.com")

@@ -31,8 +31,8 @@ def non_standard_url_join(base, to_join):
 
 
 def add_params_to_url(url, params):
-    url_parts = list(urlparse(url))
-    query = dict(parse_qsl(url_parts[4]))
+    url_parts = urlparse(url)
+    query = dict(parse_qsl(url_parts.query))
     query.update(params)
-    url_parts[4] = urlencode(query)
+    url_parts = url_parts._replace(query=urlencode(query))
     return urlunparse(url_parts)

@@ -108,7 +108,7 @@ class AuthLoginView(BaseView):
 
     def get_post_register_url(self, request):
         base_url = auth.get_login_redirect(request)
-        params = {"marketing_events": json.dumps({"event_name": "Sign Up"})}
+        params = {"frontend_events": json.dumps({"event_name": "Sign Up"})}
         return add_params_to_url(base_url, params)
 
     def respond_login(self, request, context, **kwargs):
