@@ -227,7 +227,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "esbuild": "yarn esbuild static/app/index.tsx --bundle --outfile=out.js --tsconfig=config/tsconfig.build.json --loader:.svg=text --define:process.env.NODE_ENV=development --loader:.png=file ",
+    "build-new": "yarn esbuild static/app/index.tsx --bundle --outfile=out.js --loader:.svg=text --define:process.env.NODE_ENV=development --loader:.mp4=file --loader:.jpg=file --loader:.pegjs=text --loader:.png=file",
     "test-wrap": "node scripts/test.js",
     "test": "yarn test-wrap --watch",
     "test-ci": "yarn test-wrap --ci --coverage --runInBand",
@@ -253,6 +253,10 @@
     "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net && mkcert -install"
+  },
+  "browser": {
+    "crypto": "crypto-browserify",
+    "stream": false
   },
   "browserslist": {
     "production": [
