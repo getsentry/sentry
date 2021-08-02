@@ -50,7 +50,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
         code_owners = cache.get(cache_key)
         if code_owners is None:
             query = self.objects.filter(project_id=project_id).order_by("-date_added") or False
-            code_owners = self.merge_code_owners_list(codeowners_list=query) if query else query
+            code_owners = self.merge_code_owners_list(code_owners_list=query) if query else query
             cache.set(cache_key, code_owners, READ_CACHE_DURATION)
 
         return code_owners or None
