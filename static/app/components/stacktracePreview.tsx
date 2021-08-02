@@ -145,7 +145,7 @@ class StacktracePreview extends React.Component<Props, State> {
 
       return (
         <div onClick={this.handleStacktracePreviewClick}>
-          {!!organization.features?.includes('grouping-tree-ui') ? (
+          {!!organization.features?.includes('grouping-stacktrace-ui') ? (
             <StacktraceContentV2
               data={stacktrace}
               expandFirstFrame={false}
