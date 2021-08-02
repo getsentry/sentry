@@ -26,7 +26,6 @@ import {Hooks} from 'app/types/hooks';
  * This should be with all analytics events regardless of the analytics destination
  * which includes Reload, Amplitude, and Google Analytics.
  * All events go to Reload. If eventName is defined, events also go to Amplitude.
- * If the sendMarketing option is true, we also send to Google Analytics.
  * For more details, refer to the API defined in hooks.
  */
 export const trackAnalyticsEventV2: Hooks['analytics:track-event-v2'] = (data, options) =>

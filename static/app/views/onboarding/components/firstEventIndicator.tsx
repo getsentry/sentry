@@ -39,8 +39,7 @@ const FirstEventIndicator = ({children, ...props}: Props) => (
               trackAdvancedAnalyticsEvent(
                 'growth.onboarding_take_to_error',
                 {},
-                props.organization,
-                {sendMarketing: true}
+                props.organization
               )
             }
             to={`/organizations/${props.organization.slug}/issues/${
