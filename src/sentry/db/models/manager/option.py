@@ -1,6 +1,6 @@
 from typing import Any, Dict, Union
 
-from celery.signals import task_postrun  # type: ignore
+from celery.signals import task_postrun
 from django.core.signals import request_finished
 
 from sentry.db.models.manager import M
