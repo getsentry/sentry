@@ -1,5 +1,6 @@
 import logging
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
@@ -62,7 +63,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         try:
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
-        except ApiError as err:
+        except (ApiError, ObjectDoesNotExist) as err:
             logger.info("sync-failed", extra={"token": token, "error": str(err)})
             return self.respond(status=400)
         else:
