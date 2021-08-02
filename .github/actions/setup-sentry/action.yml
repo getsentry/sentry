@@ -111,9 +111,6 @@ runs:
         pip install -U -e ".[dev]"
         cd -
 
-        # pytest plugin used for better pytest failure annotations
-        pip install pytest-github-actions-annotate-failures
-
     - name: Start devservices
       shell: bash
       env:
