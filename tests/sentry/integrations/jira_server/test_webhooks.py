@@ -5,7 +5,13 @@ from exam import fixture
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
+from sentry.models import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    OrganizationIntegration,
+)
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
@@ -54,6 +60,35 @@ class JiraServerWebhookEndpointTest(APITestCase):
         path = reverse("sentry-extensions-jiraserver-issue-updated", args=[token])
         resp = self.client.post(path)
 
+        assert resp.status_code == 400
+
+    def test_post_missing_default_identity(self):
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        )
+        org_integration.update(default_auth_id=None)
+        org_integration.update(config={"sync_status_reverse": True})
+        payload = {
+            "changelog": {
+                "items": [
+                    {
+                        "from": "10101",
+                        "field": "status",
+                        "fromString": "In Progress",
+                        "to": "10102",
+                        "toString": "Done",
+                        "fieldtype": "jira",
+                        "fieldId": "status",
+                    }
+                ],
+                "id": 12345,
+            },
+            "issue": {"project": {"key": "APP", "id": "10000"}, "key": "APP-1"},
+        }
+        token = self.jwt_token
+        path = reverse("sentry-extensions-jiraserver-issue-updated", args=[token])
+        resp = self.client.post(path, data=payload)
         assert resp.status_code == 400
 
     def test_post_token_missing_id(self):
