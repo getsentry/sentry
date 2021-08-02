@@ -53,7 +53,7 @@ ALL_KILLSWITCH_OPTIONS = {
         },
     ),
     "store.load-shed-process-event-projects": KillswitchInfo(
-        description="Drop events in process_event.",
+        description="Skip event process_event and forward to save_event",
         fields={
             "project_id": "A project ID to filter events by.",
             "event_id": "An event ID as given in the event payload.",
@@ -61,11 +61,20 @@ ALL_KILLSWITCH_OPTIONS = {
         },
     ),
     "store.load-shed-symbolicate-event-projects": KillswitchInfo(
-        description="Drop events in symbolicate_event.",
+        description="Skip symbolicating events in symbolicate_event (event gets fwd to process_event)",
         fields={
             "project_id": "A project ID to filter events by.",
             "event_id": "An event ID as given in the event payload.",
             "platform": "The event platform as defined in the event payload's platform field.",
+            "symbolication_function": "process_minidump, process_applecrashreport, or process_payload",
+        },
+    ),
+    "store.load-shed-save-event-projects": KillswitchInfo(
+        description="Drop events in save_event",
+        fields={
+            "project_id": "A project ID to filter events by.",
+            "event_type": "transaction, csp, hpkp, expectct, expectstaple, transaction, default or null",
+            "platform": "The event platform as defined in the event payload's platform field, or 'none'",
         },
     ),
 }
