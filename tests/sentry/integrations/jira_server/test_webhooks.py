@@ -19,6 +19,9 @@ from .testutils import EXAMPLE_PRIVATE_KEY
 
 
 class JiraServerWebhookEndpointTest(APITestCase):
+    endpoint = "sentry-extensions-jiraserver-issue-updated"
+    method = "post"
+
     @fixture
     def integration(self):
         integration = Integration.objects.create(
@@ -86,10 +89,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
             },
             "issue": {"project": {"key": "APP", "id": "10000"}, "key": "APP-1"},
         }
-        token = self.jwt_token
-        path = reverse("sentry-extensions-jiraserver-issue-updated", args=[token])
-        resp = self.client.post(path, data=payload)
-        assert resp.status_code == 400
+        self.get_error_response(self.jwt_token, **payload, status_code=400)
 
     def test_post_token_missing_id(self):
         integration = self.integration
