@@ -278,8 +278,14 @@ class EmailAuthBackend(ModelBackend):
         if users:
             for user in users:
                 try:
-                    if user.password and user.check_password(password):
-                        return user
+                    if user.password:
+                        # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
+                        # password checking as a mechanism to drop old password hashers immediately and
+                        # then lazily sending out password reset emails.
+                        if user.is_password_expired:
+                            raise AuthUserPasswordExpired(user)
+                        if user.check_password(password):
+                            return user
                 except ValueError:
                     continue
         return None
