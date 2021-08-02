@@ -106,5 +106,5 @@ class VstsSubscriptionCheckTest(TestCase):
             "subscription"
         ]
         assert subscription["id"] == "subscription1"
-        assert not subscription.get("check", None)
-        assert not subscription.get("secret", None)
+        assert "check" not in subscription
+        assert "secret" not in subscription
