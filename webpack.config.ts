@@ -291,7 +291,7 @@ let appConfig: Configuration = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
-        type: 'asset',
+        type: 'asset/resource',
       },
     ],
     noParse: [
@@ -483,23 +483,25 @@ if (
   }
 
   appConfig.devServer = {
+    devMiddleware: {},
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
     },
     // Required for getsentry
-    disableHostCheck: true,
-    contentBase: './src/sentry/static/sentry',
+    // allowedHosts: true,
+    static: ['./src/sentry/static/sentry'],
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: true,
+    // @ts-expect-error
+    hot: 'only',
     // If below is false, will reload on errors
-    hotOnly: true,
+    //hotOnly: true, //the hotOnly option was removed, if you need hot only mode, use hot: 'only' value
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
-    stats: 'errors-only',
-    overlay: false,
-    watchOptions: {
-      ignored: ['node_modules'],
-    },
+    // stats: 'errors-only',
+    // overlay: false,
+    // watchOptions: {
+      // ignored: ['node_modules'],
+    // },
   };
 
   if (!IS_UI_DEV_ONLY) {
@@ -509,7 +511,12 @@ if (
 
     appConfig.devServer = {
       ...appConfig.devServer,
-      publicPath: '/_static/dist/sentry',
+    // @ts-expect-error
+      devMiddleware: {
+    // @ts-expect-error
+        ...appConfig.devServer.dev,
+        publicPath: '/_static/dist/sentry',
+        },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
         '/api/store/**': relayAddress,
@@ -544,7 +551,12 @@ if (IS_UI_DEV_ONLY) {
     ...appConfig.devServer,
     compress: true,
     https,
+    // @ts-expect-error
+    devMiddleware: {
+    // @ts-expect-error
+        ...appConfig.devServer.dev,
     publicPath: '/_assets/',
+      },
     proxy: [
       {
         context: ['/api/', '/avatar/', '/organization-avatar/'],

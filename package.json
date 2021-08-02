@@ -183,7 +183,7 @@
     "stylelint-processor-styled-components": "^1.10.0",
     "typescript-styled-plugin": "^0.18.0",
     "url-loader": "^4.1.0",
-    "webpack-dev-server": "^3.11.2"
+    "webpack-dev-server": "4.0.0-rc.0"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
