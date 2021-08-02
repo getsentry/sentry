@@ -57,7 +57,6 @@ filter
   / has_filter
   / is_filter
   / text_in_filter
-  / partial_text_in_filter
   / text_filter
 
 // filter for dates
@@ -178,14 +177,6 @@ text_in_filter
       return tc.predicateFilter(FilterType.TextIn, key)
     } {
       return tc.tokenFilter(FilterType.TextIn, key, value, opDefault, !!negation);
-    }
-
-// partial in filter key:[val1, val2
-partial_text_in_filter
-  = negation:negation? key:text_key sep value:partial_text_in_list &{
-      return tc.predicateFilter(FilterType.PartialTextIn, key)
-    } {
-      return tc.tokenFilter(FilterType.PartialTextIn, key, value, opDefault, !!negation);
     }
 
 // standard key:val filter

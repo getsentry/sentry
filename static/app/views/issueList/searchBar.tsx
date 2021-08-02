@@ -107,10 +107,7 @@ class IssueListSearchBar extends React.Component<Props, State> {
       (parsedQuery?.filter(
         el => el.type === Token.Filter
       ) as TokenResult<Token.Filter>) ?? [];
-    if (
-      filters[0]?.filter === FilterType.PartialTextIn ||
-      filters[0]?.filter === FilterType.TextIn
-    ) {
+    if (filters[0]?.filter === FilterType.TextIn) {
       query = filters[0].value.items[filters[0].value.items.length - 1].value.text;
     }
     if (query.startsWith('[')) {

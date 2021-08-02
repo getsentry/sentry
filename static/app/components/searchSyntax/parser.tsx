@@ -80,7 +80,6 @@ export enum BooleanOperator {
 export enum FilterType {
   Text = 'text',
   TextIn = 'textIn',
-  PartialTextIn = 'partialTextIn',
   Date = 'date',
   SpecificDate = 'specificDate',
   RelativeDate = 'relativeDate',
@@ -142,12 +141,6 @@ export const filterTypeConfig = {
     canNegate: true,
   },
   [FilterType.TextIn]: {
-    validKeys: textKeys,
-    validOps: [],
-    validValues: [Token.ValueTextList],
-    canNegate: true,
-  },
-  [FilterType.PartialTextIn]: {
     validKeys: textKeys,
     validOps: [],
     validValues: [Token.ValueTextList],
