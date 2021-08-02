@@ -107,8 +107,8 @@ describe('Release Issues', function () {
 
     const filterOptions = wrapper.find('DropdownControl StyledDropdownItem');
 
-    expect(filterOptions).toHaveLength(4);
-    expect(filterOptions.at(2).text()).toEqual('Unhandled Issues');
+    expect(filterOptions).toHaveLength(5);
+    expect(filterOptions.at(2).text()).toEqual('Unhandled');
 
     filterIssues(wrapper, 'new');
     expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
