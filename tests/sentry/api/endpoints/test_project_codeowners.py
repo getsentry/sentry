@@ -315,3 +315,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["missing_external_users"] == []
         assert set(errors["missing_user_emails"]) == {self.user2.email}
         assert errors["teams_without_access"] == []
+
+    def test_multiple_codeowners_for_project(self):
+        code_mapping_2 = self.create_code_mapping(stack_root="src/")
+        self.create_codeowners(code_mapping=code_mapping_2)
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201

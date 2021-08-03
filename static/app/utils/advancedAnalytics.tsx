@@ -8,6 +8,10 @@ import {
   IntegrationEventParameters,
 } from 'app/utils/integrationEvents';
 import {issueEventMap, IssueEventParameters} from 'app/utils/issueEvents';
+import {
+  performanceEventMap,
+  PerformanceEventParameters,
+} from 'app/utils/performanceEvents';
 
 const ANALYTICS_SESSION = 'ANALYTICS_SESSION';
 
@@ -28,9 +32,15 @@ const hasAnalyticsDebug = () => window.localStorage.getItem('DEBUG_ANALYTICS') =
 
 export type EventParameters = IntegrationEventParameters &
   GrowthEventParameters &
-  IssueEventParameters;
+  IssueEventParameters &
+  PerformanceEventParameters;
 
-const allEventMap = {...integrationEventMap, ...growthEventMap, ...issueEventMap};
+const allEventMap = {
+  ...integrationEventMap,
+  ...growthEventMap,
+  ...issueEventMap,
+  ...performanceEventMap,
+};
 
 type AnalyticsKey = keyof EventParameters;
 

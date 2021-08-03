@@ -224,7 +224,7 @@ class PerformanceContent extends Component<Props, State> {
           <GlobalSdkUpdateAlert />
           {this.renderError()}
           {showOnboarding ? (
-            <Onboarding organization={organization} />
+            <Onboarding organization={organization} project={projects[0]} />
           ) : (
             <LandingContent
               eventView={eventView}

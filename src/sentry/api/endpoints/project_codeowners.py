@@ -154,7 +154,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         expand = request.GET.getlist("expand", [])
         expand.append("errors")
 
-        codeowners = list(ProjectCodeOwners.objects.filter(project=project))
+        codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
 
         return Response(
             serialize(
