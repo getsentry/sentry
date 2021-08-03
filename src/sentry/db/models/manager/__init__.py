@@ -5,7 +5,7 @@ from django.utils.encoding import smart_text
 
 from sentry.utils.hashlib import md5_text
 
-__all__ = ("BaseManager", "OptionManager", "Value", "ValidateFunction")
+__all__ = ("BaseManager", "BaseQuerySet", "OptionManager", "Value", "ValidateFunction")
 
 M = TypeVar("M", bound=Model)
 Value = Any
@@ -38,4 +38,5 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Union[Model, int, str
 
 # Exporting these classes at the bottom to avoid circular dependencies.
 from .base import BaseManager
+from .base_query_set import BaseQuerySet
 from .option import OptionManager
