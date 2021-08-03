@@ -1,5 +1,5 @@
 ---
-created: '2021-08-03T15:05:50.993170Z'
+created: '2021-08-03T17:17:26.272448Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -20,7 +20,7 @@ UnsatisfiedLinkError:dalvik.system.PathClassLoader[DexPathList[[zip file "/syste
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -52,7 +52,7 @@ ProcessInitException:_ (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -82,7 +82,7 @@ RuntimeException:Cannot load WebView (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -110,7 +110,7 @@ InvocationTargetException:_ (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -136,7 +136,7 @@ AndroidRuntimeException:java.lang.reflect.InvocationTargetException (thread_id:_
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals

@@ -1,5 +1,5 @@
 ---
-created: '2021-08-03T15:05:52.039555Z'
+created: '2021-08-03T17:17:27.405665Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -102,7 +102,7 @@ ApplicationNotResponding:Application Not Responding for at least 5000 ms. (threa
   androidx.appcompat.app.AppCompatDelegateIm  createView category=internals
   androidx.appcompat.app.AppCompatViewInflat  createView category=internals
   androidx.appcompat.app.AppCompatViewInflat  createImageView category=internals
-  androidx.appcompat.widget.AppCompatImageVi  <init> category=ui
+  androidx.appcompat.widget.AppCompatImageVi  <init> category=internals
   androidx.appcompat.widget.AppCompatImageVi  <init> category=internals
         androidx.appcompat.widget.ThemeUtils  checkAppCompatTheme category=internals
                      android.content.Context  obtainStyledAttributes category=std
