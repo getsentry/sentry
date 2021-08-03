@@ -646,6 +646,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -683,6 +684,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -718,6 +720,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED

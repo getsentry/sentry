@@ -1336,7 +1336,17 @@ def with_default(default, argument):
     return argument
 
 
+# TODO(snql-migration): Remove these Arg classes in favour for their
+# non SnQL specific types
 class SnQLStringArg(StringArg):
+    def normalize(self, value: str, params: ParamsType) -> str:
+        value = super().normalize(value, params)
+        # SnQL interprets string types as string, so strip the
+        # quotes added in StringArg.normalize.
+        return value[1:-1]
+
+
+class SnQLDateArg(DateArg):
     def normalize(self, value: str, params: ParamsType) -> str:
         value = super().normalize(value, params)
         # SnQL interprets string types as string, so strip the
@@ -2384,6 +2394,86 @@ class QueryFields(QueryBase):
                     ),
                 ),
                 SnQLFunction(
+                    "percentile_range",
+                    required_args=[
+                        NumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        ConditionArg("condition"),
+                        SnQLDateArg("middle"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        f"quantileIf({args['percentile']:.2f})",
+                        [
+                            args["column"],
+                            # This condition is written in this seemingly backwards way because of limitations
+                            # in the json query syntax.
+                            # TODO(snql-migration): Once the trends endpoint is using snql, we should update it
+                            # and flip these conditions back
+                            Function(args["condition"], [args["middle"], self.column("timestamp")]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "avg_range",
+                    required_args=[
+                        NumericColumn("column"),
+                        ConditionArg("condition"),
+                        SnQLDateArg("middle"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            args["column"],
+                            # see `percentile_range` for why this condition feels backwards
+                            Function(
+                                args["condition"],
+                                [args["middle"], self.column("timestamp")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "variance_range",
+                    required_args=[
+                        NumericColumn("column"),
+                        ConditionArg("condition"),
+                        SnQLDateArg("middle"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "varSampIf",
+                        [
+                            args["column"],
+                            # see `percentile_range` for why this condition feels backwards
+                            Function(
+                                args["condition"],
+                                [args["middle"], self.column("timestamp")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "count_range",
+                    required_args=[ConditionArg("condition"), SnQLDateArg("middle")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            # see `percentile_range` for why this condition feels backwards
+                            Function(
+                                args["condition"],
+                                [args["middle"], self.column("timestamp")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
                         "divide", [Function("count", []), args["interval"]], alias
@@ -2414,19 +2504,10 @@ class QueryFields(QueryBase):
                 SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "percentile_range", snql_aggregate=self._resolve_unimplemented_function
-                ),
-                SnQLFunction("avg_range", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("variance_range", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_range", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
-                ),
+                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(

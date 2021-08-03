@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import {Severity} from '@sentry/react';
-import jQuery from 'jquery';
 import Cookies from 'js-cookie';
 import isUndefined from 'lodash/isUndefined';
+import * as qs from 'query-string';
 
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import {EXPERIMENTAL_SPA} from 'app/constants';
@@ -118,7 +118,7 @@ export const initApiClientErrorHandling = () =>
 function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['query']) {
   let params: string;
   try {
-    params = jQuery.param(query ?? [], true);
+    params = qs.stringify(query ?? []);
   } catch (err) {
     run(Sentry =>
       Sentry.withScope(scope => {
@@ -328,7 +328,7 @@ export class Client {
     // object for GET requets. jQuery just sticks it onto the URL as query
     // parameters
     if (method === 'GET' && data) {
-      const queryString = typeof data === 'string' ? data : jQuery.param(data);
+      const queryString = typeof data === 'string' ? data : qs.stringify(data);
 
       if (queryString.length > 0) {
         fullUrl = fullUrl + (fullUrl.indexOf('?') !== -1 ? '&' : '?') + queryString;
