@@ -1228,8 +1228,7 @@ class QueryFilter(QueryFields):
         conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
         conditions.append(Condition(self.column("timestamp"), Op.LT, end))
 
-        # If we already have projects_to_filter, there's no need to add an additional project filter
-        if "project_id" in self.params and len(self.projects_to_filter) == 0:
+        if "project_id" in self.params:
             conditions.append(
                 Condition(
                     self.column("project_id"),

@@ -4,6 +4,7 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit
 from snuba_sdk.query import Query
 
+from sentry.search.events.fields import InvalidSearchQuery
 from sentry.search.events.filter import QueryFilter
 from sentry.search.events.types import ParamsType, SelectType
 from sentry.utils.snuba import Dataset
@@ -19,10 +20,13 @@ class QueryBuilder(QueryFilter):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
         limit: int = 50,
     ):
         super().__init__(dataset, params)
+
+        self.auto_aggregations = False
 
         self.limit = Limit(limit)
 
@@ -47,7 +51,21 @@ class QueryBuilder(QueryFilter):
         else:
             return []
 
+    def validate_having_clause(self):
+        error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
+        for condition in self.having:
+            lhs = condition.lhs
+            if lhs not in self.columns:
+                raise InvalidSearchQuery(
+                    "Aggregate {} used in a condition but is not a selected column{}.".format(
+                        lhs.alias,
+                        error_extra,
+                    )
+                )
+
     def get_snql_query(self) -> Query:
+        self.validate_having_clause()
+
         return Query(
             dataset=self.dataset.value,
             match=Entity(self.dataset.value),

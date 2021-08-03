@@ -204,6 +204,7 @@ def wip_snql_query(
         query=query,
         selected_columns=selected_columns,
         orderby=orderby,
+        auto_aggregations=auto_aggregations,
         use_aggregate_conditions=use_aggregate_conditions,
         limit=limit,
     )

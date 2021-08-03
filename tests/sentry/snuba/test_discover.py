@@ -2260,17 +2260,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=project3.id,
         )
 
-        result = discover.query(
-            selected_columns=["project", "message"],
-            query=f"project:{self.project.slug} OR project:{project2.slug}",
-            params={"project_id": [self.project.id, project2.id]},
-            orderby="message",
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "message"],
+                query=f"project:{self.project.slug} OR project:{project2.slug}",
+                params={
+                    "project_id": [self.project.id, project2.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="message",
+            )
 
-        data = result["data"]
-        assert len(data) == 2
-        assert data[0]["project"] == project2.slug
-        assert data[1]["project"] == self.project.slug
+            data = result["data"]
+            assert len(data) == 2, query_fn
+            assert data[0]["project"] == project2.slug, query_fn
+            assert data[1]["project"] == self.project.slug, query_fn
 
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
@@ -2291,19 +2296,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=project2.id,
         )
 
-        result = discover.query(
-            selected_columns=["release"],
-            query="(release:{} OR release:{}) AND project:{}".format(
-                "a" * 32, "b" * 32, self.project.slug
-            ),
-            params={"project_id": [self.project.id, project2.id]},
-            orderby="release",
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["release"],
+                query="(release:{} OR release:{}) AND project:{}".format(
+                    "a" * 32, "b" * 32, self.project.slug
+                ),
+                params={
+                    "project_id": [self.project.id, project2.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="release",
+            )
 
-        data = result["data"]
-        assert len(data) == 2
-        assert data[0]["release"] == "a" * 32
-        assert data[1]["release"] == "b" * 32
+            data = result["data"]
+            assert len(data) == 2, query_fn
+            assert data[0]["release"] == "a" * 32, query_fn
+            assert data[1]["release"] == "b" * 32, query_fn
 
     def test_conditions_with_special_columns(self):
         for val in ["a", "b", "c"]:
@@ -2314,31 +2324,40 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
             self.store_event(data=data, project_id=self.project.id)
 
-        result = discover.query(
-            selected_columns=["title", "message"],
-            query="event.type:transaction (title:{} OR message:{})".format("a" * 32, "b" * 32),
-            params={"project_id": [self.project.id]},
-            orderby="title",
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["title", "message"],
+                query="event.type:transaction (title:{} OR message:{})".format("a" * 32, "b" * 32),
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="title",
+            )
 
-        data = result["data"]
-        assert len(data) == 2
-        assert data[0]["title"] == "a" * 32
-        assert data[1]["title"] == "b" * 32
+            data = result["data"]
+            assert len(data) == 2, query_fn
+            assert data[0]["title"] == "a" * 32, query_fn
+            assert data[1]["title"] == "b" * 32, query_fn
 
-        result = discover.query(
-            selected_columns=["title", "sub_customer.is-Enterprise-42"],
-            query="event.type:transaction (title:{} AND sub_customer.is-Enterprise-42:{})".format(
-                "a" * 32, "a" * 32
-            ),
-            params={"project_id": [self.project.id]},
-            orderby="title",
-        )
+            result = query_fn(
+                selected_columns=["title", "sub_customer.is-Enterprise-42"],
+                query="event.type:transaction (title:{} AND sub_customer.is-Enterprise-42:{})".format(
+                    "a" * 32, "a" * 32
+                ),
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="title",
+            )
 
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["title"] == "a" * 32
-        assert data[0]["sub_customer.is-Enterprise-42"] == "a" * 32
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert data[0]["title"] == "a" * 32, query_fn
+            assert data[0]["sub_customer.is-Enterprise-42"] == "a" * 32, query_fn
 
     def test_conditions_with_aggregates(self):
         events = [("a", 2), ("b", 3), ("c", 4)]
@@ -2352,20 +2371,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
-        result = discover.query(
-            selected_columns=["trek", "count()"],
-            query="event.type:transaction (trek:{} OR trek:{}) AND count():>2".format(
-                "a" * 32, "b" * 32
-            ),
-            params={"project_id": [self.project.id]},
-            orderby="trek",
-            use_aggregate_conditions=True,
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["trek", "count()"],
+                query="event.type:transaction (trek:{} OR trek:{}) AND count():>2".format(
+                    "a" * 32, "b" * 32
+                ),
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="trek",
+                use_aggregate_conditions=True,
+            )
 
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["trek"] == "b" * 32
-        assert data[0]["count"] == 3
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert data[0]["trek"] == "b" * 32, query_fn
+            assert data[0]["count"] == 3, query_fn
 
     def test_conditions_with_nested_aggregates(self):
         events = [("a", 2), ("b", 3), ("c", 4)]
@@ -2373,37 +2397,47 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction")
-                data["timestamp"] = iso_format(before_now(seconds=1))
+                data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
                 data["message"] = val
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
-        result = discover.query(
-            selected_columns=["trek", "count()"],
-            query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
-                "b" * 32, "b" * 32
-            ),
-            params={"project_id": [self.project.id]},
-            orderby="trek",
-            use_aggregate_conditions=True,
-        )
-
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["trek"] == "b" * 32
-        assert data[0]["count"] == 3
-
-        with pytest.raises(InvalidSearchQuery):
-            discover.query(
-                selected_columns=["trek", "transaction"],
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["trek", "count()"],
                 query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
                     "b" * 32, "b" * 32
                 ),
-                params={"project_id": [self.project.id]},
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
                 orderby="trek",
                 use_aggregate_conditions=True,
             )
+
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert data[0]["trek"] == "b" * 32, query_fn
+            assert data[0]["count"] == 3, query_fn
+
+            with pytest.raises(InvalidSearchQuery) as err:
+                query_fn(
+                    selected_columns=["trek", "transaction"],
+                    query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
+                        "b" * 32, "b" * 32
+                    ),
+                    params={
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                    orderby="trek",
+                    use_aggregate_conditions=True,
+                )
+            assert "used in a condition but is not a selected column" in str(err)
 
     def test_conditions_with_timestamps(self):
         events = [("a", 1), ("b", 2), ("c", 3)]
@@ -2414,23 +2448,28 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data["transaction"] = f"{val}"
                 self.store_event(data=data, project_id=self.project.id)
 
-        results = discover.query(
-            selected_columns=["transaction", "count()"],
-            query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                iso_format(before_now(seconds=5)),
-                iso_format(before_now(seconds=3)),
-            ),
-            params={"project_id": [self.project.id]},
-            orderby="transaction",
-            use_aggregate_conditions=True,
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            results = query_fn(
+                selected_columns=["transaction", "count()"],
+                query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
+                    iso_format(before_now(seconds=5)),
+                    iso_format(before_now(seconds=3)),
+                ),
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="transaction",
+                use_aggregate_conditions=True,
+            )
 
-        data = results["data"]
-        assert len(data) == 2
-        assert data[0]["transaction"] == "a" * 32
-        assert data[0]["count"] == 1
-        assert data[1]["transaction"] == "c" * 32
-        assert data[1]["count"] == 3
+            data = results["data"]
+            assert len(data) == 2, query_fn
+            assert data[0]["transaction"] == "a" * 32, query_fn
+            assert data[0]["count"] == 1, query_fn
+            assert data[1]["transaction"] == "c" * 32, query_fn
+            assert data[1]["count"] == 3, query_fn
 
     def test_timestamp_rollup_filter(self):
         event_hour = self.event_time.replace(minute=0, second=0)
