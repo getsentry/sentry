@@ -1028,8 +1028,9 @@ class SmartSearchBar extends React.Component<Props, State> {
       // check if we are on the tag, value, or operator
       if (isWithinToken(cursorToken.value, cursor)) {
         const node = cursorToken.value;
-        let searchText = this.cursorValue?.text ?? node.text;
-        if (searchText === '[]') {
+        const cursorValue = this.cursorValue;
+        let searchText = cursorValue?.text ?? node.text;
+        if (searchText === '[]' || cursorValue === null) {
           searchText = '';
         }
 
@@ -1277,8 +1278,16 @@ class SmartSearchBar extends React.Component<Props, State> {
         const location = valueToken.location;
 
         if (cursorToken.filter === FilterType.TextIn) {
-          clauseStart = valueToken.location.start.offset;
-          clauseEnd = valueToken.location.end.offset;
+          // Current value can be null when adding a 2nd value
+          //             ▼ cursor
+          // key:[value1, ]
+          const currentValueNull = this.cursorValue === null;
+          clauseStart = currentValueNull
+            ? this.cursorPosition
+            : valueToken.location.start.offset;
+          clauseEnd = currentValueNull
+            ? this.cursorPosition
+            : valueToken.location.end.offset;
         } else {
           // Include everything after the ':'
           const keyLocation = cursorToken.key.location;
