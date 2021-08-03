@@ -2472,7 +2472,7 @@ class QueryFields(QueryBase):
                         alias,
                     ),
                     default_result_type="integer",
-                )
+                ),
                 SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
