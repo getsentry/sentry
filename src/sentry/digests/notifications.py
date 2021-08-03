@@ -117,8 +117,8 @@ class Pipeline:
         func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
         return reduce(func, self.operations, sequence)
 
-    def apply(self, function: Callable[[Any], Any]) -> "Pipeline":
-        def operation(sequence: Sequence[Any]) -> Any:
+    def apply(self, function: Callable[[MutableMapping[str, Any]], Any]) -> "Pipeline":
+        def operation(sequence: MutableMapping[str, Any]) -> Any:
             result = function(sequence)
             logger.debug("%r applied to %s items.", function, len(sequence))
             return result
