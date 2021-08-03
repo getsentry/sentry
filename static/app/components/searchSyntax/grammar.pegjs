@@ -218,7 +218,7 @@ aggregate_key
 
 function_args
   = arg1:aggregate_param
-    args:(spaces comma spaces aggregate_param)* {
+    args:(spaces comma spaces !comma aggregate_param?)* {
       return tc.tokenKeyAggregateArgs(arg1, args);
     }
 
@@ -277,7 +277,7 @@ boolean_value
 text_in_list
   = open_bracket
     item1:text_in_value
-    items:(spaces comma spaces text_in_value)*
+    items:(spaces comma spaces !comma text_in_value?)*
     closed_bracket
     &end_value {
       return tc.tokenValueTextList(item1, items);
@@ -286,7 +286,7 @@ text_in_list
 numeric_in_list
   = open_bracket
     item1:numeric_value
-    items:(spaces comma spaces numeric_value)*
+    items:(spaces comma spaces !comma numeric_value?)*
     closed_bracket
     &end_value {
       return tc.tokenValueNumberList(item1, items);
