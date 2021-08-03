@@ -80,7 +80,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 
         return self._build(
             title=build_attachment_title(group),
-            title_link=get_title_link(group, None, False, False, self.notification),
+            title_link=get_title_link(group, None, False, True, self.notification),
             text=self.notification.get_message_description(),
             footer=build_notification_footer(self.notification, self.recipient),
             color="info",

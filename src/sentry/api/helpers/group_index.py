@@ -961,14 +961,14 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
 
-                created = GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                assignment = GroupAssignee.objects.assign(group, resolved_actor, acting_user)
                 analytics.record(
                     "manual.issue_assignment",
                     organization_id=project_lookup[group.project_id].organization_id,
                     project_id=group.project_id,
                     group_id=group.id,
                     assigned_by=assigned_by,
-                    had_to_deassign=(not created),
+                    had_to_deassign=assignment["updated_assignment"],
                 )
             result["assignedTo"] = serialize(
                 assigned_actor.resolve(), acting_user, ActorSerializer()
