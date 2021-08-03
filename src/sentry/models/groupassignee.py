@@ -179,7 +179,7 @@ class GroupAssigneeManager(BaseManager):
             ):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
-        return created
+        return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
     def deassign(self, group, acting_user=None):
         from sentry import features

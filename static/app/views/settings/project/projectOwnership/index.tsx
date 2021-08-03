@@ -113,7 +113,7 @@ tags.sku_class:enterprise #enterprise`;
 
   handleCodeOwnerAdded = (data: CodeOwner) => {
     const {codeowners} = this.state;
-    const newCodeowners = (codeowners || []).concat(data);
+    const newCodeowners = [data, ...(codeowners || [])];
     this.setState({codeowners: newCodeowners});
   };
 
@@ -238,8 +238,6 @@ tags.sku_class:enterprise #enterprise`;
                   size="small"
                   priority="primary"
                   data-test-id="add-codeowner-button"
-                  // TODO(nisanthan): Remove disabled logic when implementing support for multiple CODEOWNERS
-                  disabled={codeowners && codeowners.length > 0}
                 >
                   {t('Add CODEOWNERS File')}
                 </CodeOwnerButton>
