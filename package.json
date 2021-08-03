@@ -124,7 +124,7 @@
     "react-sparklines": "1.7.0",
     "react-virtualized": "^9.22.3",
     "reflux": "0.4.1",
-    "regenerator-runtime": "^0.13.3",
+    "regenerator-runtime": "^0.13.9",
     "rrweb-player": "^0.4.6",
     "scroll-to-element": "^2.0.0",
     "sprintf-js": "1.0.3",
