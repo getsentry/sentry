@@ -1,14 +1,15 @@
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.incidents.models import IncidentActivity
-from sentry.utils.db import attach_foreignkey
 
 
 @register(IncidentActivity)
 class IncidentActivitySerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        attach_foreignkey(item_list, IncidentActivity.incident, related=("organization",))
-        attach_foreignkey(item_list, IncidentActivity.user)
+        prefetch_related_objects(item_list, "incident__organization")
+        prefetch_related_objects(item_list, "user")
         user_serializer = UserSerializer()
         serialized_users = serialize(
             {item.user for item in item_list if item.user_id},

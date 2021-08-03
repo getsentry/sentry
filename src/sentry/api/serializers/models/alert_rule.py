@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import (
@@ -13,7 +15,6 @@ from sentry.incidents.models import (
 from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.utils.compat import zip
-from sentry.utils.db import attach_foreignkey
 
 
 @register(AlertRule)
@@ -23,7 +24,7 @@ class AlertRuleSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         alert_rules = {item.id: item for item in item_list}
-        attach_foreignkey(item_list, AlertRule.snuba_query, related=("environment",))
+        prefetch_related_objects(item_list, "snuba_query__environment")
 
         result = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")

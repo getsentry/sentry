@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.models import (
@@ -11,7 +13,6 @@ from sentry.incidents.models import (
 )
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import apply_dataset_query_conditions
-from sentry.utils.db import attach_foreignkey
 
 
 @register(Incident)
@@ -20,7 +21,7 @@ class IncidentSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
-        attach_foreignkey(item_list, Incident.alert_rule, related=("snuba_query",))
+        prefetch_related_objects(item_list, "alert_rule__snuba_query")
         incident_projects = defaultdict(list)
         for incident_project in IncidentProject.objects.filter(
             incident__in=item_list

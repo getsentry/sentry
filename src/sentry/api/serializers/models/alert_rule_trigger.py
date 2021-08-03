@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.models import (
     AlertRuleTrigger,
@@ -7,13 +9,12 @@ from sentry.incidents.models import (
     AlertRuleTriggerExclusion,
 )
 from sentry.utils.compat import zip
-from sentry.utils.db import attach_foreignkey
 
 
 @register(AlertRuleTrigger)
 class AlertRuleTriggerSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        attach_foreignkey(item_list, AlertRuleTrigger.alert_rule)
+        prefetch_related_objects(item_list, "alert_rule")
 
         triggers = {item.id: item for item in item_list}
         result = defaultdict(dict)

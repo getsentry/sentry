@@ -7,7 +7,7 @@ from typing import Iterable, Mapping, Optional, Tuple
 import pytz
 import sentry_sdk
 from django.conf import settings
-from django.db.models import Min
+from django.db.models import Min, prefetch_related_objects
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
@@ -57,7 +57,6 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
-from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, aliased_query, raw_query
 
@@ -225,7 +224,7 @@ class GroupSerializerBase(Serializer):
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
         # making unnecessary queries.
-        attach_foreignkey(item_list, Group.project, related=("organization",))
+        prefetch_related_objects(item_list, "project__organization")
 
         if user.is_authenticated and item_list:
             bookmarks = set(
