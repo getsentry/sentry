@@ -4,7 +4,7 @@ import {GlobalSelection} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 
-import {DashboardDetails, WidgetQuery} from './types';
+import {DashboardDetails, DisplayType, WidgetQuery} from './types';
 
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
@@ -13,16 +13,23 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
-  selection: GlobalSelection
+  selection: GlobalSelection,
+  widgetType?: DisplayType
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
   const {projects, environments} = selection;
+
+  // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
+  const fields =
+    widgetType === DisplayType.WORLD_MAP
+      ? ['geo.country_code', ...query.fields]
+      : query.fields;
 
   return EventView.fromSavedQuery({
     id: undefined,
     name: title,
     version: 2,
-    fields: query.fields,
+    fields,
     query: query.conditions,
     orderby: query.orderby,
     projects,
