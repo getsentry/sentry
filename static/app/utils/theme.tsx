@@ -255,6 +255,11 @@ const lightAliases = {
    * Count on button
    */
   buttonCount: colors.gray400,
+
+  /**
+   * Background of alert banners at the top
+   */
+  bannerBackground: colors.black,
 };
 
 const dataCategory = {
@@ -677,6 +682,7 @@ const darkAliases = {
 
   buttonCountActive: colors.gray100,
   buttonCount: colors.gray400,
+  bannerBackground: colors.purple100,
 };
 
 export const lightTheme = {
