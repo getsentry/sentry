@@ -294,7 +294,6 @@ const InList = styled('span')`
     font-weight: bold;
     color: ${p => p.theme.purple300};
   }
-
   &:after {
     content: ']';
     font-weight: bold;
