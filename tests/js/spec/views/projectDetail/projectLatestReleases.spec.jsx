@@ -51,7 +51,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(wrapper.find('SectionHeading').text()).toBe('Latest Releases');
 
     expect(wrapper.find('Version').length).toBe(2);
-    expect(wrapper.find('DateTime').at(0).text()).toBe('Mar 23, 2020 12:00 AM');
+    expect(wrapper.find('DateTime').at(0).text()).toBe('Mar 23, 2020 1:02 AM');
     expect(wrapper.find('Version').at(1).text()).toBe('1.0.1');
   });
 
