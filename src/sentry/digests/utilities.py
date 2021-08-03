@@ -1,7 +1,6 @@
 from collections import Counter, OrderedDict, defaultdict
 
 from sentry.models import ActorTuple, OrganizationMemberTeam, ProjectOwnership, Team, User
-from sentry.notifications.types import ActionTargetType
 
 
 # TODO(tkaemming): This should probably just be part of `build_digest`.
@@ -22,13 +21,6 @@ def get_digest_metadata(digest):
                     end = record.datetime
 
     return start, end, counts
-
-
-def should_get_personalized_digests(target_type: ActionTargetType, project_id: int) -> bool:
-    return (
-        target_type == ActionTargetType.ISSUE_OWNERS
-        and ProjectOwnership.objects.filter(project_id=project_id).exists()
-    )
 
 
 def get_personalized_digests(target_type, project_id, digest, user_ids):

@@ -1,5 +1,4 @@
 from collections import namedtuple
-from typing import Any, Mapping
 
 from django.conf import settings
 
@@ -24,8 +23,6 @@ class Record(namedtuple("Record", "key value timestamp")):
 ScheduleEntry = namedtuple("ScheduleEntry", "key timestamp")
 
 OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
-
-Digest = Mapping[str, Mapping[str, Any]]
 
 
 def get_option_key(plugin, option):
