@@ -2318,7 +2318,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_conditions_with_special_columns(self):
         for val in ["a", "b", "c"]:
             data = load_data("transaction")
-            data["timestamp"] = iso_format(before_now(seconds=1))
+            data["timestamp"] = iso_format(self.one_min_ago)
             data["transaction"] = val * 32
             data["message"] = val * 32
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
