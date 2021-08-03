@@ -85,3 +85,26 @@ class VstsSubscriptionCheckTest(TestCase):
         ]
         self.assert_subscription(subscription3, "subscription3")
         assert integration3_check_time == subscription3["check"]
+
+    @responses.activate
+    def test_kickoff_subscription_no_default_identity(self):
+        integration = Integration.objects.create(
+            provider="vsts",
+            name="vsts1",
+            external_id="vsts1",
+            metadata={
+                "domain_name": "https://vsts1.visualstudio.com/",
+                "subscription": {"id": "subscription1"},
+            },
+        )
+        integration.add_organization(self.organization, default_auth_id=None)
+
+        with self.tasks():
+            kickoff_vsts_subscription_check()
+
+        subscription = Integration.objects.get(provider="vsts", external_id="vsts1").metadata[
+            "subscription"
+        ]
+        assert subscription["id"] == "subscription1"
+        assert "check" not in subscription
+        assert "secret" not in subscription

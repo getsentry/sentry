@@ -50,7 +50,6 @@ type GroupingLevel = {
 function LinkFooter() {
   return (
     <Footer>
-      {/* TODO(markus): Add docs btn here */}
       <ExternalLink
         href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
           'Grouping Feedback'

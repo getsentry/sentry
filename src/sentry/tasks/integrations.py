@@ -2,6 +2,8 @@ import logging
 from datetime import timedelta
 from time import time
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from sentry import analytics, features
 from sentry.models import (
     Activity,
@@ -331,7 +333,10 @@ def kickoff_vsts_subscription_check():
 def vsts_subscription_check(integration_id, organization_id, **kwargs):
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
-    client = installation.get_client()
+    try:
+        client = installation.get_client()
+    except ObjectDoesNotExist:
+        return
 
     try:
         subscription_id = integration.metadata["subscription"]["id"]
