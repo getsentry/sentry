@@ -261,7 +261,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-      - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
