@@ -46,8 +46,7 @@ class DemoStartView(BaseView):
         logger.info("post.start", extra={"cookie_member_id": member_id})
         sentry_sdk.set_tag("member_id", member_id)
 
-        # TODO: remove snake case
-        skip_buffer_input = request.POST.get("skipBuffer") or request.POST.get("skip_buffer")
+        skip_buffer_input = request.POST.get("skipBuffer")
         skip_buffer = skip_buffer_input == "1"
         sentry_sdk.set_tag("skip_buffer", skip_buffer)
 
@@ -100,9 +99,7 @@ class DemoStartView(BaseView):
         # 0 means don't show the footer to accept cookies (user already declined)
         # no value means we show the footer to accept cookies (user has neither accepted nor declined)
         # TODO: remove snake case
-        accepted_tracking = request.POST.get("acceptedTracking") or request.POST.get(
-            ACCEPTED_TRACKING_COOKIE
-        )
+        accepted_tracking = request.POST.get("acceptedTracking")
         if accepted_tracking in ["0", "1"]:
             resp.set_cookie(ACCEPTED_TRACKING_COOKIE, accepted_tracking)
 
