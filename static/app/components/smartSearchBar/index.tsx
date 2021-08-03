@@ -659,50 +659,16 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Get the active filter or free text actively focused.
    */
   get cursorToken() {
-    const {parsedQuery} = this.state;
-
-    if (parsedQuery === null) {
-      return null;
-    }
-
-    const matchedTokens = [Token.Filter, Token.FreeText];
-    const cursor = this.cursorPosition;
-
-    return treeResultLocator<TokenResult<Token.Filter | Token.FreeText> | null>({
-      tree: parsedQuery,
-      noResultValue: null,
-      visitorTest: ({token, returnResult, skipToken}) =>
-        !matchedTokens.includes(token.type)
-          ? null
-          : isWithinToken(token, cursor)
-          ? returnResult(token)
-          : skipToken,
-    });
+    const matchedTokens = [Token.Filter, Token.FreeText] as const;
+    return this.findTokensAtCursor(matchedTokens);
   }
 
   /**
    * Get the active parsed text value
    */
   get cursorValue() {
-    const {parsedQuery} = this.state;
-
-    if (parsedQuery === null) {
-      return null;
-    }
-
-    const matchedTokens = [Token.ValueText];
-    const cursor = this.cursorPosition;
-
-    return treeResultLocator<TokenResult<Token.ValueText> | null>({
-      tree: parsedQuery,
-      noResultValue: null,
-      visitorTest: ({token, returnResult, skipToken}) =>
-        !matchedTokens.includes(token.type)
-          ? null
-          : isWithinToken(token, cursor)
-          ? returnResult(token)
-          : skipToken,
-    });
+    const matchedTokens = [Token.ValueText] as const;
+    return this.findTokensAtCursor(matchedTokens);
   }
 
   /**
@@ -720,6 +686,31 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     return this.searchInput.current.selectionStart ?? -1;
+  }
+
+  /**
+   * Finds tokens that exist at the current cursor position
+   * @param matchedTokens acceptable list of tokens
+   */
+  findTokensAtCursor<T extends readonly Token[]>(matchedTokens: T) {
+    const {parsedQuery} = this.state;
+
+    if (parsedQuery === null) {
+      return null;
+    }
+
+    const cursor = this.cursorPosition;
+
+    return treeResultLocator<TokenResult<T[number]> | null>({
+      tree: parsedQuery,
+      noResultValue: null,
+      visitorTest: ({token, returnResult, skipToken}) =>
+        !matchedTokens.includes(token.type)
+          ? null
+          : isWithinToken(token, cursor)
+          ? returnResult(token)
+          : skipToken,
+    });
   }
 
   /**
