@@ -85,7 +85,9 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install pnpm
-        run: volta install pnpm # volta causes recommended install methods to not work
+        run: |
+          volta install node
+          volta install pnpm # volta causes recommended install methods to not work
 
       - name: pnpm Build
         run: pnpm install
