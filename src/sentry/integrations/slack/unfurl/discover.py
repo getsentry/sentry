@@ -46,7 +46,11 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         query_id = params.get("id", None)
 
         user_id = params.get("user", None)
-        user = User.objects.get(id=user_id) if user_id else None
+        user = (
+            User.objects.get(id=user_id, sentry_orgmember_set__organization=org)
+            if user_id
+            else None
+        )
 
         saved_query = {}
         if query_id:
@@ -79,10 +83,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
 
         params.setlist(
-            "project",
-            params.getlist("project") or to_list(saved_query.get("project"))
-            if saved_query.get("project")
-            else [],
+            "project", params.getlist("project") or to_list(saved_query.get("project") or [])
         )
 
         # Only override if key doesn't exist since we want to account for
