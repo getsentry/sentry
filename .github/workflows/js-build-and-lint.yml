@@ -85,7 +85,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install pnpm
-        run: npm install -g pnpm # curl method doesn't work :|
+        run: volta install pnpm # volta causes recommended install methods to not work
 
       - name: pnpm Build
         run: pnpm install
