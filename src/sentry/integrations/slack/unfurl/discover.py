@@ -11,7 +11,7 @@ from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.utils import logger
 from sentry.models import ApiKey
-from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.search.events.filter import to_list
 
 from . import Handler, UnfurlableUrl, UnfurledUrl
@@ -44,13 +44,26 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
 
         params = link.args["query"]
         query_id = params.get("id", None)
-        user_id = params.get("user", None)
+        projects = []
 
-        projects = list(
-            Project.objects.filter(
-                organization=org, teams__organizationmember__user_id=user_id
-            ).values_list("id", flat=True)
-        )
+        user_id = params.get("user", None)
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                response = client.get(
+                    auth=ApiKey(organization=org, scope_list=["org:read"]),
+                    user=user,
+                    path=f"/organizations/{org_slug}/projects/",
+                    params={"query": "is_member:1"},
+                )
+            except Exception as exc:
+                logger.error(
+                    "Failed to load projects for user: %s",
+                    str(exc),
+                    exc_info=True,
+                )
+            else:
+                projects = [project["id"] for project in response.data]
 
         saved_query = {}
         if query_id:
