@@ -1293,7 +1293,13 @@ class SmartSearchBar extends React.Component<Props, State> {
           const keyLocation = cursorToken.key.location;
           clauseStart = keyLocation.end.offset + 1;
           clauseEnd = location.end.offset + 1;
-          replaceToken += ' ';
+          // handle using autocomplete with key:[]
+          if (valueToken.text === '[]') {
+            clauseStart += 1;
+            clauseEnd -= 2;
+          } else {
+            replaceToken += ' ';
+          }
         }
       } else if (isWithinToken(cursorToken.key, cursor)) {
         const location = cursorToken.key.location;
