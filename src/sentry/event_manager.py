@@ -277,7 +277,15 @@ class EventManager:
         return self._data
 
     @metrics.wraps("event_manager.save")
-    def save(self, project_id, raw=False, assume_normalized=False, start_time=None, cache_key=None):
+    def save(
+        self,
+        project_id,
+        raw=False,
+        assume_normalized=False,
+        start_time=None,
+        cache_key=None,
+        skip_send_first_transaction=False,
+    ):
         """
         After normalizing and processing an event, save adjacent models such as
         releases and environments to postgres and write the event into
@@ -312,7 +320,7 @@ class EventManager:
             job = {"data": self._data, "start_time": start_time}
             jobs = save_transaction_events([job], projects)
 
-            if not project.flags.has_transactions:
+            if not project.flags.has_transactions and not skip_send_first_transaction:
                 first_transaction_received.send_robust(
                     project=project, event=jobs[0]["event"], sender=Project
                 )
