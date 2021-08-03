@@ -283,15 +283,6 @@ text_in_list
       return tc.tokenValueTextList(item1, items);
     }
 
-partial_text_in_list
-  = open_bracket
-    item1:text_in_value
-    items:(spaces comma spaces text_in_value)*
-    end_items:(spaces comma spaces search_value)*
-    &end_value {
-      return tc.partialTokenValueTextList(item1, items, end_items);
-    }
-
 numeric_in_list
   = open_bracket
     item1:numeric_value
