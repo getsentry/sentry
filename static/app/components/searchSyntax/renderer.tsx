@@ -288,20 +288,18 @@ const ListComma = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const InList = styled('span')<{hasClosing: boolean}>`
+const InList = styled('span')`
   &:before {
     content: '[';
     font-weight: bold;
     color: ${p => p.theme.purple300};
   }
 
-  ${p =>
-    p.hasClosing &&
-    `&:after {
+  &:after {
     content: ']';
     font-weight: bold;
-    color: ${p.theme.purple300};
-  }`}
+    color: ${p => p.theme.purple300};
+  }
 
   ${Value} {
     color: ${p => p.theme.purple300};
