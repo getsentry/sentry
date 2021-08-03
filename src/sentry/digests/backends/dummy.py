@@ -28,9 +28,9 @@ class DummyBackend(Backend):
 
     def schedule(
         self, deadline: float, timestamp: Optional[float] = None
-    ) -> Iterable["ScheduleEntry"]:
-        return []
-        # yield  # TODO(mgaeta): make this a generator
+    ) -> Optional[Iterable["ScheduleEntry"]]:
+        return None
+        # yield  # TODO(mgaeta): Make this a generator and fix return type.
 
     def maintenance(self, deadline: float, timestamp: Optional[float] = None) -> None:
         pass

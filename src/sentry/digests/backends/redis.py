@@ -151,7 +151,7 @@ class RedisBackend(Backend):
 
     def schedule(
         self, deadline: float, timestamp: Optional[float] = None
-    ) -> Iterable[ScheduleEntry]:
+    ) -> Optional[Iterable[ScheduleEntry]]:
         if timestamp is None:
             timestamp = time.time()
 
