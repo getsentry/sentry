@@ -799,6 +799,11 @@ function ReleaseComparisonChart({
     );
   }
 
+  const titleChartDiff =
+    chart.diff !== '0%' && chart.thisRelease !== '0%'
+      ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
+      : null;
+
   return (
     <Fragment>
       <ChartPanel>
@@ -816,7 +821,7 @@ function ReleaseComparisonChart({
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)}
+              diff={titleChartDiff}
             />
           ) : (
             <ReleaseSessionsChart
@@ -831,7 +836,7 @@ function ReleaseComparisonChart({
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)}
+              diff={titleChartDiff}
               loading={loading}
               reloading={reloading}
             />
