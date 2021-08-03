@@ -122,8 +122,11 @@ const PillValue = styled(PillName)`
   border-radius: ${p =>
     `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
   max-width: 100%;
-  display: flex;
   align-items: center;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  display: inline-block;
 
   > a {
     max-width: 100%;
