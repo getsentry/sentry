@@ -951,6 +951,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboards manager.
     "organizations:dashboards-manage": False,
+    # Enable navigation features between Discover and Dashboards
+    "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
