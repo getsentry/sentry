@@ -101,6 +101,7 @@ module:dalvik.system.* category=system
 module:com.android.* category=system
 family:native package:libdispatch.dylib category=system
 family:native package:WebKit category=system
+family:native package:**/libart.so category=system
 package:/apex/com.android.*/lib*/** category=system
 
 # (Presumably) preinstalled stuff on Lenovo Android devices
@@ -136,7 +137,7 @@ module:com.google.android.material.* category=ui
 category:ui function:handleMessage category=indirection
 category:ui function:run category=indirection
 
-family:native package:**/libart.so category=gc
+family:native function:art::jit::* category=runtime
 
 family:native package:/system/lib/libmedia.so category=av
 family:native package:/System/lib/libaudioclient.so category=av
@@ -165,7 +166,6 @@ family:native function:_pthread_wqthread category=threadbase
 family:native function:boost::*::thread_proxy category=threadbase
 family:native package:/usr/lib/system/libsystem_pthread.dylib function:"<unknown>" category=threadbase
 module:android.os.AsyncTask* function:call category=threadbase
-module:java.lang.Thread category=threadbase
 family:native package:UIKit function:UIApplicationMain category=threadbase
 module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=threadbase
 module:android.os.* function:call category=threadbase
@@ -274,7 +274,7 @@ category:malloc +prefix
 category:lock +sentinel +prefix
 category:load +sentinel +prefix
 category:gl +sentinel
-category:gc +sentinel
+category:runtime +sentinel
 category:ui +sentinel +prefix
 
 # Ignore driver frame if it is directly calling another driver frame. This
@@ -328,8 +328,19 @@ family:native category:system function:_* !function:_purecall category=internals
 family:native category:system function:"<unknown>" category=internals
 family:native function:_INTERNAL* category=internals
 
-# Seen in iOS
-path:"<compiler-generated>" category=internals
+
+# We should be able to write this, but unfortunately sentry-cocoa 6.x is so
+# buggy with detecting compiler-generated code that we have decided to go with a
+# list of function name patterns instead:
+# path:"<compiler-generated>" category=internals
+
+family:native function:closure category=internals
+family:native function:Collection.map<T> category=internals
+family:native function:Array.subscript.getter category=internals
+family:native function:Array._getElement category=internals
+family:native function:_ArrayBuffer._nativeTypeChecked.getter category=internals
+family:native function:range category=internals
+family:native function:@callee_guaranteed category=internals
 
 # frames with .cold.1 are probably hotpaths vs slow paths but not relevant for grouping
 # e.g., two callstacks that should group together:
@@ -351,6 +362,8 @@ family:native function:*.cold.1 category=indirection
 [ category:load ]       | category:system  category=internals
 [ category:load ]       | category:load    category=internals
 [ category:throw ]      | category:system  category=internals
-[ category:gc ]         | category:system  category=internals
-[ category:gc ]         | category:gc      category=internals
+[ category:runtime ]    | category:system  category=internals
+[ category:runtime ]    | category:runtime category=internals
 [ category:dtor ]       | category:dtor    category=internals
+[ category:threadbase ] | category:system  category=internals
+[ category:threadbase ] | category:std     category=internals

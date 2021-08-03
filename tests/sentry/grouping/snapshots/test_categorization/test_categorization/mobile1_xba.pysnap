@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:41.433569Z'
+created: '2021-08-03T15:05:55.399058Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,7 +11,7 @@ NoSuchMethodException:callDrawGLFunction [long] (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -43,7 +43,7 @@ RuntimeException:Invalid reflection (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -73,7 +73,7 @@ AndroidRuntimeException:java.lang.RuntimeException: Invalid reflection (thread_i
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code

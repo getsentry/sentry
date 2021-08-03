@@ -238,7 +238,7 @@ def track_enhancers_coverage():
                     frame.pop("data", None)
 
                 modified |= _strip_sensitive_keys(
-                    frame, ["package", "filename", "function", "abs_path", "module"]
+                    frame, ["package", "filename", "function", "raw_function", "abs_path", "module"]
                 )
 
                 if not category:
