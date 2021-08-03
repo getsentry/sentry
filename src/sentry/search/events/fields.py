@@ -26,6 +26,7 @@ from sentry.search.events.constants import (
     DURATION_PATTERN,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    FUNCTION_ALIASES,
     FUNCTION_PATTERN,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
@@ -2132,10 +2133,6 @@ FUNCTIONS = {
 
 
 # In Performance TPM is used as an alias to EPM
-FUNCTION_ALIASES = {
-    "tpm": "epm",
-    "tps": "eps",
-}
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
@@ -2386,9 +2383,25 @@ class QueryFields(QueryBase):
                         alias,
                     ),
                 ),
+                SnQLFunction(
+                    "eps",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide", [Function("count", []), args["interval"]], alias
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "epm",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide",
+                        [Function("count", []), Function("divide", [args["interval"], 60])],
+                        alias,
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
                 # TODO: implement these
-                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
@@ -2421,6 +2434,8 @@ class QueryFields(QueryBase):
                 ),
             ]
         }
+        for alias, name in FUNCTION_ALIASES.items():
+            self.function_converter[alias] = self.function_converter[name].alias_as(alias)
 
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
         """Given a public list of discover fields, construct the corresponding
