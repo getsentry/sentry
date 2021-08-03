@@ -72,9 +72,8 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         # Override params from Discover Saved Query if they aren't in the URL
         params.setlist(
             "order",
-            params.getlist("sort") or to_list(saved_query.get("orderby"))
-            if saved_query.get("orderby")
-            else [],
+            params.getlist("sort")
+            or (to_list(saved_query.get("orderby")) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
         params.setlist(
@@ -83,7 +82,9 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
 
         params.setlist(
-            "project", params.getlist("project") or to_list(saved_query.get("project") or [])
+            "project",
+            params.getlist("project")
+            or (to_list(saved_query.get("project")) if saved_query.get("project") else []),
         )
 
         # Only override if key doesn't exist since we want to account for
