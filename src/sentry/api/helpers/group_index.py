@@ -962,7 +962,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                     Activity.get_activities_for_group(group=group_list[0], num=100), acting_user
                 )
     except UnboundLocalError:
-        ...
+        pass
 
     if "assignedTo" in result:
         assigned_actor = result["assignedTo"]
