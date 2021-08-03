@@ -44,26 +44,9 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
 
         params = link.args["query"]
         query_id = params.get("id", None)
-        projects = []
 
         user_id = params.get("user", None)
-        if user_id:
-            try:
-                user = User.objects.get(id=user_id)
-                response = client.get(
-                    auth=ApiKey(organization=org, scope_list=["org:read"]),
-                    user=user,
-                    path=f"/organizations/{org_slug}/projects/",
-                    params={"query": "is_member:1"},
-                )
-            except Exception as exc:
-                logger.error(
-                    "Failed to load projects for user: %s",
-                    str(exc),
-                    exc_info=True,
-                )
-            else:
-                projects = [project["id"] for project in response.data]
+        user = User.objects.get(id=user_id) if user_id else None
 
         saved_query = {}
         if query_id:
@@ -96,7 +79,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
 
         params.setlist(
-            "project", params.getlist("project") or to_list(saved_query.get("project") or projects)
+            "project", params.getlist("project") or to_list(saved_query.get("project") or [])
         )
 
         # Only override if key doesn't exist since we want to account for
@@ -114,6 +97,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         try:
             resp = client.get(
                 auth=ApiKey(organization=org, scope_list=["org:read"]),
+                user=user,
                 path=f"/organizations/{org_slug}/events-stats/",
                 params=params,
             )
