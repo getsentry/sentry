@@ -259,7 +259,7 @@ const lightAliases = {
   /**
    * Background of alert banners at the top
    */
-  topBannerBackground: colors.black,
+  bannerBackground: colors.black,
 };
 
 const dataCategory = {
@@ -682,7 +682,7 @@ const darkAliases = {
 
   buttonCountActive: colors.gray100,
   buttonCount: colors.gray400,
-  topBannerBackground: colors.purple100,
+  bannerBackground: colors.purple100,
 };
 
 export const lightTheme = {
