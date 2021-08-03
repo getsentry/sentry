@@ -2,12 +2,6 @@ import * as React from 'react';
 
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
-import {
-  FilterType,
-  parseSearch,
-  Token,
-  TokenResult,
-} from 'app/components/searchSyntax/parser';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {
   makePinSearchAction,
@@ -101,22 +95,6 @@ class IssueListSearchBar extends React.Component<Props, State> {
     });
   };
 
-  prepareQuery = (query: string) => {
-    const parsedQuery = parseSearch(`key:${query}`);
-    const filters =
-      (parsedQuery?.filter(
-        el => el.type === Token.Filter
-      ) as TokenResult<Token.Filter>) ?? [];
-    if (filters[0]?.filter === FilterType.TextIn) {
-      query = filters[0].value.items[filters[0].value.items.length - 1].value.text;
-    }
-    if (query.startsWith('[')) {
-      query = query.substring(1);
-    }
-
-    return query;
-  };
-
   /**
    * @returns array of tag values that substring match `query`
    */
@@ -153,7 +131,6 @@ class IssueListSearchBar extends React.Component<Props, State> {
         hasRecentSearches
         maxSearchItems={5}
         savedSearchType={SavedSearchType.ISSUE}
-        prepareQuery={this.prepareQuery}
         onGetTagValues={this.getTagValues}
         defaultSearchItems={this.state.defaultSearchItems}
         onSavedRecentSearch={this.handleSavedRecentSearch}

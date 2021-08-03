@@ -13,6 +13,7 @@ import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {
+  FilterType,
   ParseResult,
   parseSearch,
   TermOperator,
@@ -565,6 +566,37 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.doSearch();
       return;
     }
+
+    const cursorToken = this.cursorToken;
+    if (
+      key === '[' &&
+      cursorToken?.type === Token.Filter &&
+      cursorToken.value.text.length === 0
+    ) {
+      const {query} = this.state;
+      if (isWithinToken(cursorToken.value, this.cursorPosition)) {
+        evt.preventDefault();
+        let clauseStart: null | number = null;
+        let clauseEnd: null | number = null;
+        // the new text that will exist between clauseStart and clauseEnd
+        const replaceToken = '[]';
+        const location = cursorToken.value.location;
+        const keyLocation = cursorToken.key.location;
+        // Include everything after the ':'
+        clauseStart = keyLocation.end.offset + 1;
+        clauseEnd = location.end.offset + 1;
+        const beforeClause = query.substring(0, clauseStart);
+        let endClause = query.substring(clauseEnd);
+        // Add space before next clause if it exists
+        if (endClause) {
+          endClause = ` ${endClause}`;
+        }
+        const newQuery = `${beforeClause}${replaceToken}${endClause}`;
+        // Place cursor between inserted brackets
+        this.updateQuery(newQuery, beforeClause.length + replaceToken.length - 1);
+        return;
+      }
+    }
   };
 
   onKeyUp = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -637,6 +669,31 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursor = this.cursorPosition;
 
     return treeResultLocator<TokenResult<Token.Filter | Token.FreeText> | null>({
+      tree: parsedQuery,
+      noResultValue: null,
+      visitorTest: ({token, returnResult, skipToken}) =>
+        !matchedTokens.includes(token.type)
+          ? null
+          : isWithinToken(token, cursor)
+          ? returnResult(token)
+          : skipToken,
+    });
+  }
+
+  /**
+   * Get the active parsed text value
+   */
+  get cursorValue() {
+    const {parsedQuery} = this.state;
+
+    if (parsedQuery === null) {
+      return null;
+    }
+
+    const matchedTokens = [Token.ValueText];
+    const cursor = this.cursorPosition;
+
+    return treeResultLocator<TokenResult<Token.ValueText> | null>({
       tree: parsedQuery,
       noResultValue: null,
       visitorTest: ({token, returnResult, skipToken}) =>
@@ -980,8 +1037,12 @@ class SmartSearchBar extends React.Component<Props, State> {
       // check if we are on the tag, value, or operator
       if (isWithinToken(cursorToken.value, cursor)) {
         const node = cursorToken.value;
+        let searchText = this.cursorValue?.text ?? node.text;
+        if (searchText === '[]') {
+          searchText = '';
+        }
 
-        const valueGroup = await this.generateValueAutocompleteGroup(tagName, node.text);
+        const valueGroup = await this.generateValueAutocompleteGroup(tagName, searchText);
         const autocompleteGroups = valueGroup ? [valueGroup] : [];
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
@@ -1221,12 +1282,19 @@ class SmartSearchBar extends React.Component<Props, State> {
           replaceToken = `${cursorToken.key.text}${replaceText}`;
         }
       } else if (isWithinToken(cursorToken.value, cursor)) {
-        const location = cursorToken.value.location;
-        const keyLocation = cursorToken.key.location;
-        // Include everything after the ':'
-        clauseStart = keyLocation.end.offset + 1;
-        clauseEnd = location.end.offset + 1;
-        replaceToken += ' ';
+        const valueToken = this.cursorValue ?? cursorToken.value;
+        const location = valueToken.location;
+
+        if (cursorToken.filter === FilterType.TextIn) {
+          clauseStart = valueToken.location.start.offset;
+          clauseEnd = valueToken.location.end.offset;
+        } else {
+          // Include everything after the ':'
+          const keyLocation = cursorToken.key.location;
+          clauseStart = keyLocation.end.offset + 1;
+          clauseEnd = location.end.offset + 1;
+          replaceToken += ' ';
+        }
       } else if (isWithinToken(cursorToken.key, cursor)) {
         const location = cursorToken.key.location;
         clauseStart = location.start.offset;
