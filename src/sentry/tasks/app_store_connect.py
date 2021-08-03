@@ -7,14 +7,20 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
-from datetime import datetime
-from typing import List, Mapping
+from typing import List, Mapping, Tuple
 
 import sentry_sdk
 from django.utils import timezone
 
+from sentry import projectoptions
 from sentry.lang.native import appconnect
-from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
+from sentry.models import (
+    AppConnectBuild,
+    LatestAppConnectBuildsCheck,
+    Project,
+    ProjectOption,
+    debugfile,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, sdk
 from sentry.utils.appleconnect import itunes_connect
@@ -41,18 +47,8 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
     client = appconnect.AppConnectClient.from_config(config)
 
-    # persist all fetched builds into the database as "pending"
-    builds = []
     listed_builds = client.list_builds()
-    with sentry_sdk.start_span(
-        op="appconnect-update-builds", description="Update AppStoreConnect builds in database"
-    ):
-        for build in listed_builds:
-            build_state = get_or_create_persisted_build(project, config, build)
-            if not build_state.fetched:
-                builds.append((build, build_state))
-
-    update_build_refresh_date(project, config_id)
+    builds = process_builds(project=project, config=config, to_process=listed_builds)
 
     if not builds:
         # No point in trying to see if we have valid iTunes credentials.
@@ -109,7 +105,7 @@ def get_or_create_persisted_build(
     try:
         build_state = AppConnectBuild.objects.get(
             project=project,
-            app_id=build.app_id,
+            app_id=int(build.app_id),
             platform=build.platform,
             bundle_short_version=build.version,
             bundle_version=build.build_number,
@@ -117,7 +113,7 @@ def get_or_create_persisted_build(
     except AppConnectBuild.DoesNotExist:
         build_state = AppConnectBuild(
             project=project,
-            app_id=build.app_id,
+            app_id=int(build.app_id),
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -130,16 +126,39 @@ def get_or_create_persisted_build(
     return build_state
 
 
-def update_build_refresh_date(project: Project, config_id: str) -> None:
-    serialized_option = project.get_option(
-        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
+def process_builds(
+    project: Project,
+    config: appconnect.AppStoreConnectConfig,
+    to_process: List[appconnect.BuildInfo],
+) -> List[Tuple[appconnect.BuildInfo, AppConnectBuild]]:
+    """Returns a list of builds whose dSYMs need to be updated or fetched.
+
+    This will create a new "pending" :class:`AppConnectBuild` for any :class:`appconnect.BuildInfo`
+    that cannot be found in the DB. These pending :class:`AppConnectBuild`s are immediately saved
+    upon creation.
+    """
+
+    pending_builds = []
+
+    with sentry_sdk.start_span(
+        op="appconnect-update-builds", description="Update AppStoreConnect builds in database"
+    ):
+        for build in to_process:
+            build_state = get_or_create_persisted_build(project, config, build)
+            if not build_state.fetched:
+                pending_builds.append((build, build_state))
+
+    # All existing usages of this option are internal, so it's fine if we don't carry these over
+    # to the table
+    # TODO: Clean this up by App Store Connect GA
+    if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
+        project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
+
+    LatestAppConnectBuildsCheck.objects.create_or_update(
+        project=project, source_id=config.id, values={"last_checked": timezone.now()}
     )
-    build_refresh_dates = json.loads(serialized_option)
-    build_refresh_dates[config_id] = datetime.now()
-    serialized_refresh_dates = json.dumps_htmlsafe(build_refresh_dates)
-    project.update_option(
-        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
-    )
+
+    return pending_builds
 
 
 # Untyped decorator would stop type-checking of entire function, split into an inner

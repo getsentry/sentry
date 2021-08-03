@@ -103,6 +103,10 @@ describe('Performance > Transaction Tags', function () {
         ],
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
   });
 
   afterEach(function () {

@@ -18,7 +18,7 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import Activity, Group, GroupSeen, User, UserReport
+from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -183,11 +183,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 3600 * 24,
             )[group.id]
 
-            participants = list(
-                User.objects.filter(
-                    groupsubscription__is_active=True, groupsubscription__group=group
-                )
-            )
+            participants = GroupSubscriptionManager.get_participating_users(group)
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
@@ -247,6 +243,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
                                   ``"<user_primary_email>"``, or ``"team:<team_id>"``.
+        :param string assignedBy: ``"suggested_assignee"`` | ``"assignee_selector"``
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the

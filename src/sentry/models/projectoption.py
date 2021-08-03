@@ -1,15 +1,20 @@
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+
 from django.db import models
 
 from sentry import projectoptions
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
-from sentry.db.models.manager import OptionManager
+from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.tasks.relay import schedule_update_config_cache
 from sentry.utils.cache import cache
 
+if TYPE_CHECKING:
+    from sentry.models import Project
 
-class ProjectOptionManager(OptionManager):
-    def get_value_bulk(self, instances, key):
+
+class ProjectOptionManager(OptionManager["Project"]):
+    def get_value_bulk(self, instances: Sequence["Project"], key: str) -> Mapping["Project", Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(project__in=instances, key=key)
         result = {i: None for i in instances}
@@ -17,7 +22,13 @@ class ProjectOptionManager(OptionManager):
             result[instance_map[obj.project_id]] = obj.value
         return result
 
-    def get_value(self, project, key, default=None, validate=None):
+    def get_value(
+        self,
+        project: "Project",
+        key: str,
+        default: Optional[Value] = None,
+        validate: Optional[ValidateFunction] = None,
+    ) -> Any:
         result = self.get_all_values(project)
         if key in result:
             if validate is None or validate(result[key]):
@@ -28,16 +39,19 @@ class ProjectOptionManager(OptionManager):
                 return well_known_key.get_default(project)
         return default
 
-    def unset_value(self, project, key):
+    def unset_value(self, project: "Project", key: str) -> None:
         self.filter(project=project, key=key).delete()
         self.reload_cache(project.id, "projectoption.unset_value")
 
-    def set_value(self, project, key, value):
+    def set_value(self, project: "Project", key: str, value: Value) -> bool:
         inst, created = self.create_or_update(project=project, key=key, values={"value": value})
         self.reload_cache(project.id, "projectoption.set_value")
-        return created or inst > 0
 
-    def get_all_values(self, project):
+        # Explicitly typing to satisfy mypy.
+        success: bool = created or inst > 0
+        return success
+
+    def get_all_values(self, project: "Project") -> Mapping[str, Value]:
         if isinstance(project, models.Model):
             project_id = project.id
         else:
@@ -47,12 +61,15 @@ class ProjectOptionManager(OptionManager):
         if cache_key not in self._option_cache:
             result = cache.get(cache_key)
             if result is None:
-                result = self.reload_cache(project_id, "projectoption.get_all_values")
+                self.reload_cache(project_id, "projectoption.get_all_values")
             else:
                 self._option_cache[cache_key] = result
-        return self._option_cache.get(cache_key, {})
 
-    def reload_cache(self, project_id, update_reason):
+        # Explicitly typing to satisfy mypy.
+        values: Mapping[str, Value] = self._option_cache.get(cache_key, {})
+        return values
+
+    def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Value]:
         if update_reason != "projectoption.get_all_values":
             schedule_update_config_cache(
                 project_id=project_id, generate=True, update_reason=update_reason
@@ -63,14 +80,14 @@ class ProjectOptionManager(OptionManager):
         self._option_cache[cache_key] = result
         return result
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, instance: "ProjectOption", **kwargs: Any) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_save")
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: "ProjectOption", **kwargs: Any) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-class ProjectOption(Model):
+class ProjectOption(Model):  # type: ignore
     """
     Project options apply only to an instance of a project.
 
