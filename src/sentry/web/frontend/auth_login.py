@@ -13,7 +13,7 @@ from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
 from sentry.signals import join_request_link_viewed, user_signup
-from sentry.utils import metrics
+from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     get_login_redirect,
     has_user_registration,
@@ -22,6 +22,7 @@ from sentry.utils.auth import (
     login,
 )
 from sentry.utils.sdk import capture_exception
+from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 
@@ -105,6 +106,11 @@ class AuthLoginView(BaseView):
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
+    def get_post_register_url(self, request):
+        base_url = auth.get_login_redirect(request)
+        params = {"frontend_events": json.dumps({"event_name": "Sign Up"})}
+        return add_params_to_url(base_url, params)
+
     def respond_login(self, request, context, **kwargs):
         return self.respond("sentry/login.html", context)
 
@@ -167,7 +173,7 @@ class AuthLoginView(BaseView):
 
                 return response
 
-            return self.redirect(get_login_redirect(request))
+            return self.redirect(self.get_post_register_url(request))
 
         elif request.method == "POST":
             from sentry.app import ratelimiter
