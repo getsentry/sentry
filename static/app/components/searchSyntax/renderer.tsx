@@ -171,7 +171,7 @@ const ListToken = ({
   token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
   cursor: number;
 }) => (
-  <InList hasClosing={token.text.endsWith(']')}>
+  <InList>
     {token.items.map(({value, separator}) => [
       <ListComma key="comma">{separator}</ListComma>,
       value && renderToken(value, cursor),
