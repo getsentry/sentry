@@ -2,7 +2,6 @@ import * as React from 'react';
 import ReactDOM from 'react-dom';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/react';
-import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 import PropTypes from 'prop-types';
@@ -30,7 +29,6 @@ const globals = {
   jQuery,
 
   // django templates make use of these globals
-  createReactClass,
   SentryApp: {},
 };
 
