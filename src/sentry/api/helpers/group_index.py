@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import eventstream, features, search
+from sentry import analytics, eventstream, features, search
 from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
 from sentry.api.issue_search import convert_query_values, parse_search_query
@@ -966,18 +966,39 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
 
     if "assignedTo" in result:
         assigned_actor = result["assignedTo"]
+        assigned_by = (
+            request.data.get("assignedBy")
+            if request.data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
+            else None
+        )
         if assigned_actor:
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
 
-                GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                assignment = GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                analytics.record(
+                    "manual.issue_assignment",
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=assignment["updated_assignment"],
+                )
             result["assignedTo"] = serialize(
                 assigned_actor.resolve(), acting_user, ActorSerializer()
             )
+
         else:
             for group in group_list:
                 GroupAssignee.objects.deassign(group, acting_user)
-
+                analytics.record(
+                    "manual.issue_assignment",
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=True,
+                )
     is_member_map = {
         project.id: project.member_set.filter(user=acting_user).exists() for project in projects
     }

@@ -10,7 +10,6 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Group
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -350,36 +349,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # is invalid.
             return self.empty_result
 
-        # This search is specific to Inbox. If we're using inbox sort and only querying
-        # postgres then we can use this sort method. Otherwise if we need to go to Snuba,
-        # fail.
-        if (
-            sort_by == "inbox"
-            and get_search_filter(search_filters, "for_review", "=")
-            # This handles tags and date parameters for search filters.
-            and not [
-                sf
-                for sf in search_filters
-                if sf.key.name not in self.postgres_only_fields.union(["date"])
-            ]
-        ):
-            metrics.incr("postgres_snuba_query_executor.inbox_sort")
-            # We just filter on `GroupInbox.date_added` here, and don't filter by date
-            # on the group. This keeps the query simpler and faster in some edge cases,
-            # and date_added is a good enough proxy when we're using this sort.
-            group_queryset = group_queryset.filter(
-                groupinbox__date_added__gte=start,
-                groupinbox__date_added__lte=end,
-            )
-            group_queryset = group_queryset.extra(
-                select={"inbox_date": "sentry_groupinbox.date_added"},
-            ).order_by("-inbox_date")
-            paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
-            return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
-
-        if sort_by == "inbox":
-            raise InvalidSearchQuery(f"Sort key '{sort_by}' only supported for inbox search")
-
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
         # clause.
@@ -637,3 +606,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 return hits
 
         return None
+
+
+class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    pass

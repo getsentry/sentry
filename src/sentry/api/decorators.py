@@ -5,15 +5,15 @@ from sentry.models import ApiKey, ApiToken
 
 
 def is_considered_sudo(request):
-    # Users without a password are assumed to always have sudo powers
-    user = request.user
-
+    # Right now, only password reauthentication (django-sudo) is supported,
+    # so if a user doesn't have a password (for example, only has github auth)
+    # then we shouldn't prompt them for the password they don't have.
     return (
         request.is_sudo()
         or isinstance(request.auth, ApiKey)
         or isinstance(request.auth, ApiToken)
-        or user.is_authenticated
-        and not user.has_usable_password()
+        or request.user.is_authenticated
+        and not request.user.has_usable_password()
     )
 
 
