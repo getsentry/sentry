@@ -814,7 +814,8 @@ function ReleaseComparisonChart({
             ReleaseComparisonChartType.FAILURE_RATE,
           ].includes(activeChart) ? (
             <ReleaseEventsChart
-              version={release.version}
+              release={release}
+              project={project}
               chartType={activeChart}
               period={period ?? undefined}
               start={start}
