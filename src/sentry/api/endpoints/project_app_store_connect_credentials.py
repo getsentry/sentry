@@ -243,7 +243,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         except ValueError:
             raise AppConnectMultipleSourcesError
         allow_multiple = features.has(
-            MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user()
+            MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user
         )
         try:
             new_sources = validated_config.update_project_symbol_source(project, allow_multiple)
@@ -531,7 +531,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
             return Response(status=404)
         if (
             not features.has(
-                MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user()
+                MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user
             )
             and len(appconnect.AppStoreConnectConfig.all_config_ids(project)) > 1
         ):
