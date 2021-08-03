@@ -1201,6 +1201,24 @@ class ColumnArg(FunctionArg):
             return snuba_column
 
 
+class ColumnTagArg(ColumnArg):
+    """Validate that the argument is either a column or a valid tag"""
+
+    def normalize(self, value: str, params: ParamsType) -> str:
+        normalized_value = SEARCH_MAP.get(value)
+        if TAG_KEY_RE.match(value):
+            normalized_value = value
+        elif VALID_FIELD_PATTERN.match(value) and normalized_value is None:
+            normalized_value = f"tags[{value}]"
+
+        if normalized_value is None:
+            return super().normalize(value, params)
+        elif self.validate_only:
+            return value
+        else:
+            return normalized_value
+
+
 class CountColumn(ColumnArg):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
@@ -2386,7 +2404,7 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "count_if",
                     required_args=[
-                        ColumnArg("column"),
+                        ColumnTagArg("column"),
                         ConditionArg("condition"),
                         SnQLStringArg(
                             "value", unquote=True, unescape_quotes=True, optional_unquote=True

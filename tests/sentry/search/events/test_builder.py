@@ -281,3 +281,34 @@ class QueryBuilderTest(TestCase):
                 ),
             ],
         )
+
+    def test_count_if_with_tags(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count_if(foo,equals,bar)",
+                'count_if(foo,notEquals,"baz")',
+            ],
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.aggregates,
+            [
+                Function(
+                    "countIf",
+                    [
+                        Function("equals", [Column("tags[foo]"), "bar"]),
+                    ],
+                    "count_if_foo_equals_bar",
+                ),
+                Function(
+                    "countIf",
+                    [
+                        Function("notEquals", [Column("tags[foo]"), "baz"]),
+                    ],
+                    "count_if_foo_notEquals__baz",
+                ),
+            ],
+        )
