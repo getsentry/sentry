@@ -9,6 +9,34 @@ on:
   pull_request:
 
 jobs:
+  npm-install-action:
+    name: yarn w/ npm-install action
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - name: Check for frontend file changes
+        uses: getsentry/paths-filter@master
+        id: changes
+        with:
+          list-files: shell
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - uses: volta-cli/action@v1
+        if: steps.changes.outputs.frontend == 'true'
+
+      - uses: bahmutov/npm-install@v1
+        if: steps.changes.outputs.frontend == 'true'
+
   yarn:
     name: yarn
     runs-on: ubuntu-20.04
