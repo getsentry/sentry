@@ -1572,6 +1572,112 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 if expected_length > 0:
                     assert data[0]["p100_measurements_frames_slow_rate"] == 0.5
 
+    def test_eps(self):
+        project = self.create_project()
+
+        for i in range(60):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+            )
+            data["transaction"] = "/eps"
+            self.store_event(data, project_id=project.id)
+
+        queries = [
+            ("", 1, True),
+            ("eps():>1", 0, True),
+            ("eps():>1", 1, False),
+            ("eps(10):>5", 1, True),
+            ("tps():>1", 0, True),
+            ("tps():>1", 1, False),
+            ("tps(10):>5", 1, True),
+        ]
+
+        for query, expected_length, use_aggregate_conditions in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=[
+                        "transaction",
+                        "eps()",
+                        "eps(10)",
+                        "eps(60)",
+                        "tps()",
+                        "tps(10)",
+                        "tps(60)",
+                    ],
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=4),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                    use_aggregate_conditions=use_aggregate_conditions,
+                )
+                data = result["data"]
+
+                assert len(data) == expected_length
+                if expected_length > 0:
+                    assert data[0]["eps"] == 0.5
+                    assert data[0]["eps_10"] == 6.0
+                    assert data[0]["eps_60"] == 1
+                    assert data[0]["tps"] == 0.5
+                    assert data[0]["tps_10"] == 6.0
+                    assert data[0]["tps_60"] == 1
+
+    def test_epm(self):
+        project = self.create_project()
+
+        for i in range(60):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+            )
+            data["transaction"] = "/epm"
+            self.store_event(data, project_id=project.id)
+
+        queries = [
+            ("", 1, True),
+            ("epm():>30", 0, True),
+            ("epm():>30", 1, False),
+            ("epm(10):>30", 1, True),
+            ("tpm():>30", 0, True),
+            ("tpm():>30", 1, False),
+            ("tpm(10):>30", 1, True),
+        ]
+
+        for query, expected_length, use_aggregate_conditions in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=[
+                        "transaction",
+                        "epm()",
+                        "epm(10)",
+                        "epm(60)",
+                        "tpm()",
+                        "tpm(10)",
+                        "tpm(60)",
+                    ],
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=4),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                    use_aggregate_conditions=use_aggregate_conditions,
+                )
+                data = result["data"]
+
+                assert len(data) == expected_length
+                if expected_length > 0:
+                    assert data[0]["epm"] == 30
+                    assert data[0]["epm_10"] == 360.0
+                    assert data[0]["epm_60"] == 60
+                    assert data[0]["tpm"] == 30
+                    assert data[0]["tpm_10"] == 360.0
+                    assert data[0]["tpm_60"] == 60
+
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/test_transaction/success"
