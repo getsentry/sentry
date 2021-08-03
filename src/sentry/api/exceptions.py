@@ -106,7 +106,7 @@ class AppConnectAuthenticationError(SentryAPIException):
 class AppConnectMultipleSourcesError(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "app-connect-multiple-sources-error"
-    message = "App Store Connect multiple sources feature not enabled"
+    message = "Multiple AppStoreConnect sources feature not enabled"
 
 
 class ItunesAuthenticationError(SentryAPIException):
