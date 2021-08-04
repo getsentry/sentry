@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:41.433569Z'
+created: '2021-08-03T17:17:29.762211Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,7 +11,7 @@ NoSuchMethodException:callDrawGLFunction [long] (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -21,7 +21,7 @@ NoSuchMethodException:callDrawGLFunction [long] (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -43,7 +43,7 @@ RuntimeException:Invalid reflection (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -53,7 +53,7 @@ RuntimeException:Invalid reflection (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -73,7 +73,7 @@ AndroidRuntimeException:java.lang.RuntimeException: Invalid reflection (thread_i
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -83,7 +83,7 @@ AndroidRuntimeException:java.lang.RuntimeException: Invalid reflection (thread_i
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals

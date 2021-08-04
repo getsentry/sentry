@@ -160,9 +160,10 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
         return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
-    return EventAttachment.objects.filter(
-        group_id=event.group_id, type__in=CRASH_REPORT_TYPES
-    ).count()
+    # We don't need the actual number, but just whether it's more or equal to
+    # the currently allowed maximum.
+    query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
+    return query[:max_crashreports].count()
 
 
 class HashDiscarded(Exception):
