@@ -11,6 +11,7 @@ from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.utils import logger
 from sentry.models import ApiKey
+from sentry.models.user import User
 from sentry.search.events.filter import to_list
 
 from . import Handler, UnfurlableUrl, UnfurledUrl
@@ -44,6 +45,13 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         params = link.args["query"]
         query_id = params.get("id", None)
 
+        user_id = params.get("user", None)
+        user = (
+            User.objects.get(id=user_id, sentry_orgmember_set__organization=org)
+            if user_id
+            else None
+        )
+
         saved_query = {}
         if query_id:
             try:
@@ -62,12 +70,22 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
                 saved_query = response.data
 
         # Override params from Discover Saved Query if they aren't in the URL
-        params.setlist("order", params.getlist("sort") or to_list(saved_query.get("orderby")))
+        params.setlist(
+            "order",
+            params.getlist("sort")
+            or (to_list(saved_query.get("orderby")) if saved_query.get("orderby") else []),
+        )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
         params.setlist(
             "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", "count()"))
         )
         params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
+
+        params.setlist(
+            "project",
+            params.getlist("project")
+            or (to_list(saved_query.get("project")) if saved_query.get("project") else []),
+        )
 
         # Only override if key doesn't exist since we want to account for
         # an intermediate state where the query could have been cleared
@@ -84,6 +102,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         try:
             resp = client.get(
                 auth=ApiKey(organization=org, scope_list=["org:read"]),
+                user=user,
                 path=f"/organizations/{org_slug}/events-stats/",
                 params=params,
             )

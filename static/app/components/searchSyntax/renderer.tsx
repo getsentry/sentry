@@ -174,7 +174,7 @@ const ListToken = ({
   <InList>
     {token.items.map(({value, separator}) => [
       <ListComma key="comma">{separator}</ListComma>,
-      renderToken(value, cursor),
+      value && renderToken(value, cursor),
     ])}
   </InList>
 );

@@ -766,7 +766,11 @@ function ReleaseComparisonChart({
     return diff ? (
       <Change color={defined(diffColor) ? diffColor : undefined}>
         {diff}{' '}
-        {defined(diffDirection) && <IconArrow direction={diffDirection} size="xs" />}
+        {defined(diffDirection) ? (
+          <IconArrow direction={diffDirection} size="xs" />
+        ) : (
+          <StyledNotAvailable />
+        )}
       </Change>
     ) : null;
   }
@@ -814,7 +818,8 @@ function ReleaseComparisonChart({
             ReleaseComparisonChartType.FAILURE_RATE,
           ].includes(activeChart) ? (
             <ReleaseEventsChart
-              version={release.version}
+              release={release}
+              project={project}
               chartType={activeChart}
               period={period ?? undefined}
               start={start}
@@ -850,6 +855,7 @@ function ReleaseComparisonChart({
           <Cell key="release">{t('This Release')}</Cell>,
           <Cell key="change">{t('Change')}</Cell>,
         ]}
+        data-test-id="release-comparison-table"
       >
         {charts.map(
           ({
@@ -1048,6 +1054,10 @@ const ChartTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr));
   }
+`;
+
+const StyledNotAvailable = styled(NotAvailable)`
+  display: inline-block;
 `;
 
 export default ReleaseComparisonChart;

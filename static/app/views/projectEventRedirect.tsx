@@ -34,9 +34,11 @@ class ProjectEventRedirect extends Component<Props, State> {
     // Django view).
     const endpoint = router.location.pathname;
 
-    // Use XmlHttpRequest directly instead of our client API helper (jQuery),
+    // Use XmlHttpRequest directly instead of our client API helper (fetch),
     // because you can't reach the underlying XHR via $.ajax, and we need
     // access to `xhr.responseURL`.
+    //
+    // TODO(epurkhiser): We can likely replace tihs with fetch
     const xhr = new XMLHttpRequest();
 
     // Hitting this endpoint will return a 302 with a new location, which

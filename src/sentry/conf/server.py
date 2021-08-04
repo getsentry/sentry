@@ -894,6 +894,9 @@ SENTRY_FEATURES = {
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
+    # Enable tweaks to group title in relation to hierarchical
+    # grouping.
+    "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting

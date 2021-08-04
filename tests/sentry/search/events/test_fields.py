@@ -2,18 +2,22 @@ import unittest
 
 import pytest
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.column import Column
+from snuba_sdk.function import Function
 
 from sentry import eventstore
 from sentry.search.events.fields import (
     FUNCTIONS,
     FunctionDetails,
     InvalidSearchQuery,
+    QueryFields,
     get_json_meta_type,
     parse_arguments,
     parse_function,
     resolve_field_list,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba import Dataset
 
 
 @pytest.mark.parametrize(
@@ -1608,3 +1612,61 @@ class ResolveFieldListTest(unittest.TestCase):
         assert (
             str(query_error.exception) == "'fakestatus' is not a valid value for transaction.status"
         )
+
+
+def resolve_snql_fieldlist(fields):
+    return QueryFields(Dataset.Discover, {}).resolve_select(fields)
+
+
+@pytest.mark.parametrize(
+    "field,expected",
+    [
+        (
+            "percentile_range(transaction.duration, 0.5, greater, 2020-05-03T06:48:57) as percentile_range_1",
+            Function(
+                "quantileIf(0.50)",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "percentile_range_1",
+            ),
+        ),
+        (
+            "avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1",
+            Function(
+                "avgIf",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "avg_range_1",
+            ),
+        ),
+        (
+            "variance_range(transaction.duration, greater, 2020-05-03T06:48:57) as variance_range_1",
+            Function(
+                "varSampIf",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "variance_range_1",
+            ),
+        ),
+        (
+            "count_range(greater, 2020-05-03T06:48:57) as count_range_1",
+            Function(
+                "countIf",
+                [
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "count_range_1",
+            ),
+        ),
+    ],
+)
+def test_range_funtions(field, expected):
+    fields = resolve_snql_fieldlist([field])
+    assert len(fields) == 1
+    assert fields[0] == expected
