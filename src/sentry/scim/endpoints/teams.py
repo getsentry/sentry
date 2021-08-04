@@ -143,7 +143,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         except Exception:
             # TODO: log parse error
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
-        member = OrganizationMember.objects.get(organization=team.organization, id=parsed_filter[0])
+        member = OrganizationMember.objects.get(organization=team.organization, id=parsed_filter)
         with transaction.atomic():
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)

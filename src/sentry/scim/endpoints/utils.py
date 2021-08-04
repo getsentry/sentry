@@ -100,26 +100,23 @@ def parse_filter_conditions(raw_filters):
     if raw_filters is None:
         return filters
     conditions = raw_filters.split(",")
-    for c in conditions:
-        [key, value] = c.split(" eq ")
-        if not key or not value:
-            continue
 
-        key = key.strip()
-        value = value.strip()
+    # we don't support multiple filters right now.
+    if len(conditions) > 1:
+        raise ValueError
 
-        value = value[1:-1]
+    condition = conditions[0]
 
-        if key not in ACCEPTED_FILTERED_KEYS:
-            raise ValueError
+    [key, value] = condition.split(" eq ")
+    if not key or not value:
+        raise ValueError
+    key = key.strip()
+    value = value.strip()
+    value = value[1:-1]
 
-        if key == "value":
-            value = int(value)
+    if key not in ACCEPTED_FILTERED_KEYS:
+        raise ValueError
+    if key == "value":
+        value = int(value)
 
-        filters.append([key, value])
-
-    if len(filters) == 1:
-        filter_val = [filters[0][1]]
-    else:
-        filter_val = []
-    return filter_val
+    return value

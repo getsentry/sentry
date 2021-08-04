@@ -244,17 +244,17 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 class SCIMUtilsTests(TestCase):
     def test_parse_filter_conditions_basic(self):
         fil = parse_filter_conditions('userName eq "user@sentry.io"')
-        assert fil == ["user@sentry.io"]
+        assert fil == "user@sentry.io"
 
         # single quotes too
         fil = parse_filter_conditions("userName eq 'user@sentry.io'")
-        assert fil == ["user@sentry.io"]
+        assert fil == "user@sentry.io"
 
         fil = parse_filter_conditions('value eq "23"')
-        assert fil == [23]
+        assert fil == 23
 
         fil = parse_filter_conditions('displayName eq "MyTeamName"')
-        assert fil == ["MyTeamName"]
+        assert fil == "MyTeamName"
 
     def test_parse_filter_conditions_invalids(self):
         with pytest.raises(ValueError):
@@ -264,4 +264,4 @@ class SCIMUtilsTests(TestCase):
 
     def test_parse_filter_conditions_single_quote_in_email(self):
         fil = parse_filter_conditions('userName eq "jos\'h@sentry.io"')
-        assert fil == ["jos'h@sentry.io"]
+        assert fil == "jos'h@sentry.io"

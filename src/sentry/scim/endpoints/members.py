@@ -93,7 +93,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         # TODO: sanitize get parameter inputs?
         try:
             filter_val = parse_filter_conditions(request.GET.get("filter"))
-        except Exception:
+        except ValueError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
         queryset = (
@@ -107,7 +107,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         )
         if filter_val:
             queryset = queryset.filter(
-                Q(email__in=filter_val) | Q(user__email__in=filter_val)
+                Q(email__iexact=filter_val) | Q(user__email__iexact=filter_val)
             )  # not including secondary email vals (dups, etc.)
 
         def data_fn(offset, limit):
@@ -127,7 +127,6 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         )
 
     def post(self, request, organization):
-        # TODO: confirm mixed case emails get converted to lowercase
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),
