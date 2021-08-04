@@ -1,3 +1,5 @@
+import {ResponseMeta} from 'app/api';
+
 export default class RequestError extends Error {
   responseText?: string;
   responseJSON?: any;
@@ -13,7 +15,7 @@ export default class RequestError extends Error {
   /**
    * Updates Error with XHR response
    */
-  setResponse(resp: JQueryXHR) {
+  setResponse(resp: ResponseMeta) {
     if (resp) {
       this.setMessage(
         `${this.message} ${typeof resp.status === 'number' ? resp.status : 'n/a'}`

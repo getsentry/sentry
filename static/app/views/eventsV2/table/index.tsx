@@ -106,13 +106,13 @@ class Table extends PureComponent<TableProps, TableState> {
         includeAllArgs: true,
         query: apiPayload,
       })
-      .then(([data, _, jqXHR]) => {
+      .then(([data, _, resp]) => {
         // We want to measure this metric regardless of whether we use the result
         metric.measure({
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,
           data: {
-            status: jqXHR && jqXHR.status,
+            status: resp && resp.status,
           },
         });
         if (this.state.tableFetchID !== tableFetchID) {
@@ -124,7 +124,7 @@ class Table extends PureComponent<TableProps, TableState> {
           isLoading: false,
           tableFetchID: undefined,
           error: null,
-          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          pageLinks: resp ? resp.getResponseHeader('Link') : prevState.pageLinks,
           tableData: data,
         }));
       })

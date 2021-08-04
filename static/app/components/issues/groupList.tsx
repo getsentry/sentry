@@ -123,13 +123,13 @@ class GroupList extends React.Component<Props, State> {
     const endpoint = this.getGroupListEndpoint();
 
     api.request(endpoint, {
-      success: (data, _, jqXHR) => {
+      success: (data, _, resp) => {
         this._streamManager.push(data);
         this.setState(
           {
             error: false,
             loading: false,
-            pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+            pageLinks: resp?.getResponseHeader('Link') ?? null,
           },
           () => {
             this.props.onFetchSuccess?.(this.state, this.handleCursorChange);

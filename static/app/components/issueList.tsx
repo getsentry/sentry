@@ -79,13 +79,13 @@ class IssueList extends React.Component<Props, State> {
         cursor: (location && location.query && location.query.cursor) || '',
         ...query,
       },
-      success: (data, _, jqXHR) => {
+      success: (data, _, resp) => {
         this.setState({
           data,
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+          pageLinks: resp?.getResponseHeader('Link') ?? null,
         });
       },
       error: () => {

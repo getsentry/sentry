@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isString from 'lodash/isString';
 
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -25,7 +25,7 @@ type DetailsProps = {
 
 type DetailsState = {
   loading: boolean;
-  error: null | JQueryXHR;
+  error: null | ResponseMeta;
   project: null | Project;
 };
 

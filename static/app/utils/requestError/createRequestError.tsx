@@ -1,3 +1,5 @@
+import {ResponseMeta} from 'app/api';
+
 import RequestError from './requestError';
 
 const ERROR_MAP = {
@@ -22,7 +24,7 @@ const ERROR_MAP = {
  * @param {String} stack The stack trace to use. Helpful for async calls and we want to preserve a different stack.
  */
 export default function createRequestError(
-  resp: JQueryXHR,
+  resp: ResponseMeta,
   stack: string | undefined,
   method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
   path: string

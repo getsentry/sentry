@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import {t} from 'app/locale';
 import {
   Group,
@@ -378,7 +378,7 @@ class ApiSource extends React.Component<Props, State> {
 
       return this.api.requestPromise(url).then(
         resp => resp,
-        (err: JQueryXHR) => {
+        (err: ResponseMeta) => {
           // No need to log 404 errors
           if (err && err.status === 404) {
             return null;
@@ -392,16 +392,14 @@ class ApiSource extends React.Component<Props, State> {
     this.handleSearchRequest(searchRequests, directRequests);
   }, 150);
 
-  handleRequestError = (err: JQueryXHR, {url, orgId}) => {
+  handleRequestError = (err: ResponseMeta, {url, orgId}) => {
     Sentry.withScope(scope => {
       scope.setExtra(
         'url',
         url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
       );
       Sentry.captureException(
-        new Error(
-          `API Source Failed: ${err && err.responseJSON && err.responseJSON.detail}`
-        )
+        new Error(`API Source Failed: ${err?.responseJSON?.detail}`)
       );
     });
   };

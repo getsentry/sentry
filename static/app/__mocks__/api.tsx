@@ -20,7 +20,7 @@ const DEFAULT_MOCK_RESPONSE_OPTIONS = {
   predicate: () => true,
 };
 
-type ResponseType = JQueryXHR & {
+type ResponseType = ImportedClient.ResponseMeta & {
   url: string;
   statusCode: number;
   method: string;

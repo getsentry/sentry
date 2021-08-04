@@ -115,14 +115,14 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     this.props.api.request(
       `/projects/${orgId}/${projectId}/processingissues/?detailed=1`,
       {
-        success: (data, _, jqXHR) => {
+        success: (data, _, resp) => {
           const expected = this.state.expected - 1;
           this.setState({
             expected,
             error: false,
             loading: expected > 0,
             processingIssues: data,
-            pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+            pageLinks: resp?.getResponseHeader('Link') ?? null,
           });
         },
         error: () => {

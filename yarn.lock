@@ -3346,11 +3346,6 @@
     jest-diff "^26.0.0"
     pretty-format "^26.0.0"
 
-"@types/jquery@^2.0.53":
-  version "2.0.54"
-  resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-2.0.54.tgz#d7999245f77c3fab5d84e7d32b8a6c20bfd1f072"
-  integrity sha512-D/PomKwNkDfSKD13DEVQT/pq2TUjN54c6uB341fEZanIzkjfGe7UaFuuaLZbpEiS5j7Wk2MUHAZqZIoECw29lg==
-
 "@types/js-cookie@^2.2.7":
   version "2.2.7"
   resolved "https://registry.yarnpkg.com/@types/js-cookie/-/js-cookie-2.2.7.tgz#226a9e31680835a6188e887f3988e60c04d3f6a3"
