@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:39.155869Z'
+created: '2021-08-03T15:05:51.770969Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -12,7 +12,7 @@ IllegalStateException:securePreferences.getString(key) must not be null (thread_
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invokeNative category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
                   android.app.ActivityThread  access$1700 category=internals
@@ -28,7 +28,7 @@ RuntimeException:_ (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invokeNative category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
                   android.app.ActivityThread  access$1700 category=internals
