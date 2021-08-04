@@ -1094,7 +1094,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             start_key = start_key.replace(minute=0)
 
         if self.environment_ids:
+            self.environment_ids.sort()
             env_key = "-".join(str(eid) for eid in self.environment_ids)
 
-        session_cache_key = f"w-s:{project_id}-{start_key}-{end_key}-{env_key}".replace(" ", "")
+        key_hash = hash(f"{project_id}-{start_key}-{end_key}-{env_key}")
+        session_cache_key = f"w-s:{key_hash}"
         return session_cache_key

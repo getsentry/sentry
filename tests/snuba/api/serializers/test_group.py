@@ -599,7 +599,8 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         assert result[0]["sessionCount"] == 1
 
         # Delete the cache from the query we did above, else this result comes back as 1 instead of 0.5
-        cache.delete(f"w-s:{group.project.id}---{dev_environment.id}")
+        key_hash = hash(f"{group.project.id}---{dev_environment.id}")
+        cache.delete(f"w-s:{key_hash}")
         project2 = self.create_project(
             organization=self.organization, teams=[self.team], name="Another project"
         )
