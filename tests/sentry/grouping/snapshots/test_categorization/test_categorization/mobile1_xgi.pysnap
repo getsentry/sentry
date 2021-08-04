@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:39.497104Z'
+created: '2021-08-03T15:05:51.985796Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -12,7 +12,7 @@ IllegalArgumentException:eglChooseConfig failed EGL_NOT_INITIALIZED (thread_id:_
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invokeNative category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
   android.view.Choreographer$FrameDisplayEve  run category=indirection

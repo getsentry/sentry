@@ -1,0 +1,175 @@
+{
+  "event_id": "998154087df84f33b623ec5b1dfae7c9",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "[Filtered]"
+          },
+          "handled": false,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": true,
+          "type": "signal"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_wqthread",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "_dispatch_worker_thread2",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_root_queue_drain",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_async_redirect_invoke",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_continuation_pop$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_block_async_invoke2",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "__NSOQSchedule_f",
+              "package": "Foundation"
+            },
+            {
+              "function": "__NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__",
+              "package": "Foundation"
+            },
+            {
+              "function": "-[NSOperation start]",
+              "package": "Foundation"
+            },
+            {
+              "function": "__NSOPERATION_IS_INVOKING_MAIN__",
+              "package": "Foundation"
+            },
+            {
+              "function": "-[NSBlockOperation main]",
+              "package": "Foundation"
+            },
+            {
+              "function": "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__",
+              "package": "Foundation"
+            },
+            {
+              "function": "_CFNetworkHTTPConnectionCacheSetLimit",
+              "package": "CFNetwork"
+            },
+            {
+              "function": "block_destroy_helper.14"
+            },
+            {
+              "function": "block_destroy_helper.14"
+            },
+            {
+              "function": "__swift_memcpy24_8"
+            },
+            {
+              "function": "__swift_memcpy24_8"
+            },
+            {
+              "function": "__swift_memcpy24_8"
+            },
+            {
+              "function": "block_destroy_helper.14"
+            },
+            {
+              "function": "__swift_memcpy24_8"
+            },
+            {
+              "function": "__swift_destroy_boxed_opaque_existential_1"
+            },
+            {
+              "function": "block_destroy_helper"
+            },
+            {
+              "function": "__swift_destroy_boxed_opaque_existential_1"
+            },
+            {
+              "function": "__swift_memcpy24_8"
+            },
+            {
+              "function": "block_destroy_helper.51"
+            },
+            {
+              "function": "__swift_memcpy24_8"
+            },
+            {
+              "function": "__swift_project_boxed_opaque_existential_1"
+            },
+            {
+              "function": "__swift_allocate_boxed_opaque_existential_0"
+            },
+            {
+              "function": "__swift_project_boxed_opaque_existential_1"
+            },
+            {
+              "function": "__swift_project_boxed_opaque_existential_1"
+            },
+            {
+              "function": "block_destroy_helper"
+            },
+            {
+              "function": "_CFRelease",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "szone_free",
+              "package": "libsystem_malloc.dylib"
+            },
+            {
+              "function": "malloc_zone_error",
+              "package": "libsystem_malloc.dylib"
+            },
+            {
+              "function": "malloc_vreport",
+              "package": "libsystem_malloc.dylib"
+            },
+            {
+              "function": "abort",
+              "package": "libsystem_c.dylib"
+            },
+            {
+              "function": "pthread_kill",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "SIGABRT",
+        "value": "Signal 6, Code 0 >\nAttempted to dereference garbage pointer 0x1fef9f0."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

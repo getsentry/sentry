@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:39.775684Z'
+created: '2021-08-03T15:05:52.843149Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,7 +10,7 @@ SIGABRT:Abort (thread_id:_, crashed:_)
               /system/lib64/libjavacrypto.so  ??? category=internals
               /system/lib64/libjavacrypto.so  ??? category=internals
               /system/lib64/libjavacrypto.so  ??? category=internals
-                     /system/lib64/libart.so  ??? category=gc
+                     /system/lib64/libart.so  ??? category=internals
                      /system/lib64/libart.so  art::ClassLinker::FindClass category=internals
                      /system/lib64/libart.so  art::Thread::AssertNoPendingException category=internals
                      /system/lib64/libart.so  android::base::LogMessage::~LogMessage category=internals

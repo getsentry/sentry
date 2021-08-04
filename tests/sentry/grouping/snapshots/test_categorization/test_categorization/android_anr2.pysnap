@@ -1,5 +1,5 @@
 ---
-created: '2021-07-29T13:29:17.198271Z'
+created: '2021-08-03T17:17:27.405665Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,7 +10,7 @@ ApplicationNotResponding:Application Not Responding for at least 5000 ms. (threa
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
   android.view.Choreographer$FrameDisplayEve  run category=indirection
@@ -102,7 +102,7 @@ ApplicationNotResponding:Application Not Responding for at least 5000 ms. (threa
   androidx.appcompat.app.AppCompatDelegateIm  createView category=internals
   androidx.appcompat.app.AppCompatViewInflat  createView category=internals
   androidx.appcompat.app.AppCompatViewInflat  createImageView category=internals
-  androidx.appcompat.widget.AppCompatImageVi  <init> category=ui
+  androidx.appcompat.widget.AppCompatImageVi  <init> category=internals
   androidx.appcompat.widget.AppCompatImageVi  <init> category=internals
         androidx.appcompat.widget.ThemeUtils  checkAppCompatTheme category=internals
                      android.content.Context  obtainStyledAttributes category=std

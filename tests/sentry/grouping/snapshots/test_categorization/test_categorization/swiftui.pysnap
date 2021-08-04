@@ -1,5 +1,5 @@
 ---
-created: '2021-07-26T16:04:43.362822Z'
+created: '2021-08-03T17:17:28.557947Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -17,7 +17,7 @@ SIGABRT:AttributeGraph precondition failure: %s.
                               CoreFoundation  __CFRunLoopRun category=internals
                               CoreFoundation  __CFRunLoopDoObservers category=internals
                               CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ category=internals
-                                   UIKitCore  _afterCACommitHandler category=ui
+                                   UIKitCore  _afterCACommitHandler category=internals
                                    UIKitCore  _cleanUpAfterCAFlushAndRunDeferredBlocks category=internals
                                    UIKitCore  _runAfterCACommitDeferredBlocks category=internals
                                    UIKitCore  -[_UIAfterCACommitBlock run] category=internals

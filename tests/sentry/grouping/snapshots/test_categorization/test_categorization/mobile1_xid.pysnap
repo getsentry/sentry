@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T10:29:52.921654Z'
+created: '2021-08-03T17:17:30.150481Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -39,7 +39,7 @@ NSRangeException:*** -[__NSArrayM objectAtIndexedSubscript:]: index 0 beyond bou
                               CoreFoundation  _CFXRegistrationPost1 category=internals
                               CoreFoundation  ___CFXRegistrationPost1_block_invoke category=internals
                               CoreFoundation  __CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ category=internals
-                                   UIKitCore  -[UIWindow _updateToInterfaceOrientation:duration:force:] category=ui
+                                   UIKitCore  -[UIWindow _updateToInterfaceOrientation:duration:force:] category=internals
                                    UIKitCore  -[UIViewController _preferredInterfaceOrientationGivenStatusBarAndDeviceAndOrientation:] category=internals
                                    UIKitCore  -[UIViewController __supportedInterfaceOrientations] category=internals
                                               stripped_application_code

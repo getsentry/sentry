@@ -1,13 +1,13 @@
 ---
-created: '2021-03-29T22:02:40.519898Z'
+created: '2021-08-03T15:05:54.955072Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
 
 
 RuntimeException:Can't create handler inside thread Thread[AsyncTask #1,5,main] that has not called Looper.prepare() (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=threadbase
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
      java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
              java.util.concurrent.FutureTask  run category=std
@@ -27,8 +27,8 @@ RuntimeException:Can't create handler inside thread Thread[AsyncTask #1,5,main] 
 
 
 RuntimeException:An error occurred while executing doInBackground() (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=threadbase
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
      java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
              java.util.concurrent.FutureTask  run category=std

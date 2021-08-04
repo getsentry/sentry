@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:39.634767Z'
+created: '2021-08-03T17:17:27.043266Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,7 +10,7 @@ UnsatisfiedLinkError:dlopen failed: "/system/app/Chrome/Chrome.apk!/lib/armeabi-
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -19,7 +19,7 @@ UnsatisfiedLinkError:dlopen failed: "/system/app/Chrome/Chrome.apk!/lib/armeabi-
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -42,7 +42,7 @@ ProcessInitException:_ (thread_id:_, crashed:_)
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -51,7 +51,7 @@ ProcessInitException:_ (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -72,7 +72,7 @@ RuntimeException:Cannot load WebView (thread_id:_, crashed:_)
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -81,7 +81,7 @@ RuntimeException:Cannot load WebView (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -100,7 +100,7 @@ InvocationTargetException:_ (thread_id:_, crashed:_)
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -109,7 +109,7 @@ InvocationTargetException:_ (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -126,7 +126,7 @@ AndroidRuntimeException:java.lang.reflect.InvocationTargetException (thread_id:_
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code
@@ -135,7 +135,7 @@ AndroidRuntimeException:java.lang.reflect.InvocationTargetException (thread_id:_
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals

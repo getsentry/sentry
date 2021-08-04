@@ -1,5 +1,5 @@
 ---
-created: '2021-07-29T17:29:18.455260Z'
+created: '2021-08-03T16:33:07.432285Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,11 +25,11 @@ app-depth-1:
         stacktrace*
           frame*
             module*
-              "dalvik.system.VMStack"
+              "java.lang.Thread"
             filename (module takes precedence)
-              "vmstack.java"
+              "thread.java"
             function*
-              "getThreadStackTrace"
+              "getStackTrace"
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "2552498cfe69a6ddf1dcdde5440ce9c3"
@@ -800,14 +800,14 @@ app-depth-max:
           "Application Not Responding for at least <int> ms."
       threads (exception of app-depth-1/app-depth-max/system takes precedence)
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "getStackTrace"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "dalvik.system.VMStack"
             filename (module takes precedence)
@@ -1584,14 +1584,14 @@ system:
           "Application Not Responding for at least <int> ms."
       threads (exception of app-depth-1/app-depth-max/system takes precedence)
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "getStackTrace"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "dalvik.system.VMStack"
             filename (module takes precedence)

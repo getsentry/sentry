@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T10:29:52.421892Z'
+created: '2021-08-03T17:17:29.273103Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -16,7 +16,7 @@ NSInvalidArgumentException:*** -[__NSArrayM insertObject:atIndex:]: object canno
                               CoreFoundation  __CFRunLoopDoSources0 category=internals
                               CoreFoundation  __CFRunLoopDoSource0 category=internals
                               CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=internals
-                                   UIKitCore  __eventFetcherSourceCallback category=ui
+                                   UIKitCore  __eventFetcherSourceCallback category=internals
                                    UIKitCore  __processEventQueue category=internals
                                    UIKitCore  __dispatchPreprocessedEventFromEventQueue category=internals
                                    UIKitCore  -[UIApplication sendEvent:] category=internals

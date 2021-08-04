@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:40.026118Z'
+created: '2021-08-03T15:05:53.053417Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -15,8 +15,8 @@ RemoteException:Remote stack trace:
 
 
 IllegalStateException:_ (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=threadbase
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
      java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
   androidx.work.impl.utils.ForceStopRunnable  run category=indirection
   androidx.work.impl.utils.ForceStopRunnable  ࡱࡢ category=indirection

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:38.699543Z'
+created: '2021-08-03T15:05:50.719093Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,7 +10,7 @@ IllegalArgumentException:_ (thread_id:_, crashed:_)
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
                   android.app.ActivityThread  -wrap18 category=internals
@@ -33,7 +33,7 @@ RuntimeException:_ (thread_id:_, crashed:_)
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
                   android.app.ActivityThread  -wrap18 category=internals

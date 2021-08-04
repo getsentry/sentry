@@ -1,5 +1,5 @@
 ---
-created: '2021-07-29T15:44:31.863258Z'
+created: '2021-08-02T11:01:54.041812Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -7,7 +7,7 @@ source: tests/sentry/grouping/test_categorization.py
 
 EXC_BAD_ACCESS:_ (thread_id:_, crashed:_)
                                libdyld.dylib  start category=threadbase
-                                              main
+                                              stripped_application_code
                                    UIKitCore  uiFunc1 category=ui
                                   Foundation  -[NSISEngine withBehaviors:performModifications:] category=internals
                                    UIKitCore  uiFunc2 category=internals

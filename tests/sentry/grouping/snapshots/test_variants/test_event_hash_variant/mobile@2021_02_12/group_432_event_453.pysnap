@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:40.156838Z'
+created: '2021-08-03T16:33:05.843975Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -129,8 +129,8 @@ app-depth-5:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "8a62fbea1511325fb930366d547f0afa"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
+  hash: "1056f62d72ff8b4d0c3842d696dbb10a"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -145,7 +145,7 @@ app-depth-max:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)
@@ -267,8 +267,8 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "c14e92cc54e6dc3fc07404179dac2709"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
+  hash: "9b0dde4e9eb497e303a5de05fb627121"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*
@@ -283,7 +283,7 @@ system:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)

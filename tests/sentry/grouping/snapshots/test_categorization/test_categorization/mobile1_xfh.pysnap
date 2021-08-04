@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:40.042273Z'
+created: '2021-08-03T15:05:53.088546Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,7 +10,7 @@ NullPointerException:Attempt to invoke virtual method 'android.content.SharedPre
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
   android.app.servertransaction.TransactionE  execute category=internals
@@ -40,7 +40,7 @@ ExceptionInInitializerError:_ (thread_id:_, crashed:_)
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
   android.app.servertransaction.TransactionE  execute category=internals

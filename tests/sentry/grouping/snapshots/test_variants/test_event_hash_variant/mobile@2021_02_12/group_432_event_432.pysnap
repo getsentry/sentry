@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:40.404818Z'
+created: '2021-08-03T16:33:07.003491Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -129,8 +129,8 @@ app-depth-5:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "28f1b76e3bcdfa5e5e1671e6a919a506"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
+  hash: "6148c73af04344a8597354711f5951ea"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -145,7 +145,7 @@ app-depth-max:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)
@@ -267,8 +267,8 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "227f7914a2699056451d2e1a5757e2ab"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
+  hash: "8de0f3051007f493cd596f0db872d598"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*
@@ -283,7 +283,7 @@ system:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)
