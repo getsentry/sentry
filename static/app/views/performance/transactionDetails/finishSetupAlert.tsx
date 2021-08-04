@@ -26,6 +26,7 @@ export default function FinishSetupAlert({
         size="xsmall"
         priority="primary"
         target="_blank"
+        external
         href="https://docs.sentry.io/performance-monitoring/getting-started/"
         onClick={() =>
           trackAdvancedAnalyticsEvent(
