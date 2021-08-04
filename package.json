@@ -186,6 +186,7 @@
   },
   "resolutions": {
     "**/is-svg": ">=4.2.2",
+    "aria-query": "https://github.com/getsentry/aria-query#0b25434ec87e77f7136aa36d06d155954cb872a4",
     "webpack": "5.48.0",
     "css-loader": "^5.2.6",
     "dotenv-webpack": "^6.0.0",
