@@ -626,7 +626,7 @@ describe('SmartSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
-      // Cursor is at end of line
+      // Cursor is on ':'
       mockCursorPosition(searchBar, 3);
       searchBar.updateAutoCompleteItems();
       await tick();
@@ -646,7 +646,7 @@ describe('SmartSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
-      // Cursor is at end of line
+      // Cursor is on ':'
       mockCursorPosition(searchBar, 3);
       searchBar.updateAutoCompleteItems();
       await tick();
