@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:52.316818Z'
+created: '2021-08-04T15:53:47.932740Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -190,11 +190,6 @@ app-depth-max:
               "test.html"
             function*
               "aha"
-          frame (ignored low quality javascript frame)
-            filename (native code indicated by filename)
-              "[native code]"
-            function*
-              "eval"
           frame*
             module*
               "test"
@@ -202,11 +197,6 @@ app-depth-max:
               "test.html"
             function*
               "test"
-          frame (ignored low quality javascript frame)
-            filename (native code indicated by filename)
-              "[native code]"
-            function*
-              "map"
           frame*
             module*
               "test"
@@ -226,11 +216,6 @@ app-depth-max:
               "test.html"
             function*
               "callAnotherThing"
-          frame (ignored low quality javascript frame)
-            filename (native code indicated by filename)
-              "[native code]"
-            function*
-              "aha"
           frame*
             module*
               "test"
