@@ -34,12 +34,10 @@ function isParen(token: Token, character: '(' | ')') {
 // with `parseSearch`.
 
 export class QueryResults {
-  filters: Record<string, string[]>;
   tokens: Token[];
 
   constructor(strTokens: string[]) {
     this.tokens = [];
-    this.filters = {};
 
     for (let token of strTokens) {
       let tokenState = TokenType.FREE_TEXT;
@@ -136,9 +134,6 @@ export class QueryResults {
       // Filter values that we insert through the UI can contain special characters
       // that need to escaped. User entered filters should not be escaped.
       const escaped = shouldEscape ? escapeFilterValue(value) : value;
-      this.filters[key] = Array.isArray(this.filters[key])
-        ? [...this.filters[key], escaped]
-        : [escaped];
       const token: Token = {type: TokenType.FILTER, key, value: escaped};
       this.tokens.push(token);
     }
@@ -151,6 +146,19 @@ export class QueryResults {
     return this;
   }
 
+  get filters() {
+    type Filters = Record<string, string[]>;
+
+    const reducer = (acc: Filters, token: Token) => ({
+      ...acc,
+      [token.key!]: [...(acc[token.key!] ?? []), token.value],
+    });
+
+    return this.tokens
+      .filter(t => t.type === TokenType.FILTER)
+      .reduce<Filters>(reducer, {});
+  }
+
   getFilterValues(key: string) {
     return this.filters[key] ?? [];
   }
@@ -160,13 +168,11 @@ export class QueryResults {
   }
 
   hasFilter(key: string): boolean {
-    const filters = this.getFilterValues(key);
-    return !!(filters && filters.length);
+    return this.getFilterValues(key).length > 0;
   }
 
   removeFilter(key: string) {
     this.tokens = this.tokens.filter(token => token.key !== key);
-    delete this.filters[key];
 
     // Now the really complicated part: removing parens that only have one element in them.
     // Since parens are themselves tokens, this gets tricky. In summary, loop through the
@@ -281,7 +287,6 @@ export class QueryResults {
 
   copy() {
     const q = new QueryResults([]);
-    q.filters = {...this.filters};
     q.tokens = [...this.tokens];
     return q;
   }
