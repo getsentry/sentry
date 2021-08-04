@@ -1,0 +1,58 @@
+---
+created: '2021-07-30T14:13:53.586018Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "start"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (non app frame)
+            function*
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function*
+              "GSEventRunModal"
+          frame (non app frame)
+            function*
+              "objc_release"
+        type*
+          "EXC_BAD_ACCESS"
+--------------------------------------------------------------------------
+system:
+  hash: "b85897bf204fd8e90ff495b47502f281"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame*
+            function*
+              "objc_release"
+        type*
+          "EXC_BAD_ACCESS"

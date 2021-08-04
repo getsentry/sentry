@@ -1,0 +1,78 @@
+---
+created: '2021-07-30T14:13:50.908037Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "start"
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "UIApplicationMain"
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "-[UIApplication _run]"
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "GSEventRunModal"
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "objc_release"
+            function (function name is not used if module or filename are available)
+              "objc_release"
+        type*
+          "EXC_BAD_ACCESS"
+--------------------------------------------------------------------------
+system:
+  hash: "b0d6c60d82e250da178402493260c2f2"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "start"
+            function (function name is not used if module or filename are available)
+              "start"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "UIApplicationMain"
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[UIApplication _run]"
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "GSEventRunModal"
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "objc_release"
+            function (function name is not used if module or filename are available)
+              "objc_release"
+        type*
+          "EXC_BAD_ACCESS"
