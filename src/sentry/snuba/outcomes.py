@@ -194,9 +194,7 @@ TS_COL = "time"
 ONE_HOUR = 3600
 
 
-def get_conditions(
-    query: QueryDict, params: Mapping[Any, Any]
-) -> Tuple[List[QueryCondition], Dict[str, Any]]:
+def get_conditions(query: QueryDict, params: Mapping[Any, Any]) -> List[Any]:
     query_conditions = []
     for filter_name in DIMENSION_MAP:
         raw_filter = query.getlist(filter_name, [])
