@@ -86,12 +86,12 @@ class GroupEvents extends React.Component<Props, State> {
     this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
       query,
       method: 'GET',
-      success: (data, _, jqXHR) => {
+      success: (data, _, resp) => {
         this.setState({
           eventList: data,
           error: false,
           loading: false,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? '',
+          pageLinks: resp?.getResponseHeader('Link') ?? '',
         });
       },
       error: err => {
