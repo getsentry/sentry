@@ -3,6 +3,9 @@ import {cleanup, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'app/stores/projectsStore';
 import EventDetails from 'app/views/performance/transactionDetails';
 
+const alertText =
+  'You are viewing a sample transaction. Configure performance to start viewing real transactions.';
+
 describe('EventDetails', () => {
   afterEach(cleanup);
 
@@ -24,7 +27,7 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(queryByText('Get Started')).toBeTruthy();
+    expect(queryByText(alertText)).toBeTruthy();
   });
 
   it('does not reender alert if already received transaction', () => {
@@ -45,6 +48,6 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(queryByText('Get Started')).toBeNull();
+    expect(queryByText(alertText)).toBeNull();
   });
 });
