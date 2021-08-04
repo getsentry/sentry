@@ -64,7 +64,7 @@ class Field(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
+    def select_params(self, dataset: Dataset) -> Tuple[str, str, str]:
         raise NotImplementedError()
 
 
@@ -79,8 +79,8 @@ class QuantityField(Field):
             return 0
         return int(row["quantity"])
 
-    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
-        return ("sum", "quantity", "quantity")
+    def select_params(self, dataset: Dataset) -> Function:
+        return Function("sum", [Column("quantity")], "quantity")
 
 
 class TimesSeenField(Field):
@@ -94,12 +94,12 @@ class TimesSeenField(Field):
             return 0
         return int(row["times_seen"])
 
-    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
+    def select_params(self, dataset: Dataset) -> Function:
         if dataset == Dataset.Outcomes:
-            return ("sum", "times_seen", "times_seen")
+            return Function("sum", [Column("times_seen")], "times_seen")
         else:
             # RawOutcomes doesnt have times_seen, do a count instead
-            return ("count()", "", "times_seen")
+            return Function("count()", [Column("times_seen")], "times_seen")
 
 
 class Dimension(SimpleGroupBy, ABC):  # type: ignore
@@ -245,11 +245,7 @@ class QueryDefinition:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
-            aggregation = field.aggregation(self.dataset)
-            aggregation_field = aggregation[2] if aggregation[1] == "" else aggregation[1]
-            self.select_params.append(
-                Function(aggregation[0], [Column(aggregation_field)], aggregation[2])
-            )
+            self.select_params.append(field.select_params(self.dataset))
             self.fields[key] = field
 
         self.groupby = []
