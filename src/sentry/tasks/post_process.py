@@ -247,7 +247,7 @@ def post_process_group(
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Commit, GroupInboxReason
+        from sentry.models import Commit, Group, GroupInboxReason
         from sentry.models.group import get_group_with_redirect
         from sentry.models.groupinbox import add_group_to_inbox
         from sentry.rules.processor import RuleProcessor
@@ -272,7 +272,11 @@ def post_process_group(
         if not is_reprocessed:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
-            has_reappeared = False if is_new else process_snoozes(event.group)
+            has_reappeared = False
+            if not is_new:
+                group = Group.objects.get(id=event.group.id)
+                group.times_seen = group.times_seen + 1
+                has_reappeared = process_snoozes(group)
             if not has_reappeared:  # If true, we added the .UNIGNORED reason already
                 if is_new:
                     add_group_to_inbox(event.group, GroupInboxReason.NEW)
