@@ -184,8 +184,9 @@ function StackTraceContent({
           nRepeats++;
         }
 
-        const isVisible =
-          includeSystemFrames || frame.inApp || frame.minGroupingLevel !== undefined;
+        const isUsedForGrouping = isFrameUsedForGrouping(frame);
+
+        const isVisible = includeSystemFrames || frame.inApp || isUsedForGrouping;
 
         if (isVisible && !repeatedFrame) {
           const lineProps = {
@@ -207,7 +208,7 @@ function StackTraceContent({
             isHoverPreviewed,
             isPrefix: !!frame.isPrefix,
             isSentinel: !!frame.isSentinel,
-            isUsedForGrouping: isFrameUsedForGrouping(frame),
+            isUsedForGrouping,
             haveFramesAtLeastOneExpandedFrame,
             haveFramesAtLeastOneGroupingBadge,
           };

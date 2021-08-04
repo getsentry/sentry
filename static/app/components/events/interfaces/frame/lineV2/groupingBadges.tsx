@@ -14,11 +14,11 @@ type Props = {
 function GroupingBadges({isPrefix, isSentinel, isUsedForGrouping}: Props) {
   const badges: React.ReactElement[] = [];
 
-  if (isSentinel) {
+  if (isUsedForGrouping && isSentinel) {
     badges.push(<GroupingBadge key={FrameBadge.SENTINEL} badge={FrameBadge.SENTINEL} />);
   }
 
-  if (isPrefix) {
+  if (isUsedForGrouping && isPrefix) {
     badges.push(<GroupingBadge key={FrameBadge.PREFIX} badge={FrameBadge.PREFIX} />);
   }
 
