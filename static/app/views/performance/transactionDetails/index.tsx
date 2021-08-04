@@ -46,7 +46,7 @@ class EventDetails extends Component<Props> {
                   return null;
                 }
                 const project = projects[0] as Project;
-                // only render setup if the project has no real transactons
+                // only render setup alert if the project has no real transactions
                 if (project.firstTransactionEvent) {
                   return null;
                 }
