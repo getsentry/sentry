@@ -1313,7 +1313,9 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     if (cursorToken.type === Token.FreeText) {
       const startPos = cursorToken.location.start.offset;
-      clauseStart = cursorToken.text.startsWith('!') ? startPos + 1 : startPos;
+      clauseStart = cursorToken.text.startsWith(NEGATION_OPERATOR)
+        ? startPos + 1
+        : startPos;
       clauseEnd = cursorToken.location.end.offset;
     }
 
