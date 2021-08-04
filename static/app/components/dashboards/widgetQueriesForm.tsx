@@ -31,7 +31,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   displayType: Widget['displayType'];
-  queries: WidgetQuery[];
+  queries?: WidgetQuery[];
   errors?: Array<Record<string, any>>;
   onChange: (queryIndex: number, widgetQuery: WidgetQuery) => void;
   canAddSearchConditions: boolean;
@@ -48,6 +48,9 @@ class WidgetQueriesForm extends React.Component<Props> {
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
     const {queries, onChange} = this.props;
+    if (!queries) {
+      return () => {};
+    }
     const widgetQuery = queries[queryIndex];
 
     return function handleChange(value: string) {
@@ -84,57 +87,59 @@ class WidgetQueriesForm extends React.Component<Props> {
 
     return (
       <QueryWrapper>
-        {queries.map((widgetQuery, queryIndex) => {
-          return (
-            <Field
-              key={queryIndex}
-              label={queryIndex === 0 ? t('Query') : null}
-              inline={false}
-              style={{paddingBottom: `8px`}}
-              flexibleControlStateSize
-              stacked
-              error={errors?.[queryIndex].conditions}
-            >
-              <SearchConditionsWrapper>
-                <StyledSearchBar
-                  searchSource="widget_builder"
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={widgetQuery.conditions}
-                  fields={[]}
-                  onSearch={this.handleFieldChange(queryIndex, 'conditions')}
-                  onBlur={this.handleFieldChange(queryIndex, 'conditions')}
-                  useFormWrapper={false}
-                />
-                {!hideLegendAlias && (
-                  <LegendAliasInput
-                    type="text"
-                    name="name"
-                    required
-                    value={widgetQuery.name}
-                    placeholder={t('Legend Alias')}
-                    onChange={event =>
-                      this.handleFieldChange(queryIndex, 'name')(event.target.value)
-                    }
-                  />
-                )}
-                {queries.length > 1 && (
-                  <Button
-                    size="zero"
-                    borderless
-                    onClick={event => {
-                      event.preventDefault();
-                      handleDeleteQuery(queryIndex);
-                    }}
-                    icon={<IconDelete />}
-                    title={t('Remove query')}
-                    label={t('Remove query')}
-                  />
-                )}
-              </SearchConditionsWrapper>
-            </Field>
-          );
-        })}
+        {queries
+          ? queries.map((widgetQuery, queryIndex) => {
+              return (
+                <Field
+                  key={queryIndex}
+                  label={queryIndex === 0 ? t('Query') : null}
+                  inline={false}
+                  style={{paddingBottom: `8px`}}
+                  flexibleControlStateSize
+                  stacked
+                  error={errors?.[queryIndex].conditions}
+                >
+                  <SearchConditionsWrapper>
+                    <StyledSearchBar
+                      searchSource="widget_builder"
+                      organization={organization}
+                      projectIds={selection.projects}
+                      query={widgetQuery.conditions}
+                      fields={[]}
+                      onSearch={this.handleFieldChange(queryIndex, 'conditions')}
+                      onBlur={this.handleFieldChange(queryIndex, 'conditions')}
+                      useFormWrapper={false}
+                    />
+                    {!hideLegendAlias && (
+                      <LegendAliasInput
+                        type="text"
+                        name="name"
+                        required
+                        value={widgetQuery.name}
+                        placeholder={t('Legend Alias')}
+                        onChange={event =>
+                          this.handleFieldChange(queryIndex, 'name')(event.target.value)
+                        }
+                      />
+                    )}
+                    {queries.length > 1 && (
+                      <Button
+                        size="zero"
+                        borderless
+                        onClick={event => {
+                          event.preventDefault();
+                          handleDeleteQuery(queryIndex);
+                        }}
+                        icon={<IconDelete />}
+                        title={t('Remove query')}
+                        label={t('Remove query')}
+                      />
+                    )}
+                  </SearchConditionsWrapper>
+                </Field>
+              );
+            })
+          : undefined}
         {canAddSearchConditions && (
           <Button
             size="small"

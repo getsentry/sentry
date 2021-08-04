@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openDiscoverAddToDashboardModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -207,6 +208,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     });
   };
 
+  handleAddDashboardWidget = () => {
+    console.log('opening modal');
+    const {organization} = this.props;
+    openDiscoverAddToDashboardModal({
+      organization,
+      onAddWidget: () => {
+        console.log('complete');
+      },
+    });
+  };
+
   renderButtonSaveAs(disabled: boolean) {
     const {queryName} = this.state;
     /**
@@ -321,6 +333,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
+  renderButtonAddDashboardWidget() {
+    return (
+      <Button
+        data-test-id="add-dashboard-widget-from-discover"
+        onClick={this.handleAddDashboardWidget}
+      >
+        Add to Dashboard
+      </Button>
+    );
+  }
+
   render() {
     const {organization} = this.props;
 
@@ -359,6 +382,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
+        <Feature
+          organization={organization}
+          features={['connect-discover-and-dashboards']}
+        >
+          {({hasFeature}) => hasFeature && this.renderButtonAddDashboardWidget()}
+        </Feature>
       </ResponsiveButtonBar>
     );
   }
