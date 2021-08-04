@@ -235,9 +235,8 @@ def _prepare_containers(project, skip_only_if=False, silent=False):
         only_if = options.pop("only_if", lambda settings, options: True)
 
         # TODO: Temporarily handle only if as both a callable and a bool
-        if (
-            not skip_only_if
-            and (callable(only_if) and not only_if(settings, sentry_options))
+        if not skip_only_if and (
+            (callable(only_if) and not only_if(settings, sentry_options))
             or (not callable(only_if) and not only_if)
         ):
             if not silent:
