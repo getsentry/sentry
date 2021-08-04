@@ -279,18 +279,20 @@ class KafkaEventStream(SnubaProtocolEventStream):
             use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
 
             if use_kafka_headers is True:
-                # try:
-                with self.sampled_eventstream_timer(
-                    instance="get_task_kwargs_for_message_from_headers"
-                ):
-                    task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
+                try:
+                    with self.sampled_eventstream_timer(
+                        instance="get_task_kwargs_for_message_from_headers"
+                    ):
+                        task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
 
-                with self.sampled_eventstream_timer(instance="dispatch_post_process_group_task"):
-                    self._dispatch_post_process_group_task(**task_kwargs)
+                    with self.sampled_eventstream_timer(
+                        instance="dispatch_post_process_group_task"
+                    ):
+                        self._dispatch_post_process_group_task(**task_kwargs)
 
-                # except Exception:
-                #     metrics.incr("eventstream.parsing-error")
-                #     self._get_task_kwargs_and_dispatch(message)
+                except Exception:
+                    metrics.incr("eventstream.parsing-error")
+                    self._get_task_kwargs_and_dispatch(message)
 
             else:
                 self._get_task_kwargs_and_dispatch(message)
