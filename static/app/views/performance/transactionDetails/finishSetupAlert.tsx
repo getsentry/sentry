@@ -37,7 +37,7 @@ export default function FinishSetupAlert({
           )
         }
       >
-        {t('Finish Performance Setup')}
+        {t('Get Started')}
       </Button>
     </AlertBar>
   );
