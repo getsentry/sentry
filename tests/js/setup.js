@@ -10,10 +10,6 @@ import {loadFixtures} from './sentry-test/loadFixtures';
 
 export * from './sentry-test/select';
 
-// We need this polyfill for testing only because typescript handles it for
-// main application
-import 'core-js/features/object/from-entries';
-
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
  * framer-motion SVG components fail

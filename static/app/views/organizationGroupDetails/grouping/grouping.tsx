@@ -1,15 +1,17 @@
-import {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PaginationCaption from 'app/components/pagination/paginationCaption';
 import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
+import {IconMegaphone} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'app/types';
@@ -44,6 +46,22 @@ type GroupingLevel = {
   id: number;
   isCurrent: boolean;
 };
+
+function LinkFooter() {
+  return (
+    <Footer>
+      <ExternalLink
+        href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
+          'Grouping Feedback'
+        )}&body=${encodeURIComponent(
+          `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
+        )}`}
+      >
+        <StyledIconMegaphone /> {t('Give Feedback')}
+      </ExternalLink>
+    </Footer>
+  );
+}
 
 function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
@@ -103,7 +121,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     setError(undefined);
 
     try {
-      const [response, , xhr] = await api.requestPromise(
+      const [data, , resp] = await api.requestPromise(
         `/issues/${groupId}/grouping/levels/${activeGroupingLevel}/new-issues/`,
         {
           method: 'GET',
@@ -115,9 +133,9 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
         }
       );
 
-      const pageLinks = xhr && xhr.getResponseHeader?.('Link');
+      const pageLinks = resp?.getResponseHeader?.('Link');
       setPagination(pageLinks ?? '');
-      setActiveGroupingLevelDetails(Array.isArray(response) ? response : [response]);
+      setActiveGroupingLevelDetails(Array.isArray(data) ? data : [data]);
       setIsGroupingLevelDetailsLoading(false);
     } catch (err) {
       setIsGroupingLevelDetailsLoading(false);
@@ -169,13 +187,16 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   if (error) {
     return (
-      <ErrorMessage
-        onRetry={fetchGroupingLevels}
-        groupId={groupId}
-        error={error}
-        projSlug={projSlug}
-        orgSlug={organization.slug}
-      />
+      <React.Fragment>
+        <ErrorMessage
+          onRetry={fetchGroupingLevels}
+          groupId={groupId}
+          error={error}
+          projSlug={projSlug}
+          orgSlug={organization.slug}
+        />
+        <LinkFooter />
+      </React.Fragment>
     );
   }
 
@@ -245,11 +266,16 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           />
         </Content>
       </Body>
+      <LinkFooter />
     </Wrapper>
   );
 }
 
 export default withApi(Grouping);
+
+const StyledIconMegaphone = styled(IconMegaphone)`
+  margin-right: ${space(0.5)};
+`;
 
 const Wrapper = styled('div')`
   flex: 1;
@@ -262,6 +288,12 @@ const Wrapper = styled('div')`
 const Header = styled('p')`
   && {
     margin-bottom: ${space(2)};
+  }
+`;
+
+const Footer = styled('p')`
+  && {
+    margin-top: ${space(2)};
   }
 `;
 

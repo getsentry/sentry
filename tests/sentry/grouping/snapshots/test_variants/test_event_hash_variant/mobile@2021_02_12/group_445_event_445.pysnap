@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:39.654871Z'
+created: '2021-08-03T16:33:06.558360Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -131,8 +131,8 @@ app-depth-5:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
-  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
+  hash: "2a30c10929cde410ba56aa1408efa5ef"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -160,7 +160,7 @@ app-depth-max:
               "winmain.cpp"
             function*
               "wWinMain"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "xstring"
             function*
@@ -292,8 +292,8 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "6ca70b05afe6f28addb3923c2e247b70"
-  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
+  hash: "65c6833ebf9d1d61307f5ce19272cc46"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*
@@ -321,7 +321,7 @@ system:
               "winmain.cpp"
             function*
               "wWinMain"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "xstring"
             function*

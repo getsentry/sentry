@@ -4,7 +4,6 @@
 import fs from 'fs';
 import path from 'path';
 
-import {CleanWebpackPlugin} from 'clean-webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
@@ -303,8 +302,6 @@ let appConfig: Configuration = {
     ],
   },
   plugins: [
-    new CleanWebpackPlugin(),
-
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({
@@ -424,6 +421,7 @@ let appConfig: Configuration = {
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
+    clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
     filename: 'entrypoints/[name].js',

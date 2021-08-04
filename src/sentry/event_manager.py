@@ -160,9 +160,10 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
         return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
-    return EventAttachment.objects.filter(
-        group_id=event.group_id, type__in=CRASH_REPORT_TYPES
-    ).count()
+    # We don't need the actual number, but just whether it's more or equal to
+    # the currently allowed maximum.
+    query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
+    return query[:max_crashreports].count()
 
 
 class HashDiscarded(Exception):
@@ -356,7 +357,9 @@ class EventManager:
         secondary_hashes = None
 
         try:
-            if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
+            secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+            secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+            if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
                 with metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
@@ -1288,7 +1291,17 @@ def _handle_regression(group, event, release):
                 # XXX: handle missing data, as its not overly important
                 pass
             else:
-                activity.update(data={"version": release.version})
+                try:
+                    # We should only update last activity version prior to the regression in the
+                    # case where we have "Resolved in upcoming release" i.e. version == ""
+                    # We also should not override the `data` attribute here because it might have
+                    # a `current_release_version` for semver releases and we wouldn't want to
+                    # lose that
+                    if activity.data["version"] == "":
+                        activity.update(data={**activity.data, "version": release.version})
+                except KeyError:
+                    # Safeguard in case there is no "version" key. However, should not happen
+                    activity.update(data={"version": release.version})
 
     if is_regression:
         activity = Activity.objects.create(

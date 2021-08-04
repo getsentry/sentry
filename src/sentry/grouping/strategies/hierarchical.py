@@ -176,16 +176,24 @@ def _accumulate_frame_levels(values, blaming_frame_idx, depth, direction):
     # subtract depth by one to count blaming frame
     depth -= 1
 
-    idx = blaming_frame_idx + direction
-    while 0 <= idx < len(values) and depth > 0:
-        component = values[idx]
-        idx += direction
+    start = blaming_frame_idx + direction
+    if start < 0:
+        return rv
 
+    added = 0
+    prev_was_prefix = values[blaming_frame_idx].is_prefix_frame
+    for component in values[start:None:direction]:
         if not component.contributes:
             continue
 
-        rv.append(component)
-        if not component.is_prefix_frame:
-            depth -= 1
+        if prev_was_prefix:
+            rv.append(component)
+        else:
+            if added == depth:
+                break
+            rv.append(component)
+            added += 1
+
+        prev_was_prefix = component.is_prefix_frame
 
     return rv

@@ -891,6 +891,12 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable experimental new version of stacktrace component where additional
+    # data related to grouping is shown on each frame
+    "organizations:grouping-stacktrace-ui": False,
+    # Enable tweaks to group title in relation to hierarchical
+    # grouping.
+    "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
@@ -901,6 +907,10 @@ SENTRY_FEATURES = {
     "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
+    # sentry at the moment.
+    "organizations:issue-search-use-cdc-primary": False,
+    "organizations:issue-search-use-cdc-secondary": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
     # Automatically extract metrics during ingestion.
@@ -967,6 +977,8 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
+    # Allow the user to create a sample transaction while onboarding
+    "organizations:performance-create-sample-transaction": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1116,6 +1128,9 @@ SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
 # sample rate for Apple App Store Connect tasks transactions
 SENTRY_APPCONNECT_APM_SAMPLING = 1
+
+# sample rate for suspect commits task
+SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 
 # ----
 # end APM config

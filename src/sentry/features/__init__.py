@@ -75,6 +75,8 @@ default_manager.add("organizations:events", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
 default_manager.add("organizations:global-views", OrganizationFeature)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
+default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
+default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)
 default_manager.add("organizations:issue-percent-filters", OrganizationFeature, True)
 default_manager.add("organizations:improved-search", OrganizationFeature, True)
@@ -94,6 +96,8 @@ default_manager.add("organizations:invite-members", OrganizationFeature)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
 default_manager.add("organizations:issue-percent-display", OrganizationFeature, True)
+default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, True)
+default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, True)
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
@@ -112,6 +116,9 @@ default_manager.add("organizations:performance-tag-page", OrganizationFeature, T
 default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
+default_manager.add(
+    "organizations:performance-create-sample-transaction", OrganizationFeature, True
+)
 default_manager.add("organizations:project-transaction-threshold", OrganizationFeature, True)
 default_manager.add(
     "organizations:project-transaction-threshold-override", OrganizationFeature, True
