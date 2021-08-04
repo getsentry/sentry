@@ -46,8 +46,6 @@ jobs:
             ${{ steps.pip.outputs.pip-cache-dir }}
           key: |
             python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
-          restore-keys: |
-            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
