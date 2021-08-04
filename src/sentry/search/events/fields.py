@@ -1205,18 +1205,9 @@ class ColumnTagArg(ColumnArg):
     """Validate that the argument is either a column or a valid tag"""
 
     def normalize(self, value: str, params: ParamsType) -> str:
-        normalized_value = SEARCH_MAP.get(value)
-        if TAG_KEY_RE.match(value):
-            normalized_value = value
-        elif VALID_FIELD_PATTERN.match(value) and normalized_value is None:
-            normalized_value = f"tags[{value}]"
-
-        if normalized_value is None:
-            return super().normalize(value, params)
-        elif self.validate_only:
+        if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
             return value
-        else:
-            return normalized_value
+        return super().normalize(value, params)
 
 
 class CountColumn(ColumnArg):
