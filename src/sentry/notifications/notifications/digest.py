@@ -131,20 +131,14 @@ class DigestNotification(BaseNotification):
         # Only calculate shared context once.
         shared_context = self.get_context()
 
+        if should_send_as_alert_notification(shared_context):
+            return send_as_alert_notification(
+                shared_context, self.target_type, self.target_identifier
+            )
+
         # Calculate the per-user context.
         extra_context: Mapping[int, Mapping[str, Any]] = {}
         if should_get_personalized_digests(self.target_type, self.project.id):
             extra_context = self.get_extra_context(user_ids)
 
-        # Partition the participants.
-        digest_participants: Set["User"] = set()
-        for participant in participants:
-            # It's annoying to hydrate context twice, but whatever.
-            context = {**shared_context, **extra_context.get(participant.id, {})}
-
-            if should_send_as_alert_notification(context):
-                send_as_alert_notification(context, self.target_type, self.target_identifier)
-            else:
-                digest_participants.add(participant)
-
-        notify(ExternalProviders.EMAIL, self, digest_participants, shared_context, extra_context)
+        notify(ExternalProviders.EMAIL, self, participants, shared_context, extra_context)
