@@ -69,6 +69,8 @@ jobs:
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - uses: actions/cache@v2
+        env:
+          RUNNER_DEBUG: 0
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         if: steps.changes.outputs.frontend == 'true'
         with:
