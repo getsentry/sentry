@@ -571,31 +571,30 @@ class SmartSearchBar extends React.Component<Props, State> {
     if (
       key === '[' &&
       cursorToken?.type === Token.Filter &&
-      cursorToken.value.text.length === 0
+      cursorToken.value.text.length === 0 &&
+      isWithinToken(cursorToken.value, this.cursorPosition)
     ) {
       const {query} = this.state;
-      if (isWithinToken(cursorToken.value, this.cursorPosition)) {
-        evt.preventDefault();
-        let clauseStart: null | number = null;
-        let clauseEnd: null | number = null;
-        // the new text that will exist between clauseStart and clauseEnd
-        const replaceToken = '[]';
-        const location = cursorToken.value.location;
-        const keyLocation = cursorToken.key.location;
-        // Include everything after the ':'
-        clauseStart = keyLocation.end.offset + 1;
-        clauseEnd = location.end.offset + 1;
-        const beforeClause = query.substring(0, clauseStart);
-        let endClause = query.substring(clauseEnd);
-        // Add space before next clause if it exists
-        if (endClause) {
-          endClause = ` ${endClause}`;
-        }
-        const newQuery = `${beforeClause}${replaceToken}${endClause}`;
-        // Place cursor between inserted brackets
-        this.updateQuery(newQuery, beforeClause.length + replaceToken.length - 1);
-        return;
+      evt.preventDefault();
+      let clauseStart: null | number = null;
+      let clauseEnd: null | number = null;
+      // the new text that will exist between clauseStart and clauseEnd
+      const replaceToken = '[]';
+      const location = cursorToken.value.location;
+      const keyLocation = cursorToken.key.location;
+      // Include everything after the ':'
+      clauseStart = keyLocation.end.offset + 1;
+      clauseEnd = location.end.offset + 1;
+      const beforeClause = query.substring(0, clauseStart);
+      let endClause = query.substring(clauseEnd);
+      // Add space before next clause if it exists
+      if (endClause) {
+        endClause = ` ${endClause}`;
       }
+      const newQuery = `${beforeClause}${replaceToken}${endClause}`;
+      // Place cursor between inserted brackets
+      this.updateQuery(newQuery, beforeClause.length + replaceToken.length - 1);
+      return;
     }
   };
 
