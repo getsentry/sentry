@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:38.325512Z'
+created: '2021-08-03T15:05:49.772910Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,7 +11,7 @@ IllegalArgumentException:Missing android.support.FILE_PROVIDER_PATHS meta-data (
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
                   android.app.ActivityThread  access$1600 category=internals
@@ -29,7 +29,7 @@ RuntimeException:Unable to get provider com.helpshift.support.providers.Helpshif
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                 android.app.ActivityThread$H  handleMessage category=std
                   android.app.ActivityThread  access$1600 category=internals

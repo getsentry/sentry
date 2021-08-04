@@ -89,10 +89,8 @@ export function fetchPlugins(
 
   // This is intentionally not chained because we want the unhandled promise to be returned
   request
-    .then(([data, _, jqXHR]) => {
-      PluginActions.fetchAllSuccess(data, {
-        pageLinks: jqXHR && jqXHR.getResponseHeader('Link'),
-      });
+    .then(([data, _, resp]) => {
+      PluginActions.fetchAllSuccess(data, {pageLinks: resp?.getResponseHeader('Link')});
 
       return data;
     })
