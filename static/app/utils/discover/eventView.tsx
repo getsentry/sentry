@@ -627,7 +627,7 @@ class EventView {
       environment: this.environment,
       project: this.project,
       query: this.query,
-      yAxis: this.yAxis,
+      yAxis: this.yAxis || this.getYAxis(),
       display: this.display,
       interval: this.interval,
       user: user.id,
