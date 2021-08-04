@@ -403,8 +403,10 @@ from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_identity import UserIdentityEndpoint
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
+from .endpoints.user_integrations import UserIntegrationsEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
@@ -414,8 +416,8 @@ from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
+from .endpoints.user_unlinked_identity_orgs import UserUnlinkedIdentityOrgsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
-from .endpoints.user_identities import UserUnlinkedIdentitiesEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -635,6 +637,11 @@ urlpatterns = [
                     name="sentry-api-0-user-identity-details",
                 ),
                 url(
+                    r"^(?P<user_id>[^\/]+)/identities/$",
+                    UserIdentityEndpoint.as_view(),
+                    name="sentry-api-0-user-identity",
+                ),
+                url(
                     r"^(?P<user_id>[^\/]+)/ips/$",
                     UserIPsEndpoint.as_view(),
                     name="sentry-api-0-user-ips",
@@ -680,9 +687,14 @@ urlpatterns = [
                     name="sentry-api-0-user-subscriptions",
                 ),
                 url(
-                    r"^(?P<user_id>[^\/]+)/identities/$",
-                    UserUnlinkedIdentitiesEndpoint.as_view(),
-                    name="sentry-api-0-user-unlinked-identities",
+                    r"^(?P<user_id>[^\/]+)/integrations/$",
+                    UserIntegrationsEndpoint.as_view(),
+                    name="sentry-api-0-user-integrations",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/unlinked-identity-orgs/(?P<provider>[^\/]+)/$",
+                    UserUnlinkedIdentityOrgsEndpoint.as_view(),
+                    name="sentry-api-0-user-unlinked-identity-orgs",
                 ),
             ]
         ),

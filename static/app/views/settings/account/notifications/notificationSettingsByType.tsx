@@ -8,11 +8,11 @@ import {
   NotificationSettingsObject,
 } from 'app/views/settings/account/notifications/constants';
 import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
-import UnlinkedAlert from 'app/views/settings/account/notifications/unlinkedAlert';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
 import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
+import UnlinkedAlert from 'app/views/settings/account/notifications/unlinkedAlert';
 import {
   getCurrentDefault,
   getCurrentProviders,
@@ -20,7 +20,6 @@ import {
   getStateToPutForDefault,
   getStateToPutForParent,
   getStateToPutForProvider,
-  unlinkedSlacks,
   isEverythingDisabled,
   isGroupedByProject,
   mergeNotificationSettings,
@@ -37,7 +36,6 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  // identities: Identity[] | null;
   notificationSettings: NotificationSettingsObject;
 } & AsyncComponent['state'];
 
@@ -45,47 +43,17 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      // identities: [],
       notificationSettings: {},
     };
   }
 
-  getSlackIdentities = (data) => {
-    console.log({data})
-    return data;
-    // let slackIdentities = [];
-    // for (const identity of data) {
-    //   if (identity.provider == "slack") {
-    //     slackIdentities.push(identity);
-    //   }
-    // }
-    // console.log(slackIdentities);
-    // return slackIdentities;
-  }
-
-  getIdentities = () => {
-    const endpoint = '/users/me/identities/';
-    const stateKey = 'identities';
-    this.api.request(endpoint, {
-      method: 'GET',
-      // query,
-      success: (data, _, jqXHR) => {
-        const slackIdentities = this.getSlackIdentities(data);
-        return slackIdentities;
-        // this.handleRequestSuccess({stateKey, data, jqXHR}, true);
-      },
-      error: error => {
-        this.handleError(error, [stateKey, endpoint, null, null]);
-      },
-    });
-    // return slackIdentities? | [];
-  }
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {notificationType} = this.props;
-
     const query = {type: notificationType};
-    return [['notificationSettings', `/users/me/notification-settings/`, {query}]];
+    return [
+      ['notificationSettings', `/users/me/notification-settings/`, {query}],
+      ['unlinkedOrgs', '/users/me/unlinked-identity-orgs/slack/'],
+    ];
   }
 
   /* Methods responsible for updating state and hitting the API. */
@@ -201,19 +169,14 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-    const identities = this.getIdentities();
-    console.log({identities});
-    // const temp = unlinkedSlacks(notificationType, notificationSettings, identities);
-    // console.log(temp);
-
+    const {notificationSettings, unlinkedOrgs} = this.state;
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
 
     return (
       <React.Fragment>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
-        <UnlinkedAlert />
+        {unlinkedOrgs && <UnlinkedAlert organizations={unlinkedOrgs} />}
         <FeedbackAlert />
         <Form
           saveOnBlur
