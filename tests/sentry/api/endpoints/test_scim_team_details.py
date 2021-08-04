@@ -36,6 +36,23 @@ class SCIMGroupDetailsTests(SCIMTestCase):
             "meta": {"resourceType": "Group"},
         }
 
+    def test_scim_team_details_excluded_attributes(self):
+        team = self.create_team(organization=self.organization, name="test-scimv2")
+        # test team details GET
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, team.id],
+        )
+        response = self.client.get(f"{url}?excludedAttributes=members")
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": str(team.id),
+            "displayName": "test-scimv2",
+            "members": None,
+            "meta": {"resourceType": "Group"},
+        }
+
     def test_scim_team_details_patch_replace_rename_team(self):
         team = self.create_team(organization=self.organization)
         # rename a team with the replace op
