@@ -299,10 +299,12 @@ def create_sample_event(
     return create_sample_event_basic(data, project.id, raw=raw)
 
 
-def create_sample_event_basic(data, project_id, raw=True):
+def create_sample_event_basic(data, project_id, raw=True, skip_send_first_transaction=False):
     manager = EventManager(data)
     manager.normalize()
-    return manager.save(project_id, raw=raw)
+    return manager.save(
+        project_id, raw=raw, skip_send_first_transaction=skip_send_first_transaction
+    )
 
 
 def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_id, data):
