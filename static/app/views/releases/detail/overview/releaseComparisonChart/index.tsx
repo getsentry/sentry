@@ -854,6 +854,7 @@ function ReleaseComparisonChart({
           <Cell key="release">{t('This Release')}</Cell>,
           <Cell key="change">{t('Change')}</Cell>,
         ]}
+        data-test-id="release-comparison-table"
       >
         {charts.map(
           ({
