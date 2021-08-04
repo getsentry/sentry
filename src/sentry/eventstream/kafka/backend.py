@@ -288,8 +288,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     ):
                         self._dispatch_post_process_group_task(**task_kwargs)
 
-                except Exception:
-                    metrics.incr("eventstream.parsing-error")
+                except Exception as error:
+                    logger.error("Could not forward message: %s", error, exc_info=True)
                     self._get_task_kwargs_and_dispatch(message)
 
             else:
