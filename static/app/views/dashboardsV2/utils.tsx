@@ -24,13 +24,17 @@ export function eventViewFromWidget(
     widgetType === DisplayType.WORLD_MAP
       ? ['geo.country_code', ...query.fields]
       : query.fields;
+  const conditions =
+    widgetType === DisplayType.WORLD_MAP
+      ? `${query.conditions} has:geo.country_code`
+      : query.conditions;
 
   return EventView.fromSavedQuery({
     id: undefined,
     name: title,
     version: 2,
     fields,
-    query: query.conditions,
+    query: conditions,
     orderby: query.orderby,
     projects,
     range: statsPeriod,
