@@ -9,6 +9,7 @@ import ProjectActions from 'app/actions/projectActions';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
+import IdBadge from 'app/components/idBadge';
 import PageHeading from 'app/components/pageHeading';
 import PlatformPicker from 'app/components/platformPicker';
 import Tooltip from 'app/components/tooltip';
@@ -115,9 +116,9 @@ class CreateProject extends React.Component<Props, State> {
               value={team}
               placeholder={t('Select a Team')}
               onChange={choice => this.setState({team: choice.value})}
-              options={teams.map(({slug}) => ({
-                label: `#${slug}`,
-                value: slug,
+              options={teams.map(teamItem => ({
+                label: <IdBadge team={teamItem} />,
+                value: teamItem.slug,
               }))}
             />
             <Tooltip title={t('Create a team')}>
