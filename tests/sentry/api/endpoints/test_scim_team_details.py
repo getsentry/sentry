@@ -71,6 +71,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         )
         assert response.status_code == 204, response.content
         assert Team.objects.get(id=team.id).slug == "newname"
+        assert Team.objects.get(id=team.id).name == "newName"
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -97,7 +98,6 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             },
         )
         assert response.status_code == 204, response.content
-
         assert OrganizationMemberTeam.objects.filter(
             team_id=str(team.id), organizationmember_id=member1.id
         ).exists()

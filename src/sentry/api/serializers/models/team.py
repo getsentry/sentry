@@ -257,7 +257,7 @@ class TeamSCIMSerializer(Serializer):  # type: ignore
         result = {
             "schemas": [SCIM_SCHEMA_GROUP],
             "id": str(obj.id),
-            "displayName": obj.slug,
+            "displayName": obj.name,
             "meta": {"resourceType": "Group"},
         }
         if "members" in attrs:
