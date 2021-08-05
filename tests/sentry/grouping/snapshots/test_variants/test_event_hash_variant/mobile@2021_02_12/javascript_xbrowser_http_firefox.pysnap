@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:53.473073Z'
+created: '2021-08-04T15:53:48.730045Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -194,13 +194,6 @@ app-depth-max:
               "test.html"
             function*
               "aha"
-          frame (ignored low quality javascript frame)
-            module*
-              "test"
-            filename (ignored because frame points to a URL)
-              "test.html"
-            function*
-              "eval"
           frame*
             module*
               "test"

@@ -1,5 +1,5 @@
 ---
-created: '2021-07-30T14:13:52.088912Z'
+created: '2021-08-04T15:53:48.551274Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,21 +26,9 @@ app-depth-max:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "UIApplicationMain"
           frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "GSEventRunModal"
           frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "objc_release"

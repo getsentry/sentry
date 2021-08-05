@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:52.589885Z'
+created: '2021-08-04T15:53:48.243907Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -175,34 +175,6 @@ app-depth-max:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "java.lang.Thread"
-            filename (module takes precedence)
-              "thread.java"
-            function*
-              "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
-            filename (module takes precedence)
-              "taskthread.java"
-            function*
-              "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "java.util.concurrent.ThreadPoolExecutor$Worker"
-            filename (module takes precedence)
-              "threadpoolexecutor.java"
-            function*
-              "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "java.util.concurrent.ThreadPoolExecutor"
-            filename (module takes precedence)
-              "threadpoolexecutor.java"
-            function*
-              "runWorker"
           frame*
             module*
               "org.apache.tomcat.util.net.SocketProcessorBase"
@@ -525,13 +497,6 @@ app-depth-max:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame (ignored by stack trace rule (category:indirection -group))
-            module*
-              "java.lang.reflect.Method"
-            filename (module takes precedence)
-              "method.java"
-            function*
-              "invoke"
           frame*
             module*
               "jdk.internal.reflect.DelegatingMethodAccessorImpl"

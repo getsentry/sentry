@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.537160Z'
+created: '2021-08-04T15:53:48.163399Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: null
-  tree_label: "__exit__ | _prefetch | __init__"
+  tree_label: "_prefetch | __init__"
   component:
     app-depth-2 (custom fingerprint takes precedence)
       exception*
@@ -49,15 +49,6 @@ app-depth-2:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame*
-            module*
-              "concurrent.futures._base"
-            filename (module takes precedence)
-              "_base.py"
-            function*
-              "__exit__"
-            context-line*
-              "self.shutdown(wait=True)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -65,7 +56,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: null
-  tree_label: "shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob"
+  tree_label: "_prefetch | __init__ | _get_chunked_blob"
   component:
     app-depth-3 (custom fingerprint takes precedence)
       exception*
@@ -97,24 +88,6 @@ app-depth-3:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame*
-            module*
-              "concurrent.futures._base"
-            filename (module takes precedence)
-              "_base.py"
-            function*
-              "__exit__"
-            context-line*
-              "self.shutdown(wait=True)"
-          frame*
-            module*
-              "concurrent.futures.thread"
-            filename (module takes precedence)
-              "thread.py"
-            function*
-              "shutdown"
-            context-line*
-              "t.join(sys.maxint)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -122,7 +95,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: null
-  tree_label: "join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to"
+  tree_label: "_prefetch | __init__ | _get_chunked_blob | save_to"
   component:
     app-depth-4 (custom fingerprint takes precedence)
       exception*
@@ -163,33 +136,6 @@ app-depth-4:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame*
-            module*
-              "concurrent.futures._base"
-            filename (module takes precedence)
-              "_base.py"
-            function*
-              "__exit__"
-            context-line*
-              "self.shutdown(wait=True)"
-          frame*
-            module*
-              "concurrent.futures.thread"
-            filename (module takes precedence)
-              "thread.py"
-            function*
-              "shutdown"
-            context-line*
-              "t.join(sys.maxint)"
-          frame*
-            module*
-              "threading"
-            filename (module takes precedence)
-              "threading.py"
-            function*
-              "join"
-            context-line*
-              "self.__block.wait(delay)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -197,7 +143,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: null
-  tree_label: "wait | join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs"
+  tree_label: "_prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs"
   component:
     app-depth-5 (custom fingerprint takes precedence)
       exception*
@@ -247,42 +193,6 @@ app-depth-5:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame*
-            module*
-              "concurrent.futures._base"
-            filename (module takes precedence)
-              "_base.py"
-            function*
-              "__exit__"
-            context-line*
-              "self.shutdown(wait=True)"
-          frame*
-            module*
-              "concurrent.futures.thread"
-            filename (module takes precedence)
-              "thread.py"
-            function*
-              "shutdown"
-            context-line*
-              "t.join(sys.maxint)"
-          frame*
-            module*
-              "threading"
-            filename (module takes precedence)
-              "threading.py"
-            function*
-              "join"
-            context-line*
-              "self.__block.wait(delay)"
-          frame*
-            module*
-              "threading"
-            filename (module takes precedence)
-              "threading.py"
-            function*
-              "wait"
-            context-line*
-              "_sleep(delay)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -290,7 +200,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null
-  tree_label: "soft_timeout_sighandler | wait | join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs | get_symcaches | __init__ | preprocess_step | process_stacktraces | _do_process_event | process_event | _wrapped"
+  tree_label: "_prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs | get_symcaches | __init__ | preprocess_step | process_stacktraces | _do_process_event | process_event | _wrapped"
   component:
     app-depth-max (custom fingerprint takes precedence)
       exception*
@@ -403,51 +313,6 @@ app-depth-max:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame*
-            module*
-              "concurrent.futures._base"
-            filename (module takes precedence)
-              "_base.py"
-            function*
-              "__exit__"
-            context-line*
-              "self.shutdown(wait=True)"
-          frame*
-            module*
-              "concurrent.futures.thread"
-            filename (module takes precedence)
-              "thread.py"
-            function*
-              "shutdown"
-            context-line*
-              "t.join(sys.maxint)"
-          frame*
-            module*
-              "threading"
-            filename (module takes precedence)
-              "threading.py"
-            function*
-              "join"
-            context-line*
-              "self.__block.wait(delay)"
-          frame*
-            module*
-              "threading"
-            filename (module takes precedence)
-              "threading.py"
-            function*
-              "wait"
-            context-line*
-              "_sleep(delay)"
-          frame*
-            module*
-              "billiard.pool"
-            filename (module takes precedence)
-              "pool.py"
-            function*
-              "soft_timeout_sighandler"
-            context-line*
-              "raise SoftTimeLimitExceeded()"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
