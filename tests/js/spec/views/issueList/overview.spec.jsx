@@ -27,18 +27,14 @@ const DEFAULT_LINKS_HEADER =
 describe('IssueList', function () {
   /**  @type {ReturnType<typeof mountWithTheme>} */
   let wrapper;
-  // let props;
 
-  // let organization;
   let project;
   let group;
-
   let groupStats;
   let savedSearch;
 
   let fetchTagsRequest;
   let fetchMembersRequest;
-  // const api = new MockApiClient();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -48,13 +44,6 @@ describe('IssueList', function () {
       slug: 'project-slug',
       firstEvent: true,
     });
-    // organization = TestStubs.Organization({
-    // id: '1337',
-    // slug: 'org-slug',
-    // access: ['releases'],
-    // features: [],
-    // projects: [project],
-    // });
 
     savedSearch = TestStubs.Search({
       id: '789',
@@ -128,36 +117,12 @@ describe('IssueList', function () {
     });
 
     TagStore.init();
-
-    // props = {
-    // api,
-    // savedSearchLoading: false,
-    // savedSearches: [savedSearch],
-    // useOrgSavedSearches: true,
-    // selection: {
-    // projects: [parseInt(organization.projects[0].id, 10)],
-    // environments: [],
-    // datetime: {period: '14d'},
-    // },
-    // location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-    // params: {orgId: organization.slug},
-    // organization,
-    // tags: tags.reduce((acc, tag) => {
-    // acc[tag.key] = tag;
-
-    // return acc;
-    // }),
-    // };
   });
 
   afterEach(function () {
+    cleanup();
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
-    if (wrapper) {
-      wrapper.unmount();
-    }
-    wrapper = null;
-    cleanup();
 
     for (const el of document.querySelectorAll('style').values()) {
       el.remove();
