@@ -34,7 +34,9 @@ const DemoSignUpModal = ({closeModal}: Props) => {
             priority="primary"
             href={signupUrl}
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_signup', {}, null)
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_signup', {
+                organization: null,
+              })
             }
           >
             {t('Sign up now')}
@@ -42,7 +44,9 @@ const DemoSignUpModal = ({closeModal}: Props) => {
           <Button
             priority="default"
             onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_continue', {}, null);
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_continue', {
+                organization: null,
+              });
               closeModal();
             }}
           >

@@ -52,7 +52,9 @@ export default function DemoHeader() {
       <StyledLogoSentry />
       <ButtonBar gap={4}>
         <StyledExternalLink
-          onClick={() => trackAdvancedAnalyticsEvent('growth.demo_click_docs', {}, null)}
+          onClick={() =>
+            trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
+          }
           href={`https://docs.sentry.io/${extraParameter}`}
         >
           {t('Documentation')}
@@ -60,7 +62,9 @@ export default function DemoHeader() {
         <BaseButton
           priority="form"
           onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {}, null)
+            trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
+              organization: null,
+            })
           }
           href={`https://sentry.io/_/demo/${extraParameter}`}
         >
@@ -68,13 +72,10 @@ export default function DemoHeader() {
         </BaseButton>
         <GetStarted
           onClick={() =>
-            trackAdvancedAnalyticsEvent(
-              'growth.demo_click_get_started',
-              {
-                is_upgrade: !!saasOrgSlug,
-              },
-              null
-            )
+            trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
+              is_upgrade: !!saasOrgSlug,
+              organization: null,
+            })
           }
           href={getStartedUrl}
         >

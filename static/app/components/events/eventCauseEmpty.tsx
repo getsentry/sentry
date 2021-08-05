@@ -146,14 +146,11 @@ class EventCauseEmpty extends Component<Props, State> {
   trackAnalytics(eventKey: IssueEventKey) {
     const {project, organization} = this.props;
 
-    trackAdvancedAnalyticsEvent(
-      eventKey,
-      {
-        project_id: project.id,
-        platform: project.platform,
-      },
-      organization
-    );
+    trackAdvancedAnalyticsEvent(eventKey, {
+      project_id: project.id,
+      platform: project.platform,
+      organization,
+    });
   }
 
   render() {

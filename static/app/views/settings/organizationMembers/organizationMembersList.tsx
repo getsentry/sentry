@@ -188,14 +188,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
       this.removeInviteRequest(inviteRequest.id);
       addSuccessMessage(successMessage);
-      trackAdvancedAnalyticsEvent(
-        eventKey,
-        {
-          member_id: parseInt(inviteRequest.id, 10),
-          invite_status: inviteRequest.inviteStatus,
-        },
-        organization
-      );
+      trackAdvancedAnalyticsEvent(eventKey, {
+        member_id: parseInt(inviteRequest.id, 10),
+        invite_status: inviteRequest.inviteStatus,
+        organization,
+      });
     } catch {
       addErrorMessage(errorMessage);
     }
