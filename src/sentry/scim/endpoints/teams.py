@@ -225,8 +225,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
-        context = serialize(team, serializer=TeamSCIMSerializer())
-        return Response(context)
+        return self.respond(status=204)
 
     def delete(self, request, organization, team):
         return super().delete(request, team)
