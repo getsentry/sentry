@@ -168,7 +168,6 @@ class SCIMGroupIndexTests(SCIMTestCase):
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(self.team.id),
                     "displayName": self.team.name,
-                    "members": None,
                     "meta": {"resourceType": "Group"},
                 }
             ],

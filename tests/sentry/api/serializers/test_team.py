@@ -217,7 +217,6 @@ class TeamSCIMSerializerTest(TestCase):
         assert result == {
             "displayName": team.name,
             "id": str(team.id),
-            "members": None,
             "meta": {"resourceType": "Group"},
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
         }
