@@ -623,350 +623,156 @@ describe('IssueList', function () {
       });
     });
 
-    // it('pins and unpins a saved query', async function () {
-    // const assignedToMe = TestStubs.Search({
-    // id: '234',
-    // name: 'Assigned to Me',
-    // isPinned: false,
-    // isGlobal: true,
-    // query: 'assigned:me',
-    // sort: 'date',
-    // projectId: null,
-    // type: 0,
-    // });
+    it('pins and unpins a saved query', async function () {
+      const assignedToMe = TestStubs.Search({
+        id: '234',
+        name: 'Assigned to Me',
+        isPinned: false,
+        isGlobal: true,
+        query: 'assigned:me',
+        sort: 'date',
+        projectId: null,
+        type: 0,
+      });
+      const createPin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: {
+          ...savedSearch,
+          isPinned: true,
+        },
+      });
+      const deletePin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'DELETE',
+      });
 
-    // savedSearchesRequest = MockApiClient.addMockResponse({
-    // url: '/organizations/org-slug/searches/',
-    // body: [savedSearch, assignedToMe],
-    // });
-    // createWrapper();
-    // await tick();
-    // await tick();
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [savedSearch, assignedToMe],
+      });
+      createWrapper({
+        location: {
+          ...router.location,
+          query: {
+            query: 'assigned:me level:fatal',
+          },
+        },
+        params: {
+          ...router.params,
+          searchId: '789',
+        },
+      });
 
-    // let createPin = MockApiClient.addMockResponse({
-    // url: '/organizations/org-slug/pinned-searches/',
-    // method: 'PUT',
-    // body: {
-    // ...savedSearch,
-    // isPinned: true,
-    // },
-    // });
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
 
-    // wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
-    // wrapper.find('SavedSearchMenuItem a').first().simulate('click');
+      fireEvent.click(wrapper.getByTestId('saved-search-title'));
+      fireEvent.click(wrapper.getAllByText('Unresolved TypeErrors')[1]);
 
-    // await tick();
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/789/',
+          query: {
+            environment: [],
+            project: ['3559'],
+            statsPeriod: '14d',
+            sort: 'date',
+          },
+        })
+      );
 
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(
-    // expect.objectContaining({
-    // pathname: '/organizations/org-slug/issues/searches/789/',
-    // query: {
-    // environment: [],
-    // project: ['3559'],
-    // statsPeriod: '14d',
-    // sort: 'date',
-    // },
-    // })
-    // );
+      expect(wrapper.getByTestId('saved-search-title')).toHaveTextContent(
+        'Unresolved TypeErrors'
+      );
 
-    // wrapper.setProps({
-    // params: {
-    // ...router.params,
-    // searchId: '789',
-    // },
-    // });
+      fireEvent.click(wrapper.getByLabelText('Pin this search'));
 
-    // expect(getSavedSearchTitle(wrapper)).toBe('Unresolved TypeErrors');
+      await waitFor(() => {
+        expect(createPin).toHaveBeenCalled();
+      });
 
-    // wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
+      fireEvent.click(wrapper.getByLabelText('Unpin this search'));
 
-    // expect(createPin).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(deletePin).toHaveBeenCalled();
+      });
+    });
 
-    // await tick();
+    it('does not allow pagination to "previous" while on first page', async function () {
+      createWrapper();
 
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(
-    // expect.objectContaining({
-    // pathname: '/organizations/org-slug/issues/searches/789/',
-    // })
-    // );
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
 
-    // wrapper.setProps({
-    // params: {
-    // ...router.params,
-    // searchId: '789',
-    // },
-    // });
+      expect(wrapper.getByLabelText('Previous').getAttribute('aria-disabled')).toEqual(
+        'true'
+      );
 
-    // await tick();
+      issuesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
+        },
+      });
 
-    // expect(getSavedSearchTitle(wrapper)).toBe('Unresolved TypeErrors');
+      fireEvent.click(wrapper.getByLabelText('Next'));
 
-    // // Select other saved search
-    // wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
-    // wrapper.find('SavedSearchMenuItem a').last().simulate('click');
+      expect(browserHistory.push).toHaveBeenLastCalledWith({
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: '1443575000:0:0',
+          page: 1,
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+          statsPeriod: '14d',
+        },
+      });
+    });
 
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(
-    // expect.objectContaining({
-    // pathname: '/organizations/org-slug/issues/searches/234/',
-    // query: {
-    // project: [],
-    // environment: [],
-    // statsPeriod: '14d',
-    // sort: 'date',
-    // },
-    // })
-    // );
+    it('resets cursors when navigating back to initial page', async function () {
+      issuesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
+        },
+      });
 
-    // wrapper.setProps({
-    // params: {
-    // ...router.params,
-    // searchId: '234',
-    // },
-    // });
+      createWrapper({
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: '1443575000:0:1',
+          page: 1,
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+          statsPeriod: '14d',
+        },
+      });
 
-    // expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
 
-    // createPin = MockApiClient.addMockResponse({
-    // url: '/organizations/org-slug/pinned-searches/',
-    // method: 'PUT',
-    // body: {
-    // ...assignedToMe,
-    // isPinned: true,
-    // },
-    // });
+      fireEvent.click(wrapper.getByLabelText('Previous'));
 
-    // wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
-
-    // expect(createPin).toHaveBeenCalled();
-
-    // await tick();
-
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(
-    // expect.objectContaining({
-    // pathname: '/organizations/org-slug/issues/searches/234/',
-    // })
-    // );
-
-    // wrapper.setProps({
-    // params: {
-    // ...router.params,
-    // searchId: '234',
-    // },
-    // });
-
-    // await tick();
-
-    // expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
-    // });
-
-    // it('pinning and unpinning searches should keep project selected', async function () {
-    // savedSearchesRequest = MockApiClient.addMockResponse({
-    // url: '/organizations/org-slug/searches/',
-    // body: [savedSearch],
-    // });
-    // createWrapper({
-    // selection: {
-    // projects: [123],
-    // environments: ['prod'],
-    // datetime: {},
-    // },
-    // location: {query: {project: ['123'], environment: ['prod']}},
-    // });
-    // await tick();
-    // await tick();
-
-    // const deletePin = MockApiClient.addMockResponse({
-    // url: '/organizations/org-slug/pinned-searches/',
-    // method: 'DELETE',
-    // });
-    // const createPin = MockApiClient.addMockResponse({
-    // url: '/organizations/org-slug/pinned-searches/',
-    // method: 'PUT',
-    // body: {
-    // ...savedSearch,
-    // id: '666',
-    // name: 'My Pinned Search',
-    // query: 'assigned:me level:fatal',
-    // sort: 'date',
-    // isPinned: true,
-    // },
-    // });
-
-    // wrapper
-    // .find('SmartSearchBar textarea')
-    // .simulate('change', {target: {value: 'assigned:me level:fatal'}});
-    // wrapper.find('SmartSearchBar form').simulate('submit');
-
-    // await tick();
-
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(
-    // expect.objectContaining({
-    // query: expect.objectContaining({
-    // project: [123],
-    // environment: ['prod'],
-    // query: 'assigned:me level:fatal',
-    // }),
-    // })
-    // );
-
-    // const newRouter = {
-    // ...router,
-    // location: {
-    // ...router.location,
-    // query: {
-    // ...router.location.query,
-    // project: [123],
-    // environment: ['prod'],
-    // query: 'assigned:me level:fatal',
-    // },
-    // },
-    // };
-
-    // wrapper.setProps({...newRouter, router: newRouter});
-    // wrapper.setContext({router: newRouter});
-
-    // wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
-
-    // expect(createPin).toHaveBeenCalled();
-
-    // await tick();
-
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(
-    // expect.objectContaining({
-    // pathname: '/organizations/org-slug/issues/searches/666/',
-    // query: expect.objectContaining({
-    // project: [123],
-    // environment: ['prod'],
-    // query: 'assigned:me level:fatal',
-    // }),
-    // })
-    // );
-
-    // wrapper.setProps({
-    // params: {
-    // ...router.params,
-    // searchId: '666',
-    // },
-    // });
-
-    // await tick();
-
-    // wrapper.find('Button[aria-label="Unpin this search"] button').simulate('click');
-
-    // expect(deletePin).toHaveBeenCalled();
-
-    // await tick();
-
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(
-    // expect.objectContaining({
-    // pathname: '/organizations/org-slug/issues/',
-    // query: expect.objectContaining({
-    // project: [123],
-    // environment: ['prod'],
-    // query: 'assigned:me level:fatal',
-    // }),
-    // })
-    // );
-    // });
-
-    it.todo('saves a new query');
-
-    it.todo('loads pinned search when invalid saved search id is accessed');
-
-    // it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {
-    // let pushArgs;
-    // createWrapper();
-    // await tick();
-    // await tick();
-
-    // expect(wrapper.find('Pagination Button').first().prop('disabled')).toBe(true);
-
-    // issuesRequest = MockApiClient.addMockResponse({
-    // url: '/organizations/org-slug/issues/',
-    // body: [group],
-    // headers: {
-    // Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
-    // },
-    // });
-
-    // // Click next
-    // wrapper.find('Pagination Button').last().simulate('click');
-
-    // await tick();
-
-    // pushArgs = {
-    // pathname: '/organizations/org-slug/issues/',
-    // query: {
-    // cursor: '1443575000:0:0',
-    // page: 1,
-    // environment: [],
-    // project: [],
-    // query: 'is:unresolved',
-    // statsPeriod: '14d',
-    // },
-    // };
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
-    // wrapper.setProps({location: pushArgs});
-    // wrapper.setContext({location: pushArgs});
-
-    // expect(wrapper.find('Pagination Button').first().prop('disabled')).toBe(false);
-
-    // // Click next again
-    // wrapper.find('Pagination Button').last().simulate('click');
-
-    // await tick();
-
-    // pushArgs = {
-    // pathname: '/organizations/org-slug/issues/',
-    // query: {
-    // cursor: '1443574000:0:0',
-    // page: 2,
-    // environment: [],
-    // project: [],
-    // query: 'is:unresolved',
-    // statsPeriod: '14d',
-    // },
-    // };
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
-    // wrapper.setProps({location: pushArgs});
-    // wrapper.setContext({location: pushArgs});
-
-    // // Click previous
-    // wrapper.find('Pagination Button').first().simulate('click');
-
-    // await tick();
-
-    // pushArgs = {
-    // pathname: '/organizations/org-slug/issues/',
-    // query: {
-    // cursor: '1443575000:0:1',
-    // page: 1,
-    // environment: [],
-    // project: [],
-    // query: 'is:unresolved',
-    // statsPeriod: '14d',
-    // },
-    // };
-    // expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
-    // wrapper.setProps({location: pushArgs});
-    // wrapper.setContext({location: pushArgs});
-
-    // // Click previous back to initial page
-    // wrapper.find('Pagination Button').first().simulate('click');
-    // await tick();
-
-    // // cursor is undefined because "prev" cursor is === initial "next" cursor
-    // expect(browserHistory.push).toHaveBeenLastCalledWith({
-    // pathname: '/organizations/org-slug/issues/',
-    // query: {
-    // cursor: undefined,
-    // environment: [],
-    // page: undefined,
-    // project: [],
-    // query: 'is:unresolved',
-    // statsPeriod: '14d',
-    // },
-    // });
-    // });
+      // cursor is undefined because "prev" cursor is === initial "next" cursor
+      expect(browserHistory.push).toHaveBeenLastCalledWith({
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: undefined,
+          environment: [],
+          page: undefined,
+          project: [],
+          query: 'is:unresolved',
+          statsPeriod: '14d',
+        },
+      });
+    });
   });
 });
