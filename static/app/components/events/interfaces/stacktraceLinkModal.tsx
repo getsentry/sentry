@@ -40,28 +40,22 @@ class StacktraceLinkModal extends Component<Props, State> {
   }
 
   onManualSetup(provider: string) {
-    trackIntegrationEvent(
-      'integrations.stacktrace_manual_option_clicked',
-      {
-        view: 'stacktrace_issue_details',
-        setup_type: 'manual',
-        provider,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.stacktrace_manual_option_clicked', {
+      view: 'stacktrace_issue_details',
+      setup_type: 'manual',
+      provider,
+      organization: this.props.organization,
+    });
   }
 
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
     const {api, closeModal, filename, onSubmit, organization, project} = this.props;
-    trackIntegrationEvent(
-      'integrations.stacktrace_submit_config',
-      {
-        setup_type: 'automatic',
-        view: 'stacktrace_issue_details',
-      },
-      organization
-    );
+    trackIntegrationEvent('integrations.stacktrace_submit_config', {
+      setup_type: 'automatic',
+      view: 'stacktrace_issue_details',
+      organization,
+    });
 
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
     try {
@@ -84,15 +78,12 @@ class StacktraceLinkModal extends Component<Props, State> {
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
-      trackIntegrationEvent(
-        'integrations.stacktrace_complete_setup',
-        {
-          setup_type: 'automatic',
-          provider: configData.config?.provider.key,
-          view: 'stacktrace_issue_details',
-        },
-        organization
-      );
+      trackIntegrationEvent('integrations.stacktrace_complete_setup', {
+        setup_type: 'automatic',
+        provider: configData.config?.provider.key,
+        view: 'stacktrace_issue_details',
+        organization,
+      });
       closeModal();
       onSubmit();
     } catch (err) {
