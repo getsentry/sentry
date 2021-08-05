@@ -25,6 +25,7 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
 describe('IssueList', function () {
+  /**  @type {ReturnType<typeof mountWithTheme>} */
   let wrapper;
   // let props;
 
@@ -557,28 +558,39 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [savedSearch],
       });
-      createWrapper();
+      createWrapper({
+        location: {
+          ...router.location,
+          query: {
+            query: 'assigned:me level:fatal',
+          },
+        },
+        params: {
+          ...router.params,
+          searchId: '666',
+        },
+      });
 
       await waitFor(() => {
         expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
       });
 
-      // const createPin = MockApiClient.addMockResponse({
-      // url: '/organizations/org-slug/pinned-searches/',
-      // method: 'PUT',
-      // body: {
-      // ...savedSearch,
-      // id: '666',
-      // name: 'My Pinned Search',
-      // query: 'assigned:me level:fatal',
-      // sort: 'date',
-      // isPinned: true,
-      // },
-      // });
-      // const deletePin = MockApiClient.addMockResponse({
-      // url: '/organizations/org-slug/pinned-searches/',
-      // method: 'DELETE',
-      // });
+      const createPin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: {
+          ...savedSearch,
+          id: '666',
+          name: 'My Pinned Search',
+          query: 'assigned:me level:fatal',
+          sort: 'date',
+          isPinned: true,
+        },
+      });
+      const deletePin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'DELETE',
+      });
 
       fireEvent.change(
         wrapper.getByPlaceholderText('Search for events, users, tags, and more'),
@@ -594,59 +606,21 @@ describe('IssueList', function () {
         })
       );
 
-      // wrapper.debug(wrapper.container, 100000)
+      expect(wrapper.getByTestId('saved-search-title')).toHaveTextContent(
+        'Custom Search'
+      );
 
-      // wrapper.setProps({
-      // location: {
-      // ...router.location,
-      // query: {
-      // query: 'assigned:me level:fatal',
-      // },
-      // },
-      // });
+      fireEvent.click(wrapper.getByLabelText('Pin this search'));
 
-      // expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+      await waitFor(() => {
+        expect(createPin).toHaveBeenCalled();
+      });
 
-      // wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
+      fireEvent.click(wrapper.getByLabelText('Unpin this search'));
 
-      // expect(createPin).toHaveBeenCalled();
-
-      // await tick();
-
-      // expect(browserHistory.push).toHaveBeenLastCalledWith(
-      // expect.objectContaining({
-      // pathname: '/organizations/org-slug/issues/searches/666/',
-      // query: {},
-      // search: '',
-      // })
-      // );
-
-      // wrapper.setProps({
-      // params: {
-      // ...router.params,
-      // searchId: '666',
-      // },
-      // });
-
-      // await tick();
-
-      // expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
-
-      // wrapper.find('Button[aria-label="Unpin this search"] button').simulate('click');
-
-      // expect(deletePin).toHaveBeenCalled();
-
-      // await tick();
-
-      // expect(browserHistory.push).toHaveBeenLastCalledWith(
-      // expect.objectContaining({
-      // pathname: '/organizations/org-slug/issues/',
-      // query: {
-      // query: 'assigned:me level:fatal',
-      // sort: 'date',
-      // },
-      // })
-      // );
+      await waitFor(() => {
+        expect(deletePin).toHaveBeenCalled();
+      });
     });
 
     // it('pins and unpins a saved query', async function () {
