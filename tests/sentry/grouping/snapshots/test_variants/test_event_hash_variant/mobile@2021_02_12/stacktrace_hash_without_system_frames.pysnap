@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:01.478202Z'
+created: '2021-08-04T15:51:31.662352Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,29 +12,14 @@ app-depth-1:
           filename*
             "foo.py"
 --------------------------------------------------------------------------
-app-depth-2:
-  hash: "659ad79e2e70c822d30a53d7d889529e"
-  component:
-    app-depth-2*
-      stacktrace*
-        frame*
-          filename*
-            "foo.py"
-        frame*
-          filename*
-            "bar.py"
---------------------------------------------------------------------------
 app-depth-max:
-  hash: "659ad79e2e70c822d30a53d7d889529e"
+  hash: "1effb24729ae4c43efa36b460511136a"
   component:
     app-depth-max*
       stacktrace*
         frame*
           filename*
             "foo.py"
-        frame*
-          filename*
-            "bar.py"
 --------------------------------------------------------------------------
 system:
   hash: "659ad79e2e70c822d30a53d7d889529e"

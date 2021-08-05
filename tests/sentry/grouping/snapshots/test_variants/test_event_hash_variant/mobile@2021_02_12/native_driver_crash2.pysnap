@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:40.906328Z'
+created: '2021-08-04T15:53:48.202885Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,27 +32,6 @@ app-depth-max:
               "CUseCountedObject<T>::UCDestroy"
             package (ignored because function takes precedence)
               "d3d11.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CContext::LUCBeginLayerDestruction"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "NDXGI::CDevice::DestroyDriverInstance"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "OpenAdapter10"
-            package (ignored because function takes precedence)
-              "nvwgf2umx.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            package* (used as fallback because function name is not available)
-              "nvwgf2umx.dll"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "nvwgf2umx.dll"
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)
