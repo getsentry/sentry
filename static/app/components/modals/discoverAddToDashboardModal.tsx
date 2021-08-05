@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -226,14 +227,24 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
     if (
       !this.state.selectedDashboard ||
-      !this.state.dashboards.includes(this.state.selectedDashboard)
+      !(
+        this.state.dashboards.includes(this.state.selectedDashboard) ||
+        this.state.selectedDashboard.value === 'new'
+      )
     ) {
       errors.dashboard = t('This field may not be blank');
       this.setState({errors});
     }
-    if (!Object.keys(errors).length) {
+    if (!Object.keys(errors).length && this.state.selectedDashboard) {
       // TODO: redirect user to dashboard view
       closeModal();
+      if (this.state.selectedDashboard.value === 'new') {
+        browserHistory.push(`/organizations/${organization.slug}/dashboards/new`);
+      } else {
+        browserHistory.push(
+          `/organizations/${organization.slug}/dashboard/${this.state.selectedDashboard.value}`
+        );
+      }
     }
   };
 
@@ -354,7 +365,10 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
           >
             <SelectControl
               name="dashboard"
-              options={this.state.dashboards}
+              options={[
+                {label: t('+ Create New Dashboard'), value: 'new'},
+                ...this.state.dashboards,
+              ]}
               onChange={(option: SelectValue<string>) =>
                 this.handleDashboardChange(option)
               }
