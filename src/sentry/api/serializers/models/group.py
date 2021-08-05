@@ -57,6 +57,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
+from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, aliased_query, raw_query
 
@@ -1097,6 +1098,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             self.environment_ids.sort()
             env_key = "-".join(str(eid) for eid in self.environment_ids)
 
-        key_hash = hash(f"{project_id}-{start_key}-{end_key}-{env_key}")
+        start_key = start_key.strftime("%m/%d/%Y, %H:%M:%S") if start_key != "" else ""
+        end_key = end_key.strftime("%m/%d/%Y, %H:%M:%S") if end_key != "" else ""
+        key_hash = hash_values([project_id, start_key, end_key, env_key])
         session_cache_key = f"w-s:{key_hash}"
         return session_cache_key

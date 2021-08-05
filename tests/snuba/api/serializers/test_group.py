@@ -29,6 +29,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
+from sentry.utils.hashlib import hash_values
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
@@ -599,7 +600,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         assert result[0]["sessionCount"] == 1
 
         # Delete the cache from the query we did above, else this result comes back as 1 instead of 0.5
-        key_hash = hash(f"{group.project.id}---{dev_environment.id}")
+        key_hash = hash_values([group.project.id, "", "", f"{dev_environment.id}"])
         cache.delete(f"w-s:{key_hash}")
         project2 = self.create_project(
             organization=self.organization, teams=[self.team], name="Another project"
