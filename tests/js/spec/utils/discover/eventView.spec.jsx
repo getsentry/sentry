@@ -890,6 +890,7 @@ describe('EventView.generateQueryStringObject()', function () {
       environment: [],
       display: 'previous',
       user: '1',
+      yAxis: 'count()',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);

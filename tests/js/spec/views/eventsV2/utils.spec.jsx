@@ -248,6 +248,7 @@ describe('pushEventViewToLocation', function () {
         statsPeriod: '14d',
         environment: ['staging'],
         user: '1',
+        yAxis: 'count()',
       },
     });
   });
@@ -278,6 +279,7 @@ describe('pushEventViewToLocation', function () {
         environment: ['staging'],
         cursor: 'some cursor',
         user: '1',
+        yAxis: 'count()',
       },
     });
   });
