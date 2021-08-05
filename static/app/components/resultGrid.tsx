@@ -245,12 +245,12 @@ class ResultGrid extends React.Component<Props, State> {
     this.props.api.request(this.props.endpoint!, {
       method: this.props.method,
       data: queryParams,
-      success: (data, _, jqXHR) => {
+      success: (data, _, resp) => {
         this.setState({
           loading: false,
           error: false,
           rows: data,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+          pageLinks: resp?.getResponseHeader('Link') ?? null,
         });
       },
       error: () => {

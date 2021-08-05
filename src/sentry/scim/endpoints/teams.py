@@ -36,7 +36,8 @@ from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_co
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
+def _team_expand(query):
+    return None if "members" in query.get("excludedAttributes", []) else ["members"]
 
 
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
@@ -54,22 +55,17 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         except ValueError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
-        if "members" in request.GET.get("excludedAttributes", []):
-            expand = None
-        else:
-            expand = ["members"]
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
-
         if filter_val:
-            queryset = queryset.filter(slug=slugify(filter_val))
+            queryset = queryset.filter(name=filter_val[0])
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(results, None, TeamSCIMSerializer(expand=expand))
+            results = serialize(results, None, TeamSCIMSerializer(expand=_team_expand(request.GET)))
             return self.list_api_format(request, queryset.count(), results)
 
         return self.paginate(
@@ -82,9 +78,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         )
 
     def post(self, request, organization):
-        # shim displayName from SCIM api to "slug" in order to work with
+        # shim displayName from SCIM api in order to work with
         # our regular team index POST
-        request.data.update({"slug": slugify(request.data["displayName"])})
+        request.data.update({"name": request.data["displayName"]})
         return super().post(request, organization)
 
 
@@ -110,7 +106,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     def get(self, request, organization, team):
-        context = serialize(team, serializer=TeamSCIMSerializer(expand=["members"]))
+        context = serialize(team, serializer=TeamSCIMSerializer(expand=_team_expand(request.GET)))
         return Response(context)
 
     def _add_members_operation(self, request, operation, team):
@@ -163,9 +159,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     def _rename_team_operation(self, request, new_name, team):
         serializer = TeamSerializer(
             team,
-            data={
-                "slug": slugify(new_name),
-            },
+            data={"name": new_name, "slug": slugify(new_name)},
             partial=True,
         )
         if serializer.is_valid():

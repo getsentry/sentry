@@ -24,7 +24,7 @@ type Props = {
 };
 
 function EventEntry({entry, projectSlug, event, organization, group}: Props) {
-  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
+  const hasGroupingTreeUI = !!organization.features?.includes('grouping-stacktrace-ui');
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {

@@ -889,6 +889,8 @@ describe('EventView.generateQueryStringObject()', function () {
       project: [],
       environment: [],
       display: 'previous',
+      user: '1',
+      yAxis: 'count()',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -931,6 +933,7 @@ describe('EventView.generateQueryStringObject()', function () {
       yAxis: 'count()',
       display: 'releases',
       interval: '1m',
+      user: '1',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);

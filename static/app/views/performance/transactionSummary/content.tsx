@@ -35,7 +35,7 @@ import {
   VITAL_GROUPS,
 } from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
-import {isSummaryViewFrontendPageLoad} from '../utils';
+import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
@@ -240,6 +240,8 @@ class SummaryContent extends React.Component<Props, State> {
           })
         ));
 
+    const isFrontendView = isSummaryViewFrontend(eventView, projects);
+
     const transactionsListTitles = [
       t('event id'),
       t('user'),
@@ -419,11 +421,13 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
-            />
+            {!isFrontendView && (
+              <StatusBreakdown
+                eventView={eventView}
+                organization={organization}
+                location={location}
+              />
+            )}
             <SidebarSpacer />
             <SidebarCharts
               organization={organization}
