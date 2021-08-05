@@ -29,14 +29,15 @@ from .constants import (
     SCIM_400_UNSUPPORTED_ATTRIBUTE,
     SCIM_404_GROUP_RES,
     SCIM_404_USER_RES,
-    GroupPatchOps,
+    TeamPatchOps,
 )
 from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_conditions
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
+def _team_expand(query):
+    return None if "members" in query.get("excludedAttributes", []) else ["members"]
 
 
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
@@ -54,23 +55,18 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         except ValueError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
-        if "members" in request.GET.get("excludedAttributes", []):
-            expand = None
-        else:
-            expand = ["members"]
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
-
         if filter_val:
-            queryset = queryset.filter(slug=slugify(filter_val))
+            queryset = queryset.filter(name=filter_val[0])
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(results, None, TeamSCIMSerializer(expand=expand))
-            return self.list_api_format(request, queryset, results)
+            results = serialize(results, None, TeamSCIMSerializer(expand=_team_expand(request.GET)))
+            return self.list_api_format(request, queryset.count(), results)
 
         return self.paginate(
             request=request,
@@ -82,9 +78,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         )
 
     def post(self, request, organization):
-        # shim displayName from SCIM api to "slug" in order to work with
+        # shim displayName from SCIM api in order to work with
         # our regular team index POST
-        request.data.update({"slug": slugify(request.data["displayName"])})
+        request.data.update({"name": request.data["displayName"]})
         return super().post(request, organization)
 
 
@@ -110,7 +106,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     def get(self, request, organization, team):
-        context = serialize(team, serializer=TeamSCIMSerializer(expand=["members"]))
+        context = serialize(team, serializer=TeamSCIMSerializer(expand=_team_expand(request.GET)))
         return Response(context)
 
     def _add_members_operation(self, request, operation, team):
@@ -118,6 +114,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             member = OrganizationMember.objects.get(
                 organization=team.organization, id=member["value"]
             )
+            if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
+                # if a member already belongs to a team, do nothing
+                continue
+
             with transaction.atomic():
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
                 self.create_audit_entry(
@@ -159,9 +159,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     def _rename_team_operation(self, request, new_name, team):
         serializer = TeamSerializer(
             team,
-            data={
-                "slug": slugify(new_name),
-            },
+            data={"name": new_name, "slug": slugify(new_name)},
             partial=True,
         )
         if serializer.is_valid():
@@ -176,7 +174,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     def patch(self, request, organization, team):
         """
-        A SCIM Group PATCH request takes a series of operations to peform on a team.
+        A SCIM Group PATCH request takes a series of operations to perform on a team.
         It does them sequentially and if any of them fail no operations should go through.
         The operations are add members, remove members, replace members, and rename team.
         """
@@ -187,13 +185,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             with transaction.atomic():
                 for operation in operations:
                     op = operation["op"].lower()
-                    if op == GroupPatchOps.ADD and operation["path"] == "members":
+                    if op == TeamPatchOps.ADD and operation["path"] == "members":
                         self._add_members_operation(request, operation, team)
-                    elif op == GroupPatchOps.REMOVE and "members" in operation["path"]:
+                    elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
                         # the members op contains a filter string like so:
                         # members[userName eq "baz@sentry.io"]
                         self._remove_members_operation(request, operation, team)
-                    elif op == GroupPatchOps.REPLACE:
+                    elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
 
                         if path == "members":
@@ -228,6 +226,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return super().delete(request, team)
 
     def put(self, request, organization, team):
-        # override parent's put since we dont have puts
+        # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

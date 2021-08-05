@@ -2,6 +2,7 @@
   {
     "query": "min(spans.browser):3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -14,7 +15,7 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               }
             ]
           },
@@ -35,6 +36,7 @@
   {
     "query": "min(spans.browser):>3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -47,7 +49,7 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               }
             ]
           },
@@ -68,6 +70,7 @@
   {
     "query": "min(spans.browser):<3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -80,7 +83,7 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               }
             ]
           },
@@ -101,6 +104,7 @@
   {
     "query": "min(spans.browser):<3k",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -113,7 +117,7 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               }
             ]
           },
@@ -130,6 +134,7 @@
     "query": "min(spans.browser):2m",
     "desc": "XXX: Questionable if this should actually be parsed as a duration? This is how it was written when moved from the original python test",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateDuration",
@@ -142,7 +147,7 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keySimple", "value": "spans.browser", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
               }
             ]
           },

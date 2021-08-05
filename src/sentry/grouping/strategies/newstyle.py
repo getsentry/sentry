@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List
 
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import GroupingComponent, calculate_tree_label
 from sentry.grouping.strategies.base import call_with_variants, strategy
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
@@ -47,28 +47,6 @@ RECURSION_COMPARISON_FIELDS = [
     "lineno",
     "colno",
 ]
-
-# Ignore all those kinds of exception types as they are produced from platform
-# specific error codes.
-#
-# For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
-# the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
-_synthetic_exception_type_re = re.compile(
-    r"""
-    ^
-    (
-        EXC_ |
-        EXCEPTION_ |
-        SIG |
-        KERN_ |
-        ILL_
-
-    # e.g. "EXC_BAD_ACCESS / 0x00000032"
-    ) [A-Z0-9_ /x]+
-    $
-    """,
-    re.X,
-)
 
 
 def is_recursion_v1(frame1, frame2):
@@ -267,7 +245,7 @@ def get_function_component(
             )
 
     if function_component.values and context["hierarchical_grouping"]:
-        function_component.update(tree_label=function_component.values[0])
+        function_component.update(tree_label={"function": function_component.values[0]})
 
     return function_component
 
@@ -346,7 +324,7 @@ def frame(frame, event, context, **meta):
                 )
 
             if package_component.values and context["hierarchical_grouping"]:
-                package_component.update(tree_label=package_component.values[0])
+                package_component.update(tree_label={"package": package_component.values[0]})
 
             values.append(package_component)
 
@@ -384,6 +362,9 @@ def frame(frame, event, context, **meta):
 
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
+
+    if rv.tree_label:
+        rv.tree_label = {"datapath": frame.datapath, **rv.tree_label}
 
     return {context["variant"]: rv}
 
@@ -541,10 +522,16 @@ def single_exception(exception, context, **meta):
 
     if exception.mechanism:
         if exception.mechanism.synthetic:
+            # Ignore synthetic exceptions as they are produced from platform
+            # specific error codes.
+            #
+            # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
+            # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
+            #
+            # Do not update type component of system variant, such that regex
+            # can be continuously modified without unnecessarily creating new
+            # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
-            system_type_component.update(
-                contributes=False, hint="ignored because exception is synthetic"
-            )
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
@@ -552,17 +539,6 @@ def single_exception(exception, context, **meta):
                     exception.mechanism.meta["ns_error"].get("domain"),
                     exception.mechanism.meta["ns_error"].get("code"),
                 ],
-            )
-
-        if context["detect_synthetic_exception_types"] and _synthetic_exception_type_re.match(
-            exception.type
-        ):
-            # Do not update type component of system variant, such that regex
-            # can be continuously modified without unnecessarily creating new
-            # groups.
-            type_component.update(
-                contributes=False,
-                hint="ignored because exception is synthetic (detected via exception type)",
             )
 
     if exception.stacktrace is not None:
@@ -640,7 +616,11 @@ def chained_exception(chained_exception, context, **meta):
     rv = {}
 
     for name, component_list in by_name.items():
-        rv[name] = GroupingComponent(id="chained-exception", values=component_list)
+        rv[name] = GroupingComponent(
+            id="chained-exception",
+            values=component_list,
+            tree_label=calculate_tree_label(reversed(component_list)),
+        )
 
     return rv
 

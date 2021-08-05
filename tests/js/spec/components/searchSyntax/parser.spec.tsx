@@ -27,28 +27,31 @@ type TestCase = {
  * Normalize results to match the json test cases
  */
 const normalizeResult = (tokens: TokenResult<Token>[]) =>
-  treeTransformer(tokens, token => {
-    // XXX: This attempts to keep the test data simple, only including keys
-    // that are really needed to validate functionality.
+  treeTransformer({
+    tree: tokens,
+    transform: token => {
+      // XXX: This attempts to keep the test data simple, only including keys
+      // that are really needed to validate functionality.
 
-    // @ts-ignore
-    delete token.location;
-    // @ts-ignore
-    delete token.text;
-    // @ts-ignore
-    delete token.config;
-
-    if (token.type === Token.Filter && token.invalid === null) {
       // @ts-ignore
-      delete token.invalid;
-    }
+      delete token.location;
+      // @ts-ignore
+      delete token.text;
+      // @ts-ignore
+      delete token.config;
 
-    if (token.type === Token.ValueIso8601Date) {
-      // Date values are represented as ISO strings in the test case json
-      return {...token, value: token.value.toISOString()};
-    }
+      if (token.type === Token.Filter && token.invalid === null) {
+        // @ts-ignore
+        delete token.invalid;
+      }
 
-    return token;
+      if (token.type === Token.ValueIso8601Date) {
+        // Date values are represented as ISO strings in the test case json
+        return {...token, value: token.value.toISOString()};
+      }
+
+      return token;
+    },
   });
 
 describe('searchSyntax/parser', function () {

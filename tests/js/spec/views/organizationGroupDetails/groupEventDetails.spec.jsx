@@ -141,7 +141,6 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
     wrapper.setProps({environments: [{id: '1', name: 'prod', displayName: 'Prod'}]});
     await tick();
-
     expect(browserHistory.replace).toHaveBeenCalled();
   });
 

@@ -2,6 +2,7 @@
   {
     "query": "percentile(measurements.fp, 0.5):3.3s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateDuration",
@@ -15,14 +16,14 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.fp",
                   "quoted": false
                 }
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },
@@ -38,6 +39,7 @@
   {
     "query": "percentile(measurements.fp, 0.5):>3.3s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateDuration",
@@ -51,14 +53,14 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.fp",
                   "quoted": false
                 }
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },
@@ -74,6 +76,7 @@
   {
     "query": "percentile(measurements.fp, 0.5):<3.3s",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateDuration",
@@ -87,14 +90,14 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.fp",
                   "quoted": false
                 }
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },

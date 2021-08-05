@@ -10,15 +10,22 @@ from typing import IO, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
-from django.db import models, transaction
+from django.db import models, router
 
 from sentry import options
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 from sentry.models import clear_cached_files
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
 from sentry.models.release import Release
 from sentry.utils import json, metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.zip import safe_extract_zip
 
@@ -54,14 +61,14 @@ class ReleaseFile(Model):
     """
     __include_in_export__ = False
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization_id = BoundedBigIntegerField()
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    release = FlexibleForeignKey("sentry.Release")
+    release_id = BoundedBigIntegerField()
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)
     name = models.TextField()
-    dist = FlexibleForeignKey("sentry.Distribution", null=True)
+    dist_id = BoundedBigIntegerField(null=True)
 
     #: For classic file uploads, this field is 1.
     #: For release archives, this field is 0.
@@ -75,24 +82,31 @@ class ReleaseFile(Model):
     public_objects = PublicReleaseFileManager()
 
     class Meta:
-        unique_together = (("release", "ident"),)
-        index_together = (("release", "name"),)
+        unique_together = (("release_id", "ident"),)
+        index_together = (("release_id", "name"),)
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
     def save(self, *args, **kwargs):
+        from sentry.models import Distribution
+
         if not self.ident and self.name:
-            dist = self.dist_id and self.dist.name or None
+            dist = None
+            if self.dist_id:
+                dist = Distribution.objects.get(pk=self.dist_id).name
             self.ident = type(self).get_ident(self.name, dist)
         return super().save(*args, **kwargs)
 
     def update(self, *args, **kwargs):
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
-            dist = kwargs.get("dist") or self.dist
-            kwargs["ident"] = self.ident = type(self).get_ident(
-                kwargs["name"], dist and dist.name or dist
-            )
+            dist_name = None
+            dist_id = kwargs.get("dist_id") or self.dist_id
+            if dist_id:
+                dist_name = Distribution.objects.filter(pk=dist_id).values_list("name", flat=True)[
+                    0
+                ]
+            kwargs["ident"] = self.ident = type(self).get_ident(kwargs["name"], dist_name)
         return super().update(*args, **kwargs)
 
     @classmethod
@@ -270,7 +284,12 @@ class _ArtifactIndexGuard:
     @contextmanager
     def writable_data(self, create: bool, initial_artifact_count=None):
         """Context manager for editable artifact index"""
-        with transaction.atomic():
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ReleaseFile),
+                router.db_for_write(File),
+            )
+        ):
             created = False
             if create:
                 releasefile, created = self._get_or_create_releasefile(initial_artifact_count)
@@ -336,8 +355,8 @@ class _ArtifactIndexGuard:
         """Columns needed to identify the artifact index in the db"""
         return dict(
             organization_id=self._release.organization_id,
-            release=self._release,
-            dist=self._dist,
+            release_id=self._release.id,
+            dist_id=self._dist.id if self._dist else self._dist,
             name=ARTIFACT_INDEX_FILENAME,
             ident=self._ident,
         )
@@ -363,9 +382,9 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
     """
     releasefile = ReleaseFile.objects.create(
         name=archive_file.name,
-        release=release,
+        release_id=release.id,
         organization_id=release.organization_id,
-        dist=dist,
+        dist_id=dist.id if dist else dist,
         file=archive_file,
         artifact_count=0,  # Artifacts will be counted with artifact index
     )

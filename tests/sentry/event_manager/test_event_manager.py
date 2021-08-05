@@ -373,6 +373,119 @@ class EventManagerTest(TestCase):
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
+    @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_that_release_in_latest_activity_prior_to_regression_is_not_overridden(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        """
+        Test that ensures in the case where a regression occurs, the release prior to the latest
+        activity to that regression is not overridden.
+        It should only be overridden if the activity was awaiting the upcoming release
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="foobar", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(1)
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED)
+
+        # Resolve the group in old_release
+        resolution = GroupResolution.objects.create(release=old_release, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
+            data={"version": "foobar"},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
+        )
+        event = manager.save(1)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == "foobar"
+
+        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        assert regressed_activity.data["version"] == "b"
+
+        mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
+
+    @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_current_release_version_in_latest_activity_prior_to_regression_is_not_overridden(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        """
+        Test that ensures in the case where a regression occurs, the release prior to the latest
+        activity to that regression is overridden with the release regression occurred in but the
+        value of `current_release_version` used for semver is not lost in the update.
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="a", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(1)
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED)
+
+        # Resolve the group in old_release
+        resolution = GroupResolution.objects.create(release=old_release, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
+            data={"version": "", "current_release_version": "pre foobar"},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
+        )
+        event = manager.save(1)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == "b"
+        assert activity.data["current_release_version"] == "pre foobar"
+
+        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        assert regressed_activity.data["version"] == "b"
+
+        mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
+
     def test_has_pending_commit_resolution(self):
         project_id = 1
         event = self.make_release_event("1.0", project_id)
@@ -1616,7 +1729,36 @@ class EventManagerTest(TestCase):
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-        assert event1.get_hashes() == event2.get_hashes(grouping_config)
+        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
+
+    def test_synthetic_exception_detection(self):
+        manager = EventManager(
+            make_event(
+                message="foo",
+                event_id="b" * 32,
+                exception={
+                    "values": [
+                        {
+                            "type": "SIGABRT",
+                            "mechanism": {"handled": False},
+                            "stacktrace": {"frames": [{"function": "foo"}]},
+                        }
+                    ]
+                },
+            ),
+            project=self.project,
+        )
+        manager.normalize()
+
+        manager.get_data()["grouping_config"] = {
+            "id": "mobile:2021-02-12",
+        }
+        event = manager.save(1)
+
+        mechanism = event.interfaces["exception"].values[0].mechanism
+        assert mechanism is not None
+        assert mechanism.synthetic is True
+        assert event.title == "foo"
 
 
 class ReleaseIssueTest(TestCase):

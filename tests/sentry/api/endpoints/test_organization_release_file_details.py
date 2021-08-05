@@ -17,7 +17,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )
@@ -52,7 +52,7 @@ class ReleaseFileDetailsTest(APITestCase):
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
             project_id=project.id,
-            release=release,
+            release_id=release.id,
             file=f,
             name="  http://example.com/appli\n\rcatios n.js\n\n\r  ",
         )
@@ -99,7 +99,7 @@ class ReleaseFileDetailsTest(APITestCase):
         self.login_as(user=self.user)
         self.create_release_archive()
         id = urlsafe_b64encode(b"_~/index.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 200
         assert response.data["id"] == id
 
@@ -110,7 +110,7 @@ class ReleaseFileDetailsTest(APITestCase):
         )
         self.create_release_archive(dist=dist)
         id = urlsafe_b64encode(b"foo_~/index.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 200
         assert response.data["id"] == id
 
@@ -126,7 +126,7 @@ class ReleaseFileUpdateTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )
@@ -165,7 +165,7 @@ class ReleaseFileDeleteTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )

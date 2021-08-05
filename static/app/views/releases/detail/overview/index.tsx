@@ -13,7 +13,7 @@ import TransactionsList, {DropdownOption} from 'app/components/discover/transact
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/organizations/timeRangeSelector/pageTimeRangeSelector';
+import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -44,6 +44,7 @@ import Deploys from './deploys';
 import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
+import ReleaseAdoption from './releaseAdoption';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
 import ReleaseDetailsRequest from './releaseDetailsRequest';
@@ -291,12 +292,7 @@ class ReleaseOverview extends AsyncView<Props> {
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
-    const {
-      start,
-      end,
-      statsPeriod,
-      utc: utcString,
-    } = getParams(query, {
+    const {start, end, statsPeriod} = getParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -306,13 +302,10 @@ class ReleaseOverview extends AsyncView<Props> {
       return {period: statsPeriod};
     }
 
-    const utc = utcString === 'true';
-    const parser = utc ? moment.utc : moment;
     if (start && end) {
       return {
-        start: parser(start).format(),
-        end: parser(end).format(),
-        utc,
+        start: moment.utc(start).format(),
+        end: moment.utc(end).format(),
       };
     }
 
@@ -441,7 +434,6 @@ class ReleaseOverview extends AsyncView<Props> {
                               end={end ?? null}
                               utc={utc ?? null}
                               onUpdate={this.handleDateChange}
-                              showAbsolute={false}
                               relativeOptions={{
                                 [RELEASE_PERIOD_KEY]: (
                                   <Fragment>
@@ -462,17 +454,22 @@ class ReleaseOverview extends AsyncView<Props> {
                               }}
                               defaultPeriod={RELEASE_PERIOD_KEY}
                             />
-                            <ReleaseComparisonChart
-                              release={release}
-                              releaseSessions={thisRelease}
-                              allSessions={allReleases}
-                              platform={project.platform}
-                              location={location}
-                              loading={loading}
-                              reloading={reloading}
-                              errored={errored}
-                              project={project}
-                            />
+                            {(hasDiscover || hasPerformance || hasHealthData) && (
+                              <ReleaseComparisonChart
+                                release={release}
+                                releaseSessions={thisRelease}
+                                allSessions={allReleases}
+                                platform={project.platform}
+                                location={location}
+                                loading={loading}
+                                reloading={reloading}
+                                errored={errored}
+                                project={project}
+                                organization={organization}
+                                api={api}
+                                hasHealthData={hasHealthData}
+                              />
+                            )}
                           </Fragment>
                         ) : (
                           (hasDiscover || hasPerformance || hasHealthData) && (
@@ -543,6 +540,19 @@ class ReleaseOverview extends AsyncView<Props> {
                       getHealthData={getHealthData}
                       isHealthLoading={isHealthLoading}
                     />
+                    <Feature features={['release-comparison']}>
+                      {hasHealthData && (
+                        <ReleaseAdoption
+                          releaseSessions={thisRelease}
+                          allSessions={allReleases}
+                          loading={loading}
+                          reloading={reloading}
+                          errored={errored}
+                          release={release}
+                          project={project}
+                        />
+                      )}
+                    </Feature>
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}
@@ -649,14 +659,14 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: [['t_test()', '<-6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.REGRESSION,
       value: TransactionsListOption.REGRESSION,
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: [['t_test()', '>6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.IMPROVED,
       value: TransactionsListOption.IMPROVEMENT,
       label: t('Trending Improvements'),

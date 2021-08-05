@@ -2,7 +2,7 @@ import logging
 import re
 from typing import List, Optional, Tuple
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils.functional import cached_property
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.models.releasefile import read_artifact_index
+from sentry.utils.db import atomic_transaction
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -49,7 +50,9 @@ class ReleaseFilesMixin:
         data_sources = []
 
         # Exclude files which are also present in archive:
-        file_list = ReleaseFile.public_objects.filter(release=release).exclude(artifact_count=0)
+        file_list = ReleaseFile.public_objects.filter(release_id=release.id).exclude(
+            artifact_count=0
+        )
         file_list = file_list.select_related("file").order_by("name")
 
         if query:
@@ -118,9 +121,9 @@ class ReleaseFilesMixin:
         # the costly file upload process.
         if ReleaseFile.objects.filter(
             organization_id=release.organization_id,
-            release=release,
+            release_id=release.id,
             name=full_name,
-            dist=dist,
+            dist_id=dist.id if dist else dist,
         ).exists():
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
@@ -142,13 +145,13 @@ class ReleaseFilesMixin:
         file.putfile(fileobj, logger=logger)
 
         try:
-            with transaction.atomic():
+            with atomic_transaction(using=router.db_for_write(ReleaseFile)):
                 releasefile = ReleaseFile.objects.create(
                     organization_id=release.organization_id,
-                    release=release,
+                    release_id=release.id,
                     file=file,
                     name=full_name,
-                    dist=dist,
+                    dist_id=dist.id if dist else dist,
                 )
         except IntegrityError:
             file.delete()
@@ -198,7 +201,7 @@ def pseudo_releasefile(url, info, dist):
             timestamp=info["date_created"],
             checksum=info["sha1"],
         ),
-        dist=dist,
+        dist_id=dist.id if dist else dist,
     )
 
 

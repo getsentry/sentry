@@ -61,25 +61,18 @@ jobs:
         with:
           path: ~/.pyenv
           key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
-          restore-keys: |
-            devenv-${{ matrix.os }}-pyenv-
 
       - name: Cache (pip)
         uses: actions/cache@v2
         with:
           path: ${{ steps.info.outputs.pip-cache-dir }}
           key: devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-
 
       - name: Cache (yarn)
-        uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            devenv-${{ matrix.os }}-yarn-
+          key: devenv-${{ matrix.os }}-v2-yarn-${{ hashFiles('yarn.lock') }}
 
       - name: Set up development environment (mostly as per docs)
         run: |

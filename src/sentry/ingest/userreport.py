@@ -1,11 +1,12 @@
 from datetime import timedelta
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore
 from sentry.models import EventUser, UserReport
 from sentry.signals import user_feedback_received
+from sentry.utils.db import atomic_transaction
 
 
 class Conflict(Exception):
@@ -32,7 +33,7 @@ def save_userreport(project, report, start_time=None):
         report["event_user_id"] = euser.id
 
     if event:
-        # if the event is more than 30 minutes old, we dont allow updates
+        # if the event is more than 30 minutes old, we don't allow updates
         # as it might be abusive
         if event.datetime < start_time - timedelta(minutes=30):
             raise Conflict("Feedback for this event cannot be modified.")
@@ -41,7 +42,7 @@ def save_userreport(project, report, start_time=None):
         report["group_id"] = event.group_id
 
     try:
-        with transaction.atomic():
+        with atomic_transaction(using=router.db_for_write(UserReport)):
             report_instance = UserReport.objects.create(**report)
 
     except IntegrityError:

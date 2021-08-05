@@ -333,7 +333,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         </Header>
         <Body>
           <DoubleFieldWrapper>
-            <Field
+            <StyledField
               data-test-id="widget-name"
               label={t('Widget Name')}
               inline={false}
@@ -352,8 +352,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   this.handleFieldChange('title')(event.target.value);
                 }}
               />
-            </Field>
-            <Field
+            </StyledField>
+            <StyledField
               data-test-id="chart-type"
               label={t('Visualization Display')}
               inline={false}
@@ -372,9 +372,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   this.handleFieldChange('displayType')(option.value);
                 }}
               />
-            </Field>
+            </StyledField>
           </DoubleFieldWrapper>
-          <Measurements>
+          <Measurements organization={organization}>
             {({measurements}) => {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
               const amendedFieldOptions = fieldOptions(measurementKeys);
@@ -449,6 +449,10 @@ export const modalCss = css`
   width: 100%;
   max-width: 700px;
   margin: 70px auto;
+`;
+
+const StyledField = styled(Field)`
+  position: relative;
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

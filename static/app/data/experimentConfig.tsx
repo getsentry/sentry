@@ -19,6 +19,24 @@ export const experimentList = [
     parameter: 'exposed',
     assignments: [0, 1],
   },
+  {
+    key: 'ImprovedSearchExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
+    key: 'TrialConfirmationExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
+    key: 'CheckoutDefaultBusinessExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(

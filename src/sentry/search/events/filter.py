@@ -17,32 +17,37 @@ from sentry.api.event_search import (
     SearchValue,
     parse_search_query,
 )
+from sentry.api.release_search import INVALID_SEMVER_MESSAGE
+from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, Release, SemverFilter
 from sentry.models.group import Group
-from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
+    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
+    MAX_SEARCH_RELEASES,
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     SEMVER_EMPTY_RELEASE,
-    SEMVER_FAKE_PACKAGE,
-    SEMVER_MAX_SEARCH_RELEASES,
+    SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, QueryFields, resolve_field
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
@@ -339,6 +344,43 @@ def _flip_field_sort(field: str):
     return field[1:] if field.startswith("-") else f"-{field}"
 
 
+def _release_stage_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Parses a release stage search and returns a snuba condition to filter to the
+    requested releases.
+    """
+    # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
+    # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
+    qs = (
+        Release.objects.filter_by_stage(
+            organization_id,
+            search_filter.operator,
+            search_filter.value.value,
+            project_ids=project_ids,
+        )
+        .values_list("version", flat=True)
+        .order_by("date_added")[:MAX_SEARCH_RELEASES]
+    )
+    versions = list(qs)
+    final_operator = "IN"
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", final_operator, versions]
+
+
 def _semver_filter_converter(
     search_filter: SearchFilter,
     name: str,
@@ -363,6 +405,7 @@ def _semver_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
@@ -374,13 +417,17 @@ def _semver_filter_converter(
     if operator.startswith("<"):
         order_by = list(map(_flip_field_sort, order_by))
     qs = (
-        Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+        Release.objects.filter_by_semver(
+            organization_id,
+            parse_semver(version, operator),
+            project_ids=project_ids,
+        )
         .values_list("version", flat=True)
-        .order_by(*order_by)[:SEMVER_MAX_SEARCH_RELEASES]
+        .order_by(*order_by)[:MAX_SEARCH_RELEASES]
     )
     versions = list(qs)
     final_operator = "IN"
-    if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
+    if len(versions) == MAX_SEARCH_RELEASES:
         # We want to limit how many versions we pass through to Snuba. If we've hit
         # the limit, make an extra query and see whether the inverse has fewer ids.
         # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
@@ -392,7 +439,7 @@ def _semver_filter_converter(
         qs_flipped = (
             Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
             .order_by(*map(_flip_field_sort, order_by))
-            .values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
+            .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
 
         exclude_versions = list(qs_flipped)
@@ -406,6 +453,69 @@ def _semver_filter_converter(
         versions = [SEMVER_EMPTY_RELEASE]
 
     return ["release", final_operator, versions]
+
+
+def _semver_package_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Applies a semver package filter to the search. Note that if the query returns more than
+    `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
+    package: str = search_filter.value.raw_value
+
+    versions = list(
+        Release.objects.filter_by_semver(
+            organization_id,
+            SemverFilter("exact", [], package),
+            project_ids=project_ids,
+        ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+    )
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", "IN", versions]
+
+
+def _semver_build_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Applies a semver build filter to the search. Note that if the query returns more than
+    `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    project_ids: Optional[list[int]] = params.get("project_id")
+    build: str = search_filter.value.raw_value
+
+    versions = list(
+        Release.objects.filter_by_semver_build(
+            organization_id,
+            OPERATOR_TO_DJANGO[search_filter.operator],
+            build,
+            project_ids=project_ids,
+        ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+    )
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
+
+    return ["release", "IN", versions]
 
 
 def parse_semver(version, operator) -> Optional[SemverFilter]:
@@ -454,7 +564,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     # part of these
                     version_parts.append(int(part))
                 except ValueError:
-                    raise InvalidSearchQuery(f"Invalid format for semver query {version}")
+                    raise InvalidSearchQuery(INVALID_SEMVER_MESSAGE)
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
         return SemverFilter("exact", version_parts, package)
@@ -466,14 +576,17 @@ key_conversion_map: Mapping[
 ] = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
-    "transaction.status": _transaction_status_filter_converter,
+    TRANSACTION_STATUS_ALIAS: _transaction_status_filter_converter,
     "issue.id": _issue_id_filter_converter,
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
     KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
+    RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,
+    SEMVER_PACKAGE_ALIAS: _semver_package_filter_converter,
+    SEMVER_BUILD_ALIAS: _semver_build_filter_converter,
 }
 
 
@@ -657,7 +770,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
     terms = new_terms
 
-    # We put precedence on AND, which sort of counter-intuitevely means we have to split the query
+    # We put precedence on AND, which sort of counter-intuitively means we have to split the query
     # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
     # query on each OR.
     # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on
@@ -910,7 +1023,11 @@ def format_search_filter(term, params):
     return conditions, projects_to_filter, group_ids
 
 
-class QueryFilter(QueryBase):
+# Not a part of search.events.types to avoid a circular loop
+ParsedTerms = Sequence[Union[SearchFilter, AggregateFilter]]
+
+
+class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
     def __init__(self, dataset: Dataset, params: ParamsType):
@@ -920,12 +1037,20 @@ class QueryFilter(QueryBase):
             str, Callable[[SearchFilter], Optional[WhereType]]
         ] = {
             "environment": self._environment_filter_converter,
+            "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
+            TRANSACTION_STATUS_ALIAS: self._transaction_status_filter_converter,
+            ISSUE_ID_ALIAS: self._issue_id_filter_converter,
+            ERROR_HANDLED_ALIAS: self._error_handled_filter_converter,
+            ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
+            TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
         }
 
-    def resolve_where(self, query: Optional[str]) -> List[WhereType]:
+    def parse_query(self, query: Optional[str]) -> ParsedTerms:
+        """Given a user's query, string construct a list of filters that can be
+        then used to construct the conditions of the Query"""
         if query is None:
             return []
 
@@ -934,12 +1059,36 @@ class QueryFilter(QueryBase):
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
-        conditions = [
-            self.format_search_filter(term)
-            for term in parsed_terms
-            if isinstance(term, SearchFilter)
-        ]
-        return [condition for condition in conditions if condition]
+        return parsed_terms
+
+    def resolve_where(self, parsed_terms: ParsedTerms) -> List[WhereType]:
+        """Given a list of parsed terms, construct their equivalent snql where
+        conditions. filtering out any aggregates"""
+        where_conditions: List[WhereType] = []
+        for term in parsed_terms:
+            if isinstance(term, SearchFilter):
+                condition = self.format_search_filter(term)
+                if condition:
+                    where_conditions.append(condition)
+
+        return where_conditions
+
+    def resolve_having(
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool = False
+    ) -> List[WhereType]:
+        """Given a list of parsed terms, construct their equivalent snql having
+        conditions, filtering only for aggregate conditions"""
+        if not use_aggregate_conditions:
+            return []
+
+        having_conditions: List[WhereType] = []
+        for term in parsed_terms:
+            if isinstance(term, AggregateFilter):
+                condition = self.convert_aggregate_filter_to_condition(term)
+                if condition:
+                    having_conditions.append(condition)
+
+        return having_conditions
 
     def resolve_params(self) -> List[WhereType]:
         """Keys included as url params take precedent if same key is included in search
@@ -1002,6 +1151,29 @@ class QueryFilter(QueryBase):
         )
         return converted_filter if converted_filter else None
 
+    def convert_aggregate_filter_to_condition(
+        self, aggregate_filter: AggregateFilter
+    ) -> Optional[WhereType]:
+        name = aggregate_filter.key.name
+        value = aggregate_filter.value.value
+
+        if name in self.params.get("aliases", {}):
+            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
+
+        value = (
+            int(to_timestamp(value))
+            if isinstance(value, datetime) and name != "timestamp"
+            else value
+        )
+
+        if aggregate_filter.operator in {"=", "!="} and value == "":
+            operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
+            return Condition(name, operator)
+
+        function = self.resolve_function(name)
+
+        return Condition(function, Op(aggregate_filter.operator), value)
+
     def convert_search_filter_to_condition(
         self,
         search_filter: SearchFilter,
@@ -1018,10 +1190,52 @@ class QueryFilter(QueryBase):
         name = search_filter.key.name
         value = search_filter.value.value
 
-        if name not in self.field_allowlist:
-            raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")
+        lhs = self.resolve_column(name)
 
-        lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
+        if name in ARRAY_FIELDS:
+            if search_filter.value.is_wildcard():
+                return Condition(
+                    lhs,
+                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    search_filter.value.raw_value.replace("%", "\\%")
+                    .replace("_", "\\_")
+                    .replace("*", "%"),
+                )
+            elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+                return Condition(
+                    Function("hasAny", [self.column(name), value]),
+                    Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                    1,
+                )
+            elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+                return Condition(
+                    Function("hasAny", [self.column(name), []]),
+                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    1,
+                )
+
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
+            value = int(to_timestamp(value)) * 1000
+
+        # Validate event ids are uuids
+        if name == "id":
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+            elif not search_filter.value.is_event_id():
+                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
+
+        # Tags are never null, but promoted tags are columns and so can be null.
+        # To handle both cases, use `ifNull` to convert to an empty string and
+        # compare so we need to check for empty values.
+        if search_filter.key.is_tag:
+            name = ["ifNull", [name, "''"]]
+            lhs = Function("ifNull", [lhs, ""])
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
@@ -1031,16 +1245,34 @@ class QueryFilter(QueryBase):
                 # If not a tag, we can just check that the column is null.
                 return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
+        is_null_condition = None
+        # TODO(wmak): Skip this for all non-nullable keys not just event.type
+        if (
+            search_filter.operator in ("!=", "NOT IN")
+            and not search_filter.key.is_tag
+            and name != "event.type"
+        ):
+            # Handle null columns on inequality comparisons. Any comparison
+            # between a value and a null will result to null, so we need to
+            # explicitly check for whether the condition is null, and OR it
+            # together with the inequality check.
+            # We don't need to apply this for tags, since if they don't exist
+            # they'll always be an empty string.
+            is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
+
         if search_filter.value.is_wildcard():
             condition = Condition(
-                Function("match", [lhs, f"'(?i){value}'"]),
+                Function("match", [lhs, f"(?i){value}"]),
                 Op(search_filter.operator),
                 1,
             )
         else:
             condition = Condition(lhs, Op(search_filter.operator), value)
 
-        return condition
+        if is_null_condition:
+            return Or(conditions=[is_null_condition, condition])
+        else:
+            return condition
 
     def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         # conditions added to env_conditions can be OR'ed
@@ -1065,6 +1297,43 @@ class QueryFilter(QueryBase):
             return Or(conditions=env_conditions)
         else:
             return env_conditions[0]
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        if search_filter.value.is_wildcard():
+            # XXX: We don't want the '^$' values at the beginning and end of
+            # the regex since we want to find the pattern anywhere in the
+            # message. Strip off here
+            value = search_filter.value.value[1:-1]
+            return Condition(
+                Function("match", [self.column("message"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
+        elif value == "":
+            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
+            return Condition(Function("equals", [self.column("message"), value]), operator, 1)
+        else:
+            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+            # so we should flip the operator here
+            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
+            if search_filter.is_in_filter:
+                return Condition(
+                    Function(
+                        "multiSearchFirstPositionCaseInsensitive",
+                        [self.column("message"), value],
+                    ),
+                    operator,
+                    0,
+                )
+
+            # make message search case insensitive
+            return Condition(
+                Function("positionCaseInsensitive", [self.column("message"), value]),
+                operator,
+                0,
+            )
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Convert project slugs to ids and create a filter based on those.
@@ -1128,4 +1397,98 @@ class QueryFilter(QueryBase):
                 operator,
                 SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
             )
+        )
+
+    def _transaction_status_filter_converter(
+        self, search_filter: SearchFilter
+    ) -> Optional[WhereType]:
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return Condition(
+                self.resolve_field_alias(search_filter.key.name),
+                Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
+            )
+        if search_filter.is_in_filter:
+            internal_value = [
+                translate_transaction_status(val) for val in search_filter.value.raw_value
+            ]
+        else:
+            internal_value = translate_transaction_status(search_filter.value.raw_value)
+        return Condition(
+            self.resolve_field_alias(search_filter.key.name),
+            Op(search_filter.operator),
+            internal_value,
+        )
+
+    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        value = search_filter.value.value
+
+        lhs = self.column(name)
+        rhs = value
+
+        # Handle "has" queries
+        if (
+            search_filter.value.raw_value == ""
+            or search_filter.is_in_filter
+            and [v for v in value if not v]
+        ):
+            if search_filter.is_in_filter:
+                rhs = [v if v else 0 for v in value]
+            else:
+                rhs = 0
+
+        # Skip isNull check on group_id value as we want to
+        # allow snuba's prewhere optimizer to find this condition.
+        return Condition(lhs, Op(search_filter.operator), rhs)
+
+    def _error_unhandled_filter_converter(
+        self,
+        search_filter: SearchFilter,
+    ) -> Optional[WhereType]:
+        value = search_filter.value.value
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
+            output = 0 if search_filter.operator == "!=" else 1
+            return Condition(Function("isHandled", []), Op.EQ, output)
+        if value in ("1", 1):
+            return Condition(Function("notHandled", []), Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(Function("isHandled", []), Op.EQ, 1)
+        raise InvalidSearchQuery(
+            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
+        )
+
+    def _error_handled_filter_converter(
+        self,
+        search_filter: SearchFilter,
+    ) -> Optional[WhereType]:
+        value = search_filter.value.value
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
+            output = 1 if search_filter.operator == "!=" else 0
+            return Condition(Function("isHandled", []), Op.EQ, output)
+        if value in ("1", 1):
+            return Condition(Function("isHandled", []), Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(Function("notHandled", []), Op.EQ, 1)
+        raise InvalidSearchQuery(
+            "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
+
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        key_transaction_expr = self.resolve_field_alias(TEAM_KEY_TRANSACTION_ALIAS)
+
+        if search_filter.value.raw_value == "":
+            return Condition(
+                key_transaction_expr, Op.NEQ if search_filter.operator == "!=" else Op.EQ, 0
+            )
+        if value in ("1", 1):
+            return Condition(key_transaction_expr, Op.EQ, 1)
+        if value in ("0", 0):
+            return Condition(key_transaction_expr, Op.EQ, 0)
+
+        raise InvalidSearchQuery(
+            "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )

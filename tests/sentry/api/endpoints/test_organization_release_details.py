@@ -684,6 +684,32 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] is None
 
+    def test_get_first_and_last_release_when_project_has_no_releases(self):
+        """
+        Test that ensures that when fetching first and last releases on date sort option in a
+        project that contains no matching release for all the filters, then `firstReleaseVersion`
+        and `lastReleaseVersion` are None values
+        """
+        release = self.create_release(project=self.project1, version="foobar@2.0.0")
+        release.add_project(self.project1)
+
+        environment = Environment.objects.create(organization_id=self.organization.id, name="test")
+        environment.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id, "environment": ["test"]})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["firstReleaseVersion"] is None
+        assert response.data["currentProjectMeta"]["lastReleaseVersion"] is None
+
     def test_with_adoption_stages(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
@@ -1069,7 +1095,7 @@ class ReleaseDeleteTest(APITestCase):
         self.login_as(user=user)
         release_file = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            release=release,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )

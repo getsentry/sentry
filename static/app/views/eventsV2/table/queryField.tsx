@@ -6,7 +6,10 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import Tag from 'app/components/tag';
+import Tooltip from 'app/components/tooltip';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import {pulse} from 'app/styles/animations';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 import {
@@ -83,6 +86,7 @@ type Props = {
    */
   shouldRenderTag?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
+  error?: string;
   disabled?: boolean;
   hidePrimarySelector?: boolean;
   hideParameterSelector?: boolean;
@@ -96,6 +100,42 @@ type OptionType = {
 };
 
 class QueryField extends React.Component<Props> {
+  FieldSelectComponents = {
+    Option: ({label, data, ...props}: OptionProps<OptionType>) => (
+      <components.Option label={label} data={data} {...props}>
+        <span data-test-id="label">{label}</span>
+        {this.renderTag(data.value.kind)}
+      </components.Option>
+    ),
+    SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
+      <components.SingleValue data={data} {...props}>
+        <span data-test-id="label">{data.label}</span>
+        {this.renderTag(data.value.kind)}
+      </components.SingleValue>
+    ),
+  };
+
+  FieldSelectStyles = {
+    singleValue(provided: CSSProperties) {
+      const custom = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: 'calc(100% - 10px)',
+      };
+      return {...provided, ...custom};
+    },
+    option(provided: CSSProperties) {
+      const custom = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+      };
+      return {...provided, ...custom};
+    },
+  };
+
   handleFieldChange = (selected?: FieldValueOption | null) => {
     if (!selected) {
       return;
@@ -155,6 +195,7 @@ class QueryField extends React.Component<Props> {
             // field does not fit within new function requirements, use the default.
             fieldValue.function[i + 1] = param.defaultValue || '';
             fieldValue.function[i + 2] = undefined;
+            fieldValue.function[i + 3] = undefined;
           }
         } else {
           fieldValue.function[i + 1] = param.defaultValue || '';
@@ -166,6 +207,9 @@ class QueryField extends React.Component<Props> {
           fieldValue.function = [fieldValue.function[0], '', undefined, undefined];
         } else if (value.meta.parameters.length === 1) {
           fieldValue.function[2] = undefined;
+          fieldValue.function[3] = undefined;
+        } else if (value.meta.parameters.length === 2) {
+          fieldValue.function[3] = undefined;
         }
       }
     }
@@ -373,6 +417,8 @@ class QueryField extends React.Component<Props> {
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
+            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            components={this.FieldSelectComponents}
           />
         );
       }
@@ -421,6 +467,7 @@ class QueryField extends React.Component<Props> {
       if (descriptor.kind === 'dropdown') {
         return (
           <SelectControl
+            key="dropdown"
             name="dropdown"
             placeholder={t('Select value')}
             options={descriptor.options}
@@ -489,6 +536,7 @@ class QueryField extends React.Component<Props> {
       fieldValue,
       inFieldLabels,
       disabled,
+      error,
       hidePrimarySelector,
       gridColumns,
       otherColumns,
@@ -512,32 +560,16 @@ class QueryField extends React.Component<Props> {
       selectProps.autoFocus = true;
     }
 
-    const styles = {
-      singleValue(provided: CSSProperties) {
-        const custom = {
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: 'calc(100% - 10px)',
-        };
-        return {...provided, ...custom};
-      },
-      option(provided: CSSProperties) {
-        const custom = {
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '100%',
-        };
-        return {...provided, ...custom};
-      },
-    };
-
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
     if (fieldValue.kind === FieldValueKind.EQUATION) {
       return (
-        <Container className={className} gridColumns={1} tripleLayout={false}>
+        <Container
+          className={className}
+          gridColumns={1}
+          tripleLayout={false}
+          error={error !== undefined}
+        >
           <ArithmeticInput
             name="arithmetic"
             key="parameter:text"
@@ -547,6 +579,11 @@ class QueryField extends React.Component<Props> {
             onUpdate={this.handleEquationChange}
             options={otherColumns}
           />
+          {error ? (
+            <ArithmeticError title={error}>
+              <IconWarning color="red300" />
+            </ArithmeticError>
+          ) : null}
         </Container>
       );
     }
@@ -563,21 +600,8 @@ class QueryField extends React.Component<Props> {
         {!hidePrimarySelector && (
           <SelectControl
             {...selectProps}
-            styles={!inFieldLabels ? styles : undefined}
-            components={{
-              Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-                <components.Option label={label} data={data} {...props}>
-                  <span data-test-id="label">{label}</span>
-                  {this.renderTag(data.value.kind)}
-                </components.Option>
-              ),
-              SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-                <components.SingleValue data={data} {...props}>
-                  <span data-test-id="label">{data.label}</span>
-                  {this.renderTag(data.value.kind)}
-                </components.SingleValue>
-              ),
-            }}
+            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            components={this.FieldSelectComponents}
           />
         )}
         {parameters}
@@ -597,13 +621,17 @@ function validateColumnTypes(
   return columnTypes.includes(input.meta.dataType);
 }
 
-const Container = styled('div')<{gridColumns: number; tripleLayout: boolean}>`
+const Container = styled('div')<{
+  gridColumns: number;
+  tripleLayout: boolean;
+  error?: boolean;
+}>`
   display: grid;
   ${p =>
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
-      : `grid-template-columns: repeat(${p.gridColumns}, 1fr);`}
-  grid-column-gap: ${space(1)};
+      : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
+  grid-gap: ${space(1)};
   align-items: center;
 
   flex-grow: 1;
@@ -693,6 +721,12 @@ const BlankSpace = styled('div')`
     content: '${t('No parameter')}';
     color: ${p => p.theme.gray300};
   }
+`;
+
+const ArithmeticError = styled(Tooltip)`
+  color: ${p => p.theme.red300};
+  animation: ${() => pulse(1.15)} 1s ease infinite;
+  display: flex;
 `;
 
 export {QueryField};

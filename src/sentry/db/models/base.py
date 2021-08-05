@@ -36,7 +36,7 @@ class BaseModel(models.Model):
 
     def __getstate__(self):
         d = self.__dict__.copy()
-        # we cant serialize weakrefs
+        # we can't serialize weakrefs
         d.pop("_Model__data", None)
         return d
 
@@ -53,6 +53,33 @@ class BaseModel(models.Model):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+    def set_cached_field_value(self, field_name, value):
+        # Explicitly set a field's cached value.
+        # This only works for relational fields, and is useful when
+        # you already have the value and can therefore use this
+        # to populate Django's cache before accessing the attribute
+        # and triggering a duplicate, unnecessary query.
+        self._meta.get_field(field_name).set_cached_value(self, value)
+
+    def get_cached_field_value(self, field_name):
+        # Get a relational field's cached value.
+        # It's recommended to only use this in testing code,
+        # for when you would like to inspect the cache.
+        # In production, you should guard `model.field` with an
+        # `if model.is_field_cached`.
+        name = self._meta.get_field(field_name).get_cache_name()
+        return self._state.fields_cache.get(name, None)
+
+    def delete_cached_field_value(self, field_name):
+        name = self._meta.get_field(field_name).get_cache_name()
+        if name in self._state.fields_cache:
+            del self._state.fields_cache[name]
+
+    def is_field_cached(self, field_name):
+        # Ask if a relational field has a cached value.
+        name = self._meta.get_field(field_name).get_cache_name()
+        return name in self._state.fields_cache
 
 
 class Model(BaseModel):

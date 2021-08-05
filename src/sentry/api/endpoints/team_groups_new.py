@@ -40,7 +40,7 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
         )
 
         for group in group_list:
-            group._project_cache = project_dict.get(group.project_id)
+            group.set_cached_field_value("project", project_dict.get(group.project_id))
 
         return Response(
             serialize(

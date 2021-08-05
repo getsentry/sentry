@@ -1,4 +1,4 @@
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
@@ -883,12 +883,14 @@ describe('EventView.generateQueryStringObject()', function () {
       id: undefined,
       name: undefined,
       field: ['id', 'title'],
-      widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
+      widths: [],
       sort: [],
       query: '',
       project: [],
       environment: [],
       display: 'previous',
+      user: '1',
+      yAxis: 'count()',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -931,6 +933,7 @@ describe('EventView.generateQueryStringObject()', function () {
       yAxis: 'count()',
       display: 'releases',
       interval: '1m',
+      user: '1',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -1479,6 +1482,33 @@ describe('EventView.isValid()', function () {
   });
 });
 
+describe('EventView.getWidths()', function () {
+  it('returns widths', function () {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'project.id', width: 2020},
+        {field: 'title', width: COL_WIDTH_UNDEFINED},
+        {field: 'time', width: 420},
+        {field: 'lcp', width: 69},
+        {field: 'lcp', width: COL_WIDTH_UNDEFINED},
+        {field: 'fcp', width: COL_WIDTH_UNDEFINED},
+        {field: 'cls', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [],
+      project: [],
+    });
+
+    expect(eventView.getWidths()).toEqual([
+      COL_WIDTH_UNDEFINED,
+      2020,
+      COL_WIDTH_UNDEFINED,
+      420,
+      69,
+    ]);
+  });
+});
+
 describe('EventView.getFields()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
@@ -1572,6 +1602,9 @@ describe('EventView.clone()', function () {
     expect(eventView).toMatchObject(state);
     expect(eventView2).toMatchObject(state);
     expect(eventView.isEqualTo(eventView2)).toBe(true);
+    expect(
+      eventView.additionalConditions === eventView2.additionalConditions
+    ).toBeFalsy();
   });
 });
 
@@ -2220,6 +2253,23 @@ describe('EventView.getQuery()', function () {
     expect(eventView.getQuery('hello')).toEqual('hello');
     expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
       'event.type:error hello'
+    );
+  });
+});
+
+describe('EventView.getQueryWithAdditionalConditions', function () {
+  it('with overlapping conditions', function () {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      project: [],
+      query: 'event.type:transaction foo:bar',
+    });
+
+    eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
+
+    expect(eventView.getQueryWithAdditionalConditions()).toEqual(
+      'event.type:transaction foo:bar'
     );
   });
 });

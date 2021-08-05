@@ -1,5 +1,6 @@
 from sentry_sdk import configure_scope
 
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -33,6 +34,8 @@ class RepositoryMixin:
             resp = self.get_client().check_file(repo, filepath, branch)
             if resp is None:
                 return None
+        except IdentityNotValid:
+            return None
         except ApiError as e:
             if e.code != 404:
                 raise

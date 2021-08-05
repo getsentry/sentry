@@ -331,7 +331,7 @@ class IssueListActions extends React.Component<Props, State> {
 
 const Sticky = styled('div')`
   position: sticky;
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
   top: -1px;
 `;
 

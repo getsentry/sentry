@@ -1,11 +1,11 @@
 ---
-created: '2021-06-30T16:44:01.334862Z'
+created: '2021-07-14T12:39:42.799604Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "f594e5549c122b83e267719d16333d98"
-  tree_label: "abort | dlopen | stripped_application_code"
+  hash: "b7de92d39e823772baa9a88863c07cab"
+  tree_label: "dlopen | stripped_application_code"
   component:
     app-depth-1*
       exception*
@@ -18,11 +18,6 @@ app-depth-1:
               "dlopen"
             package (ignored because function takes precedence)
               "libdyld.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
-            function*
-              "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -30,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "8be5979a334287a1b47457228f1d4612"
-  tree_label: "__pthread_kill | __abort | abort | __report_load | ImageLoaderMachO::doModInitFunctions | ImageLoaderMachO::doInitialization | ImageLoader::recursiveInitialization | ImageLoader::processInitializers | ImageLoader::runInitializers | dyld::runInitializers | dlopen_internal | dlopen | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | CALLING_SOME_+initialize_METHOD | initializeNonMetaClass | initializeAndMaybeRelock | lookUpImpOrForward | _objc_msgSend_uncached | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start"
+  tree_label: "abort | dlopen | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -238,17 +233,17 @@ app-depth-max:
               "__report_load"
             package (ignored because function takes precedence)
               "libcrypto.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
             package (ignored because function takes precedence)
@@ -259,8 +254,8 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "8be5979a334287a1b47457228f1d4612"
-  tree_label: "__pthread_kill | __abort | abort | __report_load | ImageLoaderMachO::doModInitFunctions | ImageLoaderMachO::doInitialization | ImageLoader::recursiveInitialization | ImageLoader::processInitializers | ImageLoader::runInitializers | dyld::runInitializers | dlopen_internal | dlopen | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | CALLING_SOME_+initialize_METHOD | initializeNonMetaClass | initializeAndMaybeRelock | lookUpImpOrForward | _objc_msgSend_uncached | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start"
+  hash: "9537ce3f27493f603bc706069c99ae2d"
+  tree_label: "abort | dlopen | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*
@@ -468,22 +463,22 @@ system:
               "__report_load"
             package (ignored because function takes precedence)
               "libcrypto.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
             package (ignored because function takes precedence)
               "libsystem_kernel.dylib"
-        type (ignored because exception is synthetic)
+        type*
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"

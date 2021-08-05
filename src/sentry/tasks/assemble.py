@@ -2,7 +2,7 @@ import hashlib
 import logging
 from os import path
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router
 
 from sentry import options
 from sentry.api.serializers import serialize
@@ -12,6 +12,7 @@ from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -183,7 +184,7 @@ def _upsert_release_file(
         release_file = ReleaseFile.objects.get(**key_fields)
     except ReleaseFile.DoesNotExist:
         try:
-            with transaction.atomic():
+            with atomic_transaction(using=router.db_for_write(ReleaseFile)):
                 release_file = ReleaseFile.objects.create(
                     file=file, **dict(key_fields, **additional_fields)
                 )
@@ -291,8 +292,8 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
             meta = {  # Required for release file creation
                 "organization_id": organization.id,
-                "release": release,
-                "dist": dist,
+                "release_id": release.id,
+                "dist_id": dist.id if dist else dist,
             }
 
             saved_as_archive = False

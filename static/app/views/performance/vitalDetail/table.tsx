@@ -109,7 +109,7 @@ class Table extends React.Component<Props, State> {
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, column, value);
 
@@ -177,7 +177,7 @@ class Table extends React.Component<Props, State> {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
       const conditions = tokenizeSearch(summaryConditions);
-      conditions.addTagValues('has', [`${vitalName}`]);
+      conditions.addFilterValues('has', [`${vitalName}`]);
       summaryView.query = conditions.formatString();
 
       const target = transactionSummaryRouteWithQuery({
@@ -335,7 +335,7 @@ class Table extends React.Component<Props, State> {
   };
 
   getSortedEventView(vitalName: WebVital) {
-    const {eventView, organization} = this.props;
+    const {eventView} = this.props;
 
     const aggregateFieldPoor = getAggregateAlias(
       getVitalDetailTablePoorStatusFunction(vitalName)
@@ -352,9 +352,7 @@ class Table extends React.Component<Props, State> {
       ? []
       : [
           {
-            field: organization.features.includes('team-key-transactions')
-              ? 'team_key_transaction'
-              : 'key_transaction',
+            field: 'team_key_transaction',
             kind: 'desc',
           },
           {

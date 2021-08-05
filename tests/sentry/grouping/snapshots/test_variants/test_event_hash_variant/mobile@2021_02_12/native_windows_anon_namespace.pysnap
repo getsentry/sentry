@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.409631Z'
+created: '2021-08-04T15:53:49.760127Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,7 +15,7 @@ app-depth-1:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -37,7 +37,7 @@ app-depth-2:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -64,28 +64,18 @@ app-depth-3:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "3df8bc242dfdc7460b42fa529422630f"
-  tree_label: "`anonymous namespace'::crash | `anonymous namespace'::start | main | invoke_main | __scrt_common_main_seh"
+  tree_label: "`anonymous namespace'::crash | `anonymous namespace'::start | main"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "__scrt_common_main_seh"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "invoke_main"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
@@ -101,14 +91,14 @@ app-depth-max:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic (detected via exception type))
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "3df8bc242dfdc7460b42fa529422630f"
-  tree_label: "`anonymous namespace'::crash | `anonymous namespace'::start | main | invoke_main | __scrt_common_main_seh"
+  hash: "c75e8a96cb616fe8a9a45e384e6607c5"
+  tree_label: "`anonymous namespace'::crash | `anonymous namespace'::start | main"
   component:
     system*
       exception*
@@ -138,7 +128,7 @@ system:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
+        type*
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

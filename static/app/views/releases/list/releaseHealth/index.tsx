@@ -24,6 +24,7 @@ type Props = {
   reloading: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  showReleaseAdoptionStages: boolean;
 };
 
 class ReleaseHealth extends Component<Props> {
@@ -46,6 +47,7 @@ class ReleaseHealth extends Component<Props> {
       selection,
       isTopRelease,
       getHealthData,
+      showReleaseAdoptionStages,
     } = this.props;
 
     // sort health rows inside release card alphabetically by project name,
@@ -76,6 +78,7 @@ class ReleaseHealth extends Component<Props> {
           organization={organization}
           activeDisplay={activeDisplay}
           releaseVersion={release.version}
+          showReleaseAdoptionStages={showReleaseAdoptionStages}
           adoptionStages={release.adoptionStages}
           projects={projectsToShow}
           location={location}

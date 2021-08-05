@@ -3,7 +3,9 @@ import time
 import pytest
 
 from sentry.models import Group, GroupHash
+from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
+from sentry.utils.json import prune_empty_keys
 
 
 @pytest.fixture(autouse=True)
@@ -97,6 +99,7 @@ def test_error_no_events(client, default_project):
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_error_not_hierarchical(client, default_project, reset_snuba, factories):
+    default_project.update_option("sentry:grouping_config", "mobile:2021-02-12")
     group = Group.objects.create(project=default_project)
     grouphash = GroupHash.objects.create(
         project=default_project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
@@ -112,7 +115,50 @@ def test_error_not_hierarchical(client, default_project, reset_snuba, factories)
 
     response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
     assert response.status_code == 403
-    assert response.data["detail"]["code"] == "not_hierarchical"
+    assert response.data["detail"]["code"] == "issue_not_hierarchical"
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_error_project_not_hierarchical(client, default_organization, reset_snuba, factories):
+
+    project = Project.objects.create(organization=default_organization, slug="test-project")
+    project.update_option("sentry:grouping_config", "newstyle:2019-10-29")
+
+    group = Group.objects.create(project=project)
+    grouphash = GroupHash.objects.create(
+        project=project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
+    )
+
+    factories.store_event(
+        data={"message": "hello world", "checksum": grouphash.hash}, project_id=project.id
+    )
+
+    response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
+    assert response.status_code == 403
+    assert response.data["detail"]["code"] == "project_not_hierarchical"
+
+
+def _assert_tree_labels(event, functions):
+    # This should really be its own test, but it is cheaper to run as part of an existing test.
+    assert [
+        prune_empty_keys(frame)
+        for frame in event.data["exception"]["values"][0]["stacktrace"]["frames"]
+    ] == [
+        {
+            "data": {
+                "min_grouping_level": len(functions) - i - 1,
+                "orig_in_app": -1,
+            },
+            "function": function,
+            "in_app": False,
+        }
+        for i, function in enumerate(functions)
+    ]
+
+    assert event.data["metadata"]["finest_tree_label"] == [
+        {"function": function} for function in reversed(functions)
+    ]
 
 
 @pytest.mark.django_db
@@ -134,6 +180,12 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
     ]
 
     assert len({e.group_id for e in events}) == 1
+
+    _assert_tree_labels(events[0], ["bam", "baz2", "bar2", "foo"])
+    _assert_tree_labels(events[1], ["baz", "bar", "foo"])
+    _assert_tree_labels(events[2], ["baz2", "bar2", "foo"])
+    _assert_tree_labels(events[3], ["bar3", "foo"])
+
     group = events[0].group
 
     assert (
@@ -143,12 +195,12 @@ group: ZeroDivisionError | foo
 level 0*
 bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (4)
 level 1
-64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 c8ef2dd3dedeed29b4b74b9c579eea1a: ZeroDivisionError | foo | bar2 (2)
+64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 aa1c4037371150958f9ea22adb110bbc: ZeroDivisionError | foo | bar (1)
 level 2
-64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 8c0bbfebc194c7aa3e77e95436fd61e5: ZeroDivisionError | foo | bar2 | baz2 (2)
+64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)
 b8d08a573c62ca8c84de14c12c0e19fe: ZeroDivisionError | foo | bar | baz (1)
 level 3
 64686dcd59e0cf97f34113e9d360541a: ZeroDivisionError | foo | bar3 (1)

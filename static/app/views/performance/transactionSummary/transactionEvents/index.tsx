@@ -158,7 +158,7 @@ class TransactionEvents extends Component<Props, State> {
     const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
       const query = tokenizeSearch(filteredEventView.query);
-      filter.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       filteredEventView.query = query.formatString();
     }
     return filteredEventView;
@@ -197,10 +197,6 @@ class TransactionEvents extends Component<Props, State> {
       {
         kind: 'function',
         function: ['p50', '', undefined, undefined],
-      },
-      {
-        kind: 'function',
-        function: ['avg', 'transaction.duration', undefined, undefined],
       },
     ];
 
@@ -313,11 +309,11 @@ function generateEventsEventView(
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
-    .setTagValues('event.type', ['transaction'])
-    .setTagValues('transaction', [transactionName]);
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction', [transactionName]);
 
-  Object.keys(conditions.tagValues).forEach(field => {
-    if (isAggregateField(field)) conditions.removeTag(field);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) conditions.removeFilter(field);
   });
 
   // Default fields for relative span view
@@ -333,7 +329,7 @@ function generateEventsEventView(
   if (breakdown !== SpanOperationBreakdownFilter.None) {
     fields.splice(2, 1, `spans.${breakdown}`);
   } else {
-    fields.push(...SPAN_OP_BREAKDOWN_FIELDS, 'spans.total.time');
+    fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
   }
   const webVital = getWebVital(location);
   if (webVital) {

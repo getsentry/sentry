@@ -7,7 +7,7 @@ from typing import Iterable, Mapping, Optional, Tuple
 import pytz
 import sentry_sdk
 from django.conf import settings
-from django.db.models import Min
+from django.db.models import Min, prefetch_related_objects
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
@@ -49,7 +49,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
@@ -57,7 +57,6 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
-from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, aliased_query, raw_query
 
@@ -225,7 +224,7 @@ class GroupSerializerBase(Serializer):
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
         # making unnecessary queries.
-        attach_foreignkey(item_list, Group.project, related=("organization",))
+        prefetch_related_objects(item_list, "project__organization")
 
         if user.is_authenticated and item_list:
             bookmarks = set(
@@ -752,10 +751,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "times_seen",
         "date",  # We merge this with start/end, so don't want to include it as its own
         # condition
-        # We don't need to filter by the semver query again here since we're
+        # We don't need to filter by release stage again here since we're
         # filtering to specific groups. Saves us making a second query to
         # postgres for no reason
-        SEMVER_ALIAS,
+        RELEASE_STAGE_ALIAS,
     }
 
     def __init__(
@@ -766,6 +765,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         search_filters=None,
         collapse=None,
         expand=None,
+        organization_id=None,
+        project_ids=None,
     ):
         super().__init__(collapse=collapse, expand=expand)
         from sentry.search.snuba.executors import get_search_filter
@@ -787,7 +788,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
         self.conditions = (
             [
-                convert_search_filter_to_snuba_query(search_filter)
+                convert_search_filter_to_snuba_query(
+                    search_filter,
+                    params={"organization_id": organization_id, "project_id": project_ids},
+                )
                 for search_filter in search_filters
                 if search_filter.key.name not in self.skip_snuba_fields
             ]
@@ -879,6 +883,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         search_filters=None,
         collapse=None,
         expand=None,
+        organization_id=None,
     ):
         super().__init__(
             environment_ids,
@@ -887,6 +892,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             search_filters,
             collapse=collapse,
             expand=expand,
+            organization_id=organization_id,
         )
 
         if stats_period is not None:

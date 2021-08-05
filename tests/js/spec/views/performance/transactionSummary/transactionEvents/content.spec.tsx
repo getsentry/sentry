@@ -152,6 +152,11 @@ describe('Performance Transaction Events Content', function () {
         },
       }
     );
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
     initialData = initializeData({features: ['performance-events-page']});
     eventView = EventView.fromNewQueryWithLocation(
       {
@@ -195,7 +200,7 @@ describe('Performance Transaction Events Content', function () {
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('LatencyDropdown')).toHaveLength(1);
+    expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
     expect(wrapper.find('TransactionHeader')).toHaveLength(1);
@@ -233,7 +238,7 @@ describe('Performance Transaction Events Content', function () {
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('LatencyDropdown')).toHaveLength(1);
+    expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
     expect(wrapper.find('TransactionHeader')).toHaveLength(1);

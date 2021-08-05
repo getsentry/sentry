@@ -237,10 +237,19 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         try:
-            sources = parse_sources(sources_json.strip())
+            sources = parse_sources(sources_json.strip(), filter_appconnect=False)
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
+
+        has_multiple_appconnect = features.has(
+            "organizations:app-store-connect-multiple", organization, actor=request.user
+        )
+        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
+        if not has_multiple_appconnect and len(appconnect_sources) > 1:
+            raise serializers.ValidationError(
+                "Only one Apple App Store Connect application is allowed in this project"
+            )
 
         return sources_json
 
@@ -260,10 +269,15 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
             )
-        if not (0 < value - time.time() < (91 * 24 * 3600)):
+        now = time.time()
+        if value < now:
             raise serializers.ValidationError(
                 "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
             )
+
+        max_expiry_date = now + (91 * 24 * 3600)
+        if value > max_expiry_date:
+            value = max_expiry_date
 
         return value
 
@@ -420,6 +434,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.slug = result["slug"]
             changed = True
             changed_proj_settings["new_slug"] = project.slug
+            changed_proj_settings["old_slug"] = old_slug
 
         if result.get("name"):
             project.name = result["name"]

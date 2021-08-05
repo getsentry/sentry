@@ -198,8 +198,17 @@ def wip_snql_query(
     Replacement API for query using snql, this function is still a work in
     progress and is not ready for use in production
     """
-    builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
+    builder = QueryBuilder(
+        Dataset.Discover,
+        params,
+        query=query,
+        selected_columns=selected_columns,
+        orderby=orderby,
+        use_aggregate_conditions=use_aggregate_conditions,
+        limit=limit,
+    )
     snql_query = builder.get_snql_query()
+
     results = raw_snql_query(snql_query, referrer)
     return results
 
@@ -454,7 +463,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     return snuba_filter, translated_columns
 
 
-def timeseries_query(selected_columns, query, params, rollup, referrer=None):
+def timeseries_query(selected_columns, query, params, rollup, referrer=None, zerofill_results=True):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -508,7 +517,11 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
         op="discover.discover", description="timeseries.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+        result = (
+            zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+            if zerofill_results
+            else result["data"]
+        )
 
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
@@ -542,6 +555,7 @@ def top_events_timeseries(
     referrer=None,
     top_events=None,
     allow_empty=True,
+    zerofill_results=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -590,7 +604,7 @@ def top_events_timeseries(
         )
 
         for field in selected_columns:
-            # If we have a project field, we need to limit results by project so we dont hit the result limit
+            # If we have a project field, we need to limit results by project so we don't hit the result limit
             if field in ["project", "project.id"] and top_events["data"]:
                 snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
                 continue
@@ -639,7 +653,11 @@ def top_events_timeseries(
 
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
-            {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
+            {
+                "data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")
+                if zerofill_results
+                else [],
+            },
             snuba_filter.start,
             snuba_filter.end,
             rollup,
@@ -686,7 +704,9 @@ def top_events_timeseries(
                 {
                     "data": zerofill(
                         item["data"], snuba_filter.start, snuba_filter.end, rollup, "time"
-                    ),
+                    )
+                    if zerofill_results
+                    else item["data"],
                     "order": item["order"],
                 },
                 snuba_filter.start,
@@ -881,6 +901,7 @@ def histogram_query(
     data_filter=None,
     referrer=None,
     group_by=None,
+    order_by=None,
     limit_by=None,
     extra_conditions=None,
     normalize_results=True,
@@ -904,6 +925,7 @@ def histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Experimental. Allows additional ordering within each alias to serve multifacet histograms.
     :param [str] limit_by: Experimental. Allows limiting within a group when serving multifacet histograms.
     :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
@@ -966,7 +988,7 @@ def histogram_query(
         conditions=conditions,
         query=user_query,
         params=params,
-        orderby=[histogram_alias],
+        orderby=(order_by if order_by else []) + [histogram_alias],
         functions_acl=["array_join", "histogram"],
     )
 

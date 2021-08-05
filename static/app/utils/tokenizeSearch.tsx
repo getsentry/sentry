@@ -1,9 +1,9 @@
 import {escapeDoubleQuotes} from 'app/utils';
 
 export enum TokenType {
-  OP,
-  TAG,
-  QUERY,
+  OPERATOR,
+  FILTER,
+  FREE_TEXT,
 }
 
 export type Token = {
@@ -13,7 +13,7 @@ export type Token = {
 };
 
 function isOp(t: Token) {
-  return t.type === TokenType.OP;
+  return t.type === TokenType.OPERATOR;
 }
 
 function isBooleanOp(value: string) {
@@ -29,15 +29,20 @@ function isParen(token: Token, character: '(' | ')') {
   );
 }
 
+// TODO(epurkhiser): This is legacy from before the existence of
+// searchSyntax/parser. We should absolutely replace the internals of this API
+// with `parseSearch`.
+
 export class QueryResults {
-  tagValues: Record<string, string[]>;
+  filters: Record<string, string[]>;
   tokens: Token[];
 
   constructor(strTokens: string[]) {
     this.tokens = [];
-    this.tagValues = {};
+    this.filters = {};
+
     for (let token of strTokens) {
-      let tokenState = TokenType.QUERY;
+      let tokenState = TokenType.FREE_TEXT;
 
       if (isBooleanOp(token)) {
         this.addOp(token.toUpperCase());
@@ -52,8 +57,7 @@ export class QueryResults {
         }
       }
 
-      // Traverse the token and determine if it is a tag
-      // condition or bare words.
+      // Traverse the token and check if it's a filter condition or free text
       for (let i = 0, len = token.length; i < len; i++) {
         const char = token[i];
 
@@ -61,13 +65,13 @@ export class QueryResults {
           break;
         }
 
-        // We may have entered a tag condition
+        // We may have entered a filter condition
         if (char === ':') {
           const nextChar = token[i + 1] || '';
           if ([':', ' '].includes(nextChar)) {
-            tokenState = TokenType.QUERY;
+            tokenState = TokenType.FREE_TEXT;
           } else {
-            tokenState = TokenType.TAG;
+            tokenState = TokenType.FILTER;
           }
           break;
         }
@@ -82,10 +86,10 @@ export class QueryResults {
         }
       }
 
-      if (tokenState === TokenType.QUERY && token.length) {
-        this.addQuery(token);
-      } else if (tokenState === TokenType.TAG) {
-        this.addStringTag(token, false);
+      if (tokenState === TokenType.FREE_TEXT && token.length) {
+        this.addFreeText(token);
+      } else if (tokenState === TokenType.FILTER) {
+        this.addStringFilter(token, false);
       }
 
       if (trailingParen !== '') {
@@ -98,7 +102,7 @@ export class QueryResults {
     const formattedTokens: string[] = [];
     for (const token of this.tokens) {
       switch (token.type) {
-        case TokenType.TAG:
+        case TokenType.FILTER:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
           } else if (/[\s\(\)\\"]/g.test(token.value)) {
@@ -107,7 +111,7 @@ export class QueryResults {
             formattedTokens.push(`${token.key}:${token.value}`);
           }
           break;
-        case TokenType.QUERY:
+        case TokenType.FREE_TEXT:
           if (/[\s\(\)\\"]/g.test(token.value)) {
             formattedTokens.push(`"${escapeDoubleQuotes(token.value)}"`);
           } else {
@@ -121,48 +125,48 @@ export class QueryResults {
     return formattedTokens.join(' ').trim();
   }
 
-  addStringTag(value: string, shouldEscape = true) {
-    const [key, tag] = formatTag(value);
-    this.addTagValues(key, [tag], shouldEscape);
+  addStringFilter(filter: string, shouldEscape = true) {
+    const [key, value] = parseFilter(filter);
+    this.addFilterValues(key, [value], shouldEscape);
     return this;
   }
 
-  addTagValues(tag: string, tagValues: string[], shouldEscape = true) {
-    for (const t of tagValues) {
-      // Tag values that we insert through the UI can contain special characters
+  addFilterValues(key: string, values: string[], shouldEscape = true) {
+    for (const value of values) {
+      // Filter values that we insert through the UI can contain special characters
       // that need to escaped. User entered filters should not be escaped.
-      const escaped = shouldEscape ? escapeTagValue(t) : t;
-      this.tagValues[tag] = Array.isArray(this.tagValues[tag])
-        ? [...this.tagValues[tag], escaped]
+      const escaped = shouldEscape ? escapeFilterValue(value) : value;
+      this.filters[key] = Array.isArray(this.filters[key])
+        ? [...this.filters[key], escaped]
         : [escaped];
-      const token: Token = {type: TokenType.TAG, key: tag, value: escaped};
+      const token: Token = {type: TokenType.FILTER, key, value: escaped};
       this.tokens.push(token);
     }
     return this;
   }
 
-  setTagValues(tag: string, tagValues: string[], shouldEscape = true) {
-    this.removeTag(tag);
-    this.addTagValues(tag, tagValues, shouldEscape);
+  setFilterValues(key: string, values: string[], shouldEscape = true) {
+    this.removeFilter(key);
+    this.addFilterValues(key, values, shouldEscape);
     return this;
   }
 
-  getTagValues(tag: string) {
-    return this.tagValues[tag] ?? [];
+  getFilterValues(key: string) {
+    return this.filters[key] ?? [];
   }
 
-  getTagKeys() {
-    return Object.keys(this.tagValues);
+  getFilterKeys() {
+    return Object.keys(this.filters);
   }
 
-  hasTag(tag: string): boolean {
-    const tags = this.getTagValues(tag);
-    return !!(tags && tags.length);
+  hasFilter(key: string): boolean {
+    const filters = this.getFilterValues(key);
+    return !!(filters && filters.length);
   }
 
-  removeTag(key: string) {
+  removeFilter(key: string) {
     this.tokens = this.tokens.filter(token => token.key !== key);
-    delete this.tagValues[key];
+    delete this.filters[key];
 
     // Now the really complicated part: removing parens that only have one element in them.
     // Since parens are themselves tokens, this gets tricky. In summary, loop through the
@@ -242,42 +246,42 @@ export class QueryResults {
     return this;
   }
 
-  removeTagValue(key: string, value: string) {
-    const values = this.getTagValues(key);
+  removeFilterValue(key: string, value: string) {
+    const values = this.getFilterValues(key);
     if (Array.isArray(values) && values.length) {
-      this.setTagValues(
+      this.setFilterValues(
         key,
         values.filter(item => item !== value)
       );
     }
   }
 
-  addQuery(value: string) {
-    const token: Token = {type: TokenType.QUERY, value: formatQuery(value)};
+  addFreeText(value: string) {
+    const token: Token = {type: TokenType.FREE_TEXT, value: formatQuery(value)};
     this.tokens.push(token);
     return this;
   }
 
   addOp(value: string) {
-    const token: Token = {type: TokenType.OP, value};
+    const token: Token = {type: TokenType.OPERATOR, value};
     this.tokens.push(token);
     return this;
   }
 
-  get query(): string[] {
-    return this.tokens.filter(t => t.type === TokenType.QUERY).map(t => t.value);
+  get freeText(): string[] {
+    return this.tokens.filter(t => t.type === TokenType.FREE_TEXT).map(t => t.value);
   }
 
-  set query(values: string[]) {
-    this.tokens = this.tokens.filter(t => t.type !== TokenType.QUERY);
+  set freeText(values: string[]) {
+    this.tokens = this.tokens.filter(t => t.type !== TokenType.FREE_TEXT);
     for (const v of values) {
-      this.addQuery(v);
+      this.addFreeText(v);
     }
   }
 
   copy() {
     const q = new QueryResults([]);
-    q.tagValues = {...this.tagValues};
+    q.filters = {...this.filters};
     q.tokens = [...this.tokens];
     return q;
   }
@@ -289,7 +293,6 @@ export class QueryResults {
 
 /**
  * Tokenize a search into a QueryResult
- *
  *
  * Should stay in sync with src.sentry.search.utils:tokenize_query
  */
@@ -355,13 +358,13 @@ function isSpace(s: string) {
 }
 
 /**
- * Splits tags on ':' and removes enclosing quotes if present, and returns both
- * sides of the split as strings.
+ * Splits a filter on ':' and removes enclosing quotes if present, and returns
+ * both sides of the split as strings.
  */
-function formatTag(tag: string) {
-  const idx = tag.indexOf(':');
-  const key = removeSurroundingQuotes(tag.slice(0, idx));
-  const value = removeSurroundingQuotes(tag.slice(idx + 1));
+function parseFilter(filter: string) {
+  const idx = filter.indexOf(':');
+  const key = removeSurroundingQuotes(filter.slice(0, idx));
+  const value = removeSurroundingQuotes(filter.slice(idx + 1));
 
   return [key, value];
 }
@@ -397,15 +400,13 @@ function formatQuery(query: string) {
 }
 
 /**
- * Some characters have special meaning in a tag value. So when they
- * are directly added as a tag value, we have to escape them to mean
- * the literal.
+ * Some characters have special meaning in a filter value. So when they are
+ * directly added as a value, we have to escape them to mean the literal.
  */
-function escapeTagValue(value: string) {
+export function escapeFilterValue(value: string) {
   // TODO(txiao): The types here are definitely wrong.
   // Need to dig deeper to see where exactly it's wrong.
   //
   // astericks (*) is used for wildcard searches
-  // back slaches (\) is used to escape other characters
-  return typeof value === 'string' ? value.replace(/([\*\\])/g, '\\$1') : value;
+  return typeof value === 'string' ? value.replace(/([\*])/g, '\\$1') : value;
 }

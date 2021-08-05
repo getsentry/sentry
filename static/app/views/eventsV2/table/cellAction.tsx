@@ -6,8 +6,9 @@ import color from 'color';
 import * as PopperJS from 'popper.js';
 
 import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
   getAggregateAlias,
@@ -27,6 +28,7 @@ export enum Actions {
   TRANSACTION = 'transaction',
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
+  EDIT_THRESHOLD = 'edit_threshold',
 }
 
 export function updateQuery(
@@ -56,48 +58,48 @@ export function updateQuery(
       if (value === null || value === undefined) {
         // Adding a null value is the same as excluding truthy values.
         // Remove inclusion if it exists.
-        results.removeTagValue('has', key);
-        results.addTagValues('!has', [key]);
+        results.removeFilterValue('has', key);
+        results.addFilterValues('!has', [key]);
       } else {
         // Remove exclusion if it exists.
-        results.removeTag(`!${key}`);
+        results.removeFilter(`!${key}`);
 
         if (Array.isArray(value)) {
           // For array values, add to existing filters
-          const currentFilters = results.getTagValues(key);
+          const currentFilters = results.getFilterValues(key);
           value = [...new Set([...currentFilters, ...value])];
         } else {
           value = [String(value)];
         }
 
-        results.setTagValues(key, value);
+        results.setFilterValues(key, value);
       }
       break;
     case Actions.EXCLUDE:
       if (value === null || value === undefined) {
         // Excluding a null value is the same as including truthy values.
         // Remove exclusion if it exists.
-        results.removeTagValue('!has', key);
-        results.addTagValues('has', [key]);
+        results.removeFilterValue('!has', key);
+        results.addFilterValues('has', [key]);
       } else {
         // Remove positive if it exists.
-        results.removeTag(key);
+        results.removeFilter(key);
         // Negations should stack up.
         const negation = `!${key}`;
         value = Array.isArray(value) ? value : [String(value)];
-        const currentNegations = results.getTagValues(negation);
+        const currentNegations = results.getFilterValues(negation);
         value = [...new Set([...currentNegations, ...value])];
-        results.setTagValues(negation, value);
+        results.setFilterValues(negation, value);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {
       // Remove query token if it already exists
-      results.setTagValues(key, [`>${value}`]);
+      results.setFilterValues(key, [`>${value}`]);
       break;
     }
     case Actions.SHOW_LESS_THAN: {
       // Remove query token if it already exists
-      results.setTagValues(key, [`<${value}`]);
+      results.setFilterValues(key, [`<${value}`]);
       break;
     }
     // these actions do not modify the query in any way,
@@ -323,6 +325,25 @@ class CellAction extends React.Component<Props, State> {
           onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
         >
           {t('View Stacks')}
+        </ActionItem>
+      );
+    }
+
+    if (
+      column.column.kind === 'function' &&
+      column.column.function[0] === 'user_misery' &&
+      defined(dataRow.project_threshold_config)
+    ) {
+      addMenuItem(
+        Actions.EDIT_THRESHOLD,
+        <ActionItem
+          key="edit_threshold"
+          data-test-id="edit-threshold"
+          onClick={() => handleCellAction(Actions.EDIT_THRESHOLD, value)}
+        >
+          {tct('Edit threshold ([threshold]ms)', {
+            threshold: dataRow.project_threshold_config[1],
+          })}
         </ActionItem>
       );
     }

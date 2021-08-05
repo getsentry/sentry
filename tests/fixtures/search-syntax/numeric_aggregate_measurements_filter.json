@@ -2,6 +2,7 @@
   {
     "query": "min(measurements.size):3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -15,7 +16,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -39,6 +40,7 @@
   {
     "query": "min(measurements.size):>3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -52,7 +54,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -76,6 +78,7 @@
   {
     "query": "min(measurements.size):<3.1415",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -89,7 +92,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -113,6 +116,7 @@
   {
     "query": "min(measurements.size):<3k",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -126,7 +130,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }
@@ -145,6 +149,7 @@
   {
     "query": "min(measurements.size):2m",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "aggregateNumeric",
@@ -158,7 +163,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.size",
                   "quoted": false
                 }

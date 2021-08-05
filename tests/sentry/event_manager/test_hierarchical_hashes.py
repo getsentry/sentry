@@ -24,7 +24,12 @@ def fast_save(default_project, task_runner):
                 hashes=CalculatedHashes(
                     hashes=["a" * 32, "b" * 32],
                     hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
-                    tree_labels=[["foo"], ["bar"], ["baz"], ["bam"]],
+                    tree_labels=[
+                        [{"function": "foo"}],
+                        [{"function": "bar"}],
+                        [{"function": "baz"}],
+                        [{"function": "bam"}],
+                    ],
                 ),
                 release=None,
                 metadata={},

@@ -1,10 +1,11 @@
 __all__ = ("Stacktrace",)
 
+from typing import Optional
 
 from django.utils.translation import ugettext as _
 
 from sentry.app import env
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import DataPath, Interface
 from sentry.models import UserOption
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
@@ -128,7 +129,7 @@ class Frame(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, raw=False):
+    def to_python(cls, data, **kwargs):
         for key in (
             "abs_path",
             "colno",
@@ -155,7 +156,8 @@ class Frame(Interface):
             "snapshot",
         ):
             data.setdefault(key, None)
-        return cls(**data)
+
+        return super().to_python(data, **kwargs)
 
     def to_json(self):
         return prune_empty_keys(
@@ -232,8 +234,18 @@ class Frame(Interface):
             )
             if is_url(self.data["sourcemap"]):
                 data["mapUrl"] = self.data["sourcemap"]
-        if self.data and "symbolicator_status" in self.data:
-            data["symbolicatorStatus"] = self.data["symbolicator_status"]
+        if self.data:
+            if "symbolicator_status" in self.data:
+                data["symbolicatorStatus"] = self.data["symbolicator_status"]
+
+            if self.data.get("is_sentinel"):
+                data["isSentinel"] = True
+
+            if self.data.get("is_prefix"):
+                data["isPrefix"] = True
+
+            if "min_grouping_level" in self.data:
+                data["minGroupingLevel"] = self.data["min_grouping_level"]
 
         return data
 
@@ -275,7 +287,7 @@ class Frame(Interface):
         return is_url(self.abs_path)
 
     def is_caused_by(self):
-        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
+        # XXX(dcramer): don't compute hash using frames containing the 'Caused by'
         # text as it contains an exception value which may may contain dynamic
         # values (see raven-java#125)
         return self.filename.startswith("Caused by: ")
@@ -374,7 +386,7 @@ class Stacktrace(Interface):
       code in this stacktrace. For example, the frames that might power the
       framework's webserver of your app are probably not relevant, however calls
       to the framework's library once you start handling code likely are. See
-      notes below on implicity ``in_app`` behavior.
+      notes below on implicit ``in_app`` behavior.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
     ``package``
@@ -405,7 +417,7 @@ class Stacktrace(Interface):
     >>>     "frames_omitted": [13, 56]
     >>> }
 
-    Implicity ``in_app`` behavior exists when the value is not specified on all
+    Implicit ``in_app`` behavior exists when the value is not specified on all
     frames within a stacktrace (or collectively within an exception if this is
     part of a chain).
 
@@ -428,17 +440,20 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, raw=False):
+    def to_python(cls, data, datapath: Optional[DataPath] = None, **kwargs):
         data = dict(data)
         frame_list = []
-        for f in data.get("frames") or []:
+        for i, f in enumerate(data.get("frames") or []):
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            frame_list.append(Frame.to_python(f or {}, raw=raw))
+            frame_list.append(
+                Frame.to_python(f or {}, datapath=datapath + ["frames", i] if datapath else None)
+            )
 
         data["frames"] = frame_list
         data.setdefault("registers", None)
         data.setdefault("frames_omitted", None)
-        return cls(**data)
+
+        return super().to_python(data, datapath=datapath, **kwargs)
 
     def get_has_system_frames(self):
         # This is a simplified logic from how the normalizer works.

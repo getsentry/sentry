@@ -1,4 +1,6 @@
-export default function parseApiError(resp: JQueryXHR): string {
+import {ResponseMeta} from 'app/api';
+
+export default function parseApiError(resp: ResponseMeta): string {
   const {detail} = (resp && resp.responseJSON) || ({} as object);
 
   // return immediately if string

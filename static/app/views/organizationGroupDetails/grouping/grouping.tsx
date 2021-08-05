@@ -1,22 +1,26 @@
-import {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PaginationCaption from 'app/components/pagination/paginationCaption';
 import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
+import {IconMegaphone} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {BaseGroup, Group, Organization} from 'app/types';
+import {BaseGroup, Group, Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import RangeSlider, {
+  Slider,
+} from 'app/views/settings/components/forms/controls/rangeSlider';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
@@ -26,6 +30,7 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 type Props = {
   organization: Organization;
   groupId: Group['id'];
+  projSlug: Project['slug'];
   location: Location<{level?: number; cursor?: string}>;
   api: Client;
   router: InjectedRouter;
@@ -38,11 +43,27 @@ type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
 };
 
 type GroupingLevel = {
-  id: string;
+  id: number;
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization, router}: Props) {
+function LinkFooter() {
+  return (
+    <Footer>
+      <ExternalLink
+        href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
+          'Grouping Feedback'
+        )}&body=${encodeURIComponent(
+          `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
+        )}`}
+      >
+        <StyledIconMegaphone /> {t('Give Feedback')}
+      </ExternalLink>
+    </Footer>
+  );
+}
+
+function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
@@ -100,7 +121,7 @@ function Grouping({api, groupId, location, organization, router}: Props) {
     setError(undefined);
 
     try {
-      const [response, , xhr] = await api.requestPromise(
+      const [data, , resp] = await api.requestPromise(
         `/issues/${groupId}/grouping/levels/${activeGroupingLevel}/new-issues/`,
         {
           method: 'GET',
@@ -112,9 +133,9 @@ function Grouping({api, groupId, location, organization, router}: Props) {
         }
       );
 
-      const pageLinks = xhr && xhr.getResponseHeader?.('Link');
+      const pageLinks = resp?.getResponseHeader?.('Link');
       setPagination(pageLinks ?? '');
-      setActiveGroupingLevelDetails(Array.isArray(response) ? response : [response]);
+      setActiveGroupingLevelDetails(Array.isArray(data) ? data : [data]);
       setIsGroupingLevelDetailsLoading(false);
     } catch (err) {
       setIsGroupingLevelDetailsLoading(false);
@@ -153,11 +174,11 @@ function Grouping({api, groupId, location, organization, router}: Props) {
     }
 
     if (groupingLevels.length > 1) {
-      setActiveGroupingLevel(Number(groupingLevels[1].id));
+      setActiveGroupingLevel(groupingLevels[1].id);
       return;
     }
 
-    setActiveGroupingLevel(Number(groupingLevels[0].id));
+    setActiveGroupingLevel(groupingLevels[0].id);
   }
 
   if (isLoading) {
@@ -165,7 +186,18 @@ function Grouping({api, groupId, location, organization, router}: Props) {
   }
 
   if (error) {
-    return <ErrorMessage onRetry={fetchGroupingLevels} groupId={groupId} error={error} />;
+    return (
+      <React.Fragment>
+        <ErrorMessage
+          onRetry={fetchGroupingLevels}
+          groupId={groupId}
+          error={error}
+          projSlug={projSlug}
+          orgSlug={organization.slug}
+        />
+        <LinkFooter />
+      </React.Fragment>
+    );
   }
 
   if (!activeGroupingLevelDetails.length) {
@@ -178,12 +210,12 @@ function Grouping({api, groupId, location, organization, router}: Props) {
 
   return (
     <Wrapper>
-      <Description>
+      <Header>
         {t(
           'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
         )}
-      </Description>
-      <Content>
+      </Header>
+      <Body>
         <SliderWrapper>
           {t('Fewer issues')}
           <StyledRangeSlider
@@ -195,11 +227,8 @@ function Grouping({api, groupId, location, organization, router}: Props) {
           />
           {t('More issues')}
         </SliderWrapper>
-        <div>
-          <StyledPanelTable
-            isReloading={isGroupingLevelDetailsLoading}
-            headers={['', t('Events')]}
-          >
+        <Content isReloading={isGroupingLevelDetailsLoading}>
+          <StyledPanelTable headers={['', t('Events')]}>
             {activeGroupingLevelDetails.map(
               ({hash, title, metadata, latestEvent, eventCount}) => {
                 // XXX(markus): Ugly hack to make NewIssue show the right things.
@@ -220,6 +249,7 @@ function Grouping({api, groupId, location, organization, router}: Props) {
           </StyledPanelTable>
           <StyledPagination
             pageLinks={pagination}
+            disabled={isGroupingLevelDetailsLoading}
             caption={
               <PaginationCaption
                 caption={tct('Showing [current] of [total] [result]', {
@@ -234,13 +264,18 @@ function Grouping({api, groupId, location, organization, router}: Props) {
               />
             }
           />
-        </div>
-      </Content>
+        </Content>
+      </Body>
+      <LinkFooter />
     </Wrapper>
   );
 }
 
 export default withApi(Grouping);
+
+const StyledIconMegaphone = styled(IconMegaphone)`
+  margin-right: ${space(0.5)};
+`;
 
 const Wrapper = styled('div')`
   flex: 1;
@@ -250,26 +285,25 @@ const Wrapper = styled('div')`
   padding: ${space(3)} ${space(4)};
 `;
 
-const Description = styled('p')`
+const Header = styled('p')`
   && {
     margin-bottom: ${space(2)};
   }
 `;
 
-const Content = styled('div')`
+const Footer = styled('p')`
+  && {
+    margin-top: ${space(2)};
+  }
+`;
+
+const Body = styled('div')`
   display: grid;
   grid-gap: ${space(3)};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
+const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr minmax(60px, auto);
-  ${p =>
-    p.isReloading &&
-    `
-      opacity: 0.5;
-      pointer-events: none;
-    `}
-
   > * {
     padding: ${space(1.5)} ${space(2)};
     :nth-child(-n + 2) {
@@ -289,6 +323,17 @@ const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
+`;
+
+const Content = styled('div')<{isReloading: boolean}>`
+  ${p =>
+    p.isReloading &&
+    `
+      ${StyledPanelTable}, ${StyledPagination} {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    `}
 `;
 
 const SliderWrapper = styled('div')`
@@ -311,9 +356,22 @@ const SliderWrapper = styled('div')`
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  input {
+  ${Slider} {
+    background: transparent;
     margin-top: 0;
     margin-bottom: 0;
+
+    ::-ms-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
+
+    ::-moz-range-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
+
+    ::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
+    }
   }
 
   position: absolute;

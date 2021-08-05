@@ -3,7 +3,7 @@ import posixpath
 import re
 
 import jsonschema
-from django.db import transaction
+from django.db import router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
@@ -18,6 +18,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.models import (
+    File,
     FileBlobOwner,
     OrganizationMember,
     ProjectDebugFile,
@@ -33,6 +34,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.utils import json
+from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
@@ -204,7 +206,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         """
 
         if request.GET.get("id") and (request.access.has_scope("project:write")):
-            with transaction.atomic():
+            with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
                     .select_related("file")
@@ -461,12 +463,12 @@ class SourceMapsEndpoint(ProjectEndpoint):
         archive_name = request.GET.get("name")
 
         if archive_name:
-            with transaction.atomic():
+            with atomic_transaction(using=router.db_for_write(ReleaseFile)):
                 release = Release.objects.get(
                     organization_id=project.organization_id, projects=project, version=archive_name
                 )
                 if release is not None:
-                    release_files = ReleaseFile.objects.filter(release=release)
+                    release_files = ReleaseFile.objects.filter(release_id=release.id)
                     release_files.delete()
                     return Response(status=204)
 

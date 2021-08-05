@@ -229,12 +229,22 @@ const lightAliases = {
   /**
    * Search filter "token" background
    */
-  searchTokenBackground: '#E8F3FE',
+  searchTokenBackground: {
+    valid: '#E8F3FE',
+    validActive: color('#E8F3FE').darken(0.02).string(),
+    invalid: colors.red100,
+    invalidActive: color(colors.red100).darken(0.02).string(),
+  },
 
   /**
    * Search filter "token" border
    */
-  searchTokenBorder: '#B5DAFF',
+  searchTokenBorder: {
+    valid: '#B5DAFF',
+    validActive: color('#B5DAFF').darken(0.15).string(),
+    invalid: colors.red300,
+    invalidActive: color(colors.red300).darken(0.15).string(),
+  },
 
   /**
    * Count on button when active
@@ -245,6 +255,11 @@ const lightAliases = {
    * Count on button
    */
   buttonCount: colors.gray400,
+
+  /**
+   * Background of alert banners at the top
+   */
+  bannerBackground: colors.black,
 };
 
 const dataCategory = {
@@ -295,17 +310,17 @@ const generateBadgeTheme = (alias: Aliases) => ({
     color: alias.badgeText,
   },
   alpha: {
-    background: colors.orange400,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
     indicatorColor: colors.orange400,
     color: alias.badgeText,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
+    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
     indicatorColor: colors.purple300,
     color: alias.badgeText,
   },
   new: {
-    background: colors.green300,
+    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
     indicatorColor: colors.green300,
     color: alias.badgeText,
   },
@@ -514,6 +529,13 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
+
+    // On mobile views issue list dropdowns overlap
+    issuesList: {
+      stickyHeader: 1,
+      sortOptions: 2,
+      displayOptions: 3,
+    },
   },
 
   grid: 8,
@@ -597,8 +619,6 @@ const commonTheme = {
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
   },
 
-  space: [0, 8, 16, 20, 30],
-
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],
 
@@ -647,10 +667,22 @@ const darkAliases = {
   tagBar: colors.gray400,
   businessIconColors: [colors.pink100, colors.pink300],
   badgeText: colors.black,
-  searchTokenBackground: '#1F1A3D',
-  searchTokenBorder: '#554E80',
+  searchTokenBackground: {
+    valid: '#1F1A3D',
+    validActive: color('#1F1A3D').lighten(0.05).string(),
+    invalid: color(colors.red300).darken(0.8).string(),
+    invalidActive: color(colors.red300).darken(0.7).string(),
+  },
+  searchTokenBorder: {
+    valid: '#554E80',
+    validActive: color('#554E80').lighten(0.15).string(),
+    invalid: color(colors.red300).darken(0.5).string(),
+    invalidActive: color(colors.red300).darken(0.4).string(),
+  },
+
   buttonCountActive: colors.gray100,
   buttonCount: colors.gray400,
+  bannerBackground: colors.purple100,
 };
 
 export const lightTheme = {

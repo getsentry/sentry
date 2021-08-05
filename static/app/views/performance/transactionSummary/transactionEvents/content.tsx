@@ -6,6 +6,7 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
@@ -24,7 +25,6 @@ import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 
@@ -64,10 +64,10 @@ class EventsPageContent extends React.Component<Props, State> {
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       // no need to include transaction as its already in the query params
-      searchConditions.removeTag('transaction');
+      searchConditions.removeFilter('transaction');
 
       updateQuery(searchConditions, action, column, value);
 
@@ -123,10 +123,7 @@ class EventsPageContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.Events}
-          hasWebVitals={
-            getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
-          }
+          hasWebVitals="maybe"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>
@@ -258,9 +255,9 @@ const Search = (props: Props) => {
         fields={eventView.fields}
         onSearch={handleSearch}
       />
-      <LatencyDropdown>
+      <SearchRowMenuItem>
         <DropdownControl
-          buttonProps={{prefix: t('Display')}}
+          buttonProps={{prefix: t('Percentile')}}
           label={eventsFilterOptions[eventsDisplayFilterName].label}
         >
           {Object.entries(eventsFilterOptions).map(([name, filter]) => {
@@ -277,7 +274,12 @@ const Search = (props: Props) => {
             );
           })}
         </DropdownControl>
-      </LatencyDropdown>
+      </SearchRowMenuItem>
+      <SearchRowMenuItem>
+        <Button to={eventView.getResultsViewUrlTarget(organization.slug)}>
+          {t('Open in Discover')}
+        </Button>
+      </SearchRowMenuItem>
     </SearchWrapper>
   );
 };
@@ -307,7 +309,7 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   }
 `;
 
-const LatencyDropdown = styled('div')`
+const SearchRowMenuItem = styled('div')`
   margin-left: ${space(1)};
   flex-grow: 0;
 `;

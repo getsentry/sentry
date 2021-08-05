@@ -50,6 +50,56 @@ describe('AsyncComponent', function () {
     expect(wrapper.find('LoadingError').text()).toEqual('oops there was a problem');
   });
 
+  it('renders only unique error message', async function () {
+    Client.clearMockResponses();
+    Client.addMockResponse({
+      url: '/first/path/',
+      method: 'GET',
+      body: {
+        detail: 'oops there was a problem',
+      },
+      statusCode: 400,
+    });
+    Client.addMockResponse({
+      url: '/second/path/',
+      method: 'GET',
+      body: {
+        detail: 'oops there was a problem',
+      },
+      statusCode: 400,
+    });
+    Client.addMockResponse({
+      url: '/third/path/',
+      method: 'GET',
+      body: {
+        detail: 'oops there was a different problem',
+      },
+      statusCode: 400,
+    });
+
+    class UniqueErrorsAsyncComponent extends AsyncComponent {
+      shouldRenderBadRequests = true;
+
+      getEndpoints() {
+        return [
+          ['first', '/first/path/'],
+          ['second', '/second/path/'],
+          ['third', '/third/path/'],
+        ];
+      }
+
+      renderBody() {
+        return <div>{this.state.data.message}</div>;
+      }
+    }
+
+    const wrapper = mountWithTheme(<UniqueErrorsAsyncComponent />);
+
+    expect(wrapper.find('LoadingError').text()).toEqual(
+      'oops there was a problem\noops there was a different problem'
+    );
+  });
+
   describe('multi-route component', () => {
     class MultiRouteComponent extends TestAsyncComponent {
       getEndpoints() {

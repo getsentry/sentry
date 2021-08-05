@@ -241,6 +241,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         showExampleCommit={false}
                         showTagSummary={false}
                         api={this.api}
+                        isBorderless
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>

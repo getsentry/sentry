@@ -15,6 +15,7 @@ from sentry.search.events.constants import (
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
@@ -32,7 +33,10 @@ from sentry.utils.compat import filter, map
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
 from sentry.utils.validators import is_event_id
 
-WILDCARD_CHARS = re.compile(r"[\*]")
+# A wildcard is an asterisk prefixed by an even number of back slashes.
+# If there are an odd number of back slashes, then the back slash immediately
+# before the asterisk is actually escaping the asterisk.
+WILDCARD_CHARS = re.compile(r"(?<!\\)(\\\\)*\*")
 
 event_search_grammar = Grammar(
     r"""
@@ -115,22 +119,25 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep operator? search_value
 
-key              = ~r"[a-zA-Z0-9_.-]+"
-quoted_key       = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
-explicit_tag_key = "tags" open_bracket search_key closed_bracket
-aggregate_key    = key open_paren spaces function_args? spaces closed_paren
-function_args    = key (spaces comma spaces key)*
-search_key       = key / quoted_key
-text_key         = explicit_tag_key / search_key
-value            = ~r"[^()\t\n ]*"
-quoted_value     = '"' ('\\"' / ~r'[^"]')* '"'
-in_value         = (&in_value_termination in_value_char)+
-text_in_value    = quoted_value / in_value
-search_value     = quoted_value / value
-numeric_value    = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
-boolean_value    = ~r"(true|1|false|0)"i &end_value
-text_in_list     = open_bracket text_in_value (spaces comma spaces text_in_value)* closed_bracket &end_value
-numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket &end_value
+key                    = ~r"[a-zA-Z0-9_.-]+"
+quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
+explicit_tag_key       = "tags" open_bracket search_key closed_bracket
+aggregate_key          = key open_paren spaces function_args? spaces closed_paren
+function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
+aggregate_param        = quoted_aggregate_param / raw_aggregate_param
+raw_aggregate_param    = ~r"[^()\t\n, \"]+"
+quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+search_key             = key / quoted_key
+text_key               = explicit_tag_key / search_key
+value                  = ~r"[^()\t\n ]*"
+quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
+in_value               = (&in_value_termination in_value_char)+
+text_in_value          = quoted_value / in_value
+search_value           = quoted_value / value
+numeric_value          = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
+boolean_value          = ~r"(true|1|false|0)"i &end_value
+text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
+numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -194,6 +201,29 @@ def translate_wildcard(pat: str) -> str:
     return "^" + res + "$"
 
 
+def translate_escape_sequences(string: str) -> str:
+    """
+    A non-wildcard pattern can contain escape sequences that we need to handle.
+    - \\* because a single asterisk represents a wildcard, so it needs to be escaped
+    """
+
+    i, n = 0, len(string)
+    res = ""
+    while i < n:
+        c = string[i]
+        i = i + 1
+        if c == "\\" and i < n:
+            d = string[i]
+            if d == "*":
+                i += 1
+                res += d
+            else:
+                res += c
+        else:
+            res += c
+    return res
+
+
 def flatten(children):
     def _flatten(seq):
         # there is a list from search_term and one from free_text, so flatten them.
@@ -228,9 +258,13 @@ def remove_space(children):
 
 
 def process_list(first, remaining):
+    # Empty values become blank nodes
+    if any(isinstance(item[4], Node) for item in remaining):
+        raise InvalidSearchQuery("Lists should not have empty values")
+
     return [
         first,
-        *[item[3] for item in remaining],
+        *[item[4][0] for item in remaining],
     ]
 
 
@@ -294,6 +328,8 @@ class SearchValue(NamedTuple):
     def value(self):
         if self.is_wildcard():
             return translate_wildcard(self.raw_value)
+        elif isinstance(self.raw_value, str):
+            return translate_escape_sequences(self.raw_value)
         return self.raw_value
 
     def is_wildcard(self) -> bool:
@@ -789,6 +825,12 @@ class SearchVisitor(NodeVisitor):
         if not search_value.raw_value and not node.children[4].text:
             raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
+        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
+            # Operators are not supported in text_filter.
+            # Push it back into the value before handing the negation.
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+            operator = "="
+
         operator = handle_negation(negation, operator)
 
         return self._handle_text_filter(search_key, operator, search_value)
@@ -828,6 +870,17 @@ class SearchVisitor(NodeVisitor):
 
     def visit_function_args(self, node, children):
         return process_list(children[0], children[1])
+
+    def visit_aggregate_param(self, node, children):
+        return children[0]
+
+    def visit_raw_aggregate_param(self, node, children):
+        return node.text
+
+    def visit_quoted_aggregate_param(self, node, children):
+        value = "".join(node.text for node in flatten(children[1]))
+
+        return f'"{value}"'
 
     def visit_search_key(self, node, children):
         key = children[0]
@@ -945,7 +998,7 @@ class SearchVisitor(NodeVisitor):
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
     percentage_keys={"percentage"},
-    text_operator_keys={SEMVER_ALIAS},
+    text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     numeric_keys={
         "project_id",
         "project.id",

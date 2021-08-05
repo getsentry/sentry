@@ -163,7 +163,7 @@ function handleFilterTransaction(location: Location, transaction: string) {
   const queryString = decodeScalar(location.query.query);
   const conditions = tokenizeSearch(queryString || '');
 
-  conditions.addTagValues('!transaction', [transaction]);
+  conditions.addFilterValues('!transaction', [transaction]);
 
   const query = conditions.formatString();
 
@@ -181,18 +181,18 @@ function handleFilterDuration(location: Location, value: number, symbol: FilterS
   const queryString = decodeScalar(location.query.query);
   const conditions = tokenizeSearch(queryString || '');
 
-  const existingValues = conditions.getTagValues(durationTag);
+  const existingValues = conditions.getFilterValues(durationTag);
   const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
 
   if (existingValues) {
     existingValues.forEach(existingValue => {
       if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
-        conditions.removeTagValue(durationTag, existingValue);
+        conditions.removeFilterValue(durationTag, existingValue);
       }
     });
   }
 
-  conditions.addTagValues(durationTag, [`${symbol}${value}`]);
+  conditions.addFilterValues(durationTag, [`${symbol}${value}`]);
 
   const query = conditions.formatString();
 

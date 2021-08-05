@@ -4,13 +4,12 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit
 from snuba_sdk.query import Query
 
-from sentry.search.events.fields import QueryFields
 from sentry.search.events.filter import QueryFilter
 from sentry.search.events.types import ParamsType, SelectType
 from sentry.utils.snuba import Dataset
 
 
-class QueryBuilder(QueryFilter, QueryFields):
+class QueryBuilder(QueryFilter):
     """Builds a snql query"""
 
     def __init__(
@@ -20,15 +19,20 @@ class QueryBuilder(QueryFilter, QueryFields):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        use_aggregate_conditions: bool = False,
         limit: int = 50,
     ):
         super().__init__(dataset, params)
 
         self.limit = Limit(limit)
 
-        self.where = self.resolve_where(query)
+        parsed_terms = self.parse_query(query)
+        self.where = self.resolve_where(parsed_terms)
+        self.having = self.resolve_having(
+            parsed_terms, use_aggregate_conditions=use_aggregate_conditions
+        )
 
-        # params depends on get_filter since there may be projects in the query
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
         self.where += self.resolve_params()
 
         self.columns = self.resolve_select(selected_columns)
@@ -36,12 +40,12 @@ class QueryBuilder(QueryFilter, QueryFields):
 
     @property
     def select(self) -> Optional[List[SelectType]]:
-        return [*self.aggregates, *self.columns]
+        return self.columns
 
     @property
     def groupby(self) -> Optional[List[SelectType]]:
         if self.aggregates:
-            return self.columns
+            return [c for c in self.columns if c not in self.aggregates]
         else:
             return []
 
@@ -51,6 +55,7 @@ class QueryBuilder(QueryFilter, QueryFields):
             match=Entity(self.dataset.value),
             select=self.select,
             where=self.where,
+            having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,
             limit=self.limit,

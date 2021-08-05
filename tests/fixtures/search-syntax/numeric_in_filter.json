@@ -2,6 +2,7 @@
   {
     "query": "project_id:[500,501,502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -47,6 +48,7 @@
   {
     "query": "project_id:[500, 501,     502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -92,6 +94,7 @@
   {
     "query": "project_id:[500, 501 ,502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -137,6 +140,7 @@
   {
     "query": "project_id:[500,501,502] issue.id:[100]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -205,6 +209,7 @@
     "desc": "Numeric format should still return a string if field isn't allowed",
     "query": "project_id:[500,501,502] random_field:[500,501,502]",
     "result": [
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -265,6 +270,48 @@
             {
               "separator": ",",
               "value": {"type": "valueText", "value": "502", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "project_id:[500,501,]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "invalid": {"reason": "Lists should not have empty values"},
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": null
             }
           ]
         }

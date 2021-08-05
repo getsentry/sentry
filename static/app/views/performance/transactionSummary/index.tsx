@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -14,7 +13,6 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -62,7 +60,6 @@ type State = {
   eventView: EventView | undefined;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
-  loadingThreshold: boolean;
 };
 
 // Used to cast the totals request to numbers
@@ -73,7 +70,6 @@ class TransactionSummary extends Component<Props, State> {
   state: State = {
     transactionThreshold: undefined,
     transactionThresholdMetric: undefined,
-    loadingThreshold: false,
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateSummaryEventView(
       this.props.location,
@@ -95,9 +91,6 @@ class TransactionSummary extends Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
-    if (organization.features.includes('project-transaction-threshold-override')) {
-      this.fetchTransactionThreshold();
-    }
     addRoutePerformanceContext(selection);
   }
 
@@ -135,72 +128,6 @@ class TransactionSummary extends Component<Props, State> {
       pathname: location.pathname,
       query: nextQuery,
     });
-  };
-
-  getProject() {
-    const {projects} = this.props;
-    const {eventView} = this.state;
-    if (!defined(eventView)) {
-      return undefined;
-    }
-
-    const projectId = String(eventView.project[0]);
-    const project = projects.find(proj => proj.id === projectId);
-
-    return project;
-  }
-
-  fetchTransactionThreshold = () => {
-    const {api, organization, location} = this.props;
-    const transactionName = getTransactionName(location);
-
-    const project = this.getProject();
-    if (!defined(project)) {
-      return;
-    }
-    const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
-
-    this.setState({loadingThreshold: true});
-
-    api
-      .requestPromise(transactionThresholdUrl, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          project: project.id,
-          transaction: transactionName,
-        },
-      })
-      .then(([data]) => {
-        this.setState({
-          loadingThreshold: false,
-          transactionThreshold: data.threshold,
-          transactionThresholdMetric: data.metric,
-        });
-      })
-      .catch(() => {
-        const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-        this.props.api
-          .requestPromise(projectThresholdUrl, {
-            method: 'GET',
-            includeAllArgs: true,
-            query: {
-              project: project.id,
-            },
-          })
-          .then(([data]) => {
-            this.setState({
-              loadingThreshold: false,
-              transactionThreshold: data.threshold,
-              transactionThresholdMetric: data.metric,
-            });
-          })
-          .catch(err => {
-            this.setState({loadingThreshold: false});
-            const errorMessage = err.responseJSON?.threshold ?? null;
-            addErrorMessage(errorMessage);
-          });
-      });
   };
 
   getDocumentTitle(): string {
@@ -296,12 +223,7 @@ class TransactionSummary extends Component<Props, State> {
 
   render() {
     const {organization, projects, location} = this.props;
-    const {
-      eventView,
-      transactionThreshold,
-      transactionThresholdMetric,
-      loadingThreshold,
-    } = this.state;
+    const {eventView, transactionThreshold, transactionThresholdMetric} = this.state;
     const transactionName = getTransactionName(location);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
@@ -371,9 +293,6 @@ class TransactionSummary extends Component<Props, State> {
                           transactionThresholdMetric: metric,
                         })
                       }
-                      transactionThreshold={transactionThreshold}
-                      transactionThresholdMetric={transactionThresholdMetric}
-                      loadingThreshold={loadingThreshold}
                     />
                   );
                 }}
@@ -402,11 +321,11 @@ function generateSummaryEventView(
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
-    .setTagValues('event.type', ['transaction'])
-    .setTagValues('transaction', [transactionName]);
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction', [transactionName]);
 
-  Object.keys(conditions.tagValues).forEach(field => {
-    if (isAggregateField(field)) conditions.removeTag(field);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) conditions.removeFilter(field);
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
