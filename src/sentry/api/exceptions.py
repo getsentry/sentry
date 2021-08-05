@@ -103,6 +103,12 @@ class AppConnectAuthenticationError(SentryAPIException):
     message = "App connect authentication error"
 
 
+class AppConnectMultipleSourcesError(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "app-connect-multiple-sources-error"
+    message = "Only one Apple App Store Connect application is allowed in this project"
+
+
 class ItunesAuthenticationError(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "itunes-authentication-error"

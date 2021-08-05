@@ -176,6 +176,19 @@ class AppStoreConnectConfig:
         else:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
 
+    @staticmethod
+    def all_config_ids(project: Project) -> List[str]:
+        """Return the config IDs of all appStoreConnect symbol sources configured in the project."""
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+        if not raw:
+            raw = "[]"
+        all_sources = json.loads(raw)
+        return [
+            s.get("id")
+            for s in all_sources
+            if s.get("type") == SYMBOL_SOURCE_TYPE_NAME and s.get("id")
+        ]
+
     def to_json(self) -> Dict[str, Any]:
         """Creates a dict which can be serialised to JSON.
 
@@ -196,31 +209,35 @@ class AppStoreConnectConfig:
             raise InvalidConfigError from e
         return data
 
-    def update_project_symbol_source(self, project: Project) -> json.JSONData:
+    def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
         """Updates this configuration in the Project's symbol sources.
 
         If a symbol source of type ``appStoreConnect`` already exists the ID must match and it
-        will be updated.  If not ``appStoreConnect`` source exists yet it is added.
+        will be updated.  If no ``appStoreConnect`` source exists yet it is added.
+
+        :param allow_multiple: Whether multiple appStoreConnect sources are allowed for this
+           project.
 
         :returns: The new value of the sources.  Use this in a call to
            `ProjectEndpoint.create_audit_entry()` to create an audit log.
 
         :raises ValueError: if an ``appStoreConnect`` source already exists but the ID does not
-           match.
+           match
         """
         with transaction.atomic():
             all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
             all_sources = json.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):
                 if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
-                    if source.get("id") != self.id:
+                    if source.get("id") == self.id:
+                        all_sources[i] = self.to_json()
+                        break
+                    elif not allow_multiple:
                         raise ValueError(
                             "Existing appStoreConnect symbolSource config does not match id"
                         )
-                    all_sources[i] = self.to_json()
-                    break
             else:
-                # No existing appStoreConnect symbol source, simply append it.
+                # No matching existing appStoreConnect symbol source, append it.
                 all_sources.append(self.to_json())
             project.update_option(SYMBOL_SOURCES_PROP_NAME, json.dumps(all_sources))
         return all_sources

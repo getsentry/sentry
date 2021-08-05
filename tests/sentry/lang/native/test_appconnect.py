@@ -97,7 +97,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
 
     @pytest.mark.django_db
     def test_new_source(self, default_project, config):
-        sources = config.update_project_symbol_source(default_project)
+        sources = config.update_project_symbol_source(default_project, allow_multiple=False)
 
         cfg = appconnect.AppStoreConnectConfig.from_json(sources[0].copy())
         assert cfg == config
@@ -113,7 +113,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         )
         default_project.update_option(appconnect.SYMBOL_SOURCES_PROP_NAME, old_sources)
 
-        sources = config.update_project_symbol_source(default_project)
+        sources = config.update_project_symbol_source(default_project, allow_multiple=False)
 
         cfg = appconnect.AppStoreConnectConfig.from_project_config(default_project, config.id)
         assert cfg == config
@@ -128,7 +128,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
 
     @pytest.mark.django_db
     def test_update(self, default_project, config):
-        config.update_project_symbol_source(default_project)
+        config.update_project_symbol_source(default_project, allow_multiple=False)
 
         updated = appconnect.AppStoreConnectConfig(
             type=config.type,
@@ -148,14 +148,14 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             orgName=config.orgName,
         )
 
-        updated.update_project_symbol_source(default_project)
+        updated.update_project_symbol_source(default_project, allow_multiple=False)
 
         current = appconnect.AppStoreConnectConfig.from_project_config(default_project, config.id)
         assert current.itunesSession == "A NEW COOKIE"
 
     @pytest.mark.django_db
     def test_update_no_matching_id(self, default_project, config):
-        config.update_project_symbol_source(default_project)
+        config.update_project_symbol_source(default_project, allow_multiple=False)
 
         updated = appconnect.AppStoreConnectConfig(
             type=config.type,
@@ -176,4 +176,4 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         )
 
         with pytest.raises(ValueError):
-            updated.update_project_symbol_source(default_project)
+            updated.update_project_symbol_source(default_project, allow_multiple=False)
