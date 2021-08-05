@@ -64,10 +64,10 @@ class EventsPageContent extends React.Component<Props, State> {
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       // no need to include transaction as its already in the query params
-      searchConditions.removeTag('transaction');
+      searchConditions.removeFilter('transaction');
 
       updateQuery(searchConditions, action, column, value);
 

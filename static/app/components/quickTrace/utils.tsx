@@ -113,7 +113,7 @@ export function generateMultiTransactionsTarget(
   const eventIds = events.map(child => child.event_id);
   for (let i = 0; i < eventIds.length; i++) {
     queryResults.addOp(i === 0 ? '(' : 'OR');
-    queryResults.addQuery(`id:${eventIds[i]}`);
+    queryResults.addFreeText(`id:${eventIds[i]}`);
     if (i === eventIds.length - 1) {
       queryResults.addOp(')');
     }

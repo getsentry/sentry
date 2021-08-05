@@ -285,7 +285,7 @@ class _TagExplorer extends React.Component<Props> {
     const queryString = decodeScalar(location.query.query);
     const conditions = tokenizeSearch(queryString || '');
 
-    conditions.addTagValues(tagKey, [tagValue]);
+    conditions.addFilterValues(tagKey, [tagValue]);
 
     const query = conditions.formatString();
     browserHistory.push({
@@ -313,7 +313,7 @@ class _TagExplorer extends React.Component<Props> {
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 

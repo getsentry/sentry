@@ -54,7 +54,7 @@ type State = {
 
 function getSummaryConditions(query: string) {
   const parsed = tokenizeSearch(query);
-  parsed.query = [];
+  parsed.freeText = [];
 
   return parsed.formatString();
 }

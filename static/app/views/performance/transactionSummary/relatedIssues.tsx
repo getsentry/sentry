@@ -48,7 +48,7 @@ class RelatedIssues extends Component<Props> {
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
     const currentFilter = tokenizeSearch(decodeScalar(location.query.query, ''));
-    currentFilter.getTagKeys().forEach(tagKey => {
+    currentFilter.getFilterKeys().forEach(tagKey => {
       const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
       // Remove aggregates and transaction event fields
       if (
@@ -59,10 +59,12 @@ class RelatedIssues extends Component<Props> {
         // tags that we don't want to pass to pass to issue search
         EXCLUDE_TAG_KEYS.has(searchKey)
       ) {
-        currentFilter.removeTag(tagKey);
+        currentFilter.removeFilter(tagKey);
       }
     });
-    currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
+    currentFilter
+      .addFreeText('is:unresolved')
+      .setFilterValues('transaction', [transaction]);
 
     return {
       path: `/organizations/${organization.slug}/issues/`,

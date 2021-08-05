@@ -150,9 +150,9 @@ class TrendsContent extends React.Component<Props, State> {
     const conditions = tokenizeSearch(query);
 
     // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-    conditions.removeTag('tpm()');
-    conditions.removeTag('confidence()');
-    conditions.removeTag('transaction.duration');
+    conditions.removeFilter('tpm()');
+    conditions.removeFilter('confidence()');
+    conditions.removeFilter('transaction.duration');
     newQuery.query = conditions.formatString();
     return {
       pathname: getPerformanceLandingUrl(this.props.organization),
@@ -321,8 +321,11 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
       this.hasPushedDefaults = true;
-      conditions.setTagValues('tpm()', ['>0.01']);
-      conditions.setTagValues(trendParameter.column, ['>0', `<${DEFAULT_MAX_DURATION}`]);
+      conditions.setFilterValues('tpm()', ['>0.01']);
+      conditions.setFilterValues(trendParameter.column, [
+        '>0',
+        `<${DEFAULT_MAX_DURATION}`,
+      ]);
     }
 
     const query = conditions.formatString();

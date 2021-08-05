@@ -321,11 +321,11 @@ function generateSummaryEventView(
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
-    .setTagValues('event.type', ['transaction'])
-    .setTagValues('transaction', [transactionName]);
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction', [transactionName]);
 
-  Object.keys(conditions.tagValues).forEach(field => {
-    if (isAggregateField(field)) conditions.removeTag(field);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) conditions.removeFilter(field);
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];

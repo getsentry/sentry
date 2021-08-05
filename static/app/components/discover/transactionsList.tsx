@@ -150,7 +150,7 @@ class TransactionsList extends React.Component<Props> {
     const sortedEventView = eventView.withSorts([selected.sort]);
     if (selected.query) {
       const query = tokenizeSearch(sortedEventView.query);
-      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       sortedEventView.query = query.formatString();
     }
 
@@ -344,7 +344,7 @@ class TransactionsList extends React.Component<Props> {
     sortedEventView.trendType = selected.trendType;
     if (selected.query) {
       const query = tokenizeSearch(sortedEventView.query);
-      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       sortedEventView.query = query.formatString();
     }
     const cursor = decodeScalar(location.query?.[cursorName]);

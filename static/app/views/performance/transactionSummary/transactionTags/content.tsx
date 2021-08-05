@@ -149,7 +149,7 @@ const InnerContent = (
     return changeTagSelected(tag);
   };
   if (tagSelected) {
-    eventView.additionalConditions.setTagValues('has', [tagSelected]);
+    eventView.additionalConditions.setFilterValues('has', [tagSelected]);
   }
 
   const query = decodeScalar(location.query.query, '');

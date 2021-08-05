@@ -145,12 +145,12 @@ function generateRumEventView(
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
-    .setTagValues('event.type', ['transaction'])
-    .setTagValues('transaction.op', ['pageload'])
-    .setTagValues('transaction', [transactionName]);
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction.op', ['pageload'])
+    .setFilterValues('transaction', [transactionName]);
 
-  Object.keys(conditions.tagValues).forEach(field => {
-    if (isAggregateField(field)) conditions.removeTag(field);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) conditions.removeFilter(field);
   });
 
   const vitals = VITAL_GROUPS.reduce((allVitals: WebVital[], group) => {

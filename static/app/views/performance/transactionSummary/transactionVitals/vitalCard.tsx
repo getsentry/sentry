@@ -194,14 +194,14 @@ class VitalCard extends Component<Props, State> {
       ]);
 
     const query = tokenizeSearch(newEventView.query ?? '');
-    query.addTagValues('has', [column]);
+    query.addFilterValues('has', [column]);
     // add in any range constraints if any
     if (min !== undefined || max !== undefined) {
       if (min !== undefined) {
-        query.addTagValues(column, [`>=${min}`]);
+        query.addFilterValues(column, [`>=${min}`]);
       }
       if (max !== undefined) {
-        query.addTagValues(column, [`<=${max}`]);
+        query.addFilterValues(column, [`<=${max}`]);
       }
     }
     newEventView.query = query.formatString();

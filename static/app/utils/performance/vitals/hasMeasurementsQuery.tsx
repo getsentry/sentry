@@ -7,7 +7,7 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'app/utils/discover/genericDiscoverQuery';
-import {escapeTagValue} from 'app/utils/tokenizeSearch';
+import {escapeFilterValue} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
 type HasMeasurementsProps = {
@@ -29,7 +29,7 @@ type Props = RequestProps & {
 
 function getHasMeasurementsRequestPayload(props: RequestProps) {
   const {eventView, location, transaction, type} = props;
-  const escaped = escapeDoubleQuotes(escapeTagValue(transaction));
+  const escaped = escapeDoubleQuotes(escapeFilterValue(transaction));
   const baseApiPayload = {
     transaction: `"${escaped}"`,
     type,

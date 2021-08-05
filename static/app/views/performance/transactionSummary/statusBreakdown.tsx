@@ -69,8 +69,8 @@ function StatusBreakdown({eventView, location, organization}: Props) {
             onClick: () => {
               const query = tokenizeSearch(eventView.query);
               query
-                .removeTag('!transaction.status')
-                .setTagValues('transaction.status', [row['transaction.status']]);
+                .removeFilter('!transaction.status')
+                .setFilterValues('transaction.status', [row['transaction.status']]);
               browserHistory.push({
                 pathname: location.pathname,
                 query: {

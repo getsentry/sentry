@@ -147,18 +147,18 @@ class PerformanceContent extends Component<Props, State> {
 
     const modifiedConditions = new QueryResults([]);
 
-    if (conditions.hasTag('tpm()')) {
-      modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
     } else {
-      modifiedConditions.setTagValues('tpm()', ['>0.01']);
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
     }
-    if (conditions.hasTag('transaction.duration')) {
-      modifiedConditions.setTagValues(
+    if (conditions.hasFilter('transaction.duration')) {
+      modifiedConditions.setFilterValues(
         'transaction.duration',
-        conditions.getTagValues('transaction.duration')
+        conditions.getFilterValues('transaction.duration')
       );
     } else {
-      modifiedConditions.setTagValues('transaction.duration', [
+      modifiedConditions.setFilterValues('transaction.duration', [
         '>0',
         `<${DEFAULT_MAX_DURATION}`,
       ]);

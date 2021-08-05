@@ -152,7 +152,7 @@ function makeGenericTransactionCta(opts: {
 
   const query = tokenizeSearch(incident.discoverQuery ?? '');
   const transaction = query
-    .getTagValues('transaction')
+    .getFilterValues('transaction')
     ?.find(filter => !filter.includes('*'));
 
   // CASE 1
@@ -214,7 +214,7 @@ function makeFailureRateCta({orgSlug, incident, projects, stats}: PresetCtaOpts)
 
   const query = tokenizeSearch(incident.discoverQuery ?? '');
   const transaction = query
-    .getTagValues('transaction')
+    .getFilterValues('transaction')
     ?.find(filter => !filter.includes('*'));
 
   const extraQueryParams =

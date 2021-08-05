@@ -148,16 +148,16 @@ class Issues extends Component<Props, State> {
 
     switch (issuesType) {
       case IssuesType.NEW:
-        query.setTagValues('firstRelease', [version]);
+        query.setFilterValues('firstRelease', [version]);
         break;
       case IssuesType.UNHANDLED:
-        query.setTagValues('release', [version]);
-        query.setTagValues('error.handled', ['0']);
+        query.setFilterValues('release', [version]);
+        query.setFilterValues('error.handled', ['0']);
         break;
       case IssuesType.RESOLVED:
       case IssuesType.ALL:
       default:
-        query.setTagValues('release', [version]);
+        query.setFilterValues('release', [version]);
     }
 
     return {
