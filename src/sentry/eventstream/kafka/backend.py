@@ -283,10 +283,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     ):
                         task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
 
-                    with metrics.timer(
-                        "eventstream.duration", instance="dispatch_post_process_group_task"
-                    ):
-                        self._dispatch_post_process_group_task(**task_kwargs)
+                    if task_kwargs is not None:
+                        with metrics.timer(
+                            "eventstream.duration", instance="dispatch_post_process_group_task"
+                        ):
+                            self._dispatch_post_process_group_task(**task_kwargs)
 
                 except Exception as error:
                     logger.error("Could not forward message: %s", error, exc_info=True)
