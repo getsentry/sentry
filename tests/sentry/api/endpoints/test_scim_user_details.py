@@ -3,7 +3,7 @@ from django.urls import reverse
 
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
-from sentry.scim.endpoints.utils import parse_filter_conditions
+from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
 from sentry.testutils import APITestCase, SCIMTestCase, TestCase
 
 CREATE_USER_POST_DATA = {
@@ -257,9 +257,9 @@ class SCIMUtilsTests(TestCase):
         assert fil == "MyTeamName"
 
     def test_parse_filter_conditions_invalids(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(SCIMFilterError):
             parse_filter_conditions("userName invalid USER@sentry.io")
-        with pytest.raises(ValueError):
+        with pytest.raises(SCIMFilterError):
             parse_filter_conditions("blablaba eq USER@sentry.io")
 
     def test_parse_filter_conditions_single_quote_in_email(self):
