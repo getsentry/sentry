@@ -63,8 +63,6 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
 
                 if not component.is_prefix_frame:
                     break
-            else:
-                break
 
         # For consistency, we always want to preserve the sort order of the
         # event frames, no matter what order we're going through.
