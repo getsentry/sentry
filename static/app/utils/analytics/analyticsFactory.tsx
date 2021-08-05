@@ -48,10 +48,9 @@ export default function analyticsFactory<
       console.log('trackAdvancedAnalytics', params);
     }
 
-    options = {...defaultOptions, ...options};
-
     // only apply options if required to make mock assertions easier
-    if (options) {
+    if (options || defaultOptions) {
+      options = {...defaultOptions, ...options};
       trackAnalyticsEventV2(params, options);
     } else {
       trackAnalyticsEventV2(params);
