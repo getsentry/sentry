@@ -2657,7 +2657,10 @@ class QueryFields(QueryBase):
             "count_miserable(user)",
             "user_misery()",
         }:
-            if PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns:
+            if (
+                column in stripped_columns
+                and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
+            ):
                 stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
                 break
 
