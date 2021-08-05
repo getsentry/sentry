@@ -2,8 +2,7 @@ import * as React from 'react';
 
 import {assignToActor, assignToUser} from 'app/actionCreators/group';
 import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import {Actor, Committer, Group, Organization, Project} from 'app/types';
+import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
@@ -27,12 +26,14 @@ type Props = {
 type State = {
   rules: Rules;
   owners: Array<Actor>;
+  codeowners: CodeOwner[];
 };
 
 class SuggestedOwners extends React.Component<Props, State> {
   state: State = {
     rules: null,
     owners: [],
+    codeowners: [],
   };
 
   componentDidMount() {
@@ -56,7 +57,25 @@ class SuggestedOwners extends React.Component<Props, State> {
 
   async fetchData(event: Event) {
     this.fetchOwners(event.id);
+    this.fetchCodeOwners();
   }
+
+  fetchCodeOwners = async () => {
+    const {api, project, organization} = this.props;
+
+    try {
+      const data = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners/`
+      );
+      this.setState({
+        codeowners: data,
+      });
+    } catch {
+      this.setState({
+        codeowners: [],
+      });
+    }
+  };
 
   fetchOwners = async (eventId: Event['id']) => {
     const {api, project, organization} = this.props;
@@ -155,6 +174,7 @@ class SuggestedOwners extends React.Component<Props, State> {
 
   render() {
     const {organization, project, group} = this.props;
+    const {codeowners} = this.state;
     const owners = this.getOwnerList();
 
     return (
@@ -162,13 +182,12 @@ class SuggestedOwners extends React.Component<Props, State> {
         {owners.length > 0 && (
           <SuggestedAssignees owners={owners} onAssign={this.handleAssign} />
         )}
-        <Access access={['project:write']}>
-          <OwnershipRules
-            issueId={group.id}
-            project={project}
-            organization={organization}
-          />
-        </Access>
+        <OwnershipRules
+          issueId={group.id}
+          project={project}
+          organization={organization}
+          codeowners={codeowners}
+        />
       </React.Fragment>
     );
   }
