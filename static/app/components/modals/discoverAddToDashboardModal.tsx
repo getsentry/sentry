@@ -28,12 +28,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
-import {
-  DashboardDetails,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-} from 'app/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -44,6 +39,7 @@ export type DiscoverAddToDashboardModalOptions = {
   onAddWidget: (data: Widget) => void;
   widget?: Widget;
   onUpdateWidget?: (nextWidget: Widget) => void;
+  defaultQuery?: string;
 };
 
 type Props = ModalRenderProps &
@@ -185,14 +181,14 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget} = props;
+    const {widget, defaultQuery} = props;
 
     if (!widget) {
       this.state = {
         title: '',
         displayType: DisplayType.LINE,
         interval: '5m',
-        queries: [{...newQuery}],
+        queries: [{...newQuery, ...(defaultQuery ? {conditions: defaultQuery} : {})}],
         errors: undefined,
         loading: false,
       };
@@ -327,9 +323,14 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Header closeButton>
-          <h4>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget')}</h4>
+          <h4>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget to Dashboard')}</h4>
         </Header>
         <Body>
+          <p>
+            {t(
+              `Choose which dashboard you'd like to add this query to. It will appear as a widget.`
+            )}
+          </p>
           <DoubleFieldWrapper>
             <StyledField
               data-test-id="widget-name"
@@ -382,6 +383,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
                   selection={selection}
                   fieldOptions={amendedFieldOptions}
                   displayType={state.displayType}
+                  queries={state.queries}
                   errors={errors?.queries}
                   onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
                     this.handleQueryChange(widgetQuery, queryIndex)
@@ -389,6 +391,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
                   canAddSearchConditions={this.canAddSearchConditions()}
                   handleAddSearchConditions={this.handleAddSearchConditions}
                   handleDeleteQuery={this.handleQueryRemove}
+                  hideQueries
                 />
               );
             }}

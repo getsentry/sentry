@@ -209,13 +209,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    console.log('opening modal');
-    const {organization} = this.props;
+    const {organization, eventView} = this.props;
     openDiscoverAddToDashboardModal({
       organization,
-      onAddWidget: () => {
-        console.log('complete');
-      },
+      onAddWidget: () => undefined,
+      defaultQuery: eventView.query,
     });
   };
 
@@ -339,7 +337,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         data-test-id="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        Add to Dashboard
+        {t('Add to Dashboard')}
       </Button>
     );
   }
