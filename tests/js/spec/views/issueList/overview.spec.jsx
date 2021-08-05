@@ -1,3 +1,4 @@
+import {createRef} from 'react';
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -10,7 +11,7 @@ import {
 
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
-import IssueListWithStores from 'app/views/issueList/overview';
+import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
 // Mock <IssueListSidebar> and <IssueListActions>
 jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
@@ -736,6 +737,125 @@ describe('IssueList', function () {
           project: [],
           query: 'is:unresolved',
           statsPeriod: '14d',
+        },
+      });
+    });
+  });
+
+  describe('transitionTo', function () {
+    let instance;
+    let selection;
+    beforeEach(function () {
+      selection = TestStubs.GlobalSelection({datetime: {}});
+      const {router, routerContext, organization} = initializeOrg({
+        organization: {
+          features: ['global-views'],
+          slug: 'org-slug',
+        },
+        router: {
+          location: {query: {}, search: ''},
+          params: {orgId: 'org-slug'},
+        },
+      });
+      const ref = createRef();
+      wrapper = mountWithTheme(
+        <IssueListOverview
+          {...router}
+          api={new MockApiClient()}
+          selection={selection}
+          organization={organization}
+          ref={ref}
+        />,
+        {
+          context: routerContext,
+        }
+      );
+      instance = ref.current;
+    });
+
+    it('transitions to query updates', function () {
+      instance.transitionTo({query: 'is:ignored'});
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          environment: selection.environments,
+          project: selection.projects,
+          query: 'is:ignored',
+        },
+      });
+    });
+
+    it('transitions to cursor with project-less saved search', function () {
+      savedSearch = {
+        id: 123,
+        projectId: null,
+        query: 'foo:bar',
+      };
+      instance.transitionTo({cursor: '1554756114000:0:0'}, savedSearch);
+
+      // should keep the current project selection as we're going to the next page.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: selection.environments,
+          project: selection.projects,
+          cursor: '1554756114000:0:0',
+        },
+      });
+    });
+
+    it('transitions to cursor with project saved search', function () {
+      savedSearch = {
+        id: 123,
+        projectId: 999,
+        query: 'foo:bar',
+      };
+      instance.transitionTo({cursor: '1554756114000:0:0'}, savedSearch);
+
+      // should keep the current project selection as we're going to the next page.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: selection.environments,
+          project: selection.projects,
+          cursor: '1554756114000:0:0',
+        },
+      });
+    });
+
+    it('transitions to saved search that has a projectId', function () {
+      savedSearch = {
+        id: 123,
+        projectId: 99,
+        query: 'foo:bar',
+      };
+      instance.transitionTo(undefined, savedSearch);
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: selection.environments,
+          project: [savedSearch.projectId],
+        },
+      });
+    });
+
+    it('transitions to saved search with a sort', function () {
+      savedSearch = {
+        id: 123,
+        project: null,
+        query: 'foo:bar',
+        sort: 'freq',
+      };
+      instance.transitionTo(undefined, savedSearch);
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: selection.environments,
+          project: selection.projects,
+          sort: savedSearch.sort,
         },
       });
     });

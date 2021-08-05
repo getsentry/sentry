@@ -32,7 +32,7 @@ function SavedSearchTab({
   queryCount,
   sort,
 }: Props) {
-  const savedSearch = savedSearchList.find(
+  const savedSearch = savedSearchList?.find(
     search => search.query === query && search.sort === sort
   );
 
