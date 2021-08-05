@@ -237,10 +237,19 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         try:
-            sources = parse_sources(sources_json.strip())
+            sources = parse_sources(sources_json.strip(), filter_appconnect=False)
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
+
+        has_multiple_appconnect = features.has(
+            "organizations:app-store-connect-multiple", organization, actor=request.user
+        )
+        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
+        if not has_multiple_appconnect and len(appconnect_sources) > 1:
+            raise serializers.ValidationError(
+                "Only one Apple App Store Connect application is allowed in this project"
+            )
 
         return sources_json
 

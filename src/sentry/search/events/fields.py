@@ -1201,6 +1201,15 @@ class ColumnArg(FunctionArg):
             return snuba_column
 
 
+class ColumnTagArg(ColumnArg):
+    """Validate that the argument is either a column or a valid tag"""
+
+    def normalize(self, value: str, params: ParamsType) -> str:
+        if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
+            return value
+        return super().normalize(value, params)
+
+
 class CountColumn(ColumnArg):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
@@ -2474,6 +2483,36 @@ class QueryFields(QueryBase):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "count_if",
+                    required_args=[
+                        ColumnTagArg("column"),
+                        ConditionArg("condition"),
+                        SnQLStringArg(
+                            "value", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "typed_value",
+                            "fn": normalize_count_if_value,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                args["condition"],
+                                [
+                                    args["column"],
+                                    args["typed_value"],
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
                         "divide", [Function("count", []), args["interval"]], alias
@@ -2509,7 +2548,6 @@ class QueryFields(QueryBase):
                 SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
                     "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
                 ),

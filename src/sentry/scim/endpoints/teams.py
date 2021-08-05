@@ -39,6 +39,10 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
 
+def _team_expand(query):
+    return None if "members" in query.get("excludedAttributes", []) else ["members"]
+
+
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
@@ -54,10 +58,6 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         except ValueError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
-        if "members" in request.GET.get("excludedAttributes", []):
-            expand = None
-        else:
-            expand = ["members"]
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
@@ -69,7 +69,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(results, None, TeamSCIMSerializer(expand=expand))
+            results = serialize(results, None, TeamSCIMSerializer(expand=_team_expand(request.GET)))
             return self.list_api_format(request, queryset.count(), results)
 
         return self.paginate(
@@ -110,7 +110,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     def get(self, request, organization, team):
-        context = serialize(team, serializer=TeamSCIMSerializer(expand=["members"]))
+        context = serialize(team, serializer=TeamSCIMSerializer(expand=_team_expand(request.GET)))
         return Response(context)
 
     def _add_members_operation(self, request, operation, team):
