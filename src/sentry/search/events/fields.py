@@ -2243,9 +2243,6 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count_miserable",
-                    # Using the generic FunctionArg here temporarily till we
-                    # implement a resolver for count columns in SnQL. The only
-                    # column to be passed through here for now is `user`.
                     required_args=[ColumnTagArg("column")],
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[
