@@ -11,6 +11,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import Dataset
 
 ALLOWED_AGGREGATE_COLUMNS = {
@@ -163,7 +164,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
 
-        def data_fn():
+        def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
                 top_tags = query_top_tags(
@@ -173,6 +174,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     aggregate_column=aggregate_column,
                     params=params,
                     orderby=self.get_orderby(request),
+                    offset=offset,
                     referrer=referrer,
                 )
 
@@ -196,20 +198,47 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 for row in results["data"]:
                     row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
 
-                return results, top_tags
+                return {"results": results, "tags": top_tags}
+
+        def on_results(data):
+            return {
+                "tags": self.handle_results_with_meta(
+                    request, organization, params["project_id"], {"data": data["tags"]}
+                ),
+                "histogram": self.handle_results_with_meta(
+                    request, organization, params["project_id"], data["results"]
+                ),
+            }
 
         with self.handle_query_errors():
-            results, top_tags = data_fn()
-            return Response(
-                {
-                    "tags": self.handle_results_with_meta(
-                        request, organization, params["project_id"], {"data": top_tags}
-                    ),
-                    "histogram": self.handle_results_with_meta(
-                        request, organization, params["project_id"], results
-                    ),
-                }
+            return self.paginate(
+                request=request,
+                paginator=HistogramPaginator(data_fn=data_fn),
+                on_results=on_results,
+                default_per_page=10,
+                max_per_page=50,
             )
+
+
+class HistogramPaginator(GenericOffsetPaginator):
+    def get_result(self, limit, cursor=None):
+        assert limit > 0
+        offset = cursor.offset if cursor is not None else 0
+        # Request 1 more than limit so we can tell if there is another page
+        data = self.data_fn(offset=offset, limit=limit + 1)
+
+        if isinstance(data["tags"], list):
+            has_more = len(data["tags"]) == limit + 1
+            if has_more:
+                data["tags"].pop()
+        else:
+            raise NotImplementedError
+
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more),
+        )
 
 
 def query_tag_data(
@@ -248,7 +277,7 @@ def query_tag_data(
             ],
             query=filter_query,
             params=params,
-            orderby=["-count"],
+            orderby=["-count", "tags_value"],
             referrer=f"{referrer}.all_transactions",
             limit=1,
         )
@@ -273,6 +302,7 @@ def query_top_tags(
     limit: int,
     referrer: str,
     orderby: Optional[List[str]],
+    offset: Optional[int] = None,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
 ) -> Optional[List[Any]]:
@@ -302,10 +332,14 @@ def query_top_tags(
                 # Replacing frequency as it's the same underlying data dimension, this way we don't have to modify the existing histogram query.
                 orderby[i] = sort.replace("frequency", "count")
 
+        if "tags_value" not in orderby:
+            orderby = orderby + ["tags_value"]
+
         # Get the average and count to use to filter the next request to facets
         tag_data = discover.query(
             selected_columns=[
                 "count()",
+                f"avg({aggregate_column}) as aggregate",
                 "array_join(tags.value) as tags_value",
             ],
             query=filter_query,
@@ -316,8 +350,8 @@ def query_top_tags(
                 ["tags_key", "IN", [tag_key]],
             ],
             functions_acl=["array_join"],
-            referrer=f"{referrer}.top_tags",
             limit=limit,
+            offset=offset,
         )
 
         if len(tag_data["data"]) <= 0:
@@ -395,6 +429,7 @@ def query_facet_performance(
 
         if tag_key:
             conditions.append(["tags_key", "IN", [tag_key]])
+
         tag_key_limit = limit if tag_key else 1
 
         tag_selected_columns = [
@@ -416,20 +451,22 @@ def query_facet_performance(
             ["avg", [translated_aggregate_column], "aggregate"],
         ]
 
+        limitby = [tag_key_limit, "tags_key"] if not tag_key else None
+
         results = discover.raw_query(
             selected_columns=tag_selected_columns,
             conditions=conditions,
             start=snuba_filter.start,
             end=snuba_filter.end,
             filter_keys=snuba_filter.filter_keys,
-            orderby=resolved_orderby + ["tags_key"],
+            orderby=resolved_orderby + ["tags_key", "tags_value"],
             groupby=["tags_key", "tags_value"],
             having=having,
             dataset=Dataset.Discover,
             referrer=f"{referrer}.tag_values".format(referrer, "tag_values"),
             sample=sample_rate,
             turbo=sample_rate is not None,
-            limitby=[tag_key_limit, "tags_key"],
+            limitby=limitby,
             limit=limit,
             offset=offset,
         )
