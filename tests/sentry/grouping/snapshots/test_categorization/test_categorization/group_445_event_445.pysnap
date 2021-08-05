@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T16:04:56.146899Z'
+created: '2021-08-03T15:05:49.744595Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,7 +11,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                               exe_common.inl  invoke_main category=threadbase
                                  WinMain.cpp  wWinMain category=threadbase
-                                     xstring  std::basic_string<T>::{ctor} category=std
+                                     xstring  std::basic_string<T>::{ctor} category=internals
                                      xstring  std::basic_string<T>::assign category=internals
                                      xstring  std::basic_string<T>::assign category=internals
                                      xstring  std::basic_string<T>::_Reallocate_for category=internals

@@ -47,16 +47,13 @@ class ProjectCodeOwners(DefaultFieldsModel):
         don't have CODEOWNERS.
         """
         cache_key = self.get_cache_key(project_id)
-        codeowners = cache.get(cache_key)
-        if codeowners is None:
-            # TODO(nisanthan): Revisit for supporting multiple CODEOWNERS.
-            # For now we support the first CODEOWNERS uploaded.
-            codeowners = (
-                self.objects.filter(project_id=project_id).order_by("-date_added").first() or False
-            )
+        code_owners = cache.get(cache_key)
+        if code_owners is None:
+            query = self.objects.filter(project_id=project_id).order_by("-date_added") or False
+            code_owners = self.merge_code_owners_list(code_owners_list=query) if query else query
+            cache.set(cache_key, code_owners, READ_CACHE_DURATION)
 
-            cache.set(cache_key, codeowners, READ_CACHE_DURATION)
-        return codeowners or None
+        return code_owners or None
 
     @classmethod
     def validate_codeowners_associations(self, codeowners, project):
@@ -109,6 +106,24 @@ class ProjectCodeOwners(DefaultFieldsModel):
             "teams_without_access": teams_without_access,
         }
         return associations, errors
+
+    @classmethod
+    def merge_code_owners_list(self, code_owners_list):
+        """
+        Merge list of code_owners into a single code_owners object concating all the rules. We assume schema version is constant.
+        """
+        merged_code_owners = None
+        for code_owners in code_owners_list:
+            if code_owners.schema:
+                if merged_code_owners is None:
+                    merged_code_owners = code_owners
+                    continue
+                merged_code_owners.schema["rules"] = [
+                    *merged_code_owners.schema["rules"],
+                    *code_owners.schema["rules"],
+                ]
+
+        return merged_code_owners
 
     def update_schema(self):
         """

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:37.963676Z'
+created: '2021-08-03T15:05:49.623385Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,7 +11,7 @@ SQLiteException:duplicate column name: a (code 1): , while compiling: create tab
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                 android.widget.AbsListView$3  run category=indirection
