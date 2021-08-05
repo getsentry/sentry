@@ -2,7 +2,7 @@ import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
-// import {Identity} from 'app/types';
+import withOrganizations from 'app/utils/withOrganizations';
 import {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
@@ -30,9 +30,11 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {FieldObject} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import {OrganizationSummary, Organization} from 'app/types';
 
 type Props = {
   notificationType: string;
+  organizations: Organization[];
 } & AsyncComponent['props'];
 
 type State = {
@@ -49,10 +51,11 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {notificationType} = this.props;
-    const query = {type: notificationType};
     return [
-      ['notificationSettings', `/users/me/notification-settings/`, {query}],
-      ['unlinkedOrgs', '/users/me/unlinked-identity-orgs/slack/'],
+      ['notificationSettings', `/users/me/notification-settings/`, {query: {type: notificationType}}],
+      ['integrations', `/users/me/integrations/`, {query: {provider: "slack"}}], // TODO not hardcode this
+      ['identities', `/users/me/identities/`],
+      ['organizationIntegrations', `/users/me/organization-integrations/`, {query: {provider: "slack"}}]
     ];
   }
 
@@ -167,11 +170,30 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return fields as FieldObject[];
   }
 
+  getUnlinkedOrgs = (): OrganizationSummary[] => {
+    const {organizations} = this.props;
+    const {identities, organizationIntegrations} = this.state;
+    const integrationsByOrganizationID = Object.fromEntries(organizationIntegrations.map(
+      (organizationIntegration) => [
+        organizationIntegration.organization_id, 
+        organizationIntegration.integration
+       ]));
+    const identitiesByExternalId = Object.fromEntries(identities.map((identity) => [
+        identity.identityProvider.externalId,
+        identity
+      ]));
+    return organizations.filter((organization) => {
+      const integration = integrationsByOrganizationID[organization.id];
+      const identity = identitiesByExternalId[integration?.externalId];
+      return identity == null; 
+    });
+  }
+
   renderBody() {
     const {notificationType} = this.props;
-    const {notificationSettings, unlinkedOrgs} = this.state;
+    const {notificationSettings} = this.state;
+    const unlinkedOrgs = this.getUnlinkedOrgs();
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
-
     return (
       <React.Fragment>
         <SettingsPageHeader title={title} />
@@ -212,4 +234,4 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 }
 
-export default NotificationSettingsByType;
+export default withOrganizations(NotificationSettingsByType);
