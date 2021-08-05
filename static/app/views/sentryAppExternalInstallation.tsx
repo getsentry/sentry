@@ -96,30 +96,24 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     if (!organization || !sentryApp) {
       return undefined;
     }
-    trackIntegrationEvent(
-      'integrations.installation_start',
-      {
-        integration_type: 'sentry_app',
-        integration: sentryApp.slug,
-        view: 'external_install',
-        integration_status: sentryApp.status,
-      },
-      organization
-    );
+    trackIntegrationEvent('integrations.installation_start', {
+      integration_type: 'sentry_app',
+      integration: sentryApp.slug,
+      view: 'external_install',
+      integration_status: sentryApp.status,
+      organization,
+    });
 
     const install = await installSentryApp(this.api, organization.slug, sentryApp);
     // installation is complete if the status is installed
     if (install.status === 'installed') {
-      trackIntegrationEvent(
-        'integrations.installation_complete',
-        {
-          integration_type: 'sentry_app',
-          integration: sentryApp.slug,
-          view: 'external_install',
-          integration_status: sentryApp.status,
-        },
-        organization
-      );
+      trackIntegrationEvent('integrations.installation_complete', {
+        integration_type: 'sentry_app',
+        integration: sentryApp.slug,
+        view: 'external_install',
+        integration_status: sentryApp.status,
+        organization,
+      });
     }
 
     if (sentryApp.redirectUrl) {

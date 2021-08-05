@@ -60,8 +60,8 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
         already_installed: false,
         view: 'external_install',
+        organization,
       },
-      organization,
       {startSession: !!startSession}
     );
   };

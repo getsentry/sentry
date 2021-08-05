@@ -110,13 +110,10 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       status: 'dismissed',
     });
 
-    trackIntegrationEvent(
-      'integrations.stacktrace_link_cta_dismissed',
-      {
-        view: 'stacktrace_issue_details',
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.stacktrace_link_cta_dismissed', {
+      view: 'stacktrace_issue_details',
+      organization,
+    });
 
     this.setState({isDismissed: true});
   }
@@ -164,8 +161,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,
+          organization: this.props.organization,
         },
-        this.props.organization,
         {startSession: true}
       );
     }
@@ -181,8 +178,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           view: 'stacktrace_issue_details',
           provider: provider.key,
           error_reason: error,
+          organization: this.props.organization,
         },
-        this.props.organization,
         {startSession: true}
       );
     }
@@ -222,8 +219,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
                           {
                             view: 'stacktrace_issue_details',
                             platform,
+                            organization,
                           },
-                          this.props.organization,
                           {startSession: true}
                         );
                         openModal(

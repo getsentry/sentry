@@ -103,14 +103,11 @@ const IntegrationRow = (props: Props) => {
               href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
               size="xsmall"
               onClick={() =>
-                trackIntegrationEvent(
-                  'integrations.resolve_now_clicked',
-                  {
-                    integration_type: convertIntegrationTypeToSnakeCase(type),
-                    integration: slug,
-                  },
-                  organization
-                )
+                trackIntegrationEvent('integrations.resolve_now_clicked', {
+                  integration_type: convertIntegrationTypeToSnakeCase(type),
+                  integration: slug,
+                  organization,
+                })
               }
             >
               {t('Resolve Now')}

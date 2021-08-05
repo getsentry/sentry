@@ -200,9 +200,10 @@ class AbstractIntegrationDetailedView<
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', // pending counts as installed here
+      organization: this.props.organization,
       ...options,
     };
-    trackIntegrationEvent(eventKey, params, this.props.organization);
+    trackIntegrationEvent(eventKey, params);
   };
 
   // Returns the props as needed by the hooks integrations:feature-gates

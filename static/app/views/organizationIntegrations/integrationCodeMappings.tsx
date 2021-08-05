@@ -99,8 +99,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       {
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
+        organization: this.props.organization,
       },
-      this.props.organization,
       {startSession}
     );
   }
@@ -128,15 +128,12 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
-    trackIntegrationEvent(
-      'integrations.stacktrace_complete_setup',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.stacktrace_complete_setup', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
     let {pathConfigs} = this.state;
     pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
     // our getter handles the order of the configs
@@ -147,15 +144,12 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
-    trackIntegrationEvent(
-      'integrations.stacktrace_start_setup',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.stacktrace_start_setup', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
 
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
@@ -226,14 +220,11 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
                     size="small"
                     onClick={() => {
-                      trackIntegrationEvent(
-                        'integrations.stacktrace_docs_clicked',
-                        {
-                          view: 'integration_configuration_detail',
-                          provider: this.props.integration.provider.key,
-                        },
-                        this.props.organization
-                      );
+                      trackIntegrationEvent('integrations.stacktrace_docs_clicked', {
+                        view: 'integration_configuration_detail',
+                        provider: this.props.integration.provider.key,
+                        organization: this.props.organization,
+                      });
                     }}
                   >
                     View Documentation

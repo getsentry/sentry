@@ -100,15 +100,12 @@ class IntegrationSetup extends Component<Props, State> {
 
   trackSwitchToManual = () => {
     const {organization, integrationSlug} = this.props;
-    trackIntegrationEvent(
-      'integrations.switch_manual_sdk_setup',
-      {
-        integration_type: 'first_party',
-        integration: integrationSlug,
-        view: 'onboarding',
-      },
-      organization
-    );
+    trackIntegrationEvent('integrations.switch_manual_sdk_setup', {
+      integration_type: 'first_party',
+      integration: integrationSlug,
+      view: 'onboarding',
+      organization,
+    });
   };
 
   handleAddIntegration = () => {

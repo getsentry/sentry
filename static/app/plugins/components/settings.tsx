@@ -50,16 +50,13 @@ class PluginSettings<
   }
 
   trackPluginEvent = (eventKey: IntegrationAnalyticsKey) => {
-    trackIntegrationEvent(
-      eventKey,
-      {
-        integration: this.props.plugin.id,
-        integration_type: 'plugin',
-        view: 'plugin_details',
-        already_installed: this.state.wasConfiguredOnPageLoad,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent(eventKey, {
+      integration: this.props.plugin.id,
+      integration_type: 'plugin',
+      view: 'plugin_details',
+      already_installed: this.state.wasConfiguredOnPageLoad,
+      organization: this.props.organization,
+    });
   };
 
   componentDidMount() {

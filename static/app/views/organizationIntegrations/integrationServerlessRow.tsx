@@ -40,15 +40,12 @@ class IntegrationServerlessRow extends Component<Props, State> {
   }
 
   recordAction = (action: 'enable' | 'disable' | 'updateVersion') => {
-    trackIntegrationEvent(
-      'integrations.serverless_function_action',
-      {
-        integration: this.props.integration.provider.key,
-        integration_type: 'first_party',
-        action,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.serverless_function_action', {
+      integration: this.props.integration.provider.key,
+      integration_type: 'first_party',
+      action,
+      organization: this.props.organization,
+    });
   };
   toggleEnable = async () => {
     const {serverlessFunction} = this.props;
