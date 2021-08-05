@@ -29,13 +29,10 @@ export default function FinishSetupAlert({
         external
         href="https://docs.sentry.io/performance-monitoring/getting-started/"
         onClick={() =>
-          trackAdvancedAnalyticsEvent(
-            'growth.sample_transaction_docs_link_clicked',
-            {
-              project_id: project.id,
-            },
-            organization
-          )
+          trackAdvancedAnalyticsEvent('growth.sample_transaction_docs_link_clicked', {
+            project_id: project.id,
+            organization,
+          })
         }
       >
         {t('Get Started')}
