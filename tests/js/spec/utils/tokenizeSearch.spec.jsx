@@ -8,7 +8,6 @@ describe('utils/tokenizeSearch', function () {
         string: 'is:unresolved',
         object: {
           tokens: [{type: TokenType.FILTER, key: 'is', value: 'unresolved'}],
-          filters: {is: ['unresolved']},
         },
       },
       {
@@ -19,7 +18,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FILTER, key: 'is', value: 'unresolved'},
             {type: TokenType.FILTER, key: 'browser', value: 'Chrome 36'},
           ],
-          filters: {is: ['unresolved'], browser: ['Chrome 36']},
         },
       },
       {
@@ -31,7 +29,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FILTER, key: 'is', value: 'unresolved'},
             {type: TokenType.FILTER, key: 'browser', value: 'Chrome 36'},
           ],
-          filters: {is: ['unresolved'], browser: ['Chrome 36']},
         },
       },
       {
@@ -42,7 +39,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FREE_TEXT, value: 'python'},
             {type: TokenType.FREE_TEXT, value: 'exception'},
           ],
-          filters: {},
         },
       },
       {
@@ -53,7 +49,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FILTER, key: 'has', value: 'user'},
             {type: TokenType.FILTER, key: 'has', value: 'browser'},
           ],
-          filters: {has: ['user', 'browser']},
         },
       },
       {
@@ -64,7 +59,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FILTER, key: '!has', value: 'user'},
             {type: TokenType.FILTER, key: 'has', value: 'browser'},
           ],
-          filters: {'!has': ['user'], has: ['browser']},
         },
       },
       {
@@ -76,7 +70,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FILTER, key: 'is', value: 'unresolved'},
             {type: TokenType.FREE_TEXT, value: 'exception'},
           ],
-          filters: {is: ['unresolved']},
         },
       },
       {
@@ -91,10 +84,6 @@ describe('utils/tokenizeSearch', function () {
               value: 'QueryExecutionError: Code: 141.',
             },
           ],
-          filters: {
-            'event.type': ['error'],
-            title: ['QueryExecutionError: Code: 141.'],
-          },
         },
       },
       {
@@ -102,7 +91,6 @@ describe('utils/tokenizeSearch', function () {
         string: 'key:Resque::DirtyExit',
         object: {
           tokens: [{type: TokenType.FILTER, key: 'key', value: 'Resque::DirtyExit'}],
-          filters: {key: ['Resque::DirtyExit']},
         },
       },
       {
@@ -113,7 +101,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FILTER, key: 'country', value: 'canada'},
             {type: TokenType.FREE_TEXT, value: ':unresolved'},
           ],
-          filters: {country: ['canada']},
         },
       },
       {
@@ -125,7 +112,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.OPERATOR, value: 'OR'},
             {type: TokenType.FILTER, key: 'country', value: 'newzealand'},
           ],
-          filters: {country: ['canada', 'newzealand']},
         },
       },
       {
@@ -141,7 +127,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.OPERATOR, value: 'AND'},
             {type: TokenType.FILTER, key: 'province', value: 'pei'},
           ],
-          filters: {country: ['canada', 'newzealand'], province: ['pei']},
         },
       },
       {
@@ -164,7 +149,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FREE_TEXT, value: 'f'},
             {type: TokenType.FILTER, key: 'g', value: 'g'},
           ],
-          filters: {a: ['a'], b: ['b'], g: ['g']},
         },
       },
       {
@@ -176,7 +160,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.OPERATOR, value: 'OR'},
             {type: TokenType.FILTER, key: 'coronaFree()', value: '<newzealand'},
           ],
-          filters: {country: ['>canada'], 'coronaFree()': ['<newzealand']},
         },
       },
       {
@@ -184,7 +167,6 @@ describe('utils/tokenizeSearch', function () {
         string: 'a:"\\"a\\""',
         object: {
           tokens: [{type: TokenType.FILTER, key: 'a', value: '\\"a\\"'}],
-          filters: {a: ['\\"a\\"']},
         },
       },
       {
@@ -196,7 +178,6 @@ describe('utils/tokenizeSearch', function () {
             {type: TokenType.FILTER, key: 'b', value: 'b\\"bb'},
             {type: TokenType.FILTER, key: 'c', value: 'cc'},
           ],
-          filters: {a: ['i \\" quote'], b: ['b\\"bb'], c: ['cc']},
         },
       },
     ];
