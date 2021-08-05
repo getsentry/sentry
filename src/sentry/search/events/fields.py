@@ -2150,8 +2150,6 @@ FUNCTIONS = {
     ]
 }
 
-
-# In Performance TPM is used as an alias to EPM
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
@@ -2532,6 +2530,103 @@ class QueryFields(QueryBase):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "count_unique",
+                    required_args=[ColumnTagArg("column")],
+                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_at_least",
+                    required_args=[NumericColumn("column"), NumberRange("threshold", 0, None)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [Function("greaterOrEquals", [args["column"], args["threshold"]])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "min",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "avg",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "var",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("varSamp", [args["column"]], alias),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "stddev",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "stddevSamp", [args["column"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "cov",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "covarSamp", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "corr",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "corr", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "sum",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "any",
+                    required_args=[FieldColumn("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "absolute_delta",
+                    required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
+                    snql_column=lambda args, alias: Function(
+                        "abs", [Function("minus", [args["column"], args["target"]])], alias
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
                         "divide", [Function("count", []), args["interval"]], alias
@@ -2572,21 +2667,10 @@ class QueryFields(QueryBase):
                 # TODO: implement these
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("avg", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("var", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("stddev", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("cov", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
         for alias, name in FUNCTION_ALIASES.items():
