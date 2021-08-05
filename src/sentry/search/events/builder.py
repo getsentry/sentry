@@ -26,7 +26,8 @@ class QueryBuilder(QueryFilter):
     ):
         super().__init__(dataset, params)
 
-        self.auto_aggregations = False
+        # TODO: implement this in `resolve_select`
+        self.auto_aggregations = auto_aggregations
 
         self.limit = Limit(limit)
 

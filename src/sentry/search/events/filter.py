@@ -1024,7 +1024,8 @@ def format_search_filter(term, params):
 
 
 # Not a part of search.events.types to avoid a circular loop
-ParsedTerms = Sequence[Union[SearchFilter, AggregateFilter]]
+ParsedTerm = Union[SearchFilter, AggregateFilter]
+ParsedTerms = Sequence[ParsedTerm]
 
 
 class QueryFilter(QueryFields):
@@ -1084,7 +1085,7 @@ class QueryFilter(QueryFields):
         return where, having
 
     def resolve_boolean_conditions(
-        self, terms: Sequence[SearchFilter]
+        self, terms: ParsedTerms
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if len(terms) == 1:
             return self.resolve_boolean_condition(terms[0])
@@ -1139,34 +1140,27 @@ class QueryFilter(QueryFields):
                 "Having an OR between aggregate filters and normal filters is invalid."
             )
 
-        where, having = [], []
-
-        if lhs_where or rhs_where:
-            where_conditions = [
-                conditions[0] if len(conditions) == 1 else And(conditions=conditions)
-                for conditions in [lhs_where, rhs_where]
-                if len(conditions) > 0
-            ]
-            if len(where_conditions) == 1:
-                where = where_conditions
-            elif len(where_conditions) > 1:
-                where = [operator(conditions=where_conditions)]
-
-        if lhs_having or rhs_having:
-            having_conditions = [
-                conditions[0] if len(conditions) == 1 else And(conditions=conditions)
-                for conditions in [lhs_having, rhs_having]
-                if len(conditions) > 0
-            ]
-            if len(having_conditions) == 1:
-                having = having_conditions
-            elif len(having_conditions) > 1:
-                having = [operator(conditions=having_conditions)]
+        where = self._combine_conditions(lhs_where, rhs_where, operator)
+        having = self._combine_conditions(lhs_having, rhs_having, operator)
 
         return where, having
 
+    def _combine_conditions(self, lhs, rhs, operator):
+        combined_conditions = [
+            conditions[0] if len(conditions) == 1 else And(conditions=conditions)
+            for conditions in [lhs, rhs]
+            if len(conditions) > 0
+        ]
+        length = len(combined_conditions)
+        if length == 0:
+            return []
+        elif len(combined_conditions) == 1:
+            return combined_conditions
+        else:
+            return [operator(conditions=combined_conditions)]
+
     def resolve_boolean_condition(
-        self, term: SearchFilter
+        self, term: ParsedTerm
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if isinstance(term, ParenExpression):
             return self.resolve_boolean_conditions(term.children)
