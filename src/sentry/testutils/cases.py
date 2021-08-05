@@ -1181,9 +1181,9 @@ class TestMigrations(TestCase):
 
 
 class SCIMTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(organization=self.organization, provider="dummy")
+        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
         with self.feature({"organizations:sso-scim": True}):
             self.auth_provider.enable_scim(self.user)
             self.auth_provider.save()
