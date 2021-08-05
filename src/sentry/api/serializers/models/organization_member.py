@@ -200,15 +200,15 @@ class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
 
-        d = {
+        result = {
             "schemas": [SCIM_SCHEMA_USER],
             "id": str(obj.id),
-            "userName": obj.get_email(),  # TODO: does this get weird with secondary emails?
+            "userName": obj.get_email(),
             "name": {"givenName": "N/A", "familyName": "N/A"},
-            "emails": [
-                {"primary": True, "value": obj.get_email(), "type": "work"}
-            ],  # TODO: secondary emails?
-            "active": True,
+            "emails": [{"primary": True, "value": obj.get_email(), "type": "work"}],
             "meta": {"resourceType": "User"},
         }
-        return d
+        if "active" in self.expand:
+            result["active"] = True
+
+        return result
