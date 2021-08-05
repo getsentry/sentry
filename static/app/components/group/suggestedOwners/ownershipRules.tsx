@@ -6,7 +6,9 @@ import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
+import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
+import {Panel} from 'app/components/panels';
 import {IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -40,8 +42,10 @@ const OwnershipRules = ({project, organization, issueId, codeowners}: Props) => 
   );
 
   const codeOwnersCTA = (
-    <Container>
-      <Header>{t('Sync your existing code owners')}</Header>
+    <Container dashedBorder>
+      <HeaderContainer>
+        <Header>{t('Codeowners sync')}</Header> <FeatureBadge type="beta" noTooltip />
+      </HeaderContainer>
       <Content>
         {t(
           'Import your GitHub or GitLab CODEOWNERS file to start automatically assigning issues to the right people.'
@@ -129,14 +133,18 @@ const HelpfulBody = styled('div')`
   text-align: center;
 `;
 
-const Container = styled('div')`
+const Container = styled(Panel)`
   width: 100%;
   height: 100%;
-  border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  background: none;
   display: flex;
   flex-direction: column;
   padding: ${space(2)};
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  align-items: flex-start;
 `;
 
 const Header = styled('h4')`
@@ -152,9 +160,12 @@ const Content = styled('span')`
 `;
 
 const Actions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
+  display: grid;
+  grid-template-columns: max-content auto;
+  justify-items: start;
+  align-items: end;
   margin-top: ${space(2)};
+  grid-column-gap: ${space(1)};
 `;
 
 const DocsButton = styled(Button)``;
