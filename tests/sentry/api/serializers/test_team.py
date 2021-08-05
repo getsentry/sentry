@@ -199,7 +199,7 @@ class TeamSCIMSerializerTest(TestCase):
 
         result = serialize(team, user, TeamSCIMSerializer(expand=["members"]))
         assert result == {
-            "displayName": team.slug,
+            "displayName": team.name,
             "id": str(team.id),
             "members": [
                 {"display": user.email, "value": str(team.member_set[0].id)},
@@ -215,7 +215,7 @@ class TeamSCIMSerializerTest(TestCase):
         team = self.create_team(organization=organization, members=[user])
         result = serialize(team, user, TeamSCIMSerializer())
         assert result == {
-            "displayName": team.slug,
+            "displayName": team.name,
             "id": str(team.id),
             "members": None,
             "meta": {"resourceType": "Group"},

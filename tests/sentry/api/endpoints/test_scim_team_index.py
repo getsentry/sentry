@@ -25,7 +25,6 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert response.data == correct_get_data
 
     def test_scim_team_index_create(self):
-        # test team creation
         url = reverse(
             "sentry-api-0-organization-scim-team-index",
             args=[self.organization.slug],
@@ -37,13 +36,13 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": team_id,
-            "displayName": "test-scimv2",
+            "displayName": "Test SCIMv2",
             "members": [],
             "meta": {"resourceType": "Group"},
         }
         assert Team.objects.filter(id=team_id).exists()
         assert Team.objects.get(id=team_id).slug == "test-scimv2"
-        assert Team.objects.get(id=team_id).name == "test-scimv2"
+        assert Team.objects.get(id=team_id).name == "Test SCIMv2"
         assert len(Team.objects.get(id=team_id).member_set) == 0
 
     def test_scim_team_index_populated(self):
@@ -63,7 +62,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(team.id),
-                    "displayName": team.slug,
+                    "displayName": team.name,
                     "members": [],
                     "meta": {"resourceType": "Group"},
                 }
@@ -89,7 +88,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "itemsPerPage": 1,
             "Resources": [
                 {
-                    "displayName": team.slug,
+                    "displayName": team.name,
                     "id": str(team.id),
                     "members": [
                         {
@@ -112,7 +111,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
     def test_team_filter(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(
-            f"{url}?startIndex=1&count=100&filter=displayName eq %22{self.team.slug}%22"
+            f"{url}?startIndex=1&count=100&filter=displayName eq %22{self.team.name}%22"
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
@@ -123,7 +122,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(self.team.id),
-                    "displayName": self.team.slug,
+                    "displayName": self.team.name,
                     "members": [
                         {"value": str(self.team.member_set[0].id), "display": "admin@localhost"}
                     ],
@@ -132,10 +131,32 @@ class SCIMGroupIndexTests(SCIMTestCase):
             ],
         }
 
+    def test_team_filter_with_space(self):
+        url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
+        team = self.create_team(organization=self.organization, name="Name WithASpace")
+        response = self.client.get(
+            f"{url}?startIndex=1&count=100&filter=displayName eq %22{team.name}%22"
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+            "totalResults": 1,
+            "startIndex": 1,
+            "itemsPerPage": 1,
+            "Resources": [
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "id": str(team.id),
+                    "displayName": team.name,
+                    "members": [],
+                    "meta": {"resourceType": "Group"},
+                }
+            ],
+        }
+
     def test_team_exclude_members_param(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(
-            f"{url}?startIndex=1&count=100&filter=displayName eq %22{self.team.slug}%22&excludedAttributes=members"
+            f"{url}?startIndex=1&count=100&filter=displayName eq %22{self.team.name}%22&excludedAttributes=members"
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
@@ -146,7 +167,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(self.team.id),
-                    "displayName": self.team.slug,
+                    "displayName": self.team.name,
                     "members": None,
                     "meta": {"resourceType": "Group"},
                 }

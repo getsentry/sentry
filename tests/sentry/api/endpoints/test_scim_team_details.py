@@ -74,11 +74,12 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": str(team.id),
-            "displayName": "newname",  # we slugify the name passed in
+            "displayName": "newName",
             "members": None,
             "meta": {"resourceType": "Group"},
         }
         assert Team.objects.get(id=team.id).slug == "newname"
+        assert Team.objects.get(id=team.id).name == "newName"
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -109,7 +110,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": str(team.id),
-            "displayName": team.slug,
+            "displayName": team.name,
             "members": None,
             "meta": {"resourceType": "Group"},
         }
@@ -142,7 +143,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": str(team.id),
-            "displayName": team.slug,
+            "displayName": team.name,
             "members": None,
             "meta": {"resourceType": "Group"},
         }
@@ -187,7 +188,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": str(team.id),
-            "displayName": team.slug,
+            "displayName": team.name,
             "members": None,
             "meta": {"resourceType": "Group"},
         }
@@ -310,7 +311,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": str(self.team.id),
-            "displayName": "thenewname",
+            "displayName": "theNewName",
             "members": None,
             "meta": {"resourceType": "Group"},
         }
