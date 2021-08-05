@@ -1216,6 +1216,61 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 for index, count in enumerate(data):
                     assert count["count"] == expected_counts[index]
 
+    def test_compare_numeric_aggregate_function(self):
+        project = self.create_project()
+
+        for i in range(6):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+                start_timestamp=before_now(minutes=4 + i),
+            )
+            data["transaction"] = "/percentile"
+            self.store_event(data, project_id=project.id)
+
+        fields = [
+            (
+                [
+                    "transaction",
+                    "p50(measurements.lcp)",
+                    "compare_numeric_aggregate(p50_measurements_lcp,greater,2000)",
+                ],
+                "",
+            ),
+            (
+                [
+                    "transaction",
+                    "p50(measurements.lcp)",
+                    "compare_numeric_aggregate(p50_measurements_lcp,less,2000)",
+                ],
+                "",
+            ),
+        ]
+
+        expected_results = [
+            ("compare_numeric_aggregate_p50_measurements_lcp_greater_2000", 1),
+            ("compare_numeric_aggregate_p50_measurements_lcp_less_2000", 0),
+        ]
+
+        for i, test_case in enumerate(fields):
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                selected, query = test_case
+                result = query_fn(
+                    selected_columns=selected,
+                    query=query,
+                    orderby="transaction",
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [project.id],
+                    },
+                    use_aggregate_conditions=True,
+                )
+                alias, expected_value = expected_results[i]
+                data = result["data"]
+
+                assert data[0][alias] == expected_value
+
     def test_last_seen(self):
         project = self.create_project()
 

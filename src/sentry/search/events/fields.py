@@ -2159,6 +2159,18 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
+def normalize_percentile_alias(args: Mapping[str, str]) -> Union[float, str, int]:
+    aggregate_alias = args["aggregate_alias"]
+    match = re.match(r"(p\d{2,3})_(\w+)", aggregate_alias)
+
+    if not match:
+        raise InvalidFunctionArgument("Aggregate alias must be a percentile function.")
+
+    aggregate_arg = ".".join(match.group(2).split("_"))
+
+    return f"{match.group(1)}({aggregate_arg})"
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs):
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
@@ -2530,6 +2542,26 @@ class QueryFields(QueryBase):
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "compare_numeric_aggregate",
+                    required_args=[
+                        FunctionAliasArg("aggregate_alias"),
+                        ConditionArg("condition"),
+                        NumberRange("value", 0, None),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "aggregate_function",
+                            "fn": normalize_percentile_alias,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        args["condition"],
+                        [self.resolve_function(args["aggregate_function"]), args["value"]],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
                 # TODO: implement these
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
@@ -2548,9 +2580,6 @@ class QueryFields(QueryBase):
                 SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
-                ),
             ]
         }
         for alias, name in FUNCTION_ALIASES.items():
