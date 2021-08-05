@@ -46,7 +46,6 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": str(team.id),
             "displayName": "test-scimv2",
-            "members": None,
             "meta": {"resourceType": "Group"},
         }
 
@@ -70,14 +69,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
                 ],
             },
         )
-        assert response.status_code == 200, response.content
-        assert response.data == {
-            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": str(team.id),
-            "displayName": "newName",
-            "members": None,
-            "meta": {"resourceType": "Group"},
-        }
+        assert response.status_code == 204, response.content
         assert Team.objects.get(id=team.id).slug == "newname"
         assert Team.objects.get(id=team.id).name == "newName"
 
@@ -105,15 +97,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
                 ],
             },
         )
-        assert response.status_code == 200, response.content
-
-        assert response.data == {
-            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": str(team.id),
-            "displayName": team.name,
-            "members": None,
-            "meta": {"resourceType": "Group"},
-        }
+        assert response.status_code == 204, response.content
         assert OrganizationMemberTeam.objects.filter(
             team_id=str(team.id), organizationmember_id=member1.id
         ).exists()
@@ -139,14 +123,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
                 ],
             },
         )
-        assert response.status_code == 200, response.content
-        assert response.data == {
-            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": str(team.id),
-            "displayName": team.name,
-            "members": None,
-            "meta": {"resourceType": "Group"},
-        }
+        assert response.status_code == 204, response.content
         assert not OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member1.id
         ).exists()
@@ -184,14 +161,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
                 ],
             },
         )
-        assert response.status_code == 200, response.content
-        assert response.data == {
-            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": str(team.id),
-            "displayName": team.name,
-            "members": None,
-            "meta": {"resourceType": "Group"},
-        }
+        assert response.status_code == 204, response.content
         assert not OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member1.id
         ).exists()
@@ -307,14 +277,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
                 "Operations": [{"op": "replace", "path": "displayName", "value": "theNewName"}],
             },
         )
-        assert response.status_code == 200, response.content
-        assert response.data == {
-            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": str(self.team.id),
-            "displayName": "theNewName",
-            "members": None,
-            "meta": {"resourceType": "Group"},
-        }
+        assert response.status_code == 204, response.content
         assert Team.objects.get(id=self.team.id).slug == "thenewname"
 
     def test_delete_team(self):
