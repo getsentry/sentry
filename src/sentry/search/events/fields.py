@@ -2160,12 +2160,19 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 
 
 def normalize_percentile_alias(args: Mapping[str, str]) -> Union[float, str, int]:
+    # The compare_numeric_aggregate SnQL function accepts a percentile
+    # alias which is resolved to the percentile function call here
+    # to maintain backward compatibility with the legacy compare_numeric_aggregate
+    # function signature. This function only accepts percentile
+    # aliases.
     aggregate_alias = args["aggregate_alias"]
     match = re.match(r"(p\d{2,3})_(\w+)", aggregate_alias)
 
     if not match:
         raise InvalidFunctionArgument("Aggregate alias must be a percentile function.")
 
+    # Translating an arg of the pattern `measurements_lcp`
+    # to `measurements.lcp`.
     aggregate_arg = ".".join(match.group(2).split("_"))
 
     return f"{match.group(1)}({aggregate_arg})"
