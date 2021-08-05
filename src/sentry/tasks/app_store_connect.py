@@ -9,6 +9,7 @@ import pathlib
 import tempfile
 from typing import List, Mapping, Tuple
 
+import requests
 import sentry_sdk
 from django.utils import timezone
 
@@ -58,7 +59,9 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     except itunes_connect.SessionExpiredError:
         logger.debug("No valid iTunes session, can not download dSYMs")
         return
-    for (build, build_state) in builds:
+    for i, (build, build_state) in enumerate(builds):
+        with sdk.configure_scope() as scope:
+            scope.set_context("dsym_downloads", {"total": len(builds), "completed": i})
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
                 itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
@@ -76,6 +79,11 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
                     "Forbidden iTunes dSYM download, probably switched to wrong org", level="info"
                 )
                 return
+            except requests.RequestException as e:
+                # Assume these are errors with the server side and do not abort all the
+                # pending downloads.
+                sdk.capture_exception(e)
+                continue
             else:
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
                 logger.debug("Uploaded dSYMs for build %s", build)
