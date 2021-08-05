@@ -2266,7 +2266,7 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
       query: 'event.type:transaction foo:bar',
     });
 
-    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+    eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
 
     expect(eventView.getQueryWithAdditionalConditions()).toEqual(
       'event.type:transaction foo:bar'

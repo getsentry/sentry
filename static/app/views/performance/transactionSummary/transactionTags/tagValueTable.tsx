@@ -172,7 +172,7 @@ export class TagValueTable extends Component<Props, State> {
     const queryString = decodeScalar(location.query.query);
     const conditions = tokenizeSearch(queryString || '');
 
-    conditions.addTagValues(tagKey, [tagValue]);
+    conditions.addFilterValues(tagKey, [tagValue]);
 
     const query = conditions.formatString();
     browserHistory.push({
@@ -195,7 +195,7 @@ export class TagValueTable extends Component<Props, State> {
 
       const searchConditions = tokenizeSearch(eventView.query);
 
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
@@ -244,7 +244,7 @@ export class TagValueTable extends Component<Props, State> {
 
     if (column.key === 'action') {
       const searchConditions = tokenizeSearch(eventView.query);
-      const disabled = searchConditions.hasTag(dataRow.tags_key);
+      const disabled = searchConditions.hasFilter(dataRow.tags_key);
       return (
         <Link
           disabled={disabled}
