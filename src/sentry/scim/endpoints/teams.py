@@ -59,7 +59,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
         if filter_val:
-            queryset = queryset.filter(name=filter_val[0])
+            queryset = queryset.filter(name=filter_val)
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
