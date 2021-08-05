@@ -13,7 +13,7 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -140,7 +140,7 @@ function generateTagsEventView(
     return undefined;
   }
   const query = decodeScalar(location.query.query, '');
-  const conditions = tokenizeSearch(query);
+  const conditions = new MutableSearch(query);
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,

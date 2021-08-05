@@ -10,7 +10,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -66,7 +66,7 @@ export function platformAndConditionsToPerformanceType(
 ) {
   const performanceType = platformToPerformanceType(projects, eventView.project);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
-    const conditions = tokenizeSearch(eventView.query);
+    const conditions = new MutableSearch(eventView.query);
     const ops = conditions.getFilterValues('!transaction.op');
     if (ops.some(op => op === 'pageload')) {
       return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;

@@ -24,7 +24,7 @@ import {
 } from 'app/utils/discover/fields';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -319,7 +319,7 @@ function generateSummaryEventView(
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query, '');
-  const conditions = tokenizeSearch(query);
+  const conditions = new MutableSearch(query);
   conditions
     .setFilterValues('event.type', ['transaction'])
     .setFilterValues('transaction', [transactionName]);
