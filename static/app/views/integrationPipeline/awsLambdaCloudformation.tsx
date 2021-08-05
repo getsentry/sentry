@@ -152,15 +152,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 
   handleChangeShowInputs = () => {
     this.setState({showInputs: true});
-    trackIntegrationEvent(
-      'integrations.installation_input_value_changed',
-      {
-        integration: 'aws_lambda',
-        integration_type: 'first_party',
-        field_name: 'showInputs',
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.installation_input_value_changed', {
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      field_name: 'showInputs',
+      organization: this.props.organization,
+    });
   };
 
   get formValid() {
@@ -170,26 +167,20 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 
   // debounce so we don't send a request on every input change
   debouncedTrackValueChanged = debounce((fieldName: string) => {
-    trackIntegrationEvent(
-      'integrations.installation_input_value_changed',
-      {
-        integration: 'aws_lambda',
-        integration_type: 'first_party',
-        field_name: fieldName,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.installation_input_value_changed', {
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      field_name: fieldName,
+      organization: this.props.organization,
+    });
   }, 200);
 
   trackOpenCloudFormation = () => {
-    trackIntegrationEvent(
-      'integrations.cloudformation_link_clicked',
-      {
-        integration: 'aws_lambda',
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.cloudformation_link_clicked', {
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      organization: this.props.organization,
+    });
   };
 
   render = () => {
