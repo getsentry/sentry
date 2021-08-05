@@ -123,7 +123,7 @@ build-utils/        @getsentry/owners-js-build
 ### Endof Visibility ###
 
 
-### Perfomance ###
+### Performance ###
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/performance
 
 /src/sentry/api/endpoints/organization_events_trace.py          @getsentry/performance
@@ -137,7 +137,7 @@ build-utils/        @getsentry/owners-js-build
 /static/app/components/events/interfaces/spans/                 @getsentry/performance
 /static/app/components/performance/                             @getsentry/performance
 /static/app/components/quickTrace/                              @getsentry/performance
-### Endof Perfomance ###
+### Endof Performance ###
 
 
 ### Discover/Dashboards ###
