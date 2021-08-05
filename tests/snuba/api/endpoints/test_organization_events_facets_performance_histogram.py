@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.cursors import Cursor
 from sentry.utils.samples import load_data
 
 
@@ -287,7 +288,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
 
-        assert data_response.data["tags"]["data"][2]["tags_value"] == "orange"
+        assert data_response.data["tags"]["data"][2]["tags_value"] == "green"
 
         request["aggregateColumn"] = "measurements.lcp"
 
@@ -340,3 +341,56 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         tag_data = data_response.data["tags"]["data"]
         assert tag_data[0]["count"] == 1
         assert tag_data[0]["tags_value"] == "id:555"
+
+    def test_histogram_pagination(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "tagKeyLimit": 3,
+            "numBucketsPerKey": 2,
+            "tagKey": "color",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 3
+
+        request["cursor"] = Cursor(0, 3)
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 1
+
+    def test_histogram_sorting(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "tagKeyLimit": 1,
+            "sort": "-frequency",
+            "numBucketsPerKey": 2,
+            "tagKey": "color",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 1
+        assert tag_data[0]["tags_value"] == "red"
+        assert tag_data[0]["count"] == 14
+
+        request["sort"] = "-aggregate"
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 1
+        assert tag_data[0]["tags_value"] == "green"
+        assert tag_data[0]["count"] == 1

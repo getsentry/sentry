@@ -179,9 +179,9 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 )
 
                 if not top_tags:
-                    return {"data": []}, []
+                    return {"tags": [], "histogram": {"data": []}}
 
-                results = query_facet_performance_key_histogram(
+                histogram = query_facet_performance_key_histogram(
                     top_tags=top_tags,
                     tag_key=tag_key,
                     filter_query=filter_query,
@@ -192,13 +192,13 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     num_buckets_per_key=num_buckets_per_key,
                 )
 
-                if not results:
-                    return {"data": []}, top_tags
+                if not histogram:
+                    return {"tags": top_tags, "histogram": {"data": []}}
 
-                for row in results["data"]:
+                for row in histogram["data"]:
                     row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
 
-                return {"results": results, "tags": top_tags}
+                return {"tags": top_tags, "histogram": histogram}
 
         def on_results(data):
             return {
@@ -206,7 +206,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     request, organization, params["project_id"], {"data": data["tags"]}
                 ),
                 "histogram": self.handle_results_with_meta(
-                    request, organization, params["project_id"], data["results"]
+                    request, organization, params["project_id"], data["histogram"]
                 ),
             }
 
@@ -350,6 +350,7 @@ def query_top_tags(
                 ["tags_key", "IN", [tag_key]],
             ],
             functions_acl=["array_join"],
+            referrer=f"{referrer}.top_tags",
             limit=limit,
             offset=offset,
         )
