@@ -8,6 +8,7 @@ import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Link from 'app/components/links/link';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
@@ -31,17 +32,23 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
-const ADOPTION_STAGE_LABELS: Record<string, {name: string; type: keyof Theme['tag']}> = {
+const ADOPTION_STAGE_LABELS: Record<
+  string,
+  {name: string; tooltipTitle: string; type: keyof Theme['tag']}
+> = {
   low_adoption: {
     name: t('Low Adoption'),
+    tooltipTitle: t('Never exceeded 10% adoption in a 6 hour period'),
     type: 'warning',
   },
   adopted: {
     name: t('Adopted'),
+    tooltipTitle: t('At least 10% adoption in the last 6 hours'),
     type: 'success',
   },
   replaced: {
     name: t('Replaced'),
+    tooltipTitle: t('Was previously adopted'),
     type: 'default',
   },
 };
@@ -153,7 +160,21 @@ const Content = ({
                 {showReleaseAdoptionStages && (
                   <AdoptionStageColumn>
                     {adoptionStageLabel ? (
-                      <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                      <Link
+                        to={{
+                          pathname: `/organizations/${organization.slug}/releases/`,
+                          query: {
+                            ...location.query,
+                            query: `release.stage:${adoptionStage}`,
+                          },
+                        }}
+                      >
+                        <Tooltip title={adoptionStageLabel.tooltipTitle}>
+                          <Tag type={adoptionStageLabel.type}>
+                            {adoptionStageLabel.name}
+                          </Tag>
+                        </Tooltip>
+                      </Link>
                     ) : (
                       <NotAvailable />
                     )}
