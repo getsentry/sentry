@@ -212,7 +212,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {organization, eventView} = this.props;
     openDiscoverAddToDashboardModal({
       organization,
-      onAddWidget: () => undefined,
       defaultQuery: eventView.query,
     });
   };

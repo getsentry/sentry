@@ -39,6 +39,7 @@ type Props = {
   handleDeleteQuery: (queryIndex: number) => void;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   hideQueries?: boolean;
+  disabled?: boolean;
 };
 
 /**

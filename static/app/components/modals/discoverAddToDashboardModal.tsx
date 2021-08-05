@@ -67,7 +67,8 @@ type State = {
   queries: Widget['queries'];
   loading: boolean;
   errors?: Record<string, any>;
-  dashboards?: SelectValue<string>[];
+  dashboards: SelectValue<string>[];
+  selectedDashboard?: SelectValue<string>;
 };
 
 const newQuery = {
@@ -193,6 +194,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
       queries: [{...newQuery, ...(defaultQuery ? {conditions: defaultQuery} : {})}],
       errors: undefined,
       loading: true,
+      dashboards: [],
     };
     return;
   }
@@ -206,6 +208,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
 
     const {api, closeModal, organization} = this.props;
     this.setState({loading: true});
+    let errors: FlatValidationError = {};
     try {
       const widgetData: Widget = pick(this.state, [
         'title',
@@ -214,15 +217,23 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
         'queries',
       ]);
       await validateWidget(api, organization.slug, widgetData);
-
-      // TODO: redirect user to dashboard view
-
-      closeModal();
     } catch (err) {
-      const errors = mapErrors(err?.responseJSON ?? {}, {});
+      errors = mapErrors(err?.responseJSON ?? {}, {});
       this.setState({errors});
     } finally {
       this.setState({loading: false});
+    }
+    // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
+    if (
+      !this.state.selectedDashboard ||
+      !this.state.dashboards.includes(this.state.selectedDashboard)
+    ) {
+      errors.dashboard = t('This field may not be blank');
+      this.setState({errors});
+    }
+    if (!Object.keys(errors).length) {
+      // TODO: redirect user to dashboard view
+      closeModal();
     }
   };
 
@@ -305,7 +316,9 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     this.setState({loading: false});
   }
 
-  handleDashboardChange(option: SelectValue<string>) {}
+  handleDashboardChange(option: SelectValue<string>) {
+    this.setState({selectedDashboard: option});
+  }
 
   render() {
     const {Footer, Body, Header, api, organization, selection, tags} = this.props;
@@ -336,8 +349,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
             flexibleControlStateSize
             stacked
             error={errors?.dashboard}
-            style={{marginBottom: space(1)}}
-            disabled={state.loading}
+            style={{marginBottom: space(1), position: 'relative'}}
             required
           >
             <SelectControl
@@ -349,6 +361,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
               onSelectResetsInput={false}
               onCloseResetsInput={false}
               onBlurResetsInput={false}
+              disabled={state.loading}
             />
           </Field>
           <DoubleFieldWrapper>
@@ -370,6 +383,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   this.handleFieldChange('title')(event.target.value);
                 }}
+                disabled={state.loading}
               />
             </StyledField>
             <StyledField
@@ -390,6 +404,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
                 onChange={(option: {label: string; value: Widget['displayType']}) => {
                   this.handleFieldChange('displayType')(option.value);
                 }}
+                disabled={state.loading}
               />
             </StyledField>
           </DoubleFieldWrapper>
@@ -412,6 +427,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
                   handleAddSearchConditions={this.handleAddSearchConditions}
                   handleDeleteQuery={this.handleQueryRemove}
                   hideQueries
+                  disabled={state.loading}
                 />
               );
             }}
