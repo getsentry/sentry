@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import set from 'lodash/set';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -41,9 +41,6 @@ import Field from 'app/views/settings/components/forms/field';
 
 export type DiscoverAddToDashboardModalOptions = {
   organization: Organization;
-  onAddWidget: (data: Widget) => void;
-  widget?: Widget;
-  onUpdateWidget?: (nextWidget: Widget) => void;
   defaultQuery?: string;
 };
 
@@ -187,28 +184,17 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultQuery} = props;
-
-    if (!widget) {
-      this.state = {
-        title: '',
-        displayType: DisplayType.LINE,
-        interval: '5m',
-        queries: [{...newQuery, ...(defaultQuery ? {conditions: defaultQuery} : {})}],
-        errors: undefined,
-        loading: false,
-      };
-      return;
-    }
+    const {defaultQuery} = props;
 
     this.state = {
-      title: widget.title,
-      displayType: widget.displayType,
-      interval: widget.interval,
-      queries: normalizeQueries(widget.displayType, widget.queries),
+      title: '',
+      displayType: DisplayType.LINE,
+      interval: '5m',
+      queries: [{...newQuery, ...(defaultQuery ? {conditions: defaultQuery} : {})}],
       errors: undefined,
-      loading: false,
+      loading: true,
     };
+    return;
   }
 
   async componentDidMount() {
@@ -218,14 +204,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {
-      api,
-      closeModal,
-      organization,
-      onAddWidget,
-      onUpdateWidget,
-      widget: previousWidget,
-    } = this.props;
+    const {api, closeModal, organization} = this.props;
     this.setState({loading: true});
     try {
       const widgetData: Widget = pick(this.state, [
@@ -236,16 +215,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
       ]);
       await validateWidget(api, organization.slug, widgetData);
 
-      if (typeof onUpdateWidget === 'function' && !!previousWidget) {
-        onUpdateWidget({
-          id: previousWidget?.id,
-          ...widgetData,
-        });
-        addSuccessMessage(t('Updated widget.'));
-      } else {
-        onAddWidget(widgetData);
-        addSuccessMessage(t('Added widget.'));
-      }
+      // TODO: redirect user to dashboard view
 
       closeModal();
     } catch (err) {
@@ -326,23 +296,19 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
       });
     } catch (error) {
       const errorResponse = error?.responseJSON ?? null;
+      if (errorResponse) {
+        addErrorMessage(errorResponse);
+      } else {
+        addErrorMessage(t('Unable to fetch dashboards'));
+      }
     }
+    this.setState({loading: false});
   }
 
-  handleDashboardChange(option) {}
+  handleDashboardChange(option: SelectValue<string>) {}
 
   render() {
-    const {
-      Footer,
-      Body,
-      Header,
-      api,
-      organization,
-      selection,
-      tags,
-      onUpdateWidget,
-      widget: previousWidget,
-    } = this.props;
+    const {Footer, Body, Header, api, organization, selection, tags} = this.props;
     const state = this.state;
     const errors = state.errors;
 
@@ -353,12 +319,10 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
         measurementKeys,
       });
 
-    const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
-
     return (
       <React.Fragment>
         <Header closeButton>
-          <h4>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget to Dashboard')}</h4>
+          <h4>{t('Add Widget to Dashboard')}</h4>
         </Header>
         <Body>
           <p>
@@ -371,15 +335,16 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
             inline={false}
             flexibleControlStateSize
             stacked
-            // error={}
+            error={errors?.dashboard}
             style={{marginBottom: space(1)}}
+            disabled={state.loading}
+            required
           >
             <SelectControl
-              // value={}
               name="dashboard"
               options={this.state.dashboards}
               onChange={(option: SelectValue<string>) =>
-                this.handleDashboardChange(option.value)
+                this.handleDashboardChange(option)
               }
               onSelectResetsInput={false}
               onCloseResetsInput={false}
@@ -484,7 +449,7 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
               disabled={state.loading}
               busy={state.loading}
             >
-              {isUpdatingWidget ? t('Update Widget') : t('Add Widget')}
+              {t('Add Widget')}
             </Button>
           </ButtonBar>
         </Footer>
