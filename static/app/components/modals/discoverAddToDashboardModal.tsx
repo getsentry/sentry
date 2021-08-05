@@ -17,7 +17,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, TagCollection} from 'app/types';
+import {GlobalSelection, Organization, SelectValue, TagCollection} from 'app/types';
 import {
   aggregateOutputType,
   isAggregateField,
@@ -28,7 +28,12 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
-import {DisplayType, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {
+  DashboardListItem,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -65,6 +70,7 @@ type State = {
   queries: Widget['queries'];
   loading: boolean;
   errors?: Record<string, any>;
+  dashboards?: SelectValue<string>[];
 };
 
 const newQuery = {
@@ -205,6 +211,10 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     };
   }
 
+  async componentDidMount() {
+    await this.fetchDashboards();
+  }
+
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -296,6 +306,31 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     return rightDisplayType && underQueryLimit;
   }
 
+  async fetchDashboards() {
+    const {api, organization} = this.props;
+    const promise: Promise<DashboardListItem[]> = api.requestPromise(
+      `/organizations/${organization.slug}/dashboards/`,
+      {
+        method: 'GET',
+        query: {sort: 'title'},
+      }
+    );
+
+    try {
+      const response = await promise;
+      const dashboards = response.map(({id, title}) => {
+        return {label: title, value: id};
+      });
+      this.setState({
+        dashboards,
+      });
+    } catch (error) {
+      const errorResponse = error?.responseJSON ?? null;
+    }
+  }
+
+  handleDashboardChange(option) {}
+
   render() {
     const {
       Footer,
@@ -331,6 +366,26 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
               `Choose which dashboard you'd like to add this query to. It will appear as a widget.`
             )}
           </p>
+          <Field
+            label={t('Custom Dashboard')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            // error={}
+            style={{marginBottom: space(1)}}
+          >
+            <SelectControl
+              // value={}
+              name="dashboard"
+              options={this.state.dashboards}
+              onChange={(option: SelectValue<string>) =>
+                this.handleDashboardChange(option.value)
+              }
+              onSelectResetsInput={false}
+              onCloseResetsInput={false}
+              onBlurResetsInput={false}
+            />
+          </Field>
           <DoubleFieldWrapper>
             <StyledField
               data-test-id="widget-name"
