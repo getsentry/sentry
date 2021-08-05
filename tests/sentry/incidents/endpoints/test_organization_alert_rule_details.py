@@ -142,6 +142,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
+        alert_rule.refresh_from_db()
         alert_rule.name = "ValidSentryAppTestRule"
         assert resp.data == serialize(alert_rule)
         assert resp.data["triggers"][0]["actions"][0]["sentryAppId"] == sentry_app.id
@@ -163,6 +164,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         existing_sub = self.alert_rule.snuba_query.subscriptions.first()
 
+        alert_rule.refresh_from_db()
         # Alert rule should be exactly the same
         assert resp.data == serialize(self.alert_rule)
         # If the aggregate changed we'd have a new subscription, validate that
@@ -388,6 +390,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
+        alert_rule.refresh_from_db()
         assert resp.data == serialize(alert_rule, self.user)
         assert (
             resp.data["owner"] == self.user.actor.get_actor_identifier()
@@ -417,6 +420,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
+
+        alert_rule.refresh_from_db()
         assert resp.data == serialize(alert_rule, self.user)
 
 
