@@ -40,16 +40,11 @@ class DigestNotification(BaseNotification):
         self.target_identifier = target_identifier
 
     def get_participants(self) -> Mapping[ExternalProviders, Set["User"]]:
-        data_by_provider = get_send_to(
+        return get_send_to(
             project=self.project,
             target_type=self.target_type,
             target_identifier=self.target_identifier,
         )
-        return {
-            provider: data
-            for provider, data in data_by_provider.items()
-            if provider in [ExternalProviders.EMAIL]
-        }
 
     def get_filename(self) -> str:
         return "digests/body"
@@ -113,11 +108,12 @@ class DigestNotification(BaseNotification):
             return
 
         participants_by_provider = self.get_participants()
-        participants = participants_by_provider.get(ExternalProviders.EMAIL)
-        if not participants:
+        if not participants_by_provider:
             return
 
-        user_ids = {user.id for user in participants}
+        # Get every user ID for every provider as a set.
+        user_ids = {user.id for users in participants_by_provider.values() for user in users}
+
         logger.info(
             "mail.adapter.notify_digest",
             extra={
@@ -136,9 +132,12 @@ class DigestNotification(BaseNotification):
                 shared_context, self.target_type, self.target_identifier
             )
 
-        # Calculate the per-user context.
+        # Calculate the per-user context. It's fine that we're doing extra work
+        # to get personalized digests for the non-email users.
         extra_context: Mapping[int, Mapping[str, Any]] = {}
         if should_get_personalized_digests(self.target_type, self.project.id):
             extra_context = self.get_extra_context(user_ids)
 
-        notify(ExternalProviders.EMAIL, self, participants, shared_context, extra_context)
+        for provider, participants in participants_by_provider.items():
+            if provider in [ExternalProviders.EMAIL]:
+                notify(provider, self, participants, shared_context, extra_context)
