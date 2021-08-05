@@ -476,11 +476,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       titleFragments.push(spanOperationName);
     }
 
-    titleFragments = titleFragments.reduce((acc: React.ReactNode[], current) => {
-      acc.push(current);
-      acc.push(' \u2014 ');
-      return acc;
-    }, []);
+    titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
 
     const description = span?.description ?? getSpanID(span);
 
