@@ -51,13 +51,14 @@ from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, QueryFields, r
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     FUNCTION_TO_OPERATOR,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
     Dataset,
+    QueryOutsideRetentionError,
 )
 from sentry.utils.validators import INVALID_EVENT_DETAILS
 
@@ -1101,6 +1102,10 @@ class QueryFilter(QueryFields):
         if "start" not in self.params or "end" not in self.params:
             raise InvalidSearchQuery("Cannot query without a valid date range")
         start, end = self.params["start"], self.params["end"]
+        # Update start to be within retention
+        expired, start = outside_retention_with_modified_start(
+            start, end, self.params.get("organization_id")
+        )
 
         # TODO: this validation should be done when we create the params dataclass instead
         assert isinstance(start, datetime) and isinstance(
@@ -1109,6 +1114,10 @@ class QueryFilter(QueryFields):
         assert all(
             isinstance(project_id, int) for project_id in self.params.get("project_id", [])
         ), "All project id params must be ints"
+        if expired:
+            raise QueryOutsideRetentionError(
+                "Invalid date range. Please try a more recent date range."
+            )
 
         conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
         conditions.append(Condition(self.column("timestamp"), Op.LT, end))
