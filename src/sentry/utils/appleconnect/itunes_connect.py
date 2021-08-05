@@ -302,9 +302,26 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
-        if response.status_code != HTTPStatus.OK:
-            raise ITunesError(f"Unexpected response status: {response.status_code}")
-        info = response.json()["trustedPhoneNumber"]
+        # Fastlane actually doesn't check the response status in their implementation and simply
+        # checks whether the response returns the expected fields associated with 2FA. This is
+        # tries to be lenient in a similar way.
+        is_expected_status = (
+            response.status_code == HTTPStatus.OK or response.status_code == HTTPStatus.CREATED
+        )
+        try:
+            info = response.json()["trustedPhoneNumber"]
+        except KeyError:
+            if is_expected_status:
+                raise ITunesError(
+                    f"Trusted phone info missing from response with status: {response.status_code}"
+                )
+            else:
+                raise ITunesError(f"Unexpected response status: {response.status_code}")
+        else:
+            sentry_sdk.capture_message(
+                f"Unexpected response status from Apple ({response.status_code}) while requesting trusted phone info but found trustedPhoneNumber in response payload, proceeding using response's contents",
+                level="warning",
+            )
         self._trusted_phone = TrustedPhoneInfo(
             id=info["id"],
             push_mode=info["pushMode"],
