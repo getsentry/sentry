@@ -495,7 +495,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
     return (
       <TransitionChart loading={loading} reloading={reloading} height="240px">
         <TransparentLoadingMask visible={reloading} />
-        <HeaderTitleLegend>
+        <HeaderTitleLegend aria-label={t('Chart Title')}>
           {releaseComparisonChartTitles[chartType]}
           {releaseComparisonChartHelp[chartType] && (
             <QuestionTooltip
@@ -506,7 +506,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
           )}
         </HeaderTitleLegend>
 
-        <HeaderValue>
+        <HeaderValue aria-label={t('Chart Value')}>
           {value} {diff}
         </HeaderValue>
 

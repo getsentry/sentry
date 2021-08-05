@@ -627,7 +627,7 @@ class EventView {
       environment: this.environment,
       project: this.project,
       query: this.query,
-      yAxis: this.yAxis,
+      yAxis: this.yAxis || this.getYAxis(),
       display: this.display,
       interval: this.interval,
       user: user.id,
@@ -1311,13 +1311,13 @@ class EventView {
       return query;
     }
     const conditions = tokenizeSearch(query);
-    Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
-      const existingTagValues = conditions.getTagValues(tag);
+    Object.entries(this.additionalConditions.filters).forEach(([tag, tagValues]) => {
+      const existingTagValues = conditions.getFilterValues(tag);
       const newTagValues = tagValues.filter(
         tagValue => !existingTagValues.includes(tagValue)
       );
       if (newTagValues.length) {
-        conditions.addTagValues(tag, newTagValues);
+        conditions.addFilterValues(tag, newTagValues);
       }
     });
     return conditions.formatString();

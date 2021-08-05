@@ -93,15 +93,12 @@ export default class RepositoryProjectPathConfigForm extends Component<Props> {
   }
 
   handlePreSubmit() {
-    trackIntegrationEvent(
-      'integrations.stacktrace_submit_config',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.stacktrace_submit_config', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
   }
 
   render() {

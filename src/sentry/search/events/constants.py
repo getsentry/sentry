@@ -86,7 +86,6 @@ DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
-
 OPERATOR_NEGATION_MAP = {
     "=": "!=",
     "<": ">=",
@@ -101,6 +100,7 @@ MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
 
+# In Performance TPM is used as an alias to EPM
 FUNCTION_ALIASES = {
     "tpm": "epm",
     "tps": "eps",

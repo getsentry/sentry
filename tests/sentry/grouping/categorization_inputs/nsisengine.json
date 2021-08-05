@@ -1,63 +1,57 @@
 {
-    "platform": "cocoa",
-    "exception": {
-        "values": [
-            {
-                "type": "EXC_BAD_ACCESS",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "start",
-                            "symbol": "start",
-                            "package": "libdyld.dylib",
-                            "in_app": false
-                        },
-                        {
-                            "function": "main",
-                            "in_app": true
-                        },
-                        {
-                            "function": "uiFunc1",
-                            "package": "UIKitCore"
-                        },
-                        {
-                            "function": "-[NSISEngine withBehaviors:performModifications:]",
-                            "symbol": "-[NSISEngine withBehaviors:performModifications:]",
-                            "package": "Foundation",
-                            "in_app": false
-                        },
-                        {
-                            "function": "uiFunc2",
-                            "package": "UIKitCore",
-                            "in_app": false
-                        },
-                        {
-                            "function": "-[UIView(AdditionalLayoutSupport) _switchToLayoutEngine:]",
-                            "symbol": "-[UIView(AdditionalLayoutSupport) _switchToLayoutEngine:]",
-                            "package": "UIKitCore"
-                        }
-                    ]
-                },
-                "mechanism": {
-                    "type": "mach",
-                    "synthetic": true,
-                    "handled": false,
-                    "meta": {
-                        "signal": {
-                            "number": 10,
-                            "code": 0,
-                            "name": "SIGBUS",
-                            "code_name": "BUS_NOOP"
-                        },
-                        "mach_exception": {
-                            "exception": 1,
-                            "code": 0,
-                            "subcode": 8,
-                            "name": "EXC_BAD_ACCESS"
-                        }
-                    }
-                }
+  "event_id": "cc979216ac8b4bc0a9e9cd4177b71cf5",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
             }
-        ]
-    }
+          },
+          "synthetic": true,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "uiFunc1",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[NSISEngine withBehaviors:performModifications:]",
+              "package": "Foundation"
+            },
+            {
+              "function": "uiFunc2",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIView(AdditionalLayoutSupport) _switchToLayoutEngine:]",
+              "package": "UIKitCore"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS"
+      }
+    ]
+  },
+  "platform": "cocoa"
 }

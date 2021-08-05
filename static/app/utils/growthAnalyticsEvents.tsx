@@ -47,7 +47,7 @@ export type GrowthEventParameters = {
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
-  'growth.demo_click_get_started': {};
+  'growth.demo_click_get_started': {is_upgrade: boolean};
   'growth.demo_click_docs': {};
   'growth.demo_click_request_demo': {};
   'growth.onboarding_load_choose_platform': {};
@@ -63,6 +63,9 @@ export type GrowthEventParameters = {
   'invite_request.denied': InviteRequestParam;
   'growth.demo_modal_clicked_signup': {};
   'growth.demo_modal_clicked_continue': {};
+  'growth.sample_transaction_docs_link_clicked': {
+    project_id: string;
+  };
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -95,4 +98,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
+  'growth.sample_transaction_docs_link_clicked':
+    'Growth: Sample Transacton Docs Link Clicked',
 };
