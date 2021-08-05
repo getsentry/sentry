@@ -804,6 +804,60 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data) == len(expected)
                 assert [x[alias] for x in data] == expected
 
+    def test_count_if_function(self):
+        for i in range(3):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["release"] = "aaaa"
+            self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["release"] = "bbbb"
+        self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["release"] = "cccc"
+        self.store_event(data, project_id=self.project.id)
+
+        columns1 = ["count()", "count_if(release,equals,aaaa)", "count_if(release,notEquals,aaaa)"]
+        columns2 = ["count()", "count_if(release,less,bbbb)", "count_if(release,lessOrEquals,bbbb)"]
+
+        test_cases = [
+            (
+                columns1,
+                "",
+                {
+                    "count": 5,
+                    "count_if_release_equals_aaaa": 3,
+                    "count_if_release_notEquals_aaaa": 2,
+                },
+            ),
+            (
+                columns2,
+                "",
+                {
+                    "count": 5,
+                    "count_if_release_less_bbbb": 3,
+                    "count_if_release_lessOrEquals_bbbb": 4,
+                },
+            ),
+        ]
+
+        for cols, query, expected in test_cases:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=cols,
+                    query=query,
+                    params={
+                        "start": before_now(minutes=10),
+                        "end": before_now(minutes=2),
+                        "project_id": [self.project.id],
+                    },
+                )
+
+                data = result["data"]
+                assert len(data) == 1
+                assert data[0] == expected
+
     def test_failure_count_function(self):
         project = self.create_project()
 
@@ -1571,6 +1625,133 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data) == expected_length
                 if expected_length > 0:
                     assert data[0]["p100_measurements_frames_slow_rate"] == 0.5
+
+    def test_count_unique(self):
+        for idx in range(3):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+            )
+            data["user"] = {"email": f"{idx}@example.com"}
+            data["tags"] = {"foo": "bar" if idx < 1 else "baz"}
+            self.store_event(data, project_id=self.project.id)
+        for name, query_fn in [("query", discover.query), ("wip", discover.wip_snql_query)]:
+            result = query_fn(
+                selected_columns=["count_unique(user.display)", "count_unique(foo)"],
+                query="",
+                params={
+                    "start": before_now(minutes=4),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id],
+                },
+                referrer=name,
+                use_aggregate_conditions=True,
+            )
+            data = result["data"]
+
+            assert len(data) == 1
+            assert data[0]["count_unique_user_display"] == 3
+            assert data[0]["count_unique_foo"] == 2
+
+    def test_min_max(self):
+        """Testing both min and max since they're so similar"""
+        for idx in range(3):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+                start_timestamp=before_now(minutes=4 + idx),
+            )
+            self.store_event(data, project_id=self.project.id)
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=[
+                    "min(transaction.duration)",
+                    "max(transaction.duration)",
+                ],
+                query="",
+                params={
+                    "start": before_now(minutes=4),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id],
+                },
+                use_aggregate_conditions=True,
+            )
+            data = result["data"]
+
+            assert len(data) == 1
+            assert data[0]["min_transaction_duration"] == 60000
+            assert data[0]["max_transaction_duration"] == 180000
+
+    def test_stats_functions(self):
+        for idx in range(3):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+                start_timestamp=before_now(minutes=4 + idx),
+            )
+            self.store_event(data, project_id=self.project.id)
+
+        queries = [
+            ("var(transaction.duration)", "var_transaction_duration", 3600000000),
+            ("stddev(transaction.duration)", "stddev_transaction_duration", 60000),
+            # This is a nonsense cov&corr column, but gives us a consistent result for tests
+            (
+                "cov(transaction.duration,transaction.duration)",
+                "cov_transaction_duration_transaction_duration",
+                3600000000,
+            ),
+            (
+                "corr(transaction.duration,transaction.duration)",
+                "corr_transaction_duration_transaction_duration",
+                1,
+            ),
+        ]
+
+        for column, alias, expected in queries:
+            for query_fn in [discover.query, discover.wip_snql_query]:
+                result = query_fn(
+                    selected_columns=[column],
+                    query="",
+                    params={
+                        "start": before_now(minutes=4),
+                        "end": before_now(minutes=2),
+                        "project_id": [self.project.id],
+                    },
+                    use_aggregate_conditions=True,
+                )
+                data = result["data"]
+
+                assert len(data) == 1, column
+                assert data[0][alias] == expected, column
+
+    def test_count_at_least(self):
+        for idx in range(3):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=3),
+                start_timestamp=before_now(minutes=4 if idx < 1 else 5),
+            )
+            self.store_event(data, project_id=self.project.id)
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=[
+                    "count_at_least(transaction.duration,60000)",
+                    "count_at_least(transaction.duration,120000)",
+                ],
+                query="",
+                params={
+                    "start": before_now(minutes=4),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id],
+                },
+                use_aggregate_conditions=True,
+            )
+            data = result["data"]
+
+            assert len(data) == 1
+            assert data[0]["count_at_least_transaction_duration_60000"] == 3
+            assert data[0]["count_at_least_transaction_duration_120000"] == 2
 
     def test_eps(self):
         project = self.create_project()
@@ -2612,18 +2793,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data["transaction"] = "a" * 32
         self.store_event(data=data, project_id=self.project.id)
 
-        results = discover.query(
-            selected_columns=["count()", "any(transaction)", "any(user.id)"],
-            query="event.type:transaction",
-            params={"project_id": [self.project.id]},
-            use_aggregate_conditions=True,
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            results = query_fn(
+                selected_columns=["count()", "any(transaction)", "any(user.id)"],
+                query="event.type:transaction",
+                params={
+                    "start": before_now(minutes=5),
+                    "end": before_now(seconds=1),
+                    "project_id": [self.project.id],
+                },
+                use_aggregate_conditions=True,
+            )
 
-        data = results["data"]
-        assert len(data) == 1
-        assert data[0]["any_transaction"] == "a" * 32
-        assert data[0]["any_user_id"] is None
-        assert data[0]["count"] == 1
+            data = results["data"]
+            assert len(data) == 1
+            assert data[0]["any_transaction"] == "a" * 32
+            assert data[0]["any_user_id"] is None
+            assert data[0]["count"] == 1
 
     def test_reflective_types(self):
         results = discover.query(
