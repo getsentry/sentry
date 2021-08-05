@@ -144,7 +144,7 @@ class Table extends React.Component<Props, State> {
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, column, value);
 
@@ -190,7 +190,7 @@ class Table extends React.Component<Props, State> {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
       if (dataRow['http.method']) {
-        summaryView.additionalConditions.setTagValues('http.method', [
+        summaryView.additionalConditions.setFilterValues('http.method', [
           dataRow['http.method'] as string,
         ]);
       }

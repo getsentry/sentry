@@ -75,8 +75,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_new": encode_bool(is_new),
                     "is_new_group_environment": encode_bool(is_new_group_environment),
                     "is_regression": encode_bool(is_regression),
-                    "version": str(self.EVENT_PROTOCOL_VERSION),
-                    "operation": "insert",
                     "skip_consume": encode_bool(skip_consume),
                 }
             )
@@ -102,6 +100,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
     ):
         if headers is None:
             headers = {}
+        headers["operation"] = _type
+        headers["version"] = str(self.EVENT_PROTOCOL_VERSION)
 
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
@@ -285,10 +285,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     ):
                         task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
 
-                    with self.sampled_eventstream_timer(
-                        instance="dispatch_post_process_group_task"
-                    ):
-                        self._dispatch_post_process_group_task(**task_kwargs)
+                    if task_kwargs is not None:
+                        with self.sampled_eventstream_timer(
+                            instance="dispatch_post_process_group_task"
+                        ):
+                            self._dispatch_post_process_group_task(**task_kwargs)
 
                 except Exception as error:
                     logger.error("Could not forward message: %s", error, exc_info=True)
