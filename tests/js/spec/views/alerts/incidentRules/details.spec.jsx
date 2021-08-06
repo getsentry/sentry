@@ -15,7 +15,6 @@ jest.mock('app/utils/analytics', () => ({
     })),
     endTransaction: jest.fn(),
   },
-  logExperiment: jest.fn(),
 }));
 
 describe('Incident Rules Details', function () {

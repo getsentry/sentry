@@ -435,7 +435,7 @@ describe('ReleasesList', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
+    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(4).text()).toBe(
       'sentry@0.5.3'
     );
   });

@@ -20,12 +20,6 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
-    key: 'ImprovedSearchExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-  {
     key: 'TrialConfirmationExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
