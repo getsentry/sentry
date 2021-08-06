@@ -254,7 +254,6 @@ class QueryDefinition:
         self.conditions = self.get_conditions(query, params)
 
     def get_conditions(self, query: QueryDict, params: Mapping[Any, Any]) -> List[Any]:
-        # gets all the conditions for the query
         query_conditions = [
             Condition(Column("timestamp"), Op.GTE, self.start),
             Condition(Column("timestamp"), Op.LT, self.end),
