@@ -4,7 +4,7 @@ from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
 from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-from snuba_sdk.conditions import Condition, Op, Or
+from snuba_sdk.conditions import And, Condition, Op, Or
 from snuba_sdk.function import Function
 
 from sentry import eventstore
@@ -1024,7 +1024,8 @@ def format_search_filter(term, params):
 
 
 # Not a part of search.events.types to avoid a circular loop
-ParsedTerms = Sequence[Union[SearchFilter, AggregateFilter]]
+ParsedTerm = Union[SearchFilter, AggregateFilter]
+ParsedTerms = Sequence[ParsedTerm]
 
 
 class QueryFilter(QueryFields):
@@ -1059,7 +1060,119 @@ class QueryFilter(QueryFields):
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
+        if not parsed_terms:
+            return []
+
         return parsed_terms
+
+    def resolve_conditions(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        parsed_terms = self.parse_query(query)
+
+        if any(
+            isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
+            for term in parsed_terms
+        ):
+            where, having = self.resolve_boolean_conditions(parsed_terms)
+            if not use_aggregate_conditions:
+                having = []
+        else:
+            where = self.resolve_where(parsed_terms)
+            having = self.resolve_having(parsed_terms) if use_aggregate_conditions else []
+        return where, having
+
+    def resolve_boolean_conditions(
+        self, terms: ParsedTerms
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        if len(terms) == 1:
+            return self.resolve_boolean_condition(terms[0])
+
+        # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
+        # basic sanitization of the query: can't have two operators next to each other, and can't
+        # start or end a query with an operator.
+        prev = None
+        new_terms = []
+        for term in terms:
+            if prev:
+                if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
+                    raise InvalidSearchQuery(
+                        f"Missing condition in between two condition operators: '{prev} {term}'"
+                    )
+            else:
+                if SearchBoolean.is_operator(term):
+                    raise InvalidSearchQuery(
+                        f"Condition is missing on the left side of '{term}' operator"
+                    )
+
+            if term != SearchBoolean.BOOLEAN_AND:
+                new_terms.append(term)
+
+            prev = term
+
+        if SearchBoolean.is_operator(term):
+            raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
+        terms = new_terms
+
+        # We put precedence on AND, which sort of counter-intuitively means we have to split the query
+        # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
+        # query on each OR.
+        # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on
+        # the two sides. If there is no OR, split the first element out to AND
+        index = None
+        lhs, rhs = None, None
+        operator = None
+        try:
+            index = terms.index(SearchBoolean.BOOLEAN_OR)
+            lhs, rhs = terms[:index], terms[index + 1 :]
+            operator = Or
+        except Exception:
+            lhs, rhs = terms[:1], terms[1:]
+            operator = And
+
+        lhs_where, lhs_having = self.resolve_boolean_conditions(lhs)
+        rhs_where, rhs_having = self.resolve_boolean_conditions(rhs)
+
+        if operator == Or and (lhs_where or rhs_where) and (lhs_having or rhs_having):
+            raise InvalidSearchQuery(
+                "Having an OR between aggregate filters and normal filters is invalid."
+            )
+
+        where = self._combine_conditions(lhs_where, rhs_where, operator)
+        having = self._combine_conditions(lhs_having, rhs_having, operator)
+
+        return where, having
+
+    def _combine_conditions(self, lhs, rhs, operator):
+        combined_conditions = [
+            conditions[0] if len(conditions) == 1 else And(conditions=conditions)
+            for conditions in [lhs, rhs]
+            if len(conditions) > 0
+        ]
+        length = len(combined_conditions)
+        if length == 0:
+            return []
+        elif len(combined_conditions) == 1:
+            return combined_conditions
+        else:
+            return [operator(conditions=combined_conditions)]
+
+    def resolve_boolean_condition(
+        self, term: ParsedTerm
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        if isinstance(term, ParenExpression):
+            return self.resolve_boolean_conditions(term.children)
+
+        where, having = [], []
+
+        if isinstance(term, SearchFilter):
+            where = self.resolve_where([term])
+        elif isinstance(term, AggregateFilter):
+            having = self.resolve_having([term])
+
+        return where, having
 
     def resolve_where(self, parsed_terms: ParsedTerms) -> List[WhereType]:
         """Given a list of parsed terms, construct their equivalent snql where
@@ -1073,13 +1186,9 @@ class QueryFilter(QueryFields):
 
         return where_conditions
 
-    def resolve_having(
-        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool = False
-    ) -> List[WhereType]:
+    def resolve_having(self, parsed_terms: ParsedTerms) -> List[WhereType]:
         """Given a list of parsed terms, construct their equivalent snql having
         conditions, filtering only for aggregate conditions"""
-        if not use_aggregate_conditions:
-            return []
 
         having_conditions: List[WhereType] = []
         for term in parsed_terms:
@@ -1113,8 +1222,7 @@ class QueryFilter(QueryFields):
         conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
         conditions.append(Condition(self.column("timestamp"), Op.LT, end))
 
-        # If we already have projects_to_filter, there's no need to add an additional project filter
-        if "project_id" in self.params and len(self.projects_to_filter) == 0:
+        if "project_id" in self.params:
             conditions.append(
                 Condition(
                     self.column("project_id"),
