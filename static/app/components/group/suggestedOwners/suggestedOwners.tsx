@@ -1,15 +1,15 @@
 import * as React from 'react';
 
 import {assignToActor, assignToUser} from 'app/actionCreators/group';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
 import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
 import withOrganization from 'app/utils/withOrganization';
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import {promptIsDismissed} from 'app/utils/promptIsDismissed';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 
 import {findMatchedRules, Rules} from './findMatchedRules';
 import {OwnershipRules} from './ownershipRules';
@@ -83,7 +83,7 @@ class SuggestedOwners extends React.Component<Props, State> {
           'integrations.show_code_owners_prompt',
           {
             project_id: project.id,
-            organization: organization,
+            organization,
           },
           {startSession: true}
         );
