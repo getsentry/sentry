@@ -29,7 +29,7 @@ export default function analyticsFactory<
   eventKeyToNameMap: Record<keyof EventParameters, string | null>,
   defaultOptions?: Options
 ) {
-  return <EventKey extends keyof EventParameters>(
+  return <EventKey extends keyof EventParameters & string>(
     eventKey: EventKey,
     analyticsParams: EventParameters[EventKey] & OptionalOrg,
     options?: Options
