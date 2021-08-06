@@ -336,18 +336,21 @@ def collect_groups_by_project(groups: Iterable["Group"]) -> Mapping["Project", S
 
 def get_user_subscriptions_for_groups(
     groups_by_project: Mapping["Project", Set["Group"]],
-    notification_settings_by_key: Mapping[int, NotificationSettingOptionValues],
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
     subscriptions_by_group_id: Mapping[int, "GroupSubscription"],
-    global_default_workflow_option: NotificationSettingOptionValues,
+    user: "User",
 ) -> Mapping[int, Tuple[bool, bool, Optional["GroupSubscription"]]]:
-    """
-    Takes collected data and returns a mapping of group IDs to a two-tuple of
-    (subscribed: bool, subscription: Optional[GroupSubscription]).
-    """
+    """Takes collected data and returns a mapping of group IDs to a three-tuple of values."""
     results = {}
     for project, groups in groups_by_project.items():
-        project_default_workflow_option = notification_settings_by_key.get(
-            project.id, global_default_workflow_option
+        value = get_most_specific_notification_setting_value(
+            notification_settings_by_scope,
+            user=user,
+            parent_id=project.id,
+            type=NotificationSettingTypes.WORKFLOW,
         )
         for group in groups:
             subscription = subscriptions_by_group_id.get(group.id)
@@ -355,13 +358,11 @@ def get_user_subscriptions_for_groups(
             is_disabled = False
             if subscription:
                 is_active = subscription.is_active
-            elif project_default_workflow_option == NotificationSettingOptionValues.NEVER:
+            elif value == NotificationSettingOptionValues.NEVER:
                 is_active = False
                 is_disabled = True
             else:
-                is_active = (
-                    project_default_workflow_option == NotificationSettingOptionValues.ALWAYS
-                )
+                is_active = value == NotificationSettingOptionValues.ALWAYS
 
             results[group.id] = (is_disabled, is_active, subscription)
 

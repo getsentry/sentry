@@ -7,7 +7,6 @@ from sentry.notifications.helpers import (
     get_settings_by_provider,
     get_subscription_from_attributes,
     get_target_id,
-    get_user_subscriptions_for_groups,
     get_values_by_provider_by_type,
     transform_to_notification_settings_by_parent_id,
     transform_to_notification_settings_by_user,
@@ -233,19 +232,6 @@ class NotificationHelpersTest(TestCase):
 
     def test_collect_groups_by_project(self):
         assert collect_groups_by_project([self.group]) == {self.project: {self.group}}
-
-    def test_get_user_subscriptions_for_groups(self):
-        groups_by_project = {self.project: {self.group}}
-        notification_settings_by_key = {5: NotificationSettingOptionValues.ALWAYS}
-        subscriptions_by_group_id = {2: None}
-        global_default_workflow_option = NotificationSettingOptionValues.ALWAYS
-        subscriptions = get_user_subscriptions_for_groups(
-            groups_by_project,
-            notification_settings_by_key,
-            subscriptions_by_group_id,
-            global_default_workflow_option,
-        )
-        assert subscriptions == {self.group.id: (False, True, None)}
 
     def test_get_settings_by_provider(self):
         settings = {
