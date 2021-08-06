@@ -104,59 +104,65 @@ def get_task_kwargs_for_message_from_headers(headers: Sequence[Tuple[str, Option
     Same as get_task_kwargs_for_message but gets the required information from
     the kafka message headers.
     """
+
+    def decode_str(value: Optional[bytes]) -> str:
+        assert isinstance(value, bytes)
+        return value.decode("utf-8")
+
+    def decode_optional_str(value: Optional[bytes]) -> Optional[str]:
+        if value is None:
+            return None
+        return decode_str(value)
+
+    def decode_int(value: Optional[bytes]) -> int:
+        assert isinstance(value, bytes)
+        return int(value)
+
+    def decode_optional_int(value: Optional[bytes]) -> Optional[int]:
+        if value is None:
+            return None
+        return decode_int(value)
+
+    def decode_bool(value: bytes) -> bool:
+        return bool(int(decode_str(value)))
+
     try:
         header_data = {k: v for k, v in headers}
-        if "group_id" not in header_data:
-            header_data["group_id"] = None
-        if "primary_hash" not in header_data:
-            header_data["primary_hash"] = None
-
-        def decode_str(value: Optional[bytes]) -> str:
-            assert isinstance(value, bytes)
-            return value.decode("utf-8")
-
-        def decode_optional_str(value: Optional[bytes]) -> Optional[str]:
-            if value is None:
-                return None
-            return decode_str(value)
-
-        def decode_int(value: Optional[bytes]) -> int:
-            assert isinstance(value, bytes)
-            return int(value)
-
-        def decode_optional_int(value: Optional[bytes]) -> Optional[int]:
-            if value is None:
-                return None
-            return decode_int(value)
-
-        def decode_bool(value: bytes) -> bool:
-            return bool(int(decode_str(value)))
-
         version = decode_int(header_data["version"])
         operation = decode_str(header_data["operation"])
-        primary_hash = decode_optional_str(header_data["primary_hash"])
-        event_id = decode_str(header_data["event_id"])
-        group_id = decode_optional_int(header_data["group_id"])
-        project_id = decode_int(header_data["project_id"])
 
-        event_data = {
-            "event_id": event_id,
-            "group_id": group_id,
-            "project_id": project_id,
-            "primary_hash": primary_hash,
-        }
+        if operation == "insert":
+            if "group_id" not in header_data:
+                header_data["group_id"] = None
+            if "primary_hash" not in header_data:
+                header_data["primary_hash"] = None
 
-        skip_consume = decode_bool(header_data["skip_consume"])
-        is_new = decode_bool(header_data["is_new"])
-        is_regression = decode_bool(header_data["is_regression"])
-        is_new_group_environment = decode_bool(header_data["is_new_group_environment"])
+            primary_hash = decode_optional_str(header_data["primary_hash"])
+            event_id = decode_str(header_data["event_id"])
+            group_id = decode_optional_int(header_data["group_id"])
+            project_id = decode_int(header_data["project_id"])
 
-        task_state = {
-            "skip_consume": skip_consume,
-            "is_new": is_new,
-            "is_regression": is_regression,
-            "is_new_group_environment": is_new_group_environment,
-        }
+            event_data = {
+                "event_id": event_id,
+                "group_id": group_id,
+                "project_id": project_id,
+                "primary_hash": primary_hash,
+            }
+
+            skip_consume = decode_bool(header_data["skip_consume"])
+            is_new = decode_bool(header_data["is_new"])
+            is_regression = decode_bool(header_data["is_regression"])
+            is_new_group_environment = decode_bool(header_data["is_new_group_environment"])
+
+            task_state = {
+                "skip_consume": skip_consume,
+                "is_new": is_new,
+                "is_regression": is_regression,
+                "is_new_group_environment": is_new_group_environment,
+            }
+        else:
+            event_data = {}
+            task_state = {}
 
     except Exception:
         raise InvalidPayload("Received event payload with unexpected structure")

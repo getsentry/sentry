@@ -16,7 +16,7 @@ import {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
+  LightWeightOrganization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
@@ -39,13 +39,12 @@ const mapIntegrationParams = analyticsParams => {
 // data massaging above
 export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
   eventKey: T,
-  analyticsParams: EventParameters[T],
-  org: Organization, // integration events should always be tied to an org
-  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[3]
+  analyticsParams: EventParameters[T] & {organization: LightWeightOrganization}, // integration events should always be tied to an org
+  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[2]
 ) {
   options = options || {};
   options.mapValuesFn = mapIntegrationParams;
-  return trackAdvancedAnalyticsEvent(eventKey, analyticsParams, org, options);
+  return trackAdvancedAnalyticsEvent(eventKey, analyticsParams, options);
 }
 
 /**

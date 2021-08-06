@@ -47,12 +47,9 @@ class OnboardingPlatform extends Component<Props, State> {
   };
 
   componentDidMount() {
-    trackAdvancedAnalyticsEvent(
-      'growth.onboarding_load_choose_platform',
-      {},
-      this.props.organization ?? null,
-      {sendMarketing: true}
-    );
+    trackAdvancedAnalyticsEvent('growth.onboarding_load_choose_platform', {
+      organization: this.props.organization ?? null,
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -112,12 +109,10 @@ class OnboardingPlatform extends Component<Props, State> {
     if (platform === null) {
       return;
     }
-    trackAdvancedAnalyticsEvent(
-      'growth.onboarding_set_up_your_project',
-      {platform},
-      this.props.organization ?? null,
-      {sendMarketing: true}
-    );
+    trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_project', {
+      platform,
+      organization: this.props.organization ?? null,
+    });
 
     // Create their first project if they don't already have one. This is a
     // no-op if they already have a project.

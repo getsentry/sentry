@@ -295,13 +295,13 @@ const TagsHeatMap = (
                 const currentBucketEnd =
                   currentBucketStart + histogramBucketInfo.bucketSize;
 
-                newTransactionEventView.additionalConditions.setTagValues(
+                newTransactionEventView.additionalConditions.setFilterValues(
                   aggregateColumn,
                   [`>=${currentBucketStart}`, `<${currentBucketEnd}`]
                 );
               }
 
-              newTransactionEventView.additionalConditions.setTagValues(tagKey, [
+              newTransactionEventView.additionalConditions.setFilterValues(tagKey, [
                 tagValue,
               ]);
 

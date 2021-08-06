@@ -137,11 +137,19 @@ class SuggestedOwners extends React.Component<Props, State> {
       // TODO(ts): `event` here may not be 100% correct
       // in this case groupID should always exist on event
       // since this is only used in Issue Details
-      assignToUser({id: event.groupID as string, user: actor});
+      assignToUser({
+        id: event.groupID as string,
+        user: actor,
+        assignedBy: 'suggested_assignee',
+      });
     }
 
     if (actor.type === 'team') {
-      assignToActor({id: event.groupID as string, actor});
+      assignToActor({
+        id: event.groupID as string,
+        actor,
+        assignedBy: 'suggested_assignee',
+      });
     }
   };
 

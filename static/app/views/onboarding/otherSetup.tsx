@@ -44,9 +44,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
 
   handleFullDocsClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization, {
-      sendMarketing: true,
-    });
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
   };
 
   render() {

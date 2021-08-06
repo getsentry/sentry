@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:38.724744Z'
+created: '2021-08-03T15:05:50.894725Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,7 +10,7 @@ InvalidProtocolBufferException:Protocol message contained an invalid tag (zero).
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
+                           android.os.Looper  loop category=internals
                           android.os.Handler  dispatchMessage category=internals
                           android.os.Handler  handleCallback category=internals
                                               stripped_application_code

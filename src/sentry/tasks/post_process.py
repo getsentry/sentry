@@ -103,10 +103,10 @@ def handle_owner_assignment(project, group, event):
         )
 
         if auto_assignment and owners and not assignees_exists:
-            GroupAssignee.objects.assign(group, owners[0])
-            if assigned_by_codeowners:
+            assignment = GroupAssignee.objects.assign(group, owners[0])
+            if assignment["new_assignment"] or assignment["updated_assignment"]:
                 analytics.record(
-                    "codeowners.assignment",
+                    "codeowners.assignment" if assigned_by_codeowners else "issueowners.assignment",
                     organization_id=project.organization_id,
                     project_id=project.id,
                     group_id=group.id,

@@ -37,14 +37,11 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
     const {organization, slug, type} = this.props;
     const {message} = this.state;
 
-    trackIntegrationEvent(
-      'integrations.request_install',
-      {
-        integration_type: type,
-        integration: slug,
-      },
-      organization
-    );
+    trackIntegrationEvent('integrations.request_install', {
+      integration_type: type,
+      integration: slug,
+      organization,
+    });
 
     const endpoint = `/organizations/${organization.slug}/integration-requests/`;
     this.api.request(endpoint, {

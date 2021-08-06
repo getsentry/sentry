@@ -889,6 +889,8 @@ describe('EventView.generateQueryStringObject()', function () {
       project: [],
       environment: [],
       display: 'previous',
+      user: '1',
+      yAxis: 'count()',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -931,6 +933,7 @@ describe('EventView.generateQueryStringObject()', function () {
       yAxis: 'count()',
       display: 'releases',
       interval: '1m',
+      user: '1',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -2263,7 +2266,7 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
       query: 'event.type:transaction foo:bar',
     });
 
-    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+    eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
 
     expect(eventView.getQueryWithAdditionalConditions()).toEqual(
       'event.type:transaction foo:bar'

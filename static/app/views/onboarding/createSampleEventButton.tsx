@@ -103,12 +103,10 @@ class CreateSampleEventButton extends React.Component<Props, State> {
       return;
     }
 
-    trackAdvancedAnalyticsEvent(
-      'growth.onboarding_view_sample_event',
-      {platform: project.platform},
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
+      platform: project.platform,
       organization,
-      {sendMarketing: true}
-    );
+    });
 
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,

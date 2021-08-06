@@ -78,7 +78,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
   handleFullDocsClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
   };
 
   redirectToNeutralDocs() {
@@ -95,15 +95,12 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
   trackSwitchToManual = () => {
     const {organization, integrationSlug} = this.props;
-    trackIntegrationEvent(
-      'integrations.switch_manual_sdk_setup',
-      {
-        integration_type: 'first_party',
-        integration: integrationSlug,
-        view: 'project_creation',
-      },
-      organization
-    );
+    trackIntegrationEvent('integrations.switch_manual_sdk_setup', {
+      integration_type: 'first_party',
+      integration: integrationSlug,
+      view: 'project_creation',
+      organization,
+    });
   };
 
   render() {
