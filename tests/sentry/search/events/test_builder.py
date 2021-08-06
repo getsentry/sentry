@@ -10,7 +10,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba import Dataset
+from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 
 class QueryBuilderTest(TestCase):
@@ -318,3 +318,13 @@ class QueryBuilderTest(TestCase):
                 ),
             ],
         )
+
+    def test_retention(self):
+        with self.options({"system.event-retention-days": 10}):
+            with self.assertRaises(QueryOutsideRetentionError):
+                QueryBuilder(
+                    Dataset.Discover,
+                    self.params,
+                    "",
+                    selected_columns=[],
+                )
