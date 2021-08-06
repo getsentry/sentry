@@ -378,10 +378,8 @@ class SpanTreeModel {
         span: this.span,
         treeDepth: treeDepth - 1,
         continuingTreeDepths,
-        spanGrouping: spanGroupingCriteria ? spanGrouping : undefined,
-        showSpanGroup:
-          (spanGroupingCriteria && toggleSpanGroup === undefined && this.showSpanGroup) ||
-          (spanGroupingCriteria && toggleSpanGroup !== undefined && showSpanGroup),
+        spanGrouping,
+        showSpanGroup,
         toggleSpanGroup: wrappedSpan.toggleSpanGroup,
       };
 
