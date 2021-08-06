@@ -60,7 +60,6 @@
     "babel-loader": "^8.1.0",
     "babel-plugin-add-react-displayname": "^0.0.5",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
-    "bootstrap": "3.4.1",
     "buffer": "^6.0.3",
     "classnames": "2.3.1",
     "color": "^3.1.3",
