@@ -1,90 +1,27 @@
-import abc
 import logging
 import threading
 import weakref
 from contextlib import contextmanager
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Generic,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Generator, Generic, Mapping, MutableMapping, Optional, Sequence, Tuple
 
-from celery.signals import task_postrun  # type: ignore
 from django.conf import settings
-from django.core.signals import request_finished
 from django.db import router
-from django.db.models import Model, QuerySet
+from django.db.models import Model
 from django.db.models.manager import Manager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
-from django.utils.encoding import smart_text
 
+from sentry.db.models.manager import M, make_key
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
-__all__ = ("BaseManager", "OptionManager", "Value", "ValidateFunction")
-
 logger = logging.getLogger("sentry")
-
 
 _local_cache = threading.local()
 _local_cache_generation = 0
 _local_cache_enabled = False
-
-Value = Any
-ValidateFunction = Callable[[Value], bool]
-M = TypeVar("M", bound=Model)
-
-
-def __prep_value(model: Any, key: str, value: Union[Model, int, str]) -> str:
-    val = value
-    if isinstance(value, Model):
-        val = value.pk
-    return str(val)
-
-
-def __prep_key(model: Any, key: str) -> str:
-    if key == "pk":
-        return str(model._meta.pk.name)
-    return key
-
-
-def make_key(model: Any, prefix: str, kwargs: Mapping[str, Union[Model, int, str]]) -> str:
-    kwargs_bits = []
-    for k, v in sorted(kwargs.items()):
-        k = __prep_key(model, k)
-        v = smart_text(__prep_value(model, k, v))
-        kwargs_bits.append(f"{k}={v}")
-    kwargs_bits_str = ":".join(kwargs_bits)
-
-    return f"{prefix}:{model.__name__}:{md5_text(kwargs_bits_str).hexdigest()}"
-
-
-class BaseQuerySet(QuerySet, abc.ABC):  # type: ignore
-    # XXX(dcramer): we prefer values_list, but we can't disable values as Django uses it
-    # internally
-    # def values(self, *args, **kwargs):
-    #     raise NotImplementedError('Use ``values_list`` instead [performance].')
-
-    def defer(self, *args: Any, **kwargs: Any) -> "BaseQuerySet":
-        raise NotImplementedError("Use ``values_list`` instead [performance].")
-
-    def only(self, *args: Any, **kwargs: Any) -> "BaseQuerySet":
-        # In rare cases Django can use this if a field is unexpectedly deferred. This
-        # mostly can happen if a field is added to a model, and then an old pickle is
-        # passed to a process running the new code. So if you see this error after a
-        # deploy of a model with a new field, it'll likely fix itself post-deploy.
-        raise NotImplementedError("Use ``values_list`` instead [performance].")
 
 
 class BaseManager(Manager, Generic[M]):  # type: ignore
@@ -499,26 +436,3 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
-
-
-class OptionManager(BaseManager[M]):
-    @property
-    def _option_cache(self) -> Dict[str, Dict[str, Any]]:
-        if not hasattr(_local_cache, "option_cache"):
-            _local_cache.option_cache = {}
-
-        # Explicitly typing to satisfy mypy.
-        option_cache: Dict[str, Dict[str, Any]] = _local_cache.option_cache
-        return option_cache
-
-    def clear_local_cache(self, **kwargs: Any) -> None:
-        self._option_cache.clear()
-
-    def contribute_to_class(self, model: M, name: str) -> None:
-        super().contribute_to_class(model, name)
-        task_postrun.connect(self.clear_local_cache)
-        request_finished.connect(self.clear_local_cache)
-
-    def _make_key(self, instance_id: Union[int, str]) -> str:
-        assert instance_id
-        return f"{self.model._meta.db_table}:{instance_id}"
