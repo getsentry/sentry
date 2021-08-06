@@ -181,8 +181,8 @@ def transform_to_notification_settings_by_user(
     Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
     """
-    Given a unorganized list of notification settings, create a mapping of
-    users to a map of notification scopes to setting values.
+    Given an unsorted list of notification settings, create a mapping of users
+    to a map of notification scopes to setting values.
     """
     actor_mapping = {user.actor_id: user for user in users}
     notification_settings_by_user: Dict[
@@ -204,6 +204,10 @@ def transform_to_notification_settings_by_scope(
     NotificationScopeType,
     Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
+    """
+    Given an unsorted list of notification settings, create a mapping of scopes
+    (user or parent) and their IDs to a map of provider to notifications setting values.
+    """
     notification_settings_by_scopes: Dict[
         NotificationScopeType, Dict[int, Dict[ExternalProviders, NotificationSettingOptionValues]]
     ] = defaultdict(lambda: defaultdict(lambda: dict()))
@@ -454,7 +458,10 @@ def get_most_specific_notification_setting_value(
     parent_id: int,
     type: NotificationSettingTypes,
 ) -> NotificationSettingOptionValues:
-    """If there are no setting, default to the default setting for EMAIL."""
+    """
+    Get the "most specific" notification setting value for a given user and
+    project. If there are no settings, default to the default setting for EMAIL.
+    """
     return (
         get_highest_notification_setting_value(
             notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
