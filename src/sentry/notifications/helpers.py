@@ -435,3 +435,37 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
     return {
         "reason": GroupSubscriptionReason.descriptions.get(reason, "are subscribed to this issue")
     }
+
+
+def get_highest_notification_setting_value(
+    notification_settings_by_provider: Mapping[ExternalProviders, NotificationSettingOptionValues],
+) -> Optional[NotificationSettingOptionValues]:
+    """
+    Find the "most specific" notification setting value. Currently non-NEVER
+    values are locked together, but this might change. This is a HACK but if we
+    put an explicit ordering here I'd match the implicit ordering.
+    """
+    if not notification_settings_by_provider:
+        return None
+    return max(notification_settings_by_provider.values(), key=lambda v: v.value)
+
+
+def get_most_specific_notification_setting_value(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    user: "User",
+    parent_id: int,
+    type: NotificationSettingTypes,
+) -> NotificationSettingOptionValues:
+    """If there are no setting, default to the default setting for EMAIL."""
+    return (
+        get_highest_notification_setting_value(
+            notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
+        )
+        or get_highest_notification_setting_value(
+            notification_settings_by_scope.get(NotificationScopeType.USER, {}).get(user.id, {})
+        )
+        or NOTIFICATION_SETTING_DEFAULTS[ExternalProviders.EMAIL][type]
+    )
