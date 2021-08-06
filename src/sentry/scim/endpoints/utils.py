@@ -9,6 +9,10 @@ SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]
 ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 
+class SCIMFilterError(ValueError):
+    pass
+
+
 class SCIMClientNegotiation(BaseContentNegotiation):
     # SCIM uses the content type "application/json+scim"
     # which is just json for our purposes.
@@ -99,27 +103,33 @@ def parse_filter_conditions(raw_filters):
     filters = []
     if raw_filters is None:
         return filters
-    conditions = raw_filters.split(",")
-    for c in conditions:
-        [key, value] = c.split(" eq ")
-        if not key or not value:
-            continue
 
-        key = key.strip()
-        value = value.strip()
+    try:
+        conditions = raw_filters.split(",")
+    except ValueError:
+        raise SCIMFilterError
 
-        value = value[1:-1]
+    # we don't support multiple filters right now.
+    if len(conditions) > 1:
+        raise SCIMFilterError
 
-        if key not in ACCEPTED_FILTERED_KEYS:
-            raise ValueError
+    condition = conditions[0]
+    try:
+        [key, value] = condition.split(" eq ")
+    except ValueError:
+        raise SCIMFilterError
 
-        if key == "value":
-            value = int(value)
+    if not key or not value:
+        raise SCIMFilterError
+    key = key.strip()
+    value = value.strip()
 
-        filters.append([key, value])
+    # remove encasing quotes around the value
+    value = value[1:-1]
 
-    if len(filters) == 1:
-        filter_val = [filters[0][1]]
-    else:
-        filter_val = []
-    return filter_val
+    if key not in ACCEPTED_FILTERED_KEYS:
+        raise SCIMFilterError
+    if key == "value":
+        value = int(value)
+
+    return value

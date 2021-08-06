@@ -31,7 +31,12 @@ from .constants import (
     SCIM_404_USER_RES,
     TeamPatchOps,
 )
-from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_conditions
+from .utils import (
+    OrganizationSCIMTeamPermission,
+    SCIMEndpoint,
+    SCIMFilterError,
+    parse_filter_conditions,
+)
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -52,14 +57,14 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     def get(self, request, organization):
         try:
             filter_val = parse_filter_conditions(request.GET.get("filter"))
-        except ValueError:
+        except SCIMFilterError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
         if filter_val:
-            queryset = queryset.filter(name=filter_val[0])
+            queryset = queryset.filter(name=filter_val)
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
@@ -139,7 +144,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         except Exception:
             # TODO: log parse error
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
-        member = OrganizationMember.objects.get(organization=team.organization, id=parsed_filter[0])
+        member = OrganizationMember.objects.get(organization=team.organization, id=parsed_filter)
         with transaction.atomic():
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
