@@ -1,3 +1,5 @@
+import isArray from 'lodash/isArray';
+
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
@@ -71,7 +73,23 @@ discoverCharts.push({
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_PERIOD,
-  getOption: (data: {stats: Record<string, EventsStats>}) => {
+  getOption: (
+    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+      const areaSeries = AreaSeries({
+        name: data.hasOwnProperty('seriesName') ? data.seriesName : undefined,
+        data: [],
+      });
+      return {
+        ...slackChartDefaults,
+        color,
+        useUTC: true,
+        series: [areaSeries],
+      };
+    }
+
     const stats = Object.values(data.stats);
     const color = theme.charts.getColorPalette(stats.length - 2);
 
@@ -102,7 +120,23 @@ discoverCharts.push({
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_DAILY,
-  getOption: (data: {stats: Record<string, EventsStats>}) => {
+  getOption: (
+    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+      const areaSeries = AreaSeries({
+        name: data.hasOwnProperty('seriesName') ? data.seriesName : undefined,
+        data: [],
+      });
+      return {
+        ...slackChartDefaults,
+        color,
+        useUTC: true,
+        series: [areaSeries],
+      };
+    }
+
     const stats = Object.values(data.stats);
     const color = theme.charts.getColorPalette(stats.length - 2);
 
