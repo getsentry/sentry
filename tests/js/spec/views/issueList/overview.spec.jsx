@@ -126,10 +126,6 @@ describe('IssueList', function () {
     cleanup();
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
-
-    for (const el of document.querySelectorAll('style').values()) {
-      el.remove();
-    }
   });
 
   describe('withStores and feature flags', function () {
