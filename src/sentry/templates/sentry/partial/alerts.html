@@ -32,7 +32,7 @@
         {% with message.tags|split:" " as message_tags %}
           <div class="alert{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
             <div class="container">
-              <a class="close" data-dismiss="alert">×</a>
+              <a class="close" onclick="this.parentElement.parentElement.remove();">&times;</a>
               <span class="icon"></span>
               {{ message|linebreaks }}
             </div>

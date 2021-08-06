@@ -3,7 +3,7 @@
 {% if request.GET.success %}
     <div class="alert alert-success">
         {% trans "Changes to your configuration were saved successfully." %}
-        <a class="close" data-dismiss="alert" href="javascript:void(0)">&times;</a>
+        <a class="close" onclick="this.parentElement.remove();">&times;</a>
     </div>
 {% endif %}
 
