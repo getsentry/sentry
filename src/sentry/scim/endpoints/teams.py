@@ -233,7 +233,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         try:
             # grab the filter out of the brackets of the string that looks
             # like so: members[value eq "123124"]
-            filter_path = re.search(r"\[(.*?)\]", operation["path"]).groups()[0]
+            regex_search = re.search(r"\[(.*?)\]", operation["path"])
+            if regex_search is None:
+                raise SCIMFilterError
+            filter_path = regex_search.groups()[0]
             return parse_filter_conditions(filter_path)
         except SCIMFilterError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
