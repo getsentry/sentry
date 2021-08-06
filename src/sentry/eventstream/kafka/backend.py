@@ -1,6 +1,8 @@
 import logging
+import random
 import signal
-from typing import Any, Mapping, Optional, Tuple
+from contextlib import contextmanager
+from typing import Any, Generator, Mapping, Optional, Tuple
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -73,8 +75,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_new": encode_bool(is_new),
                     "is_new_group_environment": encode_bool(is_new_group_environment),
                     "is_regression": encode_bool(is_regression),
-                    "version": str(self.EVENT_PROTOCOL_VERSION),
-                    "operation": "insert",
                     "skip_consume": encode_bool(skip_consume),
                 }
             )
@@ -100,6 +100,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
     ):
         if headers is None:
             headers = {}
+        headers["operation"] = _type
+        headers["version"] = str(self.EVENT_PROTOCOL_VERSION)
 
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
@@ -278,15 +280,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
             if use_kafka_headers is True:
                 try:
-                    with metrics.timer(
-                        "eventstream.duration", instance="get_task_kwargs_for_message_from_headers"
+                    with self.sampled_eventstream_timer(
+                        instance="get_task_kwargs_for_message_from_headers"
                     ):
                         task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
 
-                    with metrics.timer(
-                        "eventstream.duration", instance="dispatch_post_process_group_task"
-                    ):
-                        self._dispatch_post_process_group_task(**task_kwargs)
+                    if task_kwargs is not None:
+                        with self.sampled_eventstream_timer(
+                            instance="dispatch_post_process_group_task"
+                        ):
+                            self._dispatch_post_process_group_task(**task_kwargs)
 
                 except Exception as error:
                     logger.error("Could not forward message: %s", error, exc_info=True)
@@ -310,3 +313,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if task_kwargs is not None:
             with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
                 self._dispatch_post_process_group_task(**task_kwargs)
+
+    @contextmanager
+    def sampled_eventstream_timer(self, instance: str) -> Generator[None, None, None]:
+
+        record_metric = random.random() < 0.1
+        if record_metric is True:
+            with metrics.timer("eventstream.duration", instance=instance):
+                yield
+        else:
+            yield

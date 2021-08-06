@@ -432,6 +432,14 @@ SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
+
+# setting SESSION_COOKIE_SAMESITE to None below for now because
+# Django's default in 2.1 now `Lax`.
+# this breaks certain IDP flows where we need cookies sent to us on a redirected POST
+# request, and `Lax` doesnt permit this.
+# See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
+SESSION_COOKIE_SAMESITE = None
+
 SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
 
 GOOGLE_OAUTH2_CLIENT_ID = ""
@@ -888,7 +896,7 @@ SENTRY_FEATURES = {
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable Performance view
-    "organizations:performance-view": False,
+    "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown

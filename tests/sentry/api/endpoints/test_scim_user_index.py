@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import OrganizationMember
-from sentry.testutils import SCIMTestCase
+from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -141,3 +141,29 @@ class SCIMMemberIndexTests(SCIMTestCase):
         assert response.data["totalResults"] == 151
         assert response.data["itemsPerPage"] == 51
         assert response.data["startIndex"] == 101
+
+
+class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
+    def test_user_index_get_no_active(self):
+        member = self.create_member(organization=self.organization, email="test.user@okta.local")
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        response = self.client.get(
+            f"{url}?startIndex=1&count=100&filter=userName%20eq%20%22test.user%40okta.local%22"
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+            "totalResults": 1,
+            "startIndex": 1,
+            "itemsPerPage": 1,
+            "Resources": [
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": str(member.id),
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "meta": {"resourceType": "User"},
+                }
+            ],
+        }
