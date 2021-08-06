@@ -1277,9 +1277,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for i, test_case in enumerate(fields):
-            for query_fn in [discover.query, discover.wip_snql_query]:
+            for use_snql in [False, True]:
                 selected, query = test_case
-                result = query_fn(
+                result = discover.query(
                     selected_columns=selected,
                     query=query,
                     orderby="transaction",
@@ -1289,11 +1289,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                         "project_id": [project.id],
                     },
                     use_aggregate_conditions=True,
+                    use_snql=use_snql,
                 )
                 alias, expected_value = expected_results[i]
                 data = result["data"]
 
-                assert data[0][alias] == expected_value, query_fn
+                assert data[0][alias] == expected_value, use_snql
 
     def test_last_seen(self):
         project = self.create_project()
