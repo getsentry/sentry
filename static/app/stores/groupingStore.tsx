@@ -248,11 +248,11 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
           this.api.request(endpoint, {
             method: 'GET',
             data: queryParams,
-            success: (data, _, jqXHR) => {
+            success: (data, _, resp) => {
               resolve({
                 dataKey,
                 data,
-                links: jqXHR ? jqXHR.getResponseHeader('Link') : null,
+                links: resp ? resp.getResponseHeader('Link') : null,
               });
             },
             error: err => {

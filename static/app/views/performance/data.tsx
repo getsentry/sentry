@@ -450,21 +450,25 @@ function generateGenericPerformanceEventView(
   const conditions = tokenizeSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasTag('transaction.duration')) {
-    conditions.setTagValues('transaction.duration', ['<15m']);
+  if (!conditions.hasFilter('transaction.duration')) {
+    conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.query.length > 0) {
+  if (conditions.freeText.length > 0) {
     // the query here is a user entered condition, no need to escape it
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
-    conditions.query = [];
+    conditions.setFilterValues(
+      'transaction',
+      [`*${conditions.freeText.join(' ')}*`],
+      false
+    );
+    conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   return eventView;
 }
 
@@ -518,21 +522,25 @@ function generateBackendPerformanceEventView(
   const conditions = tokenizeSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasTag('transaction.duration')) {
-    conditions.setTagValues('transaction.duration', ['<15m']);
+  if (!conditions.hasFilter('transaction.duration')) {
+    conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.query.length > 0) {
+  if (conditions.freeText.length > 0) {
     // the query here is a user entered condition, no need to escape it
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
-    conditions.query = [];
+    conditions.setFilterValues(
+      'transaction',
+      [`*${conditions.freeText.join(' ')}*`],
+      false
+    );
+    conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   return eventView;
 }
 
@@ -607,21 +615,25 @@ function generateMobilePerformanceEventView(
   const conditions = tokenizeSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasTag('transaction.duration')) {
-    conditions.setTagValues('transaction.duration', ['<15m']);
+  if (!conditions.hasFilter('transaction.duration')) {
+    conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.query.length > 0) {
+  if (conditions.freeText.length > 0) {
     // the query here is a user entered condition, no need to escape it
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
-    conditions.query = [];
+    conditions.setFilterValues(
+      'transaction',
+      [`*${conditions.freeText.join(' ')}*`],
+      false
+    );
+    conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   return eventView;
 }
 
@@ -673,23 +685,27 @@ function generateFrontendPageloadPerformanceEventView(
   const conditions = tokenizeSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasTag('transaction.duration')) {
-    conditions.setTagValues('transaction.duration', ['<15m']);
+  if (!conditions.hasFilter('transaction.duration')) {
+    conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.query.length > 0) {
+  if (conditions.freeText.length > 0) {
     // the query here is a user entered condition, no need to escape it
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
-    conditions.query = [];
+    conditions.setFilterValues(
+      'transaction',
+      [`*${conditions.freeText.join(' ')}*`],
+      false
+    );
+    conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
-    .addTagValues('event.type', ['transaction'])
-    .addTagValues('transaction.op', ['pageload']);
+    .addFilterValues('event.type', ['transaction'])
+    .addFilterValues('transaction.op', ['pageload']);
   return eventView;
 }
 
@@ -741,23 +757,27 @@ function generateFrontendOtherPerformanceEventView(
   const conditions = tokenizeSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasTag('transaction.duration')) {
-    conditions.setTagValues('transaction.duration', ['<15m']);
+  if (!conditions.hasFilter('transaction.duration')) {
+    conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.query.length > 0) {
+  if (conditions.freeText.length > 0) {
     // the query here is a user entered condition, no need to escape it
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
-    conditions.query = [];
+    conditions.setFilterValues(
+      'transaction',
+      [`*${conditions.freeText.join(' ')}*`],
+      false
+    );
+    conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
-    .addTagValues('event.type', ['transaction'])
-    .addTagValues('!transaction.op', ['pageload']);
+    .addFilterValues('event.type', ['transaction'])
+    .addFilterValues('!transaction.op', ['pageload']);
   return eventView;
 }
 
@@ -831,16 +851,20 @@ export function generatePerformanceVitalDetailView(
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.query.length > 0) {
+  if (conditions.freeText.length > 0) {
     // the query here is a user entered condition, no need to escape it
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
-    conditions.query = [];
+    conditions.setFilterValues(
+      'transaction',
+      [`*${conditions.freeText.join(' ')}*`],
+      false
+    );
+    conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
-    .addTagValues('event.type', ['transaction'])
-    .addTagValues('has', [vitalName]);
+    .addFilterValues('event.type', ['transaction'])
+    .addFilterValues('has', [vitalName]);
   return eventView;
 }

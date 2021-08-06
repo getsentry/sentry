@@ -37,8 +37,8 @@ class ProjectPluginsContainer extends React.Component<Props> {
       {
         integrations_installed: installCount,
         view: 'legacy_integrations',
+        organization: this.props.organization,
       },
-      this.props.organization,
       {startSession: true}
     );
   };

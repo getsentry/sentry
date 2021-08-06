@@ -56,8 +56,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         already_installed: isInstalled,
         view: 'external_install',
         integration_status: sentryApp.status,
+        organization,
       },
-      organization,
       {startSession: true}
     );
   }

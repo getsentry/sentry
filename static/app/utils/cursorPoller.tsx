@@ -54,7 +54,7 @@ class CursorPoller {
 
   poll() {
     this.lastRequest = this.api.request(this.pollingEndpoint, {
-      success: (data, _, jqXHR) => {
+      success: (data, _, resp) => {
         // cancel in progress operation if disabled
         if (!this.active) {
           return;
@@ -70,7 +70,7 @@ class CursorPoller {
           this.reqsWithoutData -= 1;
         }
 
-        const linksHeader = jqXHR?.getResponseHeader('Link') ?? null;
+        const linksHeader = resp?.getResponseHeader('Link') ?? null;
         const links = parseLinkHeader(linksHeader);
         this.pollingEndpoint = links.previous.href;
 

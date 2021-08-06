@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import {ExceptionType, Group} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
+import {defined} from 'app/utils';
 
 type Props = {
   event: Event;
@@ -57,7 +58,7 @@ function Exception({
       setStackView(newStackView);
     }
 
-    if (newNewestFirst) {
+    if (defined(newNewestFirst)) {
       setNewestFirst(newNewestFirst);
     }
 

@@ -80,15 +80,12 @@ class PlatformPicker extends React.Component<Props, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      trackAdvancedAnalyticsEvent(
-        'growth.platformpicker_search',
-        {
-          search: this.state.filter.toLowerCase(),
-          num_results: this.platformList.length,
-          source: this.props.source,
-        },
-        this.props.organization ?? null
-      );
+      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+        search: this.state.filter.toLowerCase(),
+        num_results: this.platformList.length,
+        source: this.props.source,
+        organization: this.props.organization ?? null,
+      });
     }
   }, 300);
 
@@ -115,11 +112,11 @@ class PlatformPicker extends React.Component<Props, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent(
-                    'growth.platformpicker_category',
-                    {category: id, source: this.props.source},
-                    this.props.organization ?? null
-                  );
+                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                    category: id,
+                    source: this.props.source,
+                    organization: this.props.organization ?? null,
+                  });
                   this.setState({category: id, filter: ''});
                   e.preventDefault();
                 }}
@@ -153,14 +150,11 @@ class PlatformPicker extends React.Component<Props, State> {
                 e.stopPropagation();
               }}
               onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'growth.select_platform',
-                  {
-                    platform_id: platform.id,
-                    source: this.props.source,
-                  },
-                  this.props.organization ?? null
-                );
+                trackAdvancedAnalyticsEvent('growth.select_platform', {
+                  platform_id: platform.id,
+                  source: this.props.source,
+                  organization: this.props.organization ?? null,
+                });
                 setPlatform(platform.id as PlatformKey);
               }}
             />

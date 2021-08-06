@@ -1,4 +1,4 @@
-import {Organization} from 'app/types';
+import {LightWeightOrganization} from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import {trackAnalyticsEventV2} from 'app/utils/analytics';
 import {growthEventMap, GrowthEventParameters} from 'app/utils/growthAnalyticsEvents';
@@ -44,6 +44,8 @@ const allEventMap = {
 
 type AnalyticsKey = keyof EventParameters;
 
+type OptionalOrg = {organization: LightWeightOrganization | null};
+
 /**
  * Tracks an event for analytics.
  * Must be tied to an organization.
@@ -53,17 +55,18 @@ type AnalyticsKey = keyof EventParameters;
  */
 export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
   eventKey: T,
-  analyticsParams: EventParameters[T],
-  org: Organization | null, // if org is undefined, event won't be recorded
+  analyticsParams: EventParameters[T] & OptionalOrg,
   options?: Parameters<Hooks['analytics:track-event-v2']>[1]
 ) {
   const eventName = allEventMap[eventKey];
 
+  // need to destructure the org here to make TS happy
+  const {organization, ...rest} = analyticsParams;
   const params = {
     eventKey,
     eventName,
-    organization: org,
-    ...analyticsParams,
+    organization,
+    ...rest,
   };
 
   // could put this into a debug method or for the main trackAnalyticsEvent event

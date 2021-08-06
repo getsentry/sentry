@@ -69,7 +69,7 @@ export function getTreeLabelPartDetails(part: TreeLabelPart) {
 
 function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] = []) {
   const {type, current_tree_label, finest_tree_label} = metadata;
-  const treeLabel = features.includes('grouping-tree-ui')
+  const treeLabel = features.includes('grouping-title-ui')
     ? current_tree_label || finest_tree_label
     : undefined;
   const formattedTreeLabel = treeLabel
