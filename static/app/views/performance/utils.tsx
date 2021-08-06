@@ -67,7 +67,7 @@ export function platformAndConditionsToPerformanceType(
   const performanceType = platformToPerformanceType(projects, eventView.project);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
     const conditions = tokenizeSearch(eventView.query);
-    const ops = conditions.getTagValues('!transaction.op');
+    const ops = conditions.getFilterValues('!transaction.op');
     if (ops.some(op => op === 'pageload')) {
       return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
     }
