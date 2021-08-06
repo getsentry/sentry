@@ -14,6 +14,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {CodeOwner, Organization, Project} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import ButtonBar from 'app/components/buttonBar';
 
 import SidebarSection from '../sidebarSection';
 
@@ -56,14 +57,18 @@ const OwnershipRules = ({
     <Container dashedBorder>
       <HeaderContainer>
         <Header>{t('Codeowners sync')}</Header> <FeatureBadge type="beta" noTooltip />
-        <DismissIcon size="xs" onClick={() => handleCTAClose()} />
+        <DismissButton
+          icon={<IconClose size="xs" />}
+          priority="link"
+          onClick={() => handleCTAClose()}
+        />
       </HeaderContainer>
       <Content>
         {t(
           'Import GitHub or GitLab CODEOWNERS files to automatically assign issues to the right people.'
         )}
       </Content>
-      <Actions>
+      <ButtonBar gap={1}>
         <SetupButton
           size="small"
           priority="primary"
@@ -77,9 +82,9 @@ const OwnershipRules = ({
         >
           {t('Set It Up')}
         </SetupButton>
-        <DocsButton
+        <Button
           size="small"
-          target="_blank"
+          external
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>
             trackAdvancedAnalyticsEvent('integrations.code_owners_cta_docs_clicked', {
@@ -89,8 +94,8 @@ const OwnershipRules = ({
           }
         >
           {t('Read Docs')}
-        </DocsButton>
-      </Actions>
+        </Button>
+      </ButtonBar>
     </Container>
   );
 
@@ -146,9 +151,7 @@ const HelpfulBody = styled('div')`
 `;
 
 const Container = styled(Panel)`
-  width: 100%;
-  height: 100%;
-  background: none;
+  // background: none;
   display: flex;
   flex-direction: column;
   padding: ${space(2)};
@@ -168,19 +171,9 @@ const Header = styled('h4')`
 `;
 
 const Content = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
+  margin-bottom: ${space(2)};
 `;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: max-content auto;
-  justify-items: start;
-  align-items: end;
-  margin-top: ${space(2)};
-  grid-column-gap: ${space(1)};
-`;
-
-const DocsButton = styled(Button)``;
 
 const SetupButton = styled(Button)`
   &:focus {
@@ -188,7 +181,7 @@ const SetupButton = styled(Button)`
   }
 `;
 
-const DismissIcon = styled(IconClose)`
+const DismissButton = styled(Button)`
   margin-left: auto;
-  cursor: pointer;
+  color: ${p => p.theme.gray400};
 `;
