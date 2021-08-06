@@ -302,7 +302,7 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
-        if not response.ok():
+        if not response.ok:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
 
         try:
