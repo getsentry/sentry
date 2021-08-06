@@ -160,7 +160,8 @@ const Container = styled(Panel)`
 `;
 
 const HeaderContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content max-content 1fr;
   align-items: flex-start;
 `;
 
@@ -184,6 +185,6 @@ const SetupButton = styled(Button)`
 `;
 
 const DismissButton = styled(Button)`
-  margin-left: auto;
+  justify-self: flex-end;
   color: ${p => p.theme.gray400};
 `;
