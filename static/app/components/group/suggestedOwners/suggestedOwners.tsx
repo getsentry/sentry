@@ -7,6 +7,9 @@ import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
 import withOrganization from 'app/utils/withOrganization';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 
 import {findMatchedRules, Rules} from './findMatchedRules';
 import {OwnershipRules} from './ownershipRules';
@@ -27,6 +30,7 @@ type State = {
   rules: Rules;
   owners: Array<Actor>;
   codeowners: CodeOwner[];
+  isDismissed: boolean;
 };
 
 class SuggestedOwners extends React.Component<Props, State> {
@@ -34,6 +38,7 @@ class SuggestedOwners extends React.Component<Props, State> {
     rules: null,
     owners: [],
     codeowners: [],
+    isDismissed: false,
   };
 
   componentDidMount() {
@@ -58,7 +63,51 @@ class SuggestedOwners extends React.Component<Props, State> {
   async fetchData(event: Event) {
     this.fetchOwners(event.id);
     this.fetchCodeOwners();
+    this.checkCodeOwnersPrompt();
   }
+
+  async checkCodeOwnersPrompt() {
+    const {api, organization, project} = this.props;
+
+    // check our prompt backend
+    const promptData = await promptsCheck(api, {
+      organizationId: organization.id,
+      projectId: project.id,
+      feature: 'code_owners',
+    });
+    const isDismissed = promptIsDismissed(promptData, 30);
+    this.setState({isDismissed}, () => {
+      if (!isDismissed) {
+        // now record the results
+        trackAdvancedAnalyticsEvent(
+          'integrations.show_code_owners_prompt',
+          {
+            project_id: project.id,
+            organization: organization,
+          },
+          {startSession: true}
+        );
+      }
+    });
+  }
+
+  handleCTAClose = () => {
+    const {api, organization, project} = this.props;
+
+    promptsUpdate(api, {
+      organizationId: organization.id,
+      projectId: project.id,
+      feature: 'code_owners',
+      status: 'dismissed',
+    });
+
+    this.setState({isDismissed: true}, () =>
+      trackAdvancedAnalyticsEvent('integrations.dismissed_code_owners_prompt', {
+        project_id: project.id,
+        organization,
+      })
+    );
+  };
 
   fetchCodeOwners = async () => {
     const {api, project, organization} = this.props;
@@ -174,7 +223,7 @@ class SuggestedOwners extends React.Component<Props, State> {
 
   render() {
     const {organization, project, group} = this.props;
-    const {codeowners} = this.state;
+    const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
 
     return (
@@ -187,6 +236,8 @@ class SuggestedOwners extends React.Component<Props, State> {
           project={project}
           organization={organization}
           codeowners={codeowners}
+          isDismissed={isDismissed}
+          handleCTAClose={this.handleCTAClose}
         />
       </React.Fragment>
     );

@@ -95,6 +95,8 @@ export type IntegrationEventParameters = {
   'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
   'integrations.code_owners_cta_setup_clicked': IntegrationCodeOwnersEventParams;
   'integrations.code_owners_cta_docs_clicked': IntegrationCodeOwnersEventParams;
+  'integrations.show_code_owners_prompt': IntegrationCodeOwnersEventParams;
+  'integrations.dismissed_code_owners_prompt': IntegrationCodeOwnersEventParams;
 };
 
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
@@ -143,4 +145,7 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
     'Integrations: Code Owners CTA Setup Clicked',
   'integrations.code_owners_cta_docs_clicked':
     'Integrations: Code Owners CTA Setup Clicked',
+  'integrations.show_code_owners_prompt': 'Integrations: Show Code Owners Prompt',
+  'integrations.dismissed_code_owners_prompt':
+    'Integrations: Dismissed Code Owners Prompt',
 };

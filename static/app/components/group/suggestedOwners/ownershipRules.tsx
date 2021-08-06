@@ -14,6 +14,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {CodeOwner, Organization, Project} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {IconClose} from 'app/icons';
 
 import SidebarSection from '../sidebarSection';
 
@@ -22,14 +23,25 @@ type Props = {
   organization: Organization;
   issueId: string;
   codeowners: CodeOwner[];
+  handleCTAClose: () => void;
+  isDismissed: boolean;
 };
 
-const OwnershipRules = ({project, organization, issueId, codeowners}: Props) => {
+const OwnershipRules = ({
+  project,
+  organization,
+  issueId,
+  codeowners,
+  isDismissed,
+  handleCTAClose,
+}: Props) => {
   const handleOpenCreateOwnershipRule = () => {
     openCreateOwnershipRule({project, organization, issueId});
   };
   const showCTA =
-    organization.features.includes('integrations-codeowners') && !codeowners.length;
+    organization.features.includes('integrations-codeowners') &&
+    !codeowners.length &&
+    !isDismissed;
 
   const createRuleButton = (
     <Access access={['project:write']}>
@@ -45,10 +57,11 @@ const OwnershipRules = ({project, organization, issueId, codeowners}: Props) => 
     <Container dashedBorder>
       <HeaderContainer>
         <Header>{t('Codeowners sync')}</Header> <FeatureBadge type="beta" noTooltip />
+        <DismissIcon size="xs" onClick={() => handleCTAClose()} />
       </HeaderContainer>
       <Content>
         {t(
-          'Import your GitHub or GitLab CODEOWNERS file to start automatically assigning issues to the right people.'
+          'Import GitHub or GitLab CODEOWNERS files to automatically assign issues to the right people.'
         )}
       </Content>
       <Actions>
@@ -63,7 +76,7 @@ const OwnershipRules = ({project, organization, issueId, codeowners}: Props) => 
             })
           }
         >
-          {t('Setup Now')}
+          {t('Set It Up')}
         </SetupButton>
         <DocsButton
           size="small"
@@ -76,7 +89,7 @@ const OwnershipRules = ({project, organization, issueId, codeowners}: Props) => 
             })
           }
         >
-          {t('Read the docs')}
+          {t('Read Docs')}
         </DocsButton>
       </Actions>
     </Container>
@@ -174,4 +187,9 @@ const SetupButton = styled(Button)`
   &:focus {
     color: ${p => p.theme.white};
   }
+`;
+
+const DismissIcon = styled(IconClose)`
+  margin-left: auto;
+  cursor: pointer;
 `;
