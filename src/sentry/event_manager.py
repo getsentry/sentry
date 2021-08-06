@@ -160,9 +160,10 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
         return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
-    return EventAttachment.objects.filter(
-        group_id=event.group_id, type__in=CRASH_REPORT_TYPES
-    ).count()
+    # We don't need the actual number, but just whether it's more or equal to
+    # the currently allowed maximum.
+    query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
+    return query[:max_crashreports].count()
 
 
 class HashDiscarded(Exception):
@@ -277,7 +278,15 @@ class EventManager:
         return self._data
 
     @metrics.wraps("event_manager.save")
-    def save(self, project_id, raw=False, assume_normalized=False, start_time=None, cache_key=None):
+    def save(
+        self,
+        project_id,
+        raw=False,
+        assume_normalized=False,
+        start_time=None,
+        cache_key=None,
+        skip_send_first_transaction=False,
+    ):
         """
         After normalizing and processing an event, save adjacent models such as
         releases and environments to postgres and write the event into
@@ -312,7 +321,7 @@ class EventManager:
             job = {"data": self._data, "start_time": start_time}
             jobs = save_transaction_events([job], projects)
 
-            if not project.flags.has_transactions:
+            if not project.flags.has_transactions and not skip_send_first_transaction:
                 first_transaction_received.send_robust(
                     project=project, event=jobs[0]["event"], sender=Project
                 )

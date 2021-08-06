@@ -147,10 +147,11 @@ describe('Release Issues', function () {
         environment: [],
         project: [],
         query: `release:${props.version} !event.type:transaction`,
-        yAxis: undefined,
+        yAxis: 'count()',
         display: undefined,
         interval: undefined,
         statsPeriod: props.selection.datetime.period,
+        user: '1',
       },
     });
 

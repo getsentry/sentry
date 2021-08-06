@@ -3,7 +3,7 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -40,7 +40,7 @@ type Props = ReactRouter.WithRouterProps &
     updateRoute?: boolean;
 
     onSearchSubmit?: (query: string, event: React.FormEvent) => void;
-    onSuccess: (data: object, jqXHR: JQueryXHR | undefined) => void;
+    onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
     onError: () => void;
 
     /**
@@ -75,14 +75,14 @@ class AsyncComponentSearchInput extends React.Component<Props, State> {
     this.setState({busy: true});
 
     try {
-      const [data, , jqXHR] = await api.requestPromise(`${this.props.url}`, {
+      const [data, , resp] = await api.requestPromise(`${this.props.url}`, {
         includeAllArgs: true,
         method: 'GET',
         query: {...location.query, query: searchQuery},
       });
       // only update data if the request's query matches the current query
       if (this.state.query === searchQuery) {
-        this.props.onSuccess(data, jqXHR);
+        this.props.onSuccess(data, resp);
       }
     } catch {
       this.props.onError();

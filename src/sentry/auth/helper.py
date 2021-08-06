@@ -35,12 +35,13 @@ from sentry.models import (
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
-from sentry.utils import auth, metrics
+from sentry.utils import auth, json, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.session_store import redis_property
+from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
@@ -339,7 +340,15 @@ class AuthIdentityHandler:
         return render_to_response(template, default_context, self.request, status=status)
 
     def _post_login_redirect(self) -> HttpResponseRedirect:
-        response = HttpResponseRedirect(auth.get_login_redirect(self.request))
+        url = auth.get_login_redirect(self.request)
+        if self.request.POST.get("op") == "newuser":
+            # add events that we can handle on the front end
+            provider = self.auth_provider.provider if self.auth_provider else None
+            params = {
+                "frontend_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
+            }
+            url = add_params_to_url(url, params)
+        response = HttpResponseRedirect(url)
 
         # Always remove any pending invite cookies, pending invites will have been
         # accepted during the SSO flow.
@@ -455,6 +464,7 @@ class AuthIdentityHandler:
                 template = "sentry/auth-confirm-link.html"
                 context.update({"existing_user": self.user})
             else:
+                self.request.session.set_test_cookie()
                 template = "sentry/auth-confirm-identity.html"
                 context.update({"existing_user": acting_user, "login_form": login_form})
             return self._respond(template, context)

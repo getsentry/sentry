@@ -94,19 +94,19 @@ type Props = {
 
 function Onboarding({organization, project, api}: Props) {
   function handleAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent(
-      'performance_views.tour.advance',
-      {step, duration},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('performance_views.tour.advance', {
+      step,
+      duration,
+      organization,
+    });
   }
 
   function handleClose(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent(
-      'performance_views.tour.close',
-      {step, duration},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('performance_views.tour.close', {
+      step,
+      duration,
+      organization,
+    });
   }
   const showSampleTransactionBtn = organization.features.includes(
     'performance-create-sample-transaction'
@@ -123,7 +123,7 @@ function Onboarding({organization, project, api}: Props) {
         <Button
           priority={showSampleTransactionBtn ? 'link' : 'default'}
           onClick={() => {
-            trackAdvancedAnalyticsEvent('performance_views.tour.start', {}, organization);
+            trackAdvancedAnalyticsEvent('performance_views.tour.start', {organization});
             showModal();
           }}
         >
@@ -136,11 +136,10 @@ function Onboarding({organization, project, api}: Props) {
     <Button
       data-test-id="create-sample-transaction-btn"
       onClick={async () => {
-        trackAdvancedAnalyticsEvent(
-          'performance_views.create_sample_transaction',
-          {platform: project.platform},
-          organization
-        );
+        trackAdvancedAnalyticsEvent('performance_views.create_sample_transaction', {
+          platform: project.platform,
+          organization,
+        });
         addLoadingMessage(t('Processing sample event...'), {
           duration: 15000,
         });

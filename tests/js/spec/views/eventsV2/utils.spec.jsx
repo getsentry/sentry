@@ -222,6 +222,7 @@ describe('pushEventViewToLocation', function () {
   const location = {
     query: {
       bestCountry: 'canada',
+      user: '1',
     },
   };
 
@@ -246,6 +247,8 @@ describe('pushEventViewToLocation', function () {
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
         environment: ['staging'],
+        user: '1',
+        yAxis: 'count()',
       },
     });
   });
@@ -275,6 +278,8 @@ describe('pushEventViewToLocation', function () {
         statsPeriod: '14d',
         environment: ['staging'],
         cursor: 'some cursor',
+        user: '1',
+        yAxis: 'count()',
       },
     });
   });

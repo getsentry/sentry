@@ -13,6 +13,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {
   aggregateOutputType,
@@ -616,6 +617,7 @@ class EventView {
   }
 
   generateQueryStringObject(): Query {
+    const user = ConfigStore.get('user');
     const output = {
       id: this.id,
       name: this.name,
@@ -625,9 +627,10 @@ class EventView {
       environment: this.environment,
       project: this.project,
       query: this.query,
-      yAxis: this.yAxis,
+      yAxis: this.yAxis || this.getYAxis(),
       display: this.display,
       interval: this.interval,
+      user: user.id,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -1116,7 +1119,8 @@ class EventView {
   }
 
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
-    const output = {id: this.id};
+    const user = ConfigStore.get('user');
+    const output = {id: this.id, user: user.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       if (this[field] && this[field].length) {
         output[field] = this[field];
@@ -1307,13 +1311,13 @@ class EventView {
       return query;
     }
     const conditions = tokenizeSearch(query);
-    Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
-      const existingTagValues = conditions.getTagValues(tag);
+    Object.entries(this.additionalConditions.filters).forEach(([tag, tagValues]) => {
+      const existingTagValues = conditions.getFilterValues(tag);
       const newTagValues = tagValues.filter(
         tagValue => !existingTagValues.includes(tagValue)
       );
       if (newTagValues.length) {
-        conditions.addTagValues(tag, newTagValues);
+        conditions.addFilterValues(tag, newTagValues);
       }
     });
     return conditions.formatString();

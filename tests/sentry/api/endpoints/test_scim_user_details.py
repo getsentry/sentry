@@ -4,7 +4,7 @@ from django.urls import reverse
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
 from sentry.scim.endpoints.utils import parse_filter_conditions
-from sentry.testutils import APITestCase, SCIMTestCase, TestCase
+from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase, TestCase
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -239,6 +239,25 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         assert response.status_code == 403, response.content
 
     # TODO: test patch with bad op
+
+
+class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
+    def test_user_details_get_no_active(self):
+        member = self.create_member(organization=self.organization, email="test.user@okta.local")
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "id": str(member.id),
+            "userName": "test.user@okta.local",
+            "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+            "name": {"familyName": "N/A", "givenName": "N/A"},
+            "meta": {"resourceType": "User"},
+        }
 
 
 class SCIMUtilsTests(TestCase):

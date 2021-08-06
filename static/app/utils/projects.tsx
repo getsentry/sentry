@@ -437,12 +437,12 @@ async function fetchProjects(
 
   let hasMore: null | boolean = false;
   let nextCursor: null | string = null;
-  const [results, , xhr] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
+  const [data, , resp] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
     includeAllArgs: true,
     query,
   });
 
-  const pageLinks = xhr && xhr.getResponseHeader('Link');
+  const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
     hasMore =
@@ -453,11 +453,11 @@ async function fetchProjects(
 
   // populate the projects store if all projects were fetched
   if (allProjects) {
-    ProjectActions.loadProjects(results);
+    ProjectActions.loadProjects(data);
   }
 
   return {
-    results,
+    results: data,
     hasMore,
     nextCursor,
   };
