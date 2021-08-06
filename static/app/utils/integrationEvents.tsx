@@ -56,6 +56,9 @@ type IntegrationInstalltionInputValueChangeEventParams = {
   field_name: string;
 } & SingleIntegrationEventParams;
 
+type IntegrationCodeOwnersEventParams = {
+  project_id: string;
+} & View;
 // define the event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
@@ -90,6 +93,10 @@ export type IntegrationEventParameters = {
   'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
   'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
+  'integrations.code_owners_cta_setup_clicked': IntegrationCodeOwnersEventParams;
+  'integrations.code_owners_cta_docs_clicked': IntegrationCodeOwnersEventParams;
+  'integrations.show_code_owners_prompt': IntegrationCodeOwnersEventParams;
+  'integrations.dismissed_code_owners_prompt': IntegrationCodeOwnersEventParams;
 };
 
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
@@ -134,4 +141,11 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
+  'integrations.code_owners_cta_setup_clicked':
+    'Integrations: Code Owners CTA Setup Clicked',
+  'integrations.code_owners_cta_docs_clicked':
+    'Integrations: Code Owners CTA Setup Clicked',
+  'integrations.show_code_owners_prompt': 'Integrations: Show Code Owners Prompt',
+  'integrations.dismissed_code_owners_prompt':
+    'Integrations: Dismissed Code Owners Prompt',
 };
