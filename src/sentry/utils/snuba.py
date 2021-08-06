@@ -761,11 +761,17 @@ def _bulk_snuba_query(
         # 1. A legacy JSON query (_snuba_query)
         # 2. A SnQL query of a legacy query (_legacy_snql_query)
         # 3. A direct SnQL query using the new SDK (_snql_query)
-        query_fn = _snuba_query
+        query_fn, query_type = _snuba_query, "legacy"
         if isinstance(snuba_param_list[0][0], Query):
-            query_fn = _snql_query
+            query_fn, query_type = _snql_query, "snql"
         elif use_snql:
-            query_fn = _legacy_snql_query
+            query_fn, query_type = _legacy_snql_query, "translated"
+
+        metrics.incr(
+            "snuba.snql.query.type",
+            tags={"type": query_type, "referrer": query_referrer},
+        )
+        span.set_tag("snuba.query.type", query_type)
 
         if len(snuba_param_list) > 1:
             query_results = list(
