@@ -3,7 +3,6 @@ from sentry.notifications.helpers import (
     _get_setting_mapping_from_mapping,
     collect_groups_by_project,
     get_fallback_settings,
-    get_groups_for_query,
     get_scope_type,
     get_settings_by_provider,
     get_subscription_from_attributes,
@@ -231,17 +230,6 @@ class NotificationHelpersTest(TestCase):
 
         attrs = {"subscription": (True, False, None)}
         assert get_subscription_from_attributes(attrs) == (False, {"disabled": True})
-
-    def test_get_groups_for_query(self):
-        groups_by_project = {self.project: {self.group}}
-        notification_settings_by_key = {5: NotificationSettingOptionValues.ALWAYS}
-        global_default_workflow_option = NotificationSettingOptionValues.ALWAYS
-        query_groups = get_groups_for_query(
-            groups_by_project,
-            notification_settings_by_key,
-            global_default_workflow_option,
-        )
-        assert query_groups == {self.group}
 
     def test_collect_groups_by_project(self):
         assert collect_groups_by_project([self.group]) == {self.project: {self.group}}
