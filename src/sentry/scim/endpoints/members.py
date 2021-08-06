@@ -11,7 +11,14 @@ from sentry.api.endpoints.organization_member_index import OrganizationMemberSer
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
-from sentry.models import AuditLogEntryEvent, AuthIdentity, InviteStatus, OrganizationMember
+from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.models import (
+    AuditLogEntryEvent,
+    AuthIdentity,
+    AuthProvider,
+    InviteStatus,
+    OrganizationMember,
+)
 from sentry.signals import member_invited
 from sentry.utils.cursors import SCIMCursor
 
@@ -22,12 +29,32 @@ from .constants import (
     SCIM_409_USER_EXISTS,
     MemberPatchOps,
 )
-from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
+from .utils import (
+    OrganizationSCIMMemberPermission,
+    SCIMEndpoint,
+    SCIMFilterError,
+    parse_filter_conditions,
+)
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.exceptions import ConflictError
+
+
+def _scim_member_serializer_with_expansion(organization):
+    """
+    For our Azure SCIM integration, we don't want to return the `active`
+    flag since we don't support soft deletes. Other integrations don't
+    care about this and rely on the behavior of setting "active" to false
+    to delete a member.
+    """
+    auth_provider = AuthProvider.objects.get(organization=organization)
+    expand = ["active"]
+
+    if auth_provider.provider == ACTIVE_DIRECTORY_PROVIDER_NAME:
+        expand = []
+    return OrganizationMemberSCIMSerializer(expand=expand)
 
 
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
@@ -62,7 +89,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return False
 
     def get(self, request, organization, member):
-        context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
+        context = serialize(
+            member,
+            serializer=_scim_member_serializer_with_expansion(organization),
+        )
         return Response(context)
 
     def patch(self, request, organization, member):
@@ -77,7 +107,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             else:
                 return Response(SCIM_400_INVALID_PATCH, status=400)
 
-        context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
+        context = serialize(
+            member,
+            serializer=_scim_member_serializer_with_expansion(organization),
+        )
         return Response(context)
 
     def delete(self, request, organization, member):
@@ -93,7 +126,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         # TODO: sanitize get parameter inputs?
         try:
             filter_val = parse_filter_conditions(request.GET.get("filter"))
-        except Exception:
+        except SCIMFilterError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
         queryset = (
@@ -107,14 +140,18 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         )
         if filter_val:
             queryset = queryset.filter(
-                Q(email__in=filter_val) | Q(user__email__in=filter_val)
+                Q(email__iexact=filter_val) | Q(user__email__iexact=filter_val)
             )  # not including secondary email vals (dups, etc.)
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(results, None, OrganizationMemberSCIMSerializer())
+            results = serialize(
+                results,
+                None,
+                _scim_member_serializer_with_expansion(organization),
+            )
             return self.list_api_format(request, queryset.count(), results)
 
         return self.paginate(
@@ -127,7 +164,6 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         )
 
     def post(self, request, organization):
-        # TODO: confirm mixed case emails get converted to lowercase
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),
@@ -180,5 +216,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 referrer=request.data.get("referrer"),
             )
 
-        context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
+        context = serialize(
+            member,
+            serializer=_scim_member_serializer_with_expansion(organization),
+        )
         return Response(context, status=201)

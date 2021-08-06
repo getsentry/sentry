@@ -948,9 +948,16 @@ const TitleWrapper = styled('div')`
   background: ${p => p.theme.background};
 
   input {
+    width: ${space(2)};
+    height: ${space(2)};
     flex-shrink: 0;
     background-color: ${p => p.theme.background};
     margin-right: ${space(1)} !important;
+
+    &:checked:after {
+      width: ${space(1)};
+      height: ${space(1)};
+    }
 
     &:hover {
       cursor: pointer;
@@ -973,7 +980,7 @@ const ChartTableRow = styled('label')<{
   margin-bottom: 0;
 
   > * {
-    padding: ${space(2)};
+    padding: ${space(1)} ${space(2)};
   }
 
   ${p =>
@@ -1016,7 +1023,7 @@ const ChartTableRow = styled('label')<{
     p.role === 'children' &&
     css`
       ${DescriptionCell} {
-        padding-left: 50px;
+        padding-left: 44px;
         position: relative;
         &:before {
           content: '';
@@ -1024,7 +1031,7 @@ const ChartTableRow = styled('label')<{
           height: 36px;
           position: absolute;
           top: -17px;
-          left: 27px;
+          left: 24px;
           border-bottom: 1px solid ${p.theme.border};
           border-left: 1px solid ${p.theme.border};
         }
