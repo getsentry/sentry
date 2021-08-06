@@ -1,28 +1,45 @@
 from unittest import TestCase
 
-from sentry.models import Group, Project
+from sentry.models import Group, Project, User
 from sentry.notifications.helpers import get_groups_for_query
-from sentry.notifications.types import NotificationSettingOptionValues
+from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.types.integrations import ExternalProviders
 
 
 class GetGroupsForQueryTestCase(TestCase):
     def setUp(self) -> None:
+        self.user = User(1)
         self.project = Project(id=123)
         self.group = Group(id=456, project=self.project)
 
     def test_get_groups_for_query_empty(self):
         groups_by_project = {self.project: {self.group}}
-        notification_settings_by_provider_by_parent_id = {
-            self.project.id: {
-                ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
-                ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+        notification_settings_by_scope = {
+            NotificationScopeType.PROJECT: {
+                self.project.id: {
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                },
             },
         }
 
-        assert get_groups_for_query({}, {}) == set()
-        assert get_groups_for_query(groups_by_project, {}) == {self.group}
-        assert get_groups_for_query({}, notification_settings_by_provider_by_parent_id) == set()
+        assert (
+            get_groups_for_query(
+                groups_by_project={}, notification_settings_by_scope={}, user=self.user
+            )
+            == set()
+        )
+        assert get_groups_for_query(
+            groups_by_project, notification_settings_by_scope={}, user=self.user
+        ) == {self.group}
+        assert (
+            get_groups_for_query(
+                groups_by_project={},
+                notification_settings_by_scope=notification_settings_by_scope,
+                user=self.user,
+            )
+            == set()
+        )
 
     def test_get_groups_for_query(self):
         project_0 = Project(id=100)
@@ -35,19 +52,20 @@ class GetGroupsForQueryTestCase(TestCase):
             project_2: {Group(id=13, project=project_0)},
         }
 
-        notification_settings_by_provider_by_parent_id = {
-            project_0.id: {
-                ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
-                ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
-            },
-            project_1.id: {
-                ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
-                ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER,
-            },
+        notification_settings_by_scope = {
+            NotificationScopeType.PROJECT: {
+                project_0.id: {
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                },
+                project_1.id: {
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER,
+                },
+            }
         }
         query_groups = get_groups_for_query(
-            groups_by_project,
-            notification_settings_by_provider_by_parent_id,
+            groups_by_project, notification_settings_by_scope, user=self.user
         )
         assert {group.id for group in query_groups} == {10, 11, 13}
 
@@ -56,11 +74,14 @@ class GetGroupsForQueryTestCase(TestCase):
             get_groups_for_query(
                 {self.project: {self.group}},
                 {
-                    self.project.id: {
-                        ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
-                        ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                    NotificationScopeType.PROJECT: {
+                        self.project.id: {
+                            ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+                            ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                        },
                     },
                 },
+                user=self.user,
             )
             == {self.group}
         )
@@ -70,11 +91,14 @@ class GetGroupsForQueryTestCase(TestCase):
             get_groups_for_query(
                 {self.project: {self.group}},
                 {
-                    self.project.id: {
-                        ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
-                        ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER,
+                    NotificationScopeType.PROJECT: {
+                        self.project.id: {
+                            ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+                            ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER,
+                        },
                     },
                 },
+                user=self.user,
             )
             == set()
         )

@@ -288,9 +288,11 @@ def get_subscription_from_attributes(
 
 def get_groups_for_query(
     groups_by_project: Mapping["Project", Set["Group"]],
-    notification_settings_by_provider_by_parent_id: Mapping[
-        int, Mapping[ExternalProviders, NotificationSettingOptionValues]
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
+    user: "User",
 ) -> Set["Group"]:
     """
     If there is a subscription record associated with the group, we can just use
@@ -300,8 +302,11 @@ def get_groups_for_query(
     # Although this can be done with a comprehension, looping for clarity.
     output = set()
     for project, groups in groups_by_project.items():
-        value = get_highest_notification_setting_value(
-            notification_settings_by_provider_by_parent_id.get(project.id, {})
+        value = get_most_specific_notification_setting_value(
+            notification_settings_by_scope,
+            user=user,
+            parent_id=project.id,
+            type=NotificationSettingTypes.WORKFLOW,
         )
         if value != NotificationSettingOptionValues.NEVER:
             output |= groups

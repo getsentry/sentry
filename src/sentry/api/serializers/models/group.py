@@ -47,7 +47,7 @@ from sentry.notifications.helpers import (
     get_user_subscriptions_for_groups,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationScopeType, NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -187,10 +187,7 @@ class GroupSerializerBase(Serializer):
                 groups_by_project.keys(),
             )
         )
-        query_groups = get_groups_for_query(
-            groups_by_project,
-            notification_settings_by_scope.get(NotificationScopeType.PROJECT, {}),
-        )
+        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
         subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user=user)
         subscriptions_by_group_id = {
             subscription.group_id: subscription for subscription in subscriptions
