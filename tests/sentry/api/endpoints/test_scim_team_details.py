@@ -289,3 +289,26 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
+
+    def test_remove_member_azure(self):
+        member1 = self.create_member(
+            user=self.create_user(), organization=self.organization, teams=[self.team]
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, self.team.id],
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {"op": "Remove", "path": "members", "value": [{"value": str(member1.id)}]}
+                ],
+            },
+        )
+        assert response.status_code == 204, response.content
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=member1.id
+        ).exists()

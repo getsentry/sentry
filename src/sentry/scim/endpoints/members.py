@@ -29,7 +29,12 @@ from .constants import (
     SCIM_409_USER_EXISTS,
     MemberPatchOps,
 )
-from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
+from .utils import (
+    OrganizationSCIMMemberPermission,
+    SCIMEndpoint,
+    SCIMFilterError,
+    parse_filter_conditions,
+)
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 from rest_framework.exceptions import PermissionDenied
@@ -121,7 +126,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         # TODO: sanitize get parameter inputs?
         try:
             filter_val = parse_filter_conditions(request.GET.get("filter"))
-        except Exception:
+        except SCIMFilterError:
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
         queryset = (
@@ -135,7 +140,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         )
         if filter_val:
             queryset = queryset.filter(
-                Q(email__in=filter_val) | Q(user__email__in=filter_val)
+                Q(email__iexact=filter_val) | Q(user__email__iexact=filter_val)
             )  # not including secondary email vals (dups, etc.)
 
         def data_fn(offset, limit):
@@ -159,7 +164,6 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         )
 
     def post(self, request, organization):
-        # TODO: confirm mixed case emails get converted to lowercase
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),

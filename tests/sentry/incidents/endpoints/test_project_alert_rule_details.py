@@ -146,6 +146,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
+        self.alert_rule.refresh_from_db()
         self.alert_rule.name = "what"
         self.alert_rule.snuba_query.refresh_from_db()
         assert resp.data == serialize(self.alert_rule)
@@ -169,6 +170,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         existing_sub = self.alert_rule.snuba_query.subscriptions.first()
 
         # Alert rule should be exactly the same
+        self.alert_rule.refresh_from_db()
         assert resp.data == serialize(self.alert_rule)
         # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
@@ -417,6 +419,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, self.project.slug, alert_rule.id, **test_params
             )
 
+        alert_rule.refresh_from_db()
         alert_rule.snuba_query.refresh_from_db()
         assert resp.data == serialize(alert_rule, self.user)
         assert (
