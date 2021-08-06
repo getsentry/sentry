@@ -58,7 +58,7 @@ type IntegrationInstalltionInputValueChangeEventParams = {
 
 type IntegrationCodeOwnersEventParams = {
   project_id: string;
-};
+} & View;
 // define the event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;

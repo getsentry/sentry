@@ -82,6 +82,7 @@ class SuggestedOwners extends React.Component<Props, State> {
         trackAdvancedAnalyticsEvent(
           'integrations.show_code_owners_prompt',
           {
+            view: 'stacktrace_issue_details',
             project_id: project.id,
             organization,
           },
@@ -103,6 +104,7 @@ class SuggestedOwners extends React.Component<Props, State> {
 
     this.setState({isDismissed: true}, () =>
       trackAdvancedAnalyticsEvent('integrations.dismissed_code_owners_prompt', {
+        view: 'stacktrace_issue_details',
         project_id: project.id,
         organization,
       })

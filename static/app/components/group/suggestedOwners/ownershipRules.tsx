@@ -75,6 +75,7 @@ const OwnershipRules = ({
           href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
           onClick={() =>
             trackAdvancedAnalyticsEvent('integrations.code_owners_cta_setup_clicked', {
+              view: 'stacktrace_issue_details',
               project_id: project.id,
               organization,
             })
@@ -88,6 +89,7 @@ const OwnershipRules = ({
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>
             trackAdvancedAnalyticsEvent('integrations.code_owners_cta_docs_clicked', {
+              view: 'stacktrace_issue_details',
               project_id: project.id,
               organization,
             })
@@ -151,7 +153,7 @@ const HelpfulBody = styled('div')`
 `;
 
 const Container = styled(Panel)`
-  // background: none;
+  background: none;
   display: flex;
   flex-direction: column;
   padding: ${space(2)};
