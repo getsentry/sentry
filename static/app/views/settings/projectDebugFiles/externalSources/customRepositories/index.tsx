@@ -188,6 +188,7 @@ function CustomRepositories({
       <PanelHeader hasButtons>
         {t('Custom Repositories')}
         <DropdownAutoComplete
+          alignMenu="right"
           items={dropDownItems.map(dropDownItem => ({
             ...dropDownItem,
             label: (
