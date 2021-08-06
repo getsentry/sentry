@@ -2241,10 +2241,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count_miserable",
-                    # Using the generic FunctionArg here temporarily till we
-                    # implement a resolver for count columns in SnQL. The only
-                    # column to be passed through here for now is `user`.
-                    required_args=[FunctionArg("column")],
+                    required_args=[ColumnTagArg("column")],
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[
                         {
@@ -3085,14 +3082,7 @@ class QueryFields(QueryBase):
             )
         col = args["column"]
 
-        return Function(
-            "uniqIf",
-            [
-                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
-                Function("greater", [lhs, rhs]),
-            ],
-            alias,
-        )
+        return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
