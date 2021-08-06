@@ -77,16 +77,10 @@ discoverCharts.push({
     data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
   ) => {
     if (isArray(data.stats.data)) {
-      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
-      const areaSeries = AreaSeries({
-        name: data.hasOwnProperty('seriesName') ? data.seriesName : undefined,
-        data: [],
-      });
       return {
         ...slackChartDefaults,
-        color,
         useUTC: true,
-        series: [areaSeries],
+        series: [],
       };
     }
 
@@ -124,16 +118,10 @@ discoverCharts.push({
     data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
   ) => {
     if (isArray(data.stats.data)) {
-      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
-      const areaSeries = AreaSeries({
-        name: data.hasOwnProperty('seriesName') ? data.seriesName : undefined,
-        data: [],
-      });
       return {
         ...slackChartDefaults,
-        color,
         useUTC: true,
-        series: [areaSeries],
+        series: [],
       };
     }
 
