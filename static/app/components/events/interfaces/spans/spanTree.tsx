@@ -232,6 +232,14 @@ class SpanTree extends React.Component<PropType> {
           spanNumber = spanNumber + 1;
         }
 
+        let toggleSpanGroup: (() => void) | undefined = undefined;
+        if (
+          (payload.type === 'span' || payload.type === 'root_span') &&
+          !payload.spanGrouping
+        ) {
+          toggleSpanGroup = payload.toggleSpanGroup;
+        }
+
         acc.spanTree.push(
           <SpanBar
             key={key}
@@ -254,6 +262,7 @@ class SpanTree extends React.Component<PropType> {
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
             hasCollapsedSpanGroup={hasCollapsedSpanGroup}
+            toggleSpanGroup={toggleSpanGroup}
           />
         );
 

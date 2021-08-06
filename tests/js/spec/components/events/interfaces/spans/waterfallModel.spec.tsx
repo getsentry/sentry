@@ -651,7 +651,7 @@ describe('WaterfallModel', () => {
     // expect 1 or more spans are grouped
     expect(spans).toHaveLength(2);
 
-    expect(spans).toEqual([
+    const collapsedWaterfallExpected = [
       {
         ...fullWaterfall[0],
         numOfSpanChildren: 1,
@@ -695,7 +695,9 @@ describe('WaterfallModel', () => {
         showSpanGroup: false,
         toggleSpanGroup: expect.any(Function),
       },
-    ]);
+    ];
+
+    expect(spans).toEqual(collapsedWaterfallExpected);
 
     // Expand span group
     assert(spans[1].type === 'span' && spans[1].toggleSpanGroup);
@@ -725,7 +727,7 @@ describe('WaterfallModel', () => {
         treeDepth: 1,
         spanGrouping: undefined,
         showSpanGroup: false,
-        toggleSpanGroup: undefined,
+        toggleSpanGroup: expect.any(Function),
       },
       {
         ...fullWaterfall[1],
@@ -758,7 +760,7 @@ describe('WaterfallModel', () => {
             numOfSpanChildren: 1,
             spanGrouping: undefined,
             showSpanGroup: false,
-            toggleSpanGroup: undefined,
+            toggleSpanGroup: expect.any(Function),
           },
           {
             ...fullWaterfall[1],
@@ -779,5 +781,17 @@ describe('WaterfallModel', () => {
         toggleSpanGroup: expect.any(Function),
       },
     ]);
+
+    // Collapse span group
+    assert(spans[1].type === 'span' && spans[1].toggleSpanGroup);
+    spans[1].toggleSpanGroup();
+
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toHaveLength(2);
+    expect(spans).toEqual(collapsedWaterfallExpected);
   });
 });

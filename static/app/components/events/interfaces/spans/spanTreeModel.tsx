@@ -211,8 +211,13 @@ class SpanTreeModel {
     const isNotLastSpanOfGroup =
       isOnlySibling && !this.isRoot && descendantsSource.length === 1;
     const shouldGroup = isNotLastSpanOfGroup;
+    const hideSpanTree = hiddenSpanGroups.has(parentSpanID);
     const isLastSpanOfGroup =
-      isOnlySibling && !this.isRoot && descendantsSource.length !== 1;
+      isOnlySibling && !this.isRoot && (descendantsSource.length !== 1 || hideSpanTree);
+    const isFirstSpanOfGroup =
+      shouldGroup &&
+      (spanGrouping === undefined ||
+        (Array.isArray(spanGrouping) && spanGrouping.length === 0));
 
     // For a collapsed span group chain to be useful, we prefer span groupings
     // that are two or more spans.
@@ -252,7 +257,11 @@ class SpanTreeModel {
       toggleEmbeddedChildren: this.toggleEmbeddedChildren,
       spanGrouping: spanGroupingCriteria ? spanGrouping : undefined,
       toggleSpanGroup:
-        spanGroupingCriteria && toggleSpanGroup ? toggleSpanGroup : undefined,
+        spanGroupingCriteria && toggleSpanGroup
+          ? toggleSpanGroup
+          : isFirstSpanOfGroup && this.showSpanGroup && !hideSpanTree
+          ? this.toggleSpanGroup
+          : undefined,
       showSpanGroup:
         (spanGroupingCriteria && toggleSpanGroup === undefined && this.showSpanGroup) ||
         (spanGroupingCriteria && toggleSpanGroup !== undefined && showSpanGroup),
@@ -264,6 +273,7 @@ class SpanTreeModel {
 
     const shouldHideSpanOfGroup =
       shouldGroup &&
+      !isLastSpanOfGroup &&
       ((toggleSpanGroup === undefined && !this.showSpanGroup) ||
         (toggleSpanGroup !== undefined && !showSpanGroup));
 
@@ -272,7 +282,14 @@ class SpanTreeModel {
         ? continuingTreeDepths
         : [...continuingTreeDepths, treeDepthEntry];
 
-    const {descendants} = descendantsSource.reduce(
+    for (const hiddenSpanGroup of hiddenSpanGroups) {
+      if (spanGroups.has(hiddenSpanGroup)) {
+        // If this span is hidden, then all the descendants are hidden as well
+        return [];
+      }
+    }
+
+    const {descendants} = (hideSpanTree ? [] : descendantsSource).reduce(
       (
         acc: {
           descendants: EnhancedProcessedSpanType[];
@@ -320,12 +337,6 @@ class SpanTreeModel {
       }
     );
 
-    for (const hiddenSpanGroup of hiddenSpanGroups) {
-      if (spanGroups.has(hiddenSpanGroup)) {
-        return descendants;
-      }
-    }
-
     if (this.isSpanFilteredOut(props)) {
       return [
         {
@@ -354,6 +365,17 @@ class SpanTreeModel {
 
     if (shouldHideSpanOfGroup) {
       return [...descendants];
+    }
+
+    if (
+      isFirstSpanOfGroup &&
+      this.showSpanGroup &&
+      !hideSpanTree &&
+      descendants.length <= 1
+    ) {
+      // If we know the descendants will be one span or less, we remove the "regroup" feature (therefore hide it)
+      // by setting toggleSpanGroup to be undefined for the first span of the group chain.
+      wrappedSpan.toggleSpanGroup = undefined;
     }
 
     if (isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length === 1) {

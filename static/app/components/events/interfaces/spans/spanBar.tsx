@@ -119,6 +119,7 @@ type SpanBarProps = {
     | undefined;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   hasCollapsedSpanGroup: boolean;
+  toggleSpanGroup: (() => void) | undefined;
 };
 
 type SpanBarState = {
@@ -445,16 +446,38 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth} = this.props;
+    const {span, treeDepth, toggleSpanGroup} = this.props;
 
-    const operationName = getSpanOperation(span) ? (
-      <strong>
-        {getSpanOperation(span)}
-        {' \u2014 '}
-      </strong>
-    ) : (
-      ''
-    );
+    let titleFragments: React.ReactNode[] = [];
+
+    if (typeof toggleSpanGroup === 'function') {
+      titleFragments.push(
+        <Regroup
+          onClick={event => {
+            event.stopPropagation();
+            event.preventDefault();
+            toggleSpanGroup();
+          }}
+        >
+          <a
+            href="#regroup"
+            onClick={event => {
+              event.preventDefault();
+            }}
+          >
+            {t('Regroup')}
+          </a>
+        </Regroup>
+      );
+    }
+
+    const spanOperationName = getSpanOperation(span);
+    if (spanOperationName) {
+      titleFragments.push(spanOperationName);
+    }
+
+    titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
+
     const description = span?.description ?? getSpanID(span);
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
@@ -473,7 +496,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           }}
         >
           <RowTitleContent errored={errored}>
-            {operationName}
+            <strong>{titleFragments}</strong>
             {description}
           </RowTitleContent>
         </RowTitle>
@@ -977,5 +1000,7 @@ const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};
   margin-bottom: ${space(0.25)};
 `;
+
+const Regroup = styled('span')``;
 
 export default SpanBar;
