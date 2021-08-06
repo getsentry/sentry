@@ -307,7 +307,7 @@ class ITunesClient:
 
         try:
             info = response.json()["trustedPhoneNumber"]
-        except requests.exceptions.JSONDecodeError:
+        except ValueError:
             raise ITunesError(
                 f"Received unexpected response content, response status: {response.status_code}"
             )
