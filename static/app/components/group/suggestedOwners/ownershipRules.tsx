@@ -6,6 +6,7 @@ import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
 import {Panel} from 'app/components/panels';
@@ -14,7 +15,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {CodeOwner, Organization, Project} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import ButtonBar from 'app/components/buttonBar';
 
 import SidebarSection from '../sidebarSection';
 
