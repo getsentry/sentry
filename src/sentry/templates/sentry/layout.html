@@ -71,10 +71,6 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.is_superuser %}
-        {% show_system_status %}
-    {% endif %}
-
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
