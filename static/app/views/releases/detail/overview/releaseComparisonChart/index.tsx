@@ -1023,7 +1023,7 @@ const ChartTableRow = styled('label')<{
     p.role === 'children' &&
     css`
       ${DescriptionCell} {
-        padding-left: 50px;
+        padding-left: 44px;
         position: relative;
         &:before {
           content: '';
