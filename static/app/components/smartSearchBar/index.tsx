@@ -1288,10 +1288,13 @@ class SmartSearchBar extends React.Component<Props, State> {
             ? this.cursorPosition
             : valueToken.location.end.offset;
         } else {
-          // Include everything after the ':'
           const keyLocation = cursorToken.key.location;
           clauseStart = keyLocation.end.offset + 1;
           clauseEnd = location.end.offset + 1;
+          // The user tag often contains : within its value and we need to quote it.
+          if (getKeyName(cursorToken.key) === 'user') {
+            replaceToken = `"${replaceText.trim()}"`;
+          }
           // handle using autocomplete with key:[]
           if (valueToken.text === '[]') {
             clauseStart += 1;
@@ -1309,7 +1312,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     if (cursorToken.type === Token.FreeText) {
-      clauseStart = cursorToken.location.start.offset;
+      const startPos = cursorToken.location.start.offset;
+      clauseStart = cursorToken.text.startsWith(NEGATION_OPERATOR)
+        ? startPos + 1
+        : startPos;
       clauseEnd = cursorToken.location.end.offset;
     }
 

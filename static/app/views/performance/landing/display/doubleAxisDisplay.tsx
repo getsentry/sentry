@@ -36,7 +36,7 @@ function DoubleAxisDisplay(props: Props) {
     const filterString = getTransactionSearchQuery(location);
 
     const conditions = tokenizeSearch(filterString);
-    conditions.setTagValues(field, [
+    conditions.setFilterValues(field, [
       `>=${Math.round(minValue)}`,
       `<${Math.round(maxValue)}`,
     ]);

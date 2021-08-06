@@ -36,9 +36,6 @@ from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_co
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
-
-
 def _team_expand(query):
     return None if "members" in query.get("excludedAttributes", []) else ["members"]
 
@@ -61,9 +58,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
-
         if filter_val:
-            queryset = queryset.filter(slug=slugify(filter_val))
+            queryset = queryset.filter(name=filter_val[0])
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
@@ -82,9 +78,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         )
 
     def post(self, request, organization):
-        # shim displayName from SCIM api to "slug" in order to work with
+        # shim displayName from SCIM api in order to work with
         # our regular team index POST
-        request.data.update({"slug": slugify(request.data["displayName"])})
+        request.data.update({"name": request.data["displayName"]})
         return super().post(request, organization)
 
 
@@ -163,9 +159,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     def _rename_team_operation(self, request, new_name, team):
         serializer = TeamSerializer(
             team,
-            data={
-                "slug": slugify(new_name),
-            },
+            data={"name": new_name, "slug": slugify(new_name)},
             partial=True,
         )
         if serializer.is_valid():
@@ -225,8 +219,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
-        context = serialize(team, serializer=TeamSCIMSerializer())
-        return Response(context)
+        return self.respond(status=204)
 
     def delete(self, request, organization, team):
         return super().delete(request, team)
