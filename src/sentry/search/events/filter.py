@@ -20,7 +20,7 @@ from sentry.api.event_search import (
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project, Release, SemverFilter
+from sentry.models import Organization, Project, Release, SemverFilter
 from sentry.models.group import Group
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
@@ -1104,7 +1104,7 @@ class QueryFilter(QueryFields):
         start, end = self.params["start"], self.params["end"]
         # Update start to be within retention
         expired, start = outside_retention_with_modified_start(
-            start, end, self.params.get("organization_id")
+            start, end, Organization(self.params.get("organization_id"))
         )
 
         # TODO: this validation should be done when we create the params dataclass instead
