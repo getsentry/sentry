@@ -2157,7 +2157,7 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
-def normalize_percentile_alias(args: Mapping[str, str]) -> Union[float, str, int]:
+def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     # The compare_numeric_aggregate SnQL function accepts a percentile
     # alias which is resolved to the percentile function call here
     # to maintain backward compatibility with the legacy compare_numeric_aggregate

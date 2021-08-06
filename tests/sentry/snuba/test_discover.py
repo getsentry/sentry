@@ -1269,7 +1269,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 alias, expected_value = expected_results[i]
                 data = result["data"]
 
-                assert data[0][alias] == expected_value
+                assert data[0][alias] == expected_value, query_fn
 
     def test_last_seen(self):
         project = self.create_project()
