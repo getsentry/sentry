@@ -27,7 +27,7 @@ def properties(request) -> Properties:
         return Properties(
             create_store(request, get_credentials()),
             keys=(f"{i}" for i in itertools.count()),
-            values=(f"{i}".encode("utf-8") for i in itertools.count()),
+            values=(f"{i}".encode() for i in itertools.count()),
         )
     elif request.param.startswith("cache/"):
         from sentry.utils.kvstore.cache import CacheKVStorage
@@ -62,7 +62,7 @@ def properties(request) -> Properties:
         return Properties(
             RedisKVStorage(Redis(db=6)),
             keys=(f"kvstore/{i}" for i in itertools.count()),
-            values=(f"{i}".encode("utf8") for i in itertools.count()),
+            values=(f"{i}".encode() for i in itertools.count()),
         )
     elif request.param == "memory+cachewrapper":
         from sentry.utils.kvstore.cache import CacheKeyWrapper

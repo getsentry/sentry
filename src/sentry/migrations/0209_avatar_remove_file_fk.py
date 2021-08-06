@@ -56,14 +56,14 @@ class Migration(migrations.Migration):
                 for model_name in avatar_models
             ],
             state_operations=[
-                *[
+                *(
                     migrations.RemoveField(
                         model_name=model_name,
                         name="file",
                     )
                     for model_name in avatar_models
-                ],
-                *[
+                ),
+                *(
                     migrations.AddField(
                         model_name=model_name,
                         name="file_id",
@@ -72,7 +72,7 @@ class Migration(migrations.Migration):
                         ),
                     )
                     for model_name in avatar_models
-                ],
+                ),
             ],
         ),
     ]

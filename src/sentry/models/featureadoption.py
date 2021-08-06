@@ -128,7 +128,7 @@ class FeatureAdoptionManager(BaseManager):
         with redis.clusters.get("default").map() as client:
             result.append(client.smembers(org_key))
 
-        return {int(x) for x in set.union(*[p.value for p in result])}
+        return {int(x) for x in set.union(*(p.value for p in result))}
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:
@@ -188,7 +188,7 @@ class FeatureAdoptionManager(BaseManager):
             # can `bulk_set_cache`.
             return False
         finally:
-            return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
+            return self.bulk_set_cache(organization_id, *incomplete_feature_ids)  # noqa TODO why??
 
     def get_by_slug(self, organization, slug):
         return self.filter(
