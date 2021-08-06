@@ -210,13 +210,13 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     const {api, closeModal, organization} = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
+    const widgetData: Widget = pick(this.state, [
+      'title',
+      'displayType',
+      'interval',
+      'queries',
+    ]);
     try {
-      const widgetData: Widget = pick(this.state, [
-        'title',
-        'displayType',
-        'interval',
-        'queries',
-      ]);
       await validateWidget(api, organization.slug, widgetData);
     } catch (err) {
       errors = mapErrors(err?.responseJSON ?? {}, {});
@@ -238,12 +238,28 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     if (!Object.keys(errors).length && this.state.selectedDashboard) {
       // TODO: redirect user to dashboard view
       closeModal();
+      const queryData = {
+        queryName: widgetData.queries[0].name,
+        queryConditions: widgetData.queries[0].conditions,
+        queryFields: widgetData.queries[0].fields,
+        queryOrderby: widgetData.queries[0].orderby,
+      };
+      const pathQuery = {
+        displayType: widgetData.displayType,
+        interval: widgetData.interval,
+        title: widgetData.title,
+        ...queryData,
+      };
       if (this.state.selectedDashboard.value === 'new') {
-        browserHistory.push(`/organizations/${organization.slug}/dashboards/new`);
+        browserHistory.push({
+          pathname: `/organizations/${organization.slug}/dashboards/new/`,
+          query: pathQuery,
+        });
       } else {
-        browserHistory.push(
-          `/organizations/${organization.slug}/dashboard/${this.state.selectedDashboard.value}`
-        );
+        browserHistory.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${this.state.selectedDashboard.value}/`,
+          query: pathQuery,
+        });
       }
     }
   };

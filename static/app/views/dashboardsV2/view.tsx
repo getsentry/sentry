@@ -1,5 +1,6 @@
-import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import React, {useEffect, useState} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
+import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -14,7 +15,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState} from './types';
+import {DashboardState, Widget} from './types';
 
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   api: Client;
@@ -24,6 +25,16 @@ type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
 
 function ViewEditDashboard(props: Props) {
   const {organization, params, api, location} = props;
+  const [newWidget, setNewWidget] = useState<Widget | undefined>();
+  useEffect(() => {
+    const constructedWidget = constructWidgetFromQuery(location.query);
+    setNewWidget(constructedWidget);
+    // Clean up url after constructing widget from query string
+    // TODO: more elegant way to do this?
+    if (constructedWidget) {
+      browserHistory.push(location.pathname);
+    }
+  }, []);
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards
@@ -38,10 +49,16 @@ function ViewEditDashboard(props: Props) {
           ) : dashboard ? (
             <DashboardDetail
               {...props}
-              initialState={DashboardState.VIEW}
+              initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              reloadData={reloadData}
+              reloadData={(...args) => {
+                if (newWidget) {
+                  setNewWidget(undefined);
+                }
+                return reloadData(...args);
+              }}
+              newWidget={newWidget}
             />
           ) : (
             <LoadingIndicator />
@@ -50,6 +67,24 @@ function ViewEditDashboard(props: Props) {
       </OrgDashboards>
     </DashboardBasicFeature>
   );
+}
+
+function constructWidgetFromQuery(query): Widget | undefined {
+  const newWidget: Widget = {
+    ...pick(query, ['title', 'displayType', 'interval']),
+    queries: [
+      {
+        name: query.queryName,
+        conditions: query.queryConditions,
+        fields:
+          typeof query.queryFields === 'string' ? [query.queryFields] : query.queryFields,
+        orderby: query.queryOrderby,
+      },
+    ],
+  };
+  // TODO: more elegant way to check if newWidget is valid?
+  if (Object.keys(newWidget).length === 4) return newWidget;
+  return undefined;
 }
 
 export default withApi(withOrganization(ViewEditDashboard));

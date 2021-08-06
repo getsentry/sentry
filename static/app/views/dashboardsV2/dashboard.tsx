@@ -1,10 +1,12 @@
 import {Component} from 'react';
+import {browserHistory} from 'react-router';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {validateWidget} from 'app/actionCreators/dashboards';
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
@@ -32,14 +34,24 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
+  newWidget?: Widget;
 };
 
 class Dashboard extends Component<Props> {
-  componentDidMount() {
-    const {isEditing} = this.props;
+  async componentDidMount() {
+    const {api, organization, isEditing, newWidget} = this.props;
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
+    }
+    if (newWidget) {
+      try {
+        await validateWidget(api, organization.slug, newWidget);
+        this.handleAddComplete(newWidget);
+      } catch (error) {
+        // Don't do anything, widget isn't valid
+        // TODO: add error alerting
+      }
     }
   }
 
