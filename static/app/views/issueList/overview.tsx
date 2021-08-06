@@ -1042,17 +1042,6 @@ class IssueListOverview extends React.Component<Props, State> {
     // Subtract # items that have been marked reviewed
     pageCount = Math.max(pageCount - itemsRemoved, 0);
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
-    const displayCount = tct('[count] of [total]', {
-      count: pageCount,
-      total: (
-        <StyledQueryCount
-          hideParens
-          hideIfEmpty={false}
-          count={modifiedQueryCount}
-          max={queryMaxCount || 100}
-        />
-      ),
-    });
 
     // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
     if (organization.features.includes('semver') && !tags['release.version']) {
@@ -1126,7 +1115,6 @@ class IssueListOverview extends React.Component<Props, State> {
                 selection={selection}
                 query={query}
                 queryCount={modifiedQueryCount}
-                displayCount={displayCount}
                 onSelectStatsPeriod={this.onSelectStatsPeriod}
                 onMarkReviewed={this.onMarkReviewed}
                 onDelete={this.onDelete}

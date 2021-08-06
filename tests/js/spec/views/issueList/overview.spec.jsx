@@ -11,6 +11,7 @@ import {
 
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
+import IssueListActions from 'app/views/issueList/actions';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
 // Mock <IssueListSidebar> and <IssueListActions>
@@ -169,7 +170,12 @@ describe('IssueList', function () {
       };
 
       wrapper = mountWithTheme(
-        <IssueListWithStores {...newRouter} {...defaultProps} {...p} />,
+        <IssueListWithStores
+          data-test-id="test-overview"
+          {...newRouter}
+          {...defaultProps}
+          {...p}
+        />,
         {context: routerContext}
       );
     };
@@ -738,6 +744,314 @@ describe('IssueList', function () {
           query: 'is:unresolved',
           statsPeriod: '14d',
         },
+      });
+    });
+
+    it('displays a count that represents the current page', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [...Array(25)].map((_, idx) => TestStubs.Group({id: `${idx}`, project})),
+        headers: {
+          'X-Hits': 500,
+          'X-Max-Hits': 1000,
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+      createWrapper();
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      expect(wrapper.getByTestId('issues-pagination')).toHaveTextContent(
+        'Showing 25 of 500 issues'
+      );
+    });
+
+    it('displays a 2nd page count that represents the current page', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [...Array(25)].map((_, idx) => TestStubs.Group({id: `${idx}`, project})),
+        headers: {
+          'X-Hits': 500,
+          'X-Max-Hits': 1000,
+          Link: DEFAULT_LINKS_HEADER.replace('results="false"', 'results="true"'),
+        },
+      });
+      createWrapper({
+        location: {
+          query: {page: 1, cursor: 'some cursor'},
+        },
+      });
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      expect(wrapper.getByTestId('issues-pagination')).toHaveTextContent(
+        'Showing 50 of 500 issues'
+      );
+    });
+
+    it('displays a count based on items removed', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [...Array(25)].map((_, idx) =>
+          TestStubs.Group({
+            id: `${idx}`,
+            project,
+            inbox: {
+              date_added: '2020-11-24T13:17:42.248751Z',
+              reason: 3,
+              reason_details: {},
+            },
+          })
+        ),
+        headers: {
+          'X-Hits': 500,
+          'X-Max-Hits': 1000,
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+      createWrapper({
+        location: {
+          query: {
+            cursor: 'some cursor',
+            page: 1,
+            query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      // actions are mocked out
+      IssueListActions.mock.calls[0][0].onMarkReviewed(['1']);
+
+      expect(wrapper.getByTestId('issues-pagination')).toHaveTextContent(
+        'Showing 24 of 499 issues'
+      );
+    });
+
+    describe('Error Robot', function () {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          body: [],
+          headers: {
+            Link: DEFAULT_LINKS_HEADER,
+          },
+        });
+      });
+      it('displays when no projects selected and all projects user is member of, does not have first event', async function () {
+        const projects = [
+          TestStubs.Project({
+            id: '1',
+            slug: 'foo',
+            isMember: true,
+            firstEvent: false,
+          }),
+          TestStubs.Project({
+            id: '2',
+            slug: 'bar',
+            isMember: true,
+            firstEvent: false,
+          }),
+          TestStubs.Project({
+            id: '3',
+            slug: 'baz',
+            isMember: true,
+            firstEvent: false,
+          }),
+        ];
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/sent-first-event/',
+          query: {
+            is_member: true,
+          },
+          body: {sentFirstEvent: false},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/projects/',
+          body: projects,
+        });
+        MockApiClient.addMockResponse({
+          url: '/projects/org-slug/foo/issues/',
+          body: [],
+        });
+        createWrapper({
+          organization: TestStubs.Organization({
+            projects,
+          }),
+        });
+
+        await waitFor(() => {
+          expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+        });
+
+        await waitFor(() =>
+          expect(wrapper.getByTestId('awaiting-events')).toBeInTheDocument()
+        );
+      });
+
+      it('does not display when no projects selected and any projects have a first event', async function () {
+        const projects = [
+          TestStubs.Project({
+            id: '1',
+            slug: 'foo',
+            isMember: true,
+            firstEvent: false,
+          }),
+          TestStubs.Project({
+            id: '2',
+            slug: 'bar',
+            isMember: true,
+            firstEvent: true,
+          }),
+          TestStubs.Project({
+            id: '3',
+            slug: 'baz',
+            isMember: true,
+            firstEvent: false,
+          }),
+        ];
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/sent-first-event/',
+          query: {
+            is_member: true,
+          },
+          body: {sentFirstEvent: true},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/projects/',
+          body: projects,
+        });
+        wrapper = createWrapper({
+          organization: TestStubs.Organization({
+            projects,
+          }),
+        });
+        createWrapper({
+          organization: TestStubs.Organization({
+            projects,
+          }),
+        });
+
+        await waitFor(() => {
+          expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+        });
+
+        expect(wrapper.queryByTestId('awaiting-events')).not.toBeInTheDocument();
+      });
+
+      it('displays when all selected projects do not have first event', async function () {
+        const projects = [
+          TestStubs.Project({
+            id: '1',
+            slug: 'foo',
+            isMember: true,
+            firstEvent: false,
+          }),
+          TestStubs.Project({
+            id: '2',
+            slug: 'bar',
+            isMember: true,
+            firstEvent: false,
+          }),
+          TestStubs.Project({
+            id: '3',
+            slug: 'baz',
+            isMember: true,
+            firstEvent: false,
+          }),
+        ];
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/sent-first-event/',
+          query: {
+            project: [1, 2],
+          },
+          body: {sentFirstEvent: false},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/projects/',
+          body: projects,
+        });
+        MockApiClient.addMockResponse({
+          url: '/projects/org-slug/foo/issues/',
+          body: [],
+        });
+
+        createWrapper({
+          selection: {
+            projects: [1, 2],
+            environments: [],
+            datetime: {period: '14d'},
+          },
+          organization: TestStubs.Organization({
+            projects,
+          }),
+        });
+
+        await waitFor(() => {
+          expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+        });
+
+        await waitFor(() =>
+          expect(wrapper.getByTestId('awaiting-events')).toBeInTheDocument()
+        );
+      });
+
+      it('does not display when any selected projects have first event', async function () {
+        const projects = [
+          TestStubs.Project({
+            id: '1',
+            slug: 'foo',
+            isMember: true,
+            firstEvent: false,
+          }),
+          TestStubs.Project({
+            id: '2',
+            slug: 'bar',
+            isMember: true,
+            firstEvent: true,
+          }),
+          TestStubs.Project({
+            id: '3',
+            slug: 'baz',
+            isMember: true,
+            firstEvent: true,
+          }),
+        ];
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/sent-first-event/',
+          query: {
+            project: [1, 2],
+          },
+          body: {sentFirstEvent: true},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/projects/',
+          body: projects,
+        });
+
+        createWrapper({
+          selection: {
+            projects: [1, 2],
+            environments: [],
+            datetime: {period: '14d'},
+          },
+          organization: TestStubs.Organization({
+            projects,
+          }),
+        });
+
+        await waitFor(() => {
+          expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+        });
+
+        expect(wrapper.queryByTestId('awaiting-events')).not.toBeInTheDocument();
       });
     });
   });
