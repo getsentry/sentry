@@ -1823,22 +1823,25 @@ def _project(x):
 
 
 @pytest.mark.parametrize(
-    "query,expected_where,expected_having",
+    "description,query,expected_where,expected_having",
     [
         (
+            "simple_OR_with_2_emails",
             "user.email:foo@example.com OR user.email:bar@example.com",
             [Or(conditions=[_email("foo@example.com"), _email("bar@example.com")])],
             [],
         ),
         (
+            "simple_AND_with_2_emails",
             "user.email:foo@example.com AND user.email:bar@example.com",
             [And(conditions=[_email("foo@example.com"), _email("bar@example.com")])],
             [],
         ),
-        ("ORder", [_message("ORder")], []),
-        ("ANDroid", [_message("ANDroid")], []),
-        ("user.email:foo@example.com", [_email("foo@example.com")], []),
+        ("message_containing_OR_as_a_substring", "ORder", [_message("ORder")], []),
+        ("message_containing_AND_as_a_substring", "ANDroid", [_message("ANDroid")], []),
+        ("single_email_term", "user.email:foo@example.com", [_email("foo@example.com")], []),
         (
+            "OR_with_wildcard_array_fields",
             "error.value:Deadlock* OR !stack.filename:*.py",
             [
                 Or(
@@ -1855,6 +1858,7 @@ def _project(x):
             [],
         ),
         (
+            "simple_order_of_operations_with_OR_then_AND",
             "user.email:foo@example.com OR user.email:bar@example.com AND user.email:foobar@example.com",
             [
                 Or(
@@ -1867,6 +1871,7 @@ def _project(x):
             [],
         ),
         (
+            "simple_order_of_operations_with_AND_then_OR",
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com",
             [
                 Or(
@@ -1879,6 +1884,7 @@ def _project(x):
             [],
         ),
         (
+            "simple_two_ORs",
             "user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com",
             [
                 Or(
@@ -1891,6 +1897,7 @@ def _project(x):
             [],
         ),
         (
+            "simple_two_ANDs",
             "user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com",
             [
                 And(
@@ -1903,6 +1910,7 @@ def _project(x):
             [],
         ),
         (
+            "OR_with_two_ANDs",
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com",
             [
                 Or(
@@ -1915,6 +1923,7 @@ def _project(x):
             [],
         ),
         (
+            "OR_with_nested_ANDs",
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com",
             [
                 Or(
@@ -1937,6 +1946,7 @@ def _project(x):
             [],
         ),
         (
+            "multiple_ORs_with_nested_ANDs",
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com OR user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com",
             [
                 Or(
@@ -1984,6 +1994,7 @@ def _project(x):
             [],
         ),
         (
+            "simple_AND_with_grouped_conditions",
             "(event.type:error) AND (stack.in_app:true)",
             [
                 And(
@@ -1996,11 +2007,13 @@ def _project(x):
             [],
         ),
         (
+            "simple_OR_inside_group",
             "(user.email:foo@example.com OR user.email:bar@example.com)",
             [Or(conditions=[_email("foo@example.com"), _email("bar@example.com")])],
             [],
         ),
         (
+            "order_of_operations_with_groups_AND_first_OR_second",
             "(user.email:foo@example.com OR user.email:bar@example.com) AND user.email:foobar@example.com",
             [
                 And(
@@ -2013,6 +2026,7 @@ def _project(x):
             [],
         ),
         (
+            "order_of_operations_with_groups_AND_first_OR_second",
             "user.email:foo@example.com AND (user.email:bar@example.com OR user.email:foobar@example.com)",
             [
                 And(
@@ -2025,6 +2039,7 @@ def _project(x):
             [],
         ),
         (
+            "order_of_operations_with_groups_second_OR_first",
             "(user.email:foo@example.com OR (user.email:bar@example.com OR user.email:foobar@example.com))",
             [
                 Or(
@@ -2037,6 +2052,7 @@ def _project(x):
             [],
         ),
         (
+            "order_of_operations_with_nested_groups",
             "(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))",
             [
                 Or(
@@ -2064,6 +2080,7 @@ def _project(x):
             [],
         ),
         (
+            "message_outside_simple_grouped_OR",
             "test (item1 OR item2)",
             [
                 And(
@@ -2075,24 +2092,28 @@ def _project(x):
             ],
             [],
         ),
-        ("()", [_message("()")], []),
-        ("(test)", [_message("test")], []),
+        ("only_parens", "()", [_message("()")], []),
+        ("grouped_free_text", "(test)", [_message("test")], []),
         (
+            "free_text_with_parens",
             "undefined is not an object (evaluating 'function.name')",
             [_message("undefined is not an object (evaluating 'function.name')")],
             [],
         ),
         (
+            "free_text_AND_grouped_message",
             "combined (free text) AND (grouped)",
             [And(conditions=[_message("combined (free text)"), _message("grouped")])],
             [],
         ),
         (
+            "free_text_OR_free_text",
             "foo bar baz OR fizz buzz bizz",
             [Or(conditions=[_message("foo bar baz"), _message("fizz buzz bizz")])],
             [],
         ),
         (
+            "grouped_OR_and_OR",
             "a:b (c:d OR e:f) g:h i:j OR k:l",
             [
                 Or(
@@ -2115,6 +2136,7 @@ def _project(x):
             [],
         ),
         (
+            "OR_and_grouped_OR",
             "a:b OR c:d e:f g:h (i:j OR k:l)",
             [
                 Or(
@@ -2142,11 +2164,13 @@ def _project(x):
             [],
         ),
         (
+            "grouped_OR",
             "(a:b OR c:d) e:f",
             [And(conditions=[Or(conditions=[_tag("a", "b"), _tag("c", "d")]), _tag("e", "f")])],
             [],
         ),
         (
+            "ORs_and_no_parens",
             "a:b OR c:d e:f g:h i:j OR k:l",
             [
                 Or(
@@ -2174,6 +2198,7 @@ def _project(x):
             [],
         ),
         (
+            "grouped_OR_and_OR",
             "(a:b OR c:d) e:f g:h OR i:j k:l",
             [
                 Or(
@@ -2191,6 +2216,7 @@ def _project(x):
             [],
         ),
         (
+            "single_OR_and_no_parens",
             "a:b c:d e:f OR g:h i:j",
             [
                 Or(
@@ -2208,6 +2234,7 @@ def _project(x):
             [],
         ),
         (
+            "single_grouped_OR",
             "a:b c:d (e:f OR g:h) i:j",
             [
                 And(
@@ -2230,6 +2257,7 @@ def _project(x):
             [],
         ),
         (
+            "negation_and_grouped_OR",
             "!a:b c:d (e:f OR g:h) i:j",
             [
                 And(
@@ -2252,6 +2280,7 @@ def _project(x):
             [],
         ),
         (
+            "nested_ORs_and_AND",
             "(a:b OR (c:d AND (e:f OR (g:h AND e:f))))",
             [
                 Or(
@@ -2274,6 +2303,7 @@ def _project(x):
             [],
         ),
         (
+            "grouped_OR_then_AND_with_implied_AND",
             "(a:b OR c:d) AND (e:f g:h)",
             [
                 And(
@@ -2285,9 +2315,20 @@ def _project(x):
             ],
             [],
         ),
-        ("count():>1 AND count():<=3", [], [And(conditions=[_count(Op.GT, 1), _count(Op.LTE, 3)])]),
-        ("count():>1 OR count():<=3", [], [Or(conditions=[_count(Op.GT, 1), _count(Op.LTE, 3)])]),
         (
+            "aggregate_AND_with_2_counts",
+            "count():>1 AND count():<=3",
+            [],
+            [And(conditions=[_count(Op.GT, 1), _count(Op.LTE, 3)])],
+        ),
+        (
+            "aggregate_OR_with_2_counts",
+            "count():>1 OR count():<=3",
+            [],
+            [Or(conditions=[_count(Op.GT, 1), _count(Op.LTE, 3)])],
+        ),
+        (
+            "aggregate_order_of_operations_with_OR_then_AND",
             "count():>1 OR count():>5 AND count():<=3",
             [],
             [
@@ -2300,6 +2341,7 @@ def _project(x):
             ],
         ),
         (
+            "aggregate_order_of_operations_with_AND_then_OR",
             "count():>1 AND count():<=3 OR count():>5",
             [],
             [
@@ -2312,6 +2354,7 @@ def _project(x):
             ],
         ),
         (
+            "grouped_aggregate_OR_then_AND",
             "(count():>1 OR count():>2) AND count():<=3",
             [],
             [
@@ -2324,6 +2367,7 @@ def _project(x):
             ],
         ),
         (
+            "grouped_aggregate_AND_then_OR",
             "(count():>1 AND count():>5) OR count():<=3",
             [],
             [
@@ -2335,18 +2379,21 @@ def _project(x):
                 )
             ],
         ),
-        ("count():>1 AND a:b", [_tag("a", "b")], [_count(Op.GT, 1)]),
+        ("aggregate_AND_tag", "count():>1 AND a:b", [_tag("a", "b")], [_count(Op.GT, 1)]),
         (
+            "aggregate_AND_two_tags",
             "count():>1 AND a:b c:d",
             [And(conditions=[_tag("a", "b"), _tag("c", "d")])],
             [_count(Op.GT, 1)],
         ),
         (
+            "ORed_tags_AND_aggregate",
             "(a:b OR c:d) count():>1",
             [Or(conditions=[_tag("a", "b"), _tag("c", "d")])],
             [_count(Op.GT, 1)],
         ),
         (
+            "aggregate_like_message_and_columns",
             "failure_rate():>0.003&& users:>10 event.type:transaction",
             [
                 _message("failure_rate():>0.003&&"),
@@ -2356,22 +2403,26 @@ def _project(x):
             [],
         ),
         (
+            "message_with_parens",
             "TypeError Anonymous function(app/javascript/utils/transform-object-keys)",
             [_message("TypeError Anonymous function(app/javascript/utils/transform-object-keys)")],
             [],
         ),
-        ("organization.slug:slug", [_tag("organization.slug", "slug")], []),
+        ("tag_containing_OR", "organization.slug:slug", [_tag("organization.slug", "slug")], []),
         (
+            "in_search_then_AND",
             'url:["a", "b"] AND release:test',
             [And(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.EQ, "test")])],
             [],
         ),
         (
+            "in_search_then_OR",
             'url:["a", "b"] OR release:test',
             [Or(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.EQ, "test")])],
             [],
         ),
         (
+            "AND_multiple_in_searches",
             'url:["a", "b"] AND url:["c", "d"] OR url:["e", "f"]',
             [
                 Or(
@@ -2385,63 +2436,87 @@ def _project(x):
         ),
     ],
 )
-def test_snql_boolean_search(query, expected_where, expected_having):
+def test_snql_boolean_search(description, query, expected_where, expected_having):
     dataset = Dataset.Discover
     params: ParamsType = {}
     query_filter = QueryFilter(dataset, params)
     where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
-    assert where == expected_where
-    assert having == expected_having
+    assert where == expected_where, description
+    assert having == expected_having, description
 
 
 @pytest.mark.parametrize(
-    "query,expected_message",
+    "description,query,expected_message",
     [
         (
+            "missing_close_parens",
             "(user.email:foo@example.com OR user.email:bar@example.com",
             "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
         ),
         (
+            "missing_second_close_parens",
             "((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)",
             "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
         ),
         (
+            "missing_open_parens",
             "user.email:foo@example.com OR user.email:bar@example.com)",
             "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
         ),
         (
+            "missing_second_open_parens",
             "(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))",
             "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
         ),
         (
+            "cannot_OR_aggregate_and_normal_filter",
             "count():>1 OR a:b",
             "Having an OR between aggregate filters and normal filters is invalid.",
         ),
         (
+            "cannot_OR_normal_filter_with_an_AND_of_aggregate_and_normal_filters",
             "(count():>1 AND a:b) OR a:b",
             "Having an OR between aggregate filters and normal filters is invalid.",
         ),
         (
+            "cannot_OR_an_AND_of_aggregate_and_normal_filters",
             "(count():>1 AND a:b) OR (a:b AND count():>2)",
             "Having an OR between aggregate filters and normal filters is invalid.",
         ),
         (
+            "cannot_nest_aggregate_filter_in_AND_condition_then_OR_with_normal_filter",
             "a:b OR (c:d AND (e:f AND count():>1))",
             "Having an OR between aggregate filters and normal filters is invalid.",
         ),
-        ("OR a:b", "Condition is missing on the left side of 'OR' operator"),
-        ("a:b Or And c:d", "Missing condition in between two condition operators: 'OR AND'"),
-        ("a:b AND c:d AND", "Condition is missing on the right side of 'AND' operator"),
-        ("(OR a:b) AND c:d", "Condition is missing on the left side of 'OR' operator"),
+        (
+            "missing_left_hand_side_of_OR",
+            "OR a:b",
+            "Condition is missing on the left side of 'OR' operator",
+        ),
+        (
+            "missing_condition_between_OR_and_AND",
+            "a:b Or And c:d",
+            "Missing condition in between two condition operators: 'OR AND'",
+        ),
+        (
+            "missing_right_hand_side_of_AND",
+            "a:b AND c:d AND",
+            "Condition is missing on the right side of 'AND' operator",
+        ),
+        (
+            "missing_left_hand_side_of_OR_inside_parens",
+            "(OR a:b) AND c:d",
+            "Condition is missing on the left side of 'OR' operator",
+        ),
     ],
 )
-def test_snql_malformed_boolean_search(query, expected_message):
+def test_snql_malformed_boolean_search(description, query, expected_message):
     dataset = Dataset.Discover
     params: ParamsType = {}
     query_filter = QueryFilter(dataset, params)
     with pytest.raises(InvalidSearchQuery) as error:
         where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
-    assert str(error.value) == expected_message
+    assert str(error.value) == expected_message, description
 
 
 class SnQLBooleanSearchQueryTest(TestCase):
