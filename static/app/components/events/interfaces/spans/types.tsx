@@ -71,13 +71,12 @@ export type EnhancedSpan =
   | ({
       type: 'root_span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType &
-      SpanGroupProps)
+    } & CommonEnhancedProcessedSpanType)
   | ({
       type: 'span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType &
-      SpanGroupProps);
+      toggleSpanGroup: (() => void) | undefined;
+    } & CommonEnhancedProcessedSpanType);
 
 // ProcessedSpanType with additional information
 export type EnhancedProcessedSpanType =
@@ -93,7 +92,13 @@ export type EnhancedProcessedSpanType =
   | {
       type: 'out_of_view';
       span: SpanType;
-    };
+    }
+  | ({
+      type: 'span_group_chain';
+      span: SpanType;
+      treeDepth: number;
+      continuingTreeDepths: Array<TreeDepthType>;
+    } & SpanGroupProps);
 
 export type SpanEntry = {
   type: 'spans';
