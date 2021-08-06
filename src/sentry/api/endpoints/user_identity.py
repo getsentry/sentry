@@ -13,10 +13,15 @@ class UserIdentityEndpoint(UserEndpoint):
         :pparam string user ID: user ID, or 'me'
         :auth: required
         """
-        identities = Identity.objects.filter(user=user)
+        queryset = Identity.objects.filter(user=user)
+
+        provider = request.GET.get("provider")
+        if provider:
+            queryset = queryset.filter(idp__type=provider.lower())
+
         return self.paginate(
             request=request,
-            queryset=identities,
+            queryset=queryset,
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )
