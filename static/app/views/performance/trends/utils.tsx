@@ -318,14 +318,14 @@ export function movingAverage(data, index, size) {
  */
 function getLimitTransactionItems(query: string) {
   const limitQuery = tokenizeSearch(query);
-  if (!limitQuery.hasTag('count_percentage()')) {
-    limitQuery.addTagValues('count_percentage()', ['>0.25', '<4']);
+  if (!limitQuery.hasFilter('count_percentage()')) {
+    limitQuery.addFilterValues('count_percentage()', ['>0.25', '<4']);
   }
-  if (!limitQuery.hasTag('trend_percentage()')) {
-    limitQuery.addTagValues('trend_percentage()', ['>0%']);
+  if (!limitQuery.hasFilter('trend_percentage()')) {
+    limitQuery.addFilterValues('trend_percentage()', ['>0%']);
   }
-  if (!limitQuery.hasTag('confidence()')) {
-    limitQuery.addTagValues('confidence()', ['>6']);
+  if (!limitQuery.hasFilter('confidence()')) {
+    limitQuery.addFilterValues('confidence()', ['>6']);
   }
   return limitQuery.formatString();
 }

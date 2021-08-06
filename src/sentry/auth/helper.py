@@ -464,6 +464,7 @@ class AuthIdentityHandler:
                 template = "sentry/auth-confirm-link.html"
                 context.update({"existing_user": self.user})
             else:
+                self.request.session.set_test_cookie()
                 template = "sentry/auth-confirm-identity.html"
                 context.update({"existing_user": acting_user, "login_form": login_form})
             return self._respond(template, context)

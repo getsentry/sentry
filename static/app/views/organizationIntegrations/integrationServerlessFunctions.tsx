@@ -45,15 +45,12 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
   }
 
   onLoadAllEndpointsSuccess() {
-    trackIntegrationEvent(
-      'integrations.serverless_functions_viewed',
-      {
-        integration: this.props.integration.provider.key,
-        integration_type: 'first_party',
-        num_functions: this.serverlessFunctions.length,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.serverless_functions_viewed', {
+      integration: this.props.integration.provider.key,
+      integration_type: 'first_party',
+      num_functions: this.serverlessFunctions.length,
+      organization: this.props.organization,
+    });
   }
 
   handleFunctionUpdate = (
