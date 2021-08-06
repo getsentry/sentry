@@ -1,5 +1,6 @@
 import {createRef} from 'react';
 import {browserHistory} from 'react-router';
+import * as qs from 'query-string';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -835,6 +836,18 @@ describe('IssueList', function () {
       );
     });
 
+    it('fetches and displays processing issues', async function () {
+      createWrapper();
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      expect(wrapper.getByTestId('processing-issue-hint')).toHaveTextContent(
+        'There is 1 issue blocking event processing'
+      );
+    });
+
     it('displays an error', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -888,7 +901,7 @@ describe('IssueList', function () {
       createWrapper({
         location: {
           query: {
-            query: 'is:unresolved level:error',
+            query: 'is:unresolved TypeError',
           },
         },
       });
@@ -1141,6 +1154,72 @@ describe('IssueList', function () {
         });
 
         expect(wrapper.queryByTestId('awaiting-events')).not.toBeInTheDocument();
+      });
+    });
+
+    describe('getEndpointParams', function () {
+      const defaultQueryParams = {
+        collapse: 'stats',
+        expand: ['owners', 'inbox'],
+        limit: '25',
+        query: 'is:unresolved',
+        shortIdLookup: '1',
+        statsPeriod: '14d',
+      };
+
+      it('omits null values', async function () {
+        createWrapper({
+          selection: {
+            projects: null,
+            environments: null,
+            datetime: {period: '14d'},
+          },
+        });
+
+        await waitFor(() => {
+          expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+        });
+
+        expect(issuesRequest).toHaveBeenCalledTimes(1);
+        expect(qs.parse(issuesRequest.mock.calls[0][1].data)).toEqual(defaultQueryParams);
+      });
+
+      it('omits defaults', async function () {
+        createWrapper({
+          location: {
+            query: {
+              sort: 'date',
+              groupStatsPeriod: '24h',
+            },
+          },
+        });
+        await waitFor(() => {
+          expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+        });
+
+        expect(issuesRequest).toHaveBeenCalledTimes(1);
+        expect(qs.parse(issuesRequest.mock.calls[0][1].data)).toEqual(defaultQueryParams);
+      });
+
+      it('uses saved search data', async function () {
+        createWrapper({
+          savedSearch,
+          selection: {
+            project: [savedSearch.projectId],
+            projects: null,
+            environments: null,
+            datetime: {period: '14d'},
+          },
+        });
+        await waitFor(() => {
+          expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+        });
+
+        expect(issuesRequest).toHaveBeenCalledTimes(1);
+        expect(qs.parse(issuesRequest.mock.calls[0][1].data)).toEqual({
+          ...defaultQueryParams,
+          query: 'is:unresolved TypeError',
+        });
       });
     });
   });

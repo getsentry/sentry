@@ -75,7 +75,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
 
   return (
     <StyledAlert type={alertType} icon={icon}>
-      <Wrapper>
+      <Wrapper data-test-id="processing-issue-hint">
         <div>
           {project} <strong>{text}</strong> {lastEvent}
         </div>
