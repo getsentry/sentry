@@ -202,7 +202,7 @@ class PerformanceContent extends Component<Props, State> {
   }
 
   renderBody() {
-    const {organization, projects} = this.props;
+    const {organization, projects, selection} = this.props;
     const eventView = this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
 
@@ -224,7 +224,18 @@ class PerformanceContent extends Component<Props, State> {
           <GlobalSdkUpdateAlert />
           {this.renderError()}
           {showOnboarding ? (
-            <Onboarding organization={organization} project={projects[0]} />
+            <Onboarding
+              organization={organization}
+              project={
+                selection.projects.length > 0
+                  ? // If some projects selected, use the first selection
+                    projects.find(
+                      project => selection.projects[0].toString() === project.id
+                    ) || projects[0]
+                  : // Otherwise, use the first project in the org
+                    projects[0]
+              }
+            />
           ) : (
             <LandingContent
               eventView={eventView}
