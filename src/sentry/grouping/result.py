@@ -64,7 +64,7 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 MAX_ISSUE_TREE_LABELS = 4
 
 
-def _strip_tree_label(tree_label: TreeLabel) -> StrippedTreeLabel:
+def _strip_tree_label(tree_label: TreeLabel, trunchate=False) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
         stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
@@ -73,7 +73,7 @@ def _strip_tree_label(tree_label: TreeLabel) -> StrippedTreeLabel:
         stripped_part.pop("datapath", None)  # type: ignore
         rv.append(stripped_part)
 
-        if len(rv) == MAX_ISSUE_TREE_LABELS:
+        if trunchate and len(rv) == MAX_ISSUE_TREE_LABELS:
             break
 
     return rv
@@ -142,7 +142,7 @@ class CalculatedHashes:
             tree_label = self.tree_labels[i]
             return {
                 "current_level": i,
-                "current_tree_label": tree_label and _strip_tree_label(tree_label),
+                "current_tree_label": tree_label and _strip_tree_label(tree_label, trunchate=True),
             }
         except (IndexError, ValueError):
             return {}
