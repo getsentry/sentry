@@ -76,7 +76,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (isArray(data.stats.data) && data.stats.data.length === 0) {
       return {
         ...slackChartDefaults,
         useUTC: true,
@@ -117,7 +117,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (isArray(data.stats.data) && data.stats.data.length === 0) {
       return {
         ...slackChartDefaults,
         useUTC: true,
