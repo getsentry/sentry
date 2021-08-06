@@ -2525,7 +2525,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction")
-                data["timestamp"] = iso_format(before_now(seconds=1))
+                data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
                 data["message"] = val
                 data["tags"] = {"trek": val}
@@ -4147,7 +4147,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
         discover.query(
             selected_columns=["transaction", "transaction.duration"],
             query="http.method:GET",
@@ -4176,7 +4176,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
         discover.query(
             selected_columns=["transaction", "avg(transaction.duration)"],
             query="http.method:GET avg(transaction.duration):>5",
@@ -4206,7 +4206,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
         discover.query(
             selected_columns=["transaction", "p95()"],
             query="http.method:GET p95():>5",
@@ -4233,7 +4233,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_duration_aliases(self, mock_query):
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
         test_cases = [
             ("1ms", 1),
             ("1.5s", 1500),
@@ -4279,7 +4279,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
         discover.query(
             selected_columns=["transaction", "p95()"],
             query="http.method:GET p95():>5",
@@ -4310,7 +4310,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
 
         discover.query(
             selected_columns=[
@@ -4346,7 +4346,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_aggregate_duration_alias(self, mock_query):
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
 
         test_cases = [
             ("1ms", 1),
@@ -4397,7 +4397,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
 
         with pytest.raises(InvalidSearchQuery):
             discover.query(
@@ -4414,7 +4414,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
 
         with pytest.raises(InvalidSearchQuery):
             discover.query(
@@ -4432,7 +4432,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
 
         with pytest.raises(AssertionError):
             discover.query(
@@ -4450,7 +4450,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
 
         discover.query(
             selected_columns=["transaction", "p95()"],
@@ -4485,7 +4485,7 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         start_time = before_now(minutes=10)
-        end_time = before_now(seconds=1)
+        end_time = before_now(minutes=1)
 
         discover.query(
             selected_columns=["transaction", "min(timestamp)"],
@@ -5234,6 +5234,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
 
+        self.one_min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
         self.store_event(
@@ -5490,11 +5491,11 @@ class TimeseriesQueryTest(TimeseriesBase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
             project_id=project3.id,
         )
 
@@ -5518,19 +5519,19 @@ class TimeseriesQueryTest(TimeseriesBase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=project2.id,
         )
 
