@@ -9,12 +9,11 @@ import Button from 'app/components/button';
 import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
 import {Panel} from 'app/components/panels';
-import {IconQuestion} from 'app/icons';
+import {IconClose, IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {CodeOwner, Organization, Project} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {IconClose} from 'app/icons';
 
 import SidebarSection from '../sidebarSection';
 
