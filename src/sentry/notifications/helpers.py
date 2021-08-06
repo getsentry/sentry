@@ -198,39 +198,25 @@ def transform_to_notification_settings_by_user(
     return notification_settings_by_user
 
 
-def transform_to_notification_settings_by_parent_id(
+def transform_to_notification_settings_by_scope(
     notification_settings: Iterable["NotificationSetting"],
-    user_default: Optional[NotificationSettingOptionValues] = None,
-) -> Tuple[
-    Mapping[ExternalProviders, Mapping[int, NotificationSettingOptionValues]],
-    Mapping[ExternalProviders, Optional[NotificationSettingOptionValues]],
+) -> Mapping[
+    NotificationScopeType,
+    Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
-    """
-    Given a unorganized list of notification settings, create a mapping of
-    providers to a mapping parents (projects or organizations) to setting
-    values. Return this mapping as a tuple with a mapping of provider to the
-    user's parent-independent notification preference.
-    """
-    notification_settings_by_parent_id: Dict[
-        ExternalProviders, Dict[int, NotificationSettingOptionValues]
-    ] = defaultdict(dict)
+    notification_settings_by_scopes: Dict[
+        NotificationScopeType, Dict[int, Dict[ExternalProviders, NotificationSettingOptionValues]]
+    ] = defaultdict(lambda: defaultdict(lambda: dict()))
 
-    # This is the user's default value for any projects or organizations that
-    # don't have the option value specifically recorded.
-    notification_setting_user_default: Dict[
-        ExternalProviders, Optional[NotificationSettingOptionValues]
-    ] = defaultdict(lambda: user_default)
     for notification_setting in notification_settings:
         scope_type = NotificationScopeType(notification_setting.scope_type)
+        scope_id = notification_setting.scope_identifier
         provider = ExternalProviders(notification_setting.provider)
         value = NotificationSettingOptionValues(notification_setting.value)
 
-        if scope_type == NotificationScopeType.USER:
-            notification_setting_user_default[provider] = value
-        else:
-            key = int(notification_setting.scope_identifier)
-            notification_settings_by_parent_id[provider][key] = value
-    return notification_settings_by_parent_id, notification_setting_user_default
+        notification_settings_by_scopes[scope_type][scope_id][provider] = value
+
+    return notification_settings_by_scopes
 
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:

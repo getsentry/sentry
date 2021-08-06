@@ -8,8 +8,6 @@ from sentry.notifications.helpers import (
     get_subscription_from_attributes,
     get_target_id,
     get_values_by_provider_by_type,
-    transform_to_notification_settings_by_parent_id,
-    transform_to_notification_settings_by_user,
     validate,
 )
 from sentry.notifications.notify import notification_providers
@@ -116,49 +114,6 @@ class NotificationHelpersTest(TestCase):
         assert values_by_provider == {
             ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
             ExternalProviders.SLACK: NotificationSettingOptionValues.COMMITTED_ONLY,
-        }
-
-    def test_transform_to_notification_settings_by_user(self):
-        notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-            NotificationSettingTypes.WORKFLOW,
-            recipients=[self.user],
-            parent=self.group.project,
-        )
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, [self.user]
-        )
-        assert notification_settings_by_user == {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
-                }
-            }
-        }
-
-    def test_transform_to_notification_settings_by_parent_id(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
-            project=self.project,
-        )
-        notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-            NotificationSettingTypes.WORKFLOW,
-            self.user,
-            [self.project],
-        )
-        (
-            notification_settings_by_project_id_by_provider,
-            default_subscribe_by_provider,
-        ) = transform_to_notification_settings_by_parent_id(
-            notification_settings, NotificationSettingOptionValues.ALWAYS
-        )
-        assert notification_settings_by_project_id_by_provider == {
-            ExternalProviders.SLACK: {self.project.id: NotificationSettingOptionValues.ALWAYS}
-        }
-        assert default_subscribe_by_provider == {
-            ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
         }
 
     def test_validate(self):
