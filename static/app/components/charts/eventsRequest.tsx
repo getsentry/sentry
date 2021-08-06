@@ -26,7 +26,7 @@ export type TimeSeriesData = {
   originalPreviousTimeseriesData?: EventsStatsData | null;
   previousTimeseriesData?: Series | null;
   timeAggregatedData?: Series | {};
-  timeframe?: {start: string; end: string};
+  timeframe?: {start: number; end: number};
 };
 
 type LoadingStatus = {
@@ -373,6 +373,13 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     const timeAggregatedData = includeTimeAggregation
       ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
       : {};
+    const timeframe =
+      response.start && response.end
+        ? {
+            start: response.start * 1000,
+            end: response.end * 1000,
+          }
+        : undefined;
     return {
       data: transformedData,
       allData: data,
@@ -381,6 +388,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       originalPreviousData: previous,
       previousData,
       timeAggregatedData,
+      timeframe,
     };
   }
 
@@ -439,6 +447,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       originalPreviousData: originalPreviousTimeseriesData,
       previousData: previousTimeseriesData,
       timeAggregatedData,
+      timeframe,
     } = this.processData(timeseriesData);
 
     return children({
@@ -453,6 +462,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       originalPreviousTimeseriesData,
       previousTimeseriesData,
       timeAggregatedData,
+      timeframe,
       // sometimes we want to reference props that were given to EventsRequest
       ...props,
     });

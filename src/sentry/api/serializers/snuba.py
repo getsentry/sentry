@@ -156,6 +156,14 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False):
     return rv
 
 
+def calculateTimeframe(start, end, rollup):
+    rollup_start = (int(to_timestamp(start)) // rollup) * rollup
+    rollup_end = (int(to_timestamp(end)) // rollup) * rollup
+    if rollup_end - rollup_start == rollup:
+        rollup_end += 1
+    return {"start": rollup_start, "end": rollup_end}
+
+
 class SnubaLookup:
     """
     A SnubaLookup consists of all of the attributes needed to facilitate making
@@ -347,7 +355,8 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             res["order"] = result.data["order"]
 
         if hasattr(result, "start") and hasattr(result, "end"):
-            res["start"] = result.start.timestamp()
-            res["end"] = result.end.timestamp()
+            timeframe = calculateTimeframe(result.start, result.end, result.rollup)
+            res["start"] = timeframe["start"]
+            res["end"] = timeframe["end"]
 
         return res

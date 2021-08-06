@@ -43,6 +43,10 @@ class ResultsChart extends Component<ResultsChartProps> {
   render() {
     const {api, eventView, location, organization, router, confirmedQuery} = this.props;
 
+    const hasPerformanceChartInterpolation = organization.features.includes(
+      'performance-chart-interpolation'
+    );
+
     const yAxisValue = eventView.getYAxis();
 
     const globalSelection = eventView.getGlobalSelection();
@@ -88,6 +92,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
+              withoutZerofill={hasPerformanceChartInterpolation}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
