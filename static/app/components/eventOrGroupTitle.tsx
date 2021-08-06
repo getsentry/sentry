@@ -37,6 +37,9 @@ function EventOrGroupTitle({
   const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
 
   const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
+  const hasGroupingStacktraceUI = !!organization?.features.includes(
+    'grouping-stacktrace-ui'
+  );
   const {id, eventID, groupID, projectID} = event;
 
   const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
@@ -53,7 +56,7 @@ function EventOrGroupTitle({
           eventId={eventID}
           projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
           disablePreview={!withStackTracePreview}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasGroupingStacktraceUI={hasGroupingStacktraceUI}
         >
           {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
         </StyledStacktracePreview>
@@ -83,9 +86,11 @@ const Subtitle = styled('em')`
   font-style: normal;
 `;
 
-const StyledStacktracePreview = styled(StacktracePreview)<{hasGroupingTreeUI: boolean}>`
+const StyledStacktracePreview = styled(StacktracePreview)<{
+  hasGroupingStacktraceUI: boolean;
+}>`
   ${p =>
-    p.hasGroupingTreeUI &&
+    p.hasGroupingStacktraceUI &&
     `
       display: inline-flex;
       > span:first-child {

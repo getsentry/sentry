@@ -86,7 +86,6 @@ DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
-
 OPERATOR_NEGATION_MAP = {
     "=": "!=",
     "<": ">=",
@@ -100,3 +99,8 @@ OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exac
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
+
+FUNCTION_ALIASES = {
+    "tpm": "epm",
+    "tps": "eps",
+}

@@ -86,12 +86,12 @@ class TeamProjects extends React.Component<Props, State> {
         },
         includeAllArgs: true,
       })
-      .then(([linkedProjects, _, jqXHR]) => {
+      .then(([linkedProjects, _, resp]) => {
         this.setState({
           loading: false,
           error: false,
           linkedProjects,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+          pageLinks: resp?.getResponseHeader('Link') ?? null,
         });
       })
       .catch(() => {

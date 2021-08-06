@@ -3,6 +3,7 @@ import {t} from 'app/locale';
 const popular = [
   'javascript',
   'javascript-react',
+  'javascript-nextjs',
   'python-django',
   'python',
   'python-flask',

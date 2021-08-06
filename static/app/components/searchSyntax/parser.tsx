@@ -14,14 +14,15 @@ import {getKeyName} from './utils';
 type TextFn = () => string;
 type LocationFn = () => LocationRange;
 
-type ListItem<K> = [
+type ListItem<V> = [
   space: ReturnType<TokenConverter['tokenSpaces']>,
   comma: string,
   space: ReturnType<TokenConverter['tokenSpaces']>,
-  key: K
+  notComma: undefined,
+  value: V | null
 ];
 
-const listJoiner = <K,>([s1, comma, s2, value]: ListItem<K>) => ({
+const listJoiner = <K,>([s1, comma, s2, _, value]: ListItem<K>) => ({
   separator: [s1.value, comma, s2.value].join(''),
   value,
 });
@@ -284,6 +285,7 @@ type FilterMap = {
 };
 
 type TextFilter = FilterMap[FilterType.Text];
+type InFilter = FilterMap[FilterType.TextIn] | FilterMap[FilterType.NumericIn];
 
 /**
  * The Filter type discriminates on the FilterType enum using the `filter` key.
@@ -329,19 +331,20 @@ export class TokenConverter {
   };
 
   /**
-   * Creates a token with common `text` and `location` keys.
+   * Creates shared `text` and `location` keys.
    */
-  makeToken = <T,>(args: T) => ({
-    text: this.text(),
-    location: this.location(),
-    ...args,
-  });
+  get defaultTokenFields() {
+    return {
+      text: this.text(),
+      location: this.location(),
+    };
+  }
 
-  tokenSpaces = (value: string) =>
-    this.makeToken({
-      type: Token.Spaces as const,
-      value,
-    });
+  tokenSpaces = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.Spaces as const,
+    value,
+  });
 
   tokenFilter = <T extends FilterType>(
     filter: T,
@@ -349,23 +352,29 @@ export class TokenConverter {
     value: FilterMap[T]['value'],
     operator: FilterMap[T]['operator'] | undefined,
     negated: FilterMap[T]['negated']
-  ) =>
-    this.makeToken({
-      type: Token.Filter,
+  ) => {
+    const filterToken = {
+      type: Token.Filter as const,
       filter,
       key,
       value,
       negated,
       operator: operator ?? TermOperator.Default,
       invalid: this.checkInvalidFilter(filter, key, value),
-    } as FilterResult);
+    } as FilterResult;
 
-  tokenFreeText = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.FreeText as const,
-      value,
-      quoted,
-    });
+    return {
+      ...this.defaultTokenFields,
+      ...filterToken,
+    };
+  };
+
+  tokenFreeText = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.FreeText as const,
+    value,
+    quoted,
+  });
 
   tokenLogicGroup = (
     inner: Array<
@@ -373,137 +382,138 @@ export class TokenConverter {
       | ReturnType<TokenConverter['tokenFilter']>
       | ReturnType<TokenConverter['tokenFreeText']>
     >
-  ) =>
-    this.makeToken({
-      type: Token.LogicGroup as const,
-      inner,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.LogicGroup as const,
+    inner,
+  });
 
-  tokenLogicBoolean = (bool: BooleanOperator) =>
-    this.makeToken({
-      type: Token.LogicBoolean as const,
-      value: bool,
-    });
+  tokenLogicBoolean = (bool: BooleanOperator) => ({
+    ...this.defaultTokenFields,
+    type: Token.LogicBoolean as const,
+    value: bool,
+  });
 
-  tokenKeySimple = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.KeySimple as const,
-      value,
-      quoted,
-    });
+  tokenKeySimple = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeySimple as const,
+    value,
+    quoted,
+  });
 
   tokenKeyExplicitTag = (
     prefix: string,
     key: ReturnType<TokenConverter['tokenKeySimple']>
-  ) =>
-    this.makeToken({
-      type: Token.KeyExplicitTag as const,
-      prefix,
-      key,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyExplicitTag as const,
+    prefix,
+    key,
+  });
 
-  tokenKeyAggregateParam = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.KeyAggregateParam as const,
-      value,
-      quoted,
-    });
+  tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyAggregateParam as const,
+    value,
+    quoted,
+  });
 
   tokenKeyAggregate = (
     name: ReturnType<TokenConverter['tokenKeySimple']>,
     args: ReturnType<TokenConverter['tokenKeyAggregateArgs']> | null,
     argsSpaceBefore: ReturnType<TokenConverter['tokenSpaces']>,
     argsSpaceAfter: ReturnType<TokenConverter['tokenSpaces']>
-  ) =>
-    this.makeToken({
-      type: Token.KeyAggregate as const,
-      name,
-      args,
-      argsSpaceBefore,
-      argsSpaceAfter,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyAggregate as const,
+    name,
+    args,
+    argsSpaceBefore,
+    argsSpaceAfter,
+  });
 
   tokenKeyAggregateArgs = (
     arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
     args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
-  ) =>
-    this.makeToken({
-      type: Token.KeyAggregateArgs as const,
-      args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KeyAggregateArgs as const,
+    args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
+  });
 
-  tokenValueIso8601Date = (value: string) =>
-    this.makeToken({
-      type: Token.ValueIso8601Date as const,
-      value: moment(value),
-    });
+  tokenValueIso8601Date = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueIso8601Date as const,
+    value: moment(value),
+  });
 
   tokenValueRelativeDate = (
     value: string,
     sign: '-' | '+',
     unit: 'w' | 'd' | 'h' | 'm'
-  ) =>
-    this.makeToken({
-      type: Token.ValueRelativeDate as const,
-      value: Number(value),
-      sign,
-      unit,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueRelativeDate as const,
+    value: Number(value),
+    sign,
+    unit,
+  });
 
   tokenValueDuration = (
     value: string,
     unit: 'ms' | 's' | 'min' | 'm' | 'hr' | 'h' | 'day' | 'd' | 'wk' | 'w'
-  ) =>
-    this.makeToken({
-      type: Token.ValueDuration as const,
-      value: Number(value),
-      unit,
-    });
+  ) => ({
+    ...this.defaultTokenFields,
 
-  tokenValuePercentage = (value: string) =>
-    this.makeToken({
-      type: Token.ValuePercentage as const,
-      value: Number(value),
-    });
+    type: Token.ValueDuration as const,
+    value: Number(value),
+    unit,
+  });
 
-  tokenValueBoolean = (value: string) =>
-    this.makeToken({
-      type: Token.ValueBoolean as const,
-      value: ['1', 'true'].includes(value.toLowerCase()),
-    });
+  tokenValuePercentage = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValuePercentage as const,
+    value: Number(value),
+  });
 
-  tokenValueNumber = (value: string, unit: string) =>
-    this.makeToken({
-      type: Token.ValueNumber as const,
-      value,
-      rawValue: Number(value) * (numberUnits[unit] ?? 1),
-      unit,
-    });
+  tokenValueBoolean = (value: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueBoolean as const,
+    value: ['1', 'true'].includes(value.toLowerCase()),
+  });
+
+  tokenValueNumber = (value: string, unit: string) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueNumber as const,
+    value,
+    rawValue: Number(value) * (numberUnits[unit] ?? 1),
+    unit,
+  });
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
     items: ListItem<ReturnType<TokenConverter['tokenValueNumber']>>[]
-  ) =>
-    this.makeToken({
-      type: Token.ValueNumberList as const,
-      items: [{separator: '', value: item1}, ...items.map(listJoiner)],
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueNumberList as const,
+    items: [{separator: '', value: item1}, ...items.map(listJoiner)],
+  });
 
   tokenValueTextList = (
     item1: ReturnType<TokenConverter['tokenValueText']>,
     items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
-  ) =>
-    this.makeToken({
-      type: Token.ValueTextList as const,
-      items: [{separator: '', value: item1}, ...items.map(listJoiner)],
-    });
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueTextList as const,
+    items: [{separator: '', value: item1}, ...items.map(listJoiner)],
+  });
 
-  tokenValueText = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.ValueText as const,
-      value,
-      quoted,
-    });
+  tokenValueText = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueText as const,
+    value,
+    quoted,
+  });
 
   /**
    * This method is used while tokenizing to predicate whether a filter should
@@ -522,6 +532,9 @@ export class TokenConverter {
 
     const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
 
+    const checkAggregate = (check: (s: string) => boolean) =>
+      aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? ''));
+
     switch (type) {
       case FilterType.Numeric:
       case FilterType.NumericIn:
@@ -539,13 +552,13 @@ export class TokenConverter {
         return isDate(keyName);
 
       case FilterType.AggregateDuration:
-        return aggregateKey.args?.args.some(arg => isDuration(arg.value.value));
+        return checkAggregate(isDuration);
 
       case FilterType.AggregateDate:
-        return aggregateKey.args?.args.some(arg => isDate(arg.value.value));
+        return checkAggregate(isDate);
 
       case FilterType.AggregatePercentage:
-        return aggregateKey.args?.args.some(arg => isPercentage(arg.value.value));
+        return checkAggregate(isPercentage);
 
       default:
         return true;
@@ -566,16 +579,20 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value']
   ) => {
-    // Only text filters may currently be invalid, since the text filter is the
-    // "fall through" filter that will match when other filter predicates fail.
-    if (filter !== FilterType.Text) {
-      return null;
+    // Text filter is the "fall through" filter that will match when other
+    // filter predicates fail.
+    if (filter === FilterType.Text) {
+      return this.checkInvalidTextFilter(
+        key as TextFilter['key'],
+        value as TextFilter['value']
+      );
     }
 
-    return this.checkInvalidTextFilter(
-      key as TextFilter['key'],
-      value as TextFilter['value']
-    );
+    if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {
+      return this.checkInvalidInFilter(value as InFilter['value']);
+    }
+
+    return null;
   };
 
   /**
@@ -641,6 +658,19 @@ export class TokenConverter {
 
     if (!value.quoted && value.value === '') {
       return {reason: t('Filter must have a value')};
+    }
+
+    return null;
+  };
+
+  /**
+   * Validates IN filter values do not have an missing elements
+   */
+  checkInvalidInFilter = ({items}: InFilter['value']) => {
+    const hasEmptyValue = items.some(item => item.value === null);
+
+    if (hasEmptyValue) {
+      return {reason: t('Lists should not have empty values')};
     }
 
     return null;

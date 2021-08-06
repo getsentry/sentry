@@ -151,6 +151,7 @@ describe('Release Issues', function () {
         display: undefined,
         interval: undefined,
         statsPeriod: props.selection.datetime.period,
+        user: '1',
       },
     });
 

@@ -766,7 +766,11 @@ function ReleaseComparisonChart({
     return diff ? (
       <Change color={defined(diffColor) ? diffColor : undefined}>
         {diff}{' '}
-        {defined(diffDirection) && <IconArrow direction={diffDirection} size="xs" />}
+        {defined(diffDirection) ? (
+          <IconArrow direction={diffDirection} size="xs" />
+        ) : (
+          <StyledNotAvailable />
+        )}
       </Change>
     ) : null;
   }
@@ -799,6 +803,11 @@ function ReleaseComparisonChart({
     );
   }
 
+  const titleChartDiff =
+    chart.diff !== '0%' && chart.thisRelease !== '0%'
+      ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
+      : null;
+
   return (
     <Fragment>
       <ChartPanel>
@@ -809,14 +818,15 @@ function ReleaseComparisonChart({
             ReleaseComparisonChartType.FAILURE_RATE,
           ].includes(activeChart) ? (
             <ReleaseEventsChart
-              version={release.version}
+              release={release}
+              project={project}
               chartType={activeChart}
               period={period ?? undefined}
               start={start}
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)}
+              diff={titleChartDiff}
             />
           ) : (
             <ReleaseSessionsChart
@@ -831,7 +841,7 @@ function ReleaseComparisonChart({
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)}
+              diff={titleChartDiff}
               loading={loading}
               reloading={reloading}
             />
@@ -845,6 +855,7 @@ function ReleaseComparisonChart({
           <Cell key="release">{t('This Release')}</Cell>,
           <Cell key="change">{t('Change')}</Cell>,
         ]}
+        data-test-id="release-comparison-table"
       >
         {charts.map(
           ({
@@ -1043,6 +1054,10 @@ const ChartTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr));
   }
+`;
+
+const StyledNotAvailable = styled(NotAvailable)`
+  display: inline-block;
 `;
 
 export default ReleaseComparisonChart;

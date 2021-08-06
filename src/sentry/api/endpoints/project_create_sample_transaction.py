@@ -51,7 +51,9 @@ class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
             span["start_timestamp"] = span_start
             span["timestamp"] = span_start + duration
 
-        event = create_sample_event_basic(data, project.id, raw=True)
+        event = create_sample_event_basic(
+            data, project.id, raw=True, skip_send_first_transaction=True
+        )
 
         data = serialize(event, request.user)
         return Response(data)
