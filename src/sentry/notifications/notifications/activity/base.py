@@ -90,8 +90,8 @@ class GroupActivityNotification(ActivityNotification, ABC):
     def get_reply_reference(self) -> Optional[Any]:
         return self.group
 
-    def get_unsubscribe_key(self) -> Optional[Tuple[str, int]]:
-        return "issue", self.group.id
+    def get_unsubscribe_key(self) -> Optional[Tuple[str, int, Optional[str]]]:
+        return "issue", self.group.id, None
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {
