@@ -194,24 +194,6 @@ TS_COL = "time"
 ONE_HOUR = 3600
 
 
-def get_conditions(query: QueryDict, params: Mapping[Any, Any]) -> List[Any]:
-    query_conditions = []
-    for filter_name in DIMENSION_MAP:
-        raw_filter = query.getlist(filter_name, [])
-        resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
-        if len(resolved_filter) > 0:
-            query_conditions.append(Condition(Column(filter_name), Op.IN, resolved_filter))
-    if "project_id" in params:
-        query_conditions.append(
-            Condition(Column("project_id"), Op.IN, params["project_id"]),
-        )
-    if "organization_id" in params:
-        query_conditions.append(
-            Condition(Column("org_id"), Op.EQ, params["organization_id"]),
-        )
-    return query_conditions
-
-
 class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
@@ -236,10 +218,6 @@ class QueryDefinition:
         self.rollup = rollup
         self.start = start
         self.end = end
-        self.conditions = [
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-        ]
         self.select_params = []
         for key in raw_fields:
             if key not in COLUMN_MAP:
@@ -273,7 +251,27 @@ class QueryDefinition:
         for key in self.query_groupby:
             self.group_by.append(Column(key))
 
-        self.conditions.extend(get_conditions(query, params))
+        self.conditions = self.get_conditions(query, params)
+
+    def get_conditions(self, query: QueryDict, params: Mapping[Any, Any]) -> List[Any]:
+        query_conditions = [
+            Condition(Column("timestamp"), Op.GTE, self.start),
+            Condition(Column("timestamp"), Op.LT, self.end),
+        ]
+        for filter_name in DIMENSION_MAP:
+            raw_filter = query.getlist(filter_name, [])
+            resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
+            if len(resolved_filter) > 0:
+                query_conditions.append(Condition(Column(filter_name), Op.IN, resolved_filter))
+        if "project_id" in params:
+            query_conditions.append(
+                Condition(Column("project_id"), Op.IN, params["project_id"]),
+            )
+        if "organization_id" in params:
+            query_conditions.append(
+                Condition(Column("org_id"), Op.EQ, params["organization_id"]),
+            )
+        return query_conditions
 
 
 def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
