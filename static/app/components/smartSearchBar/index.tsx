@@ -40,7 +40,6 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
-import withExperiment from 'app/utils/withExperiment';
 import withOrganization from 'app/utils/withOrganization';
 
 import {ActionButton} from './actions';
@@ -51,8 +50,6 @@ import {
   createSearchGroups,
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
-  getLastTermIndex,
-  getQueryTerms,
   getValidOps,
   removeSpace,
 } from './utils';
@@ -230,10 +227,6 @@ type Props = WithRouterProps & {
    * trigger re-renders.
    */
   members?: User[];
-  /**
-   * Tracks whether the experiment for improved search is active or not
-   */
-  experimentAssignment: 0 | 1;
 };
 
 type State = {
@@ -333,13 +326,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
   }
 
-  get hasImprovedSearch() {
-    return (
-      this.props.organization.features.includes('improved-search') ||
-      !!this.props.experimentAssignment
-    );
-  }
-
   get initialQuery() {
     const {query, defaultQuery} = this.props;
     return query !== null ? addSpace(query) : defaultQuery ?? '';
@@ -399,7 +385,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   async doSearch() {
     this.blur();
 
-    if (this.hasImprovedSearch && !this.hasValidSearch) {
+    if (!this.hasValidSearch) {
       return;
     }
 
@@ -1079,78 +1065,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.blurTimeout = undefined;
     }
 
-    const cursor = this.cursorPosition;
-
-    if (this.hasImprovedSearch) {
-      this.updateAutoCompleteFromAst();
-      return;
-    }
-
-    let {query} = this.state;
-
-    // Don't continue if the query hasn't changed
-    if (query === this.state.previousQuery) {
-      return;
-    }
-
-    this.setState({previousQuery: query});
-
-    const lastTermIndex = getLastTermIndex(query, cursor);
-    const terms = getQueryTerms(query, lastTermIndex);
-
-    if (
-      !terms || // no terms
-      terms.length === 0 || // no terms
-      (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
-      /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
-    ) {
-      this.showDefaultSearches();
-      return;
-    }
-
-    const last = terms.pop() ?? '';
-
-    let autoCompleteItems: SearchItem[];
-    let matchValue: string;
-    let tagName: string;
-    const index = last.indexOf(':');
-
-    if (index === -1) {
-      // No colon present; must still be deciding key
-      matchValue = last.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
-
-      autoCompleteItems = this.getTagKeys(matchValue);
-      const recentSearches = await this.getRecentSearches();
-
-      this.setState({searchTerm: matchValue});
-      this.updateAutoCompleteState(
-        autoCompleteItems,
-        recentSearches ?? [],
-        matchValue,
-        ItemType.TAG_KEY
-      );
-      return;
-    }
-
-    // TODO(billy): Better parsing for these examples
-    //
-    // > sentry:release:
-    // > url:"http://with/colon"
-    tagName = last.slice(0, index);
-
-    // e.g. given "!gpu" we want "gpu"
-    tagName = tagName.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
-    query = last.slice(index + 1);
-    const valueGroup = await this.generateValueAutocompleteGroup(tagName, query);
-    if (valueGroup) {
-      this.updateAutoCompleteState(
-        valueGroup.searchItems ?? [],
-        valueGroup.recentSearchItems ?? [],
-        valueGroup.tagName,
-        valueGroup.type
-      );
-      return;
-    }
+    this.updateAutoCompleteFromAst();
   };
 
   /**
@@ -1346,58 +1261,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
 
-    const cursor = this.cursorPosition;
-    const {query} = this.state;
-
-    if (this.hasImprovedSearch) {
-      this.onAutoCompleteFromAst(replaceText, item);
-      return;
-    }
-
-    const lastTermIndex = getLastTermIndex(query, cursor);
-    const terms = getQueryTerms(query, lastTermIndex);
-    let newQuery: string;
-
-    // If not postfixed with : (tag value), add trailing space
-    replaceText += item.type !== ItemType.TAG_VALUE || cursor < query.length ? '' : ' ';
-
-    const isNewTerm =
-      query.charAt(query.length - 1) === ' ' && item.type !== ItemType.TAG_VALUE;
-
-    if (!terms) {
-      newQuery = replaceText;
-    } else if (isNewTerm) {
-      newQuery = `${query}${replaceText}`;
-    } else {
-      const last = terms.pop() ?? '';
-      newQuery = query.slice(0, lastTermIndex); // get text preceding last term
-
-      const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
-
-      // newQuery is all the terms up to the current term: "... <term>:"
-      // replaceText should be the selected value
-      if (last.indexOf(':') > -1) {
-        let replacement = `:${replaceText}`;
-
-        // The user tag often contains : within its value and we need to quote it.
-        if (last.startsWith('user:')) {
-          const colonIndex = replaceText.indexOf(':');
-          if (colonIndex > -1) {
-            replacement = `:"${replaceText.trim()}"`;
-          }
-        }
-
-        // tag key present: replace everything after colon with replaceText
-        newQuery = newQuery.replace(/\:"[^"]*"?$|\:\S*$/, replacement);
-      } else {
-        // no tag key present: replace last token with replaceText
-        newQuery = newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
-      }
-
-      newQuery = newQuery.concat(query.slice(lastTermIndex));
-    }
-
-    this.updateQuery(newQuery);
+    this.onAutoCompleteFromAst(replaceText, item);
   };
 
   render() {
@@ -1474,7 +1338,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
         <InputWrapper>
           <Highlight>
-            {this.hasImprovedSearch && parsedQuery !== null ? (
+            {parsedQuery !== null ? (
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={cursor === -1 ? undefined : cursor}
@@ -1551,13 +1415,7 @@ class SmartSearchBarContainer extends React.Component<Props, ContainerState> {
   }
 }
 
-const SmartSearchBarContainerWithExperiment = withExperiment(SmartSearchBarContainer, {
-  experiment: 'ImprovedSearchExperiment',
-});
-
-export default withApi(
-  withRouter(withOrganization(SmartSearchBarContainerWithExperiment))
-);
+export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
 
 export {SmartSearchBar};
 
