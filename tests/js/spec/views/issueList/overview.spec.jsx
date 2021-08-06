@@ -835,6 +835,95 @@ describe('IssueList', function () {
       );
     });
 
+    it('displays an error', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        statusCode: 500,
+      });
+      createWrapper();
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      expect(wrapper.getByTestId('loading-error-message')).toHaveTextContent(
+        'Unknown API Error'
+      );
+    });
+
+    it('displays congrats robots animation with only is:unresolved query', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      createWrapper({
+        location: {
+          query: {
+            query: 'is:unresolved',
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      expect(wrapper.getByTestId('congrats-robot')).toBeInTheDocument();
+    });
+
+    it('displays an empty resultset with is:unresolved and level:error query', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      createWrapper({
+        location: {
+          query: {
+            query: 'is:unresolved level:error',
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      expect(wrapper.getByTestId('empty-state')).toBeInTheDocument();
+    });
+
+    it('displays an empty resultset with has:browser query', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      createWrapper({
+        location: {
+          query: {
+            query: 'with has:browser',
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
+      });
+
+      expect(wrapper.getByTestId('empty-state')).toBeInTheDocument();
+    });
+
     describe('Error Robot', function () {
       beforeEach(() => {
         MockApiClient.addMockResponse({

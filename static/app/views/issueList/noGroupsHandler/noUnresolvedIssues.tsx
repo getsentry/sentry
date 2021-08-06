@@ -54,7 +54,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, State> 
 }
 
 const NoUnresolvedIssues = () => (
-  <Wrapper>
+  <Wrapper data-test-id="congrats-robot">
     <ErrorBoundary>
       <React.Suspense fallback={<Placeholder />}>
         <CongratsRobotsVideo />
