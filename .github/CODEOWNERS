@@ -6,7 +6,7 @@
 
 # Snuba
 /src/sentry/eventstream/        @getsentry/owners-snuba
-/src/sentry/utils/snuba.py      @getsentry/owners-snuba
+/src/sentry/utils/snuba.py      @getsentry/owners-snuba @getsentry/visibility
 /src/sentry/utils/snql.py       @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py       @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py  @getsentry/owners-snuba
@@ -114,7 +114,6 @@ build-utils/        @getsentry/owners-js-build
 /tests/snuba/api/endpoints/                                     @getsentry/visibility
 /src/sentry/api/serializers/snuba.py                            @getsentry/visibility
 /src/sentry/snuba/                                              @getsentry/visibility
-/src/sentry/utils/snuba.py                                      @getsentry/visibility
 
 /src/sentry/search/                                             @getsentry/visibility
 /tests/snuba/search/test_backend.py                             @getsentry/visibility
