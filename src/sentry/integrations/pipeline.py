@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.web.helpers import render_to_response
 
 from . import default_manager
@@ -52,6 +52,16 @@ class IntegrationPipeline(Pipeline):
                 },
             )
             return self.error(str(e))
+        except IntegrationProviderError as e:
+            self.get_logger().info(
+                "build-integration.provider-error",
+                extra={
+                    "error_message": str(e),
+                    "error_status": getattr(e, "code", None),
+                    "provider_key": self.provider.key,
+                },
+            )
+            return self.warning(str(e))
 
         response = self._finish_pipeline(data)
 

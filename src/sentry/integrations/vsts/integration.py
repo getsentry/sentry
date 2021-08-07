@@ -27,7 +27,11 @@ from sentry.models import (
     Repository,
 )
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationError,
+    IntegrationProviderError,
+)
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -395,7 +399,9 @@ class VstsIntegrationProvider(IntegrationProvider):
             integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
 
             assert OrganizationIntegration.objects.filter(
-                integration_id=integration_model.id, status=ObjectStatus.VISIBLE
+                organization_id=self.pipeline.organization.id,
+                integration_id=integration_model.id,
+                status=ObjectStatus.VISIBLE,
             ).exists()
 
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
@@ -417,8 +423,8 @@ class VstsIntegrationProvider(IntegrationProvider):
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
-                raise IntegrationError(
-                    "You do not have sufficient account access to create webhooks "
+                raise IntegrationProviderError(
+                    "You do not have sufficient account access to create webhooks\n"
                     "on the selected Azure DevOps organization.\n"
                     "Please check with the owner of this Azure DevOps account."
                 )
@@ -509,7 +515,9 @@ class AccountConfigView(PipelineView):
         return None
 
     def get_accounts(self, access_token, user_id):
-        url = f"https://app.vssps.visualstudio.com/_apis/accounts?ownerId={user_id}&api-version=4.1"
+        url = (
+            f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
+        )
         with http.build_session() as session:
             response = session.get(
                 url,
