@@ -5,7 +5,7 @@ import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
 import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
@@ -79,7 +79,7 @@ class SuggestedOwners extends React.Component<Props, State> {
     this.setState({isDismissed}, () => {
       if (!isDismissed) {
         // now record the results
-        trackAdvancedAnalyticsEvent(
+        trackIntegrationEvent(
           'integrations.show_code_owners_prompt',
           {
             view: 'stacktrace_issue_details',
@@ -103,7 +103,7 @@ class SuggestedOwners extends React.Component<Props, State> {
     });
 
     this.setState({isDismissed: true}, () =>
-      trackAdvancedAnalyticsEvent('integrations.dismissed_code_owners_prompt', {
+      trackIntegrationEvent('integrations.dismissed_code_owners_prompt', {
         view: 'stacktrace_issue_details',
         project_id: project.id,
         organization,
