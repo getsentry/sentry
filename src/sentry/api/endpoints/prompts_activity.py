@@ -1,6 +1,7 @@
 import calendar
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
@@ -15,6 +16,7 @@ from sentry.utils.prompts import prompt_config
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))
 
 
+# Endpoint to retrieve multiple PromptsActivity at once
 class PromptsActivitySerializer(serializers.Serializer):
     feature = serializers.CharField(required=True)
     status = serializers.ChoiceField(choices=zip(VALID_STATUSES, VALID_STATUSES), required=True)
@@ -25,6 +27,27 @@ class PromptsActivitySerializer(serializers.Serializer):
         if not prompt_config.has(value):
             raise serializers.ValidationError("Not a valid feature prompt")
         return value
+
+
+class PromptsActivitiesEndpoint(Endpoint):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        conditions = None
+        for feature, fields in request.data.items():
+            if not prompt_config.has(feature):
+                return Response({"detail": f"Invalid feature name '{feature}'"}, status=400)
+            required_fields = prompt_config.required_fields(feature)
+            for field in required_fields:
+                if field not in fields:
+                    return Response({"detail": 'Missing required field "%s"' % field}, status=400)
+            filters = {k: fields.get(k) for k in required_fields}
+            condition = Q(feature=feature, **filters)
+            conditions = condition if conditions is None else (conditions | condition)
+        if conditions is None:
+            return Response({"detail": "No feature specified"}, status=400)
+        result = PromptsActivity.objects.filter(conditions, user=request.user).all()
+        return Response({k.feature: k.data for k in result})
 
 
 class PromptsActivityEndpoint(Endpoint):
