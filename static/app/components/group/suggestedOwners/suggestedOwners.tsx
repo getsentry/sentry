@@ -38,7 +38,7 @@ class SuggestedOwners extends React.Component<Props, State> {
     rules: null,
     owners: [],
     codeowners: [],
-    isDismissed: false,
+    isDismissed: true,
   };
 
   componentDidMount() {
