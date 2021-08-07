@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Mapping
+from typing import Any, Mapping, Sequence
 
 import sentry_sdk
 from django.db.models import QuerySet
@@ -22,7 +22,6 @@ from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.types import Any, Sequence
 
 
 def get_search_filter(search_filters, name, operator):
