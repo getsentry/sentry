@@ -174,9 +174,9 @@ class AlertRuleDetails extends Component<Props, State> {
     });
   };
 
-  handleZoom = async (start: DateString, end: DateString) => {
+  handleZoom = (start: DateString, end: DateString) => {
     const {location} = this.props;
-    await browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         start,
