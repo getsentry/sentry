@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.ethereum_address import EthereumAddressEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -1944,6 +1945,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
                     AppStoreConnectUpdateCredentialsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/ethereum-addresses/$",
+                    EthereumAddressEndpoint.as_view(),
+                    name="sentry-api-0-project-ethereum-addresses",
                 ),
             ]
         ),
