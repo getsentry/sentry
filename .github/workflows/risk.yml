@@ -1,0 +1,41 @@
+---
+name: risk
+on:
+  pull_request:
+
+jobs:
+  foo:
+    runs-on: ubuntu-20.04
+    steps:
+      - run: npm install node-fetch
+      - name: dump context
+        uses: actions/github-script@v4
+        with:
+          script: |
+            // TODO: Put script in separate file
+            // TODO: Get changed files
+            const { URL, URLSearchParams } = require('url');
+            const fetch = require('node-fetch');
+            const url = new URL("https://sentry.io/api/0/organizations/sentry/eventsv2/");
+            const params = new URLSearchParams({
+              project: 1, // the sentry,
+              query: "event.type:error",
+              referrer: "hackweek.sonar",
+              sort: "-count",
+              statsPeriod: "14d"
+            });
+            params.append("field", "issue");
+            params.append("field", "stack.abs_path");
+            params.append("field", "stack.lineno");
+            params.append("field", "count()");
+            params.append("field", "count_unique(user.display)");
+            url.search = params.toString();
+            const response = await fetch(url, {
+              headers: {
+                accept: "application/json",
+                authorization: "Bearer {TOKEN}" // TODO: Get Sentry auth token from
+              }
+            });
+            const data = await response.json();
+            console.log(data);
+            // TODO: process data, post comment, annotate files, ...
