@@ -5,6 +5,7 @@ from multiprocessing import cpu_count
 
 import click
 
+import sentry.options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
@@ -504,3 +505,18 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
+
+
+@run.command("eth-scan")
+@log_options()
+@configuration
+def eth_scan():
+    from sentry.utils.ethereum.network import EthereumNetwork
+
+    provider_uri = sentry_options.get("web3.provider.http_uri")
+    if provider_uri:
+        EthereumNetwork(provider_uri).scan_blocks()
+    else:
+        raise ValueError(
+            "Cannot start the blockchain scanner, web3.provider.http_uri option is missing"
+        )

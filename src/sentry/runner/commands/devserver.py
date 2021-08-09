@@ -18,6 +18,7 @@ _DEFAULT_DAEMONS = {
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
+    "eth-scan": ["sentry", "run", "eth-scan"],
     "storybook": ["yarn", "storybook"],
     "subscription-consumer": [
         "sentry",
@@ -250,6 +251,9 @@ def devserver(
         daemons += [
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
+
+    if options.get("web3.provider.http_uri"):
+        daemons += [_get_daemon("eth-scan")]
 
     from sentry.runner.commands.devservices import _prepare_containers
 

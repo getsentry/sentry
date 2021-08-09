@@ -201,6 +201,9 @@ register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
 
+# Ethereum experiments
+register("web3.provider.http_uri", flags=FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
+
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
 register("snuba.search.pre-snuba-candidates-percentage", default=0.2)
