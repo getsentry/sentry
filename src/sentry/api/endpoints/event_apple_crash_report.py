@@ -27,15 +27,14 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
 
         symbolicated = request.GET.get("minified") not in ("1", "true")
 
-        apple_crash_report_string = str(
-            AppleCrashReport(
-                threads=get_path(event.data, "threads", "values", filter=True),
-                context=event.data.get("contexts"),
-                debug_images=get_path(event.data, "debug_meta", "images", filter=True),
-                exceptions=get_path(event.data, "exception", "values", filter=True),
-                symbolicated=symbolicated,
-            )
+        apple_crash_report = AppleCrashReport(
+            threads=get_path(event.data, "threads", "values", filter=True),
+            context=event.data.get("contexts"),
+            debug_images=get_path(event.data, "debug_meta", "images", filter=True),
+            exceptions=get_path(event.data, "exception", "values", filter=True),
+            symbolicated=symbolicated,
         )
+        apple_crash_report_string = f"{apple_crash_report}"
 
         response = HttpResponse(apple_crash_report_string, content_type="text/plain")
 

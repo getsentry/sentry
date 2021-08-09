@@ -372,14 +372,14 @@ def get_settings_url(notification: BaseNotification) -> str:
     url_str = "/settings/account/notifications/"
     if notification.fine_tuning_key:
         url_str += f"{notification.fine_tuning_key}/"
-    return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+    return urljoin(absolute_uri(url_str), get_referrer_qstring(notification))
 
 
 def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
-        settings_url = str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+        settings_url = urljoin(absolute_uri(url_str), get_referrer_qstring(notification))
     else:
         settings_url = get_settings_url(notification)
 
