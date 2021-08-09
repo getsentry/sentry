@@ -60,6 +60,7 @@ from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
 from .integration import *  # NOQA
 from .integrationfeature import *  # NOQA
+from .ipreputation import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA

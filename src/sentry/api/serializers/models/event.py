@@ -5,7 +5,7 @@ from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event
-from sentry.models import EventAttachment, EventError, Release, UserReport
+from sentry.models import EventAttachment, EventError, IpReputation, Release, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.compat import zip
@@ -234,6 +234,17 @@ class EventSerializer(Serializer):
                 received = datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc)
             except TypeError:
                 received = None
+
+        # Fake malicious IP address
+        attrs["user"]["ip_address"] = "198.12.226.30"
+        ip_address = attrs["user"]["ip_address"]
+
+        ip_reputation_service = IpReputation()
+        reputation = ip_reputation_service.get(ip_address)
+        if reputation and reputation["risk_level"] > 1:
+            attrs["user"]["ip_address"] += " (risk level {}, threat is {})".format(
+                reputation["risk_level"], reputation["threat"]
+            )
 
         d = {
             "id": obj.event_id,
