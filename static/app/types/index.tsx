@@ -2220,3 +2220,7 @@ export type CodeownersFile = {
   filepath: string;
   html_url: string;
 };
+
+export type SentryFunction = {
+  name: string;
+};

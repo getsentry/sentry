@@ -7,7 +7,7 @@ import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import {Organization, SentryApp} from 'app/types';
+import {Organization, SentryApp, SentryFunction} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -21,6 +21,7 @@ type Props = Omit<AsyncView['props'], 'params'> & {
 
 type State = AsyncView['state'] & {
   applications: SentryApp[];
+  sentryFunctions: SentryFunction[] | null;
 };
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
@@ -151,6 +152,53 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
+  renderSentryFunction(sentryFunction: SentryFunction) {
+    // TODO: finish
+    return sentryFunction.name;
+  }
+
+  renderSentryFunctions() {
+    const {orgId} = this.props.params;
+    const {organization} = this.props;
+    const {sentryFunctions} = this.state;
+    const permissionTooltipText = t(
+      'Manager, Owner, or Admin permissions required to add a Sentry Function'
+    );
+
+    const action = (
+      <Access organization={organization} access={['org:integrations']}>
+        {({hasAccess}) => (
+          <Button
+            priority="primary"
+            disabled={!hasAccess}
+            title={!hasAccess ? permissionTooltipText : undefined}
+            size="small"
+            to={`/settings/${orgId}/developer-settings/sentry-functions/new`}
+            icon={<IconAdd size="xs" isCircled />}
+          >
+            {t('New Sentry Function')}
+          </Button>
+        )}
+      </Access>
+    );
+
+    return (
+      <Panel>
+        <PanelHeader hasButtons>
+          {t('Sentry Functions')}
+          {action}
+        </PanelHeader>
+        <PanelBody>
+          {sentryFunctions?.length ? (
+            sentryFunctions.map(this.renderSentryFunction)
+          ) : (
+            <EmptyMessage>{t('No Sentry Functions have been created yet.')}</EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  }
+
   renderBody() {
     return (
       <div>
@@ -160,6 +208,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             'Have questions about the Integration Platform? Learn more about it in our docs.'
           )}
         </AlertLink>
+        {this.renderSentryFunctions()}
         {this.renderExernalIntegrations()}
         {this.renderInternalIntegrations()}
       </div>
