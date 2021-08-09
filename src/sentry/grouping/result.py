@@ -64,7 +64,7 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 MAX_ISSUE_TREE_LABELS = 2
 
 
-def _strip_tree_label(tree_label: TreeLabel, truncate=False) -> StrippedTreeLabel:
+def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
         stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
