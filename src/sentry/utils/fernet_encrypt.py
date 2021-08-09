@@ -8,14 +8,6 @@ from cryptography.fernet import Fernet
 
 from sentry.utils import json
 
-
-def create_key():
-    """
-    Generates a Key and converts it to a String for easy handling.
-    """
-    return str(Fernet.generate_key(), "utf-8")
-
-
 # anything that can be converted to and from JSON
 IntoJsonObject = Union[str, int, float, List[Any], Dict[Any, Any], None]
 
@@ -39,7 +31,7 @@ def encrypt_object(obj: IntoJsonObject, key: str) -> str:
     json_str = json.dumps(obj)
     json_bytes = json_str.encode("utf-8")
     encrypted_bytes = f.encrypt(json_bytes)
-    return str(encrypted_bytes, "utf-8")
+    return encrypted_bytes.decode()
 
 
 def decrypt_object(encrypted: str, key: str) -> IntoJsonObject:
@@ -56,5 +48,4 @@ def decrypt_object(encrypted: str, key: str) -> IntoJsonObject:
         raise ValueError("Invalid encryption Key") from e
     encrypted = encrypted.encode("utf-8")
     decrypted_bytes = f.decrypt(encrypted)
-    json_str = str(decrypted_bytes, "utf-8")
-    return json.loads(json_str)
+    return json.loads(decrypted_bytes)

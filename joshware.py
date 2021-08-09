@@ -18,47 +18,53 @@ gc.disable()
 class GoodTransformer(CSTTransformer):
     def leave_Call(self, _, node):
         if isinstance(node.func, Name):
-            # Limited to str(arg) -> f"{arg}" for now.
-
-            # Doesn't work with nested f-strings, however occurences are few and
+            # Right now we do create nested f-strings, however occurences are few and
             # easily detectable by black failing to reformat.
             # Would cost considerable performance to look at everything in the value.
 
             if node.func.value == "str":
-                if len(node.args) == 1:
-                    value = node.args[0].value
-                    if isinstance(value, Call) and len(value.args) > 1:
-                        # Too complex, would rather leave as is.
-                        return node
+                # Fun fact, str can take additional args like
+                # str(b'foo', "utf-8") -> "foo"
+                # If you didn't give the encoding then the byte literals show up:
+                # str(b'foo') -> "b'foo'"
+                # Occurences are very few, so just handle the str(obj) case.
+                # str() is handled by pyupgrade.
+                if len(node.args) != 1:
+                    return node
 
-                    # We could do some special constant folding like
-                    # str(1) -> "1", but I don't really expect that to be passed
-                    # to str() much.
+                value = node.args[0].value
+                if isinstance(value, Call) and len(value.args) > 1:
+                    # Too complex, would rather leave as is.
+                    return node
 
-                    # Use cst.parse_expression to get the expected structure.
-                    return FormattedString(
-                        parts=[
-                            FormattedStringExpression(
-                                expression=value,
-                                conversion=None,
-                                format_spec=None,
-                                whitespace_before_expression=SimpleWhitespace(
-                                    value="",
-                                ),
-                                whitespace_after_expression=SimpleWhitespace(
-                                    value="",
-                                ),
-                                equal=None,
+                # We could do some special constant folding like
+                # str(1) -> "1", but I don't really expect that to be passed
+                # to str() much.
+
+                # Use cst.parse_expression to get the expected structure.
+                return FormattedString(
+                    parts=[
+                        FormattedStringExpression(
+                            expression=value,
+                            conversion=None,
+                            format_spec=None,
+                            whitespace_before_expression=SimpleWhitespace(
+                                value="",
                             ),
-                        ],
-                        # We assume black has double quoted things.
-                        # Like, foo["bar"].
-                        # Then a second run of black will change into f"".
-                        start="f'",
-                        end="'",
-                        lpar=[],
-                        rpar=[],
-                    )
+                            whitespace_after_expression=SimpleWhitespace(
+                                value="",
+                            ),
+                            equal=None,
+                        ),
+                    ],
+                    # We assume black has double quoted things.
+                    # Like, foo["bar"].
+                    # Then a second run of black will change into f"".
+                    start="f'",
+                    end="'",
+                    lpar=[],
+                    rpar=[],
+                )
         return node
 
 
