@@ -1,14 +1,14 @@
-from sentry.api.serializers import Serializer, register
+from rest_framework import serializers
+
 from sentry.models import EthereumAddress
 
 
-@register(EthereumAddress)
-class EthereumAddressSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        return {
-            "id": str(obj.id),
-            "address": obj.address,
-            "abi_contents": obj.abi_contents,
-            "displayName": obj.display_name,
-            "lastUpdated": obj.last_updated,
-        }
+class EthereumAddressSerializer(serializers.ModelSerializer):
+    abiContents = serializers.CharField(source="abi_contents")
+    displayName = serializers.CharField(source="display_name")
+    lastUpdated = serializers.DateTimeField(source="last_updated")
+
+    class Meta:
+        model = EthereumAddress
+        fields = ["id", "address", "abiContents", "displayName", "lastUpdated"]
+        read_only_fields = ["id", "lastUpdated"]

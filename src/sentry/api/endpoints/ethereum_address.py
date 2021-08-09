@@ -1,7 +1,6 @@
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.serializers import serialize
 from sentry.api.serializers.models.ethereum_address import EthereumAddressSerializer
 from sentry.models import EthereumAddress
 
@@ -10,12 +9,24 @@ class EthereumAddressesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectPermission,)
 
     def get(self, request, project):
-        addresses = list(EthereumAddress.objects.filter(project=project))
-        return Response(serialize(addresses, request.user, EthereumAddressSerializer()))
+        """Get all address filters for the project"""
+        addresses = EthereumAddress.objects.filter(project=project)
+        serializer = EthereumAddressSerializer(addresses, many=True)
+        # TODO: paginate?
+        return Response(serializer.data)
 
     def post(self, request, project):
-        EthereumAddress.objects.create(
-            project=project,
-            address="1234123412341234123412341234123412341234123412342134123412341234",
-            display_name="bla",
-        )
+        """Create an address filter"""
+        serializer = EthereumAddressSerializer(data=request.data)
+        if serializer.is_valid():
+            result = serializer.validated_data
+
+            address = EthereumAddress.objects.create(
+                project=project,
+                address=result["address"],
+                abi_contents=result["abiContents"],
+                display_name=result["displayName"],
+            )
+
+            return Response(EthereumAddressSerializer(address), status=201)
+        return Response(serializer.errors, status=400)
