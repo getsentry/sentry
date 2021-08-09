@@ -20,6 +20,7 @@ google-cloud-core==1.7.2
 googleapis-common-protos==1.53.0
 google-cloud-pubsub==2.7.0
 google-cloud-storage==1.41.1
+google-cloud-functions==1.0.3
 jsonschema==3.2.0
 lxml==4.6.3
 maxminddb==2.0.3
