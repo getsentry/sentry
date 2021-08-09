@@ -47,7 +47,7 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 # by all frames). That means that the system will produce extremely long tree
 # labels even though the user may not really want or understand any of them.
 #
-# To get around this, we trunchate the tree label down to some arbitrary
+# To get around this, we truncate the tree label down to some arbitrary
 # number of functions. This does not apply to the grouping breakdown, as in
 # grouping_level_new_issues endpoint we populate the tree labels not through
 # this function at all.
@@ -64,7 +64,7 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 MAX_ISSUE_TREE_LABELS = 4
 
 
-def _strip_tree_label(tree_label: TreeLabel, trunchate=False) -> StrippedTreeLabel:
+def _strip_tree_label(tree_label: TreeLabel, truncate=False) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
         stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
@@ -73,7 +73,7 @@ def _strip_tree_label(tree_label: TreeLabel, trunchate=False) -> StrippedTreeLab
         stripped_part.pop("datapath", None)  # type: ignore
         rv.append(stripped_part)
 
-        if trunchate and len(rv) == MAX_ISSUE_TREE_LABELS:
+        if truncate and len(rv) == MAX_ISSUE_TREE_LABELS:
             break
 
     return rv
@@ -134,7 +134,7 @@ class CalculatedHashes:
             tree_label = self.tree_labels[-1]
             # Also do this for event title in discover because people may
             # expect to `groupby title` to basically groupby issue.
-            return tree_label and _strip_tree_label(tree_label, trunchate=True)
+            return tree_label and _strip_tree_label(tree_label, truncate=True)
         except IndexError:
             return None
 
@@ -144,7 +144,7 @@ class CalculatedHashes:
             tree_label = self.tree_labels[i]
             return {
                 "current_level": i,
-                "current_tree_label": tree_label and _strip_tree_label(tree_label, trunchate=True),
+                "current_tree_label": tree_label and _strip_tree_label(tree_label, truncate=True),
             }
         except (IndexError, ValueError):
             return {}
