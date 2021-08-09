@@ -14,7 +14,6 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_participants_for_release
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
@@ -96,7 +95,7 @@ class ReleaseActivityNotification(ActivityNotification):
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
             **super().get_user_context(user, extra_context),
-            "projects": zip(projects, release_links, resolved_issue_counts),
+            "projects": list(zip(projects, release_links, resolved_issue_counts)),
             "project_count": len(projects),
         }
 

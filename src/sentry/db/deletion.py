@@ -5,8 +5,6 @@ from uuid import uuid4
 from django.db import connections, router
 from django.utils import timezone
 
-from sentry.utils.compat import zip
-
 
 class BulkDeleteQuery:
     def __init__(self, model, project_id=None, dtfield=None, days=None, order_by=None):
@@ -109,7 +107,7 @@ class BulkDeleteQuery:
                         if position is not None:
                             where.append((f"{quote_name(order_field)} >= %s", [position]))
 
-                    conditions, parameters = zip(*where)
+                    conditions, parameters = list(zip(*where))
                     parameters = list(itertools.chain.from_iterable(parameters))
 
                     query = """

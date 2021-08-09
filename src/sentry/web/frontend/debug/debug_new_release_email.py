@@ -5,7 +5,6 @@ from django.views.generic import View
 
 from sentry.models import Commit, CommitAuthor, Deploy, Organization, Project, Release, User
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
@@ -96,7 +95,7 @@ class DebugNewReleaseEmailView(View):
             text_template="sentry/emails/activity/release.txt",
             context={
                 "release": release,
-                "projects": zip(projects, release_links, [6, 1, 0]),
+                "projects": list(zip(projects, release_links, [6, 1, 0])),
                 "repos": repos,
                 "reason": GroupSubscriptionReason.descriptions[GroupSubscriptionReason.committed],
                 "project_count": len(projects),

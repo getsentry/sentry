@@ -38,7 +38,6 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.snuba import discover
 from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.compat import zip
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: "active",
@@ -691,7 +690,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         latest_release_list = bulk_fetch_project_latest_releases(item_list)
         latest_releases = {
             r.actual_project_id: d
-            for r, d in zip(latest_release_list, serialize(latest_release_list, user))
+            for r, d in list(zip(latest_release_list, serialize(latest_release_list, user)))
         }
 
         for item in item_list:

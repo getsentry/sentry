@@ -65,7 +65,6 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.compat import zip
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
 from sentry.utils.hashlib import md5_text
@@ -248,7 +247,7 @@ class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(
-        choices=zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())
+        choices=list(zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys()))
     )
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
@@ -1228,5 +1227,5 @@ def get_first_last_release_info(request, group, versions):
     # Default to a dictionary if the release object wasn't found and not serialized
     return [
         item if item is not None else {"version": version}
-        for item, version in zip(serialized_releases, versions)
+        for item, version in list(zip(serialized_releases, versions))
     ]

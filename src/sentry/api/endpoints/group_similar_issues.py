@@ -7,7 +7,6 @@ from sentry import similarity
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Group
-from sentry.utils.compat import zip
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
 
         # We need to preserve the ordering of the Redis results, as that
         # ordering is directly shown in the UI
-        for group_id, scores in zip(group_ids, group_scores):
+        for group_id, scores in list(zip(group_ids, group_scores)):
             group = serialized_groups.get(group_id)
             if group is None:
                 # TODO(tkaemming): This should log when we filter out a group that is

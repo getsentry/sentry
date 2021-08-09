@@ -29,7 +29,6 @@ from sentry.models import (
     User,
 )
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
-from sentry.utils.compat import zip
 from sentry.utils.json import JSONData
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -147,7 +146,7 @@ class TeamSerializer(Serializer):  # type: ignore
             projects = [pt.project for pt in project_teams]
 
             projects_by_id = {
-                project.id: data for project, data in zip(projects, serialize(projects, user))
+                project.id: data for project, data in list(zip(projects, serialize(projects, user)))
             }
 
             project_map = defaultdict(list)

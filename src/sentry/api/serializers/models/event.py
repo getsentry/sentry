@@ -8,7 +8,6 @@ from sentry.eventstore.models import Event
 from sentry.models import EventAttachment, EventError, Release, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query
-from sentry.utils.compat import zip
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
@@ -172,7 +171,7 @@ class EventSerializer(Serializer):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
+            for file, serialized in list(zip(crash_files, serialize(crash_files, user=user)))
         }
         results = {}
         for item in item_list:
@@ -351,7 +350,7 @@ class SimpleEventSerializer(EventSerializer):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
+            for file, serialized in list(zip(crash_files, serialize(crash_files, user=user)))
         }
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
