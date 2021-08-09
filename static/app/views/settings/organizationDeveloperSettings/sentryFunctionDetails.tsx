@@ -1,7 +1,12 @@
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/theme/monokai.css';
+
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
+import CodeMirror from 'codemirror';
 import {Observer} from 'mobx-react';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import {SentryFunction} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -11,6 +16,15 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import FormModel from 'app/views/settings/components/forms/model';
 import {Field} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+
+class SentryFunctionFormModel extends FormModel {
+  codeMirror: null | CodeMirror = null;
+  getTransformedData() {
+    const data = super.getTransformedData() as Record<string, any>;
+    data.code = this.codeMirror?.getValue();
+    return data;
+  }
+}
 
 type Props = RouteComponentProps<{orgId: string; functionSlug?: string}, {}>;
 
@@ -59,13 +73,24 @@ const formFields: Field[] = [
 ];
 
 export default class SentryApplicationDetails extends AsyncView<Props, State> {
-  form = new FormModel();
+  form = new SentryFunctionFormModel();
+  codeMirror: null | CodeMirror = null;
 
   getDefaultState(): State {
     return {
       sentryFunction: null,
       ...super.getDefaultState(),
     };
+  }
+
+  componentDidMount() {
+    const element = document.getElementById('code-editor');
+    this.codeMirror = CodeMirror(element, {
+      value: 'function myScript(){return 100;}\n',
+      lineNumbers: true,
+      mode: 'javascript',
+    });
+    this.form.codeMirror = this.codeMirror;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -111,6 +136,12 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                   <JsonForm
                     forms={[{title: 'Sentry Function Details', fields: formFields}]}
                   />
+                  <Panel>
+                    <PanelHeader>Write your JS Code Below</PanelHeader>
+                    <PanelBody>
+                      <div id="code-editor" />
+                    </PanelBody>
+                  </Panel>
                 </React.Fragment>
               );
             }}
