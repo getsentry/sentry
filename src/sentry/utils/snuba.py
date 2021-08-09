@@ -37,7 +37,6 @@ from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
-from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snql import should_use_snql
 
@@ -422,7 +421,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
                 get_related_project_ids(k, query_params.filter_keys[k])
                 for k in query_params.filter_keys
             ]
-            project_ids = list(set.union(*map(set, ids)))
+            project_ids = list(set.union(*list(map(set, ids))))
     elif query_params.conditions:
         project_ids = []
         for cond in query_params.conditions:
@@ -693,7 +692,7 @@ def bulk_raw_query(
     use_cache: Optional[bool] = False,
     use_snql: Optional[bool] = None,
 ) -> ResultSet:
-    params = map(_prepare_query_params, snuba_param_list)
+    params = list(map(_prepare_query_params, snuba_param_list))
     return _apply_cache_and_build_results(
         params, referrer=referrer, use_cache=use_cache, use_snql=use_snql
     )
@@ -731,7 +730,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers, use_snql)
+        query_results = _bulk_snuba_query(list(map(itemgetter(1), to_query)), headers, use_snql)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -740,7 +739,7 @@ def _apply_cache_and_build_results(
     # Sort so that we get the results back in the original param list order
     results.sort()
     # Drop the sort order val
-    return map(itemgetter(1), results)
+    return list(map(itemgetter(1), results))
 
 
 def _bulk_snuba_query(

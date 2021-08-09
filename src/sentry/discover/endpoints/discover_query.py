@@ -11,7 +11,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.utils import transform_aliases_and_query
 from sentry.utils import snuba
-from sentry.utils.compat import map
 
 from .serializers import DiscoverQuerySerializer
 

@@ -6,7 +6,6 @@ from redis.client import ResponseError
 
 from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
-from sentry.utils.compat import map
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_script
@@ -202,15 +201,17 @@ class RedisBackend(Backend):
                 else:
                     raise
 
-            records = map(
-                lambda key__value__timestamp: Record(
-                    key__value__timestamp[0].decode("utf-8"),
-                    self.codec.decode(key__value__timestamp[1])
-                    if key__value__timestamp[1] is not None
-                    else None,
-                    float(key__value__timestamp[2]),
-                ),
-                response,
+            records = list(
+                map(
+                    lambda key__value__timestamp: Record(
+                        key__value__timestamp[0].decode("utf-8"),
+                        self.codec.decode(key__value__timestamp[1])
+                        if key__value__timestamp[1] is not None
+                        else None,
+                        float(key__value__timestamp[2]),
+                    ),
+                    response,
+                )
             )
 
             # If the record value is `None`, this means the record data was

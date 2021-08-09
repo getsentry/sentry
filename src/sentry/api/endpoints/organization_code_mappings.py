@@ -6,7 +6,6 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import OrganizationIntegration, Project, Repository, RepositoryProjectPathConfig
-from sentry.utils.compat import map
 
 
 def gen_path_regex_field():
@@ -154,7 +153,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, NullableOrganizatio
 
         # front end handles ordering
         # TODO: Add pagination
-        data = map(lambda x: serialize(x, request.user), queryset)
+        data = list(map(lambda x: serialize(x, request.user), queryset))
         return self.respond(data)
 
     def post(self, request, organization):

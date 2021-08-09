@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase
-from sentry.utils.compat import map
 
 
 class OrganizationPluginsTest(APITestCase):
@@ -143,7 +142,7 @@ class OrganizationPluginsTest(APITestCase):
         plugins.get("trello").set_option("key", "some_value", another)
         url = self.url + "?plugins=trello"
         response = self.client.get(url)
-        assert map(lambda x: x["projectSlug"], response.data[0]["projectList"]) == [
+        assert list(map(lambda x: x["projectSlug"], response.data[0]["projectList"])) == [
             "another",
             "proj_a",
             "proj_b",

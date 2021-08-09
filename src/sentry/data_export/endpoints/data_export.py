@@ -14,7 +14,6 @@ from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.utils import metrics
-from sentry.utils.compat import map
 from sentry.utils.snuba import MAX_FIELDS
 
 from ..base import ExportQueryType

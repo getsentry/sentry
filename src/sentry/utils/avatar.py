@@ -12,7 +12,6 @@ from django.utils.encoding import force_text
 from django.utils.html import escape
 
 from sentry.http import safe_urlopen
-from sentry.utils.compat import map
 from sentry.utils.hashlib import md5_text
 
 

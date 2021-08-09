@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
-from sentry.utils.compat import map
 
 
 class ProjectUsersTest(APITestCase):

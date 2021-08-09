@@ -5,7 +5,6 @@ from symbolic import parse_addr
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
 from sentry.lang.native.utils import image_name
-from sentry.utils.compat import map
 from sentry.utils.safe import get_path
 
 REPORT_VERSION = "104"
@@ -160,9 +159,11 @@ class AppleCrashReport:
         # We don't need binary images on symbolicated crashreport
         if self.symbolicated or self.debug_images is None:
             return ""
-        binary_images = map(
-            lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
-            sorted(self.debug_images, key=lambda i: parse_addr(i["image_addr"])),
+        binary_images = list(
+            map(
+                lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
+                sorted(self.debug_images, key=lambda i: parse_addr(i["image_addr"])),
+            )
         )
         return "Binary Images:\n" + "\n".join(binary_images)
 

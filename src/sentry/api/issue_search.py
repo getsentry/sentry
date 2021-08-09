@@ -13,7 +13,6 @@ from sentry.search.utils import (
     parse_status_value,
     parse_user_value,
 )
-from sentry.utils.compat import map
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -129,4 +128,4 @@ def convert_query_values(search_filters, projects, user, environments):
             )
         return search_filter
 
-    return map(convert_search_filter, search_filters)
+    return list(map(convert_search_filter, search_filters))

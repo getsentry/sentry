@@ -4,8 +4,6 @@ import time
 
 import click
 
-from sentry.utils.compat import map
-
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
     "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
