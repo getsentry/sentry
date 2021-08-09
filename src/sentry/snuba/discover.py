@@ -20,7 +20,6 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.utils.compat import filter
 from sentry.utils.math import mean, nice_int
 from sentry.utils.snuba import (
     SNUBA_AND,

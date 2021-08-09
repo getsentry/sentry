@@ -42,7 +42,6 @@ from sentry.notifications.utils.legacy_mappings import get_option_value_from_boo
 from sentry.tasks.deletion import delete_project
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import filter
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -178,7 +177,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return data
 
     def validate_allowedDomains(self, value):
-        value = filter(bool, value)
+        value = list(filter(bool, value))
         if len(value) == 0:
             raise serializers.ValidationError(
                 "Empty value will block all requests, use * to accept from all domains"

@@ -20,7 +20,6 @@ from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils.compat import filter
 from sentry.web.helpers import render_to_response
 
 from .client import BitbucketServer, BitbucketServerSetupClient
@@ -275,7 +274,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
 
-        return filter(lambda repo: repo.name not in accessible_repos, repos)
+        return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
     def reinstall(self):
         self.reinstall_repositories()

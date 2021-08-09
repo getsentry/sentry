@@ -50,7 +50,6 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, QueryFields, resolve_field
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
-from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     FUNCTION_TO_OPERATOR,
@@ -809,7 +808,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
 
     condition, having = None, None
     if lhs_condition or rhs_condition:
-        args = filter(None, [lhs_condition, rhs_condition])
+        args = list(filter(None, [lhs_condition, rhs_condition]))
         if not args:
             condition = None
         elif len(args) == 1:
@@ -818,7 +817,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
             condition = [operator, args]
 
     if lhs_having or rhs_having:
-        args = filter(None, [lhs_having, rhs_having])
+        args = list(filter(None, [lhs_having, rhs_having]))
         if not args:
             having = None
         elif len(args) == 1:

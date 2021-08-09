@@ -6,7 +6,6 @@ from django.db.models.signals import pre_save
 from rest_framework import serializers
 
 from sentry.db.models import Model
-from sentry.utils.compat import filter
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
