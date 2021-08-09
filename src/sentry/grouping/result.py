@@ -61,7 +61,7 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 # level), we may revisit this type of truncation and replace it with something
 # that only kicks in when the found hash is found via fallback grouping. But
 # that'd be harder to implement and doesn't need to be solved rn.
-MAX_ISSUE_TREE_LABELS = 4
+MAX_ISSUE_TREE_LABELS = 2
 
 
 def _strip_tree_label(tree_label: TreeLabel, truncate=False) -> StrippedTreeLabel:
