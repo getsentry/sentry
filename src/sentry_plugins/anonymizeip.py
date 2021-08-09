@@ -43,7 +43,7 @@ def anonymize_ip(
     """
 
     # IP address to be anonymized
-    address_packed = ip_address(str(address)).packed
+    address_packed = ip_address(f"{address}").packed
     address_len = len(address_packed)
 
     if address_len == 4:
@@ -81,7 +81,7 @@ def __apply_mask(address_packed, mask_packed, nr_bytes):
     anon_packed = bytearray()
     for i in range(0, nr_bytes):
         anon_packed.append(mask_ints[i] & address_ints[i])
-    return str(ip_address(bytes(anon_packed)))
+    return f"{ip_address(bytes(anon_packed))}"
 
 
 def __validate_ipv4_mask(mask_packed):

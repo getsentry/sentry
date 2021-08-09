@@ -60,7 +60,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             # The minimum interval is one hour on the server
             rollup = max(rollup, 3600)
         except ProjectEventsError as e:
-            return Response({"detail": str(e)}, status=400)
+            return Response({"detail": f"{e}"}, status=400)
 
         release = upsert_missing_release(project, version)
         if release is None:

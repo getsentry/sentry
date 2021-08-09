@@ -61,7 +61,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "id": str(team.id),
+                    "id": f"{team.id}",
                     "displayName": team.name,
                     "members": [],
                     "meta": {"resourceType": "Group"},
@@ -89,7 +89,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "Resources": [
                 {
                     "displayName": team.name,
-                    "id": str(team.id),
+                    "id": f"{team.id}",
                     "members": [
                         {
                             "display": member1.get_email(),
@@ -121,10 +121,10 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "id": str(self.team.id),
+                    "id": f"{self.team.id}",
                     "displayName": self.team.name,
                     "members": [
-                        {"value": str(self.team.member_set[0].id), "display": "admin@localhost"}
+                        {"value": f"{self.team.member_set[0].id}", "display": "admin@localhost"}
                     ],
                     "meta": {"resourceType": "Group"},
                 }
@@ -145,7 +145,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "id": str(team.id),
+                    "id": f"{team.id}",
                     "displayName": team.name,
                     "members": [],
                     "meta": {"resourceType": "Group"},
@@ -166,7 +166,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "id": str(self.team.id),
+                    "id": f"{self.team.id}",
                     "displayName": self.team.name,
                     "meta": {"resourceType": "Group"},
                 }

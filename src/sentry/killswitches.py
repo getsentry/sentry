@@ -92,7 +92,7 @@ def normalize_value(
         if not condition:
             continue
         elif isinstance(condition, int):
-            rv.append({"project_id": str(condition)})
+            rv.append({"project_id": f"{condition}"})
         elif isinstance(condition, dict):
             for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
                 if k not in condition:
@@ -107,7 +107,7 @@ def normalize_value(
                         raise ValueError(f"Condition {i}: Unknown field: {k}")
 
             if any(v is not None for v in condition.values()):
-                rv.append({k: str(v) for k, v in condition.items() if v is not None})
+                rv.append({k: f"{v}" for k, v in condition.items() if v is not None})
 
     return rv
 
@@ -139,7 +139,7 @@ def _value_matches(
             if value is None:
                 break
 
-            if str(value) != matching_value:
+            if f"{value}" != matching_value:
                 break
         else:
             return True

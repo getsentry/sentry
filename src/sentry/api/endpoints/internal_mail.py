@@ -39,6 +39,6 @@ class InternalMailEndpoint(Endpoint):
                 fail_silently=False,
             )
         except Exception as e:
-            error = str(e)
+            error = f"{e}"
 
         return Response({"error": error}, status=500 if error else 200)

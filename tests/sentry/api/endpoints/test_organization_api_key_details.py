@@ -21,7 +21,7 @@ class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
 
     def test_get_api_details(self):
         response = self.get_success_response(self.organization.slug, self.api_key.id)
-        assert response.data.get("id") == str(self.api_key.id)
+        assert response.data.get("id") == f"{self.api_key.id}"
 
 
 class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):

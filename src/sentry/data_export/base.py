@@ -28,8 +28,8 @@ class ExportQueryType:
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ISSUES_BY_TAG, str(cls.ISSUES_BY_TAG_STR)),
-            (cls.DISCOVER, str(cls.DISCOVER_STR)),
+            (cls.ISSUES_BY_TAG, f"{cls.ISSUES_BY_TAG_STR}"),
+            (cls.DISCOVER, f"{cls.DISCOVER_STR}"),
         )
 
     @classmethod

@@ -35,7 +35,7 @@ class SlackClient(ApiClient):
         if resp:
             content_type = resp.headers["content-type"]
             if content_type == "text/html":
-                is_ok = str(resp.content) == "ok"
+                is_ok = f"{resp.content}" == "ok"
                 # If there is an error, Slack just makes the error the entire response.
                 error_option = resp.content
 
@@ -59,8 +59,8 @@ class SlackClient(ApiClient):
 
         extra = {
             self.integration_type: self.name,
-            "status_string": str(code),
-            "error": str(error)[:256] if error else None,
+            "status_string": f"{code}",
+            "error": f"{error}"[:256] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
         self.logger.info(f"{self.integration_type}.http_response", extra=extra)

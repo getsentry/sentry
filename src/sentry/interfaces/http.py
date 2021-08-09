@@ -41,7 +41,7 @@ def format_headers(value):
             cookie_header = v
         else:
             if not isinstance(v, str):
-                v = str(v)
+                v = f"{v}"
             result.append((k.title(), v))
     return result, cookie_header
 
@@ -202,14 +202,14 @@ class Http(Interface):
         headers = meta.get("headers")
         if headers:
             headers_meta = headers.pop("", None)
-            headers = {str(i): {"1": h[1]} for i, h in enumerate(sorted(headers.items()))}
+            headers = {f"{i}": {"1": h[1]} for i, h in enumerate(sorted(headers.items()))}
             if headers_meta:
                 headers[""] = headers_meta
 
         cookies = meta.get("cookies")
         if cookies:
             cookies_meta = cookies.pop("", None)
-            cookies = {str(i): {"1": h[1]} for i, h in enumerate(sorted(cookies.items()))}
+            cookies = {f"{i}": {"1": h[1]} for i, h in enumerate(sorted(cookies.items()))}
             if cookies_meta:
                 cookies[""] = cookies_meta
 

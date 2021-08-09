@@ -12,7 +12,7 @@ def _encode_data(secret: str, data: bytes, timestamp: str) -> str:
 
 def set_signing_secret(secret: str, data: bytes) -> Mapping[str, str]:
     """Note: this is currently only used in tests."""
-    timestamp = str(int(time.mktime(datetime.utcnow().timetuple())))
+    timestamp = f"{int(time.mktime(datetime.utcnow().timetuple()))}"
     signature = _encode_data(secret, data, timestamp)
     return {
         "HTTP_X_SLACK_REQUEST_TIMESTAMP": timestamp,

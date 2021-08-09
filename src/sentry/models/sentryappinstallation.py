@@ -9,7 +9,7 @@ from sentry.models import DefaultFieldsModel, Project
 
 
 def default_uuid():
-    return str(uuid.uuid4())
+    return f"{uuid.uuid4()}"
 
 
 # connects a sentry app installation to an organization and a provider

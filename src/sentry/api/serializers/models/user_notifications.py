@@ -60,7 +60,7 @@ class UserNotificationsSerializer(Serializer):
                 for org_id in uo.value:
                     data[org_id] = "0"
             elif uo.project is not None:
-                data[uo.project.id] = str(uo.value)
+                data[uo.project.id] = f"{uo.value}"
             elif uo.organization is not None:
-                data[uo.organization.id] = str(uo.value)
+                data[uo.organization.id] = f"{uo.value}"
         return data

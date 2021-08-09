@@ -85,7 +85,7 @@ class SnubaProtocolEventStream(EventStream):
         received_timestamp,  # type: float
         skip_consume,
     ) -> Mapping[str, str]:
-        return {"Received-Timestamp": str(received_timestamp)}
+        return {"Received-Timestamp": f"{received_timestamp}"}
 
     def insert(
         self,

@@ -40,7 +40,7 @@ class IncidentSerializer(Serializer):
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
-            results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
+            results[incident]["alert_rule"] = alert_rules.get(f"{incident.alert_rule.id}")
 
         if "seen_by" in self.expand:
             incident_seen_list = list(
@@ -55,7 +55,7 @@ class IncidentSerializer(Serializer):
                 incident_seen_dict[incident_seen.incident_id].append(serialized_seen_by)
             for incident in item_list:
                 seen_by = incident_seen_dict[incident.id]
-                has_seen = any(seen for seen in seen_by if seen["id"] == str(user.id))
+                has_seen = any(seen for seen in seen_by if seen["id"] == f"{user.id}")
                 results[incident]["seen_by"] = seen_by
                 results[incident]["has_seen"] = has_seen
 
@@ -72,9 +72,9 @@ class IncidentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
-            "id": str(obj.id),
-            "identifier": str(obj.identifier),
-            "organizationId": str(obj.organization_id),
+            "id": f"{obj.id}",
+            "identifier": f"{obj.identifier}",
+            "organizationId": f"{obj.organization_id}",
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
             "activities": attrs["activities"] if "activities" in self.expand else None,

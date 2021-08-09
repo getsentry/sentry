@@ -19,7 +19,7 @@ class ApiAuthorizationSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "scopes": obj.get_scopes(),
             "application": attrs["application"],
             "dateCreated": obj.date_added,

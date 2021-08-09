@@ -24,7 +24,7 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(repo.id)
+        assert response.data[0]["id"] == f"{repo.id}"
         assert response.data[0]["externalSlug"] is None
 
     def test_get_integration_repository(self):
@@ -41,9 +41,9 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         first_row = response.data[0]
-        assert first_row["id"] == str(repo.id)
+        assert first_row["id"] == f"{repo.id}"
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert first_row["externalSlug"] == str(repo.external_id)
+        assert first_row["externalSlug"] == f"{repo.external_id}"
 
     def test_status_unmigratable(self):
         self.url = self.url + "?status=unmigratable"
@@ -255,7 +255,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
 
         assert response.status_code == 201, (response.status_code, response.content)
         assert response.data["id"]
-        assert response.data["id"] == str(repo.id)
+        assert response.data["id"] == f"{repo.id}"
 
         repo = Repository.objects.get(id=response.data["id"])
         assert repo.provider == "integrations:example"

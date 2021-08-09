@@ -71,7 +71,7 @@ class Activity(Model):
         if self.type in (self.RELEASE, self.DEPLOY) and isinstance(self.data["version"], Release):
             self.data["version"] = self.data["version"].version
         if self.type == self.ASSIGNED:
-            self.data["assignee"] = str(self.data["assignee"])
+            self.data["assignee"] = f'{self.data["assignee"]}'
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)

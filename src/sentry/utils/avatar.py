@@ -28,7 +28,7 @@ def get_gravatar_url(
 
     properties: MutableMapping[str, Union[int, str]] = {}
     if size:
-        properties["s"] = str(size)
+        properties["s"] = f"{size}"
     if default:
         properties["d"] = default
     if properties:

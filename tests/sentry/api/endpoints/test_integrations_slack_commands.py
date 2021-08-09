@@ -75,7 +75,7 @@ class SlackCommandsTest(APITestCase, TestCase):
                     **kwargs,
                 }
             )
-        return json.loads(str(response.content.decode("utf-8")))
+        return json.loads(f'{response.content.decode("utf-8")}')
 
     def find_identity(self) -> Optional[Identity]:
         identities = Identity.objects.filter(
@@ -199,7 +199,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         assert self.find_identity()
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = json.loads(f'{responses.calls[0].request.body.decode("utf-8")}')
         assert SUCCESS_LINKED_MESSAGE in data["text"]
 
     @responses.activate
@@ -227,7 +227,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         assert not self.find_identity()
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = json.loads(f'{responses.calls[0].request.body.decode("utf-8")}')
         assert SUCCESS_UNLINKED_MESSAGE in data["text"]
 
     def test_link_command(self):
@@ -295,7 +295,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         assert self.external_actor[0].actor_id == self.team.actor_id
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = json.loads(f'{responses.calls[0].request.body.decode("utf-8")}')
         assert (
             f"The {self.team.slug} team will now receive issue alert notifications in the {self.external_actor[0].external_name} channel."
             in data["text"]
@@ -317,7 +317,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
                     "channel_name": "directmessage",
                 }
             )
-        data = json.loads(str(response.content.decode("utf-8")))
+        data = json.loads(f'{response.content.decode("utf-8")}')
         assert LINK_FROM_CHANNEL_MESSAGE in data["text"]
 
     def test_link_team_identity_does_not_exist(self):
@@ -381,7 +381,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = json.loads(f'{responses.calls[0].request.body.decode("utf-8")}')
         assert (
             f"The {self.team.slug} team has already been linked to a Slack channel." in data["text"]
         )
@@ -457,7 +457,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
         assert len(self.external_actor) == 0
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = json.loads(f'{responses.calls[0].request.body.decode("utf-8")}')
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
             in data["text"]

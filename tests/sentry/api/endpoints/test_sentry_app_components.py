@@ -27,7 +27,7 @@ class SentryAppComponentsTest(APITestCase):
         response = self.get_valid_response(self.sentry_app.slug)
 
         assert response.data[0] == {
-            "uuid": str(self.component.uuid),
+            "uuid": f"{self.component.uuid}",
             "type": "issue-link",
             "schema": self.component.schema,
             "sentryApp": {
@@ -85,8 +85,8 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert self.component3.uuid not in [d["uuid"] for d in response.data]
         components = {d["uuid"]: d for d in response.data}
 
-        assert components[str(self.component1.uuid)] == {
-            "uuid": str(self.component1.uuid),
+        assert components[f"{self.component1.uuid}"] == {
+            "uuid": f"{self.component1.uuid}",
             "type": "issue-link",
             "schema": self.component1.schema,
             "sentryApp": {
@@ -96,8 +96,8 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             },
         }
 
-        assert components[str(self.component2.uuid)] == {
-            "uuid": str(self.component2.uuid),
+        assert components[f"{self.component2.uuid}"] == {
+            "uuid": f"{self.component2.uuid}",
             "type": "issue-link",
             "schema": self.component2.schema,
             "sentryApp": {
@@ -138,7 +138,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         assert response.data == [
             {
-                "uuid": str(component.uuid),
+                "uuid": f"{component.uuid}",
                 "type": "alert-rule",
                 "schema": component.schema,
                 "sentryApp": {
@@ -170,7 +170,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         # during preparation.
         assert response.data == [
             {
-                "uuid": str(self.component2.uuid),
+                "uuid": f"{self.component2.uuid}",
                 "type": self.component2.type,
                 "schema": self.component2.schema,
                 "sentryApp": {

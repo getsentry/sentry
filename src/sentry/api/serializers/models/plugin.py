@@ -31,9 +31,9 @@ class PluginSerializer(Serializer):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
         d = {
             "id": obj.slug,
-            "name": str(obj.get_title()),
-            "slug": obj.slug or slugify(str(obj.get_title())),
-            "shortName": str(obj.get_short_title()),
+            "name": f"{obj.get_title()}",
+            "slug": obj.slug or slugify(f"{obj.get_title()}"),
+            "shortName": f"{obj.get_short_title()}",
             "type": obj.get_plugin_type(),
             "canDisable": obj.can_disable,
             "isTestable": hasattr(obj, "is_testable") and obj.is_testable(),
@@ -51,15 +51,15 @@ class PluginSerializer(Serializer):
             d["enabled"] = obj.is_enabled(self.project)
 
         if obj.version:
-            d["version"] = str(obj.version)
+            d["version"] = f"{obj.version}"
 
         if obj.author:
-            d["author"] = {"name": str(obj.author), "url": str(obj.author_url)}
+            d["author"] = {"name": f"{obj.author}", "url": f"{obj.author_url}"}
 
         d["isHidden"] = d.get("enabled", False) is False and obj.is_hidden()
 
         if obj.description:
-            d["description"] = str(obj.description)
+            d["description"] = f"{obj.description}"
 
         d["features"] = list({f.featureGate.value for f in obj.feature_descriptions})
 
@@ -94,12 +94,12 @@ class PluginWithConfigSerializer(PluginSerializer):
 
 def serialize_field(project, plugin, field):
     data = {
-        "name": str(field["name"]),
-        "label": str(field.get("label") or field["name"].title().replace("_", " ")),
+        "name": f'{field["name"]}',
+        "label": f'{field.get("label") or field["name"].title().replace("_", " ")}',
         "type": field.get("type", "text"),
         "required": field.get("required", True),
-        "help": str(field["help"]) if field.get("help") else None,
-        "placeholder": str(field["placeholder"]) if field.get("placeholder") else None,
+        "help": f'{field["help"]}' if field.get("help") else None,
+        "placeholder": f'{field["placeholder"]}' if field.get("placeholder") else None,
         "choices": field.get("choices"),
         "readonly": field.get("readonly", False),
         "defaultValue": field.get("default"),

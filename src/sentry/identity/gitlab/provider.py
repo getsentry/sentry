@@ -102,7 +102,7 @@ class GitlabIdentityProvider(OAuth2Provider):
                 extra={
                     "identity_id": identity.id,
                     "error_status": error_status,
-                    "error_message": str(e),
+                    "error_message": f"{e}",
                 },
             )
             payload = {}

@@ -83,7 +83,7 @@ def send_incident_alert_notification(action, incident, metric_value, method):
     try:
         client.send_card(channel, attachment)
     except ApiError as e:
-        logger.info("rule.fail.msteams_post", extra={"error": str(e)})
+        logger.info("rule.fail.msteams_post", extra={"error": f"{e}"})
 
 
 def get_identity(user, organization_id, integration_id):

@@ -58,7 +58,7 @@ def get_monitor_context(monitor):
         config["schedule_type"] = monitor.get_schedule_type_display()
 
     return {
-        "id": str(monitor.guid),
+        "id": f"{monitor.guid}",
         "name": monitor.name,
         "config": monitor.config,
         "status": monitor.get_status_display(),
@@ -134,7 +134,7 @@ class Monitor(Model):
     )
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
-        choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
+        choices=[(k, f"{v}") for k, v in MonitorType.as_choices()],
     )
     config = EncryptedJsonField(default=dict)
     next_checkin = models.DateTimeField(null=True)
@@ -193,7 +193,7 @@ class Monitor(Model):
             {
                 "logentry": {"message": f"Monitor failure: {self.name} ({reason})"},
                 "contexts": {"monitor": get_monitor_context(self)},
-                "fingerprint": ["monitor", str(self.guid), reason],
+                "fingerprint": ["monitor", f"{self.guid}", reason],
             },
             project=Project(id=self.project_id),
         )

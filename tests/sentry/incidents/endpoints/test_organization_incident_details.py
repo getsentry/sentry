@@ -102,7 +102,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status
         activity = IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
-        assert activity.value == str(status)
+        assert activity.value == f"{status}"
         assert activity.comment == comment
         assert activity.user == self.user
 

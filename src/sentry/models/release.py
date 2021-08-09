@@ -909,7 +909,7 @@ class Release(Model):
                 self.update(
                     commit_count=len(commit_list),
                     authors=[
-                        str(a_id)
+                        f"{a_id}"
                         for a_id in ReleaseCommit.objects.filter(
                             release=self, commit__author_id__isnull=False
                         )

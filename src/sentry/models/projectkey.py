@@ -99,7 +99,7 @@ class ProjectKey(Model):
     __repr__ = sane_repr("project_id", "public_key")
 
     def __str__(self):
-        return str(self.public_key)
+        return f"{self.public_key}"
 
     @classmethod
     def generate_api_key(cls):

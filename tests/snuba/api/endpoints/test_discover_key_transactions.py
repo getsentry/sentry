@@ -128,10 +128,10 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 200, response.content
         assert response.data == [
             {
-                "team": str(team1.id),
+                "team": f"{team1.id}",
             },
             {
-                "team": str(team2.id),
+                "team": f"{team2.id}",
             },
         ]
 
@@ -748,29 +748,29 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert response.status_code == 200, response.content
         assert response.data == [
             {
-                "team": str(self.team1.id),
+                "team": f"{self.team1.id}",
                 "count": 0,
                 "keyed": [],
             },
             {
-                "team": str(self.team2.id),
+                "team": f"{self.team2.id}",
                 "count": 1,
                 "keyed": [
                     {
-                        "project_id": str(self.project.id),
+                        "project_id": f"{self.project.id}",
                         "transaction": self.event_data["transaction"],
                     },
                 ],
             },
             {
-                "team": str(self.team3.id),
+                "team": f"{self.team3.id}",
                 "count": 2,
                 "keyed": [
                     {
-                        "project_id": str(self.project.id),
+                        "project_id": f"{self.project.id}",
                         "transaction": self.event_data["transaction"],
                     },
-                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                    {"project_id": f"{self.project.id}", "transaction": "other-transaction"},
                 ],
             },
         ]
@@ -789,14 +789,14 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert response.status_code == 200, response.content
         assert response.data == [
             {
-                "team": str(self.team4.id),
+                "team": f"{self.team4.id}",
                 "count": 1,
                 "keyed": [
-                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                    {"project_id": f"{self.project.id}", "transaction": "other-transaction"},
                 ],
             },
             {
-                "team": str(self.team5.id),
+                "team": f"{self.team5.id}",
                 "count": 0,
                 "keyed": [],
             },
@@ -816,40 +816,40 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert response.status_code == 200, response.content
         assert response.data == [
             {
-                "team": str(self.team1.id),
+                "team": f"{self.team1.id}",
                 "count": 0,
                 "keyed": [],
             },
             {
-                "team": str(self.team2.id),
+                "team": f"{self.team2.id}",
                 "count": 1,
                 "keyed": [
                     {
-                        "project_id": str(self.project.id),
+                        "project_id": f"{self.project.id}",
                         "transaction": self.event_data["transaction"],
                     },
                 ],
             },
             {
-                "team": str(self.team3.id),
+                "team": f"{self.team3.id}",
                 "count": 2,
                 "keyed": [
                     {
-                        "project_id": str(self.project.id),
+                        "project_id": f"{self.project.id}",
                         "transaction": self.event_data["transaction"],
                     },
-                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                    {"project_id": f"{self.project.id}", "transaction": "other-transaction"},
                 ],
             },
             {
-                "team": str(self.team4.id),
+                "team": f"{self.team4.id}",
                 "count": 1,
                 "keyed": [
-                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                    {"project_id": f"{self.project.id}", "transaction": "other-transaction"},
                 ],
             },
             {
-                "team": str(self.team5.id),
+                "team": f"{self.team5.id}",
                 "count": 0,
                 "keyed": [],
             },
@@ -932,13 +932,13 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert response.status_code == 200, response.content
         assert response.data == [
             {
-                "team": str(self.team2.id),
+                "team": f"{self.team2.id}",
                 # the key transaction in self.project is counted but not in
                 # the list because self.project is not in the project param
                 "count": 2,
                 "keyed": [
                     {
-                        "project_id": str(another_project.id),
+                        "project_id": f"{another_project.id}",
                         "transaction": "another-transaction",
                     },
                 ],

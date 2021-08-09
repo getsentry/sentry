@@ -100,12 +100,12 @@ class RedisQuotaTest(TestCase):
 
         assert quotas[0].id == "p"
         assert quotas[0].scope == QuotaScope.PROJECT
-        assert quotas[0].scope_id == str(self.project.id)
+        assert quotas[0].scope_id == f"{self.project.id}"
         assert quotas[0].limit == 200
         assert quotas[0].window == 60
         assert quotas[1].id == "o"
         assert quotas[1].scope == QuotaScope.ORGANIZATION
-        assert quotas[1].scope_id == str(self.organization.id)
+        assert quotas[1].scope_id == f"{self.organization.id}"
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
 
@@ -234,7 +234,7 @@ class RedisQuotaTest(TestCase):
         )
 
         self.quota.refund(self.project, timestamp=timestamp)
-        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
+        client = self.quota.cluster.get_local_client_for_key(f"{self.project.organization.pk}")
 
         error_keys = client.keys("r:quota:p:?:*")
         assert len(error_keys) == 2
@@ -283,7 +283,7 @@ class RedisQuotaTest(TestCase):
         self.quota.refund(
             self.project, timestamp=timestamp, category=DataCategory.ATTACHMENT, quantity=100
         )
-        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
+        client = self.quota.cluster.get_local_client_for_key(f"{self.project.organization.pk}")
 
         error_keys = client.keys("r:quota:p:?:*")
         assert len(error_keys) == 0

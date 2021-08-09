@@ -44,8 +44,8 @@ def get_tags_with_meta(event):
                 "value": kv[1],
                 "_meta": prune_empty_keys(
                     {
-                        "key": get_path(meta, str(i), "0"),
-                        "value": get_path(meta, str(i), "1"),
+                        "key": get_path(meta, f"{i}", "0"),
+                        "value": get_path(meta, f"{i}", "1"),
                     }
                 )
                 or None,
@@ -63,7 +63,7 @@ def get_tags_with_meta(event):
         if query:
             tag["query"] = query
 
-    tags_meta = prune_empty_keys({str(i): e.pop("_meta") for i, e in enumerate(tags)})
+    tags_meta = prune_empty_keys({f"{i}": e.pop("_meta") for i, e in enumerate(tags)})
 
     return (tags, meta_with_chunks(tags, tags_meta))
 
@@ -237,9 +237,9 @@ class EventSerializer(Serializer):
 
         d = {
             "id": obj.event_id,
-            "groupID": str(obj.group_id) if obj.group_id else None,
+            "groupID": f"{obj.group_id}" if obj.group_id else None,
             "eventID": obj.event_id,
-            "projectID": str(obj.project_id),
+            "projectID": f"{obj.project_id}",
             "size": obj.size,
             "entries": attrs["entries"],
             "dist": obj.dist,
@@ -365,11 +365,11 @@ class SimpleEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "id": str(obj.event_id),
-            "event.type": str(obj.get_event_type()),
-            "groupID": str(obj.group_id) if obj.group_id else None,
-            "eventID": str(obj.event_id),
-            "projectID": str(obj.project_id),
+            "id": f"{obj.event_id}",
+            "event.type": f"{obj.get_event_type()}",
+            "groupID": f"{obj.group_id}" if obj.group_id else None,
+            "eventID": f"{obj.event_id}",
+            "projectID": f"{obj.project_id}",
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,
@@ -401,9 +401,9 @@ class ExternalEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "groupID": str(obj.group_id) if obj.group_id else None,
-            "eventID": str(obj.event_id),
-            "project": str(obj.project_id),
+            "groupID": f"{obj.group_id}" if obj.group_id else None,
+            "eventID": f"{obj.event_id}",
+            "project": f"{obj.project_id}",
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,

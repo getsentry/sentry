@@ -100,7 +100,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
                     extra={
-                        "error": str(e),
+                        "error": f"{e}",
                         "service_name": service.service_name,
                         "service_id": service.id,
                     },

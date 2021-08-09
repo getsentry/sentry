@@ -6,8 +6,8 @@ from sentry.testutils import TestCase
 
 class BaseAlertRuleTriggerSerializerTest:
     def assert_alert_rule_trigger_serialized(self, trigger, result):
-        assert result["id"] == str(trigger.id)
-        assert result["alertRuleId"] == str(trigger.alert_rule_id)
+        assert result["id"] == f"{trigger.id}"
+        assert result["alertRuleId"] == f"{trigger.alert_rule_id}"
         assert result["label"] == trigger.label
         assert result["thresholdType"] == trigger.alert_rule.threshold_type
         assert result["alertThreshold"] == trigger.alert_threshold

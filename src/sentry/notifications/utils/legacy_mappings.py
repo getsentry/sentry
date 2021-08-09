@@ -108,7 +108,7 @@ def get_legacy_value(type: NotificationSettingTypes, value: NotificationSettingO
     Temporary mapping from new enum types to legacy strings. Each type has a separate mapping.
     """
 
-    return str(KEY_VALUE_TO_LEGACY_VALUE.get(type, {}).get(value))
+    return f"{KEY_VALUE_TO_LEGACY_VALUE.get(type, {}).get(value)}"
 
 
 def get_option_value_from_boolean(value: bool) -> NotificationSettingOptionValues:

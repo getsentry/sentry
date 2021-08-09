@@ -16,7 +16,7 @@ def convert_options_to_env(options):
         elif v is False:
             value = "false"
         elif isinstance(v, int):
-            value = str(v)
+            value = f"{v}"
         else:
             raise TypeError(f"Unknown option type: {k!r} ({type(v)})")
         yield key, value

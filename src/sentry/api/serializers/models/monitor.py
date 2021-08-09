@@ -14,7 +14,7 @@ class MonitorSerializer(Serializer):
         }
 
         return {
-            item: {"project": projects[str(item.project_id)] if item.project_id else None}
+            item: {"project": projects[f"{item.project_id}"] if item.project_id else None}
             for item in item_list
         }
 
@@ -23,7 +23,7 @@ class MonitorSerializer(Serializer):
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
         return {
-            "id": str(obj.guid),
+            "id": f"{obj.guid}",
             "status": obj.get_status_display(),
             "type": obj.get_type_display(),
             "name": obj.name,

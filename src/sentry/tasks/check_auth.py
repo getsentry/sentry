@@ -62,7 +62,7 @@ def check_auth_identity(auth_identity_id, **kwargs):
             logger.warning(
                 "AuthIdentity(id=%s) notified as not valid: %s",
                 auth_identity_id,
-                str(exc),
+                f"{exc}",
                 exc_info=True,
             )
             metrics.incr("auth.identities.invalidated", skip_internal=False)
@@ -75,7 +75,7 @@ def check_auth_identity(auth_identity_id, **kwargs):
         logger.exception(
             "AuthIdentity(id=%s) returned an error during validation: %s",
             auth_identity_id,
-            str(exc),
+            f"{exc}",
         )
         is_linked = True
         is_valid = False

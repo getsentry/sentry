@@ -79,7 +79,7 @@ class PagerDutyPluginTest(PluginTestCase):
                     "type": "link",
                 }
             ],
-            "incident_key": str(group.id),
+            "incident_key": f"{group.id}",
             "client": "sentry",
             "details": {
                 "project": self.project.name,

@@ -17,14 +17,14 @@ class IncidentActivitySerializer(Serializer):
             serializer=user_serializer,
         )
         user_lookup = {user["id"]: user for user in serialized_users}
-        return {item: {"user": user_lookup.get(str(item.user_id))} for item in item_list}
+        return {item: {"user": user_lookup.get(f"{item.user_id}")} for item in item_list}
 
     def serialize(self, obj, attrs, user):
         incident = obj.incident
 
         return {
-            "id": str(obj.id),
-            "incidentIdentifier": str(incident.identifier),
+            "id": f"{obj.id}",
+            "incidentIdentifier": f"{incident.identifier}",
             "user": attrs["user"],
             "type": obj.type,
             "value": obj.value,

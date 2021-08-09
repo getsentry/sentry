@@ -522,7 +522,7 @@ def create_result_key(result_row, fields, issues):
                     value = value[-1]
                 else:
                     value = ""
-            values.append(str(value))
+            values.append(f"{value}")
     return ",".join(values)
 
 

@@ -190,7 +190,7 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
         try:
             teams = get_teams(request, organization)
         except InvalidParams as err:
-            return Response(str(err), status=400)
+            return Response(f"{err}", status=400)
 
         projects = self.get_projects(request, organization)
 
@@ -209,7 +209,7 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
 class TeamKeyTransactionSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {
-            "team": str(obj.project_team.team_id),
+            "team": f"{obj.project_team.team_id}",
         }
 
 
@@ -240,7 +240,7 @@ class KeyTransactionTeamSerializer(Serializer):
             if project.id in self.project_ids:
                 attrs[team]["key_transactions"].append(
                     {
-                        "project_id": str(project.id),
+                        "project_id": f"{project.id}",
                         "transaction": kt.transaction,
                     }
                 )
@@ -249,7 +249,7 @@ class KeyTransactionTeamSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
         return {
-            "team": str(obj.id),
+            "team": f"{obj.id}",
             "count": attrs.get("count", 0),
             "keyed": attrs.get("key_transactions", []),
         }

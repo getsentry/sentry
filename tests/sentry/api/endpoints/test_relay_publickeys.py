@@ -29,27 +29,27 @@ class RelayPublicKeysConfigTest(APITestCase):
         self.public_key = self.key_pair[1]
         self.private_key = self.key_pair[0]
 
-        self.non_existing_key = str(uuid4())
+        self.non_existing_key = f"{uuid4()}"
 
         self.internal_relay = Relay.objects.create(
-            relay_id=str(uuid4()),
-            public_key=str(self.public_key),
+            relay_id=f"{uuid4()}",
+            public_key=f"{self.public_key}",
             is_internal=True,
         )
 
         self.external_relay = Relay.objects.create(
-            relay_id=str(uuid4()),
-            public_key=str(self.public_key),
+            relay_id=f"{uuid4()}",
+            public_key=f"{self.public_key}",
             is_internal=False,
         )
         self.relay_a = Relay.objects.create(
-            relay_id=str(uuid4()),
-            public_key=str(self.public_key),
+            relay_id=f"{uuid4()}",
+            public_key=f"{self.public_key}",
             is_internal=False,
         )
         self.relay_b = Relay.objects.create(
-            relay_id=str(uuid4()),
-            public_key=str(self.public_key),
+            relay_id=f"{uuid4()}",
+            public_key=f"{self.public_key}",
             is_internal=True,
         )
 
@@ -106,8 +106,8 @@ class RelayPublicKeysConfigTest(APITestCase):
         raw_json, signature = self.private_key.pack(
             {
                 "relay_ids": [
-                    str(self.relay_a.relay_id),
-                    str(self.relay_b.relay_id),
+                    f"{self.relay_a.relay_id}",
+                    f"{self.relay_b.relay_id}",
                     self.non_existing_key,
                 ]
             }

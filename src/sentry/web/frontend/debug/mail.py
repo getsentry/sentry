@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_random(request):
-    seed = request.GET.get("seed", str(time.time()))
+    seed = request.GET.get("seed", f"{time.time()}")
     return Random(seed)
 
 

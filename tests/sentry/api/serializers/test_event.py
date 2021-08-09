@@ -250,8 +250,8 @@ class SimpleEventSerializerTest(TestCase):
         result = serialize(event, None, SimpleEventSerializer())
 
         assert result["eventID"] == event.event_id
-        assert result["projectID"] == str(event.project_id)
-        assert result["groupID"] == str(event.group.id)
+        assert result["projectID"] == f"{event.project_id}"
+        assert result["groupID"] == f"{event.group.id}"
         assert result["message"] == event.message
         assert result["title"] == event.title
         assert result["location"] == event.location

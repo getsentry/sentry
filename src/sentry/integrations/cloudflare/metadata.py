@@ -17,7 +17,7 @@ class CloudflareMetadataEndpoint(Endpoint):
             {
                 "metadata": {
                     "username": request.user.username,
-                    "userId": str(request.user.id),
+                    "userId": f"{request.user.id}",
                     "email": request.user.email,
                 }
             }

@@ -26,7 +26,7 @@ class UserListTest(APITestCase):
 
         response = self.get_valid_response(qs_params={"query": "bar"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.superuser.id)
+        assert response.data[0]["id"] == f"{self.superuser.id}"
 
         response = self.get_valid_response(qs_params={"query": "foobar"})
         assert len(response.data) == 0
@@ -34,12 +34,12 @@ class UserListTest(APITestCase):
     def test_superuser_query(self):
         response = self.get_valid_response(qs_params={"query": "is:superuser"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.superuser.id)
+        assert response.data[0]["id"] == f"{self.superuser.id}"
 
     def test_email_query(self):
         response = self.get_valid_response(qs_params={"query": "email:bar@example.com"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.superuser.id)
+        assert response.data[0]["id"] == f"{self.superuser.id}"
 
         response = self.get_valid_response(qs_params={"query": "email:foobar"})
         assert len(response.data) == 0

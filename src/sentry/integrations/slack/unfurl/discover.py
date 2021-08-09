@@ -63,7 +63,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
             except Exception as exc:
                 logger.error(
                     "Failed to load saved query for unfurl: %s",
-                    str(exc),
+                    f"{exc}",
                     exc_info=True,
                 )
             else:
@@ -92,7 +92,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         if "query" not in params:
             params.setlist("query", params.getlist("query") or to_list(saved_query.get("query")))
 
-        display_mode = str(params.get("display") or saved_query.get("display", "default"))
+        display_mode = f'{params.get("display") or saved_query.get("display", "default")}'
 
         if "daily" in display_mode:
             params.setlist("interval", ["1d"])
@@ -109,7 +109,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         except Exception as exc:
             logger.error(
                 "Failed to load events-stats for unfurl: %s",
-                str(exc),
+                f"{exc}",
                 exc_info=True,
             )
             continue
@@ -123,7 +123,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         except RuntimeError as exc:
             logger.error(
                 "Failed to generate chat for discover unfurl: %s",
-                str(exc),
+                f"{exc}",
                 exc_info=True,
             )
             continue

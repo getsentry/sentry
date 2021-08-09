@@ -19,10 +19,10 @@ class ProjectGroupStatsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert str(group1.id) in response.data
-        assert str(group2.id) in response.data
+        assert f"{group1.id}" in response.data
+        assert f"{group2.id}" in response.data
 
-        group_data = response.data[str(group1.id)]
+        group_data = response.data[f"{group1.id}"]
         assert group_data[-1][1] == 3, response.data
         for point in group_data[:-1]:
             assert point[1] == 0

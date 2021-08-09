@@ -37,7 +37,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 "instance": instance,
                 "project": repo["project"]["name"],
                 "name": repo["name"],
-                "external_id": str(repo["id"]),
+                "external_id": f'{repo["id"]}',
                 "url": repo["_links"]["web"]["href"],
             }
         )

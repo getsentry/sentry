@@ -39,7 +39,7 @@ class WorkItemWebhook(Endpoint):
             event_type = data["eventType"]
             external_id = data["resourceContainers"]["collection"]["id"]
         except KeyError as e:
-            logger.info("vsts.invalid-webhook-payload", extra={"error": str(e)})
+            logger.info("vsts.invalid-webhook-payload", extra={"error": f"{e}"})
 
         # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
         if event_type == "workitem.updated":
@@ -78,14 +78,14 @@ class WorkItemWebhook(Endpoint):
                 "vsts.special-webhook-secret",
                 extra={
                     "integration_id": integration.id,
-                    "integration_secret": str(integration_secret)[:6],
-                    "webhook_payload_secret": str(webhook_payload_secret)[:6],
+                    "integration_secret": f"{integration_secret}"[:6],
+                    "webhook_payload_secret": f"{webhook_payload_secret}"[:6],
                 },
             )
         except KeyError as e:
             logger.info(
                 "vsts.missing-webhook-secret",
-                extra={"error": str(e), "integration_id": integration.id},
+                extra={"error": f"{e}", "integration_id": integration.id},
             )
 
         assert constant_time_compare(integration_secret, webhook_payload_secret)
@@ -98,7 +98,7 @@ class WorkItemWebhook(Endpoint):
         except KeyError as e:
             logger.info(
                 "vsts.updating-workitem-does-not-have-necessary-information",
-                extra={"error": str(e), "integration_id": integration.id},
+                extra={"error": f"{e}", "integration_id": integration.id},
             )
 
         try:
@@ -108,7 +108,7 @@ class WorkItemWebhook(Endpoint):
             logger.info(
                 "vsts.updated-workitem-fields-not-passed",
                 extra={
-                    "error": str(e),
+                    "error": f"{e}",
                     "workItemId": data["resource"]["workItemId"],
                     "integration_id": integration.id,
                     "azure_project_id": project,
@@ -137,7 +137,7 @@ class WorkItemWebhook(Endpoint):
                 logger.info(
                     "vsts.failed-to-parse-email-in-handle-assign-to",
                     extra={
-                        "error": str(e),
+                        "error": f"{e}",
                         "integration_id": integration.id,
                         "assigned_to_values": assigned_to,
                         "external_issue_key": external_issue_key,

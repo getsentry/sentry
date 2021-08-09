@@ -74,8 +74,8 @@ class ReleaseFileCacheTest(TestCase):
 
         expected_path = os.path.join(
             options.get("releasefile.cache-path"),
-            str(self.organization.id),
-            str(file.id),
+            f"{self.organization.id}",
+            f"{file.id}",
         )
 
         # Set the threshold to zero to force caching on the file system
@@ -96,8 +96,8 @@ class ReleaseFileCacheTest(TestCase):
 
         expected_path = os.path.join(
             options.get("releasefile.cache-path"),
-            str(self.organization.id),
-            str(file.id),
+            f"{self.organization.id}",
+            f"{file.id}",
         )
 
         # Set the threshold larger than the file size to force streaming
@@ -126,7 +126,7 @@ class ReleaseArchiveTestCase(TestCase):
                 zf.writestr(filename, content)
 
         buffer.seek(0)
-        file_ = File.objects.create(name=str(hash(tuple(files.items()))))
+        file_ = File.objects.create(name=f"{hash(tuple(files.items()))}")
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 

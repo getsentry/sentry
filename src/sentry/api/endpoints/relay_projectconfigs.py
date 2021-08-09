@@ -172,7 +172,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         configs = {}
         for project_id in project_ids:
-            configs[str(project_id)] = {"disabled": True}
+            configs[f"{project_id}"] = {"disabled": True}
 
             project = projects.get(int(project_id))
             if project is None:
@@ -193,7 +193,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                         project_keys=project_keys.get(project.id) or [],
                     )
 
-            configs[str(project_id)] = project_config.to_dict()
+            configs[f"{project_id}"] = project_config.to_dict()
 
         if full_config_requested:
             projectconfig_cache.set_many(configs)

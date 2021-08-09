@@ -23,8 +23,8 @@ class GroupExternalIssuesEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert response.data == [
             {
-                "id": str(external_issue.id),
-                "issueId": str(group.id),
+                "id": f"{external_issue.id}",
+                "issueId": f"{group.id}",
                 "serviceType": "sentry-app",
                 "displayName": "App#issue-1",
                 "webUrl": "https://example.com/app/issues/1",

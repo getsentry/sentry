@@ -679,7 +679,7 @@ def raw_snql_query(
 
 def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Query):
-        hashable = str(query)
+        hashable = f"{query}"
     else:
         hashable = json.dumps(query, sort_keys=True)
 
@@ -892,7 +892,7 @@ def _raw_snql_query(
         body = query.snuba()
         with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
             span.set_tag("referrer", referrer)
-            span.set_data("snql", str(query))
+            span.set_data("snql", f"{query}")
             return _snuba_pool.urlopen("POST", f"/{query.dataset}/snql", body=body, headers=headers)
 
 

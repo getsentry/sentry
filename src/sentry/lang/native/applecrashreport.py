@@ -142,7 +142,7 @@ class AppleCrashReport:
             ):
                 symbol = "[inlined] " + symbol
         return "{}{}{}{}{}".format(
-            str(number).ljust(4, " "),
+            f"{number}".ljust(4, " "),
             image_name(frame.get("package") or NATIVE_UNKNOWN_STRING).ljust(32, " "),
             hex(instruction_addr).ljust(20, " "),
             symbol,

@@ -197,7 +197,7 @@ class RedisBackend(Backend):
                     ],
                 )
             except ResponseError as e:
-                if "err(invalid_state):" in str(e):
+                if "err(invalid_state):" in f"{e}":
                     raise InvalidState("Timeline is not in the ready state.") from e
                 else:
                     raise

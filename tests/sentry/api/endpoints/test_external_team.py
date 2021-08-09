@@ -34,9 +34,9 @@ class ExternalTeamTest(APITestCase):
             )
         assert response.data == {
             **data,
-            "id": str(response.data["id"]),
-            "teamId": str(self.team.id),
-            "integrationId": str(self.integration.id),
+            "id": f'{response.data["id"]}',
+            "teamId": f"{self.team.id}",
+            "integrationId": f"{self.integration.id}",
         }
 
     def test_without_feature_flag(self):
@@ -111,9 +111,9 @@ class ExternalTeamTest(APITestCase):
             )
         assert response.data == {
             **data,
-            "id": str(self.external_team.id),
-            "teamId": str(self.team.id),
-            "integrationId": str(self.integration.id),
+            "id": f"{self.external_team.id}",
+            "teamId": f"{self.team.id}",
+            "integrationId": f"{self.integration.id}",
         }
 
     def test_create_with_invalid_integration_id(self):
@@ -148,9 +148,9 @@ class ExternalTeamTest(APITestCase):
             response = self.get_success_response(self.organization.slug, self.team.slug, **data)
         assert response.data == {
             **data,
-            "id": str(response.data["id"]),
-            "teamId": str(self.team.id),
-            "integrationId": str(self.slack_integration.id),
+            "id": f'{response.data["id"]}',
+            "teamId": f"{self.team.id}",
+            "integrationId": f"{self.slack_integration.id}",
         }
         assert ExternalActor.objects.get(id=response.data["id"]).external_id == "YU287RFO30"
 

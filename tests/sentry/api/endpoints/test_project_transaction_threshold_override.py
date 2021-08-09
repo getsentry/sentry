@@ -111,7 +111,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["threshold"] == "600"
         assert response.data["metric"] == "duration"
-        assert response.data["editedBy"] == str(self.user.id)
+        assert response.data["editedBy"] == f"{self.user.id}"
 
         assert ProjectTransactionThresholdOverride.objects.filter(
             transaction=self.data["transaction"],

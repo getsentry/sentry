@@ -20,7 +20,7 @@ class UserDetailsGetTest(UserDetailsTest):
     def test_lookup_self(self):
         resp = self.get_valid_response("me")
 
-        assert resp.data["id"] == str(self.user.id)
+        assert resp.data["id"] == f"{self.user.id}"
         assert resp.data["options"]["theme"] == "light"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
@@ -33,7 +33,7 @@ class UserDetailsGetTest(UserDetailsTest):
 
         resp = self.get_valid_response(self.user.id)
 
-        assert resp.data["id"] == str(self.user.id)
+        assert resp.data["id"] == f"{self.user.id}"
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
@@ -55,7 +55,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             },
         )
 
-        assert resp.data["id"] == str(self.user.id)
+        assert resp.data["id"] == f"{self.user.id}"
 
         user = User.objects.get(id=self.user.id)
         assert user.name == "hello world"
@@ -93,7 +93,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             email="c@example.com",
             isActive="false",
         )
-        assert resp.data["id"] == str(self.user.id)
+        assert resp.data["id"] == f"{self.user.id}"
 
         user = User.objects.get(id=self.user.id)
         assert user.name == "hello world"

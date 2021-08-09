@@ -50,4 +50,4 @@ class CustomSCMIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization.id)
         repos = installation.get_repositories()
 
-        assert repos == [{"name": "my-org/some-repo", "identifier": str(unknown_repo.id)}]
+        assert repos == [{"name": "my-org/some-repo", "identifier": f"{unknown_repo.id}"}]

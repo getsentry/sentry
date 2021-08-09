@@ -495,11 +495,11 @@ class OrganizationMemberListTest(APITestCase):
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
         organization_member = next(
-            filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data)
+            filter(lambda x: x["user"]["id"] == f"{self.user_2.id}", response.data)
         )
         assert organization_member
         assert len(organization_member["externalUsers"]) == 1
-        assert organization_member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert organization_member["externalUsers"][0]["id"] == f"{self.external_user.id}"
         assert (
             organization_member["externalUsers"][0]["userId"] == organization_member["user"]["id"]
         )
@@ -516,11 +516,11 @@ class OrganizationMemberListTest(APITestCase):
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
         organization_member = next(
-            filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data)
+            filter(lambda x: x["user"]["id"] == f"{self.user_2.id}", response.data)
         )
         assert organization_member
         assert len(organization_member["externalUsers"]) == 1
-        assert organization_member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert organization_member["externalUsers"][0]["id"] == f"{self.external_user.id}"
         assert (
             organization_member["externalUsers"][0]["userId"] == organization_member["user"]["id"]
         )

@@ -191,7 +191,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         try:
             int(config["workspace"])
         except ValueError as exc:
-            self.logger.exception(str(exc))
+            self.logger.exception(f"{exc}")
             raise PluginError("Non-numeric workspace value")
         return config
 

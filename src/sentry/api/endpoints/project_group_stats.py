@@ -28,4 +28,4 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             model=tsdb.models.group, keys=group_ids, **self._parse_args(request, environment_id)
         )
 
-        return Response({str(k): v for k, v in data.items()})
+        return Response({f"{k}": v for k, v in data.items()})

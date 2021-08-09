@@ -115,7 +115,7 @@ class NotifyEmailTest(RuleTestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
+            "targetIdentifier": f"{self.user.id}",
         }
         condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
 

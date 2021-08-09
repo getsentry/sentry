@@ -15,7 +15,7 @@ class OrganizationAvatarTestBase(APITestCase):
 class OrganizationAvatarTest(OrganizationAvatarTestBase):
     def test_get(self):
         response = self.get_success_response(self.organization.slug)
-        assert response.data["id"] == str(self.organization.id)
+        assert response.data["id"] == f"{self.organization.id}"
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
         assert response.data["avatar"]["avatarUuid"] is None
 

@@ -16,12 +16,12 @@ def __prep_value(model: Any, key: str, value: Union[Model, int, str]) -> str:
     val = value
     if isinstance(value, Model):
         val = value.pk
-    return str(val)
+    return f"{val}"
 
 
 def __prep_key(model: Any, key: str) -> str:
     if key == "pk":
-        return str(model._meta.pk.name)
+        return f"{model._meta.pk.name}"
     return key
 
 

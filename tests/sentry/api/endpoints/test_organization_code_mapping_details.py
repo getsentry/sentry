@@ -21,9 +21,9 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
         self.config = RepositoryProjectPathConfig.objects.create(
-            repository_id=str(self.repo.id),
-            project_id=str(self.project.id),
-            organization_integration_id=str(self.org_integration.id),
+            repository_id=f"{self.repo.id}",
+            project_id=f"{self.project.id}",
+            organization_integration_id=f"{self.org_integration.id}",
             stack_root="/stack/root",
             source_root="/source/root",
             default_branch="master",
@@ -45,12 +45,12 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
     def test_basic_delete(self):
         resp = self.client.delete(self.url)
         assert resp.status_code == 204
-        assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
+        assert not RepositoryProjectPathConfig.objects.filter(id=f"{self.config.id}").exists()
 
     def test_basic_edit(self):
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
-        assert resp.data["id"] == str(self.config.id)
+        assert resp.data["id"] == f"{self.config.id}"
         assert resp.data["sourceRoot"] == "newRoot"
 
     def test_delete_with_existing_codeowners(self):
@@ -61,4 +61,4 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             resp.data
             == "Cannot delete Code Mapping. Must delete Code Owner that uses this mapping first."
         )
-        assert RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
+        assert RepositoryProjectPathConfig.objects.filter(id=f"{self.config.id}").exists()

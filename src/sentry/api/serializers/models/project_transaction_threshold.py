@@ -10,11 +10,11 @@ from sentry.models.transaction_threshold import (
 class ProjectTransactionThresholdSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
-            "threshold": str(obj.threshold),
+            "id": f"{obj.id}",
+            "threshold": f"{obj.threshold}",
             "metric": TRANSACTION_METRICS[obj.metric],
-            "projectId": str(obj.project_id),
-            "editedBy": str(obj.edited_by_id),
+            "projectId": f"{obj.project_id}",
+            "editedBy": f"{obj.edited_by_id}",
             "dateUpdated": obj.date_updated,
             "dateAdded": obj.date_added,
         }
@@ -24,12 +24,12 @@ class ProjectTransactionThresholdSerializer(Serializer):
 class ProjectTransactionThresholdOverrideSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
-            "threshold": str(obj.threshold),
+            "id": f"{obj.id}",
+            "threshold": f"{obj.threshold}",
             "metric": TRANSACTION_METRICS[obj.metric],
             "transaction": obj.transaction,
-            "projectId": str(obj.project_id),
-            "editedBy": str(obj.edited_by_id),
+            "projectId": f"{obj.project_id}",
+            "editedBy": f"{obj.edited_by_id}",
             "dateUpdated": obj.date_updated,
             "dateAdded": obj.date_added,
         }

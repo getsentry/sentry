@@ -30,7 +30,7 @@ def validate_association(
     associations: Sequence[Union[UserEmail, ExternalActor]],
     type: str,
 ) -> Sequence[str]:
-    raw_items_set = {str(item) for item in raw_items}
+    raw_items_set = {f"{item}" for item in raw_items}
     if type == "emails":
         # associations are UserEmail objects
         sentry_items = {item.email for item in associations}

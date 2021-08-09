@@ -21,7 +21,7 @@ class SlackActionRequest(SlackRequest):
 
     @property
     def type(self) -> str:
-        return str(self.data.get("type"))
+        return f'{self.data.get("type")}'
 
     @memoize  # type: ignore
     def callback_data(self) -> JSONData:

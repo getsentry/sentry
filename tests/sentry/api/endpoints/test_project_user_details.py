@@ -19,7 +19,7 @@ class ProjectUserDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
         response = self.get_valid_response(self.org.slug, self.project.slug, self.euser.hash)
-        assert response.data["id"] == str(self.euser.id)
+        assert response.data["id"] == f"{self.euser.id}"
 
     def test_delete_event_user(self):
         # Only delete an event user as a superuser

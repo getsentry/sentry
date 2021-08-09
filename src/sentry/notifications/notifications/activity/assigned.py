@@ -15,7 +15,7 @@ class AssignedActivityNotification(GroupActivityNotification):
 
         # legacy Activity objects from before assignable teams
         if "assigneeType" not in data or data["assigneeType"] == "user":
-            if activity.user_id and str(activity.user_id) == data["assignee"]:
+            if activity.user_id and f"{activity.user_id}" == data["assignee"]:
                 return "{author} assigned {an issue} to themselves", {}, {}
 
             try:

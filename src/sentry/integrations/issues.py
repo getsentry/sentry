@@ -118,7 +118,7 @@ class IssueBasicMixin:
         if persisted_fields:
             project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
             self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
-                str(project.id), {}
+                f"{project.id}", {}
             ).update(project_defaults)
             self.org_integration.save()
 
@@ -149,7 +149,7 @@ class IssueBasicMixin:
     # TODO(saif): Make private and move all usages over to `get_defaults`
     def get_project_defaults(self, project_id):
         return self.org_integration.config.get("project_issue_defaults", {}).get(
-            str(project_id), {}
+            f"{project_id}", {}
         )
 
     def create_issue(self, data, **kwargs):

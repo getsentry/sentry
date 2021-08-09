@@ -88,7 +88,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             type=org_search.type, query=org_search.query, status_code=201
         )
         assert resp.data["isPinned"]
-        assert resp.data["id"] == str(org_search.id)
+        assert resp.data["id"] == f"{org_search.id}"
 
     def test_pin_global_search(self):
         global_search = SavedSearch.objects.create(
@@ -99,7 +99,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             type=global_search.type, query=global_search.query, status_code=201
         )
         assert resp.data["isPinned"]
-        assert resp.data["id"] == str(global_search.id)
+        assert resp.data["id"] == f"{global_search.id}"
 
     def test_pin_sort_mismatch(self):
         saved_search = SavedSearch.objects.create(
@@ -114,7 +114,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             sort=SortOptions.DATE, type=saved_search.type, query=saved_search.query, status_code=201
         )
         assert resp.data["isPinned"]
-        assert resp.data["id"] != str(saved_search.id)
+        assert resp.data["id"] != f"{saved_search.id}"
 
     def test_invalid_type(self):
         self.login_as(self.member)

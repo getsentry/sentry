@@ -45,7 +45,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider="bitbucket",
-                external_id=str(event["repository"]["uuid"]),
+                external_id=f'{event["repository"]["uuid"]}',
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -131,7 +131,7 @@ class BitbucketWebhookEndpoint(View):
         if not handler:
             return HttpResponse(status=204)
 
-        address_string = str(request.META["REMOTE_ADDR"])
+        address_string = f'{request.META["REMOTE_ADDR"]}'
         ip = ipaddress.ip_address(address_string)
         valid_ip = False
         for ip_range in BITBUCKET_IP_RANGES:

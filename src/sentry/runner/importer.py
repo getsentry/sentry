@@ -43,7 +43,7 @@ class Importer:
         except Exception as e:
             from sentry.utils.settings import reraise_as
 
-            msg = str(e)
+            msg = f"{e}"
             if msg:
                 msg = f"{type(e).__name__}: {msg}"
             else:

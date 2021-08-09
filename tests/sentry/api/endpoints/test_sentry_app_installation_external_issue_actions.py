@@ -51,8 +51,8 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "id": str(external_issue.id),
-            "issueId": str(self.group.id),
+            "id": f"{external_issue.id}",
+            "issueId": f"{self.group.id}",
             "serviceType": self.sentry_app.slug,
             "displayName": "ProjectName#issue-1",
             "webUrl": "https://example.com/project/issue-id",

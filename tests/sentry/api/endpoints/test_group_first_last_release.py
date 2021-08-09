@@ -8,7 +8,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/first-last-release/"
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
+        assert response.data["id"] == f"{group.id}"
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
 
@@ -18,6 +18,6 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/first-last-release/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
+        assert response.data["id"] == f"{group.id}"
         assert response.data["firstRelease"]["version"] == "1.0"
         assert response.data["lastRelease"]["version"] == "1.0"

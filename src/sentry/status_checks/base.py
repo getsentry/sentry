@@ -24,7 +24,7 @@ class Problem:
 
     def __init__(self, message, severity=SEVERITY_CRITICAL, url=None):
         assert severity in self.SEVERITY_LEVELS
-        self.message = str(message)
+        self.message = f"{message}"
         self.severity = severity
         self.url = url
 

@@ -151,7 +151,7 @@ def get_environment_for_deploy(deploy: Optional[Deploy]) -> str:
     if deploy:
         environment = Environment.objects.get(id=deploy.environment_id)
         if environment and environment.name:
-            return str(environment.name)
+            return f"{environment.name}"
     return "Default Environment"
 
 
@@ -177,15 +177,13 @@ def get_link(group: Group, environment: Optional[str]) -> str:
     query_params = {"referrer": "alert_email"}
     if environment:
         query_params["environment"] = environment
-    return str(group.get_absolute_url(params=query_params))
+    return f"{group.get_absolute_url(params=query_params)}"
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    return str(
-        absolute_uri(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
-    )
+    link = f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+    # TODO(joshuarli): We should type this absolute_uri to just return str.
+    return f"{absolute_uri(link)}"
 
 
 def get_rules(
@@ -205,7 +203,7 @@ def get_commits(project: Project, event: "Event") -> Sequence[Mapping[str, Any]]
     except (Commit.DoesNotExist, Release.DoesNotExist):
         pass
     except Exception as exc:
-        logging.exception(str(exc))
+        logging.exception(f"{exc}")
     else:
         for committer in committers:
             for commit in committer["commits"]:

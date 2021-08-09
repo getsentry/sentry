@@ -45,7 +45,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
             response = self.client.get(path)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(self.attachment.id)
+        assert response.data["id"] == f"{self.attachment.id}"
         assert response.data["mimetype"] == self.attachment.mimetype
 
     def test_download(self):
@@ -59,7 +59,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
-        assert response.get("Content-Length") == str(self.file.size)
+        assert response.get("Content-Length") == f"{self.file.size}"
         assert response.get("Content-Type") == "application/octet-stream"
         assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
 

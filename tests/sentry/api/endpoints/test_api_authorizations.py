@@ -20,7 +20,7 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
 
         response = self.get_valid_response()
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(auth.id)
+        assert response.data[0]["id"] == f"{auth.id}"
 
 
 class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):

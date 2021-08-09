@@ -16,7 +16,7 @@ class OrganizationUserDetailsTest(APITestCase):
     def test_gets_info_for_user_in_org(self):
         response = self.get_valid_response(self.org.slug, self.user.id)
 
-        assert response.data["id"] == str(self.user.id)
+        assert response.data["id"] == f"{self.user.id}"
         assert response.data["email"] == self.user.email
 
     def test_cannot_access_info_if_user_not_in_org(self):

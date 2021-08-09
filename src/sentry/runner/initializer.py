@@ -168,7 +168,7 @@ def bootstrap_options(settings, config=None):
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
 
-            raise ConfigurationError("Malformed config.yml file: %s" % str(e))
+            raise ConfigurationError("Malformed config.yml file: %s" % f"{e}")
 
         # Empty options file, so fail gracefully
         if options is None:

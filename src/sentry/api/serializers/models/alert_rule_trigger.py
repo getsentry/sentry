@@ -33,8 +33,8 @@ class AlertRuleTriggerSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
-            "alertRuleId": str(obj.alert_rule_id),
+            "id": f"{obj.id}",
+            "alertRuleId": f"{obj.alert_rule_id}",
             "label": obj.label,
             "thresholdType": obj.alert_rule.threshold_type,
             "alertThreshold": obj.alert_threshold,

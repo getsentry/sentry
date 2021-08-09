@@ -47,8 +47,8 @@ class GitHubClient:
         return self._request("/user/emails")
 
     def is_org_member(self, org_id):
-        org_id = str(org_id)
+        org_id = f"{org_id}"
         for o in self.get_org_list():
-            if str(o["id"]) == org_id:
+            if f'{o["id"]}' == org_id:
                 return True
         return False

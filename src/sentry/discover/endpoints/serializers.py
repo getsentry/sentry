@@ -77,7 +77,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
                 optional=True,
             )
         except InvalidParams as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(f"{e}")
 
         if start is None or end is None:
             raise serializers.ValidationError("Either start and end dates or range is required")

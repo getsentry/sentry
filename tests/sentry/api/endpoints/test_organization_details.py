@@ -56,7 +56,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["onboardingTasks"] == []
-        assert response.data["id"] == str(self.organization.id)
+        assert response.data["id"] == f"{self.organization.id}"
         assert response.data["role"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
@@ -132,7 +132,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_onboarding_tasks(self):
         response = self.get_success_response(self.organization.slug)
         assert response.data["onboardingTasks"] == []
-        assert response.data["id"] == str(self.organization.id)
+        assert response.data["id"] == f"{self.organization.id}"
 
         project = self.create_project(organization=self.organization)
         project_created.send(project=project, user=self.user, sender=type(project))

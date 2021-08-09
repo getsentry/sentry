@@ -87,7 +87,7 @@ def create_demo_org(quick=False) -> Organization:
             except Exception as e:
                 logger.error(
                     "create_demo_org.population_error",
-                    extra={"organization_slug": org.slug, "quick": quick, "error": str(e)},
+                    extra={"organization_slug": org.slug, "quick": quick, "error": f"{e}"},
                 )
                 # delete the organization if data population fails
                 org.status = OrganizationStatus.PENDING_DELETION

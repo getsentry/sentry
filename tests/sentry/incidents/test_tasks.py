@@ -128,8 +128,8 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             expected_recipient=recipient,
         )
         activity.type = IncidentActivityType.STATUS_CHANGE
-        activity.value = str(IncidentStatus.CLOSED.value)
-        activity.previous_value = str(IncidentStatus.WARNING.value)
+        activity.value = f"{IncidentStatus.CLOSED.value}"
+        activity.previous_value = f"{IncidentStatus.WARNING.value}"
         self.run_test(
             activity,
             expected_username=activity.user.name,

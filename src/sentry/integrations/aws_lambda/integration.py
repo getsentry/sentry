@@ -301,7 +301,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
-                    extra={"error": str(e)},
+                    extra={"error": f"{e}"},
                 )
                 return render_response(_("Unknown error"))
 
@@ -387,7 +387,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     success_count += 1
                 else:
                     # need to make sure we catch any error to continue to the next function
-                    err_message = str(e)
+                    err_message = f"{e}"
                     is_custom_err, err_message = get_sentry_err_message(err_message)
                     if not is_custom_err:
                         capture_exception(e)
@@ -400,7 +400,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                             "lambda_name": name,
                             "account_number": account_number,
                             "region": region,
-                            "error": str(e),
+                            "error": f"{e}",
                         },
                     )
 

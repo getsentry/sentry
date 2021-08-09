@@ -10,7 +10,7 @@ class UserSerializerTest(TestCase):
         user = self.create_user()
 
         result = serialize(user)
-        assert result["id"] == str(user.id)
+        assert result["id"] == f"{user.id}"
         assert result["has2fa"] is False
 
         Authenticator.objects.create(
@@ -18,7 +18,7 @@ class UserSerializerTest(TestCase):
         )
 
         result = serialize(user)
-        assert result["id"] == str(user.id)
+        assert result["id"] == f"{user.id}"
         assert result["has2fa"] is True
         assert len(result["emails"]) == 1
         assert result["emails"][0]["email"] == user.email
@@ -59,18 +59,18 @@ class DetailedUserSerializerTest(TestCase):
         )
 
         result = serialize(user, user, DetailedUserSerializer())
-        assert result["id"] == str(user.id)
+        assert result["id"] == f"{user.id}"
         assert result["has2fa"] is True
         assert len(result["emails"]) == 1
         assert result["emails"][0]["email"] == user.email
         assert result["emails"][0]["is_verified"]
         assert "identities" in result
         assert len(result["identities"]) == 1
-        assert result["identities"][0]["id"] == str(auth_identity.id)
+        assert result["identities"][0]["id"] == f"{auth_identity.id}"
         assert result["identities"][0]["name"] == auth_identity.ident
         assert "authenticators" in result
         assert len(result["authenticators"]) == 1
-        assert result["authenticators"][0]["id"] == str(auth.id)
+        assert result["authenticators"][0]["id"] == f"{auth.id}"
         assert result["permissions"] == ["foo"]
         assert result["canReset2fa"] is True
 

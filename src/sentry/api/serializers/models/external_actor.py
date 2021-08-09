@@ -53,10 +53,10 @@ class ExternalActorSerializer(Serializer):  # type: ignore
     ) -> Mapping[str, Any]:
         provider = get_provider_string(obj.provider)
         data = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "provider": provider,
             "externalName": obj.external_name,
-            "integrationId": str(obj.integration_id),
+            "integrationId": f"{obj.integration_id}",
         }
 
         if obj.external_id:
@@ -64,8 +64,8 @@ class ExternalActorSerializer(Serializer):  # type: ignore
 
         # Extra context `key` tells the API how to resolve actor_id.
         if key == "user":
-            data["userId"] = str(attrs[key].id)
+            data["userId"] = f"{attrs[key].id}"
         elif key == "team":
-            data["teamId"] = str(attrs[key].id)
+            data["teamId"] = f"{attrs[key].id}"
 
         return data

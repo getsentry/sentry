@@ -35,7 +35,7 @@ def execfile(filename):
             "from sentry.models import *",
         ]
     )
-    script_globals = {"__name__": "__main__", "__file__": str(filename)}
+    script_globals = {"__name__": "__main__", "__file__": f"{filename}"}
     preamble_code = compile(preamble, filename, "exec")
     exec(preamble_code, script_globals, script_globals)
     sys.argv = sys.argv[1:]

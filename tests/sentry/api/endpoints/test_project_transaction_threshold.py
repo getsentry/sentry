@@ -68,7 +68,7 @@ class ProjectTransactionThresholdTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["threshold"] == "300"
         assert response.data["metric"] == "duration"
-        assert response.data["editedBy"] == str(self.user.id)
+        assert response.data["editedBy"] == f"{self.user.id}"
 
         assert ProjectTransactionThreshold.objects.filter(
             project=self.project, organization=self.project.organization

@@ -56,7 +56,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
         organizations = Organization.objects.get_for_user(request.user, scope=scope)
         for org in organizations:
-            if str(org.id) == organization_id:
+            if f"{org.id}" == organization_id:
                 return org
         return None
 
@@ -73,7 +73,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             teams__in=Team.objects.get_for_user(org, request.user, scope="project:write"),
         )
         for project in projects:
-            if str(project.id) == project_id:
+            if f"{project.id}" == project_id:
                 return project
         return None
 
@@ -90,14 +90,14 @@ class CloudflareWebhookEndpoint(Endpoint):
             key=lambda x: x.slug,
         )
 
-        enum_choices = [str(o.id) for o in organizations]
+        enum_choices = [f"{o.id}" for o in organizations]
 
         data["install"]["schema"]["properties"]["organization"] = {
             "type": "string",
             "title": "Sentry Organization",
             "order": 1,
             "enum": enum_choices,
-            "enumNames": {str(o.id): o.slug for o in organizations},
+            "enumNames": {f"{o.id}": o.slug for o in organizations},
             "required": True,
         }
         if not enum_choices:
@@ -129,14 +129,14 @@ class CloudflareWebhookEndpoint(Endpoint):
             key=lambda x: x.slug,
         )
 
-        enum_choices = [str(o.id) for o in projects]
+        enum_choices = [f"{o.id}" for o in projects]
 
         data["install"]["schema"]["properties"]["project"] = {
             "type": "string",
             "title": "Sentry Project",
             "order": 2,
             "enum": enum_choices,
-            "enumNames": {str(o.id): o.slug for o in projects},
+            "enumNames": {f"{o.id}": o.slug for o in projects},
             "required": True,
         }
         if not enum_choices:

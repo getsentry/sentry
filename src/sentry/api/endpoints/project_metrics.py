@@ -59,7 +59,7 @@ class ProjectMetricsTagsEndpoint(ProjectEndpoint):
         try:
             tag_names = DATA_SOURCE.get_tag_names(project, metric_names)
         except InvalidParams as exc:
-            raise (ParseError(detail=str(exc)))
+            raise (ParseError(detail=f"{exc}"))
 
         return Response(tag_names, status=200)
 
@@ -77,7 +77,7 @@ class ProjectMetricsTagDetailsEndpoint(ProjectEndpoint):
         try:
             tag_values = DATA_SOURCE.get_tag_values(project, tag_name, metric_names)
         except InvalidParams as exc:
-            msg = str(exc)
+            msg = f"{exc}"
             # TODO: Use separate error type once we have real data
             if "Unknown tag" in msg:
                 raise ResourceDoesNotExist(f"tag '{tag_name}'")
@@ -103,6 +103,6 @@ class ProjectMetricsDataEndpoint(ProjectEndpoint):
             query = QueryDefinition(request.GET, allow_minute_resolution=False)
             data = DATA_SOURCE.get_series(query)
         except (InvalidField, InvalidParams) as exc:
-            raise (ParseError(detail=str(exc)))
+            raise (ParseError(detail=f"{exc}"))
 
         return Response(data, status=200)

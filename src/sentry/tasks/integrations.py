@@ -349,7 +349,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
             extra={
                 "integration_id": integration_id,
                 "organization_id": organization_id,
-                "error": str(e),
+                "error": f"{e}",
             },
         )
         subscription = None
@@ -371,7 +371,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                         "integration_id": integration_id,
                         "organization_id": organization_id,
                         "subscription_id": subscription_id,
-                        "error": str(e),
+                        "error": f"{e}",
                     },
                 )
 
@@ -386,7 +386,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                 extra={
                     "integration_id": integration_id,
                     "organization_id": organization_id,
-                    "error": str(e),
+                    "error": f"{e}",
                 },
             )
         else:

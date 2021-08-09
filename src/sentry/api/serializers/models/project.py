@@ -283,7 +283,7 @@ class ProjectSerializer(Serializer):
         results = {}
         for project_id in project_ids:
             serialized = []
-            str_id = str(project_id)
+            str_id = f"{project_id}"
             if str_id in stats:
                 for item in stats[str_id].data["data"]:
                     serialized.append((item["time"], item.get("count", 0)))
@@ -343,7 +343,7 @@ class ProjectSerializer(Serializer):
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
         context = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "slug": obj.slug,
             "name": obj.name,
             "isPublic": obj.public,
@@ -378,7 +378,7 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
 
         orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
         for item in item_list:
-            attrs[item]["organization"] = orgs[str(item.organization_id)]
+            attrs[item]["organization"] = orgs[f"{item.organization_id}"]
         return attrs
 
     def serialize(self, obj, attrs, user):
@@ -399,7 +399,7 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
         teams = {
             pt.team_id: {
-                "id": str(pt.team.id),
+                "id": f"{pt.team.id}",
                 "slug": pt.team.slug,
                 "name": pt.team.name,
             }
@@ -542,7 +542,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         context = {
             "team": attrs["teams"][0] if attrs["teams"] else None,
             "teams": attrs["teams"],
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "name": obj.name,
             "slug": obj.slug,
             "isBookmarked": attrs["is_bookmarked"],
@@ -616,7 +616,7 @@ def bulk_fetch_project_latest_releases(projects):
         ON r.id = lr.release_id
             """,
             # formatting tuples works specifically in psycopg2
-            (tuple(str(i.id) for i in projects),),
+            (tuple(f"{i.id}" for i in projects),),
         )
     )
 
@@ -698,7 +698,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             attrs[item].update(
                 {
                     "latest_release": latest_releases.get(item.id),
-                    "org": orgs[str(item.organization_id)],
+                    "org": orgs[f"{item.organization_id}"],
                     "options": options_by_project[item.id],
                     "processing_issues": processing_issues_by_project.get(item.id, 0),
                 }

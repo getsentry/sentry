@@ -35,7 +35,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
 
         repo = self._validate_repo(client, installation, config["identifier"])
-        config["external_id"] = str(repo["id"])
+        config["external_id"] = f'{repo["id"]}'
         config["integration_id"] = integration.id
 
         return config

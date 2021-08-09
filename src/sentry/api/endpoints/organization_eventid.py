@@ -45,8 +45,8 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 {
                     "organizationSlug": organization.slug,
                     "projectSlug": project_slugs_by_id[event.project_id],
-                    "groupId": str(event.group_id),
-                    "eventId": str(event.event_id),
+                    "groupId": f"{event.group_id}",
+                    "eventId": f"{event.event_id}",
                     "event": serialize(event, request.user),
                 }
             )

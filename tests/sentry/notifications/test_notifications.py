@@ -343,7 +343,7 @@ class ActivityNotificationTest(APITestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
+            "targetIdentifier": f"{self.user.id}",
         }
         Rule.objects.create(
             project=self.project,

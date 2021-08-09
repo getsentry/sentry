@@ -48,7 +48,7 @@ def safe_urlencode(params, doseq=0):
         elif isinstance(v, (list, tuple)):
             new_params.append((k, [i.encode("utf-8") for i in v]))
         else:
-            new_params.append((k, str(v)))
+            new_params.append((k, f"{v}"))
 
     return urlencode(new_params, doseq)
 

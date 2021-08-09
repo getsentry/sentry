@@ -64,7 +64,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
         team = self.team  # force creation
 
         response = self.get_valid_response(team.organization.slug, team.slug)
-        assert response.data["id"] == str(team.id)
+        assert response.data["id"] == f"{team.id}"
 
 
 class TeamUpdateTest(TeamDetailsTestBase):

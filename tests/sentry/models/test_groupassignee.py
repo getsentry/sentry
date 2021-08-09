@@ -39,7 +39,7 @@ class GroupAssigneeTestCase(TestCase):
             project=self.group.project, group=self.group, type=Activity.ASSIGNED
         )
 
-        assert activity.data["assignee"] == str(self.user.id)
+        assert activity.data["assignee"] == f"{self.user.id}"
         assert activity.data["assigneeEmail"] == self.user.email
         assert activity.data["assigneeType"] == "user"
 
@@ -54,7 +54,7 @@ class GroupAssigneeTestCase(TestCase):
             project=self.group.project, group=self.group, type=Activity.ASSIGNED
         )
 
-        assert activity.data["assignee"] == str(self.team.id)
+        assert activity.data["assignee"] == f"{self.team.id}"
         assert activity.data["assigneeEmail"] is None
         assert activity.data["assigneeType"] == "team"
 
@@ -77,11 +77,11 @@ class GroupAssigneeTestCase(TestCase):
             ).order_by("id")
         )
 
-        assert activity[0].data["assignee"] == str(self.user.id)
+        assert activity[0].data["assignee"] == f"{self.user.id}"
         assert activity[0].data["assigneeEmail"] == self.user.email
         assert activity[0].data["assigneeType"] == "user"
 
-        assert activity[1].data["assignee"] == str(self.team.id)
+        assert activity[1].data["assignee"] == f"{self.team.id}"
         assert activity[1].data["assigneeEmail"] is None
         assert activity[1].data["assigneeType"] == "team"
 
@@ -131,7 +131,7 @@ class GroupAssigneeTestCase(TestCase):
                     project=self.group.project, group=self.group, type=Activity.ASSIGNED
                 )
 
-                assert activity.data["assignee"] == str(self.user.id)
+                assert activity.data["assignee"] == f"{self.user.id}"
                 assert activity.data["assigneeEmail"] == self.user.email
                 assert activity.data["assigneeType"] == "user"
 

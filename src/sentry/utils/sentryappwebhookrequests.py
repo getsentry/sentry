@@ -110,7 +110,7 @@ class SentryAppWebhookRequestsBuffer:
 
         time = timezone.now()
         request_data = {
-            "date": str(time),
+            "date": f"{time}",
             "response_code": response_code,
             "webhook_url": url,
         }

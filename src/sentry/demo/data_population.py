@@ -395,7 +395,7 @@ def catch_and_log_errors(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            logger.error(f"{func.__name__}.error", extra={"error": str(e)}, exc_info=True)
+            logger.error(f"{func.__name__}.error", extra={"error": f"{e}"}, exc_info=True)
             time.sleep(settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"])
 
     return wrapped
@@ -865,7 +865,7 @@ class DataPopulation:
             critical_trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=str(team.id),
+            target_identifier=f"{team.id}",
         )
 
         # create alerts
@@ -929,7 +929,7 @@ class DataPopulation:
                 {
                     "id": "sentry.mail.actions.NotifyEmailAction",
                     "name": "Send an email to Team",
-                    "targetIdentifier": str(team.id),
+                    "targetIdentifier": f"{team.id}",
                     "targetType": "Team",
                 }
             ],
@@ -1512,7 +1512,7 @@ class DataPopulation:
         item_headers = json.dumps({"type": "session"})
         data = {
             "sid": sid,
-            "did": str(user_id),
+            "did": f"{user_id}",
             "started": formatted_time,
             "duration": random.randrange(2, 60),
             "attrs": {

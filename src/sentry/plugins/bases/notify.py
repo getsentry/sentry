@@ -66,7 +66,7 @@ class NotificationPlugin(Plugin):
             self.logger.info(
                 "notification-plugin.notify-failed",
                 extra={
-                    "error": str(err),
+                    "error": f"{err}",
                     "plugin": self.slug,
                     "project_id": event.group.project_id,
                     "organization_id": event.group.project.organization_id,
@@ -123,7 +123,7 @@ class NotificationPlugin(Plugin):
                 for uo in UserOption.objects.filter(
                     key="subscribe_by_default", user__in=members_to_check
                 )
-                if str(uo.value) == "0"
+                if f"{uo.value}" == "0"
             }
             member_set = [x for x in member_set if x not in disabled]
 
@@ -180,12 +180,12 @@ class NotificationPlugin(Plugin):
             elif hasattr(exc, "read") and callable(exc.read):
                 test_results = f"{exc}\n{exc.read()[:256]}"
             else:
-                logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
-                if str(exc).lower().startswith("error communicating with"):
-                    test_results = str(exc)[:256]
+                logging.exception("Plugin(%s) raised an error during test, %s", self.slug, f"{exc}")
+                if f"{exc}".lower().startswith("error communicating with"):
+                    test_results = f"{exc}"[:256]
                 else:
                     test_results = (
-                        "There was an internal error with the Plugin, %s" % str(exc)[:256]
+                        "There was an internal error with the Plugin, %s" % f"{exc}"[:256]
                     )
         if not test_results:
             test_results = "No errors returned"

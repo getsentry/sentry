@@ -13,4 +13,4 @@ class UserOrganizationsTest(APITestCase):
 
         response = self.get_valid_response("me")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(organization_id)
+        assert response.data[0]["id"] == f"{organization_id}"

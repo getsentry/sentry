@@ -70,7 +70,7 @@ class DataExportTest(APITestCase):
         assert response.data == {
             "id": data_export.id,
             "user": {
-                "id": str(self.user.id),
+                "id": f"{self.user.id}",
                 "email": self.user.email,
                 "username": self.user.username,
             },
@@ -100,7 +100,7 @@ class DataExportTest(APITestCase):
         assert response2.data == {
             "id": data_export.id,
             "user": {
-                "id": str(self.user.id),
+                "id": f"{self.user.id}",
                 "email": self.user.email,
                 "username": self.user.username,
             },

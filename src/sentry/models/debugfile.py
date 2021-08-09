@@ -307,7 +307,7 @@ def _analyze_progard_filename(filename):
     ident = match.group(1)
 
     try:
-        return str(uuid.UUID(ident))
+        return f"{uuid.UUID(ident)}"
     except Exception:
         pass
 
@@ -521,13 +521,13 @@ class DIFCache:
         return options.get("dsym.cache-path")
 
     def get_project_path(self, project):
-        return os.path.join(self.cache_path, str(project.id))
+        return os.path.join(self.cache_path, f"{project.id}")
 
     def fetch_difs(self, project, debug_ids, features=None):
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
-        debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
+        debug_ids = [f"{debug_id}".lower() for debug_id in debug_ids]
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 
         rv = {}

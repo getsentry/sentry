@@ -12,7 +12,7 @@ class IncidentSeenSerializer(Serializer):
 
         result = {}
         for item in item_list:
-            result[item] = {"user": user_map[str(item.user_id)]}
+            result[item] = {"user": user_map[f"{item.user_id}"]}
         return result
 
     def serialize(self, obj, attrs, user):

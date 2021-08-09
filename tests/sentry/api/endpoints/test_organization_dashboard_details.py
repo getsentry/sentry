@@ -57,9 +57,9 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         )
 
     def assert_serialized_dashboard(self, data, dashboard):
-        assert data["id"] == str(dashboard.id)
+        assert data["id"] == f"{dashboard.id}"
         assert data["title"] == dashboard.title
-        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == f"{dashboard.created_by.id}"
 
 
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
@@ -228,10 +228,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
-                {"id": str(self.widget_2.id)},
-                {"id": str(self.widget_3.id)},
-                {"id": str(self.widget_4.id)},
+                {"id": f"{self.widget_1.id}"},
+                {"id": f"{self.widget_2.id}"},
+                {"id": f"{self.widget_3.id}"},
+                {"id": f"{self.widget_4.id}"},
                 {
                     "title": "Error Counts by Country",
                     "displayType": "world_map",
@@ -271,7 +271,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
+                {"id": f"{self.widget_1.id}"},
                 {
                     "displayType": "line",
                     "interval": "5m",
@@ -287,7 +287,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
+                {"id": f"{self.widget_1.id}"},
                 {
                     "title": "Errors",
                     "interval": "5m",
@@ -303,7 +303,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
+                {"id": f"{self.widget_1.id}"},
                 {
                     "title": "Invalid fields",
                     "displayType": "line",
@@ -326,7 +326,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
+                {"id": f"{self.widget_1.id}"},
                 {
                     "title": "Invalid fields",
                     "displayType": "line",
@@ -343,7 +343,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
+                {"id": f"{self.widget_1.id}"},
                 {
                     "title": "Invalid fields",
                     "displayType": "line",
@@ -359,7 +359,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
+                {"id": f"{self.widget_1.id}"},
                 {
                     "title": "Invalid interval",
                     "displayType": "line",
@@ -382,10 +382,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id), "title": "New title"},
-                {"id": str(self.widget_2.id)},
-                {"id": str(self.widget_3.id)},
-                {"id": str(self.widget_4.id)},
+                {"id": f"{self.widget_1.id}", "title": "New title"},
+                {"id": f"{self.widget_2.id}"},
+                {"id": f"{self.widget_3.id}"},
+                {"id": f"{self.widget_4.id}"},
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
@@ -399,10 +399,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "widgets": [
                 {
-                    "id": str(self.widget_1.id),
+                    "id": f"{self.widget_1.id}",
                     "title": "New title",
                     "queries": [
-                        {"id": str(self.widget_1_data_1.id)},
+                        {"id": f"{self.widget_1_data_1.id}"},
                         {
                             "name": "transactions",
                             "fields": ["count()"],
@@ -410,7 +410,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         },
                     ],
                 },
-                {"id": str(self.widget_2.id)},
+                {"id": f"{self.widget_2.id}"},
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
@@ -423,7 +423,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         queries = self.get_widget_queries(widgets[0])
         assert len(queries) == 2
-        assert data["widgets"][0]["queries"][0]["id"] == str(queries[0].id)
+        assert data["widgets"][0]["queries"][0]["id"] == f"{queries[0].id}"
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][1], queries[1])
 
     def test_update_widget_remove_and_update_query(self):
@@ -431,11 +431,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "widgets": [
                 {
-                    "id": str(self.widget_1.id),
+                    "id": f"{self.widget_1.id}",
                     "title": "New title",
                     "queries": [
                         {
-                            "id": str(self.widget_1_data_1.id),
+                            "id": f"{self.widget_1_data_1.id}",
                             "name": "transactions",
                             "fields": ["count()"],
                             "conditions": "event.type:transaction",
@@ -461,14 +461,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "widgets": [
                 {
-                    "id": str(self.widget_1.id),
+                    "id": f"{self.widget_1.id}",
                     "title": "New title",
                     "queries": [
-                        {"id": str(self.widget_1_data_2.id)},
-                        {"id": str(self.widget_1_data_1.id)},
+                        {"id": f"{self.widget_1_data_2.id}"},
+                        {"id": f"{self.widget_1_data_1.id}"},
                     ],
                 },
-                {"id": str(self.widget_2.id)},
+                {"id": f"{self.widget_2.id}"},
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
@@ -488,9 +488,9 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "widgets": [
                 {
-                    "id": str(self.widget_1.id),
+                    "id": f"{self.widget_1.id}",
                     "title": "New title",
-                    "queries": [{"id": str(self.widget_2_data_1.id)}],
+                    "queries": [{"id": f"{self.widget_2_data_1.id}"}],
                 },
             ],
         }
@@ -503,7 +503,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "widgets": [
                 {
-                    "id": str(self.widget_1.id),
+                    "id": f"{self.widget_1.id}",
                     "queries": [
                         {
                             "fields": ["title", "count()"],
@@ -523,8 +523,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
-                {"id": str(self.widget_2.id)},
+                {"id": f"{self.widget_1.id}"},
+                {"id": f"{self.widget_2.id}"},
                 {
                     "title": "Errors over time",
                     "displayType": "line",
@@ -532,7 +532,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
                     ],
                 },
-                {"id": str(self.widget_4.id)},
+                {"id": f"{self.widget_4.id}"},
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
@@ -551,7 +551,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "widgets": [
                 {
-                    "id": str(self.widget_1.id),
+                    "id": f"{self.widget_1.id}",
                     "title": "Invalid fields",
                     "displayType": "line",
                     "queries": [{"name": "Errors", "fields": ["p95(user)"], "conditions": ""}],
@@ -567,7 +567,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "widgets": [
                 {
-                    "id": str(self.widget_1.id),
+                    "id": f"{self.widget_1.id}",
                     "title": "Invalid fields",
                     "displayType": "line",
                     "queries": [{"name": "Errors", "fields": ["p95()"], "conditions": "foo: bar:"}],
@@ -582,8 +582,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id), "title": "New title"},
-                {"id": str(self.widget_2.id), "title": "Other title"},
+                {"id": f"{self.widget_1.id}", "title": "New title"},
+                {"id": f"{self.widget_2.id}", "title": "Other title"},
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)

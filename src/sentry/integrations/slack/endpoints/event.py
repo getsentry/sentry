@@ -50,7 +50,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
         except ApiError as e:
-            logger.error("slack.event.on-message-error", extra={"error": str(e)})
+            logger.error("slack.event.on-message-error", extra={"error": f"{e}"})
 
         return self.respond()
 
@@ -83,7 +83,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
         except ApiError as e:
-            logger.error("slack.event.on-message-error", extra={"error": str(e)})
+            logger.error("slack.event.on-message-error", extra={"error": f"{e}"})
 
         return self.respond()
 
@@ -103,7 +103,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                     "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
                 )
             except Exception as e:
-                logger.error("slack.parse-link-error", extra={"error": str(e)})
+                logger.error("slack.parse-link-error", extra={"error": f"{e}"})
 
             link_type, args = match_link(item["url"])
 
@@ -143,7 +143,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+            logger.error("slack.event.unfurl-error", extra={"error": f"{e}"}, exc_info=True)
 
         return self.respond()
 

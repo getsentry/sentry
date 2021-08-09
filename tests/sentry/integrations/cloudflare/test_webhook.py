@@ -96,29 +96,29 @@ class PreviewWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/preview-webhook-authenticated.json")
         )
-        webhook_data["install"]["options"]["organization"] = str(self.org.id)
+        webhook_data["install"]["options"]["organization"] = f"{self.org.id}"
         resp = self.post_webhook(data=webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            str(self.org.id)
+            f"{self.org.id}"
         ]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enumNames"] == {
-            str(self.org.id): self.org.slug
+            f"{self.org.id}": self.org.slug
         }
-        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == f"{self.org.id}"
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            str(self.project.id)
+            f"{self.project.id}"
         ]
         assert resp.data["install"]["schema"]["properties"]["project"]["enumNames"] == {
-            str(self.project.id): self.project.slug
+            f"{self.project.id}": self.project.slug
         }
-        assert resp.data["install"]["options"]["project"] == str(self.project.id)
+        assert resp.data["install"]["options"]["project"] == f"{self.project.id}"
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
+        assert resp.data["install"]["options"]["dsn"] == f"{self.key.get_dsn(public=True)}"
 
     def test_multiple_projects(self):
         project2 = self.create_project(name="b", teams=[self.team])
@@ -126,24 +126,24 @@ class PreviewWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/preview-webhook-authenticated.json")
         )
-        webhook_data["install"]["options"]["organization"] = str(self.org.id)
+        webhook_data["install"]["options"]["organization"] = f"{self.org.id}"
         resp = self.post_webhook(webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            str(self.org.id)
+            f"{self.org.id}"
         ]
-        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == f"{self.org.id}"
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            str(self.project.id),
-            str(project2.id),
+            f"{self.project.id}",
+            f"{project2.id}",
         ]
-        assert resp.data["install"]["options"]["project"] == str(self.project.id)
+        assert resp.data["install"]["options"]["project"] == f"{self.project.id}"
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
+        assert resp.data["install"]["options"]["dsn"] == f"{self.key.get_dsn(public=True)}"
 
     def test_no_projects(self):
         self.project.delete()
@@ -151,15 +151,15 @@ class PreviewWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/preview-webhook-authenticated.json")
         )
-        webhook_data["install"]["options"]["organization"] = str(self.org.id)
+        webhook_data["install"]["options"]["organization"] = f"{self.org.id}"
         resp = self.post_webhook(webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            str(self.org.id)
+            f"{self.org.id}"
         ]
-        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == f"{self.org.id}"
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == []
         assert "dsn" not in resp.data["install"]["schema"]["properties"]
 
@@ -183,17 +183,17 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            str(self.org.id)
+            f"{self.org.id}"
         ]
-        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == f"{self.org.id}"
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            str(self.project.id)
+            f"{self.project.id}"
         ]
-        assert resp.data["install"]["options"]["project"] == str(self.project.id)
+        assert resp.data["install"]["options"]["project"] == f"{self.project.id}"
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
+        assert resp.data["install"]["options"]["dsn"] == f"{self.key.get_dsn(public=True)}"
 
     def test_with_invalid_organization_selected(self):
         webhook_data = json.loads(
@@ -206,17 +206,17 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            str(self.org.id)
+            f"{self.org.id}"
         ]
-        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == f"{self.org.id}"
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            str(self.project.id)
+            f"{self.project.id}"
         ]
-        assert resp.data["install"]["options"]["project"] == str(self.project.id)
+        assert resp.data["install"]["options"]["project"] == f"{self.project.id}"
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
+        assert resp.data["install"]["options"]["dsn"] == f"{self.key.get_dsn(public=True)}"
 
     def test_with_existing_project_selected_and_no_keys(self):
         project2 = self.create_project(name="b", teams=[self.team])
@@ -226,21 +226,21 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/option-change-account-webhook.json")
         )
-        webhook_data["install"]["options"]["organization"] = str(self.org.id)
-        webhook_data["install"]["options"]["project"] = str(project2.id)
+        webhook_data["install"]["options"]["organization"] = f"{self.org.id}"
+        webhook_data["install"]["options"]["project"] = f"{project2.id}"
 
         resp = self.post_webhook(webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            str(self.org.id)
+            f"{self.org.id}"
         ]
-        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == f"{self.org.id}"
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            str(self.project.id),
-            str(project2.id),
+            f"{self.project.id}",
+            f"{project2.id}",
         ]
-        assert resp.data["install"]["options"]["project"] == str(project2.id)
+        assert resp.data["install"]["options"]["project"] == f"{project2.id}"
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == []
         assert "dsn" not in resp.data["install"]["options"]

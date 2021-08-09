@@ -58,7 +58,7 @@ def capture_transaction_exceptions(func):
     def raise_the_exception(conn, exc):
         if (
             "current transaction is aborted, commands ignored until end of transaction block"
-            in str(exc)
+            in f"{exc}"
         ):
             exc_info = getattr(conn, "_last_exception", None)
             if exc_info is None:

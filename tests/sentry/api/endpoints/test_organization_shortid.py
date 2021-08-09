@@ -19,5 +19,5 @@ class ShortIdLookupEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["organizationSlug"] == org.slug
         assert response.data["projectSlug"] == project.slug
-        assert response.data["groupId"] == str(group.id)
-        assert response.data["group"]["id"] == str(group.id)
+        assert response.data["groupId"] == f"{group.id}"
+        assert response.data["group"]["id"] == f"{group.id}"

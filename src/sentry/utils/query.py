@@ -181,7 +181,7 @@ class WithProgressBar:
             count = len(iterator)
         self.iterator = iterator
         self.count = count
-        self.caption = str(caption or "Progress")
+        self.caption = f'{caption or "Progress"}'
 
     def __iter__(self):
         if self.count != 0:

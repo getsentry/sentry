@@ -46,12 +46,12 @@ class IntegrationPipeline(Pipeline):
             self.get_logger().info(
                 "build-integration.failure",
                 extra={
-                    "error_message": str(e),
+                    "error_message": f"{e}",
                     "error_status": getattr(e, "code", None),
                     "provider_key": self.provider.key,
                 },
             )
-            return self.error(str(e))
+            return self.error(f"{e}")
 
         response = self._finish_pipeline(data)
 

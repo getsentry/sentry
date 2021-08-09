@@ -79,7 +79,7 @@ class GroupActivityNotification(ActivityNotification, ABC):
 
     def get_group_link(self) -> str:
         referrer = re.sub("Notification$", "Email", self.__class__.__name__)
-        return str(self.group.get_absolute_url(params={"referrer": referrer}))
+        return f'{self.group.get_absolute_url(params={"referrer": referrer})}'
 
     def get_participants_with_group_subscription_reason(
         self,

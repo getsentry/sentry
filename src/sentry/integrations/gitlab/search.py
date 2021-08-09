@@ -36,7 +36,7 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             try:
                 response = installation.search_issues(query=query, project_id=project, iids=iids)
             except ApiError as e:
-                return Response({"detail": str(e)}, status=400)
+                return Response({"detail": f"{e}"}, status=400)
 
             return Response(
                 [
@@ -52,7 +52,7 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             try:
                 response = installation.search_projects(query)
             except ApiError as e:
-                return Response({"detail": str(e)}, status=400)
+                return Response({"detail": f"{e}"}, status=400)
             return Response(
                 [
                     {"label": project["name_with_namespace"], "value": project["id"]}

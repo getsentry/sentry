@@ -6,7 +6,7 @@ from sentry.models import MonitorCheckIn
 class MonitorCheckInSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.guid),
+            "id": f"{obj.guid}",
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,

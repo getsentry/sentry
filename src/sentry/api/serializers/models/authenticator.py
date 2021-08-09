@@ -12,7 +12,7 @@ from sentry.auth.authenticators import (
 class AuthenticatorInterfaceSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         data = {
-            "id": str(obj.interface_id),
+            "id": f"{obj.interface_id}",
             "name": obj.name,
             "description": obj.description,
             "rotationWarning": obj.rotation_warning,
@@ -21,7 +21,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
             "removeButton": obj.remove_button,
             "isBackupInterface": obj.is_backup_interface,
             "isEnrolled": obj.is_enrolled(),
-            "status": str(obj.status.value),
+            "status": f"{obj.status.value}",
             "canValidateOtp": obj.can_validate_otp,
             "allowMultiEnrollment": obj.allow_multi_enrollment,
             "allowRotationInPlace": obj.allow_rotation_in_place,
@@ -29,7 +29,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
 
         # authenticator is enrolled
         if obj.authenticator is not None:
-            data["authId"] = str(obj.authenticator.id)
+            data["authId"] = f"{obj.authenticator.id}"
             data["createdAt"] = obj.authenticator.created_at
             data["lastUsedAt"] = obj.authenticator.last_used_at
 

@@ -82,7 +82,7 @@ class RuleSerializer(Serializer):
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
-            "id": str(obj.id) if obj.id else None,
+            "id": f"{obj.id}" if obj.id else None,
             # conditions pertain to criteria that can trigger an alert
             "conditions": filter(lambda condition: not _is_filter(condition), all_conditions),
             # filters are not new conditions but are the subset of conditions that pertain to event attributes

@@ -8,7 +8,7 @@ class IssueOccurrencesTest(RuleTestCase):
     def test_compares_correctly(self):
         event = self.get_event()
         value = 10
-        data = {"value": str(value)}
+        data = {"value": f"{value}"}
 
         rule = self.get_rule(data=data)
 

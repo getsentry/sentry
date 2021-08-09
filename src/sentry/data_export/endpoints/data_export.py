@@ -83,7 +83,7 @@ class DataExportQuerySerializer(serializers.Serializer):
                 start, end = get_date_range_from_params(query_info)
             except InvalidParams as e:
                 sentry_sdk.set_tag("query.error_reason", "Invalid date params")
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(f"{e}")
 
             if "statsPeriod" in query_info:
                 del query_info["statsPeriod"]
@@ -113,7 +113,7 @@ class DataExportQuerySerializer(serializers.Serializer):
                     resolved_equations=resolved_equations,
                 )
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError(str(err))
+                raise serializers.ValidationError(f"{err}")
 
         return data
 
@@ -181,5 +181,5 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             metrics.incr(
                 "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
             )
-            return Response({"detail": str(e)}, status=400)
+            return Response({"detail": f"{e}"}, status=400)
         return Response(serialize(data_export, request.user), status=status)

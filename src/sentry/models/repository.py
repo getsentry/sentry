@@ -87,7 +87,7 @@ def on_delete(instance, actor=None, **kwargs):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         if isinstance(e, (IntegrationError, PluginError, InvalidIdentity)):
-            error = str(e)
+            error = f"{e}"
         else:
             error = "An unknown error occurred"
         if actor is not None:

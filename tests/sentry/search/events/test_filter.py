@@ -270,7 +270,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -278,13 +278,13 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)"
             )
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("user.email:foo@example.com OR user.email:bar@example.com)")
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -292,7 +292,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))"
             )
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
@@ -472,25 +472,25 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("count():>1 OR a:b")
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR a:b")
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR (a:b AND count():>2)")
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("a:b OR (c:d AND (e:f AND count():>1))")
         assert (
-            str(error.value)
+            f"{error.value}"
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
 
@@ -561,7 +561,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
             re.escape(
-                f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
+                f"Invalid query. Project(s) {f'{project3.slug}'} do not exist or are not actively selected."
             ),
         ):
             get_filter(
@@ -970,8 +970,8 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("issue:1", {"organization_id": 1})
-        assert "Invalid value '" in str(err)
-        assert "' for 'issue:' filter" in str(err)
+        assert "Invalid value '" in f"{err}"
+        assert "' for 'issue:' filter" in f"{err}"
 
     def test_issue_filter(self):
         group = self.create_group(project=self.project)
@@ -1114,11 +1114,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has_project(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("!has:project")
-        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in f"{err}"
 
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("!has:project.name")
-        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in f"{err}"
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
@@ -2516,7 +2516,7 @@ def test_snql_malformed_boolean_search(description, query, expected_message):
     query_filter = QueryFilter(dataset, params)
     with pytest.raises(InvalidSearchQuery) as error:
         where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
-    assert str(error.value) == expected_message, description
+    assert f"{error.value}" == expected_message, description
 
 
 class SnQLBooleanSearchQueryTest(TestCase):
@@ -2572,7 +2572,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
             re.escape(
-                f"Invalid query. Project(s) {str(self.project3.slug)} do not exist or are not actively selected."
+                f"Invalid query. Project(s) {f'{self.project3.slug}'} do not exist or are not actively selected."
             ),
         ):
             query = f"project:{self.project1.slug} OR project:{self.project3.slug}"

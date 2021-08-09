@@ -36,8 +36,8 @@ class AlertRuleTriggerActionSerializer(Serializer):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
 
         return {
-            "id": str(obj.id),
-            "alertRuleTriggerId": str(obj.alert_rule_trigger_id),
+            "id": f"{obj.id}",
+            "alertRuleTriggerId": f"{obj.alert_rule_trigger_id}",
             "type": AlertRuleTriggerAction.get_registered_type(
                 AlertRuleTriggerAction.Type(obj.type)
             ).slug,

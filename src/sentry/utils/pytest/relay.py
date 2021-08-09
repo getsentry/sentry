@@ -47,11 +47,11 @@ def relay_server_setup(live_server, tmpdir_factory):
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
     )
     config_path = tmpdir_factory.mktemp(prefix)
-    config_path = str(config_path)
+    config_path = f"{config_path}"
 
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:
-        port = str(parsed_live_server_url.port)
+        port = f"{parsed_live_server_url.port}"
     else:
         port = "80"
 
@@ -86,7 +86,7 @@ def relay_server_setup(live_server, tmpdir_factory):
             content = input.read()
 
         for var_name, var_val in template_vars.items():
-            content = content.replace("${%s}" % var_name, str(var_val))
+            content = content.replace("${%s}" % var_name, f"{var_val}")
 
         with open(dest_path, "wt") as output:
             output.write(content)

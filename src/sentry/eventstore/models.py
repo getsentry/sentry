@@ -583,7 +583,7 @@ class EventSubjectTemplateData:
             value = self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
                 raise KeyError
-            return str(value)
+            return f"{value}"
         elif name == "project":
             return self.event.project.get_full_name()
         elif name == "projectID":

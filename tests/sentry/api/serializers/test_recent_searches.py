@@ -14,8 +14,8 @@ class RecentSearchSerializerTest(TestCase):
         )
         result = serialize(search)
 
-        assert result["id"] == str(search.id)
-        assert result["organizationId"] == str(search.organization_id)
+        assert result["id"] == f"{search.id}"
+        assert result["organizationId"] == f"{search.organization_id}"
         assert result["type"] == search.type
         assert result["query"] == search.query
         assert result["lastSeen"] == search.last_seen

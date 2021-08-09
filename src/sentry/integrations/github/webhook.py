@@ -53,7 +53,7 @@ class Webhook:
                 extra={
                     "action": event.get("action"),
                     "repository": event.get("repository", {}).get("full_name", None),
-                    "external_id": str(external_id),
+                    "external_id": f"{external_id}",
                 },
             )
             return
@@ -65,7 +65,7 @@ class Webhook:
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider="integrations:%s" % self.provider,
-                external_id=str(event["repository"]["id"]),
+                external_id=f'{event["repository"]["id"]}',
             )
             for repo in repos:
                 self._handle(integration, event, orgs[repo.organization_id], repo)
@@ -121,7 +121,7 @@ class InstallationEventWebhook(Webhook):
                     extra={
                         "action": event["action"],
                         "installation_name": installation["account"]["login"],
-                        "external_id": str(external_id),
+                        "external_id": f"{external_id}",
                     },
                 )
 
@@ -208,7 +208,7 @@ class PushEventWebhook(Webhook):
                             try:
                                 gh_user = client.get_user(gh_username)
                             except ApiError as exc:
-                                logger.exception(str(exc))
+                                logger.exception(f"{exc}")
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query

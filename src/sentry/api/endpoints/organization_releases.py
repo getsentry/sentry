@@ -271,7 +271,7 @@ class OrganizationReleasesEndpoint(
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
             except InvalidSearchQuery as e:
                 return Response(
-                    {"detail": str(e)},
+                    {"detail": f"{e}"},
                     status=400,
                 )
 
@@ -489,7 +489,7 @@ class OrganizationReleasesEndpoint(
                         release.set_refs(refs, request.user, fetch=fetch_commits)
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
-                        return Response({"refs": [str(e)]}, status=400)
+                        return Response({"refs": [f"{e}"]}, status=400)
 
                 if not created and not new_projects:
                     # This is the closest status code that makes sense, and we want
@@ -550,7 +550,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
             except InvalidSearchQuery as e:
                 return Response(
-                    {"detail": str(e)},
+                    {"detail": f"{e}"},
                     status=400,
                 )
 

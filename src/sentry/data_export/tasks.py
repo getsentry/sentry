@@ -163,12 +163,12 @@ def assemble_download(
                     countdown=countdown,
                 )
             else:
-                return data_export.email_failure(message=str(error))
+                return data_export.email_failure(message=f"{error}")
         except Exception as error:
-            metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+            metrics.incr("dataexport.error", tags={"error": f"{error}"}, sample_rate=1.0)
             logger.error(
                 "dataexport.error: %s",
-                str(error),
+                f"{error}",
                 extra={"query": data_export.payload, "org": data_export.organization_id},
             )
             capture_exception(error)
@@ -178,7 +178,7 @@ def assemble_download(
             except MaxRetriesExceededError:
                 metrics.incr(
                     "dataexport.end",
-                    tags={"success": False, "error": str(error)},
+                    tags={"success": False, "error": f"{error}"},
                     sample_rate=1.0,
                 )
                 return data_export.email_failure(message="Internal processing failure")
@@ -221,7 +221,7 @@ def get_processor(data_export, environment_id):
             )
         return processor
     except ExportError as error:
-        error_str = str(error)
+        error_str = f"{error}"
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
         logger.info(f"dataexport.error: {error_str}")
         capture_exception(error)
@@ -236,7 +236,7 @@ def process_rows(processor, data_export, batch_size, offset):
             rows = process_discover(processor, batch_size, offset)
         return rows
     except ExportError as error:
-        error_str = str(error)
+        error_str = f"{error}"
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
         logger.info(f"dataexport.error: {error_str}")
         capture_exception(error)
@@ -360,15 +360,15 @@ def merge_export_blobs(data_export_id, **kwargs):
                 logger.info("dataexport.end", extra={"data_export_id": data_export_id})
                 metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
         except Exception as error:
-            metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+            metrics.incr("dataexport.error", tags={"error": f"{error}"}, sample_rate=1.0)
             metrics.incr(
                 "dataexport.end",
-                tags={"success": False, "error": str(error)},
+                tags={"success": False, "error": f"{error}"},
                 sample_rate=1.0,
             )
             logger.error(
                 "dataexport.error: %s",
-                str(error),
+                f"{error}",
                 extra={"query": data_export.payload, "org": data_export.organization_id},
             )
             capture_exception(error)

@@ -79,7 +79,7 @@ def inbox_search(
 
     # Make sure search terms are valid
     invalid_search_terms = [
-        str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms
+        f"{sf}" for sf in search_filters if sf.key.name not in allowed_inbox_search_terms
     ]
     if invalid_search_terms:
         raise InvalidSearchQuery(f"Invalid search terms for 'inbox' search: {invalid_search_terms}")
@@ -214,7 +214,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
-            raise ParseError(detail=str(e))
+            raise ParseError(detail=f"{e}")
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
@@ -303,7 +303,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 {"count_hits": True, "date_to": end, "date_from": start},
             )
         except (ValidationError, discover.InvalidSearchQuery) as exc:
-            return Response({"detail": str(exc)}, status=400)
+            return Response({"detail": f"{exc}"}, status=400)
 
         results = list(cursor_result)
 

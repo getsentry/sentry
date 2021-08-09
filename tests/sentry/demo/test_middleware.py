@@ -35,7 +35,7 @@ class DemoMiddlewareTest(APITestCase):
     def test_demo_mode_disabled(self):
         with pytest.raises(Exception) as e:
             self.client.get(self.url)
-        assert "Demo mode misconfigured" in str(e)
+        assert "Demo mode misconfigured" in f"{e}"
 
     @mock.patch("sentry.demo.middleware.auth.login", side_effect=orig_login)
     def test_switch_to_logged_in(self, mock_auth_login):

@@ -143,7 +143,7 @@ class Meta:
         if "err" not in meta or meta["err"] is None:
             meta["err"] = []
 
-        error = str(error)
+        error = f"{error}"
         if isinstance(data, collections.Mapping):
             error = [error, dict(data)]
         meta["err"].append(error)

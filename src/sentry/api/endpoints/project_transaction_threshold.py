@@ -56,7 +56,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             )
         except ProjectTransactionThreshold.DoesNotExist:
             return Response(
-                data={"projectId": str(project.id), **DEFAULT_THRESHOLD},
+                data={"projectId": f"{project.id}", **DEFAULT_THRESHOLD},
                 status=status.HTTP_200_OK,
             )
 

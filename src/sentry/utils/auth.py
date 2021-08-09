@@ -67,7 +67,7 @@ def get_login_url(reset=False):
         if _LOGIN_URL is None:
             _LOGIN_URL = reverse("sentry-login")
         # ensure type is coerced to string (to avoid lazy proxies)
-        _LOGIN_URL = str(_LOGIN_URL)
+        _LOGIN_URL = f"{_LOGIN_URL}"
     return _LOGIN_URL
 
 
@@ -134,14 +134,14 @@ def mark_sso_complete(request, organization_id):
         sso = sso.split(",")
     else:
         sso = []
-    sso.append(str(organization_id))
+    sso.append(f"{organization_id}")
     request.session[SSO_SESSION_KEY] = ",".join(sso)
     request.session.modified = True
 
 
 def has_completed_sso(request, organization_id):
     sso = request.session.get(SSO_SESSION_KEY, "").split(",")
-    return str(organization_id) in sso
+    return f"{organization_id}" in sso
 
 
 def find_users(username, with_valid_password=True, is_active=None):
@@ -187,7 +187,7 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
     """
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if passed_2fa is None:
-        passed_2fa = request.session.get(MFA_SESSION_KEY, "") == str(user.id)
+        passed_2fa = request.session.get(MFA_SESSION_KEY, "") == f"{user.id}"
 
     if has_2fa and not passed_2fa:
         request.session["_pending_2fa"] = [user.id, time(), organization_id]
@@ -198,7 +198,7 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
 
     # TODO(dcramer): this needs to be bound based on MFA options
     if passed_2fa:
-        request.session[MFA_SESSION_KEY] = str(user.id)
+        request.session[MFA_SESSION_KEY] = f"{user.id}"
         request.session.modified = True
 
     mfa_state = request.session.pop("_pending_2fa", ())

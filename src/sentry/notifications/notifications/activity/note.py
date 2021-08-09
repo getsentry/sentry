@@ -10,7 +10,7 @@ class NoteActivityNotification(GroupActivityNotification):
         return "Note"
 
     def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        return str(self.activity.data["text"]), {}, {}
+        return f'{self.activity.data["text"]}', {}, {}
 
     def get_filename(self) -> str:
         return "activity/note"

@@ -27,7 +27,7 @@ class OrganizationActivityTest(APITestCase):
         )
 
         response = self.get_success_response(org.slug)
-        assert [r["id"] for r in response.data] == [str(activity.id)]
+        assert [r["id"] for r in response.data] == [f"{activity.id}"]
 
     def test_paginate(self):
         group = self.group
@@ -64,8 +64,8 @@ class OrganizationActivityTest(APITestCase):
         )
 
         response = self.get_success_response(org.slug, per_page=2)
-        assert [r["id"] for r in response.data] == [str(activity_3.id), str(activity_2.id)]
+        assert [r["id"] for r in response.data] == [f"{activity_3.id}", f"{activity_2.id}"]
         next_cursor = self.get_cursor_headers(response)[1]
 
         response = self.get_success_response(org.slug, per_page=2, cursor=next_cursor)
-        assert [r["id"] for r in response.data] == [str(activity.id)]
+        assert [r["id"] for r in response.data] == [f"{activity.id}"]

@@ -41,8 +41,8 @@ class CommitSerializer(Serializer):
         result = {}
         for item in item_list:
             result[item] = {
-                "repository": repository_objs.get(str(item.repository_id), {}),
-                "user": users_by_author.get(str(item.author_id), {}) if item.author_id else {},
+                "repository": repository_objs.get(f"{item.repository_id}", {}),
+                "user": users_by_author.get(f"{item.author_id}", {}) if item.author_id else {},
             }
 
         return result

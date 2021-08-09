@@ -346,7 +346,7 @@ class TestAlertRuleSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": str(integration.id),
+                "integration": f"{integration.id}",
             }
         )
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -425,7 +425,7 @@ class TestAlertRuleSerializer(TestCase):
         with self.assertRaises(ChannelLookupTimeoutError) as err:
             serializer.save()
         assert (
-            str(err.exception)
+            f"{err.exception}"
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 
@@ -654,7 +654,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         self.run_fail_validation_test(
             {
                 "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
-                "target_identifier": str(other_user.id),
+                "target_identifier": f"{other_user.id}",
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
@@ -699,7 +699,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": str(integration.id),
+                "integration": f"{integration.id}",
             }
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
@@ -729,7 +729,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "merp",
-                "integration": str(integration.id),
+                "integration": f"{integration.id}",
             }
         )
         context = self.context.copy()
@@ -774,7 +774,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "merp",
-                "integration": str(integration.id),
+                "integration": f"{integration.id}",
             }
         )
         context = self.context.copy()
@@ -817,7 +817,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": str(integration.id),
+                "integration": f"{integration.id}",
             }
         )
         context = self.context.copy()

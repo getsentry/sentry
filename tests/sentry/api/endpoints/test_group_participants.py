@@ -17,4 +17,4 @@ class GroupParticipantsTest(APITestCase):
 
         response = self.get_success_response(group.id)
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.user.id)
+        assert response.data[0]["id"] == f"{self.user.id}"

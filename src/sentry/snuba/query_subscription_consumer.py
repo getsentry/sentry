@@ -132,8 +132,8 @@ class QuerySubscriptionConsumer:
             logger.info(
                 "query-subscription-consumer.on_assign",
                 extra={
-                    "offsets": str(self.offsets),
-                    "partitions": str(partitions),
+                    "offsets": f"{self.offsets}",
+                    "partitions": f"{partitions}",
                 },
             )
 
@@ -145,8 +145,8 @@ class QuerySubscriptionConsumer:
             logger.info(
                 "query-subscription-consumer.on_revoke",
                 extra={
-                    "offsets": str(self.offsets),
-                    "partitions": str(partitions),
+                    "offsets": f"{self.offsets}",
+                    "partitions": f"{partitions}",
                 },
             )
 
@@ -194,7 +194,7 @@ class QuerySubscriptionConsumer:
     def commit_offsets(self, partitions: Optional[Iterable[int]] = None) -> None:
         logger.info(
             "query-subscription-consumer.commit_offsets",
-            extra={"offsets": str(self.offsets), "partitions": str(partitions)},
+            extra={"offsets": f"{self.offsets}", "partitions": f"{partitions}"},
         )
 
         if self.offsets and self.consumer:

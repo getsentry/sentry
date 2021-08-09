@@ -30,7 +30,7 @@ class HealthCheck(MiddlewareMixin):
         return HttpResponse(
             json.dumps(
                 {
-                    "problems": [str(p) for p in problems],
+                    "problems": [f"{p}" for p in problems],
                     "healthy": {type(check).__name__: not p for check, p in results.items()},
                 }
             ),

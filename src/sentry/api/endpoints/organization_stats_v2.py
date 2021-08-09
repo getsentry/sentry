@@ -74,4 +74,4 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             with super().handle_query_errors():
                 yield
         except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
-            raise ParseError(detail=str(error))
+            raise ParseError(detail=f"{error}")

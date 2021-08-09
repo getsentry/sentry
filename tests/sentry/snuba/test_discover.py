@@ -2834,7 +2834,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     use_aggregate_conditions=True,
                     use_snql=use_snql,
                 )
-            assert "used in a condition but is not a selected column" in str(err)
+            assert "used in a condition but is not a selected column" in f"{err}"
 
     def test_conditions_with_timestamps(self):
         events = [("a", 1), ("b", 2), ("c", 3)]
@@ -3065,7 +3065,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No columns selected" in str(err)
+        assert "No columns selected" in f"{err}"
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
@@ -5405,8 +5405,8 @@ class QueryTransformTest(TestCase):
                     3,
                     0,
                 )
-            assert "multihistogram expected either all measurements or all breakdowns" in str(
-                err
+            assert (
+                "multihistogram expected either all measurements or all breakdowns" in f"{err}"
             ), f"failing for {array_column}"
 
     @patch("sentry.snuba.discover.raw_query")
@@ -5532,7 +5532,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 params={"project_id": [self.project.id]},
                 rollup=1800,
             )
-        assert "without a start and end" in str(err)
+        assert "without a start and end" in f"{err}"
 
     def test_no_aggregations(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -5546,7 +5546,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 },
                 rollup=1800,
             )
-        assert "no aggregation" in str(err)
+        assert "no aggregation" in f"{err}"
 
     def test_field_alias(self):
         result = discover.timeseries_query(

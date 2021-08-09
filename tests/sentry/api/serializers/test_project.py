@@ -41,7 +41,7 @@ class ProjectSerializerTest(TestCase):
 
         assert result["slug"] == self.project.slug
         assert result["name"] == self.project.name
-        assert result["id"] == str(self.project.id)
+        assert result["id"] == f"{self.project.id}"
 
     def test_member_access(self):
         self.create_member(user=self.user, organization=self.organization)
@@ -203,9 +203,9 @@ class ProjectWithTeamSerializerTest(TestCase):
 
         assert result["slug"] == project.slug
         assert result["name"] == project.name
-        assert result["id"] == str(project.id)
+        assert result["id"] == f"{project.id}"
         assert result["team"] == {
-            "id": str(team.id),
+            "id": f"{team.id}",
             "slug": team.slug,
             "name": team.name,
         }
@@ -250,7 +250,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def test_simple(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
 
-        assert result["id"] == str(self.project.id)
+        assert result["id"] == f"{self.project.id}"
         assert result["name"] == self.project.name
         assert result["slug"] == self.project.slug
         assert result["firstEvent"] == self.project.first_event
@@ -315,7 +315,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
 
-        assert result["id"] == str(self.project.id)
+        assert result["id"] == f"{self.project.id}"
         assert result["name"] == self.project.name
         assert result["slug"] == self.project.slug
         assert result["firstEvent"] == self.project.first_event
@@ -340,7 +340,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
 
-        assert result["id"] == str(self.project.id)
+        assert result["id"] == f"{self.project.id}"
         assert result["name"] == self.project.name
         assert result["slug"] == self.project.slug
         assert result["firstEvent"] == self.project.first_event
@@ -402,7 +402,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
             last_deploy_id=other_project_deploy.id,
         )
         result = serialize([self.project, other_project], self.user, ProjectSummarySerializer())
-        assert result[0]["id"] == str(self.project.id)
+        assert result[0]["id"] == f"{self.project.id}"
         assert result[0]["latestDeploys"] == {
             self.environment_1.name: {
                 "version": env_1_release.version,
@@ -413,7 +413,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
                 "dateFinished": env_2_deploy.date_finished,
             },
         }
-        assert result[1]["id"] == str(other_project.id)
+        assert result[1]["id"] == f"{other_project.id}"
         assert result[1]["latestDeploys"] == {
             self.environment_2.name: {
                 "version": other_project_release.version,
@@ -512,7 +512,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
 
         assert result["slug"] == project.slug
         assert result["name"] == project.name
-        assert result["id"] == str(project.id)
+        assert result["id"] == f"{project.id}"
         assert result["organization"] == serialize(organization, user)
 
 

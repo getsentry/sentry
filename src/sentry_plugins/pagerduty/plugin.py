@@ -105,7 +105,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             response = client.trigger_incident(
                 description=description,
                 event_type="trigger",
-                incident_key=str(group.id),
+                incident_key=f"{group.id}",
                 details=details,
                 contexts=[
                     {

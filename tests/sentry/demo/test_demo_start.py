@@ -44,7 +44,7 @@ class DemoStartTest(TestCase):
         assert resp.status_code == 302
         mock_auth_login.assert_called_once_with(mock.ANY, self.user)
         recovered = resp.cookies[MEMBER_ID_COOKIE].value.split(":")[0]
-        assert recovered == str(self.member.id)
+        assert recovered == f"{self.member.id}"
         mock_assign_demo_org.assert_called_once_with(skip_buffer=False)
 
     @override_settings(DEMO_MODE=False, ROOT_URLCONF="sentry.demo.urls")
@@ -75,7 +75,7 @@ class DemoStartTest(TestCase):
         assert resp.status_code == 302
         mock_auth_login.assert_called_once_with(mock.ANY, new_user)
         recovered = resp.cookies[MEMBER_ID_COOKIE].value.split(":")[0]
-        assert recovered == str(new_member.id)
+        assert recovered == f"{new_member.id}"
 
     @mock.patch("sentry.demo.demo_start.auth.login")
     @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")

@@ -34,7 +34,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config["external_id"] = str(repo["id"])
+            config["external_id"] = f'{repo["id"]}'
             config["name"] = repo["project"]["key"] + "/" + repo["name"]
             config["project"] = repo["project"]["key"]
             config["repo"] = repo["name"]

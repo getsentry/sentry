@@ -11,7 +11,7 @@ class EventAttachmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         file = attrs["file"]
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "name": obj.name,
             "headers": file.headers,
             "mimetype": obj.mimetype,

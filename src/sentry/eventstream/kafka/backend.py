@@ -52,7 +52,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         def encode_bool(value: Optional[bool]) -> str:
             if value is None:
                 value = False
-            return str(int(value))
+            return f"{int(value)}"
 
         # WARNING: We must remove all None headers. There is a bug in confluent-kafka-python
         # (used by both Sentry and Snuba) that incorrectly decrements the reference count of
@@ -67,11 +67,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if send_new_headers is True:
             return strip_none_values(
                 {
-                    "Received-Timestamp": str(received_timestamp),
-                    "event_id": str(event.event_id),
-                    "project_id": str(event.project_id),
-                    "group_id": str(event.group_id) if event.group_id is not None else None,
-                    "primary_hash": str(primary_hash) if primary_hash is not None else None,
+                    "Received-Timestamp": f"{received_timestamp}",
+                    "event_id": f"{event.event_id}",
+                    "project_id": f"{event.project_id}",
+                    "group_id": f"{event.group_id}" if event.group_id is not None else None,
+                    "primary_hash": f"{primary_hash}" if primary_hash is not None else None,
                     "is_new": encode_bool(is_new),
                     "is_new_group_environment": encode_bool(is_new_group_environment),
                     "is_regression": encode_bool(is_regression),
@@ -101,7 +101,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if headers is None:
             headers = {}
         headers["operation"] = _type
-        headers["version"] = str(self.EVENT_PROTOCOL_VERSION)
+        headers["version"] = f"{self.EVENT_PROTOCOL_VERSION}"
 
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
@@ -116,7 +116,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = str(project_id)
+        key = f"{project_id}"
 
         try:
             self.producer.produce(

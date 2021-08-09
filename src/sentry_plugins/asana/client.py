@@ -15,13 +15,13 @@ class AsanaClient(AuthApiClient):
         asana_data = {
             "name": data["title"],
             "notes": data["description"],
-            "workspace": str(workspace),
+            "workspace": f"{workspace}",
         }
         if data.get("project"):
-            asana_data["projects"] = [str(data["project"])]
+            asana_data["projects"] = [f'{data["project"]}']
 
         if data.get("assignee"):
-            asana_data["assignee"] = str(data["assignee"])
+            asana_data["assignee"] = f'{data["assignee"]}'
 
         return self.post("/tasks", data={"data": asana_data})
 

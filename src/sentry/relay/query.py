@@ -18,7 +18,7 @@ def execute_queries(relay, queries):
             try:
                 query_inst.preprocess(query)
             except InvalidQuery as exc:
-                result = {"status": "error", "error": str(exc)}
+                result = {"status": "error", "error": f"{exc}"}
             else:
                 # TODO(mitsuhiko): support for pending or failing queries
                 result = {"status": "ok", "result": query_inst.execute()}

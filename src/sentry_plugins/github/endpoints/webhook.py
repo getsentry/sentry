@@ -106,7 +106,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider="github_apps" if is_apps else "github",
-                external_id=str(event["repository"]["id"]),
+                external_id=f'{event["repository"]["id"]}',
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -153,7 +153,7 @@ class PushEventWebhook(Webhook):
                                 with GitHubClient() as client:
                                     gh_user = client.request_no_auth("GET", f"/users/{gh_username}")
                             except ApiError as exc:
-                                logger.exception(str(exc))
+                                logger.exception(f"{exc}")
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
@@ -266,7 +266,7 @@ class PullRequestEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider="github_apps" if is_apps else "github",
-                external_id=str(event["repository"]["id"]),
+                external_id=f'{event["repository"]["id"]}',
             )
 
         except Repository.DoesNotExist:

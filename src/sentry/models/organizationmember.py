@@ -104,7 +104,7 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(max_length=32, default=str(roles.get_default().id))
+    role = models.CharField(max_length=32, default=f"{roles.get_default().id}")
     flags = BitField(
         flags=(
             ("sso:linked", "sso:linked"),
@@ -214,7 +214,7 @@ class OrganizationMember(Model):
     @property
     def legacy_token(self):
         checksum = md5()
-        checksum.update(str(self.organization_id).encode("utf-8"))
+        checksum.update(f"{self.organization_id}".encode())
         checksum.update(self.get_email().encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()

@@ -65,7 +65,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
+        assert response.data["id"] == f"{group.id}"
         release = response.data["firstRelease"]
         assert release["version"] == "1.0"
         for event, timestamp in first_release.items():

@@ -19,7 +19,7 @@ class ApiTokenSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         data = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "scopes": obj.get_scopes(),
             "application": attrs["application"],
             "expiresAt": obj.expires_at,

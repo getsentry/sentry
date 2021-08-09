@@ -77,7 +77,7 @@ def get_users_for_authors(organization_id, authors, user=None):
             if fetched_user is None:
                 missed.append(author)
             else:
-                results[str(author.id)] = fetched_user
+                results[f"{author.id}"] = fetched_user
     else:
         missed = authors
 
@@ -102,17 +102,17 @@ def get_users_for_authors(organization_id, authors, user=None):
             # force emails to lower case so we can do case insensitive matching
             lower_email = email.email.lower()
             if lower_email not in users_by_email:
-                user = users_by_id.get(str(email.user_id), None)
+                user = users_by_id.get(f"{email.user_id}", None)
                 # user can be None if there's a user associated
                 # with user_email in separate organization
                 if user:
                     users_by_email[lower_email] = user
         to_cache = {}
         for author in missed:
-            results[str(author.id)] = users_by_email.get(
+            results[f"{author.id}"] = users_by_email.get(
                 author.email.lower(), {"name": author.name, "email": author.email}
             )
-            to_cache[_user_to_author_cache_key(organization_id, author)] = results[str(author.id)]
+            to_cache[_user_to_author_cache_key(organization_id, author)] = results[f"{author.id}"]
         cache.set_many(to_cache)
 
     metrics.incr("sentry.release.get_users_for_authors.missed", amount=len(missed))
@@ -427,7 +427,7 @@ class ReleaseSerializer(Serializer):
                 release_new_groups = sum((issue_counts_by_release.get(item.id) or {}).values())
 
             p = {
-                "owner": owners[str(item.owner_id)] if item.owner_id else None,
+                "owner": owners[f"{item.owner_id}"] if item.owner_id else None,
                 "new_groups": release_new_groups,
                 "projects": single_release_projects,
                 "first_seen": first_seen.get(item.version),

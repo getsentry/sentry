@@ -208,12 +208,12 @@ def _create_in_snuba(subscription):
         metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
         snql_query = json_to_snql(body, snuba_query.dataset)
         snql_query.validate()
-        body["query"] = str(snql_query)
+        body["query"] = f"{snql_query}"
         body["type"] = "delegate"  # mark this as a combined subscription
     except Exception as e:
         logger.warning(
             "snuba.snql.subscription.parsing.error",
-            extra={"error": str(e), "params": json.dumps(body), "dataset": snuba_query.dataset},
+            extra={"error": f"{e}", "params": json.dumps(body), "dataset": snuba_query.dataset},
         )
         metrics.incr("snuba.snql.subscription.parsing.error", tags={"dataset": snuba_query.dataset})
 

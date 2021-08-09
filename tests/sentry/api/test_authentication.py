@@ -106,7 +106,7 @@ class TestDSNAuthentication(TestCase):
 @pytest.mark.parametrize("internal", [True, False])
 def test_registered_relay(internal):
     sk, pk = generate_key_pair()
-    relay_id = str(uuid.uuid4())
+    relay_id = f"{uuid.uuid4()}"
 
     data = {"some_data": "hello"}
     packed, signature = sk.pack(data)
@@ -115,9 +115,9 @@ def test_registered_relay(internal):
     request.META["HTTP_X_SENTRY_RELAY_ID"] = relay_id
     request.META["REMOTE_ADDR"] = "200.200.200.200"  # something that is NOT local network
 
-    Relay.objects.create(relay_id=relay_id, public_key=str(pk))
+    Relay.objects.create(relay_id=relay_id, public_key=f"{pk}")
     if internal:
-        white_listed_pk = [str(pk)]  # mark the relay as internal
+        white_listed_pk = [f"{pk}"]  # mark the relay as internal
     else:
         white_listed_pk = []
 
@@ -128,7 +128,7 @@ def test_registered_relay(internal):
     # now the request should contain a relay
     relay = request.relay
     assert relay.is_internal == internal
-    assert relay.public_key == str(pk)
+    assert relay.public_key == f"{pk}"
     # data should be deserialized in request.relay_request_data
     assert request.relay_request_data == data
 
@@ -137,7 +137,7 @@ def test_registered_relay(internal):
 @pytest.mark.parametrize("internal", [True, False])
 def test_statically_configured_relay(settings, internal):
     sk, pk = generate_key_pair()
-    relay_id = str(uuid.uuid4())
+    relay_id = f"{uuid.uuid4()}"
 
     data = {"some_data": "hello"}
     packed, signature = sk.pack(data)
@@ -146,7 +146,7 @@ def test_statically_configured_relay(settings, internal):
     request.META["HTTP_X_SENTRY_RELAY_ID"] = relay_id
     request.META["REMOTE_ADDR"] = "200.200.200.200"  # something that is NOT local network
 
-    relay_options = {relay_id: {"internal": internal, "public_key": str(pk)}}
+    relay_options = {relay_id: {"internal": internal, "public_key": f"{pk}"}}
 
     settings.SENTRY_OPTIONS["relay.static_auth"] = relay_options
     authenticator = RelayAuthentication()
@@ -155,6 +155,6 @@ def test_statically_configured_relay(settings, internal):
     # now the request should contain a relay
     relay = request.relay
     assert relay.is_internal == internal
-    assert relay.public_key == str(pk)
+    assert relay.public_key == f"{pk}"
     # data should be deserialized in request.relay_request_data
     assert request.relay_request_data == data

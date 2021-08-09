@@ -44,17 +44,17 @@ class TeamworkTaskForm(NewIssueForm):
         try:
             project_list = client.list_projects()
         except RequestException as e:
-            raise forms.ValidationError(_("Error contacting Teamwork API: %s") % str(e))
+            raise forms.ValidationError(_("Error contacting Teamwork API: %s") % f"{e}")
 
-        self.fields["project"].choices = [(str(i["id"]), i["name"]) for i in project_list]
+        self.fields["project"].choices = [(f'{i["id"]}', i["name"]) for i in project_list]
         self.fields["project"].widget.choices = self.fields["project"].choices
 
         if self.data.get("project"):
             try:
                 tasklist_list = client.list_tasklists(data["project"])
             except RequestException as e:
-                raise forms.ValidationError(_("Error contacting Teamwork API: %s") % str(e))
-            self.fields["tasklist"].choices = [(str(i["id"]), i["name"]) for i in tasklist_list]
+                raise forms.ValidationError(_("Error contacting Teamwork API: %s") % f"{e}")
+            self.fields["tasklist"].choices = [(f'{i["id"]}', i["name"]) for i in tasklist_list]
             self.fields["tasklist"].widget.choices = self.fields["tasklist"].choices
 
 
@@ -136,7 +136,7 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
                 tasklist_id=form_data["tasklist"],
             )
         except RequestException as e:
-            raise forms.ValidationError(_("Error creating Teamwork task: %s") % str(e))
+            raise forms.ValidationError(_("Error creating Teamwork task: %s") % f"{e}")
 
         return task_id
 

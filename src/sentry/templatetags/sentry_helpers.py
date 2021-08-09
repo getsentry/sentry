@@ -156,7 +156,7 @@ def small_count(v, precision=1):
     for x, y in z:
         o, p = divmod(v, x)
         if o:
-            if len(str(o)) > 2 or not p:
+            if len(f"{o}") > 2 or not p:
                 return "%d%s" % (o, y)
             return (f"%.{precision}f%s") % (v / float(x), y)
     return v

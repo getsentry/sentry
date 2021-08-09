@@ -643,7 +643,7 @@ def update_tracked_data(model):
                 v = get_field_value(model, f)
             except AttributeError as e:
                 # this case can come up from pickling
-                logging.exception(str(e))
+                logging.exception(f"{e}")
             else:
                 if isinstance(v, BitHandler):
                     v = copy(v)

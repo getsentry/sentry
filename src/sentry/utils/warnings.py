@@ -78,7 +78,7 @@ class WarningSet(collections.Set):
         yield from self.__warnings.values()
 
     def __get_key(self, warning):
-        return (type(warning), warning.args if hasattr(warning, "args") else str(warning))
+        return (type(warning), warning.args if hasattr(warning, "args") else f"{warning}")
 
     def add(self, warning, stacklevel=None):
         self.__warnings[self.__get_key(warning)] = warning

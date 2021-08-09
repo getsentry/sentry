@@ -52,7 +52,7 @@ class SlackEventRequest(SlackRequest):
 
     @property
     def type(self) -> str:
-        return str(self.data.get("event", {}).get("type"))
+        return f'{self.data.get("event", {}).get("type")}'
 
     @property
     def user_id(self) -> Optional[Any]:

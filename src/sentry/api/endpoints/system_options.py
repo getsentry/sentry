@@ -74,7 +74,7 @@ class SystemOptionsEndpoint(Endpoint):
                 return Response(
                     {
                         "error": "invalid_type" if type(e) is TypeError else "immutable_option",
-                        "errorDetail": {"option": k, "message": str(e)},
+                        "errorDetail": {"option": k, "message": f"{e}"},
                     },
                     status=400,
                 )

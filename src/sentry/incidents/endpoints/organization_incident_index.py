@@ -90,7 +90,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             try:
                 teams_query, unassigned = parse_team_params(request, organization, teams)
             except InvalidParams as err:
-                return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+                return Response(f"{err}", status=status.HTTP_400_BAD_REQUEST)
 
             team_filter_query = Q(
                 alert_rule__owner_id__in=teams_query.values_list("actor_id", flat=True)

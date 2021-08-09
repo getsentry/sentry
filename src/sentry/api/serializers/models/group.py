@@ -269,7 +269,7 @@ class GroupSerializerBase(Serializer):
                     where=[
                         "sentry_grouplink.linked_id = sentry_commit.id",
                         "sentry_grouplink.group_id IN ({})".format(
-                            ", ".join(str(i.id) for i in resolved_item_list)
+                            ", ".join(f"{i.id}" for i in resolved_item_list)
                         ),
                         "sentry_grouplink.linked_type = %s",
                         "sentry_grouplink.relationship = %s",
@@ -493,7 +493,7 @@ class GroupSerializerBase(Serializer):
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         group_dict = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
             "title": obj.title,
@@ -506,7 +506,7 @@ class GroupSerializerBase(Serializer):
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
-                "id": str(obj.project.id),
+                "id": f"{obj.project.id}",
                 "name": obj.project.name,
                 "slug": obj.project.slug,
                 "platform": obj.project.platform,
@@ -531,7 +531,7 @@ class GroupSerializerBase(Serializer):
 
     def _convert_seen_stats(self, stats):
         return {
-            "count": str(stats["times_seen"]),
+            "count": f'{stats["times_seen"]}',
             "userCount": stats["user_count"],
             "firstSeen": stats["first_seen"],
             "lastSeen": stats["last_seen"],
@@ -1039,7 +1039,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             result = super().serialize(obj, attrs, user)
         else:
             result = {
-                "id": str(obj.id),
+                "id": f"{obj.id}",
             }
             if "times_seen" in attrs:
                 result.update(self._convert_seen_stats(attrs))
@@ -1093,7 +1093,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )
 
         if self.environment_ids:
-            envs = "-".join(str(eid) for eid in self.environment_ids)
+            envs = "-".join(f"{eid}" for eid in self.environment_ids)
             session_count_key = f"{session_count_key}-{envs}"
 
         return session_count_key

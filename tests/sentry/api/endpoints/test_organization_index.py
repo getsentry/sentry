@@ -16,7 +16,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         org = self.organization  # force creation
         response = self.get_success_response()
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(org.id)
+        assert response.data[0]["id"] == f"{org.id}"
 
     def test_show_all_with_superuser(self):
         org = self.organization  # force creation
@@ -25,7 +25,7 @@ class OrganizationsListTest(OrganizationIndexTest):
 
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(org.id)
+        assert response.data[0]["id"] == f"{org.id}"
 
     def test_show_all_without_superuser(self):
         response = self.get_success_response(qs_params={"show": "all"})
@@ -44,11 +44,11 @@ class OrganizationsListTest(OrganizationIndexTest):
 
         response = self.get_success_response(qs_params={"owner": 1})
         assert len(response.data) == 3
-        assert response.data[0]["organization"]["id"] == str(org.id)
+        assert response.data[0]["organization"]["id"] == f"{org.id}"
         assert response.data[0]["singleOwner"] is True
-        assert response.data[1]["organization"]["id"] == str(org2.id)
+        assert response.data[1]["organization"]["id"] == f"{org2.id}"
         assert response.data[1]["singleOwner"] is False
-        assert response.data[2]["organization"]["id"] == str(org3.id)
+        assert response.data[2]["organization"]["id"] == f"{org3.id}"
         assert response.data[2]["singleOwner"] is False
 
     def test_status_query(self):
@@ -56,7 +56,7 @@ class OrganizationsListTest(OrganizationIndexTest):
 
         response = self.get_success_response(qs_params={"query": "status:pending_deletion"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(org.id)
+        assert response.data[0]["id"] == f"{org.id}"
 
         response = self.get_success_response(qs_params={"query": "status:deletion_in_progress"})
         assert len(response.data) == 0
@@ -74,7 +74,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         om = OrganizationMember.objects.get(organization=org, user=self.user)
         response = self.get_success_response(qs_params={"query": f"member_id:{om.id}"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(org.id)
+        assert response.data[0]["id"] == f"{org.id}"
 
         response = self.get_success_response(qs_params={"query": f"member_id:{om.id + 10}"})
         assert len(response.data) == 0

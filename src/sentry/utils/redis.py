@@ -229,7 +229,7 @@ def validate_dynamic_cluster(is_redis_cluster, cluster):
             with cluster.all() as client:
                 client.ping()
     except Exception as e:
-        raise InvalidConfiguration(str(e))
+        raise InvalidConfiguration(f"{e}")
 
 
 def check_cluster_versions(cluster, required, recommended=None, label=None):
@@ -238,7 +238,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
             results = client.info()
     except Exception as e:
         # Any connection issues should be caught here.
-        raise InvalidConfiguration(str(e))
+        raise InvalidConfiguration(f"{e}")
 
     versions = {}
     for id, info in results.value.items():

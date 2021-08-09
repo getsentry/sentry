@@ -59,7 +59,7 @@ def is_active_superuser(request):
 
 
 class Superuser:
-    allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
+    allowed_ips = [ipaddress.ip_network(f"{v}", strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
 
@@ -67,7 +67,7 @@ class Superuser:
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
-                ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
+                ipaddress.ip_network(f"{v}", strict=False) for v in allowed_ips or ()
             )
         if org_id is not UNSET:
             self.org_id = org_id
@@ -82,7 +82,7 @@ class Superuser:
         if not self.request.user.is_superuser:
             return False
         # if the user has changed
-        if str(self.request.user.id) != self.uid:
+        if f"{self.request.user.id}" != self.uid:
             return False
         return self._is_active
 
@@ -98,7 +98,7 @@ class Superuser:
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
             return True, None
-        ip = ipaddress.ip_address(str(self.request.META["REMOTE_ADDR"]))
+        ip = ipaddress.ip_address(f'{self.request.META["REMOTE_ADDR"]}')
         if not any(ip in addr for addr in allowed_ips):
             return False, "invalid-ip"
         return True, None
@@ -150,7 +150,7 @@ class Superuser:
             )
             return
 
-        if data["uid"] != str(request.user.id):
+        if data["uid"] != f"{request.user.id}":
             logger.warning(
                 "superuser.invalid-uid",
                 extra={
@@ -244,7 +244,7 @@ class Superuser:
         if current_datetime is None:
             current_datetime = timezone.now()
         self.token = token
-        self.uid = str(user.id)
+        self.uid = f"{user.id}"
         # the absolute maximum age of this session
         self.expires = expires
         # do we have a valid superuser session?

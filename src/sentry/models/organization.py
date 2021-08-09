@@ -45,7 +45,7 @@ class OrganizationStatus(IntEnum):
             # realistically Enum shouldn't even creating these, but alas
             if name.startswith("_"):
                 continue
-            result.append((member.value, str(member.label)))
+            result.append((member.value, f"{member.label}"))
         return tuple(result)
 
 
@@ -119,7 +119,7 @@ class Organization(Model):
         related_name="org_memberships",
         through_fields=("organization", "user"),
     )
-    default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
+    default_role = models.CharField(max_length=32, default=f"{roles.get_default().id}")
 
     flags = BitField(
         flags=(

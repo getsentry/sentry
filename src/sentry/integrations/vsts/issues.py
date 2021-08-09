@@ -176,7 +176,7 @@ class VstsIssueSync(IssueSyncMixin):
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {
-            "key": str(created_item["id"]),
+            "key": f'{created_item["id"]}',
             "title": title,
             "description": description,
             "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
@@ -186,7 +186,7 @@ class VstsIssueSync(IssueSyncMixin):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, issue_id)
         return {
-            "key": str(work_item["id"]),
+            "key": f'{work_item["id"]}',
             "title": work_item["fields"]["System.Title"],
             "description": work_item["fields"].get("System.Description"),
             "metadata": {

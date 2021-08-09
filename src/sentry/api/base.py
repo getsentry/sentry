@@ -112,7 +112,7 @@ class Endpoint(APIView):
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=str(cursor),
+            cursor=f"{cursor}",
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
@@ -329,7 +329,7 @@ class Endpoint(APIView):
                 span.set_data("Limit", per_page)
                 cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            raise ParseError(detail=str(e))
+            raise ParseError(detail=f"{e}")
 
         # map results based on callback
         if on_results:

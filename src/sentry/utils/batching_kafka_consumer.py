@@ -299,8 +299,8 @@ class BatchingKafkaConsumer:
                     key=msg.key(),
                     value=msg.value(),
                     headers={
-                        "partition": str(msg.partition()) if msg.partition() else None,
-                        "offset": str(msg.offset()) if msg.offset() else None,
+                        "partition": f"{msg.partition()}" if msg.partition() else None,
+                        "offset": f"{msg.offset()}" if msg.offset() else None,
                         "topic": msg.topic(),
                     },
                     on_delivery=self._commit_message_delivery_callback,

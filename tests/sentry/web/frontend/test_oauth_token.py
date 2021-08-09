@@ -136,7 +136,7 @@ class OAuthTokenCodeTest(TestCase):
         assert data["refresh_token"] == token.refresh_token
         assert isinstance(data["expires_in"], int)
         assert data["token_type"] == "bearer"
-        assert data["user"]["id"] == str(token.user_id)
+        assert data["user"]["id"] == f"{token.user_id}"
 
 
 class OAuthTokenRefreshTokenTest(TestCase):

@@ -141,7 +141,7 @@ class BitHandler:
         )
 
     def __str__(self):
-        return str(self._value)
+        return f"{self._value}"
 
     def __int__(self):
         return self._value

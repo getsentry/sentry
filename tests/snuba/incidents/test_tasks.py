@@ -62,7 +62,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
                 AlertRuleTriggerAction.TargetType.USER,
-                str(self.user.id),
+                f"{self.user.id}",
             )
             return rule
 

@@ -184,7 +184,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
         with pytest.raises(IntegrationError) as error:
             integration.get_installation(self.organization).update_organization_config(config_data)
-        assert str(error.value) == "Name and key are required"
+        assert f"{error.value}" == "Name and key are required"
 
     @responses.activate
     def test_get_config_data(self):

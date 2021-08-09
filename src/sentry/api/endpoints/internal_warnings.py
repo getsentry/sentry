@@ -22,9 +22,9 @@ class InternalWarningsEndpoint(Endpoint):
         for warning in seen_warnings:
             cls = type(warning)
             if cls in groupings:
-                groups[cls].append(str(warning))
+                groups[cls].append(f"{warning}")
             else:
-                warnings.append(str(warning))
+                warnings.append(f"{warning}")
 
         sort_by_message = functools.partial(sorted, key=str)
 

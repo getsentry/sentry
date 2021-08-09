@@ -26,13 +26,13 @@ def hash_value(h, value):
     elif value is False:
         h.update(b"\x02")
     elif isinstance(value, int):
-        h.update(b"\x03" + str(value).encode("ascii") + b"\x00")
+        h.update(b"\x03" + f"{value}".encode("ascii") + b"\x00")
     elif isinstance(value, (tuple, list)):
-        h.update(b"\x04" + str(len(value)).encode("utf-8"))
+        h.update(b"\x04" + f"{len(value)}".encode())
         for item in value:
             hash_value(h, item)
     elif isinstance(value, dict):
-        h.update(b"\x05" + str(len(value)).encode("utf-8"))
+        h.update(b"\x05" + f"{len(value)}".encode())
         for k, v in value.items():
             hash_value(h, k)
             hash_value(h, v)

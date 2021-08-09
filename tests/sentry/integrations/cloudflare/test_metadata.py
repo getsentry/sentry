@@ -11,7 +11,7 @@ class CloudflareMetadataTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert resp.data["metadata"] == {
-            "userId": str(user.id),
+            "userId": f"{user.id}",
             "username": user.username,
             "email": user.email,
         }

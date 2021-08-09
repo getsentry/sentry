@@ -208,7 +208,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "identifier": project + "/" + repo,
             "name": full_repo_name,
             "installation": integration.id,
-            "external_id": str(REPO["id"]),
+            "external_id": f'{REPO["id"]}',
         }
 
         data["identifier"] = full_repo_name
@@ -216,7 +216,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
         assert data == {
             "name": full_repo_name,
-            "external_id": str(REPO["id"]),
+            "external_id": f'{REPO["id"]}',
             "url": "https://bitbucket.example.com/projects/laurynsentry/repos/helloworld/browse",
             "integration_id": integration.id,
             "config": {
@@ -242,4 +242,4 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
     def test_get_repository_data_no_installation_id(self):
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in str(e)
+            assert "requires an integration id" in f"{e}"

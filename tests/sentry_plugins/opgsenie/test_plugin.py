@@ -53,7 +53,7 @@ class OpsGeniePluginTest(PluginTestCase):
 
         request = responses.calls[0].request
         payload = json.loads(request.body)
-        group_id = str(group.id)
+        group_id = f"{group.id}"
         assert payload == {
             "recipients": "me",
             "tags": ["level:warning"],

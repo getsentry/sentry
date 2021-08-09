@@ -237,7 +237,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                     "instance": self.project_instance,
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
-                    "error": str(exc),
+                    "error": f"{exc}",
                 },
             )
 

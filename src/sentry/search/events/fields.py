@@ -367,7 +367,7 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
             try:
                 normalized_value = parse_duration(*duration_match.groups())
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
         else:
             try:
                 normalized_value = float(value.strip("'"))
@@ -942,7 +942,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
+    columns = re.sub(r"[^\w]", "_", "_".join(f"{col}" for col in columns))
     return f"{function_name}_{columns}".rstrip("_")
 
 
@@ -1461,7 +1461,7 @@ class DiscoverFunction:
                 raise InvalidSearchQuery(f"{field}: invalid arguments: {e}")
 
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
-            columns.append(str(default) if default else default)
+            columns.append(f"{default}" if default else default)
 
         return columns
 

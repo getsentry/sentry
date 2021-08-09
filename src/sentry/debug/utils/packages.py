@@ -44,7 +44,7 @@ def get_package_version(module_name, app):
     if isinstance(version, (list, tuple)):
         version = ".".join(map(str, version))
 
-    return str(version)
+    return f"{version}"
 
 
 def get_all_package_versions():

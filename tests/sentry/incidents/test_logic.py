@@ -133,9 +133,9 @@ class CreateIncidentTest(TestCase):
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentCreatedEvent)
         assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(IncidentType.ALERT_TRIGGERED.value),
+            "organization_id": f"{self.organization.id}",
+            "incident_id": f"{incident.id}",
+            "incident_type": f"{IncidentType.ALERT_TRIGGERED.value}",
         }
 
 
@@ -174,19 +174,19 @@ class UpdateIncidentStatus(TestCase):
         assert activity.user == user
         if user:
             assert IncidentSubscription.objects.filter(incident=incident, user=user).exists()
-        assert activity.value == str(status.value)
-        assert activity.previous_value == str(prev_status)
+        assert activity.value == f"{status.value}"
+        assert activity.previous_value == f"{prev_status}"
         assert activity.comment == comment
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentStatusUpdatedEvent)
         assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "prev_status": str(prev_status),
-            "status": str(incident.status),
+            "organization_id": f"{self.organization.id}",
+            "incident_id": f"{incident.id}",
+            "incident_type": f"{incident.type}",
+            "prev_status": f"{prev_status}",
+            "status": f"{incident.status}",
         }
 
     def test_closed(self):
@@ -416,14 +416,14 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             incident,
             IncidentActivityType.STATUS_CHANGE,
             user=self.user,
-            value=str(IncidentStatus.CLOSED.value),
-            previous_value=str(IncidentStatus.WARNING.value),
+            value=f"{IncidentStatus.CLOSED.value}",
+            previous_value=f"{IncidentStatus.WARNING.value}",
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
         assert activity.user == self.user
-        assert activity.value == str(IncidentStatus.CLOSED.value)
-        assert activity.previous_value == str(IncidentStatus.WARNING.value)
+        assert activity.value == f"{IncidentStatus.CLOSED.value}"
+        assert activity.previous_value == f"{IncidentStatus.WARNING.value}"
         self.assert_notifications_sent(activity)
         assert not self.record_event.called
 
@@ -450,11 +450,11 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentCommentCreatedEvent)
         assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "user_id": str(self.user.id),
-            "activity_id": str(activity.id),
+            "organization_id": f"{self.organization.id}",
+            "incident_id": f"{incident.id}",
+            "incident_type": f"{incident.type}",
+            "user_id": f"{self.user.id}",
+            "activity_id": f"{activity.id}",
         }
 
     def test_mentioned_user_ids(self):
@@ -489,11 +489,11 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentCommentCreatedEvent)
         assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "user_id": str(self.user.id),
-            "activity_id": str(activity.id),
+            "organization_id": f"{self.organization.id}",
+            "incident_id": f"{incident.id}",
+            "incident_type": f"{incident.type}",
+            "user_id": f"{self.user.id}",
+            "activity_id": f"{activity.id}",
         }
 
 
@@ -1031,7 +1031,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
                 AlertRuleTriggerAction.TargetType.USER,
-                target_identifier=str(self.user.id),
+                target_identifier=f"{self.user.id}",
             )
             trigger_count = AlertRuleTrigger.objects.all().count()
             action_count = AlertRuleTriggerAction.objects.all().count()
@@ -1338,7 +1338,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.USER
-        target_identifier = str(self.user.id)
+        target_identifier = f"{self.user.id}"
         action = create_alert_rule_trigger_action(
             self.trigger, type, target_type, target_identifier=target_identifier
         )
@@ -1507,13 +1507,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
 
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.TEAM
-        target_identifier = str(self.team.id)
+        target_identifier = f"{self.team.id}"
         update_alert_rule_trigger_action(
             self.action, type=type, target_type=target_type, target_identifier=target_identifier
         )
@@ -1682,7 +1682,7 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
 
     def test(self):
@@ -1699,7 +1699,7 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
         assert list(get_actions_for_trigger(self.trigger)) == [action]
 
@@ -1783,14 +1783,14 @@ class TriggerActionTest(TestCase):
             trigger=trigger,
             type=AlertRuleTriggerAction.Type.EMAIL,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
         # Duplicate action that should be deduped
         create_alert_rule_trigger_action(
             trigger=trigger,
             type=AlertRuleTriggerAction.Type.EMAIL,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
         return rule
 

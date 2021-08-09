@@ -23,9 +23,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(team2.id)
+        assert response.data[0]["id"] == f"{team2.id}"
         assert not response.data[0]["isMember"]
-        assert response.data[1]["id"] == str(team1.id)
+        assert response.data[1]["id"] == f"{team1.id}"
         assert response.data[1]["isMember"]
 
     def test_teams_without_membership(self):
@@ -45,9 +45,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(team2.id)
+        assert response.data[0]["id"] == f"{team2.id}"
         assert not response.data[0]["isMember"]
-        assert response.data[1]["id"] == str(team3.id)
+        assert response.data[1]["id"] == f"{team3.id}"
         assert not response.data[1]["isMember"]
 
     def test_simple_results_no_projects(self):
@@ -83,7 +83,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(team.id)
+        assert response.data[0]["id"] == f"{team.id}"
 
         path = f"/api/0/organizations/{org.slug}/teams/?query=baz"
         response = self.client.get(path)
@@ -101,14 +101,14 @@ class OrganizationTeamsListTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.team.id)
+        assert response.data[0]["id"] == f"{self.team.id}"
         assert len(response.data[0]["externalTeams"]) == 1
         assert response.data[0]["externalTeams"][0] == {
-            "id": str(self.external_team.id),
-            "integrationId": str(self.external_team.integration.id),
+            "id": f"{self.external_team.id}",
+            "integrationId": f"{self.external_team.integration.id}",
             "provider": get_provider_string(self.external_team.provider),
             "externalName": self.external_team.external_name,
-            "teamId": str(self.team.id),
+            "teamId": f"{self.team.id}",
         }
 
     def test_has_external_teams_query(self):
@@ -125,7 +125,7 @@ class OrganizationTeamsListTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(team.id)
+        assert response.data[0]["id"] == f"{team.id}"
 
         path = f"/api/0/organizations/{self.organization.slug}/teams/?query=hasExternalTeams:false"
         response = self.client.get(path)

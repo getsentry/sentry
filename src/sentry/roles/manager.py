@@ -13,7 +13,7 @@ class Role:
         self.is_global = bool(is_global)
 
     def __str__(self):
-        return str(self.name)
+        return f"{self.name}"
 
     def __repr__(self):
         return f"<Role: {self.id}>"

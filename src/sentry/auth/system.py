@@ -10,12 +10,12 @@ from sentry import options
 from sentry.utils.cache import memoize
 
 INTERNAL_NETWORKS = [
-    ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
+    ipaddress.ip_network(f"{net}", strict=False) for net in settings.INTERNAL_SYSTEM_IPS
 ]
 
 
 def is_internal_ip(request):
-    ip = ipaddress.ip_address(str(request.META["REMOTE_ADDR"]))
+    ip = ipaddress.ip_address(f'{request.META["REMOTE_ADDR"]}')
     return any(ip in net for net in INTERNAL_NETWORKS)
 
 

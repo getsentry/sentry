@@ -86,7 +86,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "ignored"
-        assert result["statusDetails"]["actor"]["id"] == str(user.id)
+        assert result["statusDetails"]["actor"]["id"] == f"{user.id}"
 
     def test_resolved_in_next_release(self):
         release = self.create_release(project=self.project, version="a")
@@ -122,7 +122,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
-        assert result["statusDetails"]["actor"]["id"] == str(user.id)
+        assert result["statusDetails"]["actor"]["id"] == f"{user.id}"
 
     def test_resolved_in_commit(self):
         repo = self.create_repo(project=self.project)

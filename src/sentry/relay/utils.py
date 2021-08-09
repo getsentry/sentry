@@ -3,14 +3,14 @@ import uuid
 
 def get_header_relay_id(request):
     try:
-        return str(uuid.UUID(request.META["HTTP_X_SENTRY_RELAY_ID"]))
+        return f'{uuid.UUID(request.META["HTTP_X_SENTRY_RELAY_ID"])}'
     except (LookupError, ValueError, TypeError):
         pass
 
 
 def get_header_relay_signature(request):
     try:
-        return str(request.META["HTTP_X_SENTRY_RELAY_SIGNATURE"])
+        return f'{request.META["HTTP_X_SENTRY_RELAY_SIGNATURE"]}'
     except (LookupError, ValueError, TypeError):
         pass
 

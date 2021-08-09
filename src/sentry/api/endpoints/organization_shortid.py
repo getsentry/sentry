@@ -28,7 +28,7 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
             {
                 "organizationSlug": organization.slug,
                 "projectSlug": group.project.slug,
-                "groupId": str(group.id),
+                "groupId": f"{group.id}",
                 "group": serialize(group, request.user),
                 "shortId": group.qualified_short_id,
             }

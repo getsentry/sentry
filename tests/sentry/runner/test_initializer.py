@@ -54,7 +54,7 @@ mail.subject-prefix: my-mail-subject-prefix
 """
     )
 
-    bootstrap_options(settings, str(config_yml))
+    bootstrap_options(settings, f"{config_yml}")
     assert settings.SENTRY_OPTIONS == {
         "something.else": True,
         "foo.bar": "my-foo-bar",
@@ -84,11 +84,11 @@ mail.subject-prefix: my-mail-subject-prefix
 def test_bootstrap_options_malformed_yml(settings, config_yml):
     config_yml.write("1")
     with pytest.raises(ConfigurationError):
-        bootstrap_options(settings, str(config_yml))
+        bootstrap_options(settings, f"{config_yml}")
 
     config_yml.write("{{{")
     with pytest.raises(ConfigurationError):
-        bootstrap_options(settings, str(config_yml))
+        bootstrap_options(settings, f"{config_yml}")
 
 
 def test_bootstrap_options_no_config(settings):
@@ -161,7 +161,7 @@ def test_bootstrap_options_missing_file(settings):
 
 def test_bootstrap_options_empty_file(settings, config_yml):
     config_yml.write("")
-    bootstrap_options(settings, str(config_yml))
+    bootstrap_options(settings, f"{config_yml}")
     assert settings.SENTRY_OPTIONS == {}
 
 

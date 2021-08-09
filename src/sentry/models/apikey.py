@@ -66,7 +66,7 @@ class ApiKey(Model):
     __repr__ = sane_repr("organization_id", "key")
 
     def __str__(self):
-        return str(self.key)
+        return f"{self.key}"
 
     @classmethod
     def generate_api_key(cls):

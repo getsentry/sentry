@@ -97,7 +97,7 @@ def get_channel_and_token_by_recipient(
                 logger.info(
                     "notification.fail.invalid_slack",
                     extra={
-                        "error": str(e),
+                        "error": f"{e}",
                         "organization": organization,
                         "recipient": recipient.id,
                     },
@@ -159,7 +159,7 @@ def send_notification_as_slack(
                 logger.info(
                     "notification.fail.slack_post",
                     extra={
-                        "error": str(e),
+                        "error": f"{e}",
                         "notification": notification,
                         "recipient": recipient.id,
                         "channel_id": channel,

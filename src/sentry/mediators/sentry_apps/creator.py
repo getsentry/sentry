@@ -110,7 +110,7 @@ class Creator(Mediator):
             with transaction.atomic():
                 IntegrationFeature.objects.create(sentry_app=self.sentry_app)
         except IntegrityError as e:
-            self.log(sentry_app=self.sentry_app.slug, error_message=str(e))
+            self.log(sentry_app=self.sentry_app.slug, error_message=f"{e}")
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry

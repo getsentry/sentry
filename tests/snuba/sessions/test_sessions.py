@@ -32,8 +32,8 @@ def make_24h_stats(ts):
 
 def generate_session_default_args(session_dict):
     session_dict_default = {
-        "session_id": str(uuid.uuid4()),
-        "distinct_id": str(uuid.uuid4()),
+        "session_id": f"{uuid.uuid4()}",
+        "distinct_id": f"{uuid.uuid4()}",
         "status": "ok",
         "seq": 0,
         "release": "random@1.0",

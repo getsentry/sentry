@@ -6,7 +6,7 @@ from sentry.models import UserIP
 class UserIPSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "ipAddress": obj.ip_address,
             "countryCode": obj.country_code,
             "regionCode": obj.region_code,

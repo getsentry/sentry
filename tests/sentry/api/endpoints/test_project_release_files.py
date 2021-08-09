@@ -37,7 +37,7 @@ class ReleaseFilesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(releasefile.id)
+        assert response.data[0]["id"] == f"{releasefile.id}"
 
     def test_with_archive(self):
         project = self.project

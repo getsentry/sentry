@@ -109,7 +109,7 @@ class MergeEventWebhook(Webhook):
         except KeyError as e:
             logger.info(
                 "gitlab.webhook.invalid-merge-data",
-                extra={"integration_id": integration.id, "error": str(e)},
+                extra={"integration_id": integration.id, "error": f"{e}"},
             )
 
         if not author_email:

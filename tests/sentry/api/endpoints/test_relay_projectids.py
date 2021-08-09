@@ -39,7 +39,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
         sk, pk = generate_key_pair()
         self.public_key = pk
         self.private_key = sk
-        self.relay_id = str(uuid.uuid4())
+        self.relay_id = f"{uuid.uuid4()}"
         self.project = self.create_project()
         self.project.update_option("sentry:scrub_ip_address", True)
 
@@ -55,14 +55,14 @@ class RelayProjectIdsEndpointTest(APITestCase):
             org = self.project.organization
             org.update_option(
                 "sentry:trusted-relays",
-                [{"public_key": str(self.public_key), "name": "main-relay"}],
+                [{"public_key": f"{self.public_key}", "name": "main-relay"}],
             )
 
     def _call_endpoint(self, public_key, internal):
         raw_json, signature = self.private_key.pack({"publicKeys": [public_key]})
 
         if internal:
-            internal_relays = [str(self.public_key)]
+            internal_relays = [f"{self.public_key}"]
         else:
             internal_relays = []
 
@@ -79,9 +79,9 @@ class RelayProjectIdsEndpointTest(APITestCase):
         return json.loads(resp.content), resp.status_code
 
     def _call_endpoint_static_relay(self, internal):
-        raw_json, signature = self.private_key.pack({"publicKeys": [str(self.public_key)]})
+        raw_json, signature = self.private_key.pack({"publicKeys": [f"{self.public_key}"]})
 
-        static_auth = {self.relay_id: {"internal": internal, "public_key": str(self.public_key)}}
+        static_auth = {self.relay_id: {"internal": internal, "public_key": f"{self.public_key}"}}
         with self.settings(SENTRY_OPTIONS={"relay.static_auth": static_auth}):
             resp = self.client.post(
                 self.path,
@@ -117,7 +117,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
         result, status_code = self._call_endpoint(public_key, internal=True)
 
         assert status_code < 400
-        with override_settings(SENTRY_RELAY_WHITELIST_PK=[str(self.public_key)]):
+        with override_settings(SENTRY_RELAY_WHITELIST_PK=[f"{self.public_key}"]):
             assert safe.get_path(result, "projectIds", public_key) is None
 
     def test_unauthorized_relay(self):

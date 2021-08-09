@@ -30,7 +30,7 @@ class JSONField(TextField):
             try:
                 return json.loads(value)
             except Exception as e:
-                raise ValidationError(str(e))
+                raise ValidationError(f"{e}")
         else:
             return value
 
@@ -42,14 +42,14 @@ class JSONField(TextField):
             try:
                 json.loads(value)
             except Exception as e:
-                raise ValidationError(str(e))
+                raise ValidationError(f"{e}")
 
     def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
             return json.dumps(value)
         except Exception as e:
-            raise ValidationError(str(e))
+            raise ValidationError(f"{e}")
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""

@@ -83,7 +83,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["raw"] == self.code_owner.raw
         assert resp_data["dateCreated"] == self.code_owner.date_added
         assert resp_data["dateUpdated"] == self.code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping_without_integration.id)
+        assert resp_data["codeMappingId"] == f"{self.code_mapping_without_integration.id}"
         assert resp_data["provider"] == "unknown"
 
     def test_codeowners_with_integration(self):
@@ -95,7 +95,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
         assert resp_data["dateUpdated"] == code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping.id)
+        assert resp_data["codeMappingId"] == f"{self.code_mapping.id}"
         assert resp_data["provider"] == self.integration.provider
 
     def test_get_expanded_codeowners_with_integration(self):
@@ -107,9 +107,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
         assert resp_data["dateUpdated"] == code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping.id)
+        assert resp_data["codeMappingId"] == f"{self.code_mapping.id}"
         assert resp_data["provider"] == self.integration.provider
-        assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
+        assert resp_data["codeMapping"]["id"] == f"{self.code_mapping.id}"
 
     def test_basic_post(self):
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -117,7 +117,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["id"]
         assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
         assert response.data["provider"] == "github"
         assert response.data["ownershipSyntax"] == "codeowners:docs/* admin@sentry.io #tiger-team\n"
 
@@ -140,7 +140,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201
         assert response.data["raw"] == "docs/*"
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
         assert response.data["provider"] == "github"
         assert response.data["ownershipSyntax"] == ""
 
@@ -156,7 +156,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201
         assert response.data["raw"] == "docs/*  @MeredithAnya"
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
         assert response.data["provider"] == "github"
         assert response.data["ownershipSyntax"] == ""
 
@@ -172,7 +172,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201
         assert response.data["raw"] == "docs/*  someuser@sentry.io"
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
         assert response.data["provider"] == "github"
         assert response.data["ownershipSyntax"] == ""
 
@@ -188,7 +188,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201
         assert response.data["raw"] == "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
         assert response.data["provider"] == "github"
         assert response.data["ownershipSyntax"] == ""
 
@@ -204,7 +204,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201
         assert response.data["raw"] == "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs"
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
         assert response.data["provider"] == "github"
         assert response.data["ownershipSyntax"] == ""
 
@@ -306,7 +306,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.status_code == 201
         assert response.data["id"]
         assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   user2@sentry.io"
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
         assert response.data["provider"] == "github"
         assert response.data["ownershipSyntax"] == "codeowners:docs/* admin@sentry.io\n"
 

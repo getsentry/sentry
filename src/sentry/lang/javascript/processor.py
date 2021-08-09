@@ -696,7 +696,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
                 + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
             )
         except TypeError as e:
-            raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
+            raise UnparseableSourcemap({"url": "<base64>", "reason": f"{e}"})
     else:
         # look in the database and, if not found, optionally try to scrape the web
         result = fetch_file(
@@ -711,7 +711,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
-        logger.debug(str(exc), exc_info=True)
+        logger.debug(f"{exc}", exc_info=True)
         raise UnparseableSourcemap({"url": http.expose_url(url)})
 
 

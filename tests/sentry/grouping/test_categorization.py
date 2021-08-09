@@ -211,7 +211,7 @@ def track_enhancers_coverage():
         modified |= _strip_sensitive_keys(data, ["exception", "platform", "event_id"])
 
         if "event_id" not in data:
-            data["event_id"] = str(uuid.uuid4()).replace("-", "")
+            data["event_id"] = f"{uuid.uuid4()}".replace("-", "")
             modified = True
 
         if "exception" in data and "values" not in data["exception"]:

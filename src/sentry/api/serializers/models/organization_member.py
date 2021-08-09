@@ -86,7 +86,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
-            user = users_by_id.get(str(item.user_id), None)
+            user = users_by_id.get(f"{item.user_id}", None)
             user_id = user["id"] if user else ""
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
@@ -99,7 +99,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         d = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "email": obj.get_email(),
             "name": obj.user.get_display_name() if obj.user else obj.get_email(),
             "user": attrs["user"],
@@ -202,7 +202,7 @@ class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
 
         result = {
             "schemas": [SCIM_SCHEMA_USER],
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "userName": obj.get_email(),
             "name": {"givenName": "N/A", "familyName": "N/A"},
             "emails": [{"primary": True, "value": obj.get_email(), "type": "work"}],

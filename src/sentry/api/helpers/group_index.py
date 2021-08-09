@@ -409,7 +409,7 @@ def delete_groups(request, projects, organization_id, search_fn):
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
+            return Response({"detail": f"{exc}"}, status=400)
 
         group_list = list(cursor_result)
 
@@ -581,7 +581,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
+            return Response({"detail": f"{exc}"}, status=400)
 
         group_list = list(cursor_result)
         group_ids = [g.id for g in group_list]
@@ -1113,8 +1113,8 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
         )
 
         result["merge"] = {
-            "parent": str(primary_group.id),
-            "children": [str(g.id) for g in groups_to_merge],
+            "parent": f"{primary_group.id}",
+            "children": [f"{g.id}" for g in groups_to_merge],
         }
 
     # Support moving groups in or out of the inbox

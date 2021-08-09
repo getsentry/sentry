@@ -32,7 +32,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
             try:
                 repositories = install.get_repositories(request.GET.get("search"))
             except (IntegrationError, IdentityNotValid) as e:
-                return self.respond({"detail": str(e)}, status=400)
+                return self.respond({"detail": f"{e}"}, status=400)
 
             context = {"repos": repositories, "searchable": install.repo_search}
             return self.respond(context)

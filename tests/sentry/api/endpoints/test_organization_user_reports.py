@@ -68,7 +68,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         result_ids = {report["id"] for report in response.data}
-        assert result_ids == {str(report.id) for report in expected}
+        assert result_ids == {f"{report.id}" for report in expected}
 
     def test_no_filters(self):
         self.run_test([self.report_1, self.report_2])

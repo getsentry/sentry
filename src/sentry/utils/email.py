@@ -90,7 +90,7 @@ def email_to_group_id(address):
 
 
 def group_id_to_email(group_id):
-    signed_data = signer.sign(str(group_id))
+    signed_data = signer.sign(f"{group_id}")
     return "@".join(
         (
             signed_data.replace(":", "+"),
@@ -282,9 +282,9 @@ class MessageBuilder:
             try:
                 headers["List-Id"] = make_listid_from_instance(reference)
             except ListResolver.UnregisteredTypeError as error:
-                logger.debug(str(error))
+                logger.debug(f"{error}")
             except AssertionError as error:
-                logger.warning(str(error))
+                logger.warning(f"{error}")
 
     def __render_html_body(self) -> str:
         html_body = None

@@ -31,10 +31,10 @@ class ExternalActorSerializerTest(TestCase):
         result = serialize(external_actor, self.user, key="user")
 
         assert "actorId" not in result
-        assert result["id"] == str(external_actor.id)
+        assert result["id"] == f"{external_actor.id}"
         assert result["externalName"] == "Marcos"
         assert result["externalId"] == "Gaeta"
-        assert result["userId"] == str(self.user.id)
+        assert result["userId"] == f"{self.user.id}"
 
     def test_team(self):
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -51,7 +51,7 @@ class ExternalActorSerializerTest(TestCase):
         result = serialize(external_actor, self.user, key="team")
 
         assert "actorId" not in result
-        assert result["id"] == str(external_actor.id)
+        assert result["id"] == f"{external_actor.id}"
         assert result["externalName"] == "Marcos"
         assert result["externalId"] == "Gaeta"
-        assert result["teamId"] == str(team.id)
+        assert result["teamId"] == f"{team.id}"

@@ -19,7 +19,7 @@ class _IndexFormatter(string.Formatter):
 
 
 def format_index_expr(format_string, data):
-    return str(_IndexFormatter().vformat(str(format_string), (), data).strip())
+    return f'{_IndexFormatter().vformat(f"{format_string}", (), data).strip()}'
 
 
 def contexttype(cls):

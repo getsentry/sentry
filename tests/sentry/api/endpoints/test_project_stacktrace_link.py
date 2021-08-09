@@ -80,10 +80,10 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["config"] == {
-            "id": str(self.config.id),
-            "projectId": str(self.project.id),
+            "id": f"{self.config.id}",
+            "projectId": f"{self.project.id}",
             "projectSlug": self.project.slug,
-            "repoId": str(self.repo.id),
+            "repoId": f"{self.repo.id}",
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
@@ -96,7 +96,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "integrationId": str(self.integration.id),
+            "integrationId": f"{self.integration.id}",
             "defaultBranch": "master",
         }
         assert not response.data["sourceUrl"]
@@ -115,10 +115,10 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["config"] == {
-            "id": str(self.config.id),
-            "projectId": str(self.project.id),
+            "id": f"{self.config.id}",
+            "projectId": f"{self.project.id}",
             "projectSlug": self.project.slug,
-            "repoId": str(self.repo.id),
+            "repoId": f"{self.repo.id}",
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
@@ -131,7 +131,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "integrationId": str(self.integration.id),
+            "integrationId": f"{self.integration.id}",
             "defaultBranch": "master",
         }
         assert not response.data["sourceUrl"]
@@ -148,10 +148,10 @@ class ProjectStacktraceLinkTest(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200, response.content
             assert response.data["config"] == {
-                "id": str(self.config.id),
-                "projectId": str(self.project.id),
+                "id": f"{self.config.id}",
+                "projectId": f"{self.project.id}",
                 "projectSlug": self.project.slug,
-                "repoId": str(self.repo.id),
+                "repoId": f"{self.repo.id}",
                 "repoName": self.repo.name,
                 "provider": {
                     "aspects": {},
@@ -164,7 +164,7 @@ class ProjectStacktraceLinkTest(APITestCase):
                 },
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "integrationId": str(self.integration.id),
+                "integrationId": f"{self.integration.id}",
                 "defaultBranch": "master",
             }
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
@@ -185,6 +185,6 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "slug": "example",
                 "canAdd": True,
             },
-            "id": str(self.integration.id),
+            "id": f"{self.integration.id}",
             "icon": None,
         }

@@ -37,7 +37,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
         )
         correct_post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "id": str(member.id),
+            "id": f"{member.id}",
             "userName": "test.user@okta.local",
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
             "active": True,
@@ -74,7 +74,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": str(member.id),
+                    "id": f"{member.id}",
                     "userName": "test.user@okta.local",
                     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -100,7 +100,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": str(member.id),
+                    "id": f"{member.id}",
                     "userName": "test.user@okta.local",
                     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -159,7 +159,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": str(member.id),
+                    "id": f"{member.id}",
                     "userName": "test.user@okta.local",
                     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},

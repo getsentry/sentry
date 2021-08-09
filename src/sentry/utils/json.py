@@ -38,7 +38,7 @@ def better_default_encoder(o):
     elif isinstance(o, (set, frozenset)):
         return list(o)
     elif isinstance(o, decimal.Decimal):
-        return str(o)
+        return f"{o}"
     elif isinstance(o, Enum):
         return o.value
     elif isinstance(o, BitHandler):

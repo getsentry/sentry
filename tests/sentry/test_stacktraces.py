@@ -312,7 +312,7 @@ class NormalizeInApptest(TestCase):
 
         frames = data["exception"]["values"][0]["stacktrace"]["frames"]
         assert frames[0]["in_app"] is isInApp, (
-            "For function: " + function + " expected:" + str(isInApp)
+            "For function: " + function + " expected:" + f"{isInApp}"
         )
 
     def test_ios_function_name_in_app_detection(self):

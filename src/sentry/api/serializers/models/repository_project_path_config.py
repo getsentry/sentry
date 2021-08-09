@@ -11,13 +11,13 @@ class RepositoryProjectPathConfigSerializer(Serializer):
         )
         provider = integration.get_provider() if integration else None
         serialized_provider = serialize_provider(provider) if provider else None
-        integration_id = str(integration.id) if integration else None
+        integration_id = f"{integration.id}" if integration else None
 
         return {
-            "id": str(obj.id),
-            "projectId": str(obj.project_id),
+            "id": f"{obj.id}",
+            "projectId": f"{obj.project_id}",
             "projectSlug": obj.project.slug,
-            "repoId": str(obj.repository.id),
+            "repoId": f"{obj.repository.id}",
             "repoName": obj.repository.name,
             "integrationId": integration_id,
             "provider": serialized_provider,

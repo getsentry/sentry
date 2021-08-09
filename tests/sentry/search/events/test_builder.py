@@ -180,7 +180,7 @@ class QueryBuilderTest(TestCase):
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
             re.escape(
-                f"Invalid query. Project(s) {str(project1.slug)} do not exist or are not actively selected."
+                f"Invalid query. Project(s) {f'{project1.slug}'} do not exist or are not actively selected."
             ),
         ):
             QueryBuilder(

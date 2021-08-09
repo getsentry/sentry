@@ -50,7 +50,7 @@ class ExportedDataTest(TestCase):
         assert isinstance(self.data_export.file_name, str)
         file_name = self.data_export.file_name
         assert file_name.startswith(ExportQueryType.as_str(self.data_export.query_type))
-        assert file_name.endswith(str(self.data_export.id) + ".csv")
+        assert file_name.endswith(f"{self.data_export.id}" + ".csv")
 
     def test_format_date(self):
         assert ExportedData.format_date(self.data_export.date_finished) is None

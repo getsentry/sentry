@@ -551,7 +551,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
                     "jira_project": project_id,
-                    "error": str(e),
+                    "error": f"{e}",
                 },
             )
             raise IntegrationError(
@@ -595,7 +595,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "error": str(e),
+                    "error": f"{e}",
                 },
             )
             raise IntegrationError(
@@ -699,7 +699,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
                             "persisted_reporter_id": reporter_id,
-                            "error": str(e),
+                            "error": f"{e}",
                         },
                     )
                     continue

@@ -79,7 +79,7 @@ def get_sdk_from_os(data):
         return
 
     try:
-        version = str(data["version"]).split("-", 1)[0] + ".0" * 3
+        version = f'{data["version"]}'.split("-", 1)[0] + ".0" * 3
         system_version = tuple(int(x) for x in version.split(".")[:3])
     except ValueError:
         return

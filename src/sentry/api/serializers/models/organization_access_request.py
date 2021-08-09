@@ -6,7 +6,7 @@ from sentry.models import OrganizationAccessRequest
 class OrganizationAccessRequestSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "member": serialize(obj.member),
             "team": serialize(obj.team),
             "requester": serialize(obj.requester),

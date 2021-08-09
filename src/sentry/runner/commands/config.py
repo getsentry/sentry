@@ -72,7 +72,7 @@ def set(key, value, secret):
     except UnknownOption:
         raise click.ClickException("unknown option: %s" % key)
     except TypeError as e:
-        raise click.ClickException(str(e))
+        raise click.ClickException(f"{e}")
 
 
 @config.command()

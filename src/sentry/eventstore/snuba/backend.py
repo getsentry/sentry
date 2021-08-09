@@ -306,7 +306,7 @@ class SnubaEventStorage(EventStorage):
 
         row = result["data"][0]
 
-        return (str(row["project_id"]), str(row["event_id"]))
+        return (f'{row["project_id"]}', f'{row["event_id"]}')
 
     def __make_event(self, snuba_data):
         event_id = snuba_data[Columns.EVENT_ID.value.event_name]

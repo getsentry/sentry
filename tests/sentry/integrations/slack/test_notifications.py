@@ -503,7 +503,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
+            "targetIdentifier": f"{self.user.id}",
         }
         rule = Rule.objects.create(
             project=self.project,
@@ -574,7 +574,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
+            "targetIdentifier": f"{self.team.id}",
         }
         rule = Rule.objects.create(
             project=self.project,
@@ -654,7 +654,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
+            "targetIdentifier": f"{self.team.id}",
         }
         rule = Rule.objects.create(
             project=project2,
@@ -714,7 +714,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
+            "targetIdentifier": f"{self.team.id}",
         }
         rule = Rule.objects.create(
             project=self.project,
@@ -758,7 +758,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
+            "targetIdentifier": f"{self.team.id}",
         }
         rule = Rule.objects.create(
             project=self.project,

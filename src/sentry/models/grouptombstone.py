@@ -20,7 +20,7 @@ class GroupTombstone(Model):
     previous_group_id = BoundedBigIntegerField(unique=True)
     project = FlexibleForeignKey("sentry.Project")
     level = BoundedPositiveIntegerField(
-        choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
+        choices=[(key, f"{val}") for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
     )

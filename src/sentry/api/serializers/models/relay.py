@@ -6,8 +6,8 @@ from sentry.models import Relay
 class RelaySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
-            "relayId": str(obj.relay_id),
+            "id": f"{obj.id}",
+            "relayId": f"{obj.relay_id}",
             "publicKey": obj.public_key,
             "firstSeen": obj.first_seen,
             "lastSeen": obj.last_seen,

@@ -62,7 +62,7 @@ class RepositoryProvider(ProviderMixin):
             )
         except PluginError as e:
             logger.exception("repo.create-error")
-            return Response({"errors": {"__all__": str(e)}}, status=400)
+            return Response({"errors": {"__all__": f"{e}"}}, status=400)
 
         try:
             with transaction.atomic():

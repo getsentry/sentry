@@ -541,7 +541,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = SearchValue(parse_numeric_value(*search_value))
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
             return SearchFilter(search_key, operator, search_value)
 
         return self._handle_text_filter(search_key, operator, SearchValue("".join(search_value)))
@@ -553,7 +553,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
             return SearchFilter(search_key, operator, SearchValue(search_value))
 
         search_value = operator + search_value if operator != "=" else search_value
@@ -571,7 +571,7 @@ class SearchVisitor(NodeVisitor):
         try:
             from_val, to_val = parse_datetime_value(date_value)
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
+            raise InvalidSearchQuery(f"{exc}")
 
         # TODO: Handle negations here. This is tricky because these will be
         # separate filters, and to negate this range we need (< val or >= val).
@@ -589,7 +589,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 from_val, to_val = parse_datetime_range(value.text)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
 
             # TODO: Handle negations
             if from_val is not None:
@@ -610,7 +610,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_duration(*search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
             return SearchFilter(search_key, operator, SearchValue(search_value))
 
         # Durations overlap with numeric `m` suffixes
@@ -649,7 +649,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = SearchValue([parse_numeric_value(*val) for val in search_value])
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
             return SearchFilter(search_key, operator, search_value)
 
         search_value = SearchValue(["".join(value) for value in search_value])
@@ -689,7 +689,7 @@ class SearchVisitor(NodeVisitor):
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
+            raise InvalidSearchQuery(f"{exc}")
 
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
@@ -708,7 +708,7 @@ class SearchVisitor(NodeVisitor):
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
+            raise InvalidSearchQuery(f"{exc}")
 
         if aggregate_value is not None:
             return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
@@ -724,7 +724,7 @@ class SearchVisitor(NodeVisitor):
         try:
             aggregate_value = parse_numeric_value(*search_value)
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
+            raise InvalidSearchQuery(f"{exc}")
 
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
@@ -736,7 +736,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
             return AggregateFilter(search_key, operator, SearchValue(search_value))
 
         # Invalid formats fall back to text match
@@ -751,7 +751,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 from_val, to_val = parse_datetime_range(search_value.text)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+                raise InvalidSearchQuery(f"{exc}")
 
             if from_val is not None:
                 operator = ">="

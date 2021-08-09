@@ -164,7 +164,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                     key="mail:email",
                     project=projects_map[int(id)],
                 )
-                user_option.update(value=str(value))
+                user_option.update(value=f"{value}")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -173,7 +173,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         with transaction.atomic():
             for parent in parents:
                 # We fetched every available parent but only care about the ones in `request.data`.
-                if str(parent.id) not in data:
+                if f"{parent.id}" not in data:
                     continue
 
                 # This partitioning always does the same thing because notification_type stays constant.
@@ -184,7 +184,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 )
 
                 type = get_type_from_fine_tuning_key(notification_type)
-                value = int(data[str(parent.id)])
+                value = int(data[f"{parent.id}"])
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     type,

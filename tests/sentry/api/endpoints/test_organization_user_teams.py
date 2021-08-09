@@ -26,13 +26,13 @@ class OrganizationUserTeamsTest(APITestCase):
 
         # Sort teams so there is a guaranteed ordering
         response.data.sort(key=lambda x: x["id"])
-        assert response.data[0]["id"] == str(self.team1.id)
+        assert response.data[0]["id"] == f"{self.team1.id}"
         assert response.data[0]["isMember"]
-        assert response.data[0]["projects"][0]["id"] == str(self.project1.id)
+        assert response.data[0]["projects"][0]["id"] == f"{self.project1.id}"
 
-        assert response.data[1]["id"] == str(self.team2.id)
+        assert response.data[1]["id"] == f"{self.team2.id}"
         assert response.data[1]["isMember"]
-        assert response.data[1]["projects"][0]["id"] == str(self.project2.id)
+        assert response.data[1]["projects"][0]["id"] == f"{self.project2.id}"
 
     def test_super_user(self):
         self.login_as(user=self.bar, superuser=True)
@@ -44,13 +44,13 @@ class OrganizationUserTeamsTest(APITestCase):
 
         # Sort teams so there is a guaranteed ordering
         response.data.sort(key=lambda x: x["id"])
-        assert response.data[0]["id"] == str(self.team1.id)
+        assert response.data[0]["id"] == f"{self.team1.id}"
         assert not response.data[0]["isMember"]
-        assert response.data[0]["projects"][0]["id"] == str(self.project1.id)
+        assert response.data[0]["projects"][0]["id"] == f"{self.project1.id}"
 
-        assert response.data[1]["id"] == str(self.team2.id)
+        assert response.data[1]["id"] == f"{self.team2.id}"
         assert response.data[1]["isMember"]
-        assert response.data[1]["projects"][0]["id"] == str(self.project2.id)
+        assert response.data[1]["projects"][0]["id"] == f"{self.project2.id}"
 
-        assert response.data[2]["id"] == str(self.team3.id)
+        assert response.data[2]["id"] == f"{self.team3.id}"
         assert not response.data[2]["isMember"]

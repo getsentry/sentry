@@ -62,7 +62,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=str(e))
+            raise ParseError(detail=f"{e}")
 
     def get_team_ids(self, request, organization):
         if not request.user:
@@ -115,7 +115,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=str(e))
+            raise ParseError(detail=f"{e}")
 
         snuba_args = {
             "start": _filter.start,
@@ -147,16 +147,16 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             yield
         except discover.InvalidSearchQuery as error:
-            message = str(error)
+            message = f"{error}"
             sentry_sdk.set_tag("query.error_reason", message)
             raise ParseError(detail=message)
         except ArithmeticError as error:
-            message = str(error)
+            message = f"{error}"
             sentry_sdk.set_tag("query.error_reason", message)
             raise ParseError(detail=message)
         except snuba.QueryOutsideRetentionError as error:
             sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
-            raise ParseError(detail=str(error))
+            raise ParseError(detail=f"{error}")
         except snuba.QueryIllegalTypeOfArgument:
             message = "Invalid query. Argument to function is wrong type."
             sentry_sdk.set_tag("query.error_reason", message)
@@ -177,8 +177,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
                 )
             elif isinstance(error, (snuba.UnqualifiedQueryError)):
-                sentry_sdk.set_tag("query.error_reason", str(error))
-                raise ParseError(detail=str(error))
+                sentry_sdk.set_tag("query.error_reason", f"{error}")
+                raise ParseError(detail=f"{error}")
             elif isinstance(
                 error,
                 (
@@ -214,7 +214,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=str(cursor),
+            cursor=f"{cursor}",
             name=name,
             has_results="true" if bool(cursor) else "false",
         )

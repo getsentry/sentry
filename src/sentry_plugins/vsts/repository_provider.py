@@ -48,7 +48,7 @@ class VisualStudioRepositoryProvider(VisualStudioMixin, providers.RepositoryProv
                     "instance": instance,
                     "project": project,
                     "name": repo["name"],
-                    "external_id": str(repo["id"]),
+                    "external_id": f'{repo["id"]}',
                     "url": repo["_links"]["web"]["href"],
                 }
             )

@@ -106,6 +106,6 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
                     project=None,
                     organization=None,
                 )
-                user_option.update(value=str(int(value)))
+                user_option.update(value=f"{int(value)}")
 
         return self.get(request, user)

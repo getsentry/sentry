@@ -70,7 +70,7 @@ class SelectRequester(Mediator):
                     "install_uuid": self.install.uuid,
                     "project_slug": self.project and self.project.slug,
                     "uri": self.uri,
-                    "error_message": str(e),
+                    "error_message": f"{e}",
                 },
             )
             response = {}

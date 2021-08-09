@@ -36,7 +36,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
-            context["config_error"] = str(e)
+            context["config_error"] = f"{e}"
             context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
 
         return Response(context)
@@ -129,7 +129,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 InvalidIdentity,
                 PluginError,
             ) as e:
-                errors[key] = str(e)
+                errors[key] = f"{e}"
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -140,7 +140,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     project=project, config=cleaned, actor=request.user
                 )
             except (InvalidIdentity, PluginError) as e:
-                errors["__all__"] = str(e)
+                errors["__all__"] = f"{e}"
 
         if errors:
             return Response({"errors": errors}, status=400)

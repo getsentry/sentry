@@ -218,7 +218,7 @@ class GitlabIssuesTest(GitLabTestCase):
         project_name = "This_is / a_project"
         org_integration = self.installation.org_integration
         org_integration.config["project_issue_defaults"] = {
-            str(self.group.project_id): {"project": project_id}
+            f"{self.group.project_id}": {"project": project_id}
         }
         org_integration.save()
 
@@ -283,7 +283,7 @@ class GitlabIssuesTest(GitLabTestCase):
         project_name = "This_is / a_project"
         org_integration = self.installation.org_integration
         org_integration.config["project_issue_defaults"] = {
-            str(self.group.project_id): {"project": project_id}
+            f"{self.group.project_id}": {"project": project_id}
         }
         org_integration.save()
 

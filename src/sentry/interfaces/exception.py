@@ -300,7 +300,7 @@ class SingleException(Interface):
 
         return {
             "type": self.type,
-            "value": str(self.value) if self.value else None,
+            "value": f"{self.value}" if self.value else None,
             "mechanism": mechanism,
             "threadId": self.thread_id,
             "module": self.module,

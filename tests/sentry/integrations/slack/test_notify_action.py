@@ -231,7 +231,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert "Channel not found. Invalid ID provided." in str(form.errors.values())
+        assert "Channel not found. Invalid ID provided." in f"{form.errors.values()}"
 
     @responses.activate
     def test_invalid_channel_name_provided(self):
@@ -255,7 +255,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert not form.is_valid()
         assert (
             "Received channel name my-channel does not match inputted channel name my-chanel."
-            in str(form.errors.values())
+            in f"{form.errors.values()}"
         )
 
     def test_invalid_workspace(self):

@@ -40,7 +40,7 @@ class BaseNotification:
         return f"sentry/emails/{self.get_filename()}.html"
 
     def get_project_link(self) -> str:
-        return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
+        return f'{absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")}'
 
     def get_user_context(
         self, user: "User", extra_context: Mapping[str, Any]

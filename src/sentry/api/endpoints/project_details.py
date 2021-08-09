@@ -240,7 +240,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip(), filter_appconnect=False)
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(f"{e}")
 
         has_multiple_appconnect = features.has(
             "organizations:app-store-connect-multiple", organization, actor=request.user
@@ -260,7 +260,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(f"{e}")
 
         return value
 
@@ -288,7 +288,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(f"{e}")
 
         return value
 

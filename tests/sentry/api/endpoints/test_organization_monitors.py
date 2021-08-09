@@ -12,8 +12,8 @@ class OrganizationMonitorsTestBase(APITestCase):
 
 class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
     def check_valid_response(self, response, expected_monitors):
-        assert [str(monitor.guid) for monitor in expected_monitors] == [
-            str(monitor_resp["id"]) for monitor_resp in response.data
+        assert [f"{monitor.guid}" for monitor in expected_monitors] == [
+            f'{monitor_resp["id"]}' for monitor_resp in response.data
         ]
 
     def test_simple(self):

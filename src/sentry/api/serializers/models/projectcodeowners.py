@@ -34,11 +34,11 @@ class ProjectCodeOwnersSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         data = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "raw": obj.raw,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "codeMappingId": str(obj.repository_project_path_config_id),
+            "codeMappingId": f"{obj.repository_project_path_config_id}",
             "provider": "unknown",
         }
 

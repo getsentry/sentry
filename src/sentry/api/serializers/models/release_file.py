@@ -14,7 +14,7 @@ def encode_release_file_id(obj):
 
     """
     if obj.id:
-        return str(obj.id)
+        return f"{obj.id}"
     if obj.name:
         dist_name = ""
         if obj.dist_id:

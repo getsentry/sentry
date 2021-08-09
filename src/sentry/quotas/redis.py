@@ -137,7 +137,7 @@ class RedisQuota(Quota):
         else:
             with self.cluster.fanout() as client:
                 results = map(
-                    functools.partial(get_usage_for_quota, client.target_key(str(organization_id))),
+                    functools.partial(get_usage_for_quota, client.target_key(f"{organization_id}")),
                     quotas,
                 )
 
@@ -168,7 +168,7 @@ class RedisQuota(Quota):
         if not quotas:
             return
 
-        client = self.__get_redis_client(str(project.organization_id))
+        client = self.__get_redis_client(f"{project.organization_id}")
         pipe = client.pipeline()
 
         for quota in quotas:
@@ -238,7 +238,7 @@ class RedisQuota(Quota):
         if not keys or not args:
             return NotRateLimited()
 
-        client = self.__get_redis_client(str(project.organization_id))
+        client = self.__get_redis_client(f"{project.organization_id}")
         rejections = is_rate_limited(client, keys, args)
 
         if not any(rejections):

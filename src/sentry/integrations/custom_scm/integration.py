@@ -76,7 +76,7 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
             integration_id__isnull=True,
             status=ObjectStatus.VISIBLE,
         )
-        return [{"name": repo.name, "identifier": str(repo.id)} for repo in repos]
+        return [{"name": repo.name, "identifier": f"{repo.id}"} for repo in repos]
 
 
 class InstallationForm(forms.Form):

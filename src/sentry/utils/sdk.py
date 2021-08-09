@@ -156,7 +156,7 @@ def get_project_key():
             extra={
                 "project_id": settings.SENTRY_PROJECT,
                 "project_key": settings.SENTRY_PROJECT_KEY,
-                "error_message": str(exc),
+                "error_message": f"{exc}",
             },
         )
     if key is None:

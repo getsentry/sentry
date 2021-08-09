@@ -227,8 +227,8 @@ def create_incident_activity(
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
-    value = str(value) if value is not None else value
-    previous_value = str(previous_value) if previous_value is not None else previous_value
+    value = f"{value}" if value is not None else value
+    previous_value = f"{previous_value}" if previous_value is not None else previous_value
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added

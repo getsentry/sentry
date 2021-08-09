@@ -133,7 +133,7 @@ def _get_committers(annotated_frames, commits):
 
     user_dicts = [
         {
-            "author": users_by_author.get(str(author_id)),
+            "author": users_by_author.get(f"{author_id}"),
             "commits": [
                 (commit, score) for (commit, score) in commits if commit.author_id == author_id
             ],

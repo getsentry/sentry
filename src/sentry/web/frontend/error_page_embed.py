@@ -133,7 +133,7 @@ class ErrorPageEmbedView(View):
         options = DEFAULT_OPTIONS.copy()
         for name in options.keys():
             if name in request.GET:
-                options[name] = str(request.GET[name])
+                options[name] = f"{request.GET[name]}"
 
         # TODO(dcramer): since we can't use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
@@ -214,9 +214,9 @@ class ErrorPageEmbedView(View):
                 "*/"
                 + json.dumps_htmlsafe(
                     {
-                        "generic_error": str(options["errorGeneric"]),
-                        "form_error": str(options["errorFormEntry"]),
-                        "sent_message": str(options["successMessage"]),
+                        "generic_error": f'{options["errorGeneric"]}',
+                        "form_error": f'{options["errorFormEntry"]}',
+                        "sent_message": f'{options["successMessage"]}',
                     }
                 )
                 + ";/*"

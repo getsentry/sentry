@@ -15,7 +15,7 @@ class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         first_release, last_release = get_first_last_release(request, group)
         data = {
-            "id": str(group.id),
+            "id": f"{group.id}",
             "firstRelease": first_release,
             "lastRelease": last_release,
         }

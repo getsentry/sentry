@@ -177,7 +177,7 @@ class ProjectEndpoint(Endpoint):
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
         except InvalidParams as e:
-            raise ProjectEventsError(str(e))
+            raise ProjectEventsError(f"{e}")
 
         environments = [env.name for env in get_environments(request, project.organization)]
         params = {"start": start, "end": end, "project_id": [project.id]}

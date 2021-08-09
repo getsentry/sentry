@@ -310,7 +310,7 @@ class Rule:
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [str(x) for x in self.actions]}
+        return {"match": matchers, "actions": [f"{x}" for x in self.actions]}
 
     def get_matching_frame_actions(self, frames, platform, exception_data=None, cache=None):
         """Given a frame returns all the matching actions based on this rule.

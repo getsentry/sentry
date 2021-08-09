@@ -167,7 +167,7 @@ class UserSocialAuth(models.Model):
     @classmethod
     def create_social_auth(cls, user, uid, provider):
         if not isinstance(uid, str):
-            uid = str(uid)
+            uid = f"{uid}"
         return cls.objects.create(user=user, uid=uid, provider=provider)
 
     @classmethod

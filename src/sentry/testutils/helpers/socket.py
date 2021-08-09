@@ -10,7 +10,7 @@ def override_blacklist(*ip_addresses):
         def wrapper(*args, **kwargs):
             disallowed_ips = frozenset(net_socket.DISALLOWED_IPS)
             net_socket.DISALLOWED_IPS = frozenset(
-                ipaddress.ip_network(str(ip)) for ip in ip_addresses
+                ipaddress.ip_network(f"{ip}") for ip in ip_addresses
             )
             try:
                 func(*args, **kwargs)

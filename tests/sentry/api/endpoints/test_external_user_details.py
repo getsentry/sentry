@@ -18,7 +18,7 @@ class ExternalUserDetailsTest(APITestCase):
             self.get_success_response(
                 self.organization.slug, self.external_user.id, method="delete"
             )
-        assert not ExternalActor.objects.filter(id=str(self.external_user.id)).exists()
+        assert not ExternalActor.objects.filter(id=f"{self.external_user.id}").exists()
 
     def test_basic_update(self):
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -26,7 +26,7 @@ class ExternalUserDetailsTest(APITestCase):
             response = self.get_success_response(
                 self.organization.slug, self.external_user.id, **data
             )
-        assert response.data["id"] == str(self.external_user.id)
+        assert response.data["id"] == f"{self.external_user.id}"
         assert response.data["externalName"] == "@new_username"
 
     def test_invalid_provider_update(self):

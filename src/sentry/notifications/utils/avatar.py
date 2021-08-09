@@ -16,12 +16,12 @@ def get_user_avatar_url(user: User, size: int = 20) -> str:
     url = reverse("sentry-user-avatar-url", args=[avatar.ident])
     if size:
         url = f"{url}?s={int(size)}"
-    return str(absolute_uri(url))
+    return f"{absolute_uri(url)}"
 
 
 def get_sentry_avatar_url() -> str:
     url = "/images/sentry-email-avatar.png"
-    return str(absolute_uri(get_asset_url("sentry", url)))
+    return f'{absolute_uri(get_asset_url("sentry", url))}'
 
 
 def avatar_as_html(user: User) -> str:

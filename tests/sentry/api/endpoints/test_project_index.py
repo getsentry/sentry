@@ -21,8 +21,8 @@ class ProjectsListTest(APITestCase):
         response = self.get_valid_response()
         assert len(response.data) == 1
 
-        assert response.data[0]["id"] == str(project.id)
-        assert response.data[0]["organization"]["id"] == str(org.id)
+        assert response.data[0]["id"] == f"{project.id}"
+        assert response.data[0]["organization"]["id"] == f"{org.id}"
 
     def test_show_all_with_superuser(self):
         Project.objects.all().delete()
@@ -67,11 +67,11 @@ class ProjectsListTest(APITestCase):
 
         response = self.get_valid_response(qs_params={"status": "active"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(project1.id)
+        assert response.data[0]["id"] == f"{project1.id}"
 
         response = self.get_valid_response(qs_params={"status": "deleted"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(project2.id)
+        assert response.data[0]["id"] == f"{project2.id}"
 
     def test_query_filter(self):
         Project.objects.all().delete()
@@ -86,7 +86,7 @@ class ProjectsListTest(APITestCase):
 
         response = self.get_valid_response(qs_params={"query": "foo"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(project1.id)
+        assert response.data[0]["id"] == f"{project1.id}"
 
         response = self.get_valid_response(qs_params={"query": "baz"})
         assert len(response.data) == 0
@@ -104,7 +104,7 @@ class ProjectsListTest(APITestCase):
 
         response = self.get_valid_response(qs_params={"query": "slug:foo"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(project1.id)
+        assert response.data[0]["id"] == f"{project1.id}"
 
         response = self.get_valid_response(qs_params={"query": "slug:baz"})
         assert len(response.data) == 0
@@ -122,7 +122,7 @@ class ProjectsListTest(APITestCase):
 
         response = self.get_valid_response(qs_params={"query": f"id:{project1.id}"})
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(project1.id)
+        assert response.data[0]["id"] == f"{project1.id}"
 
         response = self.get_valid_response(qs_params={"query": "id:-1"})
         assert len(response.data) == 0

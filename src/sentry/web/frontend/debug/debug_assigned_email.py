@@ -22,7 +22,7 @@ class DebugSelfAssignedEmailView(ActivityMailDebugView):
             "type": Activity.ASSIGNED,
             "user": request.user,
             "data": {
-                "assignee": str(request.user.id),
+                "assignee": f"{request.user.id}",
                 "assigneeEmail": request.user.email,
                 "assigneeType": "user",
             },

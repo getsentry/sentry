@@ -17,7 +17,7 @@ class AgeComparisonFilterTest(RuleTestCase):
 
         event = self.get_event()
         value = 10
-        data = {"comparison_type": "older", "value": str(value), "time": "hour"}
+        data = {"comparison_type": "older", "value": f"{value}", "time": "hour"}
 
         rule = self.get_rule(data=data)
 
@@ -33,7 +33,7 @@ class AgeComparisonFilterTest(RuleTestCase):
 
         event = self.get_event()
         value = 10
-        data = {"comparison_type": "newer", "value": str(value), "time": "hour"}
+        data = {"comparison_type": "newer", "value": f"{value}", "time": "hour"}
 
         rule = self.get_rule(data=data)
 

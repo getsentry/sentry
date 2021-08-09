@@ -66,4 +66,4 @@ class OrganizationMemberUnreleasedCommitsTest(APITestCase):
         assert resp.data["commits"][0]["id"] == unreleased_commit2.key
         assert resp.data["commits"][1]["id"] == unreleased_commit.key
         assert len(resp.data["repositories"]) == 1
-        assert str(repo.id) in resp.data["repositories"]
+        assert f"{repo.id}" in resp.data["repositories"]

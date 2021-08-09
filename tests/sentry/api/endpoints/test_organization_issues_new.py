@@ -28,5 +28,5 @@ class OrganizationIssuesNewTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(group2.id)
-        assert response.data[1]["id"] == str(group1.id)
+        assert response.data[0]["id"] == f"{group2.id}"
+        assert response.data[1]["id"] == f"{group1.id}"

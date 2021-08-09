@@ -288,7 +288,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             except Exception as e:
                 self.raise_error(e)
             else:
-                config["external_id"] = str(repo["id"])
+                config["external_id"] = f'{repo["id"]}'
         return config
 
     def get_webhook_secret(self, organization):
@@ -462,7 +462,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
                 "defaultAuthId": None,
                 "user": None,
                 "externalId": i.external_id,
-                "integrationId": str(i.id),
+                "integrationId": f"{i.id}",
                 "linked": i.id in linked_integrations,
             }
             for i in _integrations

@@ -80,7 +80,7 @@ class IssueLinkRequester(Mediator):
                     "project": self.group.project.slug,
                     "group": self.group.id,
                     "uri": self.uri,
-                    "error_message": str(e),
+                    "error_message": f"{e}",
                 },
             )
             response = {}

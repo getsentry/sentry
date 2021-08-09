@@ -46,7 +46,7 @@ class Relay(Model):
             return True
 
         trusted_relays = org.get_option("sentry:trusted-relays", [])
-        key = str(self.public_key_object)
+        key = f"{self.public_key_object}"
 
         for relay_info in trusted_relays:
             if relay_info is not None and relay_info.get("public_key") == key:

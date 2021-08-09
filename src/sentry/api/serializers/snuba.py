@@ -74,7 +74,7 @@ def serialize_eventusers(organization, item_list, user, lookup):
         rv[(tag, project)] = {
             HEALTH_ID_KEY: make_health_id(lookup, [eu.tag_value, eu.project_id]),
             "value": {
-                "id": str(eu.id) if eu.id else None,
+                "id": f"{eu.id}" if eu.id else None,
                 "project": projects.get(eu.project_id),
                 "hash": eu.hash,
                 "tagValue": eu.tag_value,

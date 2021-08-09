@@ -17,7 +17,7 @@ def _check_history():
             return
     except ProgrammingError as e:
         # Having no migrations table is ok, as we're likely operating on a new install.
-        if 'relation "django_migrations" does not exist' in str(e):
+        if 'relation "django_migrations" does not exist' in f"{e}":
             return
         click.echo(f"Checking migration state failed with: {e}")
         raise click.ClickException("Could not determine migration state. Aborting")

@@ -167,7 +167,7 @@ class ResolvedInCommitTest(TestCase):
         assert Activity.objects.filter(
             project=group.project, group=group, type=Activity.ASSIGNED, user=user
         )[0].data == {
-            "assignee": str(user.id),
+            "assignee": f"{user.id}",
             "assigneeEmail": user.email,
             "assigneeType": "user",
         }

@@ -153,8 +153,8 @@ class ReleaseFileCache:
             metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
             return releasefile.file.getfile()
 
-        file_id = str(releasefile.file.id)
-        organization_id = str(releasefile.organization_id)
+        file_id = f"{releasefile.file.id}"
+        organization_id = f"{releasefile.organization_id}"
         file_path = os.path.join(self.cache_path, organization_id, file_id)
 
         hit = True

@@ -39,7 +39,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider=PROVIDER_NAME,
-                external_id=str(event["repository"]["id"]),
+                external_id=f'{event["repository"]["id"]}',
             )
         except Repository.DoesNotExist:
             raise Http404()

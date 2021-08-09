@@ -156,7 +156,7 @@ class GitHubEnterpriseWebhookBase(View):
         except (KeyError, IndexError) as e:
             logger.info(
                 "github_enterprise.webhook.missing-signature",
-                extra={"host": host, "error": str(e)},
+                extra={"host": host, "error": f"{e}"},
             )
         handler()(event, host)
         return HttpResponse(status=204)

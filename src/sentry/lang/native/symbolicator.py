@@ -157,8 +157,8 @@ class Symbolicator:
 
         self.sess = SymbolicatorSession(
             url=base_url,
-            project_id=str(project.id),
-            event_id=str(event_id),
+            project_id=f"{project.id}",
+            event_id=f"{event_id}",
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
             options=get_options_for_project(project),
@@ -610,7 +610,7 @@ class SymbolicatorSession:
         # as class attribute to keep it static for life of process
         if cls._worker_id is None:
             # %5000 to reduce cardinality of metrics tagging with worker id
-            cls._worker_id = str(uuid.uuid4().int % 5000)
+            cls._worker_id = f"{uuid.uuid4().int % 5000}"
         return cls._worker_id
 
 

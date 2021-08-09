@@ -21,9 +21,9 @@ class SavedSearchSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             # TODO: Remove once we've completely deprecated Sentry 9
-            "projectId": str(obj.project_id) if obj.project_id else None,
+            "projectId": f"{obj.project_id}" if obj.project_id else None,
             "type": obj.type,
             "name": obj.name,
             "query": obj.query,

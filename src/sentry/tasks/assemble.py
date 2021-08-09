@@ -47,9 +47,9 @@ def _get_cache_key(task, scope, checksum):
         % hashlib.sha1(
             b"%s|%s|%s"
             % (
-                str(scope).encode("ascii"),
+                f"{scope}".encode("ascii"),
                 checksum.encode("ascii"),
-                str(task).encode("utf-8"),
+                f"{task}".encode(),
             )
         ).hexdigest()
     )
@@ -313,7 +313,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
     except AssembleArtifactsError as e:
         set_assemble_status(
-            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
+            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=f"{e}"
         )
     except Exception:
         logger.error("failed to assemble release bundle", exc_info=True)

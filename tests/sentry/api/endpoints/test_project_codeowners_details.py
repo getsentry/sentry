@@ -46,7 +46,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.delete(self.url)
         assert response.status_code == 204
-        assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
+        assert not ProjectCodeOwners.objects.filter(id=f"{self.codeowners.id}").exists()
 
     def test_basic_update(self):
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
@@ -57,7 +57,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
-        assert response.data["id"] == str(self.codeowners.id)
+        assert response.data["id"] == f"{self.codeowners.id}"
         assert response.data["raw"] == data["raw"].strip()
 
     def test_wrong_codeowners_id(self):
@@ -81,8 +81,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
-        assert response.data["id"] == str(self.codeowners.id)
-        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["id"] == f"{self.codeowners.id}"
+        assert response.data["codeMappingId"] == f"{self.code_mapping.id}"
 
         errors = response.data["errors"]
         assert set(errors["missing_external_teams"]) == {"@getsentry/frontend", "@getsentry/docs"}

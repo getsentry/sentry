@@ -59,10 +59,10 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
-            "id": str(path_config1.id),
-            "projectId": str(self.project1.id),
+            "id": f"{path_config1.id}",
+            "projectId": f"{self.project1.id}",
             "projectSlug": self.project1.slug,
-            "repoId": str(self.repo1.id),
+            "repoId": f"{self.repo1.id}",
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -73,17 +73,17 @@ class OrganizationCodeMappingsTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": str(self.integration.id),
+            "integrationId": f"{self.integration.id}",
             "stackRoot": "stack/root",
             "sourceRoot": "source/root",
             "defaultBranch": "master",
         }
 
         assert response.data[1] == {
-            "id": str(path_config2.id),
-            "projectId": str(self.project2.id),
+            "id": f"{path_config2.id}",
+            "projectId": f"{self.project2.id}",
             "projectSlug": self.project2.slug,
-            "repoId": str(self.repo1.id),
+            "repoId": f"{self.repo1.id}",
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -94,7 +94,7 @@ class OrganizationCodeMappingsTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": str(self.integration.id),
+            "integrationId": f"{self.integration.id}",
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
             "defaultBranch": "master",
@@ -116,10 +116,10 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
-            "id": str(path_config1.id),
-            "projectId": str(self.project1.id),
+            "id": f"{path_config1.id}",
+            "projectId": f"{self.project1.id}",
             "projectSlug": self.project1.slug,
-            "repoId": str(self.repo1.id),
+            "repoId": f"{self.repo1.id}",
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -130,7 +130,7 @@ class OrganizationCodeMappingsTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": str(self.integration.id),
+            "integrationId": f"{self.integration.id}",
             "stackRoot": "stack/root",
             "sourceRoot": "source/root",
             "defaultBranch": "master",
@@ -178,10 +178,10 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post({"integrationId": self.integration.id})
         assert response.status_code == 201, response.content
         assert response.data == {
-            "id": str(response.data["id"]),
-            "projectId": str(self.project1.id),
+            "id": f'{response.data["id"]}',
+            "projectId": f"{self.project1.id}",
             "projectSlug": self.project1.slug,
-            "repoId": str(self.repo1.id),
+            "repoId": f"{self.repo1.id}",
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -192,7 +192,7 @@ class OrganizationCodeMappingsTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": str(self.integration.id),
+            "integrationId": f"{self.integration.id}",
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
             "defaultBranch": "master",
@@ -206,10 +206,10 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
-            "id": str(response.data["id"]),
-            "projectId": str(self.project1.id),
+            "id": f'{response.data["id"]}',
+            "projectId": f"{self.project1.id}",
             "projectSlug": self.project1.slug,
-            "repoId": str(self.repo1.id),
+            "repoId": f"{self.repo1.id}",
             "repoName": self.repo1.name,
             "provider": None,
             "integrationId": None,

@@ -298,7 +298,7 @@ def insta_snapshot(request, log):
                 name += f"_{subname}"
 
             reference_file = os.path.join(
-                os.path.dirname(str(request.node.fspath)),
+                os.path.dirname(f"{request.node.fspath}"),
                 "snapshots",
                 os.path.splitext(os.path.basename(request.node.parent.name))[0],
                 name + ".pysnap",
@@ -328,7 +328,7 @@ def insta_snapshot(request, log):
         if _snapshot_writeback is not None and refval != output:
             if not os.path.isdir(os.path.dirname(reference_file)):
                 os.makedirs(os.path.dirname(reference_file))
-            source = os.path.realpath(str(request.node.fspath))
+            source = os.path.realpath(f"{request.node.fspath}")
             if source.startswith(_test_base + os.path.sep):
                 source = source[len(_test_base) + 1 :]
             if _snapshot_writeback == "new":

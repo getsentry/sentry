@@ -54,7 +54,7 @@ def send_slack_response(
     try:
         client.post(path, headers=headers, data=payload, json=True)
     except ApiError as e:
-        message = str(e)
+        message = f"{e}"
         # If the user took their time to link their slack account, we may no
         # longer be able to respond, and we're not guaranteed able to post into
         # the channel. Ignore Expired url errors.

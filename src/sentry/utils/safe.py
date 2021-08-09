@@ -27,7 +27,7 @@ def safe_execute(func, *args, **kwargs):
         else:
             cls = func.__class__
 
-        func_name = getattr(func, "__name__", str(func))
+        func_name = getattr(func, "__name__", f"{func}")
         cls_name = cls.__name__
         logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
 

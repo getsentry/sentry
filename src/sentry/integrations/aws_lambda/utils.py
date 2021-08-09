@@ -385,7 +385,7 @@ def wrap_lambda_updater():
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                err_message = str(e)
+                err_message = f"{e}"
                 is_custom_err, err_message = get_sentry_err_message(err_message)
                 if is_custom_err:
                     raise IntegrationError(_(err_message))

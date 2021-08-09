@@ -11,7 +11,7 @@ from urllib3.util.connection import _set_socket_options, allowed_gai_family
 from sentry.exceptions import RestrictedIPAddress
 
 DISALLOWED_IPS = frozenset(
-    ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
+    ipaddress.ip_network(f"{i}", strict=False) for i in settings.SENTRY_DISALLOWED_IPS
 )
 
 

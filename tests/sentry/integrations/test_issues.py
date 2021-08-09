@@ -131,7 +131,7 @@ class IssueDefaultTest(TestCase):
 
     def test_get_repository_choices_default_repo(self):
         self.installation.org_integration.config = {
-            "project_issue_defaults": {str(self.group.project_id): {"repo": "user/repo2"}}
+            "project_issue_defaults": {f"{self.group.project_id}": {"repo": "user/repo2"}}
         }
         self.installation.org_integration.save()
         self.installation.get_repositories = lambda: [

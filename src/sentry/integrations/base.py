@@ -350,7 +350,7 @@ class IntegrationInstallation:
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(str(exc))
+            self.logger.exception(f"{exc}")
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     @property

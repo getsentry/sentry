@@ -15,7 +15,7 @@ def default(o):
     if hasattr(o, "to_json"):
         return o.to_json()
     if isinstance(o, Decimal):
-        return str(o)
+        return f"{o}"
     if isinstance(o, datetime.datetime):
         if o.tzinfo:
             return o.strftime("%Y-%m-%dT%H:%M:%S%z")

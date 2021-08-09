@@ -117,13 +117,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             req = self.make_api_request(group.project, _url, json_data={"text": comment})
             body = safe_urlread(req)
         except requests.RequestException as e:
-            msg = str(e)
+            msg = f"{e}"
             raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
-            msg = str(e)
+            msg = f"{e}"
             raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:
@@ -156,13 +156,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             req = self.make_api_request(group.project, _url, json_data=json_data)
             body = safe_urlread(req)
         except requests.RequestException as e:
-            msg = str(e)
+            msg = f"{e}"
             raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
-            msg = str(e)
+            msg = f"{e}"
             raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:

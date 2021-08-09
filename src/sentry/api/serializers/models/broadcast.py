@@ -20,7 +20,7 @@ class BroadcastSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "message": obj.message,
             "title": obj.title,
             "link": obj.link,

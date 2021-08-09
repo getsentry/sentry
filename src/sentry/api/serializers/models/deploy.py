@@ -20,7 +20,7 @@ class DeploySerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "environment": attrs.get("environment"),
             "dateStarted": obj.date_started,
             "dateFinished": obj.date_finished,

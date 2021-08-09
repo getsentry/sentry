@@ -68,7 +68,7 @@ class SlackNotifyServiceForm(forms.Form):
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
                 raise forms.ValidationError(
                     _(
-                        str(e),
+                        f"{e}",
                     ),
                     code="invalid",
                     params=params,
@@ -179,7 +179,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 self.logger.info(
                     "rule.fail.slack_post",
                     extra={
-                        "error": str(e),
+                        "error": f"{e}",
                         "project_id": event.project_id,
                         "event_id": event.event_id,
                         "channel_name": self.get_option("channel"),

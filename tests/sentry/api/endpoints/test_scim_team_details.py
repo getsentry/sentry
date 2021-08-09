@@ -28,7 +28,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": str(team.id),
+            "id": f"{team.id}",
             "displayName": "test-scimv2",
             "members": [],
             "meta": {"resourceType": "Group"},
@@ -44,7 +44,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": str(team.id),
+            "id": f"{team.id}",
             "displayName": "test-scimv2",
             "meta": {"resourceType": "Group"},
         }
@@ -62,7 +62,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
                     {
                         "op": "replace",
                         "value": {
-                            "id": str(team.id),
+                            "id": f"{team.id}",
                             "displayName": "newName",
                         },
                     }
@@ -99,7 +99,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         )
         assert response.status_code == 204, response.content
         assert OrganizationMemberTeam.objects.filter(
-            team_id=str(team.id), organizationmember_id=member1.id
+            team_id=f"{team.id}", organizationmember_id=member1.id
         ).exists()
 
     def test_scim_team_details_patch_remove(self):
@@ -304,7 +304,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
                 "Operations": [
-                    {"op": "Remove", "path": "members", "value": [{"value": str(member1.id)}]}
+                    {"op": "Remove", "path": "members", "value": [{"value": f"{member1.id}"}]}
                 ],
             },
         )

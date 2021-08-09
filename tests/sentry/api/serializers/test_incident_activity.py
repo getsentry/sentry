@@ -21,8 +21,8 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
         )
         result = serialize(activity)
 
-        assert result["id"] == str(activity.id)
-        assert result["incidentIdentifier"] == str(activity.incident.identifier)
+        assert result["id"] == f"{activity.id}"
+        assert result["incidentIdentifier"] == f"{activity.incident.identifier}"
         assert result["user"] == serialize(activity.user)
         assert result["type"] == activity.type
         assert result["value"] is None
@@ -39,8 +39,8 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
         )
         result = serialize(activity)
 
-        assert result["id"] == str(activity.id)
-        assert result["incidentIdentifier"] == str(activity.incident.identifier)
+        assert result["id"] == f"{activity.id}"
+        assert result["incidentIdentifier"] == f"{activity.incident.identifier}"
         assert result["user"] is None
         assert result["type"] == activity.type
         assert result["value"] is None
@@ -71,8 +71,8 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
             )
             result = serialize(activity)
 
-            assert result["id"] == str(activity.id)
-            assert result["incidentIdentifier"] == str(activity.incident.identifier)
+            assert result["id"] == f"{activity.id}"
+            assert result["incidentIdentifier"] == f"{activity.incident.identifier}"
             assert result["user"] == serialize(activity.user)
             assert result["type"] == activity.type
             assert result["value"] is None

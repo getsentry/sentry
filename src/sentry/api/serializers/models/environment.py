@@ -13,14 +13,14 @@ StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 @register(Environment)
 class EnvironmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        return {"id": str(obj.id), "name": obj.name}
+        return {"id": f"{obj.id}", "name": obj.name}
 
 
 @register(EnvironmentProject)
 class EnvironmentProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "name": obj.environment.name,
             "isHidden": obj.is_hidden is True,
         }

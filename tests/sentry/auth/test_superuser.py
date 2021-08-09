@@ -62,7 +62,7 @@ class SuperuserTestCase(TestCase):
                     else idle_expires
                 ).strftime("%s"),
                 "tok": self.default_token if session_token is UNSET else session_token,
-                "uid": str(user.id) if uid is UNSET else uid,
+                "uid": f"{user.id}" if uid is UNSET else uid,
             }
         return request
 
@@ -159,7 +159,7 @@ class SuperuserTestCase(TestCase):
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
-        assert data["uid"] == str(user.id)
+        assert data["uid"] == f"{user.id}"
 
     def test_logout_clears_session(self):
         request = self.build_request()

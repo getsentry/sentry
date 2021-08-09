@@ -49,4 +49,4 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             with super().handle_query_errors():
                 yield
         except (InvalidField, InvalidParams, NoProjects) as error:
-            raise ParseError(detail=str(error))
+            raise ParseError(detail=f"{error}")

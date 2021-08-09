@@ -28,9 +28,9 @@ class ExternalUserTest(APITestCase):
             response = self.get_success_response(self.org_slug, status_code=201, **self.data)
         assert response.data == {
             **self.data,
-            "id": str(response.data["id"]),
-            "userId": str(self.user.id),
-            "integrationId": str(self.integration.id),
+            "id": f'{response.data["id"]}',
+            "userId": f"{self.user.id}",
+            "integrationId": f"{self.integration.id}",
         }
 
     def test_without_feature_flag(self):
@@ -76,7 +76,7 @@ class ExternalUserTest(APITestCase):
             response = self.get_success_response(self.org_slug, status_code=200, **self.data)
         assert response.data == {
             **self.data,
-            "id": str(self.external_user.id),
-            "userId": str(self.user.id),
-            "integrationId": str(self.integration.id),
+            "id": f"{self.external_user.id}",
+            "userId": f"{self.user.id}",
+            "integrationId": f"{self.integration.id}",
         }

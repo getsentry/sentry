@@ -548,7 +548,7 @@ class OrganizationReleaseDetailsEndpoint(
                     release.set_refs(refs, request.user, fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
-                    return Response({"refs": [str(e)]}, status=400)
+                    return Response({"refs": [f"{e}"]}, status=400)
 
             if not was_released and release.date_released:
                 for project in projects:
@@ -585,6 +585,6 @@ class OrganizationReleaseDetailsEndpoint(
         try:
             release.safe_delete()
         except UnsafeReleaseDeletion as e:
-            return Response({"detail": str(e)}, status=400)
+            return Response({"detail": f"{e}"}, status=400)
 
         return Response(status=204)

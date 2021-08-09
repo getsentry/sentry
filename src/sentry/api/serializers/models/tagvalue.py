@@ -5,7 +5,7 @@ from sentry.search.utils import convert_user_tag_to_query
 
 class EnvironmentTagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        return {"id": str(obj.id), "name": obj.value}
+        return {"id": f"{obj.id}", "name": obj.value}
 
 
 class UserTagValueSerializer(Serializer):

@@ -11,7 +11,7 @@ class AuthDetailsEndpointTest(APITestCase):
         self.login_as(user)
         response = self.client.get(self.path)
         assert response.status_code == 200
-        assert response.data["id"] == str(user.id)
+        assert response.data["id"] == f"{user.id}"
 
     def test_logged_out(self):
         response = self.client.get(self.path)
@@ -28,7 +28,7 @@ class AuthLoginEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:admin".encode()),
         )
         assert response.status_code == 200
-        assert response.data["id"] == str(user.id)
+        assert response.data["id"] == f"{user.id}"
 
     def test_invalid_password(self):
         user = self.create_user("foo@example.com")
@@ -47,7 +47,7 @@ class AuthVerifyEndpointTest(APITestCase):
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "admin"})
         assert response.status_code == 200
-        assert response.data["id"] == str(user.id)
+        assert response.data["id"] == f"{user.id}"
 
     def test_invalid_password(self):
         user = self.create_user("foo@example.com")

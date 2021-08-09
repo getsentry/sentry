@@ -6,7 +6,7 @@ class RoleSerializer(Serializer):
         allowed_roles = kwargs.get("allowed_roles") or []
 
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "name": obj.name,
             "desc": obj.desc,
             "scopes": obj.scopes,

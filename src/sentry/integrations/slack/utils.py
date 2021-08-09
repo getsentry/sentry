@@ -110,7 +110,7 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
     except ApiError as e:
         if e.text == "channel_not_found":
             raise ValidationError("Channel not found. Invalid ID provided.")
-        logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
+        logger.info("rule.slack.conversation_info_failed", extra={"error": f"{e}"})
         raise IntegrationError("Could not retrieve Slack channel information.")
 
     if not isinstance(results, dict):
@@ -163,7 +163,7 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
                     endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
                 )
             except ApiError as e:
-                logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
+                logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": f"{e}"})
                 return (prefix, None, False)
 
             if not isinstance(items, dict):
@@ -225,7 +225,7 @@ def send_incident_alert_notification(action, incident, metric_value, method):
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
-        logger.info("rule.fail.slack_post", extra={"error": str(e)})
+        logger.info("rule.fail.slack_post", extra={"error": f"{e}"})
 
 
 def get_identity(user, organization_id, integration_id):
@@ -267,7 +267,7 @@ def parse_link(url):
         new_path.append(item)
 
     parsed_path = "/".join(new_path)
-    parsed_path += "/" + str(url_parts[4])
+    parsed_path += "/" + f"{url_parts[4]}"
 
     return parsed_path
 
@@ -289,7 +289,7 @@ def get_slack_data_by_user(integration, organization, emails_by_user):
                 logger.info(
                     "post_install.fail.slack_lookupByEmail",
                     extra={
-                        "error": str(e),
+                        "error": f"{e}",
                         "organization": organization.slug,
                         "integration_id": integration.id,
                         "email": email,
@@ -348,7 +348,7 @@ def send_confirmation(
     try:
         client.post("/chat.postMessage", headers=headers, data=payload, json=True)
     except ApiError as e:
-        message = str(e)
+        message = f"{e}"
         if message != "Expired url":
             logger.error("slack.slash-notify.response-error", extra={"error": message})
     else:

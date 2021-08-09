@@ -29,7 +29,7 @@ class ProcessingIssueSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "type": obj.type,
             "checksum": obj.checksum,
             "numEvents": attrs["num_events"],

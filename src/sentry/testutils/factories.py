@@ -266,7 +266,7 @@ class Factories:
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(str(kwargs["name"]))
+            kwargs["slug"] = slugify(f'{kwargs["name"]}')
         members = kwargs.pop("members", None)
 
         team = Team.objects.create(organization=organization, **kwargs)
@@ -293,7 +293,7 @@ class Factories:
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(str(kwargs["name"]))
+            kwargs["slug"] = slugify(f'{kwargs["name"]}')
         if not organization and teams:
             organization = teams[0].organization
 
@@ -409,7 +409,7 @@ class Factories:
                 message="placeholder commit message",
             )
 
-            release.update(authors=[str(author.id)], commit_count=1, last_commit_id=commit.id)
+            release.update(authors=[f"{author.id}"], commit_count=1, last_commit_id=commit.id)
 
         return release
 
@@ -642,7 +642,7 @@ class Factories:
         **kwargs,
     ):
         if debug_id is None:
-            debug_id = str(uuid4())
+            debug_id = f"{uuid4()}"
 
         if object_name is None:
             object_name = "%s.dSYM" % debug_id

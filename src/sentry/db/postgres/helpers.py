@@ -13,7 +13,7 @@ def can_reconnect(exc):
     #         return True
     #     return True
     elif isinstance(exc, DatabaseError):
-        exc_msg = str(exc)
+        exc_msg = f"{exc}"
         if "server closed the connection unexpectedly" in exc_msg:
             return True
         elif "client_idle_timeout" in exc_msg:

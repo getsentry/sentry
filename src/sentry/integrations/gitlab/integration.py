@@ -314,7 +314,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
                     "include_subgroups": installation_data["include_subgroups"],
-                    "error_message": str(e),
+                    "error_message": f"{e}",
                     "error_status": e.code,
                 },
             )

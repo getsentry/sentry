@@ -42,7 +42,7 @@ class GzippedDictField(TextField):
             return None
         # enforce strings to guarantee consistency
         if isinstance(value, bytes):
-            value = str(value)
+            value = f"{value}"
         # db values need to be in unicode
         return compress(pickle.dumps(value))
 

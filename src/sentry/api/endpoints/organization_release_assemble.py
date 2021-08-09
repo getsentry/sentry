@@ -47,7 +47,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
             data = json.loads(request.body)
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
-            return Response({"error": str(e).splitlines()[0]}, status=400)
+            return Response({"error": f"{e}".splitlines()[0]}, status=400)
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 

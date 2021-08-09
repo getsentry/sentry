@@ -291,7 +291,7 @@ class Fixtures:
             alert_rule_trigger = self.create_alert_rule_trigger()
 
         if not target_identifier:
-            target_identifier = str(self.user.id)
+            target_identifier = f"{self.user.id}"
 
         if triggered_for_incident is not None:
             Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)

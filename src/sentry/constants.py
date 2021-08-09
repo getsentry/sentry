@@ -437,10 +437,10 @@ class SentryAppStatus:
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNPUBLISHED, str(cls.UNPUBLISHED_STR)),
-            (cls.PUBLISHED, str(cls.PUBLISHED_STR)),
-            (cls.INTERNAL, str(cls.INTERNAL_STR)),
-            (cls.PUBLISH_REQUEST_INPROGRESS, str(cls.PUBLISH_REQUEST_INPROGRESS_STR)),
+            (cls.UNPUBLISHED, f"{cls.UNPUBLISHED_STR}"),
+            (cls.PUBLISHED, f"{cls.PUBLISHED_STR}"),
+            (cls.INTERNAL, f"{cls.INTERNAL_STR}"),
+            (cls.PUBLISH_REQUEST_INPROGRESS, f"{cls.PUBLISH_REQUEST_INPROGRESS_STR}"),
         )
 
     @classmethod
@@ -464,8 +464,8 @@ class SentryAppInstallationStatus:
     @classmethod
     def as_choices(cls):
         return (
-            (cls.PENDING, str(cls.PENDING_STR)),
-            (cls.INSTALLED, str(cls.INSTALLED_STR)),
+            (cls.PENDING, f"{cls.PENDING_STR}"),
+            (cls.INSTALLED, f"{cls.INSTALLED_STR}"),
         )
 
     @classmethod

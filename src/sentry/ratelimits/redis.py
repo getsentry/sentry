@@ -20,7 +20,7 @@ class RedisRateLimiter(RateLimiter):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(str(e))
+            raise InvalidConfiguration(f"{e}")
 
     def is_limited(self, key, limit, project=None, window=None):
         if window is None:

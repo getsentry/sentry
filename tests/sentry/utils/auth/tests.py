@@ -75,7 +75,7 @@ class LoginTest(TestCase):
         request = self.make_request()
         assert login(request, self.user, organization_id=org.id)
         assert request.user == self.user
-        assert request.session["sso"] == str(org.id)
+        assert request.session["sso"] == f"{org.id}"
 
     def test_with_nonce(self):
         self.user.refresh_session_nonce()

@@ -37,13 +37,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
+        assert response.data["id"] == f"{group.id}"
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
+        assert response.data["id"] == f"{group.id}"
 
     def test_with_qualified_short_id(self):
         self.login_as(user=self.user)
@@ -55,7 +55,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
+        assert response.data["id"] == f"{group.id}"
 
         url = f"/api/0/issues/{group.qualified_short_id}/"
         response = self.client.get(url, format="json")
@@ -74,7 +74,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
+        assert response.data["id"] == f"{group.id}"
         assert response.data["firstRelease"]["version"] == "1.0"
 
     def test_no_releases(self):

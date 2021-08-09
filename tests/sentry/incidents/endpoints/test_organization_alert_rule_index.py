@@ -434,7 +434,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 4
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == str(self.issue_rule.id)
+        assert result[1]["id"] == f"{self.issue_rule.id}"
         assert result[1]["type"] == "rule"
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
@@ -470,7 +470,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
         assert len(result) == 1
-        assert result[0]["id"] == str(self.issue_rule.id)
+        assert result[0]["id"] == f"{self.issue_rule.id}"
         assert result[0]["type"] == "rule"
 
     def test_limit_as_1_with_paging(self):
@@ -502,7 +502,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 1
-        assert result[0]["id"] == str(self.issue_rule.id)
+        assert result[0]["id"] == f"{self.issue_rule.id}"
         assert result[0]["type"] == "rule"
 
     def test_limit_as_2_with_paging(self):
@@ -519,7 +519,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 2
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == str(self.issue_rule.id)
+        assert result[1]["id"] == f"{self.issue_rule.id}"
         assert result[1]["type"] == "rule"
 
         links = requests.utils.parse_header_links(
@@ -981,13 +981,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 7
         # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
         [r["id"] for r in result] == [
-            str(alert_rule_critical.id),
-            str(another_alert_rule_warning.id),
-            str(alert_rule_warning.id),
-            str(self.yet_another_alert_rule.id),
-            str(self.other_alert_rule.id),
-            str(self.alert_rule.id),
-            str(self.issue_rule.id),
+            f"{alert_rule_critical.id}",
+            f"{another_alert_rule_warning.id}",
+            f"{alert_rule_warning.id}",
+            f"{self.yet_another_alert_rule.id}",
+            f"{self.other_alert_rule.id}",
+            f"{self.alert_rule.id}",
+            f"{self.issue_rule.id}",
         ]
 
         # Test paging with the status setup:
@@ -1058,4 +1058,4 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
         assert len(result) == 4
-        assert result[0]["latestIncident"]["id"] == str(crit_incident.id)
+        assert result[0]["latestIncident"]["id"] == f"{crit_incident.id}"

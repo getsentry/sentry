@@ -37,7 +37,7 @@ def random_ip():
 
     return ".".join(
         (
-            str(first),
+            f"{first}",
             str(random.randrange(1, 256)),
             str(random.randrange(1, 256)),
             str(random.randrange(1, 256)),

@@ -18,8 +18,8 @@ class BitbucketClient(AuthApiClient):
 
     def bind_auth(self, **kwargs):
         kwargs["auth"] = OAuth1(
-            str(settings.BITBUCKET_CONSUMER_KEY),
-            str(settings.BITBUCKET_CONSUMER_SECRET),
+            f"{settings.BITBUCKET_CONSUMER_KEY}",
+            f"{settings.BITBUCKET_CONSUMER_SECRET}",
             self.auth.tokens["oauth_token"],
             self.auth.tokens["oauth_token_secret"],
             signature_type="auth_header",

@@ -32,9 +32,9 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         # If `footer` string is passed, automatically attach a `footer_icon`.
         if footer:
             kwargs["footer"] = footer
-            kwargs["footer_icon"] = str(
-                absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-            )
+            kwargs[
+                "footer_icon"
+            ] = f'{absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))}'
 
         if title:
             kwargs["title"] = title

@@ -15,11 +15,11 @@ class TypesClass:
 
     @classmethod
     def as_choices(cls):
-        return [(k, str(v)) for k, v in cls.TYPES]
+        return [(k, f"{v}") for k, v in cls.TYPES]
 
     @classmethod
     def as_text_choices(cls):
-        return [(str(v), str(v)) for _, v in cls.TYPES]
+        return [(f"{v}", f"{v}") for _, v in cls.TYPES]
 
     @classmethod
     def get_type_name(cls, num):

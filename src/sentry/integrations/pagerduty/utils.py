@@ -33,7 +33,7 @@ def build_incident_attachment(action, incident, integration_key, metric_value=No
         "payload": {
             "summary": incident.alert_rule.name,
             "severity": severity,
-            "source": str(incident.identifier),
+            "source": f"{incident.identifier}",
             "custom_details": {"details": data["text"]},
         },
         "links": [{"href": data["title_link"], "text": data["title"]}],
@@ -65,7 +65,7 @@ def send_incident_alert_notification(action, incident, metric_value, method):
         logger.info(
             "rule.fail.pagerduty_metric_alert",
             extra={
-                "error": str(e),
+                "error": f"{e}",
                 "service_name": service.service_name,
                 "service_id": service.id,
                 "integration_id": integration.id,

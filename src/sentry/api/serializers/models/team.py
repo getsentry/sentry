@@ -167,7 +167,7 @@ class TeamSerializer(Serializer):  # type: ignore
                 external_teams_map[serialized["teamId"]].append(serialized)
 
             for team in item_list:
-                result[team]["externalTeams"] = external_teams_map[str(team.id)]
+                result[team]["externalTeams"] = external_teams_map[f"{team.id}"]
 
         return result
 
@@ -183,7 +183,7 @@ class TeamSerializer(Serializer):  # type: ignore
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
         result = {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "slug": obj.slug,
             "name": obj.name,
             "dateCreated": obj.date_added,
@@ -227,7 +227,7 @@ def get_scim_teams_members(
     member_map: MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]] = defaultdict(list)
     for member in members:
         for team in member.teams.all():
-            member_map[team].append({"value": str(member.id), "display": member.get_email()})
+            member_map[team].append({"value": f"{member.id}", "display": member.get_email()})
     return member_map
 
 
@@ -256,7 +256,7 @@ class TeamSCIMSerializer(Serializer):  # type: ignore
     ) -> MutableMapping[str, JSONData]:
         result = {
             "schemas": [SCIM_SCHEMA_GROUP],
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "displayName": obj.name,
             "meta": {"resourceType": "Group"},
         }

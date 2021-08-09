@@ -19,7 +19,7 @@ class ApiIndexTest(APITestCase):
         self.login_as(user=self.user)
         response = self.get_success_response()
         assert response.data["version"] == "0"
-        assert response.data["user"]["id"] == str(self.user.id)
+        assert response.data["user"]["id"] == f"{self.user.id}"
         assert not response.data["auth"]
 
     def test_key_auth(self):
@@ -41,4 +41,4 @@ class ApiIndexTest(APITestCase):
         assert response.status_code == 200
         assert response.data["version"] == "0"
         assert response.data["auth"]["scopes"] == token.get_scopes()
-        assert response.data["user"]["id"] == str(self.user.id)
+        assert response.data["user"]["id"] == f"{self.user.id}"

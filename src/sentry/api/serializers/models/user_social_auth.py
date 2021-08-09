@@ -8,7 +8,7 @@ from social_auth.models import UserSocialAuth
 class UserSocialAuthSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "provider": obj.provider,
             "providerLabel": settings.AUTH_PROVIDER_LABELS[obj.provider],
         }

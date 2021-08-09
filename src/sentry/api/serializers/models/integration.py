@@ -38,7 +38,7 @@ class IntegrationSerializer(Serializer):  # type: ignore
     ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "name": obj.name,
             "icon": obj.metadata.get("icon"),
             "domainName": obj.metadata.get("domain_name"),
@@ -128,7 +128,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
                 integration.update({"status": "disabled"})
                 name = "sentry.serializers.model.organizationintegration"
                 log_info = {
-                    "error": str(e),
+                    "error": f"{e}",
                     "integration_id": obj.integration.id,
                     "integration_provider": obj.integration.provider,
                 }
@@ -217,7 +217,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             )
             issues_by_integration[ei.integration_id].append(
                 {
-                    "id": str(ei.id),
+                    "id": f"{ei.id}",
                     "key": ei.key,
                     "url": installation.get_issue_url(ei.key),
                     "title": ei.title,

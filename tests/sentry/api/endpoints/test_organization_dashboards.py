@@ -30,9 +30,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
 
     def assert_equal_dashboards(self, dashboard, data):
-        assert data["id"] == str(dashboard.id)
+        assert data["id"] == f"{dashboard.id}"
         assert data["title"] == dashboard.title
-        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == f"{dashboard.created_by.id}"
 
         widgets = self.get_widgets(dashboard.id)
         widget_displays = []

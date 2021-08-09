@@ -123,12 +123,12 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
 def to_unicode(value):
     try:
-        value = str(force_text(value))
+        value = f"{force_text(value)}"
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = "(Error decoding value)"
     except Exception:  # in some cases we get a different exception
         try:
-            value = str(repr(type(value)))
+            value = f"{repr(type(value))}"
         except Exception:
             value = "(Error decoding value)"
     return value

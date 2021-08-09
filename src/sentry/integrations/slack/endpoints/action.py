@@ -52,9 +52,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         error_text: str,
     ) -> Response:
         logging_data = logging_data.copy()
-        logging_data["response"] = str(error.body)
+        logging_data["response"] = f"{error.body}"
         logging_data["action_type"] = action_type
-        logger.info("slack.action.api-error-pre-message: %s" % str(logging_data))
+        logger.info("slack.action.api-error-pre-message: %s" % f"{logging_data}")
         logger.info("slack.action.api-error", extra=logging_data)
 
         return self.respond(
@@ -148,7 +148,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         try:
             slack_client.post("/dialog.open", data=payload)
         except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+            logger.error("slack.action.response-error", extra={"error": f"{e}"})
 
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -279,7 +279,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                     slack_request.callback_data["orig_response_url"], data=body, json=True
                 )
             except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
+                logger.error("slack.action.response-error", extra={"error": f"{e}"})
 
             return self.respond()
 

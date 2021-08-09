@@ -220,7 +220,7 @@ class TicketEventAction(IntegrationEventAction):
         self.form_fields = {
             self.integration_key: {
                 "choices": integration_choices,
-                "initial": str(self.get_integration_id()),
+                "initial": f"{self.get_integration_id()}",
                 "type": "choice",
                 "resetsForm": True,
                 "updatesForm": True,

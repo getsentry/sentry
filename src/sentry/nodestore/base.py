@@ -132,7 +132,7 @@ class NodeStorage(local, Service):
                     span.set_tag("found", bool(item_from_cache))
                     return item_from_cache
 
-            span.set_tag("subkey", str(subkey))
+            span.set_tag("subkey", f"{subkey}")
             bytes_data = self._get_bytes(id)
             rv = self._decode(bytes_data, subkey=subkey)
             if subkey is None:
@@ -165,7 +165,7 @@ class NodeStorage(local, Service):
         }
         """
         with sentry_sdk.start_span(op="nodestore.get_multi") as span:
-            span.set_tag("subkey", str(subkey))
+            span.set_tag("subkey", f"{subkey}")
             span.set_tag("num_ids", len(id_list))
 
             if subkey is None:

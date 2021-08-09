@@ -19,7 +19,7 @@ class TeamSerializerTest(TestCase):
             "hasAccess": True,
             "isPending": False,
             "isMember": False,
-            "id": str(team.id),
+            "id": f"{team.id}",
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
             "memberCount": 0,
         }
@@ -179,7 +179,7 @@ class TeamWithProjectsSerializerTest(TestCase):
             "hasAccess": True,
             "isPending": False,
             "isMember": False,
-            "id": str(team.id),
+            "id": f"{team.id}",
             "projects": serialized_projects,
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
             "memberCount": 0,
@@ -200,10 +200,10 @@ class TeamSCIMSerializerTest(TestCase):
         result = serialize(team, user, TeamSCIMSerializer(expand=["members"]))
         assert result == {
             "displayName": team.name,
-            "id": str(team.id),
+            "id": f"{team.id}",
             "members": [
-                {"display": user.email, "value": str(team.member_set[0].id)},
-                {"display": user2.email, "value": str(team.member_set[1].id)},
+                {"display": user.email, "value": f"{team.member_set[0].id}"},
+                {"display": user2.email, "value": f"{team.member_set[1].id}"},
             ],
             "meta": {"resourceType": "Group"},
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
@@ -216,7 +216,7 @@ class TeamSCIMSerializerTest(TestCase):
         result = serialize(team, user, TeamSCIMSerializer())
         assert result == {
             "displayName": team.name,
-            "id": str(team.id),
+            "id": f"{team.id}",
             "meta": {"resourceType": "Group"},
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
         }

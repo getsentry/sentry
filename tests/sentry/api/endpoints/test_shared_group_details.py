@@ -23,8 +23,8 @@ class SharedGroupDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
-        assert response.data["latestEvent"]["id"] == str(event.event_id)
+        assert response.data["id"] == f"{group.id}"
+        assert response.data["latestEvent"]["id"] == f"{event.event_id}"
         assert response.data["project"]["slug"] == group.project.slug
         assert response.data["project"]["organization"]["slug"] == group.organization.slug
 

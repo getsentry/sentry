@@ -66,12 +66,12 @@ class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
                         "id": c.key,
                         "message": c.message,
                         "dateCreated": c.date_added,
-                        "repositoryID": str(c.repository_id),
+                        "repositoryID": f"{c.repository_id}",
                     }
                     for c in results
                 ],
                 "repositories": {
-                    str(r.id): d for r, d in zip(repos, serialize(repos, request.user))
+                    f"{r.id}": d for r, d in zip(repos, serialize(repos, request.user))
                 },
             }
         )

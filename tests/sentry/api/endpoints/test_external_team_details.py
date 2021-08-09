@@ -19,7 +19,7 @@ class ExternalTeamDetailsTest(APITestCase):
             self.get_success_response(
                 self.organization.slug, self.team.slug, self.external_team.id, method="delete"
             )
-        assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
+        assert not ExternalActor.objects.filter(id=f"{self.external_team.id}").exists()
 
     def test_basic_update(self):
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -28,7 +28,7 @@ class ExternalTeamDetailsTest(APITestCase):
                 self.organization.slug, self.team.slug, self.external_team.id, **data
             )
 
-        assert response.data["id"] == str(self.external_team.id)
+        assert response.data["id"] == f"{self.external_team.id}"
         assert response.data["externalName"] == "@getsentry/growth"
 
     def test_invalid_provider_update(self):

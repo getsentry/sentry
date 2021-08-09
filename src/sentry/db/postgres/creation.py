@@ -18,8 +18,8 @@ class SentryDatabaseCreation(DatabaseCreation):
         except Exception as e:
             if (
                 getattr(e.__cause__, "pgcode", "") != errorcodes.DUPLICATE_DATABASE
-                and "DuplicateDatabase" not in str(e)
-                and "already exists" not in str(e)
+                and "DuplicateDatabase" not in f"{e}"
+                and "already exists" not in f"{e}"
             ):
                 # All errors except "database already exists" cancel tests.
                 sys.stderr.write("Got an error creating the test database: %s\n" % e)

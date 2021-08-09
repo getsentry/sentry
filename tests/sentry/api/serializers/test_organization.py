@@ -15,7 +15,7 @@ class OrganizationSerializerTest(TestCase):
 
         result = serialize(organization, user)
 
-        assert result["id"] == str(organization.id)
+        assert result["id"] == f"{organization.id}"
         assert result["features"] == {
             "advanced-search",
             "alert-details-redesign",
@@ -75,7 +75,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         serializer = DetailedOrganizationSerializer()
         result = serialize(organization, user, serializer, access=acc)
 
-        assert result["id"] == str(organization.id)
+        assert result["id"] == f"{organization.id}"
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
         assert result["relayPiiConfig"] is None

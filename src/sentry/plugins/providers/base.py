@@ -40,7 +40,7 @@ class ProviderMixin:
                     "defaultAuthId": i.default_auth_id,
                     "user": associated_auth and {"email": associated_auth.user.email},
                     "externalId": i.external_id,
-                    "integrationId": str(i.id),
+                    "integrationId": f"{i.id}",
                     "linked": True,
                 }
             )
@@ -127,10 +127,10 @@ class ProviderMixin:
             status = 400
         elif isinstance(e, PluginError):
             # TODO(dcramer): we should have a proper validation error
-            context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
+            context.update({"error_type": "validation", "errors": {"__all__": f"{e}"}})
             status = 400
         else:
             if self.logger:
-                self.logger.exception(str(e))
+                self.logger.exception(f"{e}")
             status = 500
         return Response(context, status=status)

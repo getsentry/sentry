@@ -94,7 +94,7 @@ def validate_scope(
         if scope_id == "me":
             # Overwrite "me" with the current user's ID.
             scope_id = user.id
-        elif scope_id != str(user.id):
+        elif scope_id != f"{user.id}":
             raise ParameterValidationError(f"Incorrect user ID: {scope_id}", context)
 
     try:
@@ -178,7 +178,7 @@ def validate(
                 elif scope_type == NotificationScopeType.ORGANIZATION:
                     organization_ids_to_look_up.add(scope_id)
 
-                context = parent_context + [type_key, scope_type_key, str(scope_id)]
+                context = parent_context + [type_key, scope_type_key, f"{scope_id}"]
                 for provider_key, value_key in get_valid_items(notifications_by_scope_id, context):
                     provider = validate_provider(provider_key, context=context)
                     value = validate_value(type, value_key, context)

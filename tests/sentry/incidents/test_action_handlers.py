@@ -40,7 +40,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
     def test_user(self):
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
@@ -55,7 +55,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
@@ -65,7 +65,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=str(self.team.id),
+            target_identifier=f"{self.team.id}",
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert set(handler.get_targets()) == {
@@ -93,7 +93,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=str(self.team.id),
+            target_identifier=f"{self.team.id}",
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
@@ -106,7 +106,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
         )
         handler = EmailActionHandler(action, self.incident, self.project)
 
@@ -126,7 +126,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=str(self.team.id),
+            target_identifier=f"{self.team.id}",
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert set(handler.get_targets()) == {
@@ -217,7 +217,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
-            target_identifier=str(self.user.id),
+            target_identifier=f"{self.user.id}",
             triggered_for_incident=incident,
         )
         handler = EmailActionHandler(action, incident, self.project)
@@ -478,7 +478,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         assert data["dedup_key"] == f"incident_{incident.organization_id}_{incident.identifier}"
         assert data["payload"]["summary"] == alert_rule.name
         assert data["payload"]["severity"] == "critical"
-        assert data["payload"]["source"] == str(incident.identifier)
+        assert data["payload"]["source"] == f"{incident.identifier}"
         assert data["payload"]["custom_details"] == {
             "details": "1000 events in the last 10 minutes\nFilter: level:error"
         }

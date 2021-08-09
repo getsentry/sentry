@@ -477,7 +477,7 @@ class CreateProjectRuleTest(APITestCase):
                 {
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                     "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                    "workspace": str(integration.id),
+                    "workspace": f"{integration.id}",
                     "channel": "#team-team-team",
                     "tags": "",
                 }

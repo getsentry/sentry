@@ -162,7 +162,7 @@ class OrganizationSerializer(Serializer):
             feature_list.add("shared-issues")
 
         return {
-            "id": str(obj.id),
+            "id": f"{obj.id}",
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
             "name": obj.name or obj.slug,
@@ -187,7 +187,7 @@ class OnboardingTasksSerializer(Serializer):
 
         data = {}
         for item in item_list:
-            data[item] = {"user": user_map.get(str(item.user_id))}
+            data[item] = {"user": user_map.get(f"{item.user_id}")}
         return data
 
     def serialize(self, obj, attrs, user):
@@ -286,7 +286,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
-                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+                "relayPiiConfig": f'{obj.get_option("sentry:relay_pii_config") or ""}' or None,
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
                 ),

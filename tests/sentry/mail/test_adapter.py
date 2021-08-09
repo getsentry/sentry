@@ -351,7 +351,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert local_timestamp in str(msg.alternatives)
+        assert local_timestamp in f"{msg.alternatives}"
 
     def test_notify_with_suspect_commits(self):
         repo = Repository.objects.create(
@@ -551,13 +551,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         team = self.create_team(organization=self.organization, members=[user, user2])
         project = self.create_project(teams=[team])
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=project.id)
-        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
+        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, f"{team.id}")
 
     def test_notify_user(self):
         user = self.create_user(email="foo@example.com", is_active=True)
         self.create_team(organization=self.organization, members=[user])
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
-        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
+        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, f"{user.id}")
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
@@ -655,7 +655,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
-            "targetIdentifier": str(444),
+            "targetIdentifier": f"{444}",
         }
         rule = Rule.objects.create(
             project=self.project,
@@ -854,7 +854,7 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
     def test_send_to_team(self):
-        assert {self.user} == get_send_to_team(self.project, str(self.team.id))[
+        assert {self.user} == get_send_to_team(self.project, f"{self.team.id}")[
             ExternalProviders.EMAIL
         ]
 
@@ -866,7 +866,7 @@ class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
             user=self.user,
             project=self.project,
         )
-        assert {} == get_send_to_team(self.project, str(self.team.id))
+        assert {} == get_send_to_team(self.project, f"{self.team.id}")
 
     def test_invalid_team(self):
         assert {} == get_send_to_team(self.project, "900001")
@@ -875,21 +875,21 @@ class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
         user_2 = self.create_user()
         team_2 = self.create_team(self.organization, members=[user_2])
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
-        assert {user_2} == get_send_to_team(project_2, str(team_2.id))[ExternalProviders.EMAIL]
-        assert {} == get_send_to_team(self.project, str(team_2.id))
+        assert {user_2} == get_send_to_team(project_2, f"{team_2.id}")[ExternalProviders.EMAIL]
+        assert {} == get_send_to_team(self.project, f"{team_2.id}")
 
     def test_other_org_team(self):
         org_2 = self.create_organization()
         user_2 = self.create_user()
         team_2 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert {user_2} == get_send_to_team(project_2, str(team_2.id))[ExternalProviders.EMAIL]
-        assert {} == get_send_to_team(self.project, str(team_2.id))
+        assert {user_2} == get_send_to_team(project_2, f"{team_2.id}")[ExternalProviders.EMAIL]
+        assert {} == get_send_to_team(self.project, f"{team_2.id}")
 
 
 class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
     def test_send_to_user(self):
-        assert {self.user} == get_send_to_member(self.project, str(self.user.id))[
+        assert {self.user} == get_send_to_member(self.project, f"{self.user.id}")[
             ExternalProviders.EMAIL
         ]
 
@@ -901,7 +901,7 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
             user=self.user,
             project=self.project,
         )
-        assert {self.user} == get_send_to_member(self.project, str(self.user.id))[
+        assert {self.user} == get_send_to_member(self.project, f"{self.user.id}")[
             ExternalProviders.EMAIL
         ]
 
@@ -914,8 +914,8 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         team_2 = self.create_team(org_2, members=[user_2])
         team_3 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
-        assert {user_2} == get_send_to_member(project_2, str(user_2.id))[ExternalProviders.EMAIL]
-        assert {} == get_send_to_member(self.project, str(user_2.id))
+        assert {user_2} == get_send_to_member(project_2, f"{user_2.id}")[ExternalProviders.EMAIL]
+        assert {} == get_send_to_member(self.project, f"{user_2.id}")
 
     def test_no_project_access(self):
         org_2 = self.create_organization()
@@ -924,8 +924,8 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         user_3 = self.create_user()
         self.create_team(org_2, members=[user_3])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert {user_2} == get_send_to_member(project_2, str(user_2.id))[ExternalProviders.EMAIL]
-        assert {} == get_send_to_member(self.project, str(user_3.id))
+        assert {user_2} == get_send_to_member(project_2, f"{user_2.id}")[ExternalProviders.EMAIL]
+        assert {} == get_send_to_member(self.project, f"{user_3.id}")
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
@@ -941,7 +941,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
             group=self.group,
             type=Activity.ASSIGNED,
             user=self.create_user("foo@example.com"),
-            data={"assignee": str(self.user.id), "assigneeType": "user"},
+            data={"assignee": f"{self.user.id}", "assigneeType": "user"},
         )
 
         with self.tasks():
@@ -967,7 +967,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
             group=self.group,
             type=Activity.ASSIGNED,
             user=self.create_user("foo@example.com"),
-            data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
+            data={"assignee": f"{self.project.teams.first().id}", "assigneeType": "team"},
         )
 
         with self.tasks():

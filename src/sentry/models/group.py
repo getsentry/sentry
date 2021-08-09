@@ -244,7 +244,7 @@ class GroupManager(BaseManager):
 
         # TODO(jess): this method maybe isn't even used?
         except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
+            logger.info("discarded.hash", extra={"project_id": project, "description": f"{e}"})
 
     def from_event_id(self, project, event_id):
         """
@@ -305,10 +305,10 @@ class Group(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(
-        max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME), db_index=True
+        max_length=64, blank=True, default=f"{DEFAULT_LOGGER_NAME}", db_index=True
     )
     level = BoundedPositiveIntegerField(
-        choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
+        choices=[(key, f"{val}") for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
         db_index=True,

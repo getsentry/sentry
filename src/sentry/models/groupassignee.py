@@ -166,7 +166,7 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    "assignee": str(assigned_to.id),
+                    "assignee": f"{assigned_to.id}",
                     "assigneeEmail": getattr(assigned_to, "email", None),
                     "assigneeType": assignee_type,
                 },

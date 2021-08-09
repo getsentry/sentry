@@ -34,5 +34,5 @@ class OrganizationAuditLogsTest(APITestCase):
 
         response = self.get_success_response(org.slug)
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(entry2.id)
-        assert response.data[1]["id"] == str(entry1.id)
+        assert response.data[0]["id"] == f"{entry2.id}"
+        assert response.data[1]["id"] == f"{entry1.id}"

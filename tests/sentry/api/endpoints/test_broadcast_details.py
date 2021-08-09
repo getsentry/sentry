@@ -11,7 +11,7 @@ class BroadcastDetailsTest(APITestCase):
 
         response = self.client.get(f"/api/0/broadcasts/{broadcast1.id}/")
         assert response.status_code == 200
-        assert response.data["id"] == str(broadcast1.id)
+        assert response.data["id"] == f"{broadcast1.id}"
 
 
 class BroadcastUpdateTest(APITestCase):

@@ -63,7 +63,7 @@ class RedisBuffer(Buffer):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(str(e))
+            raise InvalidConfiguration(f"{e}")
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
@@ -121,7 +121,7 @@ class RedisBuffer(Buffer):
             type_ = "f"
         else:
             raise TypeError(type(value))
-        return (type_, str(value))
+        return (type_, f"{value}")
 
     def _load_values(self, payload):
         result = {}
@@ -279,7 +279,7 @@ class RedisBuffer(Buffer):
             # XXX(py3): Note that ``import_string`` explicitly wants a str in
             # python2, so we'll decode (for python3) and then translate back to
             # a byte string (in python2) for import_string.
-            model = import_string(str(values.pop("m").decode("utf-8")))  # NOQA
+            model = import_string(f'{values.pop("m").decode("utf-8")}')  # NOQA
 
             if values["f"].startswith(b"{"):
                 filters = self._load_values(json.loads(values.pop("f").decode("utf-8")))
