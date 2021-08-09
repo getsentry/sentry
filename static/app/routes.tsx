@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  EnterHook,
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
   IndexRouteProps,
@@ -30,14 +29,6 @@ import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecate
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
-
-const appendTrailingSlash: EnterHook = (nextState, replace) => {
-  const lastChar = nextState.location.pathname.slice(-1);
-  if (lastChar !== '/') {
-    const pathname = nextState.location.pathname + '/';
-    replace(pathname + nextState.location.search + nextState.location.hash);
-  }
-};
 
 type CustomProps = {
   name?: string;
@@ -1921,11 +1912,8 @@ function routes() {
         </Route>
 
         {hook('routes')}
-        <Route
-          path="*"
-          component={errorHandler(RouteNotFound)}
-          onEnter={appendTrailingSlash}
-        />
+
+        <Route path="*" component={errorHandler(RouteNotFound)} />
       </Route>
     </Route>
   );
