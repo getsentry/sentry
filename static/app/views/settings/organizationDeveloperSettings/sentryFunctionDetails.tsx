@@ -18,10 +18,21 @@ import {Field} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 class SentryFunctionFormModel extends FormModel {
-  codeMirror: null | CodeMirror = null;
+  codeMirror: null | CodeMirror.Editor = null;
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
     data.code = this.codeMirror?.getValue();
+    // hack way to get the events
+    const events: string[] = [];
+    if (data.issueHook) {
+      events.push('issue');
+    }
+    if (data.errorHook) {
+      events.push('error');
+    }
+    delete data.issueHook;
+    delete data.errorHook;
+    data.events = events;
     return data;
   }
 }
@@ -74,7 +85,7 @@ const formFields: Field[] = [
 
 export default class SentryApplicationDetails extends AsyncView<Props, State> {
   form = new SentryFunctionFormModel();
-  codeMirror: null | CodeMirror = null;
+  codeMirror: null | CodeMirror.Editor = null;
 
   getDefaultState(): State {
     return {
@@ -85,10 +96,15 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
   componentDidMount() {
     const element = document.getElementById('code-editor');
+    if (!element) {
+      return;
+    }
+    // TODO: Figure out how to colorize
     this.codeMirror = CodeMirror(element, {
-      value: 'function myScript(){return 100;}\n',
-      lineNumbers: true,
+      value: 'function myScript(){\n  return 100;\n}\n',
       mode: 'javascript',
+      lineNumbers: true,
+      addModeClass: true,
     });
     this.form.codeMirror = this.codeMirror;
   }
@@ -102,20 +118,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     return routeTitleGen(t('Sentry Function Details'), orgId, false);
   }
 
-  // Events may come from the API as "issue.created" when we just want "issue" here.
-  normalize(events) {
-    if (events.length === 0) {
-      return events;
-    }
-
-    return events.map(e => e.split('.').shift());
-  }
-
   renderBody() {
     const {orgId} = this.props.params;
 
     const method = 'POST';
-    const endpoint = `/sentry-functions/`;
+    const endpoint = `/organizations/${orgId}/functions/`;
 
     return (
       <div>

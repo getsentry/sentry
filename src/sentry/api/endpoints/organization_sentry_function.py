@@ -15,9 +15,20 @@ from google.cloud.functions_v1.types import (
     HttpsTrigger,
     ListFunctionsRequest,
 )
+from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+
+
+class SentryFunctionSerilizer(CamelSnakeSerializer):
+    name = serializers.CharField()
+    code = serializers.CharField()
+    author = serializers.CharField(required=False, allow_blank=True)
+    overview = serializers.CharField(required=False, allow_blank=True)
+    events = serializers.ListField(child=serializers.CharField(), required=False)
+
 
 indexJs = """
 const userFunc = require('./user.js');
@@ -31,24 +42,30 @@ exports.start = (req, res) => {
   userFunc();
 };
 """
+
+
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
-        funcBody = request.data.get("fn")
-        if not funcBody:
-            return Response(status=400)
+        serializer = SentryFunctionSerilizer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+
         funcId = uuid4().hex
         zipFilename = funcId + ".zip"
 
         f = BytesIO()
         with ZipFile(f, "w") as codezip:
-            codezip.writestr("user.js", funcBody)
+            codezip.writestr("user.js", data["code"])
             codezip.writestr("index.js", indexJs)
 
-        storage_client = storage.Client()
+        storage_client = storage.Client(project="hackweek-sentry-functions")
         bucket = storage_client.bucket("hackweek-sentry-functions-bucket")
         blob = bucket.blob(zipFilename)
         blob.upload_from_file(f, rewind=True, content_type="application/zip")
-        time.sleep(1)
+        # TODO: Find better way of handling this
+        time.sleep(3)
 
         client = CloudFunctionsServiceClient()
         fn = CloudFunction(
@@ -63,5 +80,7 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
             function=fn,
             location="projects/hackweek-sentry-functions/locations/us-central1",
         )
+
+        # TODO(Steve): insert into SentryFunction table
 
         return Response(status=201)
