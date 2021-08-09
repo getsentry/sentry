@@ -79,7 +79,9 @@ class AuthProvider(Model):
     def get_scim_url(self):
         if self.flags.scim_enabled:
             url_prefix = options.get("system.url-prefix")
-            return f"{url_prefix}/api/0/organizations/{self.organization.slug}/scim/v2/"
+            # the SCIM protocol doesn't use trailing slashes in URLs
+            return f"{url_prefix}/api/0/organizations/{self.organization.slug}/scim/v2"
+
         else:
             return None
 
