@@ -132,7 +132,9 @@ class CalculatedHashes:
     def finest_tree_label(self) -> Optional[StrippedTreeLabel]:
         try:
             tree_label = self.tree_labels[-1]
-            return tree_label and _strip_tree_label(tree_label)
+            # Also do this for event title in discover because people may
+            # expect to `groupby title` to basically groupby issue.
+            return tree_label and _strip_tree_label(tree_label, trunchate=True)
         except IndexError:
             return None
 
