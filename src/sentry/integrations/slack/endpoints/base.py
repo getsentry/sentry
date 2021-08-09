@@ -5,10 +5,12 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import Endpoint
+from sentry.api.endpoints.organization_group_index import inbox_search
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.models import Project
 
 LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
@@ -52,6 +54,18 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
             if args[0] == "team":
                 return self.unlink_team(request)
 
+        if command == "issues":
+            # Everything else will fall through to "unknown command". Should I
+            # catch it with a better help message?
+            if not args or args[0] == "help":
+                return self.unlink_user(request)
+
+            if args[0] == "inbox":
+                return self.get_inbox()
+
+            if args[0] == "triage":
+                return self.get_inbox()
+
         # If we cannot interpret the command, print help text.
         request_data = request.data
         unknown_command = request_data.get("text", "").lower()
@@ -94,6 +108,20 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
             response_url=slack_request.response_url,
         )
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
+
+    def get_issues(self, slack_request: SlackRequest) -> Any:
+        issues = []
+        projects = Project.objects.get_for_user_ids({slack_request.user_id})
+        if projects:
+            issues = inbox_search(projects)
+
+        return self.reply(slack_request, "TODO")
+
+    def get_triage(self, slack_request: SlackRequest) -> Any:
+        return self.get_issues(slack_request)
+
+    def get_inbox(self, slack_request: SlackRequest) -> Any:
+        return self.get_issues(slack_request)
 
     def link_team(self, slack_request: SlackRequest) -> Any:
         raise NotImplementedError
