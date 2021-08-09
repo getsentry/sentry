@@ -1,5 +1,5 @@
 ---
-created: '2021-08-04T15:53:48.865467Z'
+created: '2021-08-09T15:01:33.810359Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -52,13 +52,55 @@ app-depth-2:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
+app-depth-3:
+  hash: "ca733a48a19d237df8577d09449095d9"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
 app-depth-max:
-  hash: "fb961faae31201361a148da84b7b886b"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor'"
+  hash: "ca733a48a19d237df8577d09449095d9"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
   component:
     app-depth-max*
       exception*
         stacktrace*
+          frame*
+            function*
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
           frame*
             function*
               "destructor'"
@@ -85,8 +127,8 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "1ca4d0e5550ff32139eddf2e39edeb07"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor'"
+  hash: "7f70cabce0d2163b9e8b69d47e39c494"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
   component:
     system*
       exception*
@@ -101,17 +143,17 @@ system:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkpExecuteCallback"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "HTTP_THREAD_POOL::_StaticWorkItemCallback"
             package (ignored because function takes precedence)
