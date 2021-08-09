@@ -253,6 +253,7 @@ from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from .endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -1349,6 +1350,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
                     OrganizationRelayUsage.as_view(),
                     name="sentry-api-0-organization-relay-usage",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/$",
+                    OrganizationSentryFunctionEndpoint.as_view(),
+                    name="sentry-api-0-organization-functions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
