@@ -1,6 +1,5 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -45,10 +44,8 @@ import {
 import {ZOOM_END, ZOOM_START} from './latencyChart';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 
-type Props = {
+type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
