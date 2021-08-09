@@ -18,11 +18,11 @@ type GitActivity = React.ComponentProps<typeof Status> & {
   onUnlink: (id: string) => Promise<void>;
 };
 
-function Activity({id, url, title, state, merged, draft, onUnlink}: GitActivity) {
+function Activity({id, url, title, state, onUnlink}: GitActivity) {
   return (
     <Fragment>
       <StatusColumn>
-        <Status state={state} merged={merged} draft={draft} />
+        <Status state={state} />
       </StatusColumn>
       <Column>
         <ExternalLink href={url}>{title}</ExternalLink>

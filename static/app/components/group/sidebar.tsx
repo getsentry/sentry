@@ -179,7 +179,8 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, event, group, organization, project, environments} = this.props;
+    const {className, event, group, organization, project, environments, api} =
+      this.props;
     const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
@@ -202,7 +203,7 @@ class GroupSidebar extends React.Component<Props, State> {
           </ErrorBoundary>
         )}
 
-        <GitActivity shortId={group.shortId} />
+        <GitActivity api={api} issueId={group.id} shortId={group.shortId} />
 
         {this.renderPluginIssue()}
 

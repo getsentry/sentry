@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import Clipboard from 'app/components/clipboard';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
@@ -19,18 +20,21 @@ type GitActivity = {
   url: string;
   title: string;
   // State of the Pull Request. Either open or closed
-  state: 'open' | 'closed';
-  merged: boolean;
-  draft: boolean;
+  state: 'open' | 'closed' | 'merged' | 'draft' | 'created' | 'closed';
+  type: 'branch' | 'pull_request';
+  author: string;
 };
 
 type Props = {
+  api: Client;
+  issueId: string;
   shortId: string;
 };
 
-function GitActivity({shortId}: Props) {
+function GitActivity({api, issueId, shortId}: Props) {
   const [gitActivities, setGitActivities] = useState<GitActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     fetchActivities();
@@ -39,53 +43,12 @@ function GitActivity({shortId}: Props) {
   async function fetchActivities() {
     setIsLoading(true);
     try {
-      const response: {status: number; activities: GitActivity[]} = await new Promise(
-        resolve => {
-          setTimeout(() => {
-            resolve({
-              status: 200,
-              activities: [
-                {
-                  id: '1',
-                  url: 'https://github.com/org/repo/pull/1',
-                  title: 'rr/card-details-background-color',
-                  state: 'open',
-                  merged: false,
-                  draft: true,
-                },
-                {
-                  id: '2',
-                  url: 'https://github.com/org/repo/pull/2',
-                  title: 'fix(ui): fixed dark mode card details form',
-                  state: 'open',
-                  merged: false,
-                  draft: false,
-                },
-                {
-                  id: '3',
-                  url: 'https://github.com/org/repo/pull/3',
-                  title: 'fix(ui): fixed dark mode card details form',
-                  state: 'closed',
-                  merged: false,
-                  draft: false,
-                },
-                {
-                  id: '4',
-                  url: 'https://github.com/org/repo/pull/4',
-                  title: 'fix(ui): fixed dark mode card details form',
-                  state: 'closed',
-                  merged: true,
-                  draft: false,
-                },
-              ],
-            });
-          }, 300);
-        }
-      );
-      setGitActivities(response.activities);
+      const response = await api.requestPromise(`/issues/${issueId}/github-activity/`);
+      setGitActivities(response);
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
+      setIsError(true);
     }
   }
 
@@ -116,14 +79,18 @@ function GitActivity({shortId}: Props) {
     return null;
   }
 
+  if (isError) {
+    return null;
+  }
+
   return (
     <SidebarSection title={t('Git Activity')}>
       <IssueId>
         {t('Issue Id')}
         <IdAndCopyAction>
-          <StyledShortId shortId={`#${shortId}`} />
+          <StyledShortId shortId={`#FIXES-${shortId}`} />
           <CopyButton>
-            <Clipboard value={shortId}>
+            <Clipboard value={`FIXES-${shortId}`}>
               <Tooltip title={shortId} containerDisplayMode="flex">
                 <StyledIconCopy />
               </Tooltip>
