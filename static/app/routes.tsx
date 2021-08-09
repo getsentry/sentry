@@ -704,6 +704,28 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Route name="Sentry Functions" path="sentry-functions/">
+          <Route
+            name="New Sentry Function"
+            path="new/"
+            componentPromise={() =>
+              import(
+                'app/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            name="Edit Sentry Function"
+            path=":functionSlug/"
+            componentPromise={() =>
+              import(
+                'app/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
         <Route
           name="Edit Integration"
           path=":appSlug/"
