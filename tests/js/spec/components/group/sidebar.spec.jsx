@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -63,16 +65,18 @@ describe('GroupSidebar', function () {
       body: TestStubs.Tags(),
     });
 
-    wrapper = mountWithTheme(
-      <GroupSidebar
-        group={group}
-        project={project}
-        organization={organization}
-        event={TestStubs.Event()}
-        environments={[environment]}
-      />,
-      routerContext
-    );
+    act(() => {
+      wrapper = mountWithTheme(
+        <GroupSidebar
+          group={group}
+          project={project}
+          organization={organization}
+          event={TestStubs.Event()}
+          environments={[environment]}
+        />,
+        routerContext
+      );
+    });
   });
 
   afterEach(function () {
@@ -87,12 +91,14 @@ describe('GroupSidebar', function () {
 
   describe('renders with tags', function () {
     it('renders', async function () {
-      expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
-      expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
-      expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(5);
+      await act(async () => {
+        expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
+        expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
+        expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
+        await tick();
+        wrapper.update();
+        expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(5);
+      });
     });
   });
 
@@ -109,19 +115,21 @@ describe('GroupSidebar', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
-        <GroupSidebar
-          api={new MockApiClient()}
-          group={group}
-          organization={organization}
-          project={project}
-          event={TestStubs.Event()}
-          environments={[environment]}
-        />,
-        routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <GroupSidebar
+            api={new MockApiClient()}
+            group={group}
+            organization={organization}
+            project={project}
+            event={TestStubs.Event()}
+            environments={[environment]}
+          />,
+          routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
     });
 
     it('renders no tags', function () {

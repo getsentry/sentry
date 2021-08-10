@@ -28,6 +28,7 @@ import {
 import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 
+import GitActivity from './gitActivity';
 import SidebarSection from './sidebarSection';
 
 type Props = {
@@ -200,6 +201,8 @@ class GroupSidebar extends React.Component<Props, State> {
             <ExternalIssueList project={project} group={group} event={event} />
           </ErrorBoundary>
         )}
+
+        <GitActivity shortId={group.shortId} />
 
         {this.renderPluginIssue()}
 
