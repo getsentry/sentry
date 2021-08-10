@@ -8,7 +8,6 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
 
 import {TextareaField, TextField} from '../components/forms';
 
@@ -16,8 +15,7 @@ import {EthAddress} from '.';
 
 type Props = ModalRenderProps & {
   api: Client;
-  organization: Organization;
-  project: Project;
+  baseUrl: string;
   onSubmitSuccess: () => void;
   address?: EthAddress;
 };
@@ -36,21 +34,18 @@ class Form extends React.Component<Props, State> {
   };
 
   handleSave = async () => {
-    const {organization, project, api, onSubmitSuccess, closeModal} = this.props;
+    const {api, onSubmitSuccess, closeModal, baseUrl} = this.props;
     const {address, displayName, abi} = this.state;
 
     try {
-      await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/ethereum-addresses/`,
-        {
-          method: 'POST',
-          data: {
-            address,
-            displayName,
-            abi,
-          },
-        }
-      );
+      await api.requestPromise(baseUrl, {
+        method: 'POST',
+        data: {
+          address,
+          displayName,
+          abi,
+        },
+      });
 
       addSuccessMessage(
         this.props.address

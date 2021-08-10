@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -55,24 +56,25 @@ class ProjectEthereum extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
-    const {orgId, projectId} = params;
-
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['ethAddresses', `/projects/${orgId}/${projectId}/ethereum-addresses/`],
+      ['ethAddresses', this.baseUrl],
     ];
 
     return endpoints;
   }
 
+  get baseUrl() {
+    const {orgId, projectId} = this.props.params;
+
+    return `/projects/${orgId}/${projectId}/ethereum-addresses/`;
+  }
+
   handleOpenAddDialog = () => {
-    const {organization, project} = this.props;
     return openModal(modalProps => (
       <AddressModal
         {...modalProps}
         api={this.api}
-        organization={organization}
-        project={project}
+        baseUrl={this.baseUrl}
         address={undefined}
         onSubmitSuccess={() => this.remountComponent()}
       />
@@ -83,8 +85,17 @@ class ProjectEthereum extends AsyncView<Props, State> {
     // console.log('handleOpenEditDialog');
   };
 
-  handleDeleteAddress = (_id: string) => {
-    // console.log('handleDeleteAddress');
+  handleDeleteAddress = async (id: string) => {
+    try {
+      await this.api.requestPromise(`${this.baseUrl}/${id}/`, {
+        method: 'DELETE',
+      });
+
+      addSuccessMessage(t('Address deleted successfully.'));
+      this.remountComponent();
+    } catch (error) {
+      addErrorMessage(error.responseJSON?.detail ?? t('Unable to delete address.'));
+    }
   };
 
   renderAddresses() {
