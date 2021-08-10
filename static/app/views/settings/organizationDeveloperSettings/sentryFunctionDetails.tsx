@@ -200,13 +200,14 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
     const {name, value} = envVariables[pos] || {};
     const id = rows[pos];
     return (
-      <OneSecret key={id}>
+      <OneEnvVar key={id}>
         <InputField
           name={`env-variable-name-${id}`}
           type="text"
           required={false}
           value={name}
           inline={false}
+          stacked
           onChange={e => this.handleSecretNameChange(e, pos)}
         />
         <InputField
@@ -215,6 +216,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
           required={false}
           value={value}
           inline={false}
+          stacked
           onChange={e => this.handleSecretValueChange(e, pos)}
         />
         <ButtonHolder>
@@ -225,7 +227,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
             onClick={() => this.removeSecret(pos)}
           />
         </ButtonHolder>
-      </OneSecret>
+      </OneEnvVar>
     );
   };
 
@@ -264,15 +266,16 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
                         onClick={this.handleAddSecret}
                       />
                     </PanelHeader>
-                    <PanelBody>
-                      <OneSecret>
-                        <SecretHeader>Name</SecretHeader>
-                        <SecretHeader>Value</SecretHeader>
-                      </OneSecret>
+                    <StyledPanelBody>
+                      <OneEnvVar>
+                        <EnvHeader>Name</EnvHeader>
+                        <EnvHeaderRight>Value</EnvHeaderRight>
+                        <EnvHeader />
+                      </OneEnvVar>
                       {Array.from(Array(this.numEnvRows).keys()).map(
                         this.renderEnvVariable
                       )}
-                    </PanelBody>
+                    </StyledPanelBody>
                   </Panel>
                   <Panel>
                     <PanelHeader>Write your JS Code Below</PanelHeader>
@@ -290,7 +293,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   }
 }
 
-const OneSecret = styled('div')`
+const OneEnvVar = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1.5fr min-content;
 `;
@@ -299,14 +302,23 @@ const StyledAddButton = styled(Button)`
   float: right;
 `;
 
-const SecretHeader = styled('div')`
-  text-align: center;
+const EnvHeader = styled('div')`
+  text-align: left;
   margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
   color: ${p => p.theme.gray400};
+`;
+
+const EnvHeaderRight = styled(EnvHeader)`
+  margin-left: -${space(2)};
 `;
 
 const ButtonHolder = styled('div')`
   align-items: center;
   display: flex;
-  padding-right: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  padding: ${space(2)};
 `;
