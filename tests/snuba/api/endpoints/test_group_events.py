@@ -258,9 +258,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
-            [f"{event_2.event_id}"]
-        )
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted([f"{event_2.event_id}"])
 
     def test_search_event_has_tags(self):
         self.login_as(user=self.user)
