@@ -10,8 +10,10 @@ from google.cloud.functions_v1.types import (
     EventTrigger,
     GenerateUploadUrlRequest,
     ListFunctionsRequest,
+    UpdateFunctionRequest,
 )
 from google.cloud.pubsub_v1 import PublisherClient
+from google.protobuf.field_mask_pb2 import FieldMask
 
 WRAPPER_JS = """
 const userFunc = require('./user.js');
@@ -42,15 +44,13 @@ def create_function_pubsub_topic(funcId):
     publisher.create_topic(name=function_pubsub_name(funcId))
 
 
-def create_function(code, funcId, env_variables):
-    create_function_pubsub_topic(funcId)
+def upload_function_files(client, code):
     f = BytesIO()
     with ZipFile(f, "w") as codezip:
         codezip.writestr("user.js", code)
         codezip.writestr("index.js", WRAPPER_JS)
     f.seek(0)
 
-    client = CloudFunctionsServiceClient()
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
             parent="projects/hackweek-sentry-functions/locations/us-central1"
@@ -61,6 +61,36 @@ def create_function(code, funcId, env_variables):
         data=f,
         headers={"content-type": "application/zip", "x-goog-content-length-range": "0,104857600"},
     )
+    return upload_url
+
+
+def update_function(code, funcId, env_variables):
+    client = CloudFunctionsServiceClient()
+    upload_url = upload_function_files(client, code)
+    client.update_function(
+        request=UpdateFunctionRequest(
+            function=CloudFunction(
+                name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-"
+                + funcId,
+                description="created by api",
+                source_upload_url=upload_url,
+                runtime="nodejs14",
+                entry_point="start",
+                event_trigger=EventTrigger(
+                    event_type="providers/cloud.pubsub/eventTypes/topic.publish",
+                    resource=function_pubsub_name(funcId),
+                ),
+                environment_variables=env_variables,
+            ),
+            update_mask=FieldMask(paths=["source_upload_url"]),
+        )
+    )
+
+
+def create_function(code, funcId, env_variables):
+    create_function_pubsub_topic(funcId)
+    client = CloudFunctionsServiceClient()
+    upload_url = upload_function_files(client, code)
     client.create_function(
         function=CloudFunction(
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,

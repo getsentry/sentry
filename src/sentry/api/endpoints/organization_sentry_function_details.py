@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models import SentryFunction
+from sentry.utils.cloudfunctions import update_function
 
 from .organization_sentry_function import SentryFunctionSerializer
 
@@ -33,11 +34,14 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        # TODO: call APIs
         try:
             function = SentryFunction.objects.get(slug=function_slug)
         except SentryFunction.DoesNotExist:
             return Response(status=404)
-
+        env_variables = data["env_variables"]
+        del data["env_variables"]
         function.update(**data)
+
+        update_function(function.code, function.external_id, env_variables)
+
         return Response(status=201)
