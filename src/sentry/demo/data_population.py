@@ -560,7 +560,7 @@ def update_context(event, trace=None, platform=None):
 def populate_org_members(org, team):
     for user_info in org_users:
         (email_base, name) = user_info
-        email = create_fake_email(email_base, "demo")
+        email = create_fake_email(email_base, "empowerplant")
         user, _ = User.objects.get_or_create(name=name, email=email, is_managed=True)
         member = OrganizationMember.objects.create(user=user, organization=org, role="member")
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)

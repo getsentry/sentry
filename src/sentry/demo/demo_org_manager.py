@@ -155,7 +155,7 @@ def assign_demo_org(skip_buffer=False, retries_left=3) -> Tuple[Organization, Us
 
         # wrap the assignment of the demo org in a transaction
         with transaction.atomic():
-            email = create_fake_email(org.slug, "demo")
+            email = create_fake_email(org.slug, "empowerplant")
             try:
                 user = DemoUser.create_user(
                     email=email,

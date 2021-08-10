@@ -33,7 +33,7 @@ MAX_RECIPIENTS = 5
 
 # The fake TLD used to construct email addresses when one is required,
 # for example by automatically generated SSO accounts.
-FAKE_EMAIL_TLD = ".sentry-fake"
+FAKE_EMAIL_TLD = ".demo.io"
 
 logger = logging.getLogger("sentry.mail")
 
