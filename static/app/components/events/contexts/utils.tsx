@@ -20,6 +20,7 @@ const CONTEXT_TYPES = {
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': require('app/components/events/contexts/redux').default,
   state: require('app/components/events/contexts/state').default,
+  ethereum: require('app/components/events/contexts/ethereum/ethereum').default,
 };
 
 export function getContextComponent(type: string) {
