@@ -82,11 +82,11 @@ rate_by_release_num = [0.8, 0.85, 0.75]
 agg_rate_by_release_num = [0.99, 0.999, 0.95]
 
 org_users = [
-    ("scefali", "Stephen Cefali"),
-    ("aj", "AJ Jindal"),
-    ("zac.propersi", "Zac Propersi"),
-    ("roggenkemper", "Richard Roggenkemper"),
-    ("neozhang", "Neo Zhang"),
+    ("janeschmidt", "Jane Schmidt"),
+    ("lilychan", "Lily Chan"),
+    ("keithryan", "Keith Ryan"),
+    ("emmagarcia", "Emma Garcia"),
+    ("noahmiller", "Noah Miller"),
 ]
 
 logger = logging.getLogger(__name__)
@@ -316,7 +316,7 @@ def get_user_by_id(id_0_offset):
 
 def gen_random_author():
     (email_base, name) = random.choice(org_users)
-    email = create_fake_email(email_base, "demo")
+    email = create_fake_email(email_base, "empowerplant")
     return (name, email)
 
 
