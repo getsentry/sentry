@@ -3,6 +3,7 @@ from io import BytesIO
 from uuid import uuid4
 from zipfile import ZipFile
 
+from django.template.defaultfilters import slugify
 from google.cloud import storage
 from google.cloud.functions_v1.services.cloud_functions_service import CloudFunctionsServiceClient
 from google.cloud.functions_v1.services.cloud_functions_service.transports.base import (
@@ -20,6 +21,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.models import SentryFunction
 
 
 class SentryFunctionSerilizer(CamelSnakeSerializer):
@@ -67,9 +69,11 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         # TODO: Find better way of handling this
         time.sleep(3)
 
+        google_name = "projects/hackweek-sentry-functions/locations/us-central1/functions/" + funcId
+
         client = CloudFunctionsServiceClient()
         fn = CloudFunction(
-            name="projects/hackweek-sentry-functions/locations/us-central1/functions/" + funcId,
+            name=google_name,
             description="created by api",
             source_archive_url=f"gs://hackweek-sentry-functions-bucket/" + zipFilename,
             runtime="nodejs14",
@@ -81,6 +85,9 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
             location="projects/hackweek-sentry-functions/locations/us-central1",
         )
 
-        # TODO(Steve): insert into SentryFunction table
+        data["slug"] = slugify(data["name"])
+        data["organization_id"] = organization.id
+
+        SentryFunction.objects.create(**data)
 
         return Response(status=201)

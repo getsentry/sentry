@@ -8,13 +8,14 @@ class SentryFunction(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.TextField()
+    code = models.TextField()
     slug = models.CharField(max_length=64, unique=True)
     author = models.TextField(null=True)
     overview = models.TextField(null=True)
     events = ArrayField(of=models.TextField, null=True)
-    external_id = models.CharField(max_length=64, unique=True)
+    external_id = models.CharField(max_length=128, unique=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryfunction"
-        unique_together = (("organization_id", "name"),)
+        unique_together = (("organization", "name"),)
