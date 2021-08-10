@@ -1,6 +1,6 @@
 import * as React from 'react';
 import DocumentTitle from 'react-document-title';
-import * as ReactRouter from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import PropTypes from 'prop-types';
 
@@ -39,10 +39,7 @@ type Props = {
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
-} & ReactRouter.RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
-  {}
->;
+} & RouteComponentProps<{orgId: string; groupId: string; eventId?: string}, {}>;
 
 type State = {
   group: Group | null;
@@ -311,7 +308,7 @@ class GroupDetails extends React.Component<Props, State> {
       const reprocessingNewRoute = this.getReprocessingNewRoute(updatedGroup);
 
       if (reprocessingNewRoute) {
-        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        browserHistory.push(reprocessingNewRoute);
         return;
       }
 
@@ -350,7 +347,7 @@ class GroupDetails extends React.Component<Props, State> {
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 
       if (reprocessingNewRoute) {
-        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        browserHistory.push(reprocessingNewRoute);
         return;
       }
 
@@ -386,7 +383,7 @@ class GroupDetails extends React.Component<Props, State> {
         // this is not an ideal solution and will ultimately be replaced with
         // something smarter.
         delete locationWithProject.query._allp;
-        ReactRouter.browserHistory.replace(locationWithProject);
+        browserHistory.replace(locationWithProject);
       }
 
       this.setState({project, loadingGroup: false});
