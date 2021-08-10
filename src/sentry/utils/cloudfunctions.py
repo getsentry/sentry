@@ -1,3 +1,4 @@
+import json
 from io import BytesIO
 from zipfile import ZipFile
 
@@ -27,9 +28,19 @@ exports.start = (message, context) => {
     return;
   }
   const event = JSON.parse(Buffer.from(message.data, 'base64').toString());
-  userFunc(event);
+  return userFunc(event);
 };
 """
+
+
+PACKAGE_JSON = {
+    "dependencies": {
+        "@sentry/node": "^6.11.0",
+        "@sentry/tracing": "^6.11.0",
+        "node-fetch": "^2.6.1"
+    }
+}
+
 import time
 
 from google.cloud import storage
@@ -49,6 +60,7 @@ def upload_function_files(client, code):
     with ZipFile(f, "w") as codezip:
         codezip.writestr("user.js", code)
         codezip.writestr("index.js", WRAPPER_JS)
+        codezip.writestr("package.json", json.dumps(PACKAGE_JSON))
     f.seek(0)
 
     upload_url = client.generate_upload_url(
