@@ -83,7 +83,7 @@ const formFields: Field[] = [
   },
 ];
 
-export default class SentryApplicationDetails extends AsyncView<Props, State> {
+export default class SentryFunctionDetails extends AsyncView<Props, State> {
   form = new SentryFunctionFormModel();
   codeMirror: null | CodeMirror.Editor = null;
 
