@@ -40,7 +40,9 @@ class EthereumAddressesEndpoint(ProjectEndpoint):
                 display_name=result["displayName"],
             )
 
-            return Response(EthereumAddressSerializer(address), status=201)
+            return Response(
+                serialize(address, request.user, EthereumAddressGetSerializer()), status=201
+            )
         return Response(serializer.errors, status=400)
 
 

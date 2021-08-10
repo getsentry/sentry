@@ -4,9 +4,10 @@ from sentry.models import EthereumAddress
 
 
 class EthereumAddressSerializer(serializers.Serializer):
-    abiContents = serializers.JSONField(source="abi_contents", required=False)
-    displayName = serializers.CharField(source="display_name", required=False)
+    abiContents = serializers.JSONField(required=False, default={})
+    address = serializers.CharField(max_length=40)
+    displayName = serializers.CharField(required=False, default="")
 
     class Meta:
         model = EthereumAddress
-        fields = ["abiContents", "displayName"]
+        fields = ["abiContents", "address", "displayName"]
