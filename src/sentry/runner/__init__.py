@@ -46,8 +46,8 @@ def cli(ctx, config):
 
 
 # TODO(mattrobenolt): Autodiscover commands?
-map(
-    lambda cmd: cli.add_command(import_string(cmd)),
+for cmd in map(
+    import_string,
     (
         "sentry.runner.commands.backup.export",
         "sentry.runner.commands.backup.import_",
@@ -73,7 +73,8 @@ map(
         "sentry.runner.commands.permissions.permissions",
         "sentry.runner.commands.devservices.devservices",
     ),
-)
+):
+    cli.add_command(cmd)
 
 
 def make_django_command(name, django_command=None, help=None):
