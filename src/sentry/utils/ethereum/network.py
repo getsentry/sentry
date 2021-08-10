@@ -5,10 +5,14 @@ import re
 import time
 
 import web3
-from sentry_sdk import capture_message, set_context, set_tag, set_user
+from sentry_sdk import Client, Hub
 from web3 import Web3
 
-from sentry.models.ethereum import EthereumAddress
+from sentry.models import EthereumAddress, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKeyStatus
+
+# from sentry.models.ethereum import EthereumAddress
 
 logger = logging.getLogger("sentry.utils.ethereum.network")
 
@@ -65,44 +69,59 @@ class EthereumNetwork:
     def eth_call(self, transaction, block_identifier):
         return self.w3.eth.call(transaction, block_identifier=block_identifier)
 
-    def report_transaction_to_project(self, transaction, receipt, project, err_reason):
+    def report_transaction_to_project(
+        self, transaction, receipt, project: Project, err_reason: str
+    ):
         logger.info("Reporting to project: %s", project.id)
-        return
 
-        set_user({"username": "0x0314d69c14328bed45a45f96a75400f733164e13"})
-        set_tag("block_number", "12992218")
-        set_tag(
-            "transaction_hash",
-            "0x392b51f4611fd65df0c812edeba35b92e5a2aa3c3096edcc515b4a2bdd8d627a",
-        )
-        set_context(
-            "ethereum",
-            {
-                "gas": 167714,
-                "gasPrice": 42000000000,
-                "cumulativeGasUsed": 3736120,
-                "effectiveGasPrice": 42000000000,
-                "gasUsed": 31522,
-                "status": 0,
-                "transactionHash": "0x392b51f4611fd65df0c812edeba35b92e5a2aa3c3096edcc515b4a2bdd8d627a",
-                "block": "12992218",
-                "from": "0x0314d69c14328bed45a45f96a75400f733164e13",
-                "to": "0xd2877702675e6ceb975b4a1dff9fb7baf4c91ea9",
-            },
-        )
-        set_context(
-            "runtime",
-            {
-                "name": "Ethereum",
-            },
-        )
-        set_context(
-            "browser",
-            {
-                "name": "Mainnnet",
-            },
-        )
-        capture_message("Something went wrong")
+        project_key = ProjectKey.objects.filter(
+            project=project, status=ProjectKeyStatus.ACTIVE
+        ).first()
+
+        if project_key is None:
+            logger.warning("No active DSNs found for project: %s, skipping processing", project.id)
+            return
+
+        sdk_client = Client(dsn=project_key.dsn_public)
+
+        with Hub(sdk_client) as hub:
+            hub.scope.set_user({"username": transaction["from"]})
+            hub.scope.set_tag("block_number", transaction["blockNumber"])
+
+            hub.scope.set_tag(
+                "transaction_hash",
+                transaction["hash"].hex(),
+            )
+            hub.scope.set_tag("from", transaction["from"])
+            hub.scope.set_tag("to", transaction["to"])
+
+            hub.scope.set_context(
+                "ethereum",
+                {
+                    "gas": transaction["gas"],
+                    "gasPrice": transaction["gasPrice"],
+                    "cumulativeGasUsed": receipt["cumulativeGasUsed"],
+                    "effectiveGasPrice": receipt["effectiveGasPrice"],
+                    "gasUsed": receipt["gasUsed"],
+                    "status": receipt["status"],
+                    "block": transaction["blockNumber"],
+                    "from": transaction["from"],
+                    "to": transaction["to"],
+                },
+            )
+            hub.scope.set_context(
+                "runtime",
+                {
+                    "name": "Ethereum",
+                },
+            )
+            hub.scope.set_context(
+                "browser",
+                {
+                    "name": "Mainnnet",
+                },
+            )
+            hub.capture_message(err_reason, level="error")
 
     def report_errored_transaction(self, transaction, receipt, projects):
         tr_id = transaction["hash"].hex()
