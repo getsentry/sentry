@@ -42,9 +42,9 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
         data["slug"] = slugify(data["name"])
         data["organization_id"] = organization.id
-        data["external_id"] = "fn-" + data["slug"] + "-" + uuid4().hex
+        data["external_id"] = data["slug"] + "-" + uuid4().hex
 
-        create_function(data["code"], data["external_id"])
+        create_function(data["code"], data["external_id"], data["env_variables"])
         SentryFunction.objects.create(**data)
 
         return Response(status=201)

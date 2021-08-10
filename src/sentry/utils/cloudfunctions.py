@@ -42,7 +42,7 @@ def create_function_pubsub_topic(funcId):
     publisher.create_topic(name=function_pubsub_name(funcId))
 
 
-def create_function(code, funcId):
+def create_function(code, funcId, env_variables):
     create_function_pubsub_topic(funcId)
     f = BytesIO()
     with ZipFile(f, "w") as codezip:
@@ -63,7 +63,7 @@ def create_function(code, funcId):
     )
     client.create_function(
         function=CloudFunction(
-            name="projects/hackweek-sentry-functions/locations/us-central1/functions/" + funcId,
+            name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
             description="created by api",
             source_upload_url=upload_url,
             runtime="nodejs14",
@@ -72,6 +72,7 @@ def create_function(code, funcId):
                 event_type="providers/cloud.pubsub/eventTypes/topic.publish",
                 resource=function_pubsub_name(funcId),
             ),
+            environment_variables=env_variables,
         ),
         location="projects/hackweek-sentry-functions/locations/us-central1",
     )
