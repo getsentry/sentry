@@ -50,15 +50,7 @@ class ProjectEthereum extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      ethAddresses: [
-        {
-          id: 1,
-          address: '0x0314d69c14328bed45a45f96a75400f733164e13',
-          dateUpdated: '2020-10-02T10:19:05.350431Z',
-          displayName: "Matej's Contract",
-          abi: 'test',
-        },
-      ],
+      ethAddresses: [],
     };
   }
 
