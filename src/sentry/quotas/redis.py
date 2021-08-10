@@ -3,7 +3,6 @@ from time import time
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
-from sentry.utils.compat import map, zip
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_script,
@@ -133,12 +132,16 @@ class RedisQuota(Quota):
             return int(result.value or 0) - int(refund_result.value or 0)
 
         if self.is_redis_cluster:
-            results = map(functools.partial(get_usage_for_quota, self.cluster), quotas)
+            results = list(map(functools.partial(get_usage_for_quota, self.cluster), quotas))
         else:
             with self.cluster.fanout() as client:
-                results = map(
-                    functools.partial(get_usage_for_quota, client.target_key(f"{organization_id}")),
-                    quotas,
+                results = list(
+                    map(
+                        functools.partial(
+                            get_usage_for_quota, client.target_key(f"{organization_id}")
+                        ),
+                        quotas,
+                    )
                 )
 
         return [get_value_for_result(*r) for r in results]
@@ -245,7 +248,7 @@ class RedisQuota(Quota):
             return NotRateLimited()
 
         worst_case = (0, None)
-        for quota, rejected in zip(quotas, rejections):
+        for quota, rejected in list(zip(quotas, rejections)):
             if not rejected:
                 continue
 

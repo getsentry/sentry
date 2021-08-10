@@ -6,7 +6,6 @@ from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba
-from sentry.utils.compat import map, zip
 from sentry.utils.dates import to_datetime
 
 SnubaModelQuerySettings = collections.namedtuple(
@@ -282,7 +281,7 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
-        keys_map = dict(zip(columns, self.flatten_keys(keys)))
+        keys_map = dict(list(zip(columns, self.flatten_keys(keys))))
         keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids

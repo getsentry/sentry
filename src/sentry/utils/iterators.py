@@ -1,7 +1,5 @@
 import itertools
 
-from sentry.utils.compat import map, zip
-
 
 def advance(n, iterator):
     """Advances an iterator n places."""
@@ -16,10 +14,15 @@ def shingle(n, iterator):
     >>> list(shingle(2, ('foo', 'bar', 'baz')))
     [('foo', 'bar'), ('bar', 'baz')]
     """
-    return zip(
-        *map(
-            lambda i__iterator: advance(i__iterator[0], i__iterator[1]),
-            enumerate(itertools.tee(iterator, n)),
+    # TODO: uhhhhhhh lol
+    return list(
+        zip(
+            *list(
+                map(
+                    lambda i__iterator: advance(i__iterator[0], i__iterator[1]),
+                    enumerate(itertools.tee(iterator, n)),
+                )
+            )
         )
     )
 
