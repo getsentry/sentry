@@ -307,4 +307,6 @@ const SecretHeader = styled('div')`
 
 const ButtonHolder = styled('div')`
   align-items: center;
+  display: flex;
+  padding-right: ${space(2)};
 `;
