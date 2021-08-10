@@ -10,7 +10,7 @@ class EthereumAddress(Model):
 
     project = FlexibleForeignKey("sentry.Project", db_index=True)
     # Ethereum address in hex format
-    address = models.CharField(max_length=64, db_index=True)
+    address = models.CharField(max_length=40, db_index=True)
     display_name = models.TextField()
     last_updated = models.DateTimeField(default=timezone.now)
     abi_contents = JSONField()
