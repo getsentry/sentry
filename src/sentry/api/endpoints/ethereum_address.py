@@ -15,7 +15,7 @@ class EthereumAddressGetSerializer(Serializer):
         return {
             "id": str(obj.id),
             "address": obj.address,
-            "abi_contents": json.dumps(obj.abi_contents),
+            "abiContents": json.dumps(obj.abi_contents),
             "displayName": obj.display_name,
             "lastUpdated": obj.last_updated,
         }
