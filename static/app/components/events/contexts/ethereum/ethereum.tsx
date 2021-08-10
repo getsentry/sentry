@@ -13,21 +13,24 @@ type Props = {
 
 const ethereumKnownDataValues = [
   EthereumKnownDataType.TRANSACTION_HASH,
-  EthereumKnownDataType.BLOCK,
-  EthereumKnownDataType.CUMULATIVE_GAS_USED,
-  EthereumKnownDataType.EFFECTIVE_GAS_PRICE,
-  EthereumKnownDataType.FROM,
-  EthereumKnownDataType.GAS,
-  EthereumKnownDataType.GAS_PRICE,
-  EthereumKnownDataType.GAS_USED,
   EthereumKnownDataType.STATUS,
+  EthereumKnownDataType.BLOCK,
+  EthereumKnownDataType.FROM,
   EthereumKnownDataType.TO,
+  EthereumKnownDataType.GAS,
+  EthereumKnownDataType.GAS_USED,
+  EthereumKnownDataType.CUMULATIVE_GAS_USED,
+  EthereumKnownDataType.GAS_PRICE,
+  EthereumKnownDataType.EFFECTIVE_GAS_PRICE,
 ];
 
 const Ethereum = ({data}: Props) => {
   return (
     <Fragment>
-      <ContextBlock data={getEthereumKnownData(data, ethereumKnownDataValues)} />
+      <ContextBlock
+        isSorted={false}
+        data={getEthereumKnownData(data, ethereumKnownDataValues)}
+      />
       <ContextBlock data={getUnknownData(data, ethereumKnownDataValues)} />
     </Fragment>
   );

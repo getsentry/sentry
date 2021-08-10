@@ -4,17 +4,18 @@ import {KeyValueListData} from 'app/types';
 
 type Props = {
   data: KeyValueListData;
+  isSorted?: boolean;
   raw?: boolean;
 };
 
-const ContextBlock = ({data, raw = false}: Props) => {
+const ContextBlock = ({data, isSorted, raw = false}: Props) => {
   if (data.length === 0) {
     return null;
   }
 
   return (
     <ErrorBoundary mini>
-      <KeyValueList data={data} raw={raw} isContextData />
+      <KeyValueList isSorted={isSorted} data={data} raw={raw} isContextData />
     </ErrorBoundary>
   );
 };
