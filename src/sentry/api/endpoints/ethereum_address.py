@@ -13,6 +13,7 @@ class EthereumAddressesEndpoint(ProjectEndpoint):
         addresses = EthereumAddress.objects.filter(project=project)
         serializer = EthereumAddressSerializer(addresses, many=True)
         # TODO: paginate?
+        # FIXME: use Sentry Model serializer?
         return Response(serializer.data)
 
     def post(self, request, project):
