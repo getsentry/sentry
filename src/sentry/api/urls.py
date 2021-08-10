@@ -254,6 +254,9 @@ from .endpoints.organization_search_details import OrganizationSearchDetailsEndp
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
+from .endpoints.organization_sentry_function_details import (
+    OrganizationSentryFunctionDetailsEndpoint,
+)
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -1355,6 +1358,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/functions/$",
                     OrganizationSentryFunctionEndpoint.as_view(),
                     name="sentry-api-0-organization-functions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_slug>[^\/]+)/$",
+                    OrganizationSentryFunctionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-function-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",

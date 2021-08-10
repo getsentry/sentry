@@ -325,6 +325,7 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request, organization_slug, *args, **kwargs):
+
         try:
             organization = Organization.objects.get_from_cache(slug=organization_slug)
         except Organization.DoesNotExist:
