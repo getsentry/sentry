@@ -17,10 +17,15 @@ const ethereumKnownDataValues = [
   EthereumKnownDataType.BLOCK,
   EthereumKnownDataType.FROM,
   EthereumKnownDataType.TO,
+  EthereumKnownDataType.VALUE,
+  EthereumKnownDataType.TRANSACTION_FEE,
+  EthereumKnownDataType.GAS_PRICE,
   EthereumKnownDataType.GAS,
   EthereumKnownDataType.GAS_USED,
+];
+
+const ethereumIgnoredDataValues = [
   EthereumKnownDataType.CUMULATIVE_GAS_USED,
-  EthereumKnownDataType.GAS_PRICE,
   EthereumKnownDataType.EFFECTIVE_GAS_PRICE,
 ];
 
@@ -31,7 +36,12 @@ const Ethereum = ({data}: Props) => {
         isSorted={false}
         data={getEthereumKnownData(data, ethereumKnownDataValues)}
       />
-      <KeyValueList data={getUnknownData(data, ethereumKnownDataValues)} />
+      <KeyValueList
+        data={getUnknownData(data, [
+          ...ethereumKnownDataValues,
+          ...ethereumIgnoredDataValues,
+        ])}
+      />
     </Fragment>
   );
 };

@@ -9,6 +9,8 @@ export enum EthereumKnownDataType {
   STATUS = 'status',
   TO = 'to',
   TRANSACTION_HASH = 'transactionHash',
+  TRANSACTION_FEE = 'transactionFee',
+  VALUE = 'value',
 }
 
 export type EthereumData = {
@@ -22,4 +24,6 @@ export type EthereumData = {
   status: 0 | 1;
   to: string;
   transactionHash: string;
+  value: number;
+  transactionFee: number;
 };
