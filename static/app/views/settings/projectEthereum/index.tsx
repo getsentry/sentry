@@ -16,6 +16,7 @@ import TextOverflow from 'app/components/textOverflow';
 import {IconAdd, IconDelete, IconEdit} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
+import {formatEthAddress} from 'app/utils/ethereum';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
@@ -27,9 +28,9 @@ import AddressModal from './addressModal';
 export type EthAddress = {
   id: string;
   address: string;
-  dateUpdated: string;
+  lastUpdated: string;
   displayName?: string;
-  abi?: string;
+  abiContents?: string;
 };
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
@@ -75,19 +76,27 @@ class ProjectEthereum extends AsyncView<Props, State> {
         {...modalProps}
         api={this.api}
         baseUrl={this.baseUrl}
-        address={undefined}
         onSubmitSuccess={() => this.remountComponent()}
       />
     ));
   };
 
-  handleOpenEditDialog = () => {
-    // console.log('handleOpenEditDialog');
+  handleOpenEditDialog = (id: string) => {
+    const {ethAddresses} = this.state;
+    return openModal(modalProps => (
+      <AddressModal
+        {...modalProps}
+        api={this.api}
+        baseUrl={this.baseUrl}
+        initialData={ethAddresses.find(address => address.id === id)}
+        onSubmitSuccess={() => this.remountComponent()}
+      />
+    ));
   };
 
   handleDeleteAddress = async (id: string) => {
     try {
-      await this.api.requestPromise(`${this.baseUrl}/${id}/`, {
+      await this.api.requestPromise(`${this.baseUrl}${id}/`, {
         method: 'DELETE',
       });
 
@@ -100,29 +109,28 @@ class ProjectEthereum extends AsyncView<Props, State> {
 
   renderAddresses() {
     const {ethAddresses} = this.state;
-    return ethAddresses.map(({displayName, address, dateUpdated, id}) => (
+    return ethAddresses.map(({displayName, address, lastUpdated, id}) => (
       <Fragment key={id}>
         <Column>{displayName || <NotAvailable />}</Column>
         <Column>
-          <TextOverflow>0x{address}</TextOverflow>
+          <TextOverflow>{formatEthAddress(address)}</TextOverflow>
         </Column>
         <Column>
-          <DateTime date={dateUpdated} />
+          <DateTime date={lastUpdated} />
         </Column>
         <ActionsColumn>
+          {/* TODO(eth): permissions */}
           <ButtonBar gap={0.5}>
             <Button
               size="small"
               icon={<IconEdit />}
               title={t('Edit Address')}
               label={t('Edit Address')}
-              onClick={this.handleOpenEditDialog}
+              onClick={() => this.handleOpenEditDialog(id)}
             />
             <Confirm
               onConfirm={() => this.handleDeleteAddress(id)}
-              message={t(
-                'Are you sure you want to remove all artifacts in this archive?'
-              )}
+              message={t('Are you sure you want to remove this address?')}
             >
               <Button
                 size="small"

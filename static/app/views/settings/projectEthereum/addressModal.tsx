@@ -1,5 +1,4 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -7,7 +6,7 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {formatEthAddress, stripEthAddress} from 'app/utils/ethereum';
 
 import {TextareaField, TextField} from '../components/forms';
 
@@ -17,38 +16,53 @@ type Props = ModalRenderProps & {
   api: Client;
   baseUrl: string;
   onSubmitSuccess: () => void;
-  address?: EthAddress;
+  initialData?: EthAddress;
 };
 
 type State = {
-  address?: string;
-  displayName?: string;
-  abi?: string;
+  address: string;
+  displayName: string;
+  abiContents: string;
 };
 
 class Form extends React.Component<Props, State> {
   state: State = {
-    address: this.props.address?.address || '',
-    displayName: this.props.address?.displayName || '',
-    abi: this.props.address?.abi || '',
+    displayName: this.props.initialData?.displayName || '',
+    address: this.props.initialData?.address
+      ? formatEthAddress(this.props.initialData.address)
+      : '',
+    abiContents: this.props.initialData?.abiContents || '',
   };
 
   handleSave = async () => {
-    const {api, onSubmitSuccess, closeModal, baseUrl} = this.props;
-    const {address, displayName, abi} = this.state;
+    const {api, onSubmitSuccess, closeModal, baseUrl, initialData} = this.props;
+    const {address, displayName, abiContents} = this.state;
+
+    // TODO(eth): validation
 
     try {
-      await api.requestPromise(baseUrl, {
-        method: 'POST',
-        data: {
-          address,
-          displayName,
-          abi,
-        },
-      });
+      if (initialData) {
+        await api.requestPromise(`${baseUrl}${initialData.id}/`, {
+          method: 'PUT',
+          data: {
+            address: stripEthAddress(address),
+            displayName,
+            abiContents,
+          },
+        });
+      } else {
+        await api.requestPromise(baseUrl, {
+          method: 'POST',
+          data: {
+            address: stripEthAddress(address),
+            displayName,
+            abiContents,
+          },
+        });
+      }
 
       addSuccessMessage(
-        this.props.address
+        initialData
           ? t('Address updated successfully.')
           : t('Address created successfully.')
       );
@@ -60,48 +74,45 @@ class Form extends React.Component<Props, State> {
   };
 
   render() {
-    const {Header, Body, closeModal, Footer} = this.props;
+    const {Header, Body, closeModal, Footer, initialData} = this.props;
+    const {displayName, address, abiContents} = this.state;
 
     return (
       <React.Fragment>
         <Header closeButton>
-          <h4>
-            {this.props.address ? t('Edit Ethereum Address') : t('Add Ethereum Address')}
-          </h4>
+          <h4>{initialData ? t('Edit Ethereum Address') : t('Add Ethereum Address')}</h4>
         </Header>
         <Body>
-          <Fields>
-            <TextField
-              label={t('Display Name')}
-              name="displayName"
-              onChange={displayName => this.setState({displayName})}
-              placeholder="My Smart Contract"
-              value={this.state.displayName}
-              inline={false}
-              stacked
-              required
-            />
-            <TextField
-              label={t('Address')}
-              name="address"
-              onChange={address => this.setState({address})}
-              placeholder="0x0000000000000000000000000000000000000000"
-              value={this.state.address}
-              inline={false}
-              stacked
-              required
-            />
-            <TextareaField
-              label={t('Abi')}
-              name="abi"
-              onChange={abi => this.setState({abi})}
-              value={this.state.abi}
-              autosize
-              rows={5}
-              inline={false}
-              stacked
-            />
-          </Fields>
+          <TextField
+            label={t('Display Name')}
+            name="displayName"
+            onChange={value => this.setState({displayName: value})}
+            placeholder={t('My Smart Contract')}
+            value={displayName}
+            inline={false}
+            stacked
+          />
+          <TextField
+            label={t('Address')}
+            name="address"
+            onChange={value => this.setState({address: value})}
+            placeholder="0x0000000000000000000000000000000000000000"
+            value={address}
+            inline={false}
+            stacked
+            required
+            disabled={!!initialData}
+          />
+          <TextareaField
+            label={t('Abi')}
+            name="abi"
+            onChange={value => this.setState({abiContents: value})}
+            value={abiContents}
+            autosize
+            rows={5}
+            inline={false}
+            stacked
+          />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
@@ -117,8 +128,3 @@ class Form extends React.Component<Props, State> {
 }
 
 export default Form;
-
-const Fields = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-`;
