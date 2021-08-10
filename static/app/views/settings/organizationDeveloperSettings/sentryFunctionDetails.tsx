@@ -1,5 +1,6 @@
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/monokai.css';
+import 'codemirror/mode/javascript/javascript';
 
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
@@ -99,7 +100,6 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
     if (!element) {
       return;
     }
-    // TODO: Figure out how to colorize
     this.codeMirror = CodeMirror(element, {
       value: 'function myScript(){\n  return 100;\n}\n',
       mode: 'javascript',
