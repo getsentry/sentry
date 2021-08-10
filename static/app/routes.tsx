@@ -305,6 +305,12 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
+        path="ethereum/"
+        name={t('Ethereum')}
+        componentPromise={() => import('app/views/settings/projectEthereum')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="source-maps/"
         name={t('Source Maps')}
         componentPromise={() => import('app/views/settings/projectSourceMaps')}

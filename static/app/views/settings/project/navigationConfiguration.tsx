@@ -119,6 +119,10 @@ export default function getConfiguration({
           badge: () => 'new',
           show: () => !!organization?.features?.includes('project-transaction-threshold'),
         },
+        {
+          path: `${pathPrefix}/ethereum/`,
+          title: t('Ethereum'),
+        },
       ],
     },
     {
