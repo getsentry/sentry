@@ -26,14 +26,6 @@ from sentry.models import SentryFunction
 from .organization_sentry_function import SentryFunctionSerilizer
 
 
-class SentryFunctionSerilizer(CamelSnakeSerializer):
-    name = serializers.CharField()
-    code = serializers.CharField()
-    author = serializers.CharField(required=False, allow_blank=True)
-    overview = serializers.CharField(required=False, allow_blank=True)
-    events = serializers.ListField(child=serializers.CharField(), required=False)
-
-
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
     def put(self, request, organization, function_slug):
         serializer = SentryFunctionSerilizer(data=request.data)
