@@ -155,7 +155,16 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {functionSlug, orgId} = this.props.params;
+    if (functionSlug) {
+      return [['sentryFunction', `/organizations/${orgId}/functions/${functionSlug}`]];
+    }
     return [];
+  }
+
+  onLoadAllEndpointsSuccess() {
+    const {sentryFunction} = this.state;
+    sentryFunction && this.codeMirror?.setValue(sentryFunction.code);
   }
 
   getTitle() {
@@ -233,6 +242,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
 
   renderBody() {
     const {orgId} = this.props.params;
+    const {sentryFunction} = this.state;
 
     const method = 'POST';
     const endpoint = `/organizations/${orgId}/functions/`;
@@ -246,6 +256,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
           allowUndo
           initialData={{
             organization: orgId,
+            ...sentryFunction,
           }}
           model={this.form}
         >

@@ -2223,4 +2223,8 @@ export type CodeownersFile = {
 
 export type SentryFunction = {
   name: string;
+  slug: string;
+  author?: string;
+  overview?: string;
+  events?: string[];
 };

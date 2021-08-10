@@ -1,12 +1,14 @@
-import {RouteComponentProps} from 'react-router';
+import {Link, RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import Access from 'app/components/acl/access';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconInput} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, SentryApp, SentryFunction} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
@@ -155,10 +157,21 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
-  renderSentryFunction(sentryFunction: SentryFunction) {
-    //TODO: make better
-    return <div>{sentryFunction.name}</div>;
-  }
+  renderSentryFunction = (sentryFunction: SentryFunction) => {
+    const {organization} = this.props;
+    return (
+      <SentryFunctionHolder>
+        <StyledIconInput />
+        <LinkWrapper>
+          <StyledLink
+            to={`/settings/${organization.slug}/developer-settings/sentry-functions/${sentryFunction.slug}/`}
+          >
+            {sentryFunction.name}
+          </StyledLink>
+        </LinkWrapper>
+      </SentryFunctionHolder>
+    );
+  };
 
   renderSentryFunctions() {
     const {orgId} = this.props.params;
@@ -220,3 +233,23 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 }
 
 export default withOrganization(OrganizationDeveloperSettings);
+
+const SentryFunctionHolder = styled('div')`
+  display: flex;
+  flex-direction: row;
+  padding: 5px;
+`;
+
+const StyledIconInput = styled(IconInput)`
+  height: 36px;
+  width: 36px;
+`;
+
+const LinkWrapper = styled('div')`
+  padding-left: ${space(1)};
+  display: flex;
+`;
+
+const StyledLink = styled(Link)`
+  margin: auto;
+`;
