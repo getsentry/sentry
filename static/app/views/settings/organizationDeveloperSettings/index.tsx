@@ -156,8 +156,8 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   }
 
   renderSentryFunction(sentryFunction: SentryFunction) {
-    // TODO: finish
-    return <EmptyMessage>{sentryFunction.name}</EmptyMessage>;
+    //TODO: make better
+    return <div>{sentryFunction.name}</div>;
   }
 
   renderSentryFunctions() {
