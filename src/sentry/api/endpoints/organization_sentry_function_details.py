@@ -23,12 +23,12 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models import SentryFunction
 
-from .organization_sentry_function import SentryFunctionSerilizer
+from .organization_sentry_function import SentryFunctionSerializer
 
 
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
     def put(self, request, organization, function_slug):
-        serializer = SentryFunctionSerilizer(data=request.data)
+        serializer = SentryFunctionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 

@@ -29,7 +29,7 @@ class EnvVariableSerializer(CamelSnakeSerializer):
     name = serializers.CharField()
 
 
-class SentryFunctionSerilizer(CamelSnakeSerializer):
+class SentryFunctionSerializer(CamelSnakeSerializer):
     name = serializers.CharField()
     code = serializers.CharField()
     author = serializers.CharField(required=False, allow_blank=True)
@@ -66,7 +66,7 @@ exports.start = (message, context) => {
 
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
-        serializer = SentryFunctionSerilizer(data=request.data)
+        serializer = SentryFunctionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
