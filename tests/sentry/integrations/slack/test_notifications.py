@@ -1,10 +1,12 @@
 from urllib.parse import parse_qs
 
-import pytest
 import responses
 from django.utils import timezone
 from exam import fixture
 
+import sentry
+from sentry.digests.backends.redis import RedisBackend
+from sentry.digests.notifications import event_to_record
 from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.mail import mail_adapter
 from sentry.models import (
@@ -37,12 +39,13 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.plugins.base import Notification
-from sentry.rules.processor import RuleFuture
+from sentry.tasks.digests import deliver_digest
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.compat import mock
+from sentry.utils.compat.mock import patch
 from tests.sentry.mail.activity import ActivityTestCase
 
 
@@ -799,23 +802,27 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
         )
 
-    @pytest.mark.skip(reason="will be needed soon but not yet")
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    @mock.patch("sentry.mail.adapter.digests")
+    @patch.object(sentry, "digests")
     def test_digest_enabled(self, digests, mock_func):
         """
         Test that with digests enabled, but Slack notification settings
         (and not email settings), we send a Slack notification
         """
+        backend = RedisBackend()
+        digests.digest = backend.digest
         digests.enabled.return_value = True
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        key = f"mail:p:{self.project.id}"
+        backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
 
-        futures = [RuleFuture(rule, {})]
-        self.adapter.rule_notify(event, futures, ActionTargetType.MEMBER, self.user.id)
+        with self.tasks():
+            deliver_digest(key)
 
         assert digests.call_count == 0
 
@@ -823,4 +830,3 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         assert attachment["title"] == "Hello world"
         assert attachment["text"] == ""
-        assert attachment["footer"] == event.group.qualified_short_id

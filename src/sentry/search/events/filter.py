@@ -20,7 +20,7 @@ from sentry.api.event_search import (
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project, Release, SemverFilter
+from sentry.models import Organization, Project, Release, SemverFilter
 from sentry.models.group import Group
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
@@ -50,13 +50,14 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, QueryFields, resolve_field
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     FUNCTION_TO_OPERATOR,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
     Dataset,
+    QueryOutsideRetentionError,
 )
 from sentry.utils.validators import INVALID_EVENT_DETAILS
 
@@ -1046,6 +1047,10 @@ class QueryFilter(QueryFields):
             ERROR_HANDLED_ALIAS: self._error_handled_filter_converter,
             ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
             TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
+            RELEASE_STAGE_ALIAS: self._release_stage_filter_converter,
+            SEMVER_ALIAS: self._semver_filter_converter,
+            SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
+            SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
         }
 
     def parse_query(self, query: Optional[str]) -> ParsedTerms:
@@ -1209,6 +1214,10 @@ class QueryFilter(QueryFields):
         if "start" not in self.params or "end" not in self.params:
             raise InvalidSearchQuery("Cannot query without a valid date range")
         start, end = self.params["start"], self.params["end"]
+        # Update start to be within retention
+        expired, start = outside_retention_with_modified_start(
+            start, end, Organization(self.params.get("organization_id"))
+        )
 
         # TODO: this validation should be done when we create the params dataclass instead
         assert isinstance(start, datetime) and isinstance(
@@ -1217,6 +1226,10 @@ class QueryFilter(QueryFields):
         assert all(
             isinstance(project_id, int) for project_id in self.params.get("project_id", [])
         ), "All project id params must be ints"
+        if expired:
+            raise QueryOutsideRetentionError(
+                "Invalid date range. Please try a more recent date range."
+            )
 
         conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
         conditions.append(Condition(self.column("timestamp"), Op.LT, end))
@@ -1599,3 +1612,156 @@ class QueryFilter(QueryFields):
         raise InvalidSearchQuery(
             "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )
+
+    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """
+        Parses a release stage search and returns a snuba condition to filter to the
+        requested releases.
+        """
+        # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
+        # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+
+        if "organization_id" not in self.params:
+            raise ValueError("organization_id is a required param")
+
+        organization_id: int = self.params["organization_id"]
+        project_ids: Optional[list[int]] = self.params.get("project_id")
+        qs = (
+            Release.objects.filter_by_stage(
+                organization_id,
+                search_filter.operator,
+                search_filter.value.value,
+                project_ids=project_ids,
+            )
+            .values_list("version", flat=True)
+            .order_by("date_added")[:MAX_SEARCH_RELEASES]
+        )
+        versions = list(qs)
+
+        if not versions:
+            # XXX: Just return a filter that will return no results if we have no versions
+            versions = [SEMVER_EMPTY_RELEASE]
+
+        return Condition(self.column("release"), Op.IN, versions)
+
+    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """
+        Parses a semver query search and returns a snuba condition to filter to the
+        requested releases.
+
+        Since we only have semver information available in Postgres currently, we query
+        Postgres and return a list of versions to include/exclude. For most customers this
+        will work well, however some have extremely large numbers of releases, and we can't
+        pass them all to Snuba. To try and serve reasonable results, we:
+         - Attempt to query based on the initial semver query. If this returns
+           MAX_SEMVER_SEARCH_RELEASES results, we invert the query and see if it returns
+           fewer results. If so, we use a `NOT IN` snuba condition instead of an `IN`.
+         - Order the results such that the versions we return are semantically closest to
+           the passed filter. This means that when searching for `>= 1.0.0`, we'll return
+           version 1.0.0, 1.0.1, 1.1.0 before 9.x.x.
+        """
+        if "organization_id" not in self.params:
+            raise ValueError("organization_id is a required param")
+
+        organization_id: int = self.params["organization_id"]
+        project_ids: Optional[list[int]] = self.params.get("project_id")
+        # We explicitly use `raw_value` here to avoid converting wildcards to shell values
+        version: str = search_filter.value.raw_value
+        operator: str = search_filter.operator
+
+        # Note that we sort this such that if we end up fetching more than
+        # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
+        # the passed filter.
+        order_by = Release.SEMVER_COLS
+        if operator.startswith("<"):
+            order_by = list(map(_flip_field_sort, order_by))
+        qs = (
+            Release.objects.filter_by_semver(
+                organization_id,
+                parse_semver(version, operator),
+                project_ids=project_ids,
+            )
+            .values_list("version", flat=True)
+            .order_by(*order_by)[:MAX_SEARCH_RELEASES]
+        )
+        versions = list(qs)
+        final_operator = Op.IN
+        if len(versions) == MAX_SEARCH_RELEASES:
+            # We want to limit how many versions we pass through to Snuba. If we've hit
+            # the limit, make an extra query and see whether the inverse has fewer ids.
+            # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+            # do our best.
+            operator = OPERATOR_NEGATION_MAP[operator]
+            # Note that the `order_by` here is important for index usage. Postgres seems
+            # to seq scan with this query if the `order_by` isn't included, so we
+            # include it even though we don't really care about order for this query
+            qs_flipped = (
+                Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+                .order_by(*map(_flip_field_sort, order_by))
+                .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+            )
+
+            exclude_versions = list(qs_flipped)
+            if exclude_versions and len(exclude_versions) < len(versions):
+                # Do a negative search instead
+                final_operator = Op.NOT_IN
+                versions = exclude_versions
+
+        if not versions:
+            # XXX: Just return a filter that will return no results if we have no versions
+            versions = [SEMVER_EMPTY_RELEASE]
+
+        return Condition(self.column("release"), final_operator, versions)
+
+    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """
+        Applies a semver package filter to the search. Note that if the query returns more than
+        `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+        """
+        if "organization_id" not in self.params:
+            raise ValueError("organization_id is a required param")
+
+        organization_id: int = self.params["organization_id"]
+        project_ids: Optional[list[int]] = self.params.get("project_id")
+        package: str = search_filter.value.raw_value
+
+        versions = list(
+            Release.objects.filter_by_semver(
+                organization_id,
+                SemverFilter("exact", [], package),
+                project_ids=project_ids,
+            ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+        )
+
+        if not versions:
+            # XXX: Just return a filter that will return no results if we have no versions
+            versions = [SEMVER_EMPTY_RELEASE]
+
+        return Condition(self.column("release"), Op.IN, versions)
+
+    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """
+        Applies a semver build filter to the search. Note that if the query returns more than
+        `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
+        """
+        if "organization_id" not in self.params:
+            raise ValueError("organization_id is a required param")
+
+        organization_id: int = self.params["organization_id"]
+        project_ids: Optional[list[int]] = self.params.get("project_id")
+        build: str = search_filter.value.raw_value
+
+        versions = list(
+            Release.objects.filter_by_semver_build(
+                organization_id,
+                OPERATOR_TO_DJANGO[search_filter.operator],
+                build,
+                project_ids=project_ids,
+            ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+        )
+
+        if not versions:
+            # XXX: Just return a filter that will return no results if we have no versions
+            versions = [SEMVER_EMPTY_RELEASE]
+
+        return Condition(self.column("release"), Op.IN, versions)
