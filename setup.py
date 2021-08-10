@@ -131,6 +131,7 @@ setup(
             "teamwork = sentry_plugins.teamwork",
             "trello = sentry_plugins.trello",
             "twilio = sentry_plugins.twilio",
+            "notion = sentry_plugins.notion",
         ],
         "sentry.plugins": [
             "amazon_sqs = sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
@@ -141,6 +142,7 @@ setup(
             "github = sentry_plugins.github.plugin:GitHubPlugin",
             "gitlab = sentry_plugins.gitlab.plugin:GitLabPlugin",
             "heroku = sentry_plugins.heroku.plugin:HerokuPlugin",
+            "notion = sentry_plugins.notion.plugin:NotionPlugin",
             "jira = sentry_plugins.jira.plugin:JiraPlugin",
             "jira_ac = sentry_plugins.jira_ac.plugin:JiraACPlugin",
             "opsgenie = sentry_plugins.opsgenie.plugin:OpsGeniePlugin",

@@ -52,6 +52,7 @@ export const POPULARITY_WEIGHT: {
   webhooks: 10,
   asana: 8,
   trello: 8,
+  notion: 8,
   heroku: 8,
   pivotal: 8,
   twilio: 8,
