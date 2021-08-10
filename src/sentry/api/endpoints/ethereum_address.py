@@ -3,18 +3,29 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.ethereum_address import EthereumAddressSerializer
 from sentry.models import EthereumAddress
+
+
+@register(EthereumAddress)
+class EthereumAddressGetSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            "id": str(obj.id),
+            "address": obj.address,
+            "abi_contents": obj.abi_contents,
+            "displayName": obj.display_name,
+            "lastUpdated": obj.last_updated,
+        }
 
 
 class EthereumAddressesEndpoint(ProjectEndpoint):
     def get(self, request, project):
         """Get all address filters for the project"""
-        addresses = EthereumAddress.objects.filter(project=project)
-        serializer = EthereumAddressSerializer(addresses, many=True)
         # TODO: paginate?
-        # FIXME: use Sentry Model serializer?
-        return Response(serializer.data)
+        addresses = list(EthereumAddress.objects.filter(project=project))
+        return Response(serialize(addresses, request.user, EthereumAddressGetSerializer()))
 
     def post(self, request, project):
         """Create an address filter"""
@@ -45,8 +56,8 @@ class EthereumAddressDetailsEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            address.display_name = result["displayName"]
             address.abi_contents = result["abiContents"]
+            address.display_name = result["displayName"]
             address.last_updated = timezone.now()
 
             address.save()
