@@ -51,7 +51,7 @@ class SchemaField(serializers.Field):
         try:
             validate_ui_element_schema(data)
         except SchemaValidationError as e:
-            raise ValidationError(e.message)
+            raise ValidationError(f"{e}")
         return data
 
 
