@@ -33,7 +33,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
-    return [['applications', `/organizations/${orgId}/sentry-apps/`]];
+    return [
+      ['applications', `/organizations/${orgId}/sentry-apps/`],
+      ['sentryFunctions', `/organizations/${orgId}/functions/`],
+    ];
   }
 
   removeApp = (app: SentryApp) => {
@@ -154,7 +157,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   renderSentryFunction(sentryFunction: SentryFunction) {
     // TODO: finish
-    return sentryFunction.name;
+    return <EmptyMessage>{sentryFunction.name}</EmptyMessage>;
   }
 
   renderSentryFunctions() {

@@ -19,6 +19,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models import SentryFunction
 
@@ -106,3 +107,7 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         SentryFunction.objects.create(**data)
 
         return Response(status=201)
+
+    def get(self, request, organization):
+        functions = SentryFunction.objects.filter(organization=organization)
+        return Response(serialize(functions, request.user), status=200)
