@@ -45,7 +45,7 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
 
         update_function(function.code, function.external_id, env_variables)
 
-        return Response(status=201)
+        return Response(serialize(function), status=201)
 
     def get(self, request, organization, function_slug):
         # TODO: call APIs

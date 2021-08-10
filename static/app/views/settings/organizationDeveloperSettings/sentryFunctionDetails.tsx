@@ -3,11 +3,16 @@ import 'codemirror/theme/monokai.css';
 import 'codemirror/mode/javascript/javascript';
 
 import * as React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import CodeMirror from 'codemirror';
 import {Observer} from 'mobx-react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconAdd, IconDelete} from 'app/icons';
@@ -132,18 +137,25 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    const {functionSlug} = this.props.params;
+    this.form.getEnvVariables = () => this.envVariables;
+    if (!functionSlug) {
+      this.initCodeEditor(sampleCode);
+    }
+  }
+
+  initCodeEditor(code: string) {
     const element = document.getElementById('code-editor');
     if (!element) {
       return;
     }
     this.codeMirror = CodeMirror(element, {
-      value: sampleCode,
+      value: code,
       mode: 'javascript',
       lineNumbers: true,
       addModeClass: true,
     });
     this.form.codeMirror = this.codeMirror;
-    this.form.getEnvVariables = () => this.envVariables;
   }
 
   get numEnvRows() {
@@ -157,15 +169,39 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {functionSlug, orgId} = this.props.params;
     if (functionSlug) {
-      return [['sentryFunction', `/organizations/${orgId}/functions/${functionSlug}`]];
+      return [['sentryFunction', `/organizations/${orgId}/functions/${functionSlug}/`]];
     }
     return [];
   }
 
   onLoadAllEndpointsSuccess() {
     const {sentryFunction} = this.state;
-    sentryFunction && this.codeMirror?.setValue(sentryFunction.code);
+    this.initCodeEditor(sentryFunction?.code || sampleCode);
   }
+
+  handleSubmitSuccess = (data: SentryFunction) => {
+    const {sentryFunction} = this.state;
+    const {orgId} = this.props.params;
+    if (sentryFunction) {
+      addSuccessMessage(t('%s successfully saved.', data.name));
+    } else {
+      addSuccessMessage(t('%s successfully created.', data.name));
+      const url = `/settings/${orgId}/developer-settings/sentry-functions/${data.slug}`;
+      browserHistory.push(url);
+    }
+  };
+
+  handlePreSubmit = () => {
+    addLoadingMessage(t('Saving changes\u2026'));
+  };
+
+  handleSubmitError = err => {
+    let errorMessage = t('Unknown Error');
+    if (err.status >= 400 && err.status < 500) {
+      errorMessage = err?.responseJSON.detail ?? errorMessage;
+    }
+    addErrorMessage(errorMessage);
+  };
 
   getTitle() {
     const {orgId} = this.props.params;
@@ -241,11 +277,14 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {orgId} = this.props.params;
+    const {functionSlug, orgId} = this.props.params;
     const {sentryFunction} = this.state;
 
-    const method = 'POST';
-    const endpoint = `/organizations/${orgId}/functions/`;
+    const method = functionSlug ? 'PUT' : 'POST';
+    let endpoint = `/organizations/${orgId}/functions/`;
+    if (functionSlug) {
+      endpoint += `${functionSlug}/`;
+    }
 
     return (
       <div>
@@ -259,6 +298,9 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
             ...sentryFunction,
           }}
           model={this.form}
+          onPreSubmit={this.handlePreSubmit}
+          onSubmitError={this.handleSubmitError}
+          onSubmitSuccess={this.handleSubmitSuccess}
         >
           <Observer>
             {() => {

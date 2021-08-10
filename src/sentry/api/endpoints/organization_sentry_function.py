@@ -19,8 +19,8 @@ class EnvVariableSerializer(CamelSnakeSerializer):
 class SentryFunctionSerializer(CamelSnakeSerializer):
     name = serializers.CharField()
     code = serializers.CharField()
-    author = serializers.CharField(required=False, allow_blank=True)
-    overview = serializers.CharField(required=False, allow_blank=True)
+    author = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    overview = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     events = serializers.ListField(child=serializers.CharField(), required=False)
     env_variables = serializers.ListField(child=EnvVariableSerializer())
 
@@ -46,9 +46,9 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
 
         create_function(data["code"], data["external_id"], data["env_variables"])
         del data["env_variables"]
-        SentryFunction.objects.create(**data)
+        function = SentryFunction.objects.create(**data)
 
-        return Response(status=201)
+        return Response(serialize(function), status=201)
 
     def get(self, request, organization):
         functions = SentryFunction.objects.filter(organization=organization)
