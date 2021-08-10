@@ -8,6 +8,8 @@ class SentryFunction(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.TextField()
+    # putting code in here for simplicity
+    # really belongs in an storage bucket
     code = models.TextField()
     slug = models.CharField(max_length=64, unique=True)
     author = models.TextField(null=True)
