@@ -23,6 +23,7 @@ class SlackCommandRequest(SlackRequest):
     def __init__(self, request: Request) -> None:
         super().__init__(request)
         self.identity_str: Optional[str] = None
+        self.identity_id: Optional[int] = None
 
     @property
     def channel_name(self) -> str:
@@ -53,4 +54,7 @@ class SlackCommandRequest(SlackRequest):
             raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
         identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
-        self.identity_str = identities[0].user.email if identities else None
+        if len(identities):
+            user = identities[0].user
+            self.identity_str = user.email
+            self.identity_id = user.id

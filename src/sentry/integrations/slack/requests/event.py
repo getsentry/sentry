@@ -29,6 +29,7 @@ class SlackEventRequest(SlackRequest):
 
     def __init__(self, request: Request) -> None:
         super().__init__(request)
+        self.identity_id: Optional[int] = None
         self.identity_str: Optional[str] = None
 
     @property
@@ -84,7 +85,10 @@ class SlackEventRequest(SlackRequest):
                 raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
             identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
-            self.identity_str = identities[0].user.email if identities else None
+            if len(identities):
+                user = identities[0].user
+                self.identity_str = user.email
+                self.identity_id = user.id
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")
