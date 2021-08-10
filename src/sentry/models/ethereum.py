@@ -2,7 +2,6 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model
-from sentry.db.models.fields import JSONField
 
 
 class EthereumAddress(Model):
@@ -13,7 +12,7 @@ class EthereumAddress(Model):
     address = models.CharField(max_length=40, db_index=True)
     display_name = models.TextField()
     last_updated = models.DateTimeField(default=timezone.now)
-    abi_contents = JSONField()
+    abi_contents = models.TextField()
 
     class Meta:
         app_label = "sentry"

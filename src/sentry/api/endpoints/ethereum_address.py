@@ -6,7 +6,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.ethereum_address import EthereumAddressSerializer
 from sentry.models import EthereumAddress
-from sentry.utils import json
 
 
 @register(EthereumAddress)
@@ -15,7 +14,7 @@ class EthereumAddressGetSerializer(Serializer):
         return {
             "id": str(obj.id),
             "address": obj.address,
-            "abiContents": json.dumps(obj.abi_contents),
+            "abiContents": obj.abi_contents,
             "displayName": obj.display_name,
             "lastUpdated": obj.last_updated,
         }
