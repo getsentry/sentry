@@ -5,8 +5,11 @@ import re
 import time
 
 import web3
-from sentry_sdk import capture_message, set_context, set_tag, set_user
+
+# from sentry_sdk import capture_message, set_context, set_tag, set_user
 from web3 import Web3
+
+from sentry.models.ethereum import EthereumAddress
 
 logger = logging.getLogger("sentry.utils.ethereum.network")
 
@@ -63,9 +66,22 @@ class EthereumNetwork:
     def eth_call(self, transaction, block_identifier):
         return self.w3.eth.call(transaction, block_identifier=block_identifier)
 
-    def process_transaction(self, transaction):
-        filter_addrs = ["0x7a250d5630b4cf539739df2c5dacb4c659f2488d"]
-        for addr in filter_addrs:
+    def report_transaction_to_project(self, transaction, receipt, project, err_reason):
+        logger.info("Reporting to project: %s", project.id)
+
+    def report_errored_transaction(self, transaction, receipt, projects):
+        tr_id = transaction["hash"].hex()
+        logger.info("Failed transaction: %s", tr_id)
+        err_reason = self.get_transaction_err_reason(transaction)
+        if not err_reason:
+            err_reason = DEFAULT_ERROR_MESSAGE
+        logger.info("Error message: %s", err_reason)
+
+        for project in projects:
+            self.report_transaction_to_project(transaction, receipt, project, err_reason)
+
+    def process_transaction(self, transaction, address_project_map):
+        for addr, projects in address_project_map.items():
             addr = addr.lower()
             if (transaction["from"] or "").lower() == addr or (
                 transaction["to"] or ""
@@ -74,51 +90,31 @@ class EthereumNetwork:
                 logger.debug("Transaction matches the filter: %s", tr_id)
                 receipt = self.get_transaction_receipt(tr_id)
                 if receipt and receipt["status"] == 0:
-                    # Errored transaction => handle it!
-                    logger.info("Failed transaction: %s", tr_id)
-                    err_reason = self.get_transaction_err_reason(transaction)
-                    if not err_reason:
-                        err_reason = DEFAULT_ERROR_MESSAGE
-                    logger.info("Error message: %s", err_reason)
-                    # TODO: send a Sentry error
-                    set_user({"username": "0x0314d69c14328bed45a45f96a75400f733164e13"})
-                    set_tag("block_number", "12992218")
-                    set_tag(
-                        "transaction_hash",
-                        "0x392b51f4611fd65df0c812edeba35b92e5a2aa3c3096edcc515b4a2bdd8d627a",
-                    )
-                    set_context(
-                        "ethereum",
-                        {
-                            "gas": 167714,
-                            "gasPrice": 42000000000,
-                            "cumulativeGasUsed": 3736120,
-                            "effectiveGasPrice": 42000000000,
-                            "gasUsed": 31522,
-                            "status": 0,
-                            "transactionHash": "0x392b51f4611fd65df0c812edeba35b92e5a2aa3c3096edcc515b4a2bdd8d627a",
-                            "block": "12992218",
-                            "from": "0x0314d69c14328bed45a45f96a75400f733164e13",
-                            "to": "0xd2877702675e6ceb975b4a1dff9fb7baf4c91ea9",
-                        },
-                    )
-                    set_context(
-                        "runtime",
-                        {
-                            "name": "Ethereum",
-                        },
-                    )
-                    set_context(
-                        "browser",
-                        {
-                            "name": "Mainnnet",
-                        },
-                    )
-                    capture_message("Something went wrong")
+                    self.report_errored_transaction(transaction, receipt, projects)
 
     def process_block(self, block):
+        # Fetch all filters from the DB
+        eth_filters = EthereumAddress.objects.all()
+
+        # Build the map: "eth_address" -> {proj1, proj2, ...}
+        address_project_map = dict()
+        for filter in eth_filters:
+            if not Web3.isAddress(filter.address):
+                logger.warning(
+                    "Not a valid Eth address, skipping: '%s', address name: '%s', project: %s",
+                    filter.address,
+                    filter.display_name,
+                    filter.project.slug,
+                )
+                continue
+
+            projects_for_address = address_project_map.setdefault(filter.address, set())
+            projects_for_address.add(filter.project)
+
         for transaction in block["transactions"]:
-            self.process_transaction(transaction)
+            self.process_transaction(transaction, address_project_map)
+
+        logger.info("Block %s processed", block.number)
 
     def scan_blocks(self, block_number="latest"):
         logger.debug("Starting the scan loop...")
@@ -127,7 +123,6 @@ class EthereumNetwork:
                 block = self.w3.eth.get_block(block_number, full_transactions=True)
                 block_number = block.number
                 self.process_block(block)
-                logger.info("Block %s processed", block_number)
                 block_number += 1
             except web3.exceptions.BlockNotFound:
                 pass
