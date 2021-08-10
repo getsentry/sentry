@@ -15,7 +15,7 @@ from sentry.integrations.slack.message_builder.inbox import (
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Project
+from sentry.models import Project, Release
 
 LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
@@ -70,6 +70,9 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
             if args[0] == "triage":
                 return self.get_inbox(request)
+
+        if command == "releases":
+            return self.get_releases(request)
 
         # If we cannot interpret the command, print help text.
         request_data = request.data
@@ -150,3 +153,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
     def unlink_team(self, slack_request: SlackRequest) -> Any:
         raise NotImplementedError
+
+    def get_releases(self, slack_request: SlackRequest) -> Any:
+        num_releases = Release.objects.count()
+        return self.reply(slack_request, f"Number of releases: {num_releases}")

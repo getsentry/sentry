@@ -18,6 +18,7 @@ DM_COMMANDS = {
     "help": "View this list of commands.",
     "issues inbox": "TODO inbox",
     "issues triage": "TODO triage",
+    "releases": "TODO releases",
 }
 CHANNEL_COMMANDS = {
     "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in.",
