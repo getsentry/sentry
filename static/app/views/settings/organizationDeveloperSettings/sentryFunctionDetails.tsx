@@ -14,6 +14,7 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {SentryFunction} from 'app/types';
+import {uniqueId} from 'app/utils/guid';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -25,6 +26,9 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 
 class SentryFunctionFormModel extends FormModel {
   codeMirror: null | CodeMirror.Editor = null;
+  // super hacky way of getting envVariables from component state instead of the model
+  getEnvVariables: null | (() => EnvVariable[]) = null;
+
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
     data.code = this.codeMirror?.getValue();
@@ -40,45 +44,32 @@ class SentryFunctionFormModel extends FormModel {
     delete data.errorHook;
     data.events = events;
 
-    // now get our secrets
-    const secrets: Secret[] = [];
     const {...output} = data;
     for (const key in data) {
-      const value = data[key];
-      if (key.startsWith('secret-name-')) {
-        const pos = Number(key.replace('secret-name-', ''));
-        while (secrets.length <= pos) {
-          secrets.push({});
-        }
-        secrets[pos].name = value;
-        delete output[key];
-      }
-      if (key.startsWith('secret-value-')) {
-        const pos = Number(key.replace('secret-value-', ''));
-        while (secrets.length <= pos) {
-          secrets.push({});
-        }
-        secrets[pos].value = value;
+      if (key.startsWith('env-variable')) {
+        // remove the fields since we aren't going to use them
         delete output[key];
       }
     }
-    // TODO validate and/or filter
-    output.secrets = secrets;
+    // now get our envVariables from our function
+    output.envVariables = this.getEnvVariables?.();
     return output;
   }
 }
 
 type Props = RouteComponentProps<{orgId: string; functionSlug?: string}, {}>;
 
-type Secret = {
+type EnvVariable = {
   name?: string;
   value?: string;
 };
 
 type State = AsyncView['state'] & {
   sentryFunction: SentryFunction | null;
-  secrets: Secret[];
-  numSecretRows: number;
+  envVariables: EnvVariable[];
+  // rows is an array of strings which are ids of the inputs
+  // deleting/inserting does not change the ids of existing envVariables
+  rows: string[];
 };
 
 const formFields: Field[] = [
@@ -125,7 +116,7 @@ const sampleCode = `
 module.exports = function myScript(event){
   console.log("event is", event);
 }
-`
+`;
 
 export default class SentryFunctionDetails extends AsyncView<Props, State> {
   form = new SentryFunctionFormModel();
@@ -134,8 +125,8 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       sentryFunction: null,
-      secrets: [],
-      numSecretRows: 1,
+      envVariables: [],
+      rows: [uniqueId()],
       ...super.getDefaultState(),
     };
   }
@@ -152,6 +143,15 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
       addModeClass: true,
     });
     this.form.codeMirror = this.codeMirror;
+    this.form.getEnvVariables = () => this.envVariables;
+  }
+
+  get numEnvRows() {
+    return this.state.rows.length;
+  }
+
+  get envVariables() {
+    return this.state.envVariables;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -164,55 +164,73 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   }
 
   handleAddSecret = () => {
-    this.setState({numSecretRows: this.state.numSecretRows + 1});
+    this.setState({
+      rows: this.state.rows.concat(uniqueId()),
+    });
   };
 
   handleSecretNameChange(value: string, pos: number) {
-    const [...secrets] = this.state.secrets;
-    while (secrets.length <= pos) {
-      secrets.push({});
+    const [...envVariables] = this.state.envVariables;
+    while (envVariables.length <= pos) {
+      envVariables.push({});
     }
-    secrets[pos] = {...secrets[pos], name: value};
-    this.setState({secrets});
+    envVariables[pos] = {...envVariables[pos], name: value};
+    this.setState({envVariables});
   }
 
   handleSecretValueChange(value: string, pos: number) {
-    const [...secrets] = this.state.secrets;
-    while (secrets.length <= pos) {
-      secrets.push({});
+    const [...envVariables] = this.state.envVariables;
+    while (envVariables.length <= pos) {
+      envVariables.push({});
     }
-    secrets[pos] = {...secrets[pos], value};
-    this.setState({secrets});
+    envVariables[pos] = {...envVariables[pos], value};
+    this.setState({envVariables});
   }
 
-  renderSecret = (pos: number) => {
-    const {secrets} = this.state;
-    const {name, value} = secrets[pos] || {};
+  removeSecret(pos: number) {
+    const [...envVariables] = this.state.envVariables;
+    const [...rows] = this.state.rows;
+    envVariables.splice(pos, 1);
+    rows.splice(pos, 1);
+    this.setState({envVariables, rows});
+  }
+
+  renderEnvVariable = (pos: number) => {
+    const {envVariables, rows} = this.state;
+    const {name, value} = envVariables[pos] || {};
+    const id = rows[pos];
     return (
-      <OneSecret key={pos}>
+      <OneSecret key={id}>
         <InputField
-          name={`secret-name-${pos}`}
+          name={`env-variable-name-${id}`}
           type="text"
+          required={false}
           value={name}
           inline={false}
-          required={false}
           onChange={e => this.handleSecretNameChange(e, pos)}
         />
         <InputField
-          name={`secret-value-${pos}`}
-          type="password"
+          name={`env-variable-value-${id}`}
+          type="text"
+          required={false}
           value={value}
           inline={false}
-          required={false}
           onChange={e => this.handleSecretValueChange(e, pos)}
         />
+        <ButtonHolder>
+          <StyledAddButton
+            size="small"
+            icon={<IconDelete />}
+            type="button"
+            onClick={() => this.removeSecret(pos)}
+          />
+        </ButtonHolder>
       </OneSecret>
     );
   };
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {numSecretRows} = this.state;
 
     const method = 'POST';
     const endpoint = `/organizations/${orgId}/functions/`;
@@ -238,9 +256,10 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
                   />
                   <Panel>
                     <PanelHeader>
-                      Secrets
+                      Environment Variables
                       <StyledAddButton
                         size="small"
+                        type="button"
                         icon={<IconAdd isCircled />}
                         onClick={this.handleAddSecret}
                       />
@@ -250,7 +269,9 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
                         <SecretHeader>Name</SecretHeader>
                         <SecretHeader>Value</SecretHeader>
                       </OneSecret>
-                      {Array.from(Array(numSecretRows).keys()).map(this.renderSecret)}
+                      {Array.from(Array(this.numEnvRows).keys()).map(
+                        this.renderEnvVariable
+                      )}
                     </PanelBody>
                   </Panel>
                   <Panel>
@@ -271,7 +292,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
 
 const OneSecret = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
+  grid-template-columns: 1fr 1.5fr min-content;
 `;
 
 const StyledAddButton = styled(Button)`
@@ -282,4 +303,8 @@ const SecretHeader = styled('div')`
   text-align: center;
   margin-top: ${space(2)};
   color: ${p => p.theme.gray400};
+`;
+
+const ButtonHolder = styled('div')`
+  align-items: center;
 `;

@@ -24,12 +24,26 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models import SentryFunction
 
 
+class EnvVariableSerializer(CamelSnakeSerializer):
+    value = serializers.CharField()
+    name = serializers.CharField()
+
+
 class SentryFunctionSerilizer(CamelSnakeSerializer):
     name = serializers.CharField()
     code = serializers.CharField()
     author = serializers.CharField(required=False, allow_blank=True)
     overview = serializers.CharField(required=False, allow_blank=True)
     events = serializers.ListField(child=serializers.CharField(), required=False)
+    env_variables = serializers.ListField(child=EnvVariableSerializer())
+
+    def validate_env_variables(self, env_variables):
+        output = {}
+        for env_variable in env_variables:
+            # skip over invalid entries for now
+            if env_variable.get("name", None) and env_variable.get("value", None):
+                output[env_variable["name"]] = env_variable["value"]
+        return output
 
 
 indexJs = """
@@ -57,8 +71,9 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
+        slug = slugify(data["name"])
 
-        funcId = uuid4().hex
+        funcId = slug + "-" + uuid4().hex
         zipFilename = funcId + ".zip"
 
         f = BytesIO()
@@ -94,15 +109,17 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
                 event_type="providers/cloud.pubsub/eventTypes/topic.publish",
                 resource=google_pubsub_name,
             ),
+            environment_variables=data["env_variables"],
         )
         client.create_function(
             function=fn,
             location="projects/hackweek-sentry-functions/locations/us-central1",
         )
 
-        data["slug"] = slugify(data["name"])
+        data["slug"] = slug
         data["organization_id"] = organization.id
         data["external_id"] = funcId
+        del data["env_variables"]
 
         SentryFunction.objects.create(**data)
 
