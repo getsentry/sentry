@@ -109,6 +109,7 @@ class EthereumNetwork:
                     "from": transaction["from"],
                     "to": transaction["to"],
                     "value": transaction["value"],
+                    "transactionFee": transaction["gasUsed"] * transaction["effectiveGasPrice"],
                 },
             )
             hub.scope.set_context(
