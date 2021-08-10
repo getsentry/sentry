@@ -54,13 +54,18 @@ const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & Cust
 type ComponentCallback = Parameters<NonNullable<RouteProps['getComponent']>>[1];
 
 /**
- * Use react-router to lazy load a route. Use this for codesplitting containers (e.g. SettingsLayout)
+ * Use react-router to lazy load a route. Use this for codesplitting containers
+ * (e.g. SettingsLayout)
  *
- * The method for lazy loading a route leaf node is using the <LazyLoad> component + `componentPromise`.
- * The reason for this is because react-router handles the route tree better and if we use <LazyLoad> it will end
- * up having to re-render more components than necessary.
+ * The tpyical method for lazy loading a route leaf node is using the
+ * <LazyLoad> component + `componentPromise`
+ *
+ * For wrapper / layout views react-router handles the route tree better by
+ * using getComponent with this lazyLoad helper. If we just use <LazyLoad> it
+ * will end up having to re-render more components than necessary.
  */
-const lazyLoad = (cb: ComponentCallback) => (m: {default: any}) => cb(null, m.default);
+const lazyLoad = (cb: ComponentCallback) => (m: {default: any}) =>
+  cb(null, errorHandler(m.default));
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
