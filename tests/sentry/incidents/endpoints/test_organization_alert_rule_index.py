@@ -980,7 +980,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 7
         # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
-        [r["id"] for r in result] == [
+        assert [r["id"] for r in result] == [
             f"{alert_rule_critical.id}",
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",

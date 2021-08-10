@@ -1765,12 +1765,12 @@ class ParseSemverTest(unittest.TestCase):
             InvalidSearchQuery,
             match=INVALID_SEMVER_MESSAGE,
         ):
-            parse_semver("1.hello", ">") is None
+            assert parse_semver("1.hello", ">") is None
         with pytest.raises(
             InvalidSearchQuery,
             match=INVALID_SEMVER_MESSAGE,
         ):
-            parse_semver("hello", ">") is None
+            assert parse_semver("hello", ">") is None
 
     def test_normal(self):
         self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))
