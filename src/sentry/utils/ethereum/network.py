@@ -48,7 +48,7 @@ def retry_with_delay(on, ignore=None, attempts=3, delay=0.1, reraise=False):
                         if reraise:
                             raise
                         else:
-                            logger.error(e)
+                            logger.error("Number of attempts exceeded, error: %s", e)
 
         return wrapper
 
@@ -61,11 +61,11 @@ class EthereumNetwork:
             raise ValueError("No provider_uri specified")
         self.w3 = Web3(Web3.HTTPProvider(provider_uri))
 
-    @retry_with_delay(on=(web3.exceptions.TransactionNotFound, ValueError), delay=0.5)
+    @retry_with_delay(on=(web3.exceptions.TransactionNotFound, ValueError), attempts=5, delay=0.5)
     def get_transaction_receipt(self, tr_id: str):
         return self.w3.eth.get_transaction_receipt(tr_id)
 
-    @retry_with_delay(on=(ValueError), ignore=web3.exceptions.SolidityError, delay=0.5)
+    @retry_with_delay(on=(ValueError), ignore=web3.exceptions.SolidityError, attempts=5, delay=0.5)
     def eth_call(self, transaction, block_identifier):
         return self.w3.eth.call(transaction, block_identifier=block_identifier)
 
