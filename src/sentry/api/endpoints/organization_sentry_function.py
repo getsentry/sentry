@@ -69,13 +69,14 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         bucket = storage_client.bucket("hackweek-sentry-functions-bucket")
         blob = bucket.blob(zipFilename)
         blob.upload_from_file(f, rewind=True, content_type="application/zip")
-        # TODO: Find better way of handling this
 
         google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + funcId
         from google.cloud import pubsub_v1
 
         publisher = pubsub_v1.PublisherClient()
         publisher.create_topic(name=google_pubsub_name)
+
+        # TODO: Find better way of handling this
         time.sleep(3)
 
         google_func_name = (
