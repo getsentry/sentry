@@ -41,8 +41,30 @@ StrippedTreeLabelPart = TypedDict(
 TreeLabel = Sequence[TreeLabelPart]
 StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 
+# XXX(markus): Because of fallback grouping, people who migrate to new grouping
+# algorithm will start grouping at the maximum level as for each issue there
+# will be likely one old system- or app-hash that matches the max level (=group
+# by all frames). That means that the system will produce extremely long tree
+# labels even though the user may not really want or understand any of them.
+#
+# To get around this, we truncate the tree label down to some arbitrary
+# number of functions. This does not apply to the grouping breakdown, as in
+# grouping_level_new_issues endpoint we populate the tree labels not through
+# this function at all.
+#
+# The reason we do this on the backend instead of the frontend's title
+# component is because JIRA/Slack/Email titles suffer from the same issue:
+# After the user migrates to hierarchical grouping, all the issue titles are
+# really long, and any created JIRA ticket's title/summary is also really long.
+#
+# Once people are able to actually split up issues (i.e. set the grouping
+# level), we may revisit this type of truncation and replace it with something
+# that only kicks in when the found hash is found via fallback grouping. But
+# that'd be harder to implement and doesn't need to be solved rn.
+MAX_ISSUE_TREE_LABELS = 2
 
-def _strip_tree_label(tree_label: TreeLabel) -> StrippedTreeLabel:
+
+def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
         stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
@@ -50,6 +72,9 @@ def _strip_tree_label(tree_label: TreeLabel) -> StrippedTreeLabel:
         # title
         stripped_part.pop("datapath", None)  # type: ignore
         rv.append(stripped_part)
+
+        if truncate and len(rv) == MAX_ISSUE_TREE_LABELS:
+            break
 
     return rv
 
@@ -107,7 +132,9 @@ class CalculatedHashes:
     def finest_tree_label(self) -> Optional[StrippedTreeLabel]:
         try:
             tree_label = self.tree_labels[-1]
-            return tree_label and _strip_tree_label(tree_label)
+            # Also do this for event title in discover because people may
+            # expect to `groupby title` to basically groupby issue.
+            return tree_label and _strip_tree_label(tree_label, truncate=True)
         except IndexError:
             return None
 
@@ -117,7 +144,7 @@ class CalculatedHashes:
             tree_label = self.tree_labels[i]
             return {
                 "current_level": i,
-                "current_tree_label": tree_label and _strip_tree_label(tree_label),
+                "current_tree_label": tree_label and _strip_tree_label(tree_label, truncate=True),
             }
         except (IndexError, ValueError):
             return {}
