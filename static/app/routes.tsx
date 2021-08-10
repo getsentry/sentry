@@ -704,6 +704,7 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Redirect from="sentry-functions/" to="/settings/:orgId/developer-settings/" />
         <Route name="Sentry Functions" path="sentry-functions/">
           <Route
             name="New Sentry Function"
