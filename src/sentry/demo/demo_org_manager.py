@@ -24,7 +24,8 @@ from sentry.utils.email import create_fake_email
 
 from .data_population import DataPopulation, populate_org_members
 from .models import DemoOrganization, DemoOrgStatus, DemoUser
-from .utils import generate_random_name
+
+# from .utils import generate_random_name
 
 logger = logging.getLogger(__name__)
 
