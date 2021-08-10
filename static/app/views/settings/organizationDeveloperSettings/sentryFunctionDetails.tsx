@@ -4,15 +4,20 @@ import 'codemirror/mode/javascript/javascript';
 
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import CodeMirror from 'codemirror';
 import {Observer} from 'mobx-react';
 
+import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {SentryFunction} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
+import InputField from 'app/views/settings/components/forms/inputField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import FormModel from 'app/views/settings/components/forms/model';
 import {Field} from 'app/views/settings/components/forms/type';
@@ -23,7 +28,7 @@ class SentryFunctionFormModel extends FormModel {
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
     data.code = this.codeMirror?.getValue();
-    // hack way to get the events
+    // hacky way to get the events
     const events: string[] = [];
     if (data.issueHook) {
       events.push('issue');
@@ -34,14 +39,46 @@ class SentryFunctionFormModel extends FormModel {
     delete data.issueHook;
     delete data.errorHook;
     data.events = events;
-    return data;
+
+    // now get our secrets
+    const secrets: Secret[] = [];
+    const {...output} = data;
+    for (const key in data) {
+      const value = data[key];
+      if (key.startsWith('secret-name-')) {
+        const pos = Number(key.replace('secret-name-', ''));
+        while (secrets.length <= pos) {
+          secrets.push({});
+        }
+        secrets[pos].name = value;
+        delete output[key];
+      }
+      if (key.startsWith('secret-value-')) {
+        const pos = Number(key.replace('secret-value-', ''));
+        while (secrets.length <= pos) {
+          secrets.push({});
+        }
+        secrets[pos].value = value;
+        delete output[key];
+      }
+    }
+    // TODO validate and/or filter
+    output.secrets = secrets;
+    return output;
   }
 }
 
 type Props = RouteComponentProps<{orgId: string; functionSlug?: string}, {}>;
 
+type Secret = {
+  name?: string;
+  value?: string;
+};
+
 type State = AsyncView['state'] & {
   sentryFunction: SentryFunction | null;
+  secrets: Secret[];
+  numSecretRows: number;
 };
 
 const formFields: Field[] = [
@@ -91,6 +128,8 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       sentryFunction: null,
+      secrets: [],
+      numSecretRows: 1,
       ...super.getDefaultState(),
     };
   }
@@ -118,8 +157,56 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
     return routeTitleGen(t('Sentry Function Details'), orgId, false);
   }
 
+  handleAddSecret = () => {
+    this.setState({numSecretRows: this.state.numSecretRows + 1});
+  };
+
+  handleSecretNameChange(value: string, pos: number) {
+    const [...secrets] = this.state.secrets;
+    while (secrets.length <= pos) {
+      secrets.push({});
+    }
+    secrets[pos] = {...secrets[pos], name: value};
+    this.setState({secrets});
+  }
+
+  handleSecretValueChange(value: string, pos: number) {
+    const [...secrets] = this.state.secrets;
+    while (secrets.length <= pos) {
+      secrets.push({});
+    }
+    secrets[pos] = {...secrets[pos], value};
+    this.setState({secrets});
+  }
+
+  renderSecret = (pos: number) => {
+    const {secrets} = this.state;
+    const {name, value} = secrets[pos] || {};
+    return (
+      <OneSecret key={pos}>
+        <InputField
+          name={`secret-name-${pos}`}
+          type="text"
+          value={name}
+          inline={false}
+          required={false}
+          onChange={e => this.handleSecretNameChange(e, pos)}
+        />
+        <InputField
+          name={`secret-value-${pos}`}
+          type="password"
+          value={value}
+          inline={false}
+          required={false}
+          onChange={e => this.handleSecretValueChange(e, pos)}
+        />
+      </OneSecret>
+    );
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
+    const {numSecretRows} = this.state;
 
     const method = 'POST';
     const endpoint = `/organizations/${orgId}/functions/`;
@@ -144,6 +231,23 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
                     forms={[{title: 'Sentry Function Details', fields: formFields}]}
                   />
                   <Panel>
+                    <PanelHeader>
+                      Secrets
+                      <StyledAddButton
+                        size="small"
+                        icon={<IconAdd isCircled />}
+                        onClick={this.handleAddSecret}
+                      />
+                    </PanelHeader>
+                    <PanelBody>
+                      <OneSecret>
+                        <SecretHeader>Name</SecretHeader>
+                        <SecretHeader>Value</SecretHeader>
+                      </OneSecret>
+                      {Array.from(Array(numSecretRows).keys()).map(this.renderSecret)}
+                    </PanelBody>
+                  </Panel>
+                  <Panel>
                     <PanelHeader>Write your JS Code Below</PanelHeader>
                     <PanelBody>
                       <div id="code-editor" />
@@ -158,3 +262,18 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
     );
   }
 }
+
+const OneSecret = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+`;
+
+const StyledAddButton = styled(Button)`
+  float: right;
+`;
+
+const SecretHeader = styled('div')`
+  text-align: center;
+  margin-top: ${space(2)};
+  color: ${p => p.theme.gray400};
+`;
