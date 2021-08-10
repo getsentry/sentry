@@ -1,6 +1,9 @@
 from django.conf.urls import include, url
 
-from sentry.api.endpoints.ethereum_address import EthereumAddressesEndpoint
+from sentry.api.endpoints.ethereum_address import (
+    EthereumAddressDetailsEndpoint,
+    EthereumAddressesEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -1950,6 +1953,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/ethereum-addresses/$",
                     EthereumAddressesEndpoint.as_view(),
                     name="sentry-api-0-project-ethereum-addresses",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/ethereum-addresses/(?P<address_id>\d+)/$",
+                    EthereumAddressDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-ethereum-address-details",
                 ),
             ]
         ),
