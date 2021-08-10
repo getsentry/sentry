@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.group_branch_name import GroupBranchNameEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -461,6 +462,7 @@ GROUP_URLS = [
         GroupIntegrationDetailsEndpoint.as_view(),
         name="integration-details",
     ),
+    url(r"^(?P<issue_id>[^\/]+)/branch-name/$", GroupBranchNameEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/current-release/$", GroupCurrentReleaseEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/first-last-release/$", GroupFirstLastReleaseEndpoint.as_view()),
     # Load plugin group urls
