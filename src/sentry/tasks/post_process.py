@@ -360,12 +360,16 @@ def post_process_group(
                 )
 
             from sentry.models.sentryfunction import SentryFunction
+
             for fn in SentryFunction.objects.filter(organization=event.organization).all():
                 # call the function
                 import json
 
                 from google.cloud import pubsub_v1
-                google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
+
+                google_pubsub_name = (
+                    "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
+                )
                 publisher = pubsub_v1.PublisherClient()
                 publisher.publish(google_pubsub_name, json.dumps(dict(event.data)).encode())
                 print("called " + fn.external_id)
