@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
@@ -20,7 +21,9 @@ import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from '../components/settingsPageHeader';
 import TextBlock from '../components/text/textBlock';
 
-type EthAddress = {
+import AddressModal from './addressModal';
+
+export type EthAddress = {
   id: string;
   address: string;
   dateUpdated: string;
@@ -71,7 +74,17 @@ class ProjectEthereum extends AsyncView<Props, State> {
   }
 
   handleOpenAddDialog = () => {
-    // console.log('handleOpenAddDialog');
+    const {organization, project} = this.props;
+    return openModal(modalProps => (
+      <AddressModal
+        {...modalProps}
+        api={this.api}
+        organization={organization}
+        project={project}
+        address={undefined}
+        onSubmitSuccess={() => this.remountComponent()}
+      />
+    ));
   };
 
   handleOpenEditDialog = () => {
