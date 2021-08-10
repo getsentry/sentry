@@ -5,8 +5,7 @@ import re
 import time
 
 import web3
-
-# from sentry_sdk import capture_message, set_context, set_tag, set_user
+from sentry_sdk import capture_message, set_context, set_tag, set_user
 from web3 import Web3
 
 from sentry.models.ethereum import EthereumAddress
@@ -68,6 +67,42 @@ class EthereumNetwork:
 
     def report_transaction_to_project(self, transaction, receipt, project, err_reason):
         logger.info("Reporting to project: %s", project.id)
+        return
+
+        set_user({"username": "0x0314d69c14328bed45a45f96a75400f733164e13"})
+        set_tag("block_number", "12992218")
+        set_tag(
+            "transaction_hash",
+            "0x392b51f4611fd65df0c812edeba35b92e5a2aa3c3096edcc515b4a2bdd8d627a",
+        )
+        set_context(
+            "ethereum",
+            {
+                "gas": 167714,
+                "gasPrice": 42000000000,
+                "cumulativeGasUsed": 3736120,
+                "effectiveGasPrice": 42000000000,
+                "gasUsed": 31522,
+                "status": 0,
+                "transactionHash": "0x392b51f4611fd65df0c812edeba35b92e5a2aa3c3096edcc515b4a2bdd8d627a",
+                "block": "12992218",
+                "from": "0x0314d69c14328bed45a45f96a75400f733164e13",
+                "to": "0xd2877702675e6ceb975b4a1dff9fb7baf4c91ea9",
+            },
+        )
+        set_context(
+            "runtime",
+            {
+                "name": "Ethereum",
+            },
+        )
+        set_context(
+            "browser",
+            {
+                "name": "Mainnnet",
+            },
+        )
+        capture_message("Something went wrong")
 
     def report_errored_transaction(self, transaction, receipt, projects):
         tr_id = transaction["hash"].hex()
@@ -108,9 +143,10 @@ class EthereumNetwork:
                 )
                 continue
 
-            projects_for_address = address_project_map.setdefault(filter.address, set())
+            projects_for_address = address_project_map.setdefault("0x" + filter.address, set())
             projects_for_address.add(filter.project)
 
+        logger.debug("Address-project map: %s", address_project_map)
         for transaction in block["transactions"]:
             self.process_transaction(transaction, address_project_map)
 
