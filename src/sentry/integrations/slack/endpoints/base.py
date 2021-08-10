@@ -6,7 +6,12 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import inbox_search
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
+from sentry.integrations.slack.message_builder.inbox import (
+    SlackIssuesHelpMessageBuilder,
+    get_issues_message,
+)
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
@@ -58,13 +63,13 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
             # Everything else will fall through to "unknown command". Should I
             # catch it with a better help message?
             if not args or args[0] == "help":
-                return self.unlink_user(request)
+                return self.respond(SlackIssuesHelpMessageBuilder(" ".join(args)).build())
 
             if args[0] == "inbox":
-                return self.get_inbox()
+                return self.get_inbox(request)
 
             if args[0] == "triage":
-                return self.get_inbox()
+                return self.get_inbox(request)
 
         # If we cannot interpret the command, print help text.
         request_data = request.data
@@ -110,12 +115,29 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 
     def get_issues(self, slack_request: SlackRequest) -> Any:
+        """There could be a timeout so consider just sending a message like: "preparing your issues"."""
         issues = []
-        projects = Project.objects.get_for_user_ids({slack_request.user_id})
-        if projects:
-            issues = inbox_search(projects)
+        if slack_request.has_identity:
+            user_id = slack_request.identity_id
+            projects = Project.objects.get_for_user_ids([user_id])
+            if projects:
+                issues = inbox_search(
+                    projects,
+                    search_filters=[
+                        SearchFilter(
+                            key=SearchKey(name="status"),
+                            operator="=",
+                            value=SearchValue(raw_value=0),
+                        ),
+                        SearchFilter(
+                            key=SearchKey(name="for_review"),
+                            operator="=",
+                            value=SearchValue(raw_value=1),
+                        ),
+                    ],
+                )
 
-        return self.reply(slack_request, "TODO")
+        return self.reply(slack_request, get_issues_message(issues))
 
     def get_triage(self, slack_request: SlackRequest) -> Any:
         return self.get_issues(slack_request)

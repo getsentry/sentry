@@ -16,6 +16,8 @@ DM_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
     "unlink": "Unlink your Slack identity from your Sentry account.",
     "help": "View this list of commands.",
+    "issues inbox": "TODO inbox",
+    "issues triage": "TODO triage",
 }
 CHANNEL_COMMANDS = {
     "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in.",
