@@ -38,9 +38,9 @@ def random_ip():
     return ".".join(
         (
             f"{first}",
-            random.randrange(1, 256),
-            random.randrange(1, 256),
-            random.randrange(1, 256),
+            f"{random.randrange(1, 256)}",
+            f"{random.randrange(1, 256)}",
+            f"{random.randrange(1, 256)}",
         )
     )
 
