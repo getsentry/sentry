@@ -1,4 +1,4 @@
-from pytz import timezone
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
