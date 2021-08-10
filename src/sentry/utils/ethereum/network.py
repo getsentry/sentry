@@ -102,11 +102,13 @@ class EthereumNetwork:
                     "gasPrice": transaction["gasPrice"],
                     "cumulativeGasUsed": receipt["cumulativeGasUsed"],
                     "effectiveGasPrice": receipt["effectiveGasPrice"],
+                    "transactionHash": transaction["hash"].hex(),
                     "gasUsed": receipt["gasUsed"],
                     "status": receipt["status"],
                     "block": transaction["blockNumber"],
                     "from": transaction["from"],
                     "to": transaction["to"],
+                    "value": transaction["value"],
                 },
             )
             hub.scope.set_context(
@@ -118,7 +120,7 @@ class EthereumNetwork:
             hub.scope.set_context(
                 "browser",
                 {
-                    "name": "Mainnnet",
+                    "name": "Mainnet",
                 },
             )
             hub.capture_message(err_reason, level="error")
