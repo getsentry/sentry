@@ -142,4 +142,9 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
                 return self.respond(SlackDisconnectedMessageBuilder().build())
             return self.respond(status=e.status)
 
-        return super().post_dispatcher(slack_request)
+        try:
+            response = super().post_dispatcher(slack_request)
+        except Exception as e:
+            logger.error("slack command Exception", e)
+            raise e
+        return response
