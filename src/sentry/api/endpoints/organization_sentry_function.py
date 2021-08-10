@@ -87,6 +87,7 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
 
         data["slug"] = slugify(data["name"])
         data["organization_id"] = organization.id
+        data["external_id"] = google_name
 
         SentryFunction.objects.create(**data)
 
