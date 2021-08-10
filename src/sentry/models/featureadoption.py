@@ -188,7 +188,7 @@ class FeatureAdoptionManager(BaseManager):
             # can `bulk_set_cache`.
             return False
         finally:
-            return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
+            return self.bulk_set_cache(organization_id, *incomplete_feature_ids)  # noqa TODO
 
     def get_by_slug(self, organization, slug):
         return self.filter(
