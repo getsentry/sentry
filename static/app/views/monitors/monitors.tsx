@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
-import {Link, RouteComponentProps, withRouter, WithRouterProps} from 'react-router';
+import {RouteComponentProps, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Button from 'app/components/button';
 import FeatureBadge from 'app/components/featureBadge';
+import Link from 'app/components/links/link';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
