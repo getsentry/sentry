@@ -121,6 +121,12 @@ const formFields: Field[] = [
   },
 ];
 
+const sampleCode = `
+module.exports = function myScript(event){
+  console.log("event is", event);
+}
+`
+
 export default class SentryFunctionDetails extends AsyncView<Props, State> {
   form = new SentryFunctionFormModel();
   codeMirror: null | CodeMirror.Editor = null;
@@ -140,7 +146,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
       return;
     }
     this.codeMirror = CodeMirror(element, {
-      value: 'function myScript(){\n  return 100;\n}\n',
+      value: sampleCode,
       mode: 'javascript',
       lineNumbers: true,
       addModeClass: true,

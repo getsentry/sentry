@@ -13,7 +13,6 @@ from google.cloud.functions_v1.types import (
     CloudFunction,
     CreateFunctionRequest,
     EventTrigger,
-    HttpsTrigger,
     ListFunctionsRequest,
 )
 from rest_framework import serializers
@@ -34,14 +33,18 @@ class SentryFunctionSerilizer(CamelSnakeSerializer):
 
 indexJs = """
 const userFunc = require('./user.js');
-exports.start = (req, res) => {
+exports.start = (message, context) => {
+  console.log(message, context)
   if (!userFunc) {
-    res.status(500).send("Your code needs to export a function. module.export = () => {}");
+    console.error("Your code needs to export a function. module.export = () => {}");
+    return;
   }
   if (typeof userFunc !== 'function') {
-    res.status(500).send("Your code needs to export a function. Instead, " + typeof userFunc + " was exported.");
+    console.error("Your code needs to export a function. Instead, " + typeof userFunc + " was exported.");
+    return;
   }
-  userFunc();
+  const event = JSON.parse(Buffer.from(message.data, 'base64').toString());
+  userFunc(event);
 };
 """
 
@@ -67,18 +70,28 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         blob = bucket.blob(zipFilename)
         blob.upload_from_file(f, rewind=True, content_type="application/zip")
         # TODO: Find better way of handling this
+
+        google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + funcId
+        from google.cloud import pubsub_v1
+
+        publisher = pubsub_v1.PublisherClient()
+        publisher.create_topic(name=google_pubsub_name)
         time.sleep(3)
 
-        google_name = "projects/hackweek-sentry-functions/locations/us-central1/functions/" + funcId
-
+        google_func_name = (
+            "projects/hackweek-sentry-functions/locations/us-central1/functions/" + funcId
+        )
         client = CloudFunctionsServiceClient()
         fn = CloudFunction(
-            name=google_name,
+            name=google_func_name,
             description="created by api",
-            source_archive_url=f"gs://hackweek-sentry-functions-bucket/" + zipFilename,
+            source_archive_url="gs://hackweek-sentry-functions-bucket/" + zipFilename,
             runtime="nodejs14",
             entry_point="start",
-            https_trigger=HttpsTrigger(url=""),
+            event_trigger=EventTrigger(
+                event_type="providers/cloud.pubsub/eventTypes/topic.publish",
+                resource=google_pubsub_name,
+            ),
         )
         client.create_function(
             function=fn,
@@ -87,7 +100,7 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
 
         data["slug"] = slugify(data["name"])
         data["organization_id"] = organization.id
-        data["external_id"] = google_name
+        data["external_id"] = funcId
 
         SentryFunction.objects.create(**data)
 
