@@ -25,7 +25,8 @@ from sentry.utils.compat import mock
 from sentry.utils.email import create_fake_email
 
 org_owner_email = "james@example.com"
-org_name = "Org Name"
+team_name = "PlantMood"
+org_name = f"EmpowerPlant {team_name}"
 
 DEMO_DATA_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
 DEMO_DATA_GEN_PARAMS["MAX_DAYS"] = 1
@@ -38,7 +39,7 @@ DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"] = 0.05
 class DemoOrgManagerTest(TestCase):
     @mock.patch.object(DataPopulation, "handle_react_python_scenario")
     @mock.patch.object(DataPopulation, "handle_mobile_scenario")
-    @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
+    @mock.patch("sentry.demo.demo_org_manager.choice", return_value=team_name)
     def test_create_demo_org(
         self,
         mock_generate_name,
@@ -64,7 +65,7 @@ class DemoOrgManagerTest(TestCase):
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY)
         mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
-    @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
+    @mock.patch("sentry.demo.demo_org_manager.choice", return_value=team_name)
     @mock.patch.object(DataPopulation, "generate_releases")
     def test_no_owner(self, mock_generate_releases, mock_generate_name):
         with pytest.raises(User.DoesNotExist):
@@ -166,7 +167,7 @@ class DemoOrgManagerTest(TestCase):
 
     @mock.patch("sentry.demo.demo_org_manager.delete_organization.apply_async")
     @mock.patch.object(DataPopulation, "handle_react_python_scenario")
-    @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
+    @mock.patch("sentry.demo.demo_org_manager.choice", return_value=team_name)
     @mock.patch.object(DataPopulation, "generate_releases")
     def test_data_population_fails(
         self,
