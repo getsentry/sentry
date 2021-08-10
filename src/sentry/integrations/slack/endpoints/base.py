@@ -1,6 +1,7 @@
 import abc
 from typing import Any, Sequence, Tuple
 
+from django.db.models import F, QuerySet
 from rest_framework.response import Response
 
 from sentry import features
@@ -15,7 +16,8 @@ from sentry.integrations.slack.message_builder.inbox import (
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Project, Release
+from sentry.models import Organization, Project, Release
+from sentry.utils.types import Bool
 
 LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
@@ -72,7 +74,10 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 return self.get_inbox(request)
 
         if command == "releases":
-            return self.get_releases(request)
+            if not args:
+                return self.get_releases(request)
+            else:
+                return self.get_releases_by_org(request, args[0])
 
         # If we cannot interpret the command, print help text.
         request_data = request.data
@@ -155,5 +160,38 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         raise NotImplementedError
 
     def get_releases(self, slack_request: SlackRequest) -> Any:
-        num_releases = Release.objects.count()
-        return self.reply(slack_request, f"Number of releases: {num_releases}")
+
+        orgs = self._get_orgs_by_user_id(slack_request)
+
+        org_releases = {}
+        for org in orgs:
+            release = Release.objects.filter(organization=org).latest("date_added")
+            org_releases[org] = release
+
+        return self.reply(slack_request, f"Releases by org: {org_releases}")
+
+    def get_releases_by_org(self, slack_request: SlackRequest, org_slug: str) -> Any:
+
+        if self._user_exists_in_org(slack_request, org_slug):
+            org = Organization.objects.get(slug=org_slug)
+            releases = (
+                Release.objects.filter(organization=org)
+                .annotate(
+                    date=F("date_added"),
+                )
+                .order_by("-date")
+                .distinct()[:5]
+            )
+            return self.reply(slack_request, f"Releases for {org_slug}: {releases}")
+        else:
+            return self.reply(slack_request, f"Org '{org_slug}' not found!")
+
+    def _user_exists_in_org(self, slack_request: SlackRequest, org_slug: str) -> Bool:
+        user_orgs = self._get_orgs_by_user_id(slack_request)
+        for user_org in user_orgs:
+            if user_org.slug == org_slug:
+                return True
+        return False
+
+    def _get_orgs_by_user_id(self, slack_request: SlackRequest) -> QuerySet:
+        return Organization.objects.get_for_user_ids({slack_request.identity_id})
