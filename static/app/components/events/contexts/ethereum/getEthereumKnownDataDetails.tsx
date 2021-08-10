@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import Tooltip from 'app/components/tooltip';
+import Button from 'app/components/button';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {formatWei} from 'app/utils/ethereum';
 
 import {EthereumData, EthereumKnownDataType} from './types';
@@ -104,21 +104,25 @@ function getEthereumKnownDataDetails(
 
 function OpenEtherscan({text, link}) {
   return (
-    <Wrapper>
-      {text}{' '}
-      <Tooltip title={t('View on Etherscan')}>
-        <ExternalLink href={link}>
-          <IconOpen size="xs" />
-        </ExternalLink>
-      </Tooltip>
-    </Wrapper>
+    <ButtonWrapper>
+      <pre className="val">
+        <span className="val-string">{text}</span>
+      </pre>
+      <StyledButton size="xsmall" href={link} external icon={<IconOpen size="xs" />}>
+        {t('Etherscan')}
+      </StyledButton>
+    </ButtonWrapper>
   );
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const ButtonWrapper = styled('div')`
+  position: relative;
+`;
+
+const StyledButton = styled(Button)`
+  position: absolute;
+  top: ${space(0.75)};
+  right: ${space(0.5)};
 `;
 
 export default getEthereumKnownDataDetails;

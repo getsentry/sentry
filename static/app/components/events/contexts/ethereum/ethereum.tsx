@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import ContextBlock from 'app/components/events/contexts/contextBlock';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 import getUnknownData from '../getUnknownData';
 
@@ -27,11 +27,11 @@ const ethereumKnownDataValues = [
 const Ethereum = ({data}: Props) => {
   return (
     <Fragment>
-      <ContextBlock
+      <KeyValueList
         isSorted={false}
         data={getEthereumKnownData(data, ethereumKnownDataValues)}
       />
-      <ContextBlock data={getUnknownData(data, ethereumKnownDataValues)} />
+      <KeyValueList data={getUnknownData(data, ethereumKnownDataValues)} />
     </Fragment>
   );
 };
