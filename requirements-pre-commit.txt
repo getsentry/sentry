@@ -1,6 +1,6 @@
 pre-commit==2.13.0
 black==21.5b1
-sentry-flake8==1.0.0
+sentry-flake8 @ https://github.com/getsentry/sentry-flake8/archive/9f4be6e8bd861e7d8d58797357553bcde60eb0a9.zip
 pyupgrade==2.23.3
 isort==5.8.0
 requirements-parser>=0.2.0
