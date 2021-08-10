@@ -63,6 +63,10 @@ class EthereumAddressDetailsEndpoint(ProjectEndpoint):
             address.last_updated = timezone.now()
 
             address.save()
+
+            return Response(
+                serialize(address, request.user, EthereumAddressGetSerializer()), status=200
+            )
         else:
             return Response(serializer.errors, status=400)
 
