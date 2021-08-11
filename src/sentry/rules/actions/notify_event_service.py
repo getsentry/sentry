@@ -12,11 +12,15 @@ from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.models import INCIDENT_STATUS
 from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
-from sentry.models import SentryApp, SentryAppInstallation
+from sentry.models import SentryApp, SentryAppInstallation, SentryFunction
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
-from sentry.rules.actions.services import PluginService, SentryAppService
-from sentry.tasks.sentry_apps import notify_sentry_app, send_and_save_webhook_request
+from sentry.rules.actions.services import PluginService, SentryAppService, SentryFunctionService
+from sentry.tasks.sentry_apps import (
+    notify_sentry_app,
+    notify_sentry_function,
+    send_and_save_webhook_request,
+)
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -84,6 +88,41 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
     )
 
 
+def send_sentry_function_incident_alert_notification(
+    action, incident, metric_value=None, method=None
+):
+    print("start send_sentry_function_incident_alert_notification")
+    fn = action.sentry_function
+    print("send_sentry_function_incident_alert_notification", fn, fn.events)
+    if "alert" not in fn.events:
+        return
+
+    data = build_incident_attachment(action, incident, metric_value, method)
+    print("data", data)
+
+    # call the function
+    import json
+
+    from google.cloud import pubsub_v1
+
+    google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
+    publisher = pubsub_v1.PublisherClient()
+    publisher.publish(
+        google_pubsub_name,
+        json.dumps(
+            {
+                "data": {
+                    "data": data,
+                },
+                "type": INCIDENT_STATUS[
+                    incident_status_info(incident, metric_value, action, method)
+                ].lower(),
+            }
+        ).encode(),
+    )
+    print(f"called fn {fn.external_id} for incident")
+
+
 class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
@@ -120,6 +159,7 @@ class NotifyEventServiceAction(EventAction):
 
         plugin = None
         app = None
+        sentry_function = None
         try:
             app = SentryApp.objects.get(slug=service)
         except SentryApp.DoesNotExist:
@@ -129,6 +169,15 @@ class NotifyEventServiceAction(EventAction):
             kwargs = {"sentry_app": app}
             metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
             yield self.future(notify_sentry_app, **kwargs)
+
+        try:
+            sentry_function = SentryFunction.objects.get(slug=service)
+        except SentryFunction.DoesNotExist:
+            pass
+
+        if sentry_function:
+            kwargs = {"sentry_function": sentry_function}
+            yield self.future(notify_sentry_function, **kwargs)
 
         try:
             plugin = plugins.get(service)
@@ -162,6 +211,14 @@ class NotifyEventServiceAction(EventAction):
             for app in SentryApp.objects.get_alertable_sentry_apps(self.project.organization_id)
         ]
 
+    def get_sentry_function_services(self):
+        return [
+            SentryFunctionService(sentry_function)
+            for sentry_function in SentryFunction.objects.get_alertable_sentry_functions(
+                self.project.organization_id
+            )
+        ]
+
     def get_plugins(self):
         from sentry.plugins.bases.notify import NotificationPlugin
 
@@ -180,6 +237,7 @@ class NotifyEventServiceAction(EventAction):
     def get_services(self):
         services = self.get_plugins()
         services += self.get_sentry_app_services()
+        services += self.get_sentry_function_services()
         return services
 
     def get_form_instance(self):

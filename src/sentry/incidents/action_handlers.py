@@ -159,9 +159,15 @@ class SentryAppActionHandler(DefaultActionHandler):
 )
 class SentryFunnctionActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value, method):
-        # TODO: send incident
-        print("this is happening")
-        pass
+        from sentry.rules.actions.notify_event_service import (
+            send_sentry_function_incident_alert_notification,
+        )
+
+        print("pre send alert")
+        send_sentry_function_incident_alert_notification(
+            self.action, self.incident, metric_value, method
+        )
+        print("post send alert")
 
 
 def format_duration(minutes):

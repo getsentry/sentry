@@ -37,3 +37,17 @@ class SentryAppService(PluginService):
     @property
     def service_type(self):
         return "sentry_app"
+
+
+class SentryFunctionService(PluginService):
+    def __init__(self, obj):
+        super().__init__(obj)
+        self.service = obj
+
+    @property
+    def title(self):
+        return self.service.name
+
+    @property
+    def service_type(self):
+        return "sentry)_function"

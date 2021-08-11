@@ -1,8 +1,8 @@
 from django.db import models
 
 from sentry.db.models import (
-    BaseManager,
     ArrayField,
+    BaseManager,
     DefaultFieldsModel,
     EncryptedJsonField,
     FlexibleForeignKey,
@@ -12,9 +12,10 @@ from sentry.db.models import (
 class SentryFunctionManager(BaseManager):
     def get_alertable_sentry_functions(self, organization_id):
         # TODO: check events
-        return self.filter(
+        functions = self.filter(
             organization_id=organization_id,
-        ).distinct()
+        )
+        return filter(lambda fn: "alert" in fn.events, list(functions))
 
 
 class SentryFunction(DefaultFieldsModel):

@@ -21,8 +21,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         elif action.type == action.Type.SENTRY_APP.value:
             return "Send a notification via " + action.target_display
         elif action.type == action.Type.SENTRY_FUNCTION.value:
-            print("action", vars(action))
-            return "Send a notification via " + (action.target_display or "")
+            return "Send a notification via " + action.target_display
 
     def get_identifier_from_action(self, action):
         if action.type in [

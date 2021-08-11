@@ -19,6 +19,7 @@ from sentry.models import (
     User,
 )
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
+from sentry.models.sentryfunction import SentryFunction
 from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiTimeoutError,
@@ -278,6 +279,46 @@ def notify_sentry_app(event, futures):
         send_alert_event.delay(
             event=event, rule=f.rule.label, sentry_app_id=f.kwargs["sentry_app"].id
         )
+
+
+def notify_sentry_function(event, futures):
+    print("notify_sentry_function")
+    for f in futures:
+        if not f.kwargs.get("sentry_function"):
+            continue
+
+        sentry_function_id = f.kwargs["sentry_function"].id
+        fn = SentryFunction.objects.get(id=sentry_function_id)
+
+        group = event.group
+        event_context = _webhook_event_data(event, group.id, group.project.id)
+        # hack to fix serialization issue
+        if "datetime" in event_context:
+            del event_context["datetime"]
+        print("event_context", event_context)
+
+        data = {"event": event_context, "triggered_rule": f.rule.label}
+
+        # call the function
+        import json
+
+        from google.cloud import pubsub_v1
+
+        google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
+        publisher = pubsub_v1.PublisherClient()
+        publisher.publish(
+            google_pubsub_name,
+            json.dumps(
+                {
+                    "data": {
+                        "data": data,
+                        "issue_id": group.id,
+                    },
+                    "type": "event_alert",
+                }
+            ).encode(),
+        )
+        print(f"called fn {fn.external_id} for alert rule {f.rule.label}")
 
 
 def send_webhooks(installation, event, **kwargs):
