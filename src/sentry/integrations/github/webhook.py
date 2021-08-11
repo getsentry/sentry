@@ -354,12 +354,11 @@ class PushEventWebhook(Webhook):
         elif event["deleted"]:
             for group in referenced_groups:
                 try:
-                    with transaction.atomic():
-                        activity = GroupGithubActivity.objects.get(
-                            organization_id=organization.id,
-                            group_id=group.id,
-                            branch_name=branch,
-                        )
+                    activity = GroupGithubActivity.objects.get(
+                        organization_id=organization.id,
+                        group_id=group.id,
+                        branch_name=branch,
+                    )
                 except GroupGithubActivity.DoesNotExist:
                     pass
                 else:
@@ -468,12 +467,11 @@ class PullRequestEventWebhook(Webhook):
         description_refs = find_referenced_groups(description, organization.id)
         for group in branch_name_refs.union(description_refs):
             try:
-                with transaction.atomic():
-                    activity = GroupGithubActivity.objects.get(
-                        organization_id=organization.id,
-                        group_id=group.id,
-                        branch_name=branch,
-                    )
+                activity = GroupGithubActivity.objects.get(
+                    organization_id=organization.id,
+                    group_id=group.id,
+                    branch_name=branch,
+                )
             except GroupGithubActivity.DoesNotExist:
                 pass
             else:
