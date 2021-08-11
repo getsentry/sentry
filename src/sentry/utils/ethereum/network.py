@@ -148,7 +148,7 @@ class EthereumNetwork:
             event = {
                 "level": "error",
                 "platform": "ethereum",
-                "exception": {"values": {"type": err_reason}},
+                "exception": {"values": [{"type": err_reason}]},
             }
 
             if call_info:
