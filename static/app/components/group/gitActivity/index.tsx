@@ -15,8 +15,19 @@ import space from 'app/styles/space';
 import SidebarSection from '../sidebarSection';
 
 import Activity from './activity';
+import UnlinkedActivity from './unlinked';
 
-type GitActivity = Omit<React.ComponentProps<typeof Activity>, 'onUnlink'>;
+// https://docs.github.com/en/rest/reference/pulls
+export type GitActivity = {
+  id: string;
+  url: string;
+  title: string;
+  // State of the Pull Request. Either open or closed
+  state: 'open' | 'closed' | 'merged' | 'draft' | 'created' | 'closed';
+  type: 'branch' | 'pull_request';
+  author: string;
+  visible: boolean;
+};
 
 type Props = {
   api: Client;
@@ -24,11 +35,11 @@ type Props = {
 };
 
 function GitActivity({api, issueId}: Props) {
-  const [gitActivities, setGitActivities] = useState<GitActivity[]>([]);
-
-  const [branchName, setBranchName] = useState('');
+  const [linkedActivities, setLinkedActivities] = useState<GitActivity[]>([]);
+  const [unlinkedActivities, setUnlinkedActivities] = useState<GitActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<undefined | string>(undefined);
+  const [branchName, setBranchName] = useState('');
 
   useEffect(() => {
     fetchBranchName();
@@ -54,8 +65,13 @@ function GitActivity({api, issueId}: Props) {
     setIsLoading(true);
     setError(undefined);
     try {
-      const response = await api.requestPromise(`/issues/${issueId}/github-activity/`);
-      setGitActivities(response);
+      const response: GitActivity[] = await api.requestPromise(
+        `/issues/${issueId}/github-activity/`
+      );
+      const activities = response.filter(gitActivity => gitActivity.visible);
+      setLinkedActivities(activities);
+      const unlinked = response.filter(gitActivity => !gitActivity.visible);
+      setUnlinkedActivities(unlinked);
       setIsLoading(false);
     } catch {
       setIsLoading(false);
@@ -63,26 +79,40 @@ function GitActivity({api, issueId}: Props) {
     }
   }
 
-  async function handleUnlinkPullRequest(pullRequestId: string) {
-    setIsLoading(true);
+  async function handleUnlinkPullRequest(gitActivity: GitActivity) {
     try {
-      const response: {status: number; activities: GitActivity[]} = await new Promise(
-        resolve => {
-          setTimeout(() => {
-            const newActivities = gitActivities.filter(
-              gitActivity => gitActivity.id !== pullRequestId
-            );
-            resolve({
-              status: 200,
-              activities: newActivities,
-            });
-          }, 300);
-        }
+      api.requestPromise(`/issues/${issueId}/github-activity/${gitActivity.id}/`, {
+        method: 'PUT',
+        data: {visible: 0},
+      });
+      const newActivities = linkedActivities.filter(
+        activity => activity.id !== gitActivity.id
       );
-      setGitActivities(response.activities);
+      setLinkedActivities(newActivities);
+      unlinkedActivities.push(gitActivity);
+      setUnlinkedActivities(unlinkedActivities);
       addSuccessMessage(t('Pull Request was successfully unlinked'));
     } catch {
       addErrorMessage(t('An error occurred while unlinkig the Pull Request'));
+    }
+  }
+
+  async function handleRelinkPullRequest(gitActivity: GitActivity) {
+    try {
+      api.requestPromise(`/issues/${issueId}/github-activity/${gitActivity.id}/`, {
+        method: 'PUT',
+        data: {visible: 1},
+      });
+      linkedActivities.push(gitActivity);
+      setLinkedActivities(linkedActivities);
+
+      const newUnlinkedActivities = unlinkedActivities.filter(
+        activity => activity.id !== gitActivity.id
+      );
+      setUnlinkedActivities(newUnlinkedActivities);
+      addSuccessMessage(t('Pull Request was successfully linked'));
+    } catch {
+      addErrorMessage(t('An error occurred while linkig the Pull Request'));
     }
   }
 
@@ -117,15 +147,20 @@ function GitActivity({api, issueId}: Props) {
           </BranchNameAndActions>
         </IssueId>
         <Activities>
-          {gitActivities.map(({id, ...gitActivity}) => (
+          {linkedActivities.map(activity => (
             <Activity
-              key={id}
-              id={id}
-              {...gitActivity}
+              key={activity.id}
+              gitActivity={activity}
               onUnlink={handleUnlinkPullRequest}
             />
           ))}
         </Activities>
+        {unlinkedActivities.length > 0 && (
+          <UnlinkedActivity
+            unlinkedActivities={unlinkedActivities}
+            onRelink={handleRelinkPullRequest}
+          />
+        )}
       </Fragment>
     );
   }

@@ -58,6 +58,10 @@ describe('groupEventDetails', () => {
       url: '/issues/1/github-activity/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/issues/1/branch-name/',
+      body: {branch_name: 'test'},
+    });
 
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/current-release/`,

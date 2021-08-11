@@ -11,25 +11,20 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 import Status from './status';
+import {GitActivity} from '.';
 
 // https://docs.github.com/en/rest/reference/pulls
-type GitActivity = React.ComponentProps<typeof Status> & {
-  id: string;
-  url: string;
-  title: string;
-  type: 'branch' | 'pull_request';
-  author: string;
+type Props = {
+  gitActivity: GitActivity;
+  onUnlink: (gitActivity: GitActivity) => Promise<void>;
 };
 
-type Props = GitActivity & {
-  onUnlink: (id: string) => Promise<void>;
-};
-
-function Activity({id, url, title, type, state, author, onUnlink}: Props) {
+function Activity({gitActivity, onUnlink}: Props) {
+  const {title, url, author, type, state} = gitActivity;
   return (
     <Fragment>
       <StatusColumn>
-        <Status state={state} />
+        <Status state={gitActivity.state} />
       </StatusColumn>
       <ActivityColumn>
         <Tooltip title={title} containerDisplayMode="inline-flex">
@@ -57,7 +52,7 @@ function Activity({id, url, title, type, state, author, onUnlink}: Props) {
             <Fragment>
               {state === 'open' && (
                 <MenuItemActionLink
-                  onAction={() => onUnlink(id)}
+                  onAction={() => onUnlink(gitActivity)}
                   title={t('Merge Pull Request')}
                 >
                   {t('Merge Pull Request')}
@@ -85,14 +80,14 @@ function Activity({id, url, title, type, state, author, onUnlink}: Props) {
               )}
               {state === 'draft' && (
                 <MenuItemActionLink
-                  onAction={() => onUnlink(id)}
+                  onAction={() => onUnlink(gitActivity)}
                   title={t('Ready for Review')}
                 >
                   {t('Ready for Review')}
                 </MenuItemActionLink>
               )}
               <MenuItemActionLink
-                onAction={() => onUnlink(id)}
+                onAction={() => onUnlink(gitActivity)}
                 message={t(
                   'Are you sure you want to unlink this Pull Request from the issue?'
                 )}
@@ -117,7 +112,7 @@ function Activity({id, url, title, type, state, author, onUnlink}: Props) {
                 {t('Delete Branch')}
               </MenuItemActionLink>
               <MenuItemActionLink
-                onAction={() => onUnlink(id)}
+                onAction={() => onUnlink(gitActivity)}
                 message={t('Are you sure you want to unlink this Branch from the issue?')}
                 title={t('Unlink Branch')}
                 shouldConfirm

@@ -12,4 +12,5 @@ class GroupGithubActivitySerializer(Serializer):
             "state": FEED_STATUSES[obj.feed_status],
             "type": FEED_TYPES[obj.feed_type],
             "author": obj.author.name,
+            "visible": obj.visible,
         }
