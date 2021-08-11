@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from django.core.cache import cache
@@ -326,6 +327,42 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
+
+    def _build_as_block(self) -> str:
+        text = build_attachment_text(self.group, self.event) or ""
+        project = Project.objects.get_from_cache(id=self.group.project_id)
+
+        # If an event is unspecified, use the tags of the latest event (if one exists).
+        event_for_tags = self.event or self.group.get_latest_event()
+        color = get_color(event_for_tags, self.notification)
+        fields = build_tag_fields(event_for_tags, self.tags)
+        footer = (
+            build_notification_footer(self.notification, self.recipient)
+            if self.notification and self.recipient
+            else build_footer(self.group, project, self.rules)
+        )
+        obj = self.event if self.event is not None else self.group
+        if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):
+            payload_actions, text, color = build_actions(
+                self.group, project, text, color, self.actions, self.identity
+            )
+        else:
+            payload_actions = []
+
+        title_text = build_attachment_title(obj)
+        title_link = get_title_link(
+            self.group, self.event, self.link_to_event, self.issue_details, self.notification
+        )
+        timestamp = get_timestamp(self.group, self.event) if not self.issue_details else None
+
+        return "\n".join(
+            [
+                f"<{title_link}|{title_text}>",
+                datetime.fromtimestamp(timestamp).strftime("%-I:%M:%S%p %B %d, %Y"),
+                text,
+                footer,
+            ]
+        )
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested

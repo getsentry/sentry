@@ -10,6 +10,7 @@ from sentry.api.endpoints.organization_group_index import inbox_search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.inbox import (
+    SlackInboxMessageBuilder,
     SlackIssuesHelpMessageBuilder,
     get_issues_message,
 )
@@ -123,36 +124,54 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         )
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 
-    def get_issues(self, slack_request: SlackRequest) -> Any:
+    def get_issues(
+        self, slack_request: SlackRequest, search_filters: Sequence[SearchFilter]
+    ) -> Response:
         """There could be a timeout so consider just sending a message like: "preparing your issues"."""
         issues = []
         if slack_request.has_identity:
             user_id = slack_request.identity_id
             projects = Project.objects.get_for_user_ids([user_id])
             if projects:
-                issues = inbox_search(
-                    projects,
-                    search_filters=[
-                        SearchFilter(
-                            key=SearchKey(name="status"),
-                            operator="=",
-                            value=SearchValue(raw_value=0),
-                        ),
-                        SearchFilter(
-                            key=SearchKey(name="for_review"),
-                            operator="=",
-                            value=SearchValue(raw_value=1),
-                        ),
-                    ],
-                )
+                issues = inbox_search(projects, search_filters=search_filters)
 
-        return self.reply(slack_request, get_issues_message(issues))
+        return self.reply(slack_request, SlackInboxMessageBuilder(issues).build_str())
 
-    def get_triage(self, slack_request: SlackRequest) -> Any:
-        return self.get_issues(slack_request)
+    def get_triage(self, slack_request: SlackRequest) -> Response:
+        """Triage lists issues that are marked 'for_review'."""
+        return self.get_issues(
+            slack_request,
+            search_filters=[
+                SearchFilter(
+                    key=SearchKey(name="status"),
+                    operator="=",
+                    value=SearchValue(raw_value=0),
+                ),
+                SearchFilter(
+                    key=SearchKey(name="for_review"),
+                    operator="=",
+                    value=SearchValue(raw_value=1),
+                ),
+            ],
+        )
 
-    def get_inbox(self, slack_request: SlackRequest) -> Any:
-        return self.get_issues(slack_request)
+    def get_inbox(self, slack_request: SlackRequest) -> Response:
+        """Inbox are issues assigned to you."""
+        return self.get_issues(
+            slack_request,
+            search_filters=[
+                SearchFilter(
+                    key=SearchKey(name="status"),
+                    operator="=",
+                    value=SearchValue(raw_value=0),
+                ),
+                SearchFilter(
+                    key=SearchKey(name="assigned_or_suggested"),
+                    operator="=",
+                    value=SearchValue(raw_value="me"),
+                ),
+            ],
+        )
 
     def link_team(self, slack_request: SlackRequest) -> Any:
         raise NotImplementedError
