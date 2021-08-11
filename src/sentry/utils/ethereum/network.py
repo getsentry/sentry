@@ -70,6 +70,8 @@ class EthereumNetwork:
         if not provider_uri:
             raise ValueError("No provider_uri specified")
         self.w3 = Web3(Web3.HTTPProvider(provider_uri))
+        self.client_version = self.w3.clientVersion
+        self.network_id = self.w3.net.version
 
     @retry_with_delay(on=(web3.exceptions.TransactionNotFound, ValueError), attempts=5, delay=0.5)
     def get_transaction_receipt(self, tr_id: str):
@@ -115,6 +117,9 @@ class EthereumNetwork:
             hub.scope.set_tag("from", transaction["from"])
             hub.scope.set_tag("to", transaction["to"])
 
+            # Network info
+            hub.scope.set_tag("network_id", self.network_id)
+
             hub.scope.set_context(
                 "ethereum",
                 {
@@ -154,7 +159,10 @@ class EthereumNetwork:
             if call_info:
                 function_name = call_info.definition.fn_name
                 func_with_args = (
-                    str(call_info.definition).replace("<Function ", "").replace(">", "")
+                    str(call_info.definition)
+                    .replace("<Function ", "")
+                    .replace(">", "")
+                    .replace(",", ", ")
                 )
                 frame = {"function": func_with_args, "vars": {}}
 
@@ -229,6 +237,7 @@ class EthereumNetwork:
             # Get function info
             call_info = None
             if abi_object:
+                # FIXME this might fail e.g. if ABI is incorrect
                 call_info = self.decode_contract_input(
                     transaction["to"], abi_object, transaction["input"]
                 )
