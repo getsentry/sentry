@@ -41,7 +41,7 @@ describe('GroupSidebar', function () {
     });
     MockApiClient.addMockResponse({
       url: '/issues/1/branch-name/',
-      body: {'branch_name': 'test'},
+      body: {branch_name: 'test'},
     });
 
     MockApiClient.addMockResponse({
