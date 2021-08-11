@@ -34,7 +34,7 @@ type Props = {
   issueId: string;
 };
 
-function GitActivity({api, issueId, shortId}: Props) {
+function GitActivity({api, issueId}: Props) {
   const [linkedActivities, setLinkedActivities] = useState<GitActivity[]>([]);
   const [unlinkedActivities, setUnlinkedActivities] = useState<GitActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -111,7 +111,7 @@ function GitActivity({api, issueId, shortId}: Props) {
       );
       setUnlinkedActivities(newUnlinkedActivities);
       addSuccessMessage(t('Pull Request was successfully linked'));
-    } catch (error) {
+    } catch {
       addErrorMessage(t('An error occurred while linkig the Pull Request'));
     }
   }

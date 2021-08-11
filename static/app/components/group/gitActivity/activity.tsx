@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import DropdownLink from 'app/components/dropdownLink';
-import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis} from 'app/icons/iconEllipsis';
@@ -21,7 +20,7 @@ type Props = {
 };
 
 function Activity({gitActivity, onUnlink}: Props) {
-  const {title, url, author, type, state} = gitActivity
+  const {title, url, author, type, state} = gitActivity;
   return (
     <Fragment>
       <StatusColumn>
