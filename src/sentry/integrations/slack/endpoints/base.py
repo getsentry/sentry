@@ -17,6 +17,7 @@ from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Organization, Project, Release
+from sentry.models.release import ReleaseProject
 from sentry.utils.types import Bool
 
 LINK_USER_MESSAGE = (
@@ -166,9 +167,9 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         org_releases = {}
         for org in orgs:
             release = Release.objects.filter(organization=org).latest("date_added")
-            org_releases[org] = release
+            org_releases[org.name] = [release.version, release.new_groups]
 
-        return self.reply(slack_request, f"Releases by org: {org_releases}")
+        return self.reply(slack_request, f"Latest release per org: {org_releases}")
 
     def get_releases_by_org(self, slack_request: SlackRequest, org_slug: str) -> Any:
 
@@ -182,7 +183,10 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 .order_by("-date")
                 .distinct()[:5]
             )
-            return self.reply(slack_request, f"Releases for {org_slug}: {releases}")
+            releases_formatted = [
+                [release.version, self._get_new_groups_by_release(release)] for release in releases
+            ]
+            return self.reply(slack_request, f"Releases for {org_slug}: {releases_formatted}")
         else:
             return self.reply(slack_request, f"Org '{org_slug}' not found!")
 
@@ -195,3 +199,13 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
     def _get_orgs_by_user_id(self, slack_request: SlackRequest) -> QuerySet:
         return Organization.objects.get_for_user_ids({slack_request.identity_id})
+
+    def _get_new_groups_by_release(self, release: Release) -> int:
+        """
+        Given a release, returns the number of new issues introduced
+        with this release. New issues are called 'new_groups'.
+        """
+        new_groups = 0
+        for rp in ReleaseProject.objects.filter(release=release):
+            new_groups += rp.new_groups
+        return new_groups
