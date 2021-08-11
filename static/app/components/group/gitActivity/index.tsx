@@ -5,7 +5,6 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Clipboard from 'app/components/clipboard';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {IconCopy, IconRefresh} from 'app/icons';
@@ -37,7 +36,6 @@ type Props = {
 function GitActivity({api, issueId}: Props) {
   const [linkedActivities, setLinkedActivities] = useState<GitActivity[]>([]);
   const [unlinkedActivities, setUnlinkedActivities] = useState<GitActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<undefined | string>(undefined);
   const [branchName, setBranchName] = useState('');
 
@@ -46,23 +44,16 @@ function GitActivity({api, issueId}: Props) {
     fetchActivities();
   }, []);
 
-  async function fetchBranchName(reload = true) {
-    if (reload) {
-      setIsLoading(true);
-    }
-
+  async function fetchBranchName() {
     try {
       const response = await api.requestPromise(`/issues/${issueId}/branch-name/`);
       setBranchName(response.branchName);
-      setIsLoading(false);
     } catch {
-      setIsLoading(false);
       setError(t('An error occurred while fetching the branch name'));
     }
   }
 
   async function fetchActivities() {
-    setIsLoading(true);
     setError(undefined);
     try {
       const response: GitActivity[] = await api.requestPromise(
@@ -72,9 +63,11 @@ function GitActivity({api, issueId}: Props) {
       setLinkedActivities(activities);
       const unlinked = response.filter(gitActivity => !gitActivity.visible);
       setUnlinkedActivities(unlinked);
-      setIsLoading(false);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await fetchActivities();
     } catch {
-      setIsLoading(false);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      await fetchActivities();
       setError(t('An error occurred while fetching Git Activity'));
     }
   }
@@ -121,10 +114,6 @@ function GitActivity({api, issueId}: Props) {
       return <Alert type="error">{error}</Alert>;
     }
 
-    if (isLoading) {
-      return <LoadingIndicator mini />;
-    }
-
     return (
       <Fragment>
         <IssueId>
@@ -142,7 +131,7 @@ function GitActivity({api, issueId}: Props) {
               title={t('Refresh to get a new branch name')}
               containerDisplayMode="inline-flex"
             >
-              <StyledIconRefresh onClick={() => fetchBranchName(false)} />
+              <StyledIconRefresh onClick={() => fetchBranchName()} />
             </Tooltip>
           </BranchNameAndActions>
         </IssueId>
