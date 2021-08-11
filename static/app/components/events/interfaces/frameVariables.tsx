@@ -1,11 +1,12 @@
 import * as React from 'react';
+import omit from 'lodash/omit';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {KeyValueListData} from 'app/types';
 
 type Props = {
-  data: Record<string, string>;
+  data: Record<string, any>;
 };
 
 const FrameVariables = ({data}: Props) => {
@@ -18,12 +19,14 @@ const FrameVariables = ({data}: Props) => {
   const getTransformedData = (): KeyValueListData => {
     const transformedData: KeyValueListData = [];
 
-    const dataKeys = Object.keys(data).reverse();
+    const dataKeys = Object.keys(data).sort((a, b) => {
+      return data[a]._order - data[b]._order;
+    });
     for (const key of dataKeys) {
       transformedData.push({
         key,
         subject: key,
-        value: data[key],
+        value: omit(data[key], ['_order']),
         meta: getMeta(data, key),
       });
     }
@@ -33,7 +36,12 @@ const FrameVariables = ({data}: Props) => {
   const transformedData = getTransformedData();
 
   return (
-    <KeyValueList data={transformedData} onClick={handlePreventToggling} isContextData />
+    <KeyValueList
+      data={transformedData}
+      onClick={handlePreventToggling}
+      isContextData
+      isSorted={Object.keys(data).some(key => data[key]._order) ? false : true}
+    />
   );
 };
 
