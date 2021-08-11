@@ -66,7 +66,6 @@ class NotionPlugin(CorePluginMixin, IssuePlugin2):
 
         if api_key:
             # The token is sensitive so we should mask the value by only sending back the first 5 characters
-            key_config["required"] = False
             key_config["prefix"] = api_key[:7]
             key_config["has_saved_value"] = True
         else:
@@ -102,7 +101,7 @@ class NotionPlugin(CorePluginMixin, IssuePlugin2):
         """
         notion_client = NotionApiClient(config["key"])
         try:
-            notion_client.get_databases(query=None)
+            notion_client.get_databases()
         except Exception as e:
             self.raise_error(e)
         return config
@@ -119,7 +118,7 @@ class NotionPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def is_configured(self, request, project, **kwargs):
-        return self.get_option("key", project)
+        return bool(self.get_option("key", project))
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
         """
@@ -149,7 +148,7 @@ class NotionPlugin(CorePluginMixin, IssuePlugin2):
         """
         return [
             {
-                "name": "issue_id",
+                "name": "notion_page_id",
                 "label": "Notion page",
                 "type": "select",
                 "has_autocomplete": True,
@@ -220,7 +219,7 @@ class NotionPlugin(CorePluginMixin, IssuePlugin2):
         client = self.get_client(group.project)
 
         try:
-            notion_page = client.get_page(form_data["issue_id"])
+            notion_page = client.get_page(form_data["notion_page_id"])
         except Exception as e:
             self.raise_error(e)
 
@@ -228,7 +227,7 @@ class NotionPlugin(CorePluginMixin, IssuePlugin2):
         if comment:
             try:
                 client.append_block(
-                    page_id=form_data["issue_id"],
+                    page_id=form_data["notion_page_id"],
                     comment=comment,
                     issue_id=group.qualified_short_id,
                     url=absolute_uri(group.get_absolute_url(params={"referrer": REFERRER})),
@@ -264,7 +263,7 @@ class NotionPlugin(CorePluginMixin, IssuePlugin2):
             return title
 
         output = []
-        if field == "issue_id" and query:
+        if field == "notion_page_id" and query:
             client = self.get_client(group.project)
             pages = client.get_pages(query)
 
