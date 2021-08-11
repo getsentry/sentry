@@ -30,7 +30,7 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         env_variables = data["env_variables"]
         function.update(**data)
 
-        update_function(function.code, function.external_id, env_variables)
+        update_function(function.code, function.external_id, env_variables, data.get("overview", None))
 
         return Response(serialize(function), status=201)
 

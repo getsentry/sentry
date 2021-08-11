@@ -28,7 +28,7 @@ exports.start = (message, context) => {
     return;
   }
   const event = JSON.parse(Buffer.from(message.data, 'base64').toString());
-  return userFunc(event);
+  return userFunc(event.data, event.type);
 };
 """
 
@@ -76,7 +76,7 @@ def upload_function_files(client, code):
     return upload_url
 
 
-def update_function(code, funcId, env_variables):
+def update_function(code, funcId, env_variables, description):
     client = CloudFunctionsServiceClient()
     upload_url = upload_function_files(client, code)
     client.update_function(
@@ -84,7 +84,7 @@ def update_function(code, funcId, env_variables):
             function=CloudFunction(
                 name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-"
                 + funcId,
-                description="created by api",
+                description=description,
                 source_upload_url=upload_url,
                 runtime="nodejs14",
                 entry_point="start",
@@ -99,14 +99,14 @@ def update_function(code, funcId, env_variables):
     )
 
 
-def create_function(code, funcId, env_variables):
+def create_function(code, funcId, env_variables, description):
     create_function_pubsub_topic(funcId)
     client = CloudFunctionsServiceClient()
     upload_url = upload_function_files(client, code)
     client.create_function(
         function=CloudFunction(
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
-            description="created by api",
+            description=description,
             source_upload_url=upload_url,
             runtime="nodejs14",
             entry_point="start",
