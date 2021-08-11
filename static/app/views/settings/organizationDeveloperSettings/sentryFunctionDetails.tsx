@@ -183,13 +183,17 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
     if (!element) {
       return;
     }
+    // lint option not typed correctly but this works lol
+    const lint = {
+      esversion: 6,
+    } as any;
     this.codeMirror = CodeMirror(element, {
       value: code,
       mode: 'javascript',
       lineNumbers: true,
       addModeClass: true,
       gutters: ['CodeMirror-lint-markers'],
-      lint: true,
+      lint,
       extraKeys: {'Ctrl-Space': 'autocomplete'}, // CodeMirror hints
     });
     this.form.codeMirror = this.codeMirror;
