@@ -12,8 +12,8 @@ from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuild
 from sentry.integrations.slack.message_builder.inbox import (
     SlackInboxMessageBuilder,
     SlackIssuesHelpMessageBuilder,
-    get_issues_message,
 )
+from sentry.integrations.slack.message_builder.releases import SlackReleasesMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
@@ -180,15 +180,13 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         raise NotImplementedError
 
     def get_releases(self, slack_request: SlackRequest) -> Any:
-
         orgs = self._get_orgs_by_user_id(slack_request)
-
         org_releases = {}
         for org in orgs:
-            release = Release.objects.filter(organization=org).latest("date_added")
-            org_releases[org.name] = [release.version, self._get_new_groups_by_release(release)]
-
-        return self.reply(slack_request, f"Latest release per org: {org_releases}")
+            org_releases[org] = Release.objects.filter(organization=org).latest("date_added")
+        return self.reply(
+            slack_request, SlackReleasesMessageBuilder(org_releases=org_releases).build_str()
+        )
 
     def get_releases_by_org(self, slack_request: SlackRequest, org_slug: str) -> Any:
 
@@ -202,10 +200,10 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 .order_by("-date")
                 .distinct()[:5]
             )
-            releases_formatted = [
-                [release.version, self._get_new_groups_by_release(release)] for release in releases
-            ]
-            return self.reply(slack_request, f"Releases for {org_slug}: {releases_formatted}")
+            return self.reply(
+                slack_request,
+                SlackReleasesMessageBuilder(releases=releases, organization=org).build_str(),
+            )
         else:
             return self.reply(slack_request, f"Org '{org_slug}' not found!")
 
