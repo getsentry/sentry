@@ -203,7 +203,7 @@ class GroupSidebar extends React.Component<Props, State> {
           </ErrorBoundary>
         )}
 
-        <GitActivity api={api} issueId={group.id} shortId={group.shortId} />
+        <GitActivity api={api} issueId={group.id} />
 
         {this.renderPluginIssue()}
 
