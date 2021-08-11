@@ -33,7 +33,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.models import Integration, PagerDutyService, Project, SentryApp, SentryFunction
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -1109,6 +1109,7 @@ def deduplicate_trigger_actions(actions):
                 action.target_identifier,
                 action.integration_id,
                 action.sentry_app_id,
+                action.sentry_function_id,
             ),
             action,
         )
@@ -1140,6 +1141,7 @@ def create_alert_rule_trigger_action(
     target_identifier=None,
     integration=None,
     sentry_app=None,
+    sentry_function=None,
     use_async_lookup=False,
     input_channel_id=None,
 ):
@@ -1173,6 +1175,13 @@ def create_alert_rule_trigger_action(
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app.id
         )
+    elif type == AlertRuleTriggerAction.Type.SENTRY_FUNCTION:
+        # hack becauause this isn't working lol
+        if not sentry_function:
+            sentry_function = SentryFunction.objects.get(id=target_identifier)
+        target_identifier, target_display = get_alert_rule_trigger_action_sentry_function(
+            trigger.alert_rule.organization, sentry_function.id
+        )
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1182,6 +1191,7 @@ def create_alert_rule_trigger_action(
         target_display=target_display,
         integration=integration,
         sentry_app=sentry_app,
+        sentry_function=sentry_function,
     )
 
 
@@ -1192,6 +1202,7 @@ def update_alert_rule_trigger_action(
     target_identifier=None,
     integration=None,
     sentry_app=None,
+    sentry_function=None,
     use_async_lookup=False,
     input_channel_id=None,
 ):
@@ -1216,6 +1227,8 @@ def update_alert_rule_trigger_action(
         updated_fields["integration"] = integration
     if sentry_app is not None:
         updated_fields["sentry_app"] = sentry_app
+    if sentry_function is not None:
+        updated_fields["sentry_function"] = sentry_function
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
@@ -1239,6 +1252,15 @@ def update_alert_rule_trigger_action(
 
             target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
                 organization, sentry_app.id
+            )
+            updated_fields["target_display"] = target_display
+
+        elif type == AlertRuleTriggerAction.Type.SENTRY_FUNCTION.value:
+            sentry_function = updated_fields.get("sentry_function", trigger_action.sentry_function)
+            organization = trigger_action.alert_rule_trigger.alert_rule.organization
+
+            target_identifier, target_display = get_alert_rule_trigger_action_sentry_function(
+                organization, sentry_function.id
             )
             updated_fields["target_display"] = target_display
 
@@ -1360,6 +1382,18 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
         raise InvalidTriggerActionError("No SentryApp found.")
 
     return sentry_app.id, sentry_app.name
+
+
+def get_alert_rule_trigger_action_sentry_function(organization, sentry_function_id):
+    try:
+        sentry_function = SentryFunction.objects.get(
+            organization=organization,
+            id=sentry_function_id,
+        )
+    except SentryFunction.DoesNotExist:
+        raise InvalidTriggerActionError("No SentryFunction found.")
+
+    return sentry_function.id, sentry_function.name
 
 
 def delete_alert_rule_trigger_action(trigger_action):
@@ -1501,5 +1535,7 @@ def rewrite_trigger_action_fields(action_data):
         action_data["sentry_app"] = action_data.pop("sentry_app_id")
     elif "sentryAppId" in action_data:
         action_data["sentry_app"] = action_data.pop("sentryAppId")
+    elif "sentryFunctionId" in action_data:
+        action_data["sentry_function"] = action_data.pop("sentryFunctionId")
 
     return action_data

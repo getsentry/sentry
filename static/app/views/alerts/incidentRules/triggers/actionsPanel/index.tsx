@@ -58,9 +58,10 @@ const getCleanAction = (actionConfig, dateCreated?: string): Action => {
       actionConfig.allowedTargetTypes.length > 0
         ? actionConfig.allowedTargetTypes[0]
         : null,
-    targetIdentifier: actionConfig.sentryAppId || '',
+    targetIdentifier: actionConfig.sentryAppId || actionConfig.sentryFunctionId || '',
     integrationId: actionConfig.integrationId,
     sentryAppId: actionConfig.sentryAppId,
+    sentryFunctionId: actionConfig.sentryFunctionId,
     options: actionConfig.options || null,
   };
 };
@@ -75,11 +76,14 @@ const getActionUniqueKey = ({
   type,
   integrationId,
   sentryAppId,
-}: Pick<Action, 'type' | 'integrationId' | 'sentryAppId'>) => {
+  sentryFunctionId,
+}: Pick<Action, 'type' | 'integrationId' | 'sentryAppId' | 'sentryFunctionId'>) => {
   if (integrationId) {
     return `${type}-${integrationId}`;
   } else if (sentryAppId) {
     return `${type}-${sentryAppId}`;
+  } else if (sentryFunctionId) {
+    return `${type}-${sentryFunctionId}`;
   }
   return type;
 };
@@ -94,16 +98,21 @@ const getFullActionTitle = ({
   type,
   integrationName,
   sentryAppName,
+  sentryFunctionName,
   status,
 }: Pick<
   MetricActionTemplate,
-  'type' | 'integrationName' | 'sentryAppName' | 'status'
+  'type' | 'integrationName' | 'sentryAppName' | 'sentryFunctionName' | 'status'
 >) => {
   if (sentryAppName) {
     if (status) {
       return `${sentryAppName} (${status})`;
     }
     return `${sentryAppName}`;
+  }
+
+  if (sentryFunctionName) {
+    return `${sentryFunctionName}`;
   }
 
   const label = ActionLabel[type];

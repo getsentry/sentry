@@ -102,6 +102,7 @@ export enum ActionType {
   PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
   SENTRY_APP = 'sentry_app',
+  SENTRY_FUNCTION = 'sentry_function',
 }
 
 export const ActionLabel = {
@@ -110,6 +111,7 @@ export const ActionLabel = {
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),
   [ActionType.SENTRY_APP]: t('Notification'),
+  [ActionType.SENTRY_FUNCTION]: t('Notification'),
 };
 
 export enum TargetType {
@@ -124,6 +126,8 @@ export enum TargetType {
 
   // A Sentry App instead of any of the above.
   SENTRY_APP = 'sentry_app',
+
+  SENTRY_FUNCTION = 'sentry_function',
 }
 
 export const TargetLabel = {
@@ -165,6 +169,9 @@ export type MetricActionTemplate = {
    * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
    */
   sentryAppId?: number;
+
+  sentryFunctionId?: number;
+  sentryFunctionName?: string;
 
   /**
    * For some available actions, we pass in the list of available targets.
@@ -229,6 +236,8 @@ type UnsavedAction = {
    * The id of the SentryApp, can be null (e.g. email) or undefined (server errors when posting w/ null value)
    */
   sentryAppId?: number | null;
+
+  sentryFunctionId?: number | null;
 
   /**
    * For some available actions, we pass in the list of available targets.

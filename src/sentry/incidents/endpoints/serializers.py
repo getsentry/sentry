@@ -59,6 +59,7 @@ action_target_type_to_string = {
     AlertRuleTriggerAction.TargetType.TEAM: "team",
     AlertRuleTriggerAction.TargetType.SPECIFIC: "specific",
     AlertRuleTriggerAction.TargetType.SENTRY_APP: "sentry_app",
+    AlertRuleTriggerAction.TargetType.SENTRY_FUNCTION: "sentry_function",
 }
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
 dataset_valid_event_types = {
@@ -88,12 +89,21 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
+        fields = [
+            "id",
+            "type",
+            "target_type",
+            "target_identifier",
+            "integration",
+            "sentry_app",
+            "sentry_function",
+        ]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
+            "sentry_function": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):

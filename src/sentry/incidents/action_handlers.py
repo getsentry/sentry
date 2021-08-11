@@ -152,6 +152,18 @@ class SentryAppActionHandler(DefaultActionHandler):
         send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
+@AlertRuleTriggerAction.register_type(
+    "sentry_function",
+    AlertRuleTriggerAction.Type.SENTRY_FUNCTION,
+    [AlertRuleTriggerAction.TargetType.SENTRY_FUNCTION],
+)
+class SentryFunnctionActionHandler(DefaultActionHandler):
+    def send_alert(self, metric_value, method):
+        # TODO: send incident
+        print("this is happening")
+        pass
+
+
 def format_duration(minutes):
     """
     Format minutes into a duration string

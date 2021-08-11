@@ -542,6 +542,7 @@ class AlertRuleTriggerAction(Model):
         SLACK = 2
         MSTEAMS = 3
         SENTRY_APP = 4
+        SENTRY_FUNCTION = 5
 
     INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
 
@@ -555,6 +556,8 @@ class AlertRuleTriggerAction(Model):
         TEAM = 2
         # A Sentry App instead of any of the above.
         SENTRY_APP = 3
+        # A Sentry Functionn instead of any of the above.
+        SENTRY_FUNCTION = 4
 
     TypeRegistration = namedtuple(
         "TypeRegistration",
@@ -564,6 +567,7 @@ class AlertRuleTriggerAction(Model):
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     integration = FlexibleForeignKey("sentry.Integration", null=True)
     sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
+    sentry_function = FlexibleForeignKey("sentry.SentryFunction", null=True)
     type = models.SmallIntegerField()
     target_type = models.SmallIntegerField()
     # Identifier used to perform the action on a given target

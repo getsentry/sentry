@@ -10,10 +10,12 @@ from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import get_available_action_integrations_for_org, get_pagerduty_services
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import SentryApp
+from sentry.models import SentryApp, SentryFunction
 
 
-def build_action_response(registered_type, integration=None, organization=None, sentry_app=None):
+def build_action_response(
+    registered_type, integration=None, organization=None, sentry_app=None, sentry_function=None
+):
     """
     Build the "available action" objects for the API. Each one can have different fields.
 
@@ -46,6 +48,10 @@ def build_action_response(registered_type, integration=None, organization=None, 
         action_response["sentryAppName"] = sentry_app.name
         action_response["sentryAppId"] = sentry_app.id
         action_response["status"] = SentryAppStatus.as_str(sentry_app.status)
+
+    elif sentry_function:
+        action_response["sentryFunctionName"] = sentry_function.name
+        action_response["sentryFunctionId"] = sentry_function.id
 
     return action_response
 
@@ -80,6 +86,14 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
                 actions += [
                     build_action_response(registered_type, sentry_app=app)
                     for app in SentryApp.objects.get_alertable_sentry_apps(organization.id)
+                ]
+
+            elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_FUNCTION:
+                actions += [
+                    build_action_response(registered_type, sentry_function=sentry_function)
+                    for sentry_function in SentryFunction.objects.get_alertable_sentry_functions(
+                        organization.id
+                    )
                 ]
 
             else:

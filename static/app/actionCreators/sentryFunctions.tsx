@@ -10,7 +10,7 @@ import {Organization, SentryFunction} from 'app/types';
 
 export function removeSentryFunction(
   client: Client,
-  org: Organization,
+  _org: Organization,
   sentryFn: SentryFunction
 ): Promise<undefined> {
   addLoadingMessage();
