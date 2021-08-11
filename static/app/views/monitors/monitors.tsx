@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -24,8 +24,7 @@ import MonitorIcon from './monitorIcon';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string}, {}> &
-  WithRouterProps & {
+  WithRouterProps<{orgId: string}> & {
     organization: Organization;
   };
 

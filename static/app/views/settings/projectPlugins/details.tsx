@@ -1,4 +1,4 @@
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -24,7 +24,7 @@ type Props = {
   plugins: {
     plugins: Plugin[];
   };
-} & WithRouterProps<{orgId: string; projectId: string; pluginId: string}>;
+} & RouteComponentProps<{orgId: string; projectId: string; pluginId: string}, {}>;
 
 type State = {
   pluginDetails?: Plugin;

@@ -1,7 +1,7 @@
 import 'prism-sentry/index.css';
 
 import {Fragment} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -25,7 +25,7 @@ import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 type Props = {
   organization: Organization;
   integrationSlug: string;
-} & WithRouterProps<{orgId: string; projectId: string; platform: string}, {}> &
+} & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}> &
   AsyncComponent['props'];
 
 type State = {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {FuseOptions} from 'fuse.js';
 import flattenDepth from 'lodash/flattenDepth';
 
@@ -51,7 +51,7 @@ type DefaultProps = {
   searchOptions: FuseOptions<NavigationItem>;
 };
 
-type Props = WithRouterProps &
+type Props = RouteComponentProps<{}, {}> &
   DefaultProps & {
     organization?: Organization;
     project?: Project;

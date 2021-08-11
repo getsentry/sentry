@@ -1,4 +1,4 @@
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Alert from 'app/components/alert';
@@ -26,7 +26,7 @@ type Props = {
   organization: Organization;
   project: Project;
   plugins: {plugins: Plugin[]; loading: boolean};
-} & WithRouterProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
   data: {
