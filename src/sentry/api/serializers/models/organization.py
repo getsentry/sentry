@@ -11,6 +11,7 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     APDEX_THRESHOLD_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    BRANCH_FORMAT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -290,6 +291,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
                 ),
+                "branchFormat": str(obj.get_option("sentry:branch_format", BRANCH_FORMAT_DEFAULT)),
             }
         )
 

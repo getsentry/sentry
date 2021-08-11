@@ -111,6 +111,7 @@ ORG_OPTIONS = (
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
+    ("branchFormat", "sentry:branch_format", str, org_serializers.BRANCH_FORMAT_DEFAULT),
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -160,6 +161,7 @@ class OrganizationSerializer(serializers.Serializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    branchFormat = serializers.CharField(max_length=128, required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -267,6 +269,11 @@ class OrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "The accountRateLimit option cannot be configured for this organization"
             )
+        return value
+
+    def validate_branchFormat(self, value):
+        if "[issueId]" not in value:
+            raise serializers.ValidationError("The branchFormat must contain [issueId]")
         return value
 
     def validate(self, attrs):
