@@ -11,7 +11,7 @@ def find_referenced_groups(text, org_id):
     from sentry.models import Group
 
     if not text:
-        return []
+        return set()
 
     results = set()
     for fmatch in _fixes_re.finditer(text):
@@ -35,7 +35,7 @@ def find_referenced_groups_in_branch(branch_name, org_id):
     from sentry.models import Group
 
     if not branch_name:
-        return []
+        return set()
 
     results = set()
     for smatch in branch_re.finditer(branch_name):

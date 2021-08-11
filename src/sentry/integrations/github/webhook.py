@@ -353,6 +353,19 @@ class PushEventWebhook(Webhook):
 
         elif event["deleted"]:
             for group in referenced_groups:
+                try:
+                    with transaction.atomic():
+                        activity = GroupGithubActivity.objects.get(
+                            organization_id=organization.id,
+                            group_id=group.id,
+                            branch_name=branch,
+                        )
+                except GroupGithubActivity.DoesNotExist:
+                    pass
+                else:
+                    if activity.feed_status == FeedStatus.MERGED.value:
+                        continue
+
                 GroupGithubActivity.objects.update_or_create(
                     organization_id=organization.id,
                     group_id=group.id,
@@ -439,21 +452,35 @@ class PullRequestEventWebhook(Webhook):
         except IntegrityError:
             pass
 
-        created = False
         branch = pull_request["head"]["ref"]
-        referenced_groups = find_referenced_groups_in_branch(branch, organization.id)
         if pull_request["state"] == "open":
             if pull_request["draft"]:
                 status = FeedStatus.DRAFT.value
             else:
                 status = FeedStatus.OPEN.value
-        elif pull_request["state"] == "closed":
-            status = FeedStatus.CLOSED.value
-        else:
+        elif pull_request["state"] == "closed" and pull_request["merged"]:
             status = FeedStatus.MERGED.value
+        else:
+            status = FeedStatus.CLOSED.value
 
-        for group in referenced_groups:
-            group, created = GroupGithubActivity.objects.update_or_create(
+        description = pull_request["body"]
+        branch_name_refs = find_referenced_groups_in_branch(branch, organization.id)
+        description_refs = find_referenced_groups(description, organization.id)
+        for group in branch_name_refs.union(description_refs):
+            try:
+                with transaction.atomic():
+                    activity = GroupGithubActivity.objects.get(
+                        organization_id=organization.id,
+                        group_id=group.id,
+                        branch_name=branch,
+                    )
+            except GroupGithubActivity.DoesNotExist:
+                pass
+            else:
+                if activity.feed_status == FeedStatus.MERGED.value:
+                    continue
+
+            GroupGithubActivity.objects.update_or_create(
                 organization_id=organization.id,
                 group_id=group.id,
                 branch_name=branch,
@@ -465,27 +492,6 @@ class PullRequestEventWebhook(Webhook):
                     "url": pull_request["html_url"],
                 },
             )
-
-            created = True
-
-        if not created:
-            description = pull_request["body"]
-            referenced_groups = find_referenced_groups(description, organization.id)
-            for group in referenced_groups:
-                GroupGithubActivity.objects.update_or_create(
-                    organization_id=organization.id,
-                    group_id=group.id,
-                    branch_name=branch,
-                    defaults={
-                        "feed_type": FeedType.PULL_REQUEST.value,
-                        "feed_status": status,
-                        "author": commit_author,
-                        "display_name": pull_request["title"],
-                        "url": pull_request["html_url"],
-                    },
-                )
-
-                created = True
 
 
 class GitHubWebhookBase(View):
