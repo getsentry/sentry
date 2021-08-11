@@ -158,12 +158,14 @@ class EthereumNetwork:
                 )
                 frame = {"function": func_with_args, "vars": {}}
 
-                for input_obj in call_info.definition.abi["inputs"]:
+                for i, input_obj in enumerate(call_info.definition.abi["inputs"]):
                     input_name = input_obj["name"]
                     input_type = input_obj["type"]
                     frame["vars"][input_name] = {
                         "type": input_type,
                         "value": call_info.params[input_name],
+                        # FIXME ugly hack, this is for frontend to order properly
+                        "_order": i,
                     }
 
                 event["exception"] = {
