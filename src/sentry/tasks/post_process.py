@@ -375,7 +375,7 @@ def post_process_group(
                 publisher = pubsub_v1.PublisherClient()
                 publisher.publish(
                     google_pubsub_name,
-                    json.dumps({"data": dict(event.data), "type": "error"}.encode()),
+                    json.dumps({"data": dict(event.data), "type": "error"}).encode(),
                 )
                 print("called " + fn.external_id)
 
