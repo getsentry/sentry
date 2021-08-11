@@ -1,11 +1,18 @@
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/mode/javascript/javascript';
+import 'codemirror/addon/lint/lint.js';
+import 'codemirror/addon/lint/lint.css';
+import 'codemirror/addon/lint/javascript-lint';
+import 'codemirror/addon/hint/show-hint.js';
+import 'codemirror/addon/hint/show-hint.css';
+import 'codemirror/addon/hint/javascript-hint.js';
 
 import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import CodeMirror from 'codemirror';
+import {JSHINT} from 'jshint';
 import {Observer} from 'mobx-react';
 
 import {
@@ -28,6 +35,14 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import FormModel from 'app/views/settings/components/forms/model';
 import {Field} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+
+declare global {
+  interface Window {
+    JSHINT: any;
+  }
+}
+// TODO: set jshint's esversion to 6
+window.JSHINT = JSHINT;
 
 class SentryFunctionFormModel extends FormModel {
   codeMirror: null | CodeMirror.Editor = null;
@@ -120,7 +135,7 @@ const formFields: Field[] = [
 const sampleCode = `
 module.exports = function myScript(event){
   console.log("event is", event);
-}
+};
 `;
 
 export default class SentryFunctionDetails extends AsyncView<Props, State> {
@@ -154,6 +169,9 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
       mode: 'javascript',
       lineNumbers: true,
       addModeClass: true,
+      gutters: ['CodeMirror-lint-markers'],
+      lint: true,
+      extraKeys: {'Ctrl-Space': 'autocomplete'}, // CodeMirror hints
     });
     this.form.codeMirror = this.codeMirror;
   }
