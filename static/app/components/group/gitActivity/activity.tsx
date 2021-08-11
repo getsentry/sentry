@@ -88,11 +88,7 @@ function Activity({gitActivity, onUnlink}: Props) {
               )}
               <MenuItemActionLink
                 onAction={() => onUnlink(gitActivity)}
-                message={t(
-                  'Are you sure you want to unlink this Pull Request from the issue?'
-                )}
                 title={t('Unlink Pull Request')}
-                shouldConfirm
               >
                 {t('Unlink Pull Request')}
               </MenuItemActionLink>
@@ -113,9 +109,7 @@ function Activity({gitActivity, onUnlink}: Props) {
               </MenuItemActionLink>
               <MenuItemActionLink
                 onAction={() => onUnlink(gitActivity)}
-                message={t('Are you sure you want to unlink this Branch from the issue?')}
                 title={t('Unlink Branch')}
-                shouldConfirm
               >
                 {t('Unlink Branch')}
               </MenuItemActionLink>
