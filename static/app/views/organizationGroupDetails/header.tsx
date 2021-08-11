@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Badge from 'app/components/badge';
+import Clipboard from 'app/components/clipboard';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -23,7 +24,7 @@ import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
-import {IconChat} from 'app/icons';
+import {IconChat, IconCopy} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
@@ -217,12 +218,26 @@ class GroupHeader extends React.Component<Props, State> {
                         </ExternalLink>
                       </Tooltip>
                     </h6>
-                    <ShortId
-                      shortId={group.shortId}
-                      avatar={
-                        <StyledProjectBadge project={project} avatarSize={20} hideName />
-                      }
-                    />
+                    <IdAndCopyAction>
+                      <ShortId
+                        shortId={group.shortId}
+                        avatar={
+                          <StyledProjectBadge
+                            project={project}
+                            avatarSize={20}
+                            hideName
+                          />
+                        }
+                      />
+                      <Clipboard value={group.shortId}>
+                        <StyledTooltip
+                          title={group.shortId}
+                          containerDisplayMode="inline-flex"
+                        >
+                          <StyledIconCopy />
+                        </StyledTooltip>
+                      </Clipboard>
+                    </IdAndCopyAction>
                   </div>
                 </GuideAnchor>
               )}
@@ -390,4 +405,24 @@ const StyledProjectBadge = styled(ProjectBadge)`
 
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
+`;
+
+const IdAndCopyAction = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  grid-gap: ${space(1.5)};
+  align-items: center;
+  justify-content: flex-end;
+`;
+
+const StyledIconCopy = styled(IconCopy)`
+  cursor: pointer;
+  color: ${p => p.theme.gray300};
+  :hover {
+    color: ${p => p.theme.gray500};
+  }
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: inline-flex !important;
 `;
