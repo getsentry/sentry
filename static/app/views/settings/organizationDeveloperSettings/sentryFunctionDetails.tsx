@@ -152,8 +152,12 @@ const formFields: Field[] = [
 ];
 
 const sampleCode = `
+const fetch = require('node-fetch');
 module.exports = function myScript(event){
   console.log("event is", event);
+  fetch('https://example.com/api' {
+    method: 'POST',
+  });
 };
 `;
 
