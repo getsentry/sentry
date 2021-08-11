@@ -846,6 +846,9 @@ export enum GroupActivityType {
   MERGE = 'merge',
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
+  OPENED_PULL_REQUEST = 'opened_pull_request',
+  MERGED_PULL_REQUEST = 'merged_pull_request',
+  CLOSED_PULL_REQUEST = 'closed_pull_request',
 }
 
 type GroupActivityBase = {
@@ -1001,6 +1004,25 @@ export type GroupActivityCreateIssue = GroupActivityBase & {
   };
 };
 
+export type PullRequestData = {
+  pullRequest: PullRequest;
+};
+
+export type GroupActivityOpenedPullRequest = GroupActivityBase & {
+  type: GroupActivityType.OPENED_PULL_REQUEST;
+  data: PullRequestData;
+};
+
+export type GroupActivityClosedPullRequest = GroupActivityBase & {
+  type: GroupActivityType.CLOSED_PULL_REQUEST;
+  data: PullRequestData;
+};
+
+export type GroupActivityMergedPullRequest = GroupActivityBase & {
+  type: GroupActivityType.MERGED_PULL_REQUEST;
+  data: PullRequestData;
+};
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -1021,7 +1043,10 @@ export type GroupActivity =
   | GroupActivityRegression
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
-  | GroupActivityCreateIssue;
+  | GroupActivityCreateIssue
+  | GroupActivityOpenedPullRequest
+  | GroupActivityClosedPullRequest
+  | GroupActivityMergedPullRequest;
 
 export type Activity = GroupActivity;
 
@@ -2221,3 +2246,9 @@ export type CodeownersFile = {
   filepath: string;
   html_url: string;
 };
+
+export enum PullRequestAction {
+  OPENED = 'opened',
+  CLOSED = 'closed',
+  MERGED = 'merged',
+}

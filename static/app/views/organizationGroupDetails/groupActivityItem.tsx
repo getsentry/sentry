@@ -1,4 +1,5 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
@@ -9,6 +10,7 @@ import Version from 'app/components/version';
 import {t, tct, tn} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
+import space from 'app/styles/space';
 import {
   GroupActivity,
   GroupActivityAssigned,
@@ -16,6 +18,8 @@ import {
   GroupActivityType,
   Organization,
   Project,
+  PullRequestAction,
+  PullRequestData,
   User,
 } from 'app/types';
 
@@ -28,6 +32,21 @@ type Props = {
 
 function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
   const issuesLink = `/organizations/${orgSlug}/issues/`;
+
+  function getPullRequestMessage(data: PullRequestData, action: PullRequestAction) {
+    const {pullRequest} = data;
+    return (
+      <PullRequestMessage>
+        <div>{tct('[author] [action] a fix for this issue in', {author, action})}</div>
+        <PullRequestLink
+          inline
+          pullRequest={pullRequest}
+          repository={pullRequest.repository}
+          action={action}
+        />
+      </PullRequestMessage>
+    );
+  }
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
     if (data.ignoreDuration) {
@@ -167,6 +186,13 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           ),
         });
       }
+      case GroupActivityType.OPENED_PULL_REQUEST:
+        return getPullRequestMessage(activity.data, PullRequestAction.OPENED);
+      case GroupActivityType.MERGED_PULL_REQUEST:
+        return getPullRequestMessage(activity.data, PullRequestAction.MERGED);
+      case GroupActivityType.CLOSED_PULL_REQUEST:
+        return getPullRequestMessage(activity.data, PullRequestAction.CLOSED);
+
       case GroupActivityType.SET_UNRESOLVED:
         return tct('[author] marked this issue as unresolved', {author});
       case GroupActivityType.SET_IGNORED: {
@@ -268,5 +294,13 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
 
   return <React.Fragment>{renderContent()}</React.Fragment>;
 }
+
+const PullRequestMessage = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(0.75)};
+  align-items: center;
+  justify-content: start;
+`;
 
 export default GroupActivityItem;
