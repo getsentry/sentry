@@ -1,5 +1,5 @@
 import logging
-from random import choice
+from random import choice, getrandbits
 from typing import Tuple
 
 import sentry_sdk
@@ -46,7 +46,7 @@ def create_demo_org(quick=False) -> Organization:
         # wrap the main org setup in transaction
         with transaction.atomic():
             # name = generate_random_name()
-            team_name = choice(EMPOWER_PLANT_PROJECTS)
+            team_name = f"{choice(EMPOWER_PLANT_PROJECTS)} - {getrandbits(8):02x}"
             name = f"EmpowerPlant {team_name}"
 
             slug = slugify(name)
