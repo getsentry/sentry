@@ -50,26 +50,30 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
             data=data,
         )
     from sentry.models.sentryfunction import SentryFunction
+
     for fn in SentryFunction.objects.filter(organization=organization).all():
-        if 'issue' not in fn.events:
+        if "issue" not in fn.events:
             continue
         # call the function
         import json
 
         from google.cloud import pubsub_v1
 
-        google_pubsub_name = (
-            "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
-        )
+        google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
         publisher = pubsub_v1.PublisherClient()
-        publisher.publish(google_pubsub_name, json.dumps({
-            "data": {
-                "data": data,
-                "issue_id": issue.id,
-                "user_id": user.id if user else None,
-            },
-            "type": event
-        }).encode())
+        publisher.publish(
+            google_pubsub_name,
+            json.dumps(
+                {
+                    "data": {
+                        "data": data,
+                        "issue_id": issue.id,
+                        "user_id": user.id if user else None,
+                    },
+                    "type": event,
+                }
+            ).encode(),
+        )
         print(f"called fn {fn.external_id} for issue: {issue.id}")
 
 

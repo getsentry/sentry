@@ -37,7 +37,7 @@ PACKAGE_JSON = {
     "dependencies": {
         "@sentry/node": "^6.11.0",
         "@sentry/tracing": "^6.11.0",
-        "node-fetch": "^2.6.1"
+        "node-fetch": "^2.6.1",
     }
 }
 
