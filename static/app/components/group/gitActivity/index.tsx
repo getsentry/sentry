@@ -1,12 +1,14 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import Alert from 'app/components/alert';
 import Clipboard from 'app/components/clipboard';
-import ShortId from 'app/components/shortId';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
-import {IconCopy} from 'app/icons';
+import {IconCopy, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
@@ -14,41 +16,50 @@ import SidebarSection from '../sidebarSection';
 
 import Activity from './activity';
 
-// https://docs.github.com/en/rest/reference/pulls
-type GitActivity = {
-  id: string;
-  url: string;
-  title: string;
-  // State of the Pull Request. Either open or closed
-  state: 'open' | 'closed' | 'merged' | 'draft' | 'created' | 'closed';
-  type: 'branch' | 'pull_request';
-  author: string;
-};
+type GitActivity = Omit<React.ComponentProps<typeof Activity>, 'onUnlink'>;
 
 type Props = {
   api: Client;
   issueId: string;
-  shortId: string;
 };
 
-function GitActivity({api, issueId, shortId}: Props) {
+function GitActivity({api, issueId}: Props) {
   const [gitActivities, setGitActivities] = useState<GitActivity[]>([]);
+
+  const [branchName, setBranchName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState<undefined | string>(undefined);
 
   useEffect(() => {
+    fetchBranchName();
     fetchActivities();
   }, []);
 
+  async function fetchBranchName(reload = true) {
+    if (reload) {
+      setIsLoading(true);
+    }
+
+    try {
+      const response = await api.requestPromise(`/issues/${issueId}/branch-name/`);
+      setBranchName(response.branchName);
+      setIsLoading(false);
+    } catch {
+      setIsLoading(false);
+      setError(t('An error occurred while fetching the branch name'));
+    }
+  }
+
   async function fetchActivities() {
     setIsLoading(true);
+    setError(undefined);
     try {
       const response = await api.requestPromise(`/issues/${issueId}/github-activity/`);
       setGitActivities(response);
       setIsLoading(false);
-    } catch (error) {
+    } catch {
       setIsLoading(false);
-      setIsError(true);
+      setError(t('An error occurred while fetching Git Activity'));
     }
   }
 
@@ -70,46 +81,56 @@ function GitActivity({api, issueId, shortId}: Props) {
       );
       setGitActivities(response.activities);
       addSuccessMessage(t('Pull Request was successfully unlinked'));
-    } catch (error) {
+    } catch {
       addErrorMessage(t('An error occurred while unlinkig the Pull Request'));
     }
   }
 
-  if (isLoading) {
-    return null;
-  }
+  function renderContent() {
+    if (error) {
+      return <Alert type="error">{error}</Alert>;
+    }
 
-  if (isError) {
-    return null;
-  }
+    if (isLoading) {
+      return <LoadingIndicator mini />;
+    }
 
-  return (
-    <SidebarSection title={t('Git Activity')}>
-      <IssueId>
-        {t('Issue Id')}
-        <IdAndCopyAction>
-          <StyledShortId shortId={`#FIXES-${shortId}`} />
-          <CopyButton>
-            <Clipboard value={`FIXES-${shortId}`}>
-              <Tooltip title={shortId} containerDisplayMode="flex">
+    return (
+      <Fragment>
+        <IssueId>
+          {t('Branch Name')}
+          <BranchNameAndActions>
+            <StyledTooltip title={branchName}>
+              <BranchName>{branchName}</BranchName>
+            </StyledTooltip>
+            <Clipboard value={branchName}>
+              <Tooltip title={t('Copy branch name')} containerDisplayMode="inline-flex">
                 <StyledIconCopy />
               </Tooltip>
             </Clipboard>
-          </CopyButton>
-        </IdAndCopyAction>
-      </IssueId>
-      <Activities>
-        {gitActivities.map(({id, ...gitActivity}) => (
-          <Activity
-            key={id}
-            id={id}
-            {...gitActivity}
-            onUnlink={handleUnlinkPullRequest}
-          />
-        ))}
-      </Activities>
-    </SidebarSection>
-  );
+            <Tooltip
+              title={t('Refresh to get a new branch name')}
+              containerDisplayMode="inline-flex"
+            >
+              <StyledIconRefresh onClick={() => fetchBranchName(false)} />
+            </Tooltip>
+          </BranchNameAndActions>
+        </IssueId>
+        <Activities>
+          {gitActivities.map(({id, ...gitActivity}) => (
+            <Activity
+              key={id}
+              id={id}
+              {...gitActivity}
+              onUnlink={handleUnlinkPullRequest}
+            />
+          ))}
+        </Activities>
+      </Fragment>
+    );
+  }
+
+  return <SidebarSection title={t('Git Activity')}>{renderContent()}</SidebarSection>;
 }
 
 export default GitActivity;
@@ -122,29 +143,40 @@ const IssueId = styled('div')`
   font-weight: 700;
 `;
 
-const IdAndCopyAction = styled('div')`
-  display: flex;
-  align-items: center;
-  font-weight: 400;
-`;
-
-const StyledShortId = styled(ShortId)`
+const BranchName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
   background: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: 400;
-  justify-content: flex-start;
-  flex: 1;
 `;
 
-const CopyButton = styled('div')`
-  padding: 0 ${space(0.5)} 0 ${space(1.5)};
+const BranchNameAndActions = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content max-content;
+  grid-gap: ${space(1.5)};
+  align-items: center;
 `;
 
 const StyledIconCopy = styled(IconCopy)`
   cursor: pointer;
+  color: ${p => p.theme.gray300};
+  :hover {
+    color: ${p => p.theme.gray500};
+  }
+`;
+
+const StyledIconRefresh = styled(IconRefresh)`
+  cursor: pointer;
+  color: ${p => p.theme.gray300};
+  :hover {
+    color: ${p => p.theme.gray500};
+  }
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  overflow: hidden;
 `;
 
 const Activities = styled('div')`
