@@ -189,7 +189,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
     }
     // lint option not typed correctly but this works lol
     const lint = {
-      esversion: 6,
+      esversion: 8,
     } as any;
     this.codeMirror = CodeMirror(element, {
       value: code,
