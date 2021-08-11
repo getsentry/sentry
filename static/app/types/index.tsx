@@ -2228,4 +2228,8 @@ export type SentryFunction = {
   author?: string;
   overview?: string;
   events?: string[];
+  envVariables?: Array<{
+    name?: string;
+    value?: string;
+  }>;
 };

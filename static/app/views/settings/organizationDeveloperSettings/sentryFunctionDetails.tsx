@@ -195,6 +195,21 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   onLoadAllEndpointsSuccess() {
     const {sentryFunction} = this.state;
     this.initCodeEditor(sentryFunction?.code || sampleCode);
+    // mirror state because it's easier for hackweek
+    const envVariables = sentryFunction?.envVariables || [];
+    const rows = Array.from(Array(envVariables.length + 1).keys()).map(() => uniqueId());
+    this.setState({envVariables, rows}, () => {
+      rows.forEach((id, pos) => {
+        // need to set form inputs because hackweek expediencies
+        const {name, value} = envVariables[pos] || {};
+        if (name) {
+          this.form.setValue(`env-variable-name-${id}`, name);
+        }
+        if (value) {
+          this.form.setValue(`env-variable-value-${id}`, value);
+        }
+      });
+    });
   }
 
   handleSubmitSuccess = (data: SentryFunction) => {
@@ -233,7 +248,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   };
 
   handleSecretNameChange(value: string, pos: number) {
-    const [...envVariables] = this.state.envVariables;
+    const [...envVariables] = this.envVariables;
     while (envVariables.length <= pos) {
       envVariables.push({});
     }
@@ -242,7 +257,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   }
 
   handleSecretValueChange(value: string, pos: number) {
-    const [...envVariables] = this.state.envVariables;
+    const [...envVariables] = this.envVariables;
     while (envVariables.length <= pos) {
       envVariables.push({});
     }
@@ -251,7 +266,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
   }
 
   removeSecret(pos: number) {
-    const [...envVariables] = this.state.envVariables;
+    const [...envVariables] = this.envVariables;
     const [...rows] = this.state.rows;
     envVariables.splice(pos, 1);
     rows.splice(pos, 1);

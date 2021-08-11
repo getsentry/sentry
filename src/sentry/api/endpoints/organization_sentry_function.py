@@ -12,8 +12,9 @@ from sentry.utils.cloudfunctions import create_function
 
 
 class EnvVariableSerializer(CamelSnakeSerializer):
-    value = serializers.CharField()
-    name = serializers.CharField()
+    # optional inputs for hackweek expedencies
+    value = serializers.CharField(required=False, allow_blank=True)
+    name = serializers.CharField(required=False, allow_blank=True)
 
 
 class SentryFunctionSerializer(CamelSnakeSerializer):
@@ -45,7 +46,6 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         data["external_id"] = data["slug"] + "-" + uuid4().hex
 
         create_function(data["code"], data["external_id"], data["env_variables"])
-        del data["env_variables"]
         function = SentryFunction.objects.create(**data)
 
         return Response(serialize(function), status=201)
