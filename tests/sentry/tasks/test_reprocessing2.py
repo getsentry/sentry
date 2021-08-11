@@ -26,6 +26,27 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.cache import cache_key_for_event
 
 
+def _create_event_attachment(evt, type):
+    file = File.objects.create(name="foo", type=type)
+    file.putfile(BytesIO(b"hello world"))
+    EventAttachment.objects.create(
+        event_id=evt.event_id,
+        group_id=evt.group_id,
+        project_id=evt.project_id,
+        file_id=file.id,
+        type=file.type,
+        name="foo",
+    )
+
+
+def _create_user_report(evt):
+    UserReport.objects.create(
+        project_id=evt.project_id,
+        event_id=evt.event_id,
+        name="User",
+    )
+
+
 @pytest.fixture(autouse=True)
 def reprocessing_feature(monkeypatch):
     monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
@@ -237,6 +258,9 @@ def test_max_events(
         event_id: eventstore.get_event_by_id(default_project.id, event_id) for event_id in event_ids
     }
 
+    for evt in old_events.values():
+        _create_user_report(evt)
+
     (group_id,) = {e.group_id for e in old_events.values()}
 
     with burst_task_runner() as burst:
@@ -257,6 +281,12 @@ def test_max_events(
             elif remaining_events == "keep":
                 assert event.group_id != group_id
                 assert dict(event.data) == dict(old_events[event_id].data)
+                assert (
+                    UserReport.objects.get(
+                        project_id=default_project.id, event_id=event_id
+                    ).group_id
+                    != group_id
+                )
             else:
                 raise ValueError(remaining_events)
         else:
@@ -314,22 +344,9 @@ def test_attachments_and_userfeedback(
 
     for evt in (event, event_to_delete):
         for type in ("event.attachment", "event.minidump"):
-            file = File.objects.create(name="foo", type=type)
-            file.putfile(BytesIO(b"hello world"))
-            EventAttachment.objects.create(
-                event_id=evt.event_id,
-                group_id=evt.group_id,
-                project_id=default_project.id,
-                file_id=file.id,
-                type=file.type,
-                name="foo",
-            )
+            _create_event_attachment(evt, type)
 
-        UserReport.objects.create(
-            project_id=default_project.id,
-            event_id=evt.event_id,
-            name="User",
-        )
+        _create_user_report(evt)
 
     with burst_task_runner() as burst:
         reprocess_group(default_project.id, event.group_id, max_events=1)
