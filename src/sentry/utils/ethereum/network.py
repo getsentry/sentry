@@ -3,14 +3,18 @@ import functools
 import logging
 import re
 import time
+from dataclasses import dataclass
+from typing import Any, Dict
 
 import web3
 from sentry_sdk import Client, Hub
+from simplejson.scanner import JSONDecodeError
 from web3 import Web3
 
 from sentry.models import EthereumAddress, ProjectKey
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKeyStatus
+from sentry.utils import json
 
 # from sentry.models.ethereum import EthereumAddress
 
@@ -55,6 +59,12 @@ def retry_with_delay(on, ignore=None, attempts=3, delay=0.1, reraise=False):
     return decorator_retry
 
 
+@dataclass
+class FunctionCallInfo:
+    definition: Dict[str, Any]
+    params: Dict[str, Any]
+
+
 class EthereumNetwork:
     def __init__(self, provider_uri: str) -> None:
         if not provider_uri:
@@ -69,8 +79,18 @@ class EthereumNetwork:
     def eth_call(self, transaction, block_identifier):
         return self.w3.eth.call(transaction, block_identifier=block_identifier)
 
+    def decode_contract_input(self, contract_address, abi_object, input):
+        contract = self.w3.eth.contract(address=contract_address, abi=abi_object["result"])
+        definition, params = contract.decode_function_input(input)
+        return FunctionCallInfo(definition=definition, params=params)
+
     def report_transaction_to_project(
-        self, transaction, receipt, project: Project, err_reason: str
+        self,
+        transaction: Dict,
+        receipt: Dict,
+        project: Project,
+        err_reason: str,
+        call_info: FunctionCallInfo = None,
     ):
         logger.info("Reporting to project: %s", project.id)
 
@@ -124,68 +144,101 @@ class EthereumNetwork:
                     "name": "Mainnet",
                 },
             )
-            hub.capture_event(
-                {
-                    # "message": err_reason,
-                    "level": "error",
-                    "platform": "ethereum",
-                    "exception": {
-                        "values": [
-                            {
-                                "type": err_reason,
-                                "value": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
-                                # """
-                                #                                 (uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)
-                                # MethodID: 0x791ac947
-                                # [0]:  000000000000000000000000000000000000000000000000f9cd09d5d816e4ce
-                                # [1]:  000000000000000000000000000000000000000000000000020ea327affeabf4
-                                # [2]:  00000000000000000000000000000000000000000000000000000000000000a0
-                                # [3]:  0000000000000000000000001a6180d970117eee591f2605c43e93cd8c9c21ea
-                                # [4]:  000000000000000000000000000000000000000000000000000000006112baac
-                                # [5]:  0000000000000000000000000000000000000000000000000000000000000002
-                                # [6]:  000000000000000000000000095648bc80a7d1dd16b85e9b84f07463a20f3536
-                                # [7]:  000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
-                                #                                 """,
-                                # "raw_stacktrace": {"frames": [{"data": "blaaaa"}]},
-                                "stacktrace": {
-                                    "frames": [
-                                        {
-                                            "function": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
-                                            "vars": {
-                                                "amountIn": {
-                                                    "type": "uint256",
-                                                    "value": 1312312321321323213,
-                                                },
-                                                "amountOutMin": {
-                                                    "type": "address[]",
-                                                    "value": [
-                                                        "0x095648BC80a7d1Dd16B85E9B84F07463a20f3536",
-                                                        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-                                                    ],
-                                                },
-                                            },
-                                        }
-                                    ]
-                                },
-                            }
-                        ]
-                    },
-                }
-            )
 
-    def report_errored_transaction(self, transaction, receipt, projects):
+            event = {
+                "level": "error",
+                "platform": "ethereum",
+                "exception": {"values": {"type": err_reason}},
+            }
+
+            if call_info:
+                function_name = call_info.definition.fn_name
+                func_with_args = (
+                    str(call_info.definition).replace("<Function ", "").replace(">", "")
+                )
+                frame = {"function": func_with_args, "vars": {}}
+
+                for input_obj in call_info.definition.abi["inputs"]:
+                    input_name = input_obj["name"]
+                    input_type = input_obj["type"]
+                    frame["vars"][input_name] = {
+                        "type": input_type,
+                        "value": call_info.params[input_name],
+                    }
+
+                event["exception"] = {
+                    "values": [
+                        {
+                            "type": err_reason,
+                            "value": f"{function_name}()",
+                            "stacktrace": {"frames": [frame]},
+                        }
+                    ]
+                }
+
+            hub.capture_event(event)
+
+            # misc = {
+            #         # "message": err_reason,
+            #         "level": "error",
+            #         "platform": "ethereum",
+            #         "exception": {
+            #             "values": [
+            #                 {
+            #                     "type": err_reason,
+            #                     "value": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
+            #                     "stacktrace": {
+            #                         "frames": [
+            #                             {
+            #                                 "function": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
+            #                                 "vars": {
+            #                                     "amountIn": {
+            #                                         "type": "uint256",
+            #                                         "value": 1312312321321323213,
+            #                                     },
+            #                                     "amountOutMin": {
+            #                                         "type": "address[]",
+            #                                         "value": [
+            #                                             "0x095648BC80a7d1Dd16B85E9B84F07463a20f3536",
+            #                                             "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            #                                         ],
+            #                                     },
+            #                                 },
+            #                             }
+            #                         ]
+            #                     },
+            #                 }
+            #             ]
+            #         },
+            #     }
+            # )
+
+    def report_errored_transaction(self, transaction, receipt, projects_filters_map):
         tr_id = transaction["hash"].hex()
         logger.info("Failed transaction: %s", tr_id)
+
+        # Get error reason
         err_reason = self.get_transaction_err_reason(transaction)
         if not err_reason:
             err_reason = DEFAULT_ERROR_MESSAGE
         logger.info("Error message: %s", err_reason)
 
-        for project in projects:
-            self.report_transaction_to_project(transaction, receipt, project, err_reason)
+        for project, abi_object in projects_filters_map.items():
+            # Get function info
+            call_info = None
+            if abi_object:
+                call_info = self.decode_contract_input(
+                    transaction["to"], abi_object, transaction["input"]
+                )
+            if call_info:
+                logger.debug("Function call info: %s", call_info)
+
+            self.report_transaction_to_project(
+                transaction, receipt, project, err_reason, call_info=call_info
+            )
 
     def process_transaction(self, transaction, address_project_map):
-        for addr, projects in address_project_map.items():
+        for addr, projects_filters_map in address_project_map.items():
             addr = addr.lower()
             if (transaction["from"] or "").lower() == addr or (
                 transaction["to"] or ""
@@ -194,7 +247,7 @@ class EthereumNetwork:
                 logger.debug("Transaction matches the filter: %s", tr_id)
                 receipt = self.get_transaction_receipt(tr_id)
                 if receipt and receipt["status"] == 0:
-                    self.report_errored_transaction(transaction, receipt, projects)
+                    self.report_errored_transaction(transaction, receipt, projects_filters_map)
 
     def process_block(self, block):
         # Fetch all filters from the DB
@@ -212,8 +265,27 @@ class EthereumNetwork:
                 )
                 continue
 
-            projects_for_address = address_project_map.setdefault("0x" + filter.address, set())
-            projects_for_address.add(filter.project)
+            projects_for_address = address_project_map.setdefault("0x" + filter.address, dict())
+
+            try:
+                abi_object = json.loads(filter.abi_contents)
+            except JSONDecodeError:
+                logger.warning(
+                    "Cannot decode ABI for project %s and filter %s, skipping",
+                    filter.project.id,
+                    filter,
+                )
+                abi_object = None
+            else:
+                if not abi_object:
+                    logger.warning(
+                        "Empty ABI for project %s and filter %s, skipping",
+                        filter.project.id,
+                        filter,
+                    )
+                    abi_object = None
+
+            projects_for_address[filter.project] = abi_object
 
         logger.debug("Address-project map: %s", address_project_map)
         for transaction in block["transactions"]:
