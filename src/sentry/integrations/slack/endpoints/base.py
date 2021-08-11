@@ -167,7 +167,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         org_releases = {}
         for org in orgs:
             release = Release.objects.filter(organization=org).latest("date_added")
-            org_releases[org.name] = [release.version, release.new_groups]
+            org_releases[org.name] = [release.version, self._get_new_groups_by_release(release)]
 
         return self.reply(slack_request, f"Latest release per org: {org_releases}")
 
