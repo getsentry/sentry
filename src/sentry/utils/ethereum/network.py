@@ -158,15 +158,12 @@ class EthereumNetwork:
 
             if call_info:
                 function_name = call_info.definition.fn_name
-                func_with_args = (
-                    str(call_info.definition)
-                    .replace("<Function ", "")
-                    .replace(">", "")
-                    .replace(",", ", ")
-                )
+                inputs = call_info.definition.abi["inputs"]
+                arg_names = map(lambda i: i["name"], inputs)
+                func_with_args = f"{function_name}({', '.join(arg_names)})"
                 frame = {"function": func_with_args, "vars": {}}
 
-                for i, input_obj in enumerate(call_info.definition.abi["inputs"]):
+                for i, input_obj in enumerate(inputs):
                     input_name = input_obj["name"]
                     input_type = input_obj["type"]
                     frame["vars"][input_name] = {
@@ -180,7 +177,7 @@ class EthereumNetwork:
                     "values": [
                         {
                             "type": err_reason,
-                            "value": f"{function_name}()",
+                            "value": func_with_args,
                             "stacktrace": {"frames": [frame]},
                         }
                     ]
