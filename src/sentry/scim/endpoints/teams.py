@@ -64,7 +64,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
         if filter_val:
-            queryset = queryset.filter(name=filter_val)
+            queryset = queryset.filter(name__iexact=filter_val)
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
@@ -85,7 +85,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     def post(self, request, organization):
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
-        request.data.update({"name": request.data["displayName"]})
+        request.data.update(
+            {"name": request.data["displayName"], "slug": slugify(request.data["displayName"])}
+        ),
         return super().post(request, organization)
 
 
