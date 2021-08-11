@@ -44,6 +44,14 @@ declare global {
 // TODO: set jshint's esversion to 6
 window.JSHINT = JSHINT;
 
+// const eventMappings = {
+//   issueHook:
+// }
+
+const getFormFieldName = (event: string) => {
+  return `${event}Hook`;
+};
+
 class SentryFunctionFormModel extends FormModel {
   codeMirror: null | CodeMirror.Editor = null;
   // super hacky way of getting envVariables from component state instead of the model
@@ -60,8 +68,12 @@ class SentryFunctionFormModel extends FormModel {
     if (data.errorHook) {
       events.push('error');
     }
+    if (data.alertHook) {
+      events.push('alert');
+    }
     delete data.issueHook;
     delete data.errorHook;
+    delete data.alertHook;
     data.events = events;
 
     const {...output} = data;
@@ -121,14 +133,21 @@ const formFields: Field[] = [
     type: 'boolean',
     label: 'Issue',
     autosize: true,
-    help: 'Issue Created, Resolved, or Assigned',
+    help: 'Trigger function on every issue created, resolved, or assigned.',
   },
   {
     name: 'errorHook',
     type: 'boolean',
     label: 'Error',
     autosize: true,
-    help: 'Error Created',
+    help: 'Trigger function on every error.',
+  },
+  {
+    name: 'alertHook',
+    type: 'boolean',
+    label: 'Alert Rule Action',
+    autosize: true,
+    help: 'If enabled, this integration will be available in Issue Alert rules and Metric Alert rules in Sentry.',
   },
 ];
 
@@ -209,6 +228,11 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
           this.form.setValue(`env-variable-value-${id}`, value);
         }
       });
+    });
+
+    // also update event form values
+    sentryFunction?.events?.forEach(event => {
+      this.form.setValue(getFormFieldName(event), true);
     });
   }
 
