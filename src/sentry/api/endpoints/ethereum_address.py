@@ -35,7 +35,7 @@ class EthereumAddressesEndpoint(ProjectEndpoint):
 
             address = EthereumAddress.objects.create(
                 project=project,
-                address=result["address"],
+                address=result["address"].lower(),
                 abi_contents=result["abiContents"],
                 display_name=result["displayName"],
             )
