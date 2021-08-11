@@ -43,6 +43,7 @@ from .groupbookmark import *  # NOQA
 from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
+from .groupgithubactivity import *  # NOQA
 from .grouphash import *  # NOQA
 from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA

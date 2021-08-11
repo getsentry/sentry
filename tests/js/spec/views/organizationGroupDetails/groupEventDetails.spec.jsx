@@ -55,6 +55,11 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/issues/1/github-activity/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/current-release/`,
       body: {currentRelease: null},
     });
@@ -269,24 +274,26 @@ describe('groupEventDetails', () => {
         ],
       });
 
-      const wrapper = mountWithTheme(
-        <GroupEventDetails
-          api={new MockApiClient()}
-          group={group}
-          event={event}
-          project={proj}
-          organization={org}
-          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
-          location={{query: {environment: 'dev'}}}
-        />,
-        routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        const wrapper = mountWithTheme(
+          <GroupEventDetails
+            api={new MockApiClient()}
+            group={group}
+            event={event}
+            project={proj}
+            organization={org}
+            environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+            params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+            location={{query: {environment: 'dev'}}}
+          />,
+          routerContext
+        );
+        await tick();
+        wrapper.update();
 
-      expect(wrapper.find('EventCause').exists()).toBe(false);
-      expect(wrapper.find('EventCauseEmpty').exists()).toBe(true);
+        expect(wrapper.find('EventCause').exists()).toBe(false);
+        expect(wrapper.find('EventCauseEmpty').exists()).toBe(true);
+      });
     });
 
     it('renders suspect commit', async function () {

@@ -26,3 +26,25 @@ def find_referenced_groups(text, org_id):
             else:
                 results.add(group)
     return results
+
+
+branch_re = re.compile(r"FIXES-\b([A-Z0-9_]+-[A-Z0-9]+)\b")
+
+
+def find_referenced_groups_in_branch(branch_name, org_id):
+    from sentry.models import Group
+
+    if not branch_name:
+        return []
+
+    results = set()
+    for smatch in branch_re.finditer(branch_name):
+        short_id = smatch.group(1)
+        try:
+            group = Group.objects.by_qualified_short_id(organization_id=org_id, short_id=short_id)
+        except Group.DoesNotExist:
+            continue
+        else:
+            results.add(group)
+
+    return results

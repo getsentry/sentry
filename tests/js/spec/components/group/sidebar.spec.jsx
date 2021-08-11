@@ -12,7 +12,7 @@ describe('GroupSidebar', function () {
   let wrapper;
   let tagsMock;
 
-  beforeEach(function () {
+  beforeEach(async function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/committers/',
       body: {committers: []},
@@ -33,6 +33,10 @@ describe('GroupSidebar', function () {
 
     MockApiClient.addMockResponse({
       url: '/issues/1/participants/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/1/github-activity/',
       body: [],
     });
 
@@ -65,7 +69,7 @@ describe('GroupSidebar', function () {
       body: TestStubs.Tags(),
     });
 
-    act(() => {
+    await act(async () => {
       wrapper = mountWithTheme(
         <GroupSidebar
           group={group}
@@ -84,8 +88,10 @@ describe('GroupSidebar', function () {
   });
 
   describe('sidebar', function () {
-    it('should make a request to the /tags/ endpoint to get top values', function () {
-      expect(tagsMock).toHaveBeenCalled();
+    it('should make a request to the /tags/ endpoint to get top values', async function () {
+      await act(async () => {
+        expect(tagsMock).toHaveBeenCalled();
+      });
     });
   });
 
@@ -132,14 +138,18 @@ describe('GroupSidebar', function () {
       });
     });
 
-    it('renders no tags', function () {
-      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(0);
+    it('renders no tags', async function () {
+      await act(async () => {
+        expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(0);
+      });
     });
 
-    it('renders empty text', function () {
-      expect(wrapper.find('[data-test-id="no-tags"]').text()).toBe(
-        'No tags found in the selected environments'
-      );
+    it('renders empty text', async function () {
+      await act(async () => {
+        expect(wrapper.find('[data-test-id="no-tags"]').text()).toBe(
+          'No tags found in the selected environments'
+        );
+      });
     });
   });
 
