@@ -82,7 +82,7 @@ class EthereumNetwork:
             logger.warning("No active DSNs found for project: %s, skipping processing", project.id)
             return
 
-        sdk_client = Client(dsn=project_key.dsn_public)
+        sdk_client = Client(dsn=project_key.dsn_public, default_integrations=False)
 
         with Hub(sdk_client) as hub:
             hub.scope.set_user({"username": transaction["from"]})
@@ -124,7 +124,54 @@ class EthereumNetwork:
                     "name": "Mainnet",
                 },
             )
-            hub.capture_message(err_reason, level="error")
+            hub.capture_event(
+                {
+                    # "message": err_reason,
+                    "level": "error",
+                    "platform": "ethereum",
+                    "exception": {
+                        "values": [
+                            {
+                                "type": err_reason,
+                                "value": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
+                                # """
+                                #                                 (uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)
+                                # MethodID: 0x791ac947
+                                # [0]:  000000000000000000000000000000000000000000000000f9cd09d5d816e4ce
+                                # [1]:  000000000000000000000000000000000000000000000000020ea327affeabf4
+                                # [2]:  00000000000000000000000000000000000000000000000000000000000000a0
+                                # [3]:  0000000000000000000000001a6180d970117eee591f2605c43e93cd8c9c21ea
+                                # [4]:  000000000000000000000000000000000000000000000000000000006112baac
+                                # [5]:  0000000000000000000000000000000000000000000000000000000000000002
+                                # [6]:  000000000000000000000000095648bc80a7d1dd16b85e9b84f07463a20f3536
+                                # [7]:  000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+                                #                                 """,
+                                # "raw_stacktrace": {"frames": [{"data": "blaaaa"}]},
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "function": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
+                                            "vars": {
+                                                "amountIn": {
+                                                    "type": "uint256",
+                                                    "value": 1312312321321323213,
+                                                },
+                                                "amountOutMin": {
+                                                    "type": "address[]",
+                                                    "value": [
+                                                        "0x095648BC80a7d1Dd16B85E9B84F07463a20f3536",
+                                                        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                                                    ],
+                                                },
+                                            },
+                                        }
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                }
+            )
 
     def report_errored_transaction(self, transaction, receipt, projects):
         tr_id = transaction["hash"].hex()
