@@ -78,14 +78,17 @@ function Exception({
       type={type}
       title={<CrashTitle title={t('Exception')} {...commonCrashHeaderProps} />}
       actions={
-        <CrashActions
-          stackType={stackType}
-          stackView={stackView}
-          platform={event.platform}
-          exception={data}
-          hasGroupingTreeUI={hasGroupingTreeUI}
-          {...commonCrashHeaderProps}
-        />
+        // TODO(eth): HACK HACK
+        event.contexts.runtime?.name === 'Ethereum' ? null : (
+          <CrashActions
+            stackType={stackType}
+            stackView={stackView}
+            platform={event.platform}
+            exception={data}
+            hasGroupingTreeUI={hasGroupingTreeUI}
+            {...commonCrashHeaderProps}
+          />
+        )
       }
       wrapTitle={false}
     >
