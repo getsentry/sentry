@@ -203,6 +203,7 @@ register("aws-lambda.host-region", default="us-east-2")
 
 # Ethereum experiments
 register("web3.provider.http_uri", flags=FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
+register("web3.run-scan-auto", flags=FLAG_PRIORITIZE_DISK | FLAG_NOSTORE, default=False)
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)

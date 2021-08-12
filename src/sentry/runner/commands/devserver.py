@@ -252,7 +252,7 @@ def devserver(
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
 
-    if options.get("web3.provider.http_uri"):
+    if options.get("web3.provider.http_uri") and options.get("web3.run-scan-auto"):
         daemons += [_get_daemon("eth-scan")]
 
     from sentry.runner.commands.devservices import _prepare_containers
