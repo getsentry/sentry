@@ -29,6 +29,7 @@ class SlackEventRequest(SlackRequest):
 
     def __init__(self, request: Request) -> None:
         super().__init__(request)
+        self.identity: Optional[Identity] = None
         self.identity_id: Optional[int] = None
         self.identity_str: Optional[str] = None
 
@@ -86,9 +87,9 @@ class SlackEventRequest(SlackRequest):
 
             identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
             if len(identities):
-                user = identities[0].user
-                self.identity_str = user.email
-                self.identity_id = user.id
+                self.identity = identities[0]
+                self.identity_str = self.identity.user.email
+                self.identity_id = self.identity.user.id
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")

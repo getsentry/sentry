@@ -7,19 +7,24 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import Endpoint
+from sentry.api.client import ApiError
 from sentry.api.endpoints.organization_group_index import inbox_search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
+from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
-from sentry.integrations.slack.message_builder.inbox import (
-    SlackInboxMessageBuilder,
-    SlackIssuesHelpMessageBuilder,
-)
+from sentry.integrations.slack.message_builder.inbox import SlackInboxMessageBuilder
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.releases import SlackReleasesMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Integration, Organization, Project, Release, User
 from sentry.utils.types import Bool
+
+logger = logging.getLogger("sentry.integrations.slack")
+
 
 LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
@@ -64,18 +69,18 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 return self.unlink_team(request)
 
         if command == "issues":
-            # Everything else will fall through to "unknown command". Should I
-            # catch it with a better help message?
-            if not args or args[0] == "help":
-                return self.respond(SlackIssuesHelpMessageBuilder(" ".join(args)).build())
-
-            if args[0] == "inbox":
+            if not args:
                 return self.get_inbox(request)
-
-            if args[0] == "triage":
-                return self.get_inbox(request)
+            else:
+                return self.get_inbox(request, args[0])
 
         if command == "releases":
+            if not args:
+                return self.get_releases(request)
+            else:
+                return self.get_releases_by_org(request, args[0])
+
+        if command == "notifications":
             if not args:
                 return self.get_releases(request)
             else:
@@ -125,20 +130,52 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 
     def get_issues(
-        self, slack_request: SlackRequest, search_filters: Sequence[SearchFilter]
+        self,
+        slack_request: SlackRequest,
+        search_filters: Sequence[SearchFilter],
+        project_slug: Optional[str] = None,
     ) -> Response:
         """There could be a timeout so consider just sending a message like: "preparing your issues"."""
         issues = []
         if slack_request.has_identity:
             user_id = slack_request.identity_id
             projects = Project.objects.get_for_user_ids([user_id])
+
+            # Optionally filter down to parameter project.
+            if project_slug:
+                projects = [
+                    project for project in projects if project.slug.lower() == project_slug.lower()
+                ][:1]
+
             if projects:
                 issues = inbox_search(projects, search_filters=search_filters)
 
-        return self.reply(slack_request, SlackInboxMessageBuilder(issues).build_str())
+        client = SlackClient()
+        access_token = self._get_access_token(slack_request.integration)
+        headers = {"Authorization": "Bearer %s" % access_token}
 
-    def get_triage(self, slack_request: SlackRequest) -> Response:
-        """Triage lists issues that are marked 'for_review'."""
+        channel = slack_request.data.get("channel_id")
+
+        message = SlackInboxMessageBuilder(issues, project_slug).build_str()
+        try:
+            attachments = []
+            for issue in issues[:5]:
+                attachments.append(
+                    SlackIssuesMessageBuilder(issue, identity=slack_request.identity).build()
+                )
+            payload = {"channel": channel, "text": message, "attachments": attachments}
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+
+        except ApiError as e:
+            logger.error("slack.event.on-message-error", extra={"error": str(e)})
+
+        # Instantly reply back
+        return self.reply(slack_request)
+
+    def get_inbox(
+        self, slack_request: SlackRequest, project_slug: Optional[str] = None
+    ) -> Response:
+        """Inbox are issues assigned to you."""
         return self.get_issues(
             slack_request,
             search_filters=[
@@ -152,25 +189,13 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                     operator="=",
                     value=SearchValue(raw_value=1),
                 ),
-            ],
-        )
-
-    def get_inbox(self, slack_request: SlackRequest) -> Response:
-        """Inbox are issues assigned to you."""
-        return self.get_issues(
-            slack_request,
-            search_filters=[
-                SearchFilter(
-                    key=SearchKey(name="status"),
-                    operator="=",
-                    value=SearchValue(raw_value=0),
-                ),
                 SearchFilter(
                     key=SearchKey(name="assigned_or_suggested"),
                     operator="=",
                     value=SearchValue(raw_value="me"),
                 ),
             ],
+            project_slug=project_slug,
         )
 
     def link_team(self, slack_request: SlackRequest) -> Any:
