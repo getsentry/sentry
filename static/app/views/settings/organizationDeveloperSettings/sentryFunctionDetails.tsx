@@ -44,10 +44,6 @@ declare global {
 // TODO: set jshint's esversion to 6
 window.JSHINT = JSHINT;
 
-// const eventMappings = {
-//   issueHook:
-// }
-
 const getFormFieldName = (event: string) => {
   return `${event}Hook`;
 };
@@ -152,6 +148,7 @@ const formFields: Field[] = [
 ];
 
 const sampleCode = `const fetch = require('node-fetch');
+
 module.exports = function myScript(event, type){
   console.log("event is", event);
   fetch('https://example.com/api', {

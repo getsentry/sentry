@@ -2,6 +2,7 @@ import {PureComponent} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import {PanelItem} from 'app/components/panels';
 import {IconInput} from 'app/icons';
 import space from 'app/styles/space';
 import {Organization, SentryFunction} from 'app/types';
@@ -44,7 +45,7 @@ const Box = styled('div')`
   margin-right: 5px;
 `;
 
-const SentryFunctionHolder = styled('div')`
+const SentryFunctionHolder = styled(PanelItem)`
   display: flex;
   flex-direction: row;
   padding: 10px;

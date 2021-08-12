@@ -43,6 +43,10 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         # If an operation on the function is still in progress, it will raise
         # an exception. Retrying when the operation has finished deletes the
         # function successfully.
-        delete_function(function.external_id)
+        try:
+            delete_function(function.external_id)
+        except Exception:
+            # for hackweek, just eat the error and move on
+            pass
         SentryFunction.objects.filter(organization=organization, name=function.name).delete()
         return Response(status=204)
