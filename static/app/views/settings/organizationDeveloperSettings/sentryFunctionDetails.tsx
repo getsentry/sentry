@@ -198,7 +198,11 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
       addModeClass: true,
       gutters: ['CodeMirror-lint-markers'],
       lint,
-      extraKeys: {'Ctrl-Space': 'autocomplete'}, // CodeMirror hints
+      extraKeys: {'Ctrl-Space': 'autocomplete'}, // CodeMirror hints,
+    });
+    this.codeMirror.on('change', cm => {
+      // update our form state when it changes
+      this.form.setValue('code', cm.getValue());
     });
     this.form.codeMirror = this.codeMirror;
   }
