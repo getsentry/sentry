@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import Button from 'app/components/button';
-import {IconOpen} from 'app/icons';
+import {IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {percent} from 'app/utils';
@@ -13,6 +13,7 @@ import {EthereumData, EthereumKnownDataType} from './types';
 type Output = {
   subject: string;
   value?: React.ReactNode;
+  subjectIcon?: React.ReactNode;
 };
 
 function getEthereumKnownDataDetails(
@@ -81,12 +82,12 @@ function getEthereumKnownDataDetails(
         value: data.gas.toLocaleString(),
       };
     case EthereumKnownDataType.GAS_USED:
+      const percentUsed = round(percent(data.gasUsed, data.gas), 2);
       return {
         subject: t('Gas Used'),
-        value: `${data.gasUsed.toLocaleString()} (${round(
-          percent(data.gasUsed, data.gas),
-          2
-        )}%)`,
+        value: `${data.gasUsed.toLocaleString()} (${percentUsed}%) `,
+        subjectIcon:
+          percentUsed === 100 ? <StyledIconWarning size="xs" color="red300" /> : null,
       };
     case EthereumKnownDataType.CUMULATIVE_GAS_USED:
       return {
@@ -138,6 +139,11 @@ const StyledButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  position: relative;
+  top: 1px;
 `;
 
 export default getEthereumKnownDataDetails;
