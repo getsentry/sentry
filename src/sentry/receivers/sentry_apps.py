@@ -63,6 +63,7 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
         from google.cloud import pubsub_v1
 
         from sentry.utils import json
+
         google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
         publisher = pubsub_v1.PublisherClient()
         publisher.publish(

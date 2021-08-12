@@ -292,17 +292,13 @@ def notify_sentry_function(event, futures):
 
         group = event.group
         event_context = _webhook_event_data(event, group.id, group.project.id)
-        # hack to fix serialization issue
-        if "datetime" in event_context:
-            del event_context["datetime"]
-        print("event_context", event_context)
 
         data = {"event": event_context, "triggered_rule": f.rule.label}
 
         # call the function
-        import json
-
         from google.cloud import pubsub_v1
+
+        from sentry.utils import json
 
         google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
         publisher = pubsub_v1.PublisherClient()

@@ -365,9 +365,9 @@ def post_process_group(
                 if "error" not in fn.events:
                     continue
                 # call the function
-                import json
-
                 from google.cloud import pubsub_v1
+
+                from sentry.utils import json
 
                 google_pubsub_name = (
                     "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id

@@ -14,6 +14,7 @@ class SlackApiClient(ApiClient):
         super().__init__()
 
     def request(self, data):
+        print(self.webhook, data)
         try:
             return self._request(
                 path=self.webhook, method="post", data=data, json=False, allow_text=True

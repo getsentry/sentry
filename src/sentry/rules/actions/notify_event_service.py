@@ -101,9 +101,9 @@ def send_sentry_function_incident_alert_notification(
     print("data", data)
 
     # call the function
-    import json
-
     from google.cloud import pubsub_v1
+
+    from sentry.utils import json
 
     google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
     publisher = pubsub_v1.PublisherClient()
