@@ -92,14 +92,10 @@ class GoodTransformer(CSTTransformer):
 
         return node
 
-    # TODO dict(list(zip, though this should be turned into a literal by pyupgrade
+    def leave_CompFor(self, _, node):
+        return self.leave_For(_, node)
 
-    #      src/sentry/api/endpoints/organization_releases.py L197
-    # TODO: in inside comprehensions, like {a for a, b in list(zip(range(1), range(1)))}
-    # src/sentry/api/serializers/models/activity.py L22, L41
-    # src/sentry/api/serializers/models/event.py L174, L353
-    # ... lots more
-    # src/sentry/api/endpoints/project_stacktrace_link.py L53 - for inside a list comprehension
+    # TODO dict(list(zip, though this should be turned into a literal by pyupgrade
 
 
 for fp in sys.argv[1:]:

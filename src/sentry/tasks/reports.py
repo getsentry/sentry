@@ -185,7 +185,7 @@ def merge_sequences(target, other, function=operator.add):
     if rt_type == range:
         rt_type = list
 
-    return rt_type([function(x, y) for x, y in list(zip(target, other))])
+    return rt_type([function(x, y) for x, y in zip(target, other)])
 
 
 def merge_mappings(target, other, function=operator.add):

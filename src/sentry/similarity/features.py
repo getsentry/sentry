@@ -239,7 +239,7 @@ class FeatureSet:
             if source_scope != destination_scope:
                 imports = [
                     (alias, destination_key, data)
-                    for (alias, _), data in list(zip(items, self.index.export(source_scope, items)))
+                    for (alias, _), data in zip(items, self.index.export(source_scope, items))
                 ]
                 self.index.delete(source_scope, items)
                 self.index.import_(destination_scope, imports)

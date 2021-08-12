@@ -171,7 +171,7 @@ class EventSerializer(Serializer):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in list(zip(crash_files, serialize(crash_files, user=user)))
+            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
         }
         results = {}
         for item in item_list:
@@ -350,7 +350,7 @@ class SimpleEventSerializer(EventSerializer):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in list(zip(crash_files, serialize(crash_files, user=user)))
+            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
         }
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 

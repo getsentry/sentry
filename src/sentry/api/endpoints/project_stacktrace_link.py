@@ -50,8 +50,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
             serialize(i, request.user)
-            for i in list(
-                filter(lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations)
+            for i in filter(
+                lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations
             )
         ]
 

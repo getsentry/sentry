@@ -1227,5 +1227,5 @@ def get_first_last_release_info(request, group, versions):
     # Default to a dictionary if the release object wasn't found and not serialized
     return [
         item if item is not None else {"version": version}
-        for item, version in list(zip(serialized_releases, versions))
+        for item, version in zip(serialized_releases, versions)
     ]
