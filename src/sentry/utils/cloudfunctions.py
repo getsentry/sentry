@@ -18,7 +18,7 @@ from sentry.utils import json
 WRAPPER_JS = """
 const userFunc = require('./user.js');
 Object.assign(process.env, require('./env.json'));
-function main(message, context) {
+exports.start = (message, context) => {
   if (!userFunc) {
     console.error("Your code needs to export a function. module.export = () => {}");
     return;
@@ -30,23 +30,13 @@ function main(message, context) {
   const event = JSON.parse(Buffer.from(message.data, 'base64').toString());
   return userFunc(event.data, event.type);
 };
-
-if (process.env.SENTRY_DSN) {
-  const Sentry = require("@sentry/serverless");
-  Sentry.GCPFunction.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: 1.0,
-  });
-  exports.start = Sentry.GCPFunction.wrapHttpFunction(main);
-} else {
-  exports.start = main;
-}
 """
 
 
 PACKAGE_JSON = {
     "dependencies": {
-        "@sentry/serverless": "^5.26.0",
+        "@sentry/node": "^6.11.0",
+        "@sentry/tracing": "^6.11.0",
         "node-fetch": "^2.6.1",
     }
 }
