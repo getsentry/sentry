@@ -774,6 +774,7 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+  stealthDemo: boolean;
 }
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs

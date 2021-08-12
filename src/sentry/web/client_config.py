@@ -177,6 +177,7 @@ def get_client_config(request=None):
             ),
         },
         "demoMode": settings.DEMO_MODE,
+        "stealthDemo": settings.STEALTH_DEMO,
     }
     if user and user.is_authenticated:
         context.update(

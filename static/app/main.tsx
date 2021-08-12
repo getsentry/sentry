@@ -9,7 +9,7 @@ import ThemeAndStyleProvider from './themeAndStyleProvider';
 export default function Main() {
   return (
     <ThemeAndStyleProvider>
-      {ConfigStore.get('demoMode') && <DemoHeader />}
+      {!ConfigStore.get('stealthDemo') && ConfigStore.get('demoMode') && <DemoHeader />}
       <Router history={browserHistory}>{routes()}</Router>
     </ThemeAndStyleProvider>
   );

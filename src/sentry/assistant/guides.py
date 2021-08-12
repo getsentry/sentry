@@ -67,3 +67,6 @@ if settings.DEMO_MODE:
         "discover_event_view": {"id": 26, "required_targets": ["create_alert_from_discover"]},
         "transaction_details": {"id": 27, "required_targets": ["span_tree"]},
     }
+
+if settings.STEALTH_DEMO:
+    GUIDES = dict()
