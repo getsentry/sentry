@@ -1,4 +1,8 @@
 export function formatEthAddress(address: string) {
+  if (address === '*') {
+    return address;
+  }
+
   return address.startsWith('0x') ? address : `0x${address}`;
 }
 
