@@ -94,7 +94,7 @@ class DemoOrgManagerTest(TestCase):
         assert OrganizationMember.objects.filter(
             user=user, organization=org, role="member"
         ).exists()
-        assert user.email == create_fake_email(org.slug, "demo")
+        assert user.email == create_fake_email(org.slug, "empowerplant")
 
         demo_org = DemoOrganization.objects.get(organization=org, status=DemoOrgStatus.ACTIVE)
         demo_user = DemoUser.objects.get(user=user)
