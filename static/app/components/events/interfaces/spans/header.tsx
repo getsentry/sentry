@@ -536,7 +536,9 @@ class ActualMinimap extends React.PureComponent<{
     }).spanTree;
   }
 
-  getBounds(bounds: SpanGeneratedBoundsType): {
+  getBounds(
+    bounds: SpanGeneratedBoundsType
+  ): {
     left: string;
     width: string;
   } {
@@ -763,7 +765,10 @@ const HeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  top: ${p =>
+    !ConfigStore.get('stealthDemo') && ConfigStore.get('demoMode')
+      ? p.theme.demo.headerSize
+      : 0};
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
