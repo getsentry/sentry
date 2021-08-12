@@ -5,11 +5,13 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Clipboard from 'app/components/clipboard';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {IconCopy, IconRefresh} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 
 import SidebarSection from '../sidebarSection';
@@ -34,7 +36,7 @@ type Props = {
   issueId: string;
 };
 
-function GitActivity({api, issueId}: Props) {
+function GitManager({api, issueId}: Props) {
   const [linkedActivities, setLinkedActivities] = useState<GitActivity[]>([]);
   const [unlinkedActivities, setUnlinkedActivities] = useState<GitActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,27 +127,49 @@ function GitActivity({api, issueId}: Props) {
       return <LoadingIndicator mini />;
     }
 
+    // TODO(git-hackers): Update doc link
     return (
       <Fragment>
-        <IssueId>
-          {t('Branch Name')}
+        <Header>
+          <Title>
+            {t('Branch Name Suggestion')}
+            <QuestionTooltip
+              isHoverable
+              position="top"
+              size="sm"
+              containerDisplayMode="block"
+              title={tct(
+                'By copying this branch name suggestion and pushing it to Github, this issue will automatically be linked. [link]',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/">
+                      {t('Read the docs')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            />
+          </Title>
           <BranchNameAndActions>
             <StyledTooltip title={branchName}>
               <BranchName>{branchName}</BranchName>
             </StyledTooltip>
             <Clipboard value={branchName}>
-              <Tooltip title={t('Copy branch name')} containerDisplayMode="inline-flex">
+              <Tooltip
+                title={t('Copy branch name suggestion')}
+                containerDisplayMode="inline-flex"
+              >
                 <StyledIconCopy />
               </Tooltip>
             </Clipboard>
             <Tooltip
-              title={t('Refresh to get a new branch name')}
+              title={t('Refresh to get a new branch name suggestion')}
               containerDisplayMode="inline-flex"
             >
               <StyledIconRefresh onClick={() => fetchBranchName(false)} />
             </Tooltip>
           </BranchNameAndActions>
-        </IssueId>
+        </Header>
         <Activities>
           {linkedActivities.map(activity => (
             <Activity
@@ -168,14 +192,21 @@ function GitActivity({api, issueId}: Props) {
   return <SidebarSection title={t('Git Manager')}>{renderContent()}</SidebarSection>;
 }
 
-export default GitActivity;
+export default GitManager;
 
-const IssueId = styled('div')`
+const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
   grid-gap: ${space(0.5)};
   margin-bottom: ${space(2)};
   font-weight: 700;
+`;
+
+const Title = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  grid-gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const BranchName = styled(TextOverflow)`

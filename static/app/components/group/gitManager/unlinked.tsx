@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
@@ -16,7 +16,7 @@ type Prop = {
 
 function UnlinkedActivity({unlinkedActivities, onRelink}: Prop) {
   return (
-    <React.Fragment>
+    <Fragment>
       <DropdownLinkContainer>
         <DropdownLink
           customTitle={
@@ -39,7 +39,7 @@ function UnlinkedActivity({unlinkedActivities, onRelink}: Prop) {
           ))}
         </DropdownLink>
       </DropdownLinkContainer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
