@@ -251,7 +251,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         merge_source, source, destination = list(Group.objects.all())
 
         assert len(events) == 3
-        assert sum(list(map(len, events.values()))) == 17
+        assert sum(map(len, events.values())) == 17
 
         production_environment = Environment.objects.get(
             organization_id=project.organization_id, name="production"

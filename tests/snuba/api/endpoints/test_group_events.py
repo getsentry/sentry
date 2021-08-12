@@ -37,7 +37,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(list(map(lambda x: x["eventID"], response.data))) == sorted(
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
 
@@ -173,7 +173,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(list(map(lambda x: x["eventID"], response.data))) == sorted(
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
 
@@ -217,7 +217,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url + "?environment=production", format="json")
 
         assert response.status_code == 200, response.content
-        assert set(list(map(lambda x: x["eventID"], response.data))) == {
+        assert set(map(lambda x: x["eventID"], response.data)) == {
             str(events["production"].event_id)
         }
 
@@ -225,7 +225,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             url, data={"environment": ["production", "development"]}, format="json"
         )
         assert response.status_code == 200, response.content
-        assert set(list(map(lambda x: x["eventID"], response.data))) == {
+        assert set(map(lambda x: x["eventID"], response.data)) == {
             str(event.event_id) for event in events.values()
         }
 
@@ -258,9 +258,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(list(map(lambda x: x["eventID"], response.data))) == sorted(
-            [str(event_2.event_id)]
-        )
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted([str(event_2.event_id)])
 
     def test_search_event_has_tags(self):
         self.login_as(user=self.user)
@@ -297,7 +295,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(list(map(lambda x: x["eventID"], response.data))) == sorted(
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
 

@@ -165,7 +165,7 @@ class OrganizationEndpoint(Endpoint):
         permission checking, use ``get_projects``, instead.
         """
         try:
-            return set(list(map(int, request.GET.getlist("project"))))
+            return set(map(int, request.GET.getlist("project")))
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 

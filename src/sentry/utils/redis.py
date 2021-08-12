@@ -189,14 +189,14 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
             raise InvalidConfiguration(
                 "Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
                     cluster_option_name,
-                    ", ".join(list(map(repr, cluster_constructor_option_names))),
+                    ", ".join(map(repr, cluster_constructor_option_names)),
                 )
             )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
                     "{} parameter of {}".format(
-                        ", ".join(list(map(repr, cluster_constructor_option_names))), setting
+                        ", ".join(map(repr, cluster_constructor_option_names)), setting
                     ),
                     f'{setting}["{cluster_option_name}"]',
                     removed_in_version="8.5",

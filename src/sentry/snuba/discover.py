@@ -1115,7 +1115,7 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
 
     if min_value is None:
         min_values = [row[get_function_alias(column)] for column in min_columns]
-        min_values = list(list(filter(lambda v: v is not None, min_values)))
+        min_values = list(filter(lambda v: v is not None, min_values))
         min_value = min(min_values) if min_values else None
         if max_value is not None and min_value is not None:
             # max_value was provided by the user, and min_value was queried.
@@ -1127,7 +1127,7 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
 
     if max_value is None:
         max_values = [row[get_function_alias(column)] for column in max_columns]
-        max_values = list(list(filter(lambda v: v is not None, max_values)))
+        max_values = list(filter(lambda v: v is not None, max_values))
         max_value = max(max_values) if max_values else None
 
         fences = []
@@ -1154,7 +1154,7 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         max_fence_value = max(fences) if fences else None
 
         candidates = [max_fence_value, max_value]
-        candidates = list(list(filter(lambda v: v is not None, candidates)))
+        candidates = list(filter(lambda v: v is not None, candidates))
         max_value = min(candidates) if candidates else None
         if max_value is not None and min_value is not None:
             # min_value may be either queried or provided by the user. max_value was queried.
