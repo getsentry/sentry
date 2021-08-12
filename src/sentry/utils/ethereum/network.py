@@ -109,11 +109,13 @@ class EthereumNetwork:
         with Hub(sdk_client) as hub:
             hub.scope.set_user({"username": transaction["from"]})
             hub.scope.set_tag("block_number", transaction["blockNumber"])
+            hub.scope.set_tag("call_info_available", bool(call_info))
 
             hub.scope.set_tag(
                 "transaction_hash",
                 transaction["hash"].hex(),
             )
+
             hub.scope.set_tag("from", transaction["from"])
             hub.scope.set_tag("to", transaction["to"])
 
@@ -126,7 +128,7 @@ class EthereumNetwork:
                     "gas": transaction["gas"],
                     "gasPrice": transaction["gasPrice"],
                     "cumulativeGasUsed": receipt["cumulativeGasUsed"],
-                    "effectiveGasPrice": receipt["effectiveGasPrice"],
+                    "effectiveGasPrice": receipt.get("effectiveGasPrice", 0),
                     "transactionHash": transaction["hash"].hex(),
                     "gasUsed": receipt["gasUsed"],
                     "status": receipt["status"],
@@ -134,7 +136,7 @@ class EthereumNetwork:
                     "from": transaction["from"],
                     "to": transaction["to"],
                     "value": transaction["value"],
-                    "transactionFee": receipt["gasUsed"] * receipt["effectiveGasPrice"],
+                    "transactionFee": receipt["gasUsed"] * receipt.get("effectiveGasPrice", 0),
                 },
             )
             hub.scope.set_context(
@@ -295,7 +297,6 @@ class EthereumNetwork:
 
             projects_for_address[filter.project] = abi_object
 
-        logger.debug("Address-project map: %s", address_project_map)
         for transaction in block["transactions"]:
             self.process_transaction(transaction, address_project_map)
 
