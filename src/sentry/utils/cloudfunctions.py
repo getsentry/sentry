@@ -17,6 +17,7 @@ from sentry.utils import json
 
 WRAPPER_JS = """
 const userFunc = require('./user.js');
+Object.assign(process.env, require('./env.json'));
 exports.start = (message, context) => {
   if (!userFunc) {
     console.error("Your code needs to export a function. module.export = () => {}");
@@ -50,12 +51,13 @@ def create_function_pubsub_topic(funcId):
     publisher.create_topic(name=function_pubsub_name(funcId))
 
 
-def upload_function_files(client, code):
+def upload_function_files(client, code, env):
     f = BytesIO()
     with ZipFile(f, "w") as codezip:
         codezip.writestr("user.js", code)
         codezip.writestr("index.js", WRAPPER_JS)
         codezip.writestr("package.json", json.dumps(PACKAGE_JSON))
+        codezip.writestr("env.json", json.dumps(env))
     f.seek(0)
 
     upload_url = client.generate_upload_url(
@@ -73,7 +75,7 @@ def upload_function_files(client, code):
 
 def update_function(code, funcId, env_variables, description):
     client = CloudFunctionsServiceClient()
-    upload_url = upload_function_files(client, code)
+    upload_url = upload_function_files(client, code, env_variables)
     client.update_function(
         request=UpdateFunctionRequest(
             function=CloudFunction(
@@ -97,7 +99,7 @@ def update_function(code, funcId, env_variables, description):
 def create_function(code, funcId, env_variables, description):
     create_function_pubsub_topic(funcId)
     client = CloudFunctionsServiceClient()
-    upload_url = upload_function_files(client, code)
+    upload_url = upload_function_files(client, code, env_variables)
     client.create_function(
         function=CloudFunction(
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
