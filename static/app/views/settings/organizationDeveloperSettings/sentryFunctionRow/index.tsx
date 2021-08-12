@@ -40,13 +40,14 @@ export default class SentryFunctionRow extends PureComponent<Props> {
 }
 
 const Box = styled('div')`
-  margin-right: 0;
+  margin-left: auto;
+  margin-right: 5px;
 `;
 
 const SentryFunctionHolder = styled('div')`
   display: flex;
   flex-direction: row;
-  padding: 5px;
+  padding: 10px;
 `;
 
 const StyledIconInput = styled(IconInput)`
@@ -61,4 +62,5 @@ const LinkWrapper = styled('div')`
 
 const StyledLink = styled(Link)`
   margin: auto;
+  padding: 5px;
 `;
