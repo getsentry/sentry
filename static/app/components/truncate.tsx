@@ -105,7 +105,7 @@ class Truncate extends React.Component<Props, State> {
         onFocus={expandable ? this.onFocus : undefined}
         onBlur={expandable ? this.onBlur : undefined}
       >
-        <span>{shortValue}</span>
+        <ShortValue>{shortValue}</ShortValue>
         {isTruncated && (
           <FullValue expanded={this.state.isExpanded} expandDirection={expandDirection}>
             {value}
@@ -141,6 +141,10 @@ export const FullValue = styled('span')<{
     z-index: ${p.theme.zIndex.truncationFullValue};
     display: block;
     `}
+`;
+
+const ShortValue = styled('span')`
+  white-space: nowrap;
 `;
 
 export default Truncate;
