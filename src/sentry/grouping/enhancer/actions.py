@@ -109,7 +109,7 @@ class FlagAction(Action):
 
         sliced_components = self._slice_to_range(components, idx)
         sliced_frames = self._slice_to_range(frames, idx)
-        for component, frame in list(zip(sliced_components, sliced_frames)):
+        for component, frame in zip(sliced_components, sliced_frames):
             if self.key == "group" and self.flag != component.contributes:
                 component.update(
                     contributes=self.flag,

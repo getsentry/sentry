@@ -5,30 +5,48 @@ from dataclasses import replace
 from pathlib import Path
 
 import libcst as cst
-from libcst import Arg, Attribute, Call, CSTTransformer, Name, SimpleString
+from libcst import Arg, Attribute, Call, CSTTransformer, For, Name, SimpleString
 
 gc.disable()
 
 
-def without_nested_list(node):
-    nested = node.args[0].value
+def call_arg0_without_list_wrap(node: Call):
+    arg0 = node.args[0].value
 
-    if getattr(nested, "func", None) is None:
+    if getattr(arg0, "func", None) is None:
         return node
 
-    if nested.func.value != "list":
+    if arg0.func.value != "list":
         return node
 
-    if len(nested.args) != 1:
+    if len(arg0.args) != 1:
         return node
 
-    nested_nested = nested.args[0].value
+    wrapped = arg0.args[0].value
 
-    if nested_nested.func.value not in ("map", "filter", "list", "sorted"):
+    if wrapped.func.value not in ("map", "filter", "list", "sorted"):
         return node
 
     # nodes are frozen dataclasses.
-    updated_node = replace(node, args=[replace(node.args[0], value=nested_nested)])
+    updated_node = replace(node, args=[replace(node.args[0], value=wrapped)])
+    return updated_node
+
+
+def for_in_without_list_wrap(node: For):
+    container = node.iter  # fyi, in is powered by __contains__
+
+    if len(container.args) != 1:
+        return node
+
+    wrapped = container.args[0].value
+
+    if getattr(wrapped, "func", None) is None:
+        return node
+
+    if wrapped.func.value not in ("zip",):
+        return node
+
+    updated_node = replace(node, iter=wrapped)
     return updated_node
 
 
@@ -50,7 +68,7 @@ class GoodTransformer(CSTTransformer):
             if not (node.func.value in LIST_WRAPPED_ARG_NOT_NECESSARY_FOR and len(node.args) == 1):
                 return node
 
-            return without_nested_list(node)
+            return call_arg0_without_list_wrap(node)
 
         elif isinstance(node.func, Attribute):
             # str.join(list(map|filter|list)) -> str.join(map|filter|list)
@@ -61,11 +79,17 @@ class GoodTransformer(CSTTransformer):
             ):
                 return node
 
-            return without_nested_list(node)
+            return call_arg0_without_list_wrap(node)
 
+        return node
+
+    def leave_For(self, _, node):
         # TODO: for x in list(map|filter|list)
+        if isinstance(node.iter, Call):
+            if not node.iter.func.value == "list":
+                return node
 
-        # TODO  for x, y in list(zip)
+            return for_in_without_list_wrap(node)
 
         return node
 

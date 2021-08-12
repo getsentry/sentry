@@ -210,7 +210,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
 
             responses = self.__index(scope, arguments + flatten(requests))
 
-            for (idx, _, _), (cursor, chunk) in list(zip(requests, responses)):
+            for (idx, _, _), (cursor, chunk) in zip(requests, responses):
                 cursor = int(cursor)
                 if cursor == 0:
                     del cursors[idx]

@@ -130,7 +130,7 @@ class GroupSerializerBase(Serializer):
             cache_keys.append("group-mechanism-handled:%d" % item.id)
 
         cache_data = cache.get_many(cache_keys)
-        for item, cache_key in list(zip(item_list, cache_keys)):
+        for item, cache_key in zip(item_list, cache_keys):
             unhandled[item.id] = cache_data.get(cache_key)
 
         filter_keys = {}

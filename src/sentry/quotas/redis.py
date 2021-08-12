@@ -248,7 +248,7 @@ class RedisQuota(Quota):
             return NotRateLimited()
 
         worst_case = (0, None)
-        for quota, rejected in list(zip(quotas, rejections)):
+        for quota, rejected in zip(quotas, rejections):
             if not rejected:
                 continue
 

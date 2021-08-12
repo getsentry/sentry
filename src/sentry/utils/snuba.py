@@ -717,7 +717,7 @@ def _apply_cache_and_build_results(
         cache_keys = [get_cache_key(query_params) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
         to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
-        for (query_pos, query_params), cache_key in list(zip(query_param_list, cache_keys)):
+        for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
             if cached_result is None:
@@ -731,7 +731,7 @@ def _apply_cache_and_build_results(
 
     if to_query:
         query_results = _bulk_snuba_query(list(map(itemgetter(1), to_query)), headers, use_snql)
-        for result, (query_pos, _, cache_key) in list(zip(query_results, to_query)):
+        for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
             results.append((query_pos, result))
