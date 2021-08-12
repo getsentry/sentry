@@ -1,4 +1,6 @@
-from sentry.models import GroupAssignee, SentryAppInstallation
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.user import UserSerializer
+from sentry.models import Group, GroupAssignee, SentryAppInstallation, User
 from sentry.signals import issue_assigned, issue_ignored, issue_resolved
 from sentry.tasks.sentry_apps import workflow_notification
 
@@ -51,25 +53,23 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
         )
     from sentry.models.sentryfunction import SentryFunction
 
+    data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
+    data["issue"] = serialize(Group.objects.get(id=issue.id))
+
     for fn in SentryFunction.objects.filter(organization=organization).all():
         if "issue" not in fn.events:
             continue
         # call the function
-        import json
-
         from google.cloud import pubsub_v1
 
+        from sentry.utils import json
         google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
         publisher = pubsub_v1.PublisherClient()
         publisher.publish(
             google_pubsub_name,
             json.dumps(
                 {
-                    "data": {
-                        "data": data,
-                        "issue_id": issue.id,
-                        "user_id": user.id if user else None,
-                    },
+                    "data": data,
                     "type": event,
                 }
             ).encode(),
