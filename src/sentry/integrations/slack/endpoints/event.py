@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -5,21 +6,23 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.integrations.slack.utils import parse_link
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
-from ..utils import logger, parse_link
 from .base import SlackDMEndpoint
-from .command import LINK_FROM_CHANNEL_MESSAGE
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
 # need refactored
+
+logger = logging.getLogger("sentry.integrations.slack")
 
 
 class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
@@ -59,12 +62,6 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
 
     def unlink_team(self, slack_request: SlackRequest) -> Any:
         return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
-
-    def _get_access_token(self, integration: Integration) -> Any:
-        # the classic bot tokens must use the user auth token for URL unfurling
-        # we stored the user_access_token there
-        # but for workspace apps and new slack bot tokens, we can just use access_token
-        return integration.metadata.get("user_access_token") or integration.metadata["access_token"]
 
     def on_url_verification(self, request: Request, data: Mapping[str, str]) -> Response:
         return self.respond({"challenge": data["challenge"]})

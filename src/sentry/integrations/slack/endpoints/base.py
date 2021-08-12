@@ -17,7 +17,7 @@ from sentry.integrations.slack.message_builder.releases import SlackReleasesMess
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Organization, Project, Release
+from sentry.models import Integration, Organization, Project, Release, User
 from sentry.utils.types import Bool
 
 LINK_USER_MESSAGE = (
@@ -177,6 +177,12 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
     def unlink_team(self, slack_request: SlackRequest) -> Any:
         raise NotImplementedError
+
+    def _get_access_token(self, integration: Integration) -> Any:
+        # the classic bot tokens must use the user auth token for URL unfurling
+        # we stored the user_access_token there
+        # but for workspace apps and new slack bot tokens, we can just use access_token
+        return integration.metadata.get("user_access_token") or integration.metadata["access_token"]
 
     def get_releases(self, slack_request: SlackRequest) -> Any:
         orgs = self._get_orgs_by_user_id(slack_request)
