@@ -1,8 +1,0 @@
-[main]
-host = https://www.transifex.com
-
-[sentry.djangopo]
-file_filter = src/sentry/locale/<lang>/LC_MESSAGES/django.po
-source_file = src/sentry/locale/en/LC_MESSAGES/django.po
-source_lang = en
-type = PO

@@ -1,2 +1,0 @@
-class InvalidEnhancerConfig(Exception):
-    pass

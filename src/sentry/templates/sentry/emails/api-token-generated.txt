@@ -1,5 +1,0 @@
-{% extends "sentry/emails/security_base.txt" %}
-
-{% block security_body %}
-A new API token was created for your Sentry account.
-{% endblock %}
