@@ -31,7 +31,7 @@ from .models import DemoOrganization, DemoOrgStatus, DemoUser
 
 logger = logging.getLogger(__name__)
 
-EMPOWER_PLANT_LOGO = os.path.join(resolve("sentry/images/logos/empowerplant-logo.png"))
+EMPOWER_PLANT_LOGO = os.path.join(*resolve("sentry/images/logos/empowerplant-logo.png"))
 
 
 EMPOWER_PLANT_PROJECTS = (
