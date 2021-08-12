@@ -42,8 +42,11 @@ class IssueQuickTrace extends Component<Props, State> {
     this.promptsCheck();
   }
 
-  shouldComponentUpdate(nextProps) {
-    return this.props.event !== nextProps.event;
+  shouldComponentUpdate(nextProps, nextState: State) {
+    return (
+      this.props.event !== nextProps.event ||
+      this.state.shouldShow !== nextState.shouldShow
+    );
   }
 
   async promptsCheck() {
