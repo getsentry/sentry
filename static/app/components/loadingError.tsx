@@ -10,6 +10,7 @@ import space from 'app/styles/space';
 
 type DefaultProps = {
   message: React.ReactNode;
+  withIcon: boolean;
 };
 
 type Props = DefaultProps & {
@@ -22,6 +23,7 @@ type Props = DefaultProps & {
 class LoadingError extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     message: t('There was an error loading data.'),
+    withIcon: true,
   };
 
   shouldComponentUpdate() {
@@ -29,11 +31,11 @@ class LoadingError extends React.Component<Props> {
   }
 
   render() {
-    const {message, onRetry} = this.props;
+    const {message, withIcon, onRetry} = this.props;
     return (
       <StyledAlert type="error">
-        <Content>
-          <IconInfo size="lg" />
+        <Content withIcon={withIcon}>
+          {withIcon && <IconInfo size="lg" />}
           <div data-test-id="loading-error-message">{message}</div>
           {onRetry && (
             <Button onClick={onRetry} type="button" priority="default" size="small">
@@ -55,9 +57,10 @@ const StyledAlert = styled(Alert)`
   }
 `;
 
-const Content = styled('div')`
+const Content = styled('div')<{withIcon: boolean}>`
   display: grid;
   grid-gap: ${space(1)};
-  grid-template-columns: min-content auto max-content;
+  grid-template-columns: ${p =>
+    p.withIcon ? 'min-content auto max-content' : 'auto max-content'};
   align-items: center;
 `;
