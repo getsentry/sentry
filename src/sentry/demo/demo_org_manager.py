@@ -39,6 +39,14 @@ EMPOWER_PLANT_PROJECTS = (
     "BotanicWorld",
 )
 
+EMPOWER_PLANT_EMPLOYEES = (
+    ("oliviahernandez", "Olivia Hernandez"),
+    ("isabellajohnson", "Isabella Johnson"),
+    ("harperwilliams", "Harper Williams"),
+    ("theonguyen", "Theo Nguyen"),
+    ("liambrown", "Liam Brown"),
+)
+
 
 def create_demo_org(quick=False) -> Organization:
     with sentry_sdk.start_transaction(op="create_demo_org", name="create_demo_org", sampled=True):
@@ -155,11 +163,13 @@ def assign_demo_org(skip_buffer=False, retries_left=3) -> Tuple[Organization, Us
 
         # wrap the assignment of the demo org in a transaction
         with transaction.atomic():
+            username, name = choice(EMPOWER_PLANT_EMPLOYEES)
             email = create_fake_email(org.slug, "empowerplant")
             try:
                 user = DemoUser.create_user(
+                    name=name,
                     email=email,
-                    username=email,
+                    username=username,
                     is_managed=True,
                 )
             except IntegrityError:
