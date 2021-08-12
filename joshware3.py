@@ -59,6 +59,8 @@ LIST_WRAPPED_ARG_NOT_NECESSARY_FOR = {
     "sorted",
     "all",
     "any",
+    "min",
+    "max",
 }
 
 
