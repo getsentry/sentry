@@ -28,7 +28,7 @@ import {
 import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 
-import GitActivity from './gitActivity';
+import GitManager from './gitManager';
 import SidebarSection from './sidebarSection';
 
 type Props = {
@@ -203,7 +203,7 @@ class GroupSidebar extends React.Component<Props, State> {
           </ErrorBoundary>
         )}
 
-        <GitActivity api={api} issueId={group.id} />
+        <GitManager api={api} issueId={group.id} />
 
         {this.renderPluginIssue()}
 
