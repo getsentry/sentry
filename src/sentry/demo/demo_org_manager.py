@@ -12,6 +12,7 @@ from django.template.defaultfilters import slugify
 from sentry import roles
 from sentry.models import (
     Organization,
+    OrganizationAvatar,
     OrganizationMember,
     OrganizationMemberTeam,
     OrganizationStatus,
@@ -65,9 +66,15 @@ def create_demo_org(quick=False) -> Organization:
 
             projects = []
 
-            with open(EMPOWER_PLANT_LOGO, "rb") as avatar:
-                demo_org = DemoOrganization.create_org(name=name, slug=slug, avatar=avatar)
+            demo_org = DemoOrganization.create_org(name=name, slug=slug)
             org = demo_org.organization
+            with open(EMPOWER_PLANT_LOGO, "rb") as avatar:
+                OrganizationAvatar.save_avatar(
+                    relation={"organization": org},
+                    type="upload",
+                    avatar=avatar,
+                    filename=f"{org.slug}.png",
+                )
 
             logger.info("create_demo_org.created_org", {"organization_slug": slug})
 
