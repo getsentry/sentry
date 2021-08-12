@@ -18,7 +18,6 @@ from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Organization, Project, Release
-from sentry.models.release import ReleaseProject
 from sentry.utils.types import Bool
 
 LINK_USER_MESSAGE = (
@@ -216,13 +215,3 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
     def _get_orgs_by_user_id(self, slack_request: SlackRequest) -> QuerySet:
         return Organization.objects.get_for_user_ids({slack_request.identity_id})
-
-    def _get_new_groups_by_release(self, release: Release) -> int:
-        """
-        Given a release, returns the number of new issues introduced
-        with this release. New issues are called 'new_groups'.
-        """
-        new_groups = 0
-        for rp in ReleaseProject.objects.filter(release=release):
-            new_groups += rp.new_groups
-        return new_groups
