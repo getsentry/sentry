@@ -55,9 +55,6 @@ EMPOWER_PLANT_EMPLOYEES = (
 def create_demo_org(quick=False) -> Organization:
     with sentry_sdk.start_transaction(op="create_demo_org", name="create_demo_org", sampled=True):
         sentry_sdk.set_tag("quick", quick)
-        avatar = None
-        with open(EMPOWER_PLANT_LOGO, "rb") as f:
-            avatar = f.read()
         # wrap the main org setup in transaction
         with transaction.atomic():
             # name = generate_random_name()
@@ -68,7 +65,8 @@ def create_demo_org(quick=False) -> Organization:
 
             projects = []
 
-            demo_org = DemoOrganization.create_org(name=name, slug=slug, avatar=avatar)
+            with open(EMPOWER_PLANT_LOGO, "rb") as avatar:
+                demo_org = DemoOrganization.create_org(name=name, slug=slug, avatar=avatar)
             org = demo_org.organization
 
             logger.info("create_demo_org.created_org", {"organization_slug": slug})

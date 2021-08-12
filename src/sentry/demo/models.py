@@ -47,6 +47,7 @@ class DemoOrganization(DefaultFieldsModel):
     @classmethod
     def create_org(cls, *args, **kwargs):
         org = Organization.objects.create(*args, **kwargs)
+
         demo_org = cls.objects.create(organization=org)
         return demo_org
 
