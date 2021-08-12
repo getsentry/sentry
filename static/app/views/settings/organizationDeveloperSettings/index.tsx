@@ -1,14 +1,13 @@
-import {Link, RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router';
 
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
+import {removeSentryFunction} from 'app/actionCreators/sentryFunctions';
 import Access from 'app/components/acl/access';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconAdd, IconInput} from 'app/icons';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization, SentryApp, SentryFunction} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
@@ -16,6 +15,8 @@ import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+
+import SentryFunctionRow from './sentryFunctionRow';
 
 type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
@@ -157,19 +158,28 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
+  removeFunction = (organization: Organization, sentryFunction: SentryFunction) => {
+    const functionsToKeep = this.state.sentryFunctions?.filter(
+      fn => fn.name !== sentryFunction.name
+    );
+    if (!functionsToKeep) return;
+    removeSentryFunction(this.api, organization, sentryFunction).then(
+      () => {
+        this.setState({sentryFunctions: functionsToKeep});
+      },
+      () => {}
+    );
+  };
+
   renderSentryFunction = (sentryFunction: SentryFunction) => {
     const {organization} = this.props;
     return (
-      <SentryFunctionHolder>
-        <StyledIconInput />
-        <LinkWrapper>
-          <StyledLink
-            to={`/settings/${organization.slug}/developer-settings/sentry-functions/${sentryFunction.slug}/`}
-          >
-            {sentryFunction.name}
-          </StyledLink>
-        </LinkWrapper>
-      </SentryFunctionHolder>
+      <SentryFunctionRow
+        key={organization.slug + sentryFunction.name}
+        organization={organization}
+        sentryFunction={sentryFunction}
+        onRemoveFunction={this.removeFunction}
+      />
     );
   };
 
@@ -233,23 +243,3 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 }
 
 export default withOrganization(OrganizationDeveloperSettings);
-
-const SentryFunctionHolder = styled('div')`
-  display: flex;
-  flex-direction: row;
-  padding: 5px;
-`;
-
-const StyledIconInput = styled(IconInput)`
-  height: 36px;
-  width: 36px;
-`;
-
-const LinkWrapper = styled('div')`
-  padding-left: ${space(1)};
-  display: flex;
-`;
-
-const StyledLink = styled(Link)`
-  margin: auto;
-`;

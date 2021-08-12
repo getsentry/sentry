@@ -10,21 +10,23 @@ import {Organization, SentryFunction} from 'app/types';
 
 export function removeSentryFunction(
   client: Client,
-  _org: Organization,
+  org: Organization,
   sentryFn: SentryFunction
 ): Promise<undefined> {
   addLoadingMessage();
-  const promise = client.requestPromise('/sentry', {
-    // TODO: set correct url
-    method: 'DELETE',
-  });
+  const promise = client.requestPromise(
+    `/organizations/${org.slug}/functions/${sentryFn.slug}/`,
+    {
+      method: 'DELETE',
+    }
+  );
   promise.then(
     () => {
       addSuccessMessage(t('%s successfully removed.', sentryFn.name));
     },
     () => {
       clearIndicators();
-      addErrorMessage(t('Unable to remove %s integration', sentryFn.name));
+      addErrorMessage(t('Unable to remove %s function', sentryFn.name));
     }
   );
   return promise;
