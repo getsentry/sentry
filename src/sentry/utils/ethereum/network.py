@@ -80,7 +80,7 @@ class EthereumNetwork:
         return self.w3.eth.call(transaction, block_identifier=block_identifier)
 
     def decode_contract_input(self, contract_address, abi_object, input):
-        contract = self.w3.eth.contract(address=contract_address, abi=abi_object["result"])
+        contract = self.w3.eth.contract(address=contract_address, abi=abi_object)
         definition, params = contract.decode_function_input(input)
         return FunctionCallInfo(definition=definition, params=params)
 
