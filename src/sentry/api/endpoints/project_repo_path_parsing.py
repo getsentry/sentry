@@ -5,7 +5,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Repository
-from sentry.utils.compat import filter, map
 
 
 def find_roots(stack_path, source_path):
@@ -41,10 +40,13 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
     @property
     def providers(self):
-        providers = filter(
-            lambda x: x.has_feature(IntegrationFeatures.STACKTRACE_LINK), list(integrations.all())
+        providers = list(
+            filter(
+                lambda x: x.has_feature(IntegrationFeatures.STACKTRACE_LINK),
+                list(integrations.all()),
+            )
         )
-        return map(lambda x: x.key, providers)
+        return list(map(lambda x: x.key, providers))
 
     @property
     def org_id(self):
@@ -72,7 +74,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
             organizations=self.org_id, provider__in=self.providers
         )
 
-        matching_integrations = filter(integration_match, integrations)
+        matching_integrations = list(filter(integration_match, integrations))
         if not matching_integrations:
             raise serializers.ValidationError("Could not find integration")
 
@@ -80,7 +82,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
         # now find the matching repo
         repos = Repository.objects.filter(integration_id=self.integration.id)
-        matching_repos = filter(repo_match, repos)
+        matching_repos = list(filter(repo_match, repos))
         if not matching_repos:
             raise serializers.ValidationError("Could not find repo")
 

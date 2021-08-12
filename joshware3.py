@@ -54,6 +54,10 @@ class GoodTransformer(CSTTransformer):
 
             return without_nested_list(node)
 
+        # TODO: for x in list(map|filter|list)
+
+        # TODO  for x, y in list(zip)
+
         return node
 
 
