@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import SentryFunction
-from sentry.utils.cloudfunctions import update_function
+from sentry.utils.cloudfunctions import delete_function, update_function
 
 from .organization_sentry_function import SentryFunctionSerializer
 
@@ -38,3 +38,11 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization, function):
         return Response(serialize(function))
+
+    def delete(self, request, organization, function):
+        # If an operation on the function is still in progress, it will raise
+        # an exception. Retrying when the operation has finished deletes the
+        # function successfully.
+        delete_function(function.external_id)
+        SentryFunction.objects.filter(organization=organization, name=function.name).delete()
+        return Response(status=204)

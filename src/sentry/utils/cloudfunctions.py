@@ -1,20 +1,19 @@
-import json
 from io import BytesIO
 from zipfile import ZipFile
 
 import requests
-from google.api_core.retry import Retry
 from google.cloud.functions_v1.services.cloud_functions_service import CloudFunctionsServiceClient
 from google.cloud.functions_v1.types import (
     CloudFunction,
-    CreateFunctionRequest,
     EventTrigger,
     GenerateUploadUrlRequest,
-    ListFunctionsRequest,
     UpdateFunctionRequest,
 )
+from google.cloud.functions_v1.types.functions import DeleteFunctionRequest
 from google.cloud.pubsub_v1 import PublisherClient
 from google.protobuf.field_mask_pb2 import FieldMask
+
+from sentry.utils import json
 
 WRAPPER_JS = """
 const userFunc = require('./user.js');
@@ -40,10 +39,6 @@ PACKAGE_JSON = {
         "node-fetch": "^2.6.1",
     }
 }
-
-import time
-
-from google.cloud import storage
 
 
 def function_pubsub_name(funcId):
@@ -117,4 +112,13 @@ def create_function(code, funcId, env_variables, description):
             environment_variables=env_variables,
         ),
         location="projects/hackweek-sentry-functions/locations/us-central1",
+    )
+
+
+def delete_function(funcId):
+    client = CloudFunctionsServiceClient()
+    client.delete_function(
+        request=DeleteFunctionRequest(
+            name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
+        ),
     )
