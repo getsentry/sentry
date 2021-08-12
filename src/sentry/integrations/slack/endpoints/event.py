@@ -42,7 +42,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         command = data["text"].lower().split()
         return command[0], command[1:]
 
-    def reply(self, slack_request: SlackRequest, message: str) -> Response:
+    def reply(self, slack_request: SlackRequest, message: Optional[str] = None) -> Response:
         client = SlackClient()
         access_token = self._get_access_token(slack_request.integration)
         headers = {"Authorization": "Bearer %s" % access_token}

@@ -1,5 +1,6 @@
 import abc
-from typing import Any, Sequence, Tuple
+import logging
+from typing import Any, Optional, Sequence, Tuple
 
 from django.db.models import F, QuerySet
 from rest_framework.response import Response
@@ -88,7 +89,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
     def get_command_and_args(self, request: SlackRequest) -> Tuple[str, Sequence[str]]:
         raise NotImplementedError
 
-    def reply(self, slack_request: SlackRequest, message: str) -> Response:
+    def reply(self, slack_request: SlackRequest, message: Optional[str] = None) -> Response:
         raise NotImplementedError
 
     def link_user(self, slack_request: SlackRequest) -> Any:

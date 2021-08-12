@@ -63,7 +63,10 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
 
         return text[0], text[1:]
 
-    def reply(self, slack_request: SlackRequest, message: str) -> Response:
+    def reply(self, slack_request: SlackRequest, message: Optional[str] = None) -> Response:
+        if not message:
+            return self.respond()
+
         return self.respond(
             {
                 "response_type": "ephemeral",
