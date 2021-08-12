@@ -247,5 +247,8 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  padding-top: ${p =>
+    !ConfigStore.get('stealthDemo') && ConfigStore.get('demoMode')
+      ? p.theme.demo.headerSize
+      : 0};
 `;
