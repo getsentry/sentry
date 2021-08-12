@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from hashlib import sha1
 from threading import Semaphore
+from typing import Container
 from uuid import uuid4
 
 from django.conf import settings
@@ -118,7 +119,7 @@ class FileBlob(Model):
         db_table = "sentry_fileblob"
 
     @classmethod
-    def from_files(cls, files, organization=None, logger=nooplogger):
+    def from_files(cls, files: Container, organization=None, logger=nooplogger):
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
         entries.  Files can be a list of files or tuples of file and checksum.
