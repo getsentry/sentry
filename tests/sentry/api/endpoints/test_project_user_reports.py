@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.models import EventUser, GroupStatus, UserReport
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import map
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
@@ -89,7 +88,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
+        assert sorted(list(map(lambda x: x["id"], response.data))) == sorted([str(report_1.id)])
 
     def test_cannot_access_with_dsn_auth(self):
         project = self.create_project()
@@ -121,7 +120,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
+        assert sorted(list(map(lambda x: x["id"], response.data))) == sorted([str(report_1.id)])
 
     def test_environments(self):
         self.login_as(user=self.user)

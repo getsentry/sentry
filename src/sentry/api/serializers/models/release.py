@@ -20,7 +20,6 @@ from sentry.models import (
 )
 from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
 
@@ -159,7 +158,7 @@ class ReleaseSerializer(Serializer):
         commit_ids = {o.last_commit_id for o in item_list if o.last_commit_id}
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids).select_related("author"))
-            commits = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
+            commits = {c.id: d for c, d in list(zip(commit_list, serialize(commit_list, user)))}
         else:
             commits = {}
 
@@ -195,7 +194,7 @@ class ReleaseSerializer(Serializer):
         deploy_ids = {o.last_deploy_id for o in item_list if o.last_deploy_id}
         if deploy_ids:
             deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
-            deploys = {d.id: c for d, c in zip(deploy_list, serialize(deploy_list, user))}
+            deploys = {d.id: c for d, c in list(zip(deploy_list, serialize(deploy_list, user)))}
         else:
             deploys = {}
 

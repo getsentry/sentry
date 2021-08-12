@@ -7,7 +7,6 @@ from django.utils.translation import ugettext_lazy as _
 import sentry
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.utils.compat import filter, map
 from sentry_plugins.base import CorePluginMixin
 
 from .client import TwilioApiClient
@@ -46,7 +45,7 @@ def clean_phone(phone):
 #      in theory only cleaned data would make it to the plugin via the form,
 #      and cleaned numbers are deduped already.
 def split_sms_to(data):
-    return set(filter(bool, re.split(r"\s*,\s*|\s+", data)))
+    return set(list(filter(bool, re.split(r"\s*,\s*|\s+", data))))
 
 
 class TwilioConfigurationForm(forms.Form):
@@ -85,7 +84,7 @@ class TwilioConfigurationForm(forms.Form):
         for phone in phones:
             if not validate_phone(phone):
                 raise forms.ValidationError(f"{phone} is not a valid phone number.")
-        return ",".join(sorted(set(map(clean_phone, phones))))
+        return ",".join(sorted(set(list(map(clean_phone, phones)))))
 
     def clean(self):
         # TODO: Ping Twilio and check credentials (?)

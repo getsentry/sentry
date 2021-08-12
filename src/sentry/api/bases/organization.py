@@ -22,7 +22,6 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.utils import auth
-from sentry.utils.compat import map
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context
@@ -166,7 +165,7 @@ class OrganizationEndpoint(Endpoint):
         permission checking, use ``get_projects``, instead.
         """
         try:
-            return set(map(int, request.GET.getlist("project")))
+            return set(list(map(int, request.GET.getlist("project"))))
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 

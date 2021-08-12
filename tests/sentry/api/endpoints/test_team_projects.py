@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.models import Project, Rule
 from sentry.testutils import APITestCase
-from sentry.utils.compat import map
 
 
 class TeamProjectIndexTest(APITestCase):
@@ -19,7 +18,7 @@ class TeamProjectIndexTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+        assert sorted(list(map(lambda x: x["id"], response.data))) == sorted(
             [str(project_1.id), str(project_2.id)]
         )
 

@@ -6,7 +6,6 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model
-from sentry.utils.compat import filter
 
 
 class GroupOwnerType(Enum):
@@ -45,7 +44,7 @@ class GroupOwner(Model):
         db_table = "sentry_groupowner"
 
     def save(self, *args, **kwargs):
-        keys = list(filter(None, [self.user_id, self.team_id]))
+        keys = list(list(filter(None, [self.user_id, self.team_id])))
         assert len(keys) == 1, "Must have team or user, not both"
         super().save(*args, **kwargs)
 

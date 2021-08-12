@@ -5,7 +5,6 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
-from sentry.utils.compat import zip
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -433,7 +432,7 @@ def get_suggested_updates(
         rv.append(suggestion)
         new_setup_states.append(new_setup_state)
 
-    for new_setup_state, suggestion in zip(new_setup_states, rv):
+    for new_setup_state, suggestion in list(zip(new_setup_states, rv)):
         json = suggestion.to_json()
         json["enables"] = list(
             get_suggested_updates(

@@ -27,7 +27,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat import mock, zip
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
@@ -3565,7 +3565,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             results = response.data["data"]
             assert results[0]["count"] == 1, datum
 
-            for (field, exp) in zip(fields, expected):
+            for (field, exp) in list(zip(fields, expected)):
                 assert results[0][field] == exp, field + str(datum)
 
     def test_failure_count_alias_field(self):

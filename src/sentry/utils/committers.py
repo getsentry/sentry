@@ -9,7 +9,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.models import Commit, CommitFileChange, Group, Release, ReleaseCommit
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path
 
@@ -28,7 +27,7 @@ def tokenize_path(path):
 
 def score_path_match_length(path_a, path_b):
     score = 0
-    for a, b in zip(tokenize_path(path_a), tokenize_path(path_b)):
+    for a, b in list(zip(tokenize_path(path_a), tokenize_path(path_b))):
         if a.lower() != b.lower():
             break
         score += 1
@@ -272,7 +271,7 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
     serialized_commits_by_id = {}
 
-    for (commit, score), serialized_commit in zip(commits, serialized_commits):
+    for (commit, score), serialized_commit in list(zip(commits, serialized_commits)):
         serialized_commit["score"] = score
         serialized_commits_by_id[commit.id] = serialized_commit
 

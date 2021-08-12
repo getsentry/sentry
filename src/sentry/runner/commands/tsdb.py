@@ -6,7 +6,6 @@ import pytz
 from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration
-from sentry.utils.compat import map
 from sentry.utils.iterators import chunked
 
 
@@ -103,5 +102,5 @@ def organizations(metrics, since, until):
                 values.append(aggregate(results[metric][key]))
 
             stdout.write(
-                "{} {} {}\n".format(instance.id, instance.slug, " ".join(map(str, values)))
+                "{} {} {}\n".format(instance.id, instance.slug, " ".join(list(map(str, values))))
             )

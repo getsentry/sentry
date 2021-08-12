@@ -27,7 +27,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
@@ -175,9 +174,11 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
 
-    installations = filter(
-        lambda i: event in i.sentry_app.events,
-        SentryAppInstallation.get_installed_for_org(org.id).select_related("sentry_app"),
+    installations = list(
+        filter(
+            lambda i: event in i.sentry_app.events,
+            SentryAppInstallation.get_installed_for_org(org.id).select_related("sentry_app"),
+        )
     )
 
     for installation in installations:

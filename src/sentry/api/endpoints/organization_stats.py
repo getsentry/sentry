@@ -5,7 +5,6 @@ from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment, Project, Team
-from sentry.utils.compat import map
 
 
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
@@ -51,7 +50,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
             raise ValueError("Invalid group: %s" % group)
 
         if "id" in request.GET:
-            id_filter_set = frozenset(map(int, request.GET.getlist("id")))
+            id_filter_set = frozenset(list(map(int, request.GET.getlist("id"))))
             keys = [k for k in keys if k in id_filter_set]
 
         if not keys:

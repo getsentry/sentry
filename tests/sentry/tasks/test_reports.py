@@ -37,7 +37,7 @@ from sentry.tasks.reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.utils.compat import map, mock
+from sentry.utils.compat import mock
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -357,7 +357,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
         )
 
         assert any(
-            map(lambda x: x[1] == (2, 0), response)
+            list(map(lambda x: x[1] == (2, 0), response))
         ), "must show two issues resolved in one rollup window"
 
 

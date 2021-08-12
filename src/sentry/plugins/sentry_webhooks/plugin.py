@@ -10,7 +10,6 @@ from sentry.exceptions import PluginError
 from sentry.http import is_valid_url, safe_urlopen
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases import notify
-from sentry.utils.compat import filter
 from sentry.utils.safe import safe_execute
 
 DESCRIPTION = """
@@ -24,7 +23,7 @@ Note: To configure webhooks over multiple projects, we recommend setting up an
 def split_urls(value):
     if not value:
         return ()
-    return filter(bool, (url.strip() for url in value.splitlines()))
+    return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
 def validate_urls(value, **kwargs):

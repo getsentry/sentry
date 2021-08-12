@@ -44,7 +44,6 @@ from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
-from sentry.utils.compat import zip
 from sentry.utils.snuba import raw_query
 
 logger = logging.getLogger(__name__)
@@ -474,7 +473,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
         for i, (trigger, expected_label) in enumerate(
-            zip(triggers, (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
+            list(zip(triggers, (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL)))
         ):
             if trigger.get("label", None) != expected_label:
                 raise serializers.ValidationError(

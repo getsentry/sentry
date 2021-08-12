@@ -10,7 +10,7 @@ from pytz import utc
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock, zip
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 
@@ -383,7 +383,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 6
 
             rows = data[0:6]
-            for test in zip(event_counts, rows):
+            for test in list(zip(event_counts, rows)):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
     def test_throughput_epm_day_rollup(self):
@@ -461,7 +461,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 6
 
             rows = data[0:6]
-            for test in zip(event_counts, rows):
+            for test in list(zip(event_counts, rows)):
                 assert test[1][1][0]["count"] == test[0] / 60.0
 
     def test_throughput_eps_no_rollup(self):
@@ -1780,7 +1780,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         timestamp_hours = [timestamp.replace(minute=0, second=0) for timestamp in timestamps]
         timestamp_days = [timestamp.replace(hour=0, minute=0, second=0) for timestamp in timestamps]
 
-        for ts, ts_hr, ts_day in zip(timestamps, timestamp_hours, timestamp_days):
+        for ts, ts_hr, ts_day in list(zip(timestamps, timestamp_hours, timestamp_days)):
             key = f"{iso_format(ts)}+00:00,{iso_format(ts_day)}+00:00,{iso_format(ts_hr)}+00:00"
             count = sum(
                 e["count"] for e in self.event_data if e["data"]["timestamp"] == iso_format(ts)

@@ -51,7 +51,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import ParamsType, SelectType
 from sentry.search.utils import InvalidQuery, parse_duration
-from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
     Dataset,
@@ -1471,7 +1470,7 @@ class DiscoverFunction:
         arguments = {}
 
         # normalize the arguments before putting them in a dict
-        for argument, column in zip(self.args, columns):
+        for argument, column in list(zip(self.args, columns)):
             try:
                 normalized_value = argument.normalize(column, params)
                 if not isinstance(self, SnQLFunction) and isinstance(argument, NumericColumn):

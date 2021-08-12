@@ -8,7 +8,6 @@ from pkg_resources import parse_version
 
 import sentry
 from sentry.utils import json
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry")
 
@@ -31,7 +30,7 @@ def load_registry(path):
 def get_highest_browser_sdk_version(versions):
     full_versions = [x for x in versions if _version_regexp.match(x)]
     return (
-        str(max(map(parse_version, full_versions)))
+        str(max(list(map(parse_version, full_versions))))
         if full_versions
         else settings.JS_SDK_LOADER_SDK_VERSION
     )

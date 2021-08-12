@@ -14,7 +14,6 @@ from sentry.incidents.models import (
 )
 from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.utils.compat import zip
 
 
 @register(AlertRule)
@@ -29,7 +28,7 @@ class AlertRuleSerializer(Serializer):
         result = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
         serialized_triggers = serialize(list(triggers))
-        for trigger, serialized in zip(triggers, serialized_triggers):
+        for trigger, serialized in list(zip(triggers, serialized_triggers)):
             alert_rule_triggers = result[alert_rules[trigger.alert_rule_id]].setdefault(
                 "triggers", []
             )

@@ -4,7 +4,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models import IntegrationFeature, SentryApp
 from sentry.models.sentryapp import MASKED_VALUE
-from sentry.utils.compat import map
 
 
 @register(SentryApp)
@@ -33,7 +32,7 @@ class SentryAppSerializer(Serializer):
 
         if obj.status != SentryAppStatus.INTERNAL:
             features = IntegrationFeature.objects.filter(sentry_app_id=obj.id)
-            data["featureData"] = map(lambda x: serialize(x, user), features)
+            data["featureData"] = list(map(lambda x: serialize(x, user), features))
 
         if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
             data.update({"datePublished": obj.date_published})

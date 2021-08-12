@@ -7,7 +7,6 @@ import click
 import sentry_sdk
 
 import sentry
-from sentry.utils.compat import map
 from sentry.utils.imports import import_string
 
 # We need to run this here because of a concurrency bug in Python's locale

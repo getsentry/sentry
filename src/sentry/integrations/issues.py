@@ -5,7 +5,6 @@ from sentry import features
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -266,7 +265,7 @@ class IssueBasicMixin:
         # group annotations by group id
         annotations_by_group_id = defaultdict(list)
         for group_link in group_links:
-            issues_for_group = filter(lambda x: x.id == group_link.linked_id, external_issues)
+            issues_for_group = list(filter(lambda x: x.id == group_link.linked_id, external_issues))
             annotations = self.map_external_issues_to_annotations(issues_for_group)
             annotations_by_group_id[group_link.group_id].extend(annotations)
 

@@ -1,7 +1,5 @@
 from django.utils.functional import empty
 
-from sentry.utils.compat import zip
-
 
 def extract_lazy_object(lo):
     """
@@ -32,8 +30,8 @@ def apply_values(function, mapping):
     if not mapping:
         return {}
 
-    keys, values = zip(*mapping.items())
-    return dict(zip(keys, function(values)))
+    keys, values = list(zip(*mapping.items()))
+    return dict(list(zip(keys, function(values))))
 
 
 def compact(seq):
