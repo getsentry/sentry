@@ -23,7 +23,7 @@ export default class SentryFunctionRow extends PureComponent<Props> {
         <StyledIconInput />
         <LinkWrapper>
           <StyledLink
-            to={`/settings/${organization.slug}/developer-settings/sentry-functions/${sentryFunction.name}/`}
+            to={`/settings/${organization.slug}/developer-settings/sentry-functions/${sentryFunction.slug}/`}
           >
             {sentryFunction.name}
           </StyledLink>
