@@ -187,41 +187,6 @@ class EthereumNetwork:
 
             hub.capture_event(event)
 
-            # misc = {
-            #         # "message": err_reason,
-            #         "level": "error",
-            #         "platform": "ethereum",
-            #         "exception": {
-            #             "values": [
-            #                 {
-            #                     "type": err_reason,
-            #                     "value": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
-            #                     "stacktrace": {
-            #                         "frames": [
-            #                             {
-            #                                 "function": "swapExactTokensForETHSupportingFeeOnTransferTokens()",
-            #                                 "vars": {
-            #                                     "amountIn": {
-            #                                         "type": "uint256",
-            #                                         "value": 1312312321321323213,
-            #                                     },
-            #                                     "amountOutMin": {
-            #                                         "type": "address[]",
-            #                                         "value": [
-            #                                             "0x095648BC80a7d1Dd16B85E9B84F07463a20f3536",
-            #                                             "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-            #                                         ],
-            #                                     },
-            #                                 },
-            #                             }
-            #                         ]
-            #                     },
-            #                 }
-            #             ]
-            #         },
-            #     }
-            # )
-
     def report_errored_transaction(self, transaction, receipt, projects_filters_map):
         tr_id = transaction["hash"].hex()
         logger.info("Failed transaction: %s", tr_id)
@@ -334,7 +299,8 @@ class EthereumNetwork:
         try:
             self.eth_call(sanitized, block_identifier=block_number)
         except web3.exceptions.SolidityError as e:
-            reason = re.sub(r"^execution reverted:\s+", "", e.args[0])
+            reason = re.sub(r"^execution reverted:\s+", "", e.args[0].strip())
+            reason = re.sub(r"VM Exception while processing transaction: revert\s+", "", reason)
         except ValueError as e:
             logger.error(e)
 
