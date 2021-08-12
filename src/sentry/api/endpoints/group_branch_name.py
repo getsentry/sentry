@@ -2,7 +2,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
 from sentry.constants import BRANCH_FORMAT_DEFAULT
-from sentry.git_helpers import build_branch_name
+from sentry.git_manager import build_branch_name
 
 
 class GroupBranchNameEndpoint(GroupEndpoint):

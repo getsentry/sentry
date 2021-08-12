@@ -31,6 +31,7 @@ type CommonProps = Omit<
   shouldConfirm?: boolean;
   confirmPriority?: ConfirmableActionProps['priority'];
   confirmLabel?: string;
+  external?: boolean;
 };
 
 type Props = CommonProps &
@@ -50,6 +51,7 @@ export default function ActionLink({
   shouldConfirm,
   confirmPriority,
   header,
+  external,
   ...props
 }: Props) {
   const actionCommonProps = {
@@ -58,6 +60,7 @@ export default function ActionLink({
     onClick: disabled ? undefined : onAction,
     disabled,
     children,
+    ...(external && {target: '_blank', rel: 'noreferrer noopener'}),
     ...props,
   };
 
