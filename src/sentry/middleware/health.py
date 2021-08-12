@@ -3,8 +3,6 @@ import itertools
 from django.http import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
 
-from sentry.utils.compat import filter
-
 
 class HealthCheck(MiddlewareMixin):
     def process_request(self, request):
@@ -24,7 +22,9 @@ class HealthCheck(MiddlewareMixin):
         from sentry.utils import json
 
         threshold = Problem.threshold(Problem.SEVERITY_CRITICAL)
-        results = {check: filter(threshold, problems) for check, problems in check_all().items()}
+        results = {
+            check: list(filter(threshold, problems)) for check, problems in check_all().items()
+        }
         problems = list(itertools.chain.from_iterable(results.values()))
 
         return HttpResponse(

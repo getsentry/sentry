@@ -4,8 +4,6 @@ import time
 
 import click
 
-from sentry.utils.compat import map
-
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
     "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
@@ -301,7 +299,7 @@ def _start_service(
 
     listening = ""
     if options["ports"]:
-        listening = "(listening: %s)" % ", ".join(map(str, options["ports"].values()))
+        listening = "(listening: %s)" % ", ".join(list(map(str, options["ports"].values())))
 
     # If a service is associated with the devserver, then do not run the created container.
     # This was mainly added since it was not desirable for nginx to occupy port 8000 on the

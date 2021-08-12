@@ -37,7 +37,6 @@ from sentry.models import (
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
-from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -186,7 +185,7 @@ def merge_sequences(target, other, function=operator.add):
     if rt_type == range:
         rt_type = list
 
-    return rt_type([function(x, y) for x, y in zip(target, other)])
+    return rt_type([function(x, y) for x, y in list(zip(target, other))])
 
 
 def merge_mappings(target, other, function=operator.add):
@@ -236,7 +235,7 @@ def build_project_series(start__stop, project):
     tsdb_range_resolved = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
     resolved_series = reduce(
         merge_series,
-        map(clean, tsdb_range_resolved.values()),
+        list(map(clean, tsdb_range_resolved.values())),
         clean([(timestamp, 0) for timestamp in series]),
     )
 
@@ -423,7 +422,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
             value = None
         return (timestamp, value)
 
-    return map(remove_invalid_values, clean_series(start, stop, rollup, series))
+    return list(map(remove_invalid_values, clean_series(start, stop, rollup, series)))
 
 
 def build_project_calendar_series(interval, project):
@@ -447,15 +446,15 @@ def build_report(fields):
     The merge function is used to merge the value of that field together for
     multiple reports.
     """
-    names, field_builders, field_mergers = zip(*fields)
+    names, field_builders, field_mergers = list(zip(*fields))
 
     cls = namedtuple("Report", names)
 
     def prepare(*args):
-        return cls(*[f(*args) for f in field_builders])
+        return cls(*(f(*args) for f in field_builders))
 
     def merge(target, other):
-        return cls(*[f(target[i], other[i]) for i, f in enumerate(field_mergers)])
+        return cls(*(f(target[i], other[i]) for i, f in enumerate(field_mergers)))
 
     return cls, prepare, merge
 
@@ -510,7 +509,7 @@ class DummyReportBackend(ReportBackend):
 
     def fetch(self, timestamp, duration, organization, projects):
         assert all(project.organization_id == organization.id for project in projects)
-        return map(partial(self.build, timestamp, duration), projects)
+        return list(map(partial(self.build, timestamp, duration), projects))
 
 
 class RedisReportBackend(ReportBackend):
@@ -558,7 +557,7 @@ class RedisReportBackend(ReportBackend):
                 [project.id for project in projects],
             )
 
-        return map(self.__decode, result.value)
+        return list(map(self.__decode, result.value))
 
 
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
@@ -730,9 +729,11 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        filter(
-            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
+        list(
+            filter(
+                lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
+                list(zip(projects, backend.fetch(timestamp, duration, organization, projects))),
+            )
         )
     )
 
@@ -807,17 +808,19 @@ def build_project_breakdown_series(reports):
     # of values in the series. (This is so when we render the series, the
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
-    selections = map(
-        lambda project__color: (
-            Key(
-                label=project__color[0].slug,
-                url=project__color[0].get_absolute_url(),
-                color=project__color[1],
-                data=get_legend_data(reports[project__color[0]]),
+    selections = list(
+        map(
+            lambda project__color: (
+                Key(
+                    label=project__color[0].slug,
+                    url=project__color[0].get_absolute_url(),
+                    color=project__color[1],
+                    data=get_legend_data(reports[project__color[0]]),
+                ),
+                reports[project__color[0]],
             ),
-            reports[project__color[0]],
-        ),
-        zip(projects, project_breakdown_colors),
+            list(zip(projects, project_breakdown_colors)),
+        )
     )[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
@@ -866,13 +869,15 @@ def to_context(organization, interval, reports):
         },
         "distribution": {
             "types": list(
-                zip(
-                    (
-                        DistributionType("New", "#DF5120"),
-                        DistributionType("Reopened", "#FF7738"),
-                        DistributionType("Existing", "#F9C7B9"),
-                    ),
-                    report.issue_summaries,
+                list(
+                    zip(
+                        (
+                            DistributionType("New", "#DF5120"),
+                            DistributionType("Reopened", "#FF7738"),
+                            DistributionType("Existing", "#F9C7B9"),
+                        ),
+                        report.issue_summaries,
+                    )
                 )
             ),
             "total": sum(report.issue_summaries),
@@ -962,11 +967,11 @@ def to_calendar(organization, interval, series):
 
     calendar = Calendar(6)
     sheets = []
-    for year, month in map(index_to_month, range(start, stop + 1)):
+    for year, month in list(map(index_to_month, range(start, stop + 1))):
         weeks = []
 
         for week in calendar.monthdatescalendar(year, month):
-            weeks.append(map(get_data_for_date, week))
+            weeks.append(list(map(get_data_for_date, week)))
 
         sheets.append((datetime(year, month, 1, tzinfo=pytz.utc), weeks))
 

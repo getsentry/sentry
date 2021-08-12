@@ -13,7 +13,6 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
-from sentry.utils.compat import filter
 from sentry.utils.compat.mock import Mock, patch
 
 UNSET = object()
@@ -199,7 +198,7 @@ class LinkSharedEventTest(BaseEventTest):
 
 class MessageIMEventTest(BaseEventTest):
     def get_block_type_text(self, block_type, data):
-        block = filter(lambda x: x["type"] == block_type, data["blocks"])[0]
+        block = list(filter(lambda x: x["type"] == block_type, data["blocks"]))[0]
         return block["elements"][0]["text"]["text"]
 
     def get_block_section_text(self, data):

@@ -38,7 +38,6 @@ from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
-from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
@@ -284,7 +283,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         # If group ids specified, just ignore any query components
         try:
-            group_ids = set(map(int, request.GET.getlist("group")))
+            group_ids = set(list(map(int, request.GET.getlist("group"))))
         except ValueError:
             return Response({"detail": "Group ids must be integers"}, status=400)
 

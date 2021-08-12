@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Project
-from sentry.utils.compat import map
 
 
 class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
@@ -24,7 +23,7 @@ class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
         :auth: required
         """
         is_member = request.GET.get("is_member")
-        project_ids = set(map(int, request.GET.getlist("project")))
+        project_ids = set(list(map(int, request.GET.getlist("project"))))
         queryset = Project.objects.filter(organization=organization, first_event__isnull=False)
         if is_member:
             queryset = queryset.filter(teams__organizationmember__user=request.user)

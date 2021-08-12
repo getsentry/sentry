@@ -28,7 +28,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.compat import mock, zip
+from sentry.utils.compat import mock
 
 
 def _dyn_sampling_data():
@@ -809,7 +809,7 @@ class CopyProjectSettingsTest(APITestCase):
         assert ownership.schema == self.ownership.schema
 
         rules = Rule.objects.filter(project_id=project.id).order_by("label")
-        for rule, other_rule in zip(rules, self.rules):
+        for rule, other_rule in list(zip(rules, self.rules)):
             assert rule.label == other_rule.label
 
     def assert_settings_not_copied(self, project, teams=()):

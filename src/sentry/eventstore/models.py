@@ -19,7 +19,6 @@ from sentry.snuba.events import Columns
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
-from sentry.utils.compat import zip
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
@@ -126,7 +125,7 @@ class Event:
             keys = self._snuba_data[tags_key_column]
             values = self._snuba_data[tags_value_column]
             if keys and values and len(keys) == len(values):
-                return sorted(zip(keys, values))
+                return sorted(list(zip(keys, values)))
             else:
                 return []
         # Nodestore implementation
@@ -262,7 +261,7 @@ class Event:
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5(f"{project_id}:{event_id}".encode("utf-8")).hexdigest()
+        return md5(f"{project_id}:{event_id}".encode()).hexdigest()
 
     # TODO We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved

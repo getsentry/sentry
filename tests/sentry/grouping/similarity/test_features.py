@@ -7,7 +7,6 @@ from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.models import Group, Project
 from sentry.utils import json
-from sentry.utils.compat import zip
 from tests.sentry.grouping import with_fingerprint_input, with_grouping_input
 
 
@@ -88,7 +87,7 @@ def test_similarity_extract_fingerprinting(fingerprint_input, insta_snapshot):
 def _get_configurations():
     # Sort configurations by ascending date
     strategies = sorted(CONFIGURATIONS.keys(), key=lambda x: x.split(":")[-1])
-    return list(zip(strategies, strategies[1:]))
+    return list(list(zip(strategies, strategies[1:])))
 
 
 @pytest.mark.parametrize("config,next_config", _get_configurations())

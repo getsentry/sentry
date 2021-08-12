@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
-from sentry.utils.compat import zip
 
 VALID_STATUSES = frozenset(("viewed", "dismissed"))
 
@@ -18,7 +17,7 @@ VALID_STATUSES = frozenset(("viewed", "dismissed"))
 class AssistantSerializer(serializers.Serializer):
     guide = serializers.CharField(required=False)
     guide_id = serializers.IntegerField(required=False)
-    status = serializers.ChoiceField(choices=zip(VALID_STATUSES, VALID_STATUSES))
+    status = serializers.ChoiceField(choices=list(zip(VALID_STATUSES, VALID_STATUSES)))
     useful = serializers.BooleanField(required=False)
 
     def validate_guide_id(self, value):

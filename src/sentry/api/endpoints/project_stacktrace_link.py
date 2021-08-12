@@ -6,7 +6,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, RepositoryProjectPathConfig
-from sentry.utils.compat import filter
 
 
 def get_link(config, filepath, default, version=None):
@@ -51,8 +50,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
             serialize(i, request.user)
-            for i in filter(
-                lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations
+            for i in list(
+                filter(lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations)
             )
         ]
 

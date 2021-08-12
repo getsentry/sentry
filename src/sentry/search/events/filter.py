@@ -50,7 +50,6 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, QueryFields, resolve_field
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
-from sentry.utils.compat import filter
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     FUNCTION_TO_OPERATOR,
@@ -416,7 +415,7 @@ def _semver_filter_converter(
     # the passed filter.
     order_by = Release.SEMVER_COLS
     if operator.startswith("<"):
-        order_by = list(map(_flip_field_sort, order_by))
+        order_by = list(list(map(_flip_field_sort, order_by)))
     qs = (
         Release.objects.filter_by_semver(
             organization_id,
@@ -439,7 +438,7 @@ def _semver_filter_converter(
         # include it even though we don't really care about order for this query
         qs_flipped = (
             Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
-            .order_by(*map(_flip_field_sort, order_by))
+            .order_by(*list(map(_flip_field_sort, order_by)))
             .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
 
@@ -810,7 +809,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
 
     condition, having = None, None
     if lhs_condition or rhs_condition:
-        args = filter(None, [lhs_condition, rhs_condition])
+        args = list(filter(None, [lhs_condition, rhs_condition]))
         if not args:
             condition = None
         elif len(args) == 1:
@@ -819,7 +818,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
             condition = [operator, args]
 
     if lhs_having or rhs_having:
-        args = filter(None, [lhs_having, rhs_having])
+        args = list(filter(None, [lhs_having, rhs_having]))
         if not args:
             having = None
         elif len(args) == 1:
@@ -1675,7 +1674,7 @@ class QueryFilter(QueryFields):
         # the passed filter.
         order_by = Release.SEMVER_COLS
         if operator.startswith("<"):
-            order_by = list(map(_flip_field_sort, order_by))
+            order_by = list(list(map(_flip_field_sort, order_by)))
         qs = (
             Release.objects.filter_by_semver(
                 organization_id,
@@ -1698,7 +1697,7 @@ class QueryFilter(QueryFields):
             # include it even though we don't really care about order for this query
             qs_flipped = (
                 Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
-                .order_by(*map(_flip_field_sort, order_by))
+                .order_by(*list(map(_flip_field_sort, order_by)))
                 .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
             )
 

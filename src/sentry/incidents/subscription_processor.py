@@ -29,7 +29,6 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
 from sentry.utils import metrics, redis
-from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
 
 logger = logging.getLogger(__name__)
@@ -445,7 +444,7 @@ def partition(iterable, n):
     """
     assert len(iterable) % n == 0
     args = [iter(iterable)] * n
-    return zip(*args)
+    return list(zip(*args))
 
 
 def get_alert_rule_stats(alert_rule, subscription, triggers):
@@ -468,8 +467,8 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
     trigger_results = results[1:]
     trigger_alert_counts = {}
     trigger_resolve_counts = {}
-    for trigger, trigger_result in zip(
-        triggers, partition(trigger_results, len(ALERT_RULE_TRIGGER_STAT_KEYS))
+    for trigger, trigger_result in list(
+        zip(triggers, partition(trigger_results, len(ALERT_RULE_TRIGGER_STAT_KEYS)))
     ):
         trigger_alert_counts[trigger.id] = trigger_result[0]
         trigger_resolve_counts[trigger.id] = trigger_result[1]
@@ -483,7 +482,7 @@ def update_alert_rule_stats(alert_rule, subscription, last_update, alert_counts,
     """
     pipeline = get_redis_client().pipeline()
 
-    counts_with_stat_keys = zip(ALERT_RULE_TRIGGER_STAT_KEYS, (alert_counts, resolve_counts))
+    counts_with_stat_keys = list(zip(ALERT_RULE_TRIGGER_STAT_KEYS, (alert_counts, resolve_counts)))
     for stat_key, trigger_counts in counts_with_stat_keys:
         for trigger_id, alert_count in trigger_counts.items():
             pipeline.set(

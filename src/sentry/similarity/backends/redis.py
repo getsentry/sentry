@@ -4,7 +4,6 @@ import time
 from django.utils.encoding import force_text
 
 from sentry.similarity.backends.abstract import AbstractIndexBackend
-from sentry.utils.compat import map, zip
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
 
@@ -38,7 +37,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
 
         arguments = []
         for bucket in band(self.bands, self.signature_builder(features)):
-            arguments.extend([1, ",".join(map("{}".format, bucket)), 1])
+            arguments.extend([1, ",".join(list(map("{}".format, bucket))), 1])
         return arguments
 
     def __index(self, scope, args):
@@ -58,7 +57,11 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             key, scores = result
             return (
                 force_text(key),
-                map(lambda score: score_replacements.get(score, score), map(float, scores)),
+                list(
+                    map(
+                        lambda score: score_replacements.get(score, score), list(map(float, scores))
+                    )
+                ),
             )
 
         def get_comparison_key(result):
@@ -72,7 +75,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
                 key,  # lexicographical sort on key, ascending
             )
 
-        return sorted(map(decode_search_result, results), key=get_comparison_key)
+        return sorted(list(map(decode_search_result, results)), key=get_comparison_key)
 
     def classify(self, scope, items, limit=None, timestamp=None):
         if timestamp is None:
@@ -207,7 +210,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
 
             responses = self.__index(scope, arguments + flatten(requests))
 
-            for (idx, _, _), (cursor, chunk) in zip(requests, responses):
+            for (idx, _, _), (cursor, chunk) in list(zip(requests, responses)):
                 cursor = int(cursor)
                 if cursor == 0:
                     del cursors[idx]

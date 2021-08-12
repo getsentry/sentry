@@ -8,7 +8,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.utils.compat import zip
 
 
 @register(AlertRuleTrigger)
@@ -23,7 +22,7 @@ class AlertRuleTriggerSerializer(Serializer):
             "id"
         )
         serialized_actions = serialize(list(actions))
-        for trigger, serialized in zip(actions, serialized_actions):
+        for trigger, serialized in list(zip(actions, serialized_actions)):
             triggers_actions = result[triggers[trigger.alert_rule_trigger_id]].setdefault(
                 "actions", []
             )

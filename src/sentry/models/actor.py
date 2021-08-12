@@ -6,7 +6,6 @@ from django.db.models.signals import pre_save
 from rest_framework import serializers
 
 from sentry.db.models import Model
-from sentry.utils.compat import filter
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
@@ -130,7 +129,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
             for instance in type.objects.filter(id__in=[a.id for a in _actors]):
                 results[(type, instance.id)] = instance
 
-        return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
+        return list(list(filter(None, [results.get((actor.type, actor.id)) for actor in actors])))
 
     @classmethod
     def resolve_dict(cls, actor_dict):

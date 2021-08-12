@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import map
 
 
 class ProjectEventsTest(APITestCase, SnubaTestCase):
@@ -25,7 +24,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
+        assert sorted(list(map(lambda x: x["eventID"], response.data))) == sorted(
             [event_1.event_id, event_2.event_id]
         )
 

@@ -14,7 +14,6 @@ from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.utils import metrics
-from sentry.utils.compat import map
 from sentry.utils.snuba import MAX_FIELDS
 
 from ..base import ExportQueryType
@@ -38,7 +37,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             get_projects_by_id = self.context["get_projects_by_id"]
             # Coerce the query into a set
             if isinstance(project_query, list):
-                projects = get_projects_by_id(set(map(int, project_query)))
+                projects = get_projects_by_id(set(list(map(int, project_query))))
             else:
                 projects = get_projects_by_id({int(project_query)})
             query_info["project"] = [project.id for project in projects]
