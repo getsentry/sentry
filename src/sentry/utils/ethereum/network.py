@@ -16,8 +16,6 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.utils import json
 
-# from sentry.models.ethereum import EthereumAddress
-
 logger = logging.getLogger("sentry.utils.ethereum.network")
 
 # Disable some web3 loggers
@@ -27,8 +25,8 @@ for _ in (
 ):
     logging.getLogger(_).setLevel(logging.CRITICAL)
 
-
 DEFAULT_ERROR_MESSAGE = "Transaction reverted"
+WILDCARD_ADDRESS = "*"
 
 
 def retry_with_delay(on, ignore=None, attempts=3, delay=0.1, reraise=False):
@@ -215,9 +213,11 @@ class EthereumNetwork:
     def process_transaction(self, transaction, address_project_map):
         for addr, projects_filters_map in address_project_map.items():
             addr = addr.lower()
-            if (transaction["from"] or "").lower() == addr or (
-                transaction["to"] or ""
-            ).lower() == addr:
+            if (
+                WILDCARD_ADDRESS == addr
+                or (transaction["from"] or "").lower() == addr
+                or (transaction["to"] or "").lower() == addr
+            ):
                 tr_id = transaction["hash"].hex()
                 logger.debug("Transaction matches the filter: %s", tr_id)
                 receipt = self.get_transaction_receipt(tr_id)
@@ -231,7 +231,7 @@ class EthereumNetwork:
         # Build the map: "eth_address" -> {proj1, proj2, ...}
         address_project_map = dict()
         for filter in eth_filters:
-            if not Web3.isAddress(filter.address):
+            if not Web3.isAddress(filter.address) and filter.address != WILDCARD_ADDRESS:
                 logger.warning(
                     "Not a valid Eth address, skipping: '%s', address name: '%s', project: %s",
                     filter.address,
@@ -239,8 +239,12 @@ class EthereumNetwork:
                     filter.project.slug,
                 )
                 continue
+            elif filter.address == WILDCARD_ADDRESS:
+                address_key = WILDCARD_ADDRESS
+            else:
+                address_key = "0x" + filter.address
 
-            projects_for_address = address_project_map.setdefault("0x" + filter.address, dict())
+            projects_for_address = address_project_map.setdefault(address_key, dict())
 
             try:
                 abi_object = json.loads(filter.abi_contents)
@@ -300,7 +304,7 @@ class EthereumNetwork:
             self.eth_call(sanitized, block_identifier=block_number)
         except web3.exceptions.SolidityError as e:
             reason = re.sub(r"^execution reverted:\s+", "", e.args[0].strip())
-            reason = re.sub(r"VM Exception while processing transaction: revert\s+", "", reason)
+            reason = re.sub(r"VM Exception while processing transaction: revert\s*", "", reason)
         except ValueError as e:
             logger.error(e)
 
