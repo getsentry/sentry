@@ -211,6 +211,7 @@ class EthereumNetwork:
             )
 
     def process_transaction(self, transaction, address_project_map):
+        logger.debug("Transaction: %s", transaction)
         for addr, projects_filters_map in address_project_map.items():
             addr = addr.lower()
             if (
