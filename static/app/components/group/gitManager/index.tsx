@@ -10,7 +10,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
-import {IconCopy, IconRefresh} from 'app/icons';
+import {IconBroadcast, IconCopy, IconRefresh} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import useInterval from 'app/utils/useInterval';
@@ -43,15 +43,14 @@ type Props = {
 function GitManager({api, issueId}: Props) {
   const [linkedActivities, setLinkedActivities] = useState<GitActivity[]>([]);
   const [unlinkedActivities, setUnlinkedActivities] = useState<GitActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<undefined | string>(undefined);
   const [branchName, setBranchName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [intervalDelay, setIntervalDelay] = useState<null | number>(POLLER_DELAY);
   const visibilityState = useVisibilityState();
 
   useEffect(() => {
     fetchBranchName();
-    fetchActivities();
   }, []);
 
   useEffect(() => {
@@ -59,11 +58,11 @@ function GitManager({api, issueId}: Props) {
   }, [visibilityState]);
 
   useInterval(() => {
-    fetchActivities(false);
+    fetchActivities();
   }, intervalDelay);
 
   function visibilityChange() {
-    if (visibilityState !== 'visible') {
+    if (visibilityState === 'hidden') {
       setIntervalDelay(null);
       return;
     }
@@ -75,16 +74,13 @@ function GitManager({api, issueId}: Props) {
     try {
       const response = await api.requestPromise(`/issues/${issueId}/branch-name/`);
       setBranchName(response.branchName);
+      setError(undefined);
     } catch {
-      addErrorMessage(t('An error occurred while fetching the branch name suggestion'));
+      setError(t('An error occurred while fetching the branch name suggestion'));
     }
   }
 
-  async function fetchActivities(reload = true) {
-    if (reload) {
-      setIsLoading(true);
-    }
-
+  async function fetchActivities() {
     try {
       const response: GitActivity[] = await api.requestPromise(
         `/issues/${issueId}/github-activity/`
@@ -97,7 +93,6 @@ function GitManager({api, issueId}: Props) {
       setIsLoading(false);
     } catch {
       setError(t('An error occurred while fetching Git Manager'));
-      setIsLoading(false);
       setIntervalDelay(null);
     }
   }
@@ -199,20 +194,28 @@ function GitManager({api, issueId}: Props) {
             </BranchNameAndActions>
           </Header>
         )}
-        <Activities>
-          {linkedActivities.map(activity => (
-            <Activity
-              key={activity.id}
-              gitActivity={activity}
-              onUnlink={handleUnlinkPullRequest}
-            />
-          ))}
-        </Activities>
-        {unlinkedActivities.length > 0 && (
+        {!!linkedActivities.length && (
+          <Activities>
+            {linkedActivities.map(activity => (
+              <Activity
+                key={activity.id}
+                gitActivity={activity}
+                onUnlink={handleUnlinkPullRequest}
+              />
+            ))}
+          </Activities>
+        )}
+        {!!unlinkedActivities.length && (
           <UnlinkedActivity
             unlinkedActivities={unlinkedActivities}
             onRelink={handleRelinkPullRequest}
           />
+        )}
+        {!linkedActivities.length && !unlinkedActivities.length && (
+          <EmptyState>
+            <IconBroadcast />
+            {t('Waiting for git activities\u2026')}
+          </EmptyState>
         )}
       </Fragment>
     );
@@ -283,4 +286,14 @@ const Activities = styled('div')`
       border-bottom: 1px solid ${p => p.theme.innerBorder};
     }
   }
+`;
+
+const EmptyState = styled('div')`
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: repeat(2, max-content);
+  grid-gap: ${space(1)};
+  color: ${p => p.theme.gray300};
+  text-align: center;
 `;
