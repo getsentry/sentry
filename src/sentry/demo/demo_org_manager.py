@@ -1,4 +1,5 @@
 import logging
+import os.path
 from random import choice, getrandbits
 from typing import Tuple
 
@@ -21,6 +22,7 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
+from sentry.web.frontend.generic import resolve
 
 from .data_population import DataPopulation, populate_org_members
 from .models import DemoOrganization, DemoOrgStatus, DemoUser
@@ -28,6 +30,8 @@ from .models import DemoOrganization, DemoOrgStatus, DemoUser
 # from .utils import generate_random_name
 
 logger = logging.getLogger(__name__)
+
+EMPOWER_PLANT_LOGO = os.path.join(resolve("sentry/images/logos/empowerplant-logo.png"))
 
 
 EMPOWER_PLANT_PROJECTS = (
@@ -51,6 +55,9 @@ EMPOWER_PLANT_EMPLOYEES = (
 def create_demo_org(quick=False) -> Organization:
     with sentry_sdk.start_transaction(op="create_demo_org", name="create_demo_org", sampled=True):
         sentry_sdk.set_tag("quick", quick)
+        avatar = None
+        with open(EMPOWER_PLANT_LOGO, "rb") as f:
+            avatar = f.read()
         # wrap the main org setup in transaction
         with transaction.atomic():
             # name = generate_random_name()
@@ -61,7 +68,7 @@ def create_demo_org(quick=False) -> Organization:
 
             projects = []
 
-            demo_org = DemoOrganization.create_org(name=name, slug=slug)
+            demo_org = DemoOrganization.create_org(name=name, slug=slug, avatar=avatar)
             org = demo_org.organization
 
             logger.info("create_demo_org.created_org", {"organization_slug": slug})
