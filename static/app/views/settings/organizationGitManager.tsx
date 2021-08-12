@@ -23,10 +23,10 @@ type State = {
   integrations: Integration[];
 } & AsyncView['state'];
 
-class OrganizationGitHelpers extends AsyncView<Props, State> {
+class OrganizationGitManager extends AsyncView<Props, State> {
   getTitle() {
     const {organization} = this.props;
-    return routeTitleGen(t('Git Helpers'), organization.slug, false);
+    return routeTitleGen(t('Git Manager'), organization.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -50,16 +50,16 @@ class OrganizationGitHelpers extends AsyncView<Props, State> {
 
     return (
       <Fragment>
-        <SettingsPageHeader title={t('Git Helpers')} />
+        <SettingsPageHeader title={t('Git Manager')} />
         <PermissionAlert />
         <TextBlock>
           {t(
-            'If the format from the Git Helper doesn’t fit with your branch naming conventions, you can customize it as long as [issueId] is included in the branch name.'
+            'If the format from the Git Manager doesn’t fit with your branch naming conventions, you can customize it as long as [issueId] is included in the branch name.'
           )}
         </TextBlock>
         <Panel>
           <PanelHeader>
-            <div>{t('Git Helpers')}</div>
+            <div>{t('Git Manager')}</div>
           </PanelHeader>
           <PanelBody>
             {!hasGitIntegrations ? (
@@ -91,7 +91,7 @@ class OrganizationGitHelpers extends AsyncView<Props, State> {
                   name="branchFormat"
                   label={t('Branch format')}
                   help={t(
-                    'Customize the default branch format in the Git Helpers. This settings applies to all users of this organization.'
+                    'Customize the default branch format in the Git Manager. This setting applies to all users of this organization.'
                   )}
                   placeholder="e.g. fix/[issueType]-[issueId]"
                 />
@@ -104,4 +104,4 @@ class OrganizationGitHelpers extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(OrganizationGitHelpers);
+export default withOrganization(OrganizationGitManager);

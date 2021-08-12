@@ -75,7 +75,7 @@ function GitActivity({api, issueId}: Props) {
       setIsLoading(false);
     } catch {
       setIsLoading(false);
-      setError(t('An error occurred while fetching Git Activity'));
+      setError(t('An error occurred while fetching Git Manager'));
     }
   }
 
@@ -165,7 +165,7 @@ function GitActivity({api, issueId}: Props) {
     );
   }
 
-  return <SidebarSection title={t('Git Activity')}>{renderContent()}</SidebarSection>;
+  return <SidebarSection title={t('Git Manager')}>{renderContent()}</SidebarSection>;
 }
 
 export default GitActivity;

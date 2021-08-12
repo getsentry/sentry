@@ -24,7 +24,7 @@ def parse_group_type(group):
 def build_branch_name(branch_format, group):
     uuid = uuid4().hex[:8]
     keywords = {
-        "[issueId]": f"FIXES-{group.qualified_short_id}-{uuid}",
+        "[issueId]": f"FIXES-{group.qualified_short_id}",
         "[issueType]": parse_group_type(group),
         "[orgSlug]": group.project.organization.slug,
     }
@@ -32,4 +32,4 @@ def build_branch_name(branch_format, group):
     branch_name = branch_format
     for key, value in keywords.items():
         branch_name = branch_name.replace(key, value)
-    return branch_name
+    return f"{branch_name}-{uuid}"

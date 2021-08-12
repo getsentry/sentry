@@ -51,38 +51,27 @@ function Activity({gitActivity, onUnlink}: Props) {
           {type === 'pull_request' && (
             <Fragment>
               {state === 'open' && (
-                <MenuItemActionLink
-                  onAction={() => onUnlink(gitActivity)}
-                  title={t('Merge Pull Request')}
-                >
+                <MenuItemActionLink external href={url} title={t('Merge Pull Request')}>
                   {t('Merge Pull Request')}
                 </MenuItemActionLink>
               )}
               {(state === 'open' || state === 'draft') && (
                 <MenuItemActionLink
-                  onAction={() => {}}
-                  message={t('Are you sure you want to close this Pull Request?')}
+                  external
+                  href={url}
+                  onAction={() => onUnlink(gitActivity)}
                   title={t('Close Pull Request')}
-                  shouldConfirm
                 >
                   {t('Close Pull Request')}
                 </MenuItemActionLink>
               )}
-              {state === 'open' && (
-                <MenuItemActionLink onAction={() => {}} title={t('Revert to Draft')}>
-                  {t('Revert to Draft')}
-                </MenuItemActionLink>
-              )}
               {state === 'closed' && (
-                <MenuItemActionLink onAction={() => {}} title={t('Reopen Pull Request')}>
+                <MenuItemActionLink external href={url} title={t('Reopen Pull Request')}>
                   {t('Reopen Pull Request')}
                 </MenuItemActionLink>
               )}
               {state === 'draft' && (
-                <MenuItemActionLink
-                  onAction={() => onUnlink(gitActivity)}
-                  title={t('Ready for Review')}
-                >
+                <MenuItemActionLink external href={url} title={t('Ready for Review')}>
                   {t('Ready for Review')}
                 </MenuItemActionLink>
               )}
@@ -96,16 +85,8 @@ function Activity({gitActivity, onUnlink}: Props) {
           )}
           {type === 'branch' && (
             <Fragment>
-              <MenuItemActionLink onAction={() => {}} title={t('Open Pull Request')}>
+              <MenuItemActionLink external href={url} title={t('Open Pull Request')}>
                 {t('Open Pull Request')}
-              </MenuItemActionLink>
-              <MenuItemActionLink
-                onAction={() => {}}
-                message={t('Are you sure you want to delete this Branch?')}
-                title={t('Delete Branch')}
-                shouldConfirm
-              >
-                {t('Delete Branch')}
               </MenuItemActionLink>
               <MenuItemActionLink
                 onAction={() => onUnlink(gitActivity)}

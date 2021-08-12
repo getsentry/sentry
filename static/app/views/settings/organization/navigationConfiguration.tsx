@@ -99,12 +99,12 @@ const organizationNavigation: NavigationSection[] = [
         recordAnalytics: true,
       },
       {
-        path: `${pathPrefix}/git-helpers/`,
-        title: t('Git helpers'),
+        path: `${pathPrefix}/git-manager/`,
+        title: t('Git Manager'),
         description: t(
-          'Configure git helpers. It is only available if there is a github, gitlab or bitbucket integration'
+          'Configure the Git Manager. It is only available if there is a github integration'
         ),
-        id: 'git-helpers',
+        id: 'git-manager',
       },
       {
         path: `${pathPrefix}/developer-settings/`,

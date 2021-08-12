@@ -678,9 +678,9 @@ function routes() {
       </Route>
 
       <Route
-        name={t('Git helpers')}
-        path="git-helpers/"
-        componentPromise={() => import('app/views/settings/organizationGitHelpers')}
+        name={t('Git Manager')}
+        path="git-manager/"
+        componentPromise={() => import('app/views/settings/organizationGitManager')}
         component={errorHandler(LazyLoad)}
       />
 
