@@ -30,9 +30,7 @@ class ActivitySerializer(Serializer):
             commits = {}
 
         pull_request_ids = {
-            i.data["pull_request"]
-            for i in item_list
-            if i.type == Activity.SET_RESOLVED_IN_PULL_REQUEST
+            i.data["pull_request"] for i in item_list if i.type in Activity.pull_request_types()
         }
         if pull_request_ids:
             pull_request_list = list(PullRequest.objects.filter(id__in=pull_request_ids))
@@ -42,7 +40,7 @@ class ActivitySerializer(Serializer):
             pull_requests = {
                 i: pull_requests_by_id.get(i.data["pull_request"])
                 for i in item_list
-                if i.type == Activity.SET_RESOLVED_IN_PULL_REQUEST
+                if i.type in Activity.pull_request_types()
             }
         else:
             pull_requests = {}
@@ -73,7 +71,7 @@ class ActivitySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         if obj.type == Activity.SET_RESOLVED_IN_COMMIT:
             data = {"commit": attrs["commit"]}
-        elif obj.type == Activity.SET_RESOLVED_IN_PULL_REQUEST:
+        elif obj.type in Activity.pull_request_types():
             data = {"pullRequest": attrs["pull_request"]}
         elif obj.type == Activity.UNMERGE_DESTINATION:
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}

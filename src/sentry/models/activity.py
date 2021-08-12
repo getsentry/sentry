@@ -42,6 +42,10 @@ class Activity(Model):
     UNMERGE_DESTINATION = ActivityType.UNMERGE_DESTINATION.value
     UNMERGE_SOURCE = ActivityType.UNMERGE_SOURCE.value
 
+    OPENED_PULL_REQUEST = ActivityType.OPENED_PULL_REQUEST.value
+    MERGED_PULL_REQUEST = ActivityType.MERGED_PULL_REQUEST.value
+    CLOSED_PULL_REQUEST = ActivityType.CLOSED_PULL_REQUEST.value
+
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)
     # index on (type, ident)
@@ -62,6 +66,15 @@ class Activity(Model):
     @staticmethod
     def get_version_ident(version):
         return (version or "")[:64]
+
+    @classmethod
+    def pull_request_types(cls):
+        return {
+            cls.SET_RESOLVED_IN_PULL_REQUEST,
+            cls.OPENED_PULL_REQUEST,
+            cls.CLOSED_PULL_REQUEST,
+            cls.MERGED_PULL_REQUEST,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

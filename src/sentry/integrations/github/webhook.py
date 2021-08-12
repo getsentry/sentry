@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from enum import Enum
 
 import dateutil.parser
 from django.db import IntegrityError, transaction
@@ -14,6 +15,7 @@ from django.views.generic import View
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models import (
+    Activity,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -21,6 +23,7 @@ from sentry.models import (
     Integration,
     PullRequest,
     Repository,
+    User,
 )
 from sentry.models.groupgithubactivity import FeedStatus, FeedType, GroupGithubActivity
 from sentry.shared_integrations.exceptions import ApiError
@@ -30,6 +33,25 @@ from sentry.utils.groupreference import find_referenced_groups, find_referenced_
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
+
+
+class PullRequestAction(Enum):
+    OPENED = "opened"
+    CLOSED = "closed"
+
+    @classmethod
+    def get_all(cls):
+        return {cls.OPENED.value, cls.CLOSED.value}
+
+    @classmethod
+    def get_activity(cls, action):
+        return cls._activities.get(action)
+
+
+PullRequestAction._activities = {
+    PullRequestAction.OPENED.value: Activity.OPENED_PULL_REQUEST,
+    PullRequestAction.CLOSED.value: Activity.CLOSED_PULL_REQUEST,
+}
 
 
 class Webhook:
@@ -395,13 +417,14 @@ class PullRequestEventWebhook(Webhook):
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
+        merged = pull_request["merged"]
 
         # The value of the merge_commit_sha attribute changes depending on the state of the pull request. Before a pull request is merged, the merge_commit_sha attribute holds the SHA of the test merge commit. After a pull request is merged, the attribute changes depending on how the pull request was merged:
         # - If the pull request was merged as a merge commit, the attribute represents the SHA of the merge commit.
         # - If the pull request was merged via a squash, the attribute represents the SHA of the squashed commit on the base branch.
         # - If the pull request was rebased, the attribute represents the commit that the base branch was updated to.
         # https://developer.github.com/v3/pulls/#get-a-single-pull-request
-        merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
+        merge_commit_sha = pull_request["merge_commit_sha"] if merged else None
 
         author_email = "{}@localhost".format(user["login"][:65])
         try:
@@ -453,11 +476,11 @@ class PullRequestEventWebhook(Webhook):
 
         branch = pull_request["head"]["ref"]
         if pull_request["state"] == "open":
-            if pull_request["draft"]:
+            if pull_request.get("draft"):
                 status = FeedStatus.DRAFT.value
             else:
                 status = FeedStatus.OPEN.value
-        elif pull_request["state"] == "closed" and pull_request["merged"]:
+        elif pull_request["state"] == "closed" and merged:
             status = FeedStatus.MERGED.value
         else:
             status = FeedStatus.CLOSED.value
@@ -485,11 +508,50 @@ class PullRequestEventWebhook(Webhook):
                 defaults={
                     "feed_type": FeedType.PULL_REQUEST.value,
                     "feed_status": status,
-                    "author": commit_author,
+                    "author": author,
                     "display_name": pull_request["title"],
                     "url": pull_request["html_url"],
                 },
             )
+
+            action = event["action"]
+            if action in PullRequestAction.get_all():
+                try:
+                    pull_request = PullRequest.objects.get(
+                        organization_id=organization.id,
+                        repository_id=repo.id,
+                        key=number,
+                    )
+                except PullRequest.DoesNotExist:
+                    pass
+                else:
+                    self.record_group_activity(
+                        action=action,
+                        group=group,
+                        pull_request=pull_request,
+                        merged=merged,
+                    )
+
+    def record_group_activity(self, action, group, pull_request, merged):
+        users = User.objects.filter(
+            emails__email__iexact=pull_request.author.email,
+            sentry_orgmember_set__organization=pull_request.author.organization_id,
+            is_active=True,
+        )
+
+        return Activity.objects.create(
+            project_id=group.project_id,
+            group=group,
+            user=users[0] if users else None,
+            type=self.activity_lookup(action, merged),
+            ident=pull_request.id,
+            data={"pull_request": pull_request.id},
+        )
+
+    def activity_lookup(self, action, merged):
+        if action == PullRequestAction.CLOSED.value and merged:
+            return Activity.MERGED_PULL_REQUEST
+        return PullRequestAction.get_activity(action)
 
 
 class GitHubWebhookBase(View):
