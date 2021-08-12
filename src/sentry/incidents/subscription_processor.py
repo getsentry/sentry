@@ -467,7 +467,9 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
     trigger_results = results[1:]
     trigger_alert_counts = {}
     trigger_resolve_counts = {}
-    for trigger, trigger_result in zip(triggers, partition(trigger_results, len(ALERT_RULE_TRIGGER_STAT_KEYS))):
+    for trigger, trigger_result in zip(
+        triggers, partition(trigger_results, len(ALERT_RULE_TRIGGER_STAT_KEYS))
+    ):
         trigger_alert_counts[trigger.id] = trigger_result[0]
         trigger_resolve_counts[trigger.id] = trigger_result[1]
 

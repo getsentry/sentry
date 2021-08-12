@@ -43,7 +43,7 @@ def for_in_without_list_wrap(node: For):
     if getattr(wrapped, "func", None) is None:
         return node
 
-    if wrapped.func.value not in ("zip",):
+    if wrapped.func.value not in ("zip", "map", "filter", "list"):
         return node
 
     updated_node = replace(node, iter=wrapped)
@@ -84,7 +84,6 @@ class GoodTransformer(CSTTransformer):
         return node
 
     def leave_For(self, _, node):
-        # TODO: for x in list(map|filter|list)
         if isinstance(node.iter, Call):
             if not node.iter.func.value == "list":
                 return node
@@ -92,6 +91,15 @@ class GoodTransformer(CSTTransformer):
             return for_in_without_list_wrap(node)
 
         return node
+
+    # TODO dict(list(zip, though this should be turned into a literal by pyupgrade
+
+    #      src/sentry/api/endpoints/organization_releases.py L197
+    # TODO: in inside comprehensions, like {a for a, b in list(zip(range(1), range(1)))}
+    # src/sentry/api/serializers/models/activity.py L22, L41
+    # src/sentry/api/serializers/models/event.py L174, L353
+    # ... lots more
+    # src/sentry/api/endpoints/project_stacktrace_link.py L53 - for inside a list comprehension
 
 
 for fp in sys.argv[1:]:

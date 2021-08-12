@@ -967,7 +967,7 @@ def to_calendar(organization, interval, series):
 
     calendar = Calendar(6)
     sheets = []
-    for year, month in list(map(index_to_month, range(start, stop + 1))):
+    for year, month in map(index_to_month, range(start, stop + 1)):
         weeks = []
 
         for week in calendar.monthdatescalendar(year, month):
