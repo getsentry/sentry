@@ -151,8 +151,7 @@ const formFields: Field[] = [
   },
 ];
 
-const sampleCode = `
-const fetch = require('node-fetch');
+const sampleCode = `const fetch = require('node-fetch');
 module.exports = function myScript(event, type){
   console.log("event is", event);
   fetch('https://example.com/api', {
@@ -199,6 +198,7 @@ export default class SentryFunctionDetails extends AsyncView<Props, State> {
       gutters: ['CodeMirror-lint-markers'],
       lint,
       extraKeys: {'Ctrl-Space': 'autocomplete'}, // CodeMirror hints,
+      tabSize: 2,
     });
     this.codeMirror.on('change', cm => {
       // update our form state when it changes
