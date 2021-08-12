@@ -28,6 +28,10 @@ class ActivityType(Enum):
     REPROCESS = 22
     MARK_REVIEWED = 23
 
+    OPENED_PULL_REQUEST = 24
+    MERGED_PULL_REQUEST = 25
+    CLOSED_PULL_REQUEST = 26
+
 
 # Warning: This must remain in this EXACT order.
 CHOICES = tuple(
@@ -56,5 +60,8 @@ CHOICES = tuple(
         ActivityType.UNMERGE_DESTINATION,  # 20
         ActivityType.REPROCESS,  # 22
         ActivityType.MARK_REVIEWED,  # 23
+        ActivityType.OPENED_PULL_REQUEST,  # 24
+        ActivityType.MERGED_PULL_REQUEST,  # 25
+        ActivityType.CLOSED_PULL_REQUEST,  # 26
     ]
 )
