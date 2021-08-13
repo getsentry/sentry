@@ -1,17 +1,15 @@
 import abc
 import logging
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 from django.db.models import F, QuerySet
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, search
 from sentry.api.base import Endpoint
 from sentry.api.client import ApiError
 from sentry.api.endpoints.organization_group_index import inbox_search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.inbox import SlackInboxMessageBuilder
@@ -20,7 +18,7 @@ from sentry.integrations.slack.message_builder.releases import SlackReleasesMess
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Integration, Organization, Project, Release, User
+from sentry.models import Integration, Organization, Project, Release
 from sentry.utils.types import Bool
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -68,11 +66,15 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
             if args[0] == "team":
                 return self.unlink_team(request)
 
-        if command == "issues":
+        if command == "inbox":
             if not args:
                 return self.get_inbox(request)
             else:
                 return self.get_inbox(request, args[0])
+
+        if command == "issues":
+            if not args:
+                return self.get_priority_issues(request)
 
         if command == "releases":
             if not args:
@@ -133,7 +135,10 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         self,
         slack_request: SlackRequest,
         search_filters: Sequence[SearchFilter],
+        search_method: Callable[..., Any],
         project_slug: Optional[str] = None,
+        is_inbox: Optional[bool] = True,
+        **kwargs: Optional[Any],
     ) -> Response:
         """There could be a timeout so consider just sending a message like: "preparing your issues"."""
         issues = []
@@ -148,7 +153,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 ][:1]
 
             if projects:
-                issues = inbox_search(projects, search_filters=search_filters)
+                issues = search_method(projects, search_filters=search_filters, **kwargs)
 
         client = SlackClient()
         access_token = self._get_access_token(slack_request.integration)
@@ -156,7 +161,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
         channel = slack_request.data.get("channel_id")
 
-        message = SlackInboxMessageBuilder(issues, project_slug).build_str()
+        message = SlackInboxMessageBuilder(issues, project_slug, is_inbox=is_inbox).build_str()
         try:
             attachments = []
             for issue in issues[:5]:
@@ -195,7 +200,32 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                     value=SearchValue(raw_value="me"),
                 ),
             ],
+            search_method=inbox_search,
             project_slug=project_slug,
+        )
+
+    def get_priority_issues(
+        self, slack_request: SlackRequest, project_slug: Optional[str] = None
+    ) -> Response:
+        """
+        TODO: Figure out search filters.
+
+        Does not work:
+        [
+            SearchFilter(
+                key=SearchKey(name="status"),
+                operator="=",
+                value=SearchValue(raw_value=0),
+            ),
+        ]
+        """
+        return self.get_issues(
+            slack_request,
+            search_filters=[],
+            search_method=search.query,
+            project_slug=project_slug,
+            sort_by="priority",
+            is_inbox=False,
         )
 
     def link_team(self, slack_request: SlackRequest) -> Any:
