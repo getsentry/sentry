@@ -16,8 +16,8 @@ DM_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
     "unlink": "Unlink your Slack identity from your Sentry account.",
     "help": "View this list of commands.",
-    "inbox": "TODO inbox",
-    "issues": "TODO issues",
+    "inbox": "List the latest 5 issues assigned or suggested for you.",
+    "issues": "List the top 5 issues by priority.",
     "releases": "List the latest release with current number of issues by Organization.",
     "releases <org_slug>": "List the 5 latest releases with their number of issues for a specific Organization.",
 }
