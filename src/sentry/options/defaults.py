@@ -158,6 +158,10 @@ register("github-app.private-key", default="")
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
+# Notion Integration
+register("notion-app.client-id", flags=FLAG_PRIORITIZE_DISK)
+register("notion-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
+
 # GitHub Auth
 register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)

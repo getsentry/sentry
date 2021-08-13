@@ -26,6 +26,7 @@ import lighthouse from 'sentry-logos/logo-lighthouse.svg';
 import linear from 'sentry-logos/logo-linear.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import netlify from 'sentry-logos/logo-netlify.svg';
+import notion from 'sentry-logos/logo-notion.svg';
 import octohook from 'sentry-logos/logo-octohook.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
@@ -118,6 +119,7 @@ export const ICON_PATHS = {
   victorops,
   zepel,
   zulip,
+  notion,
 };
 
 type Props = {

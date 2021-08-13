@@ -1854,6 +1854,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
+    "sentry.integrations.notion.NotionIntegrationProvider",
 )
 
 
