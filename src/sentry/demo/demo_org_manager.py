@@ -174,6 +174,7 @@ def assign_demo_org(skip_buffer=False, retries_left=3) -> Tuple[Organization, Us
         org = demo_org.organization
 
         # wrap the assignment of the demo org in a transaction
+        should_retry = False
         with transaction.atomic():
             username, name = choice(EMPOWER_PLANT_EMPLOYEES)
             email = create_fake_email(org.slug, "empowerplant")
@@ -181,7 +182,7 @@ def assign_demo_org(skip_buffer=False, retries_left=3) -> Tuple[Organization, Us
                 user = DemoUser.create_user(
                     name=name,
                     email=email,
-                    username=username,
+                    username=f"{username}-{org.slug}",
                     is_managed=True,
                 )
             except IntegrityError:
@@ -190,6 +191,12 @@ def assign_demo_org(skip_buffer=False, retries_left=3) -> Tuple[Organization, Us
                 # If that happens, try the same thing (which will give us a new org) but only up to 3 times
                 if retries_left == 0:
                     raise
+                should_retry=True
+
+            if should_retry:
+                # Do this outside the `with transaction.atomic()` block to avoid nesting contexts
+                # It also prevents the the following error:
+                # `You can't execute queries until the end of the 'atomic' block.`
                 return assign_demo_org(skip_buffer=skip_buffer, retries_left=retries_left - 1)
 
             # TODO: May need logic in case team no longer exists
