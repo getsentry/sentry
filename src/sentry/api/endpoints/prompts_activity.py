@@ -29,51 +29,37 @@ class PromptsActivitySerializer(serializers.Serializer):
         return value
 
 
-class PromptsActivitiesEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated,)
-
-    def post(self, request):
-        conditions = None
-        for feature, fields in request.data.items():
-            if not prompt_config.has(feature):
-                return Response({"detail": f"Invalid feature name '{feature}'"}, status=400)
-            required_fields = prompt_config.required_fields(feature)
-            for field in required_fields:
-                if field not in fields:
-                    return Response({"detail": 'Missing required field "%s"' % field}, status=400)
-            filters = {k: fields.get(k) for k in required_fields}
-            condition = Q(feature=feature, **filters)
-            conditions = condition if conditions is None else (conditions | condition)
-        if conditions is None:
-            return Response({"detail": "No feature specified"}, status=400)
-        result = PromptsActivity.objects.filter(conditions, user=request.user).all()
-        return Response({k.feature: k.data for k in result})
-
-
 class PromptsActivityEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
         """Return feature prompt status if dismissed or in snoozed period"""
 
-        feature = request.GET.get("feature")
+        features = request.GET.getlist("feature")
+        if len(features) == 0:
+            return Response({"details": "No feature specified"}, status=400)
 
-        if not prompt_config.has(feature):
-            return Response({"detail": "Invalid feature name"}, status=400)
+        conditions = None
+        for feature in features:
+            if not prompt_config.has(feature):
+                return Response({"detail": "Invalid feature name " + feature}, status=400)
 
-        required_fields = prompt_config.required_fields(feature)
-        for field in required_fields:
-            if field not in request.GET:
-                return Response({"detail": 'Missing required field "%s"' % field}, status=400)
+            required_fields = prompt_config.required_fields(feature)
+            for field in required_fields:
+                if field not in request.GET:
+                    return Response({"detail": 'Missing required field "%s"' % field}, status=400)
+            filters = {k: request.GET.get(k) for k in required_fields}
+            condition = Q(feature=feature, **filters)
+            conditions = condition if conditions is None else (conditions | condition)
 
-        filters = {k: request.GET.get(k) for k in required_fields}
-
-        try:
-            result = PromptsActivity.objects.get(user=request.user, feature=feature, **filters)
-        except PromptsActivity.DoesNotExist:
-            return Response({})
-
-        return Response({"data": result.data})
+        result = PromptsActivity.objects.filter(conditions, user=request.user)
+        featuredata = {k.feature: k.data for k in result}
+        if len(features) == 1:
+            result = result.first()
+            data = None if result is None else result.data
+            return Response({"data": data, "features": featuredata})
+        else:
+            return Response({"features": featuredata})
 
     def put(self, request):
         serializer = PromptsActivitySerializer(data=request.data)
