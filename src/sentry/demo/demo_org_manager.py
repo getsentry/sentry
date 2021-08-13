@@ -191,7 +191,7 @@ def assign_demo_org(skip_buffer=False, retries_left=3) -> Tuple[Organization, Us
                 # If that happens, try the same thing (which will give us a new org) but only up to 3 times
                 if retries_left == 0:
                     raise
-                should_retry=True
+                should_retry = True
 
             if should_retry:
                 # Do this outside the `with transaction.atomic()` block to avoid nesting contexts
