@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 import pytz
 
@@ -13,12 +13,13 @@ RELEASE_VERSION_CHARS = 12
 LATEST_RELEASE_BY_ORG = "Latest release by org:\n"
 TOTAL_NEW_ISSUES = "Total new issues: "
 RELEASES_FOR = "Releases for "
+RELEASES = "Releases"
 ORGANIZATIONS_LINK = f"{absolute_uri()}/organizations/"
 RELEASES_ROUTE = "/releases/"
 PROJECTS_ROUTE = "/projects/"
 
 
-def pretty_date(time=False):
+def pretty_date(time: Any = False) -> str:
     """
     Get a datetime object or a int() Epoch timestamp and return a
     pretty string like 'an hour ago', 'Yesterday', '3 months ago',
@@ -88,17 +89,17 @@ class SlackReleaseMessageBuilder(SlackMessageBuilder):
         """
         return sum(self._get_new_groups_by_project(release).values())
 
-    def _get_new_groups_by_project(self, release: Release) -> dict:
+    def _get_new_groups_by_project(self, release: Release) -> Dict[ReleaseProject, int]:
         """
         Given a release, returns the number of new issues introduced
         in this release per project.
         """
         return {
-            releaseProject: releaseProject.new_groups
-            for releaseProject in ReleaseProject.objects.filter(release=release)
+            release_project: release_project.new_groups
+            for release_project in ReleaseProject.objects.filter(release=release)
         }
 
-    def _build_release_per_org_block(self, release: Release, org: Organization):
+    def _build_release_per_org_block(self, release: Release, org: Organization) -> str:
         """
         Given a release and an org, returns a string of slack formatted messages
         with the Org along with its releases with issue data for the releases.
@@ -117,7 +118,7 @@ class SlackReleaseMessageBuilder(SlackMessageBuilder):
             release, org
         )
 
-    def _build_release_for_org_block(self, release: Release, org: Organization):
+    def _build_release_for_org_block(self, release: Release, org: Organization) -> str:
         """
         Given a release and an org, returns a string of slack formatted messages
         with the release version and number of new issues by project along with
@@ -139,7 +140,7 @@ class SlackReleaseMessageBuilder(SlackMessageBuilder):
             + [f"{TOTAL_NEW_ISSUES}*{self._get_new_groups_by_release(release)}*"]
         )
 
-    def _build_projects_for_release(self, release: Release, org: Organization):
+    def _build_projects_for_release(self, release: Release, org: Organization) -> List[str]:
         """
         Given a release and an org, returns a list of slack formatted messages
         with the project name and number of issues created for the project
@@ -158,7 +159,7 @@ class SlackReleaseMessageBuilder(SlackMessageBuilder):
             for releaseProject, issues in self._get_new_groups_by_project(release).items()
         ]
 
-    def _build_org_releases_hyperlink(self, org: Organization):
+    def _build_org_releases_hyperlink(self, org: Organization) -> str:
         """
         Given an org, creates a hyperlink markdown for the org name
         to link to the releases page for the org.
@@ -179,7 +180,8 @@ def build_deploy_buttons(releases: Sequence[Release]) -> Any:
     for release in releases:
         for project in release.projects.all():
             project_url = absolute_uri(
-                f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                f"/organizations/{project.organization.slug}/releases/"
+                f"{release.version}/?project={project.id}&unselectedSeries=Healthy/"
             )
             buttons.append(
                 {
@@ -200,8 +202,8 @@ class SlackReleasesMessageBuilder(SlackMessageBuilder):
 
     def __init__(
         self,
-        org_releases: Optional[dict] = None,
-        releases: Optional[list] = None,
+        org_releases: Optional[Dict[Organization, Release]] = None,
+        releases: Optional[List[Release]] = None,
         organization: Optional[Organization] = None,
     ) -> None:
         super().__init__()
@@ -214,6 +216,7 @@ class SlackReleasesMessageBuilder(SlackMessageBuilder):
             return LATEST_RELEASE_BY_ORG
         elif self.releases and self.org:
             return f"{RELEASES_FOR}" f"{self._build_org_releases_hyperlink(self.org)}:"
+        return RELEASES
 
     def _build_releases_link(self, org: Organization) -> str:
         """
@@ -221,7 +224,7 @@ class SlackReleasesMessageBuilder(SlackMessageBuilder):
         """
         return f"{ORGANIZATIONS_LINK}{org.slug}{RELEASES_ROUTE}"
 
-    def _build_org_releases_hyperlink(self, org: Organization):
+    def _build_org_releases_hyperlink(self, org: Organization) -> str:
         """
         Given an org, creates a hyperlink markdown for the org name
         to link to the releases page for the org.

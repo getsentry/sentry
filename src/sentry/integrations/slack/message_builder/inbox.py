@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Optional
 from urllib.parse import urlencode
 
@@ -9,24 +8,34 @@ from sentry.utils.http import absolute_uri
 
 ISSUES_MAXIMUM = 5
 
+# TODO: Enumify the messages
+# `class MessagesEnum(Enum)` and `class MessagesEnum(str, Enum)` both fail mypy typing tests
 
-class InboxMessages(str, Enum):
-    MORE = "There are <{url}|{n} issues for your review>. Here are the first {m} issues:"
-    LESS = "There are <{url}|{n} issues for your review>:"
-    ONE = "There is <{url}|1 issue for your review>:"
-    ZERO = "There are <{url}|no issues for you to review>!"
+MORE = "MORE"
+LESS = "LESS"
+ONE = "ONE"
+ZERO = "ZERO"
 
 
-class AllMessages(str, Enum):
-    MORE = "There are <{url}|{n} issues>. Here are the first {m} issues:"
-    LESS = "There are <{url}|{n} issues>:"
-    ONE = "There is <{url}|1 issue>:"
-    ZERO = "There are <{url}|no issues>!"
+INBOX_MESSAGES = {
+    MORE: "There are <{url}|{n} issues for your review>. Here are the first {m} issues:",
+    LESS: "There are <{url}|{n} issues for your review>:",
+    ONE: "There is <{url}|1 issue for your review>:",
+    ZERO: "There are <{url}|no issues for you to review>!",
+}
+
+
+ALL_MESSAGES = {
+    MORE: "There are <{url}|{n} issues>. Here are the first {m} issues:",
+    LESS: "There are <{url}|{n} issues>:",
+    ONE: "There is <{url}|1 issue>:",
+    ZERO: "There are <{url}|no issues>!",
+}
 
 
 def get_url(organization: Optional[Organization] = None, project: Optional[Project] = None) -> str:
     if not organization:
-        return absolute_uri("/")
+        return str(absolute_uri("/"))
 
     qparams = {
         "sort": "inbox",
@@ -35,29 +44,29 @@ def get_url(organization: Optional[Organization] = None, project: Optional[Proje
     if project:
         qparams["project"] = project.id
 
-    return absolute_uri(f"/organizations/{organization.slug}/issues/?{urlencode(qparams)}")
+    return str(absolute_uri(f"/organizations/{organization.slug}/issues/?{urlencode(qparams)}"))
 
 
 def get_issues_message(
     issues: CursorResult, is_inbox: bool, project: Optional[Project] = None
 ) -> str:
-    messagesEnum = InboxMessages if is_inbox else AllMessages
+    messages_dict = INBOX_MESSAGES if is_inbox else ALL_MESSAGES
     issues_count = len(issues)
     if issues_count == 0:
         if project:
-            return messagesEnum.ZERO.format(url=get_url(project.organization, project))
-        return messagesEnum.ZERO.format(url=get_url())
+            return messages_dict[ZERO].format(url=get_url(project.organization, project))
+        return messages_dict[ZERO].format(url=get_url())
 
     first_issue = issues[0]
     url = get_url(first_issue.organization, project or first_issue.project)
 
     if issues_count == 1:
-        return messagesEnum.ONE.format(url=url)
+        return messages_dict[ONE].format(url=url)
 
     if issues_count <= ISSUES_MAXIMUM:
-        return messagesEnum.LESS.format(n=issues_count, url=url)
+        return messages_dict[LESS].format(n=issues_count, url=url)
 
-    return messagesEnum.MORE.format(n=issues_count, m=ISSUES_MAXIMUM, url=url)
+    return messages_dict[MORE].format(n=issues_count, m=ISSUES_MAXIMUM, url=url)
 
 
 class SlackInboxMessageBuilder(SlackMessageBuilder):
@@ -65,7 +74,7 @@ class SlackInboxMessageBuilder(SlackMessageBuilder):
         self,
         issues: CursorResult,
         project: Optional[Project] = None,
-        is_inbox: Optional[bool] = True,
+        is_inbox: bool = True,
     ) -> None:
         super().__init__()
         self.issues = issues

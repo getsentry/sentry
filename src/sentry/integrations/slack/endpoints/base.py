@@ -140,7 +140,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         search_filters: Sequence[SearchFilter],
         search_method: Callable[..., Any],
         project_slug: Optional[str] = None,
-        is_inbox: Optional[bool] = True,
+        is_inbox: bool = True,
         **kwargs: Optional[Any],
     ) -> Response:
         issues = []
