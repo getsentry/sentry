@@ -14,7 +14,10 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.inbox import SlackInboxMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.message_builder.releases import SlackReleasesMessageBuilder
+from sentry.integrations.slack.message_builder.releases import (
+    SlackReleaseMessageBuilder,
+    SlackReleasesMessageBuilder,
+)
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
@@ -140,7 +143,6 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         is_inbox: Optional[bool] = True,
         **kwargs: Optional[Any],
     ) -> Response:
-        """There could be a timeout so consider just sending a message like: "preparing your issues"."""
         issues = []
         if slack_request.has_identity:
             user_id = slack_request.identity_id
@@ -245,9 +247,25 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         org_releases = {}
         for org in orgs:
             org_releases[org] = Release.objects.filter(organization=org).latest("date_added")
-        return self.reply(
-            slack_request, SlackReleasesMessageBuilder(org_releases=org_releases).build_str()
-        )
+
+        client = SlackClient()
+        access_token = self._get_access_token(slack_request.integration)
+        headers = {"Authorization": "Bearer %s" % access_token}
+
+        channel = slack_request.data.get("channel_id")
+
+        try:
+            message = SlackReleasesMessageBuilder(org_releases=org_releases).build_title()
+            attachments = [
+                SlackReleaseMessageBuilder(release).build() for release in org_releases.values()
+            ]
+            payload = {"channel": channel, "text": message, "attachments": attachments}
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+
+        except ApiError as e:
+            logger.error("slack.event.on-message-error", extra={"error": str(e)})
+
+        return self.reply(slack_request)
 
     def get_releases_by_org(self, slack_request: SlackRequest, org_slug: str) -> Any:
 
@@ -261,10 +279,25 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 .order_by("-date")
                 .distinct()[:5]
             )
-            return self.reply(
-                slack_request,
-                SlackReleasesMessageBuilder(releases=releases, organization=org).build_str(),
-            )
+
+            client = SlackClient()
+            access_token = self._get_access_token(slack_request.integration)
+            headers = {"Authorization": "Bearer %s" % access_token}
+
+            channel = slack_request.data.get("channel_id")
+
+            try:
+                message = SlackReleasesMessageBuilder(
+                    releases=releases, organization=org
+                ).build_title()
+                attachments = [SlackReleaseMessageBuilder(release).build() for release in releases]
+                payload = {"channel": channel, "text": message, "attachments": attachments}
+                client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+
+            except ApiError as e:
+                logger.error("slack.event.on-message-error", extra={"error": str(e)})
+
+            return self.reply(slack_request)
         else:
             return self.reply(slack_request, f"Org '{org_slug}' not found!")
 

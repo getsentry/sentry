@@ -1,6 +1,9 @@
-from typing import Optional
+from typing import Optional, Sequence
 
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+import pytz
+
+from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseProject
 from sentry.utils.http import absolute_uri
@@ -15,38 +18,56 @@ RELEASES_ROUTE = "/releases/"
 PROJECTS_ROUTE = "/projects/"
 
 
-class SlackReleasesMessageBuilder(BlockSlackMessageBuilder):
+def pretty_date(time=False):
     """
-    TODO: Figure out Slack block message formatting,
-    right now it's just a long string with newlines
+    Get a datetime object or a int() Epoch timestamp and return a
+    pretty string like 'an hour ago', 'Yesterday', '3 months ago',
+    'just now', etc
     """
+    from datetime import datetime
 
-    def __init__(
-        self,
-        org_releases: Optional[dict] = None,
-        releases: Optional[list] = None,
-        organization: Optional[Organization] = None,
-    ) -> None:
+    now = datetime.utcnow().replace(tzinfo=pytz.utc)
+
+    if type(time) is int:
+        diff = now - datetime.fromtimestamp(time)
+    elif isinstance(time, datetime):
+        diff = now - time
+    elif not time:
+        diff = now - now
+    second_diff = diff.seconds
+    day_diff = diff.days
+
+    if day_diff < 0:
+        return ""
+
+    if day_diff == 0:
+        if second_diff < 10:
+            return "just now"
+        if second_diff < 60:
+            return f"{second_diff:.1f}" + " seconds ago"
+        if second_diff < 120:
+            return "a minute ago"
+        if second_diff < 3600:
+            return f"{second_diff / 60:.1f}" + " minutes ago"
+        if second_diff < 7200:
+            return "an hour ago"
+        if second_diff < 86400:
+            return f"{second_diff/3600:.1f}" + " hours ago"
+    if day_diff == 1:
+        return "Yesterday"
+    if day_diff < 7:
+        return f"{day_diff:.1f}" + " days ago"
+    if day_diff < 31:
+        return f"{day_diff/7:.1f}" + " weeks ago"
+    if day_diff < 365:
+        return f"{day_diff/30:.1f}" + " months ago"
+    return f"{day_diff/365:.1f}" + " years ago"
+
+
+class SlackReleaseMessageBuilder(SlackMessageBuilder):
+    def __init__(self, release: Release) -> None:
         super().__init__()
-        self.org_releases = org_releases
-        self.releases = releases
-        self.org = organization
-
-    def build_str(self) -> Any:
-        if self.org_releases:
-            blocks = [
-                self._build_release_per_org_block(release, org)
-                for org, release in self.org_releases.items()
-            ]
-            return LATEST_RELEASE_BY_ORG + "\n".join(blocks)
-        elif self.releases and self.org:
-            blocks = [
-                self._build_release_for_org_block(release, self.org) for release in self.releases
-            ]
-            return (
-                f"{RELEASES_FOR}"
-                f"{self._build_org_releases_hyperlink(self.org)}:\n" + "\n".join(blocks)
-            )
+        self.release = release
 
     def _build_release_link(self, release: Release, org: Organization) -> str:
         """
@@ -136,6 +157,69 @@ class SlackReleasesMessageBuilder(BlockSlackMessageBuilder):
             f"|{releaseProject.project.name}>: {issues}"
             for releaseProject, issues in self._get_new_groups_by_project(release).items()
         ]
+
+    def _build_org_releases_hyperlink(self, org: Organization):
+        """
+        Given an org, creates a hyperlink markdown for the org name
+        to link to the releases page for the org.
+        """
+        return f"<{self._build_releases_link(org)}|*{org.name}*>"
+
+    def build(self) -> SlackBody:
+        return self._build(
+            text=self._build_release_for_org_block(self.release, self.release.organization),
+            actions=build_deploy_buttons([self.release]),
+            footer=f"{self.release.organization.name} | {pretty_date(self.release.date_added)}",
+        )
+
+
+def build_deploy_buttons(releases: Sequence[Release]) -> Any:
+    buttons = []
+
+    for release in releases:
+        for project in release.projects.all():
+            project_url = absolute_uri(
+                f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+            )
+            buttons.append(
+                {
+                    "text": project.slug,
+                    "name": project.slug,
+                    "type": "button",
+                    "url": project_url,
+                }
+            )
+    return buttons
+
+
+class SlackReleasesMessageBuilder(SlackMessageBuilder):
+    """
+    TODO: Figure out Slack block message formatting,
+    right now it's just a long string with newlines
+    """
+
+    def __init__(
+        self,
+        org_releases: Optional[dict] = None,
+        releases: Optional[list] = None,
+        organization: Optional[Organization] = None,
+    ) -> None:
+        super().__init__()
+        self.org_releases = org_releases
+        self.releases = releases
+        self.org = organization
+
+    def build_title(self) -> str:
+        if self.org_releases:
+            return LATEST_RELEASE_BY_ORG
+        elif self.releases and self.org:
+            return f"{RELEASES_FOR}" f"{self._build_org_releases_hyperlink(self.org)}:"
+
+    def _build_releases_link(self, org: Organization) -> str:
+        """
+        Build link for releases page.
+        """
+        return f"{ORGANIZATIONS_LINK}{org.slug}{RELEASES_ROUTE}"
 
     def _build_org_releases_hyperlink(self, org: Organization):
         """
