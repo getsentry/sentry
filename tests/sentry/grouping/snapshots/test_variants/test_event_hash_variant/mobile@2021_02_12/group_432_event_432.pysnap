@@ -1,5 +1,5 @@
 ---
-created: '2021-08-04T15:53:48.170149Z'
+created: '2021-08-09T15:01:32.698056Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -180,12 +180,12 @@ system:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "RtlpTpWorkCallback"
             package (ignored because function takes precedence)
