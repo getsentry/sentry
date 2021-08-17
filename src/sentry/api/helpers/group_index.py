@@ -780,7 +780,10 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                                             projects=projects[0],
                                             organization_id=projects[0].organization_id,
                                         )
-                                        .order_by("date_added", "id")[:1]
+                                        .extra(
+                                            select={"sort": "COALESCE(date_released, date_added)"}
+                                        )
+                                        .order_by("sort", "id")[:1]
                                         .get()
                                     )
 
