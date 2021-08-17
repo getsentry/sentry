@@ -538,8 +538,6 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             serializer=StreamGroupSerializerSnuba(
                 stats_period="14d",
                 expand=["sessions"],
-                start=timezone.now() - timedelta(minutes=80),
-                end=timezone.now() - timedelta(minutes=30),
             ),
         )
         assert result[0]["sessionCount"] == 3
