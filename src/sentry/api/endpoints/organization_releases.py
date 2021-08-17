@@ -194,7 +194,7 @@ def debounce_update_release_health_data(organization, project_ids):
         release.add_project(project)
 
     # Debounce updates for a minute
-    cache.set_many(dict(list(zip(should_update.values(), [True] * len(should_update)))), 60)
+    cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
 class OrganizationReleasesEndpoint(
