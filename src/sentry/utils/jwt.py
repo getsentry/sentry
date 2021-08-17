@@ -48,7 +48,7 @@ def decode(
     key: str,
     *,  # Force passing optional arguments by keyword
     audience: Optional[Union[str, bool]] = None,
-    algorithms: Optional[List[str]] = ["HS256"],
+    algorithms: Optional[List[str]] = None,
 ) -> JSONData:
     """Returns the claims (payload) in the JWT token.
 

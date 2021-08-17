@@ -51,9 +51,9 @@ class OptionsStoreTest(TestCase):
 
     def test_db_and_cache_unavailable(self):
         store, key = self.store, self.key
-        with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
+        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
-            with self.assertRaises(Exception):
+            with self.assertRaises(RuntimeError):
                 store.set(key, "bar")
 
         # Assert nothing was written to the local_cache
@@ -61,10 +61,10 @@ class OptionsStoreTest(TestCase):
 
         store.set(key, "bar")
 
-        with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
+        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             assert store.get(key) == "bar"
 
-            with patch.object(store.cache, "get", side_effect=Exception()):
+            with patch.object(store.cache, "get", side_effect=RuntimeError()):
                 assert store.get(key) == "bar"
                 store.flush_local_cache()
                 assert store.get(key) is None
@@ -76,8 +76,8 @@ class OptionsStoreTest(TestCase):
         mocked_time.return_value = 0
         store.set(key, "bar")
 
-        with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
-            with patch.object(store.cache, "get", side_effect=Exception()):
+        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+            with patch.object(store.cache, "get", side_effect=RuntimeError()):
                 # Serves the value beyond TTL
                 mocked_time.return_value = 15
                 assert store.get(key) == "bar"
@@ -95,8 +95,8 @@ class OptionsStoreTest(TestCase):
         mocked_time.return_value = 0
         store.set(key, "bar")
 
-        with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
-            with patch.object(store.cache, "get", side_effect=Exception()):
+        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+            with patch.object(store.cache, "get", side_effect=RuntimeError()):
                 assert store.get(key) == "bar"
 
         Option.objects.filter(key=key.name).update(value="lol")
@@ -106,8 +106,8 @@ class OptionsStoreTest(TestCase):
 
         mocked_time.return_value = 15
 
-        with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
-            with patch.object(store.cache, "get", side_effect=Exception()):
+        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+            with patch.object(store.cache, "get", side_effect=RuntimeError()):
                 assert store.get(key) is None
 
         assert store.get(key) == "lol"

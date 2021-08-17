@@ -222,7 +222,9 @@ def check_each_element_for_error(instance):
             validate_component(element)
         except SchemaValidationError as e:
             # catch the validation error and re-write the error so the user knows which element has the issue
-            raise SchemaValidationError(f"{e.message} for element of type '{found_type}'")
+            raise SchemaValidationError(
+                f"{e.message} for element of type '{found_type}'"  # noqa: B306
+            )
 
 
 def validate_ui_element_schema(instance):

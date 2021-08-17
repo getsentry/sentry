@@ -120,7 +120,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         self.add_get_user_response(success=True)
         resp = self.make_users_request()
 
-        len(responses.calls) == 1
+        assert len(responses.calls) == 1
         call = responses.calls[0]
         self.assert_response_call(call, self.request_url, 200)
         assert resp == self.request_data

@@ -676,7 +676,7 @@ class ProjectUpdateTest(APITestCase):
         id2 = saved_config["rules"][1]["id"]
         id3 = saved_config["rules"][2]["id"]
         assert id1 != 0 and id2 != 0 and id3 != 0
-        next_id != 0
+        assert next_id != 0
         assert id1 != id2 and id2 != id3 and id1 != id3
         assert next_id > id1 and next_id > id2 and next_id > id3
         assert response.status_code == 200

@@ -138,7 +138,7 @@ class RedisBufferTest(TestCase):
         assert len(process_incr.apply_async.mock_calls) == 1
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]})
         assert len(process_pending.apply_async.mock_calls) == 2
-        process_pending.apply_async.mock_calls == [
+        assert process_pending.apply_async.mock_calls == [
             mock.call(kwargs={"partition": 0}),
             mock.call(kwargs={"partition": 1}),
         ]
