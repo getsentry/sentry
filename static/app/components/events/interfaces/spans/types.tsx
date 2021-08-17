@@ -176,3 +176,9 @@ export type SpanFuseOptions = {
   distance: number;
   maxPatternLength: number;
 };
+
+export type TraceBound = {
+  spanId: string;
+  traceStartTimestamp: number;
+  traceEndTimestamp: number;
+};
