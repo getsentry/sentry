@@ -132,16 +132,12 @@ class RedisQuota(Quota):
             return int(result.value or 0) - int(refund_result.value or 0)
 
         if self.is_redis_cluster:
-            results = list(map(functools.partial(get_usage_for_quota, self.cluster), quotas))
+            results = map(functools.partial(get_usage_for_quota, self.cluster), quotas)
         else:
             with self.cluster.fanout() as client:
-                results = list(
-                    map(
-                        functools.partial(
-                            get_usage_for_quota, client.target_key(str(organization_id))
-                        ),
-                        quotas,
-                    )
+                results = map(
+                    functools.partial(get_usage_for_quota, client.target_key(str(organization_id))),
+                    quotas,
                 )
 
         return [get_value_for_result(*r) for r in results]
