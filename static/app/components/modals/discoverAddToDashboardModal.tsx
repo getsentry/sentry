@@ -238,12 +238,22 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     if (!Object.keys(errors).length && this.state.selectedDashboard) {
       // TODO: redirect user to dashboard view
       closeModal();
-      const queryData = {
-        queryName: widgetData.queries[0].name,
-        queryConditions: widgetData.queries[0].conditions,
+
+      const queryData: {
+        queryNames: string[];
+        queryConditions: string[];
+        queryFields: string[];
+        queryOrderby: string;
+      } = {
+        queryNames: [],
+        queryConditions: [],
         queryFields: widgetData.queries[0].fields,
         queryOrderby: widgetData.queries[0].orderby,
       };
+      widgetData.queries.forEach(query => {
+        queryData.queryNames.push(query.name);
+        queryData.queryConditions.push(query.conditions);
+      });
       const pathQuery = {
         displayType: widgetData.displayType,
         interval: widgetData.interval,
@@ -456,7 +466,6 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
                   canAddSearchConditions={this.canAddSearchConditions()}
                   handleAddSearchConditions={this.handleAddSearchConditions}
                   handleDeleteQuery={this.handleQueryRemove}
-                  hideQueries
                   disabled={state.loading}
                 />
               );

@@ -15,7 +15,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState, Widget} from './types';
+import {DashboardState, Widget, WidgetQuery} from './types';
 
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   api: Client;
@@ -32,7 +32,7 @@ function ViewEditDashboard(props: Props) {
     // Clean up url after constructing widget from query string
     // TODO: more elegant way to do this?
     if (constructedWidget) {
-      browserHistory.push(location.pathname);
+      browserHistory.replace(location.pathname);
     }
   }, []);
   return (
@@ -70,20 +70,33 @@ function ViewEditDashboard(props: Props) {
 }
 
 function constructWidgetFromQuery(query): Widget | undefined {
-  const newWidget: Widget = {
-    ...pick(query, ['title', 'displayType', 'interval']),
-    queries: [
-      {
-        name: query.queryName,
-        conditions: query.queryConditions,
-        fields:
-          typeof query.queryFields === 'string' ? [query.queryFields] : query.queryFields,
-        orderby: query.queryOrderby,
-      },
-    ],
-  };
-  // TODO: more elegant way to check if newWidget is valid?
-  if (Object.keys(newWidget).length === 4) return newWidget;
+  if (query) {
+    const queryNames =
+      typeof query.queryNames === 'string' ? [query.queryNames] : query.queryNames;
+    const queryConditions =
+      typeof query.queryConditions === 'string'
+        ? [query.queryConditions]
+        : query.queryConditions;
+    const queries: WidgetQuery[] = [];
+    if (queryConditions)
+      queryConditions.forEach((condition, index) => {
+        queries.push({
+          name: queryNames?.[index],
+          conditions: condition,
+          fields:
+            typeof query.queryFields === 'string'
+              ? [query.queryFields]
+              : query.queryFields,
+          orderby: query.queryOrderby,
+        });
+      });
+    const newWidget: Widget = {
+      ...pick(query, ['title', 'displayType', 'interval']),
+      queries,
+    };
+    // TODO: more elegant way to check if newWidget is valid?
+    if (Object.keys(newWidget).length === 4) return newWidget;
+  }
   return undefined;
 }
 

@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
