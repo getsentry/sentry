@@ -131,8 +131,8 @@ class CanonicalKeyDictTests(unittest.TestCase):
 
     def test_contains(self):
         d = CanonicalKeyDict({"user": {"id": "DemoUser"}})
-        "user" in d
-        "sentry.interfaces.User" in d
+        assert "user" in d
+        assert "sentry.interfaces.User" in d
 
     def test_len(self):
         assert (

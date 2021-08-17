@@ -88,7 +88,7 @@ class StaticMediaTest(TestCase):
         assert response["Cache-Control"] == NEVER_CACHE
         assert response["Vary"] == "Accept-Encoding"
         assert "Access-Control-Allow-Origin" not in response
-        "Content-Encoding" not in response
+        assert "Content-Encoding" not in response
 
     def test_404(self):
         url = "/_static/sentry/app/thisfiledoesnotexistlol.js"
@@ -100,7 +100,7 @@ class StaticMediaTest(TestCase):
         response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")
         assert response.status_code == 200, response
         assert response["Vary"] == "Accept-Encoding"
-        "Content-Encoding" not in response
+        assert "Content-Encoding" not in response
 
         try:
             open("src/sentry/static/sentry/js/ads.js.gz", "a").close()
@@ -109,7 +109,7 @@ class StaticMediaTest(TestCase):
             response = self.client.get(url, HTTP_ACCEPT_ENCODING="lol")
             assert response.status_code == 200, response
             assert response["Vary"] == "Accept-Encoding"
-            "Content-Encoding" not in response
+            assert "Content-Encoding" not in response
 
             response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")
             assert response.status_code == 200, response
