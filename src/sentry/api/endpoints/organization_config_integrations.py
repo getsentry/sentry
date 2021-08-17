@@ -14,9 +14,9 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
             feature_flag_name = "organizations:integrations-%s" % provider_key
             return features.has(feature_flag_name, organization, actor=request.user)
 
-        providers = list(filter(is_provider_enabled, list(integrations.all())))
-
-        providers.sort(key=lambda i: i.key)
+        providers = sorted(
+            filter(is_provider_enabled, list(integrations.all())), key=lambda i: i.key
+        )
 
         serialized = serialize(
             providers, organization=organization, serializer=IntegrationProviderSerializer()
