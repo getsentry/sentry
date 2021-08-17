@@ -1357,7 +1357,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         for i in range(400):
             event = self.store_event(
                 data={
-                    "event_id": md5(f"event {i}".encode("utf-8")).hexdigest(),
+                    "event_id": md5(f"event {i}".encode()).hexdigest(),
                     "fingerprint": [f"put-me-in-group{i}"],
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
                     "message": f"group {i} event",

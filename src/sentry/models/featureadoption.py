@@ -128,7 +128,7 @@ class FeatureAdoptionManager(BaseManager):
         with redis.clusters.get("default").map() as client:
             result.append(client.smembers(org_key))
 
-        return {int(x) for x in set.union(*[p.value for p in result])}
+        return {int(x) for x in set.union(*(p.value for p in result))}
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:

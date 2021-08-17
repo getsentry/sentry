@@ -264,7 +264,7 @@ def process_list(first, remaining):
 
     return [
         first,
-        *[item[4][0] for item in remaining],
+        *(item[4][0] for item in remaining),
     ]
 
 

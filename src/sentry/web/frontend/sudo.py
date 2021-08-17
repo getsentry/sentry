@@ -1,7 +1,6 @@
-from sudo.views import SudoView as BaseSudoView
-
 from sentry.models import Authenticator
 from sentry.utils import json
+from sudo.views import SudoView as BaseSudoView
 
 
 class SudoView(BaseSudoView):

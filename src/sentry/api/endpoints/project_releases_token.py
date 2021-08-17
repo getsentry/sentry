@@ -27,7 +27,7 @@ def _get_webhook_url(project, plugin_id, token):
 def _get_signature(project_id, plugin_id, token):
     return hmac.new(
         key=token.encode("utf-8"),
-        msg=(f"{plugin_id}-{project_id}").encode("utf-8"),
+        msg=(f"{plugin_id}-{project_id}").encode(),
         digestmod=sha256,
     ).hexdigest()
 
