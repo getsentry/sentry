@@ -984,9 +984,9 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{alert_rule_critical.id}",
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",
-            f"{self.yet_another_alert_rule.id}",
-            f"{self.other_alert_rule.id}",
             f"{self.alert_rule.id}",
+            f"{self.other_alert_rule.id}",
+            f"{self.yet_another_alert_rule.id}",
             f"{self.issue_rule.id}",
         ]
 
