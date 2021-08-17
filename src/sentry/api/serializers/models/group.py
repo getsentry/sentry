@@ -825,7 +825,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
-                dict(list(filter(lambda key: key[0] != "group_id", issue.items())))
+                dict(filter(lambda key: key[0] != "group_id", issue.items()))
             )
             for issue in result["data"]
         }
