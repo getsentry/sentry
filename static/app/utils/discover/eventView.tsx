@@ -776,6 +776,8 @@ class EventView {
       newEventView.sorts = newSort;
     }
 
+    newEventView.yAxis = newEventView.getYAxis();
+
     return newEventView;
   }
 
@@ -900,6 +902,8 @@ class EventView {
       }
     }
 
+    newEventView.yAxis = newEventView.getYAxis();
+
     return newEventView;
   }
 
@@ -964,6 +968,8 @@ class EventView {
         }
       }
     }
+
+    newEventView.yAxis = newEventView.getYAxis();
 
     return newEventView;
   }
