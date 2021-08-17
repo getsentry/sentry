@@ -977,8 +977,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
-    "organizations:prompt-additional-volume-upsell": False,
-    "organizations:prompt-additional-volume-upsell-on-demand": False,
+    "organizations:prompt-additional-volume": False,
+    "organizations:prompt-additional-volume-on-demand": False,
     "organizations:prompt-on-demand-orgs": False,
     "organizations:prompt-release-health-adoption": False,
     "organizations:prompt-upgrade-via-dashboards": False,
