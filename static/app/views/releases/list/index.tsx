@@ -569,9 +569,7 @@ class ReleasesList extends AsyncView<Props, State> {
                     <SmartSearchBar
                       searchSource="releases"
                       query={this.getQuery()}
-                      placeholder={t(
-                        'Search releases by version, build, package, or adoption stage'
-                      )}
+                      placeholder={t('Search by version, build, package, or stage')}
                       maxSearchItems={5}
                       hasRecentSearches={false}
                       supportedTags={supportedTags}
