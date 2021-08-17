@@ -54,7 +54,7 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.MOBILE,
     isShown: (organization: Organization) =>
       organization.features.includes('performance-mobile-vitals'),
-    alpha: true,
+    badge: 'beta' as const,
   },
 ];
 

@@ -156,9 +156,10 @@ def _assert_tree_labels(event, functions):
         for i, function in enumerate(functions)
     ]
 
-    assert event.data["metadata"]["finest_tree_label"] == [
-        {"function": function} for function in reversed(functions)
-    ]
+    assert (
+        event.data["metadata"]["finest_tree_label"]
+        == [{"function": function} for function in reversed(functions)][:2]
+    )
 
 
 @pytest.mark.django_db
@@ -173,9 +174,9 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
     ]
 
     assert [e.title for e in events] == [
-        "ZeroDivisionError | foo | bar2 | baz2 | bam",
-        "ZeroDivisionError | foo | bar | baz",
-        "ZeroDivisionError | foo | bar2 | baz2",
+        "ZeroDivisionError | foo | bar2",
+        "ZeroDivisionError | foo | bar",
+        "ZeroDivisionError | foo | bar2",
         "ZeroDivisionError | foo | bar3",
     ]
 
@@ -239,7 +240,7 @@ def test_upwards(default_project, store_stacktrace, reset_snuba, _render_all_pre
     assert (
         _render_all_previews(events[0].group)
         == """\
-group: ZeroDivisionError | foo | bar2 | baz
+group: ZeroDivisionError | foo | bar2
 level 0
 bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (3)
 level 1
@@ -251,7 +252,7 @@ level 2*
     assert (
         _render_all_previews(events[1].group)
         == """\
-group: ZeroDivisionError | foo | bar | baz
+group: ZeroDivisionError | foo | bar
 level 0
 bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (3)
 level 1
@@ -264,7 +265,7 @@ b8d08a573c62ca8c84de14c12c0e19fe: ZeroDivisionError | foo | bar | baz (1)\
     assert (
         _render_all_previews(events[2].group)
         == """\
-group: ZeroDivisionError | foo | bar | bam
+group: ZeroDivisionError | foo | bar
 level 0
 bab925683e73afdb4dc4047397a7b36b: ZeroDivisionError | foo (3)
 level 1

@@ -1,3 +1,5 @@
+import isArray from 'lodash/isArray';
+
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
@@ -71,7 +73,17 @@ discoverCharts.push({
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_PERIOD,
-  getOption: (data: {stats: Record<string, EventsStats>}) => {
+  getOption: (
+    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+  ) => {
+    if (isArray(data.stats.data) && data.stats.data.length === 0) {
+      return {
+        ...slackChartDefaults,
+        useUTC: true,
+        series: [],
+      };
+    }
+
     const stats = Object.values(data.stats);
     const color = theme.charts.getColorPalette(stats.length - 2);
 
@@ -102,7 +114,17 @@ discoverCharts.push({
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_DAILY,
-  getOption: (data: {stats: Record<string, EventsStats>}) => {
+  getOption: (
+    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+  ) => {
+    if (isArray(data.stats.data) && data.stats.data.length === 0) {
+      return {
+        ...slackChartDefaults,
+        useUTC: true,
+        series: [],
+      };
+    }
+
     const stats = Object.values(data.stats);
     const color = theme.charts.getColorPalette(stats.length - 2);
 

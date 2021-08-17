@@ -59,6 +59,7 @@ default_manager.add("organizations:app-store-connect", OrganizationFeature, True
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
 default_manager.add("organizations:chart-unfurls", OrganizationFeature, True)
+default_manager.add("organizations:connect-discover-and-dashboards", OrganizationFeature, True)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)
