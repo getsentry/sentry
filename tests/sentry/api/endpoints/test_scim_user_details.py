@@ -3,8 +3,8 @@ from django.urls import reverse
 
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
-from sentry.scim.endpoints.utils import parse_filter_conditions
-from sentry.testutils import APITestCase, SCIMTestCase, TestCase
+from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
+from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase, TestCase
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -241,27 +241,46 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     # TODO: test patch with bad op
 
 
+class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
+    def test_user_details_get_no_active(self):
+        member = self.create_member(organization=self.organization, email="test.user@okta.local")
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "id": str(member.id),
+            "userName": "test.user@okta.local",
+            "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+            "name": {"familyName": "N/A", "givenName": "N/A"},
+            "meta": {"resourceType": "User"},
+        }
+
+
 class SCIMUtilsTests(TestCase):
     def test_parse_filter_conditions_basic(self):
         fil = parse_filter_conditions('userName eq "user@sentry.io"')
-        assert fil == ["user@sentry.io"]
+        assert fil == "user@sentry.io"
 
         # single quotes too
         fil = parse_filter_conditions("userName eq 'user@sentry.io'")
-        assert fil == ["user@sentry.io"]
+        assert fil == "user@sentry.io"
 
         fil = parse_filter_conditions('value eq "23"')
-        assert fil == [23]
+        assert fil == 23
 
         fil = parse_filter_conditions('displayName eq "MyTeamName"')
-        assert fil == ["MyTeamName"]
+        assert fil == "MyTeamName"
 
     def test_parse_filter_conditions_invalids(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(SCIMFilterError):
             parse_filter_conditions("userName invalid USER@sentry.io")
-        with pytest.raises(ValueError):
+        with pytest.raises(SCIMFilterError):
             parse_filter_conditions("blablaba eq USER@sentry.io")
 
     def test_parse_filter_conditions_single_quote_in_email(self):
         fil = parse_filter_conditions('userName eq "jos\'h@sentry.io"')
-        assert fil == ["jos'h@sentry.io"]
+        assert fil == "jos'h@sentry.io"

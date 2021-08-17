@@ -302,9 +302,19 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
-        if response.status_code != HTTPStatus.OK:
+        if not response.ok:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
-        info = response.json()["trustedPhoneNumber"]
+
+        try:
+            info = response.json()["trustedPhoneNumber"]
+        except ValueError:
+            raise ITunesError(
+                f"Received unexpected response content, response status: {response.status_code}"
+            )
+        except KeyError:
+            raise ITunesError(
+                f"Trusted phone info missing from response with status: {response.status_code}"
+            )
         self._trusted_phone = TrustedPhoneInfo(
             id=info["id"],
             push_mode=info["pushMode"],

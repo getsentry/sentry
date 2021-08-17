@@ -766,7 +766,7 @@ def update_alert_rule(
     ):
         raise AlertRuleNameAlreadyUsedError()
 
-    updated_fields = {}
+    updated_fields = {"date_modified": timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
