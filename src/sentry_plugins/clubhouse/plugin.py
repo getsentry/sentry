@@ -146,7 +146,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
         # TODO: Something about the search API won't allow an explicit number search.
         # Should it switch the search mechanism from search_stories(text) to get_story(id)?
         try:
-            response = client.search_stories(query=(f"project:{project} {query}").encode("utf-8"))
+            response = client.search_stories(query=(f"project:{project} {query}").encode())
         except Exception as e:
             return self.handle_api_error(e)
 

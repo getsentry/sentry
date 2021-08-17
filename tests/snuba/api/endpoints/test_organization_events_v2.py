@@ -78,7 +78,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
         )
 
         assert response.status_code == 200, response.content

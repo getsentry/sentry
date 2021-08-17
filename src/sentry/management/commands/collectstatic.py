@@ -26,7 +26,7 @@ def get_bundle_version(files):
     hasher = md5()
     for (short, _), sum in zip(files, map(checksum, files)):
         echo(f"{sum}  {short}")
-        hasher.update(f"{sum}  {short}\n".encode("utf-8"))
+        hasher.update(f"{sum}  {short}\n".encode())
     return hasher.hexdigest()
 
 
