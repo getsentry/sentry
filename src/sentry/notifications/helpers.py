@@ -441,8 +441,11 @@ def get_highest_notification_setting_value(
 ) -> Optional[NotificationSettingOptionValues]:
     """
     Find the "most specific" notification setting value. Currently non-NEVER
-    values are locked together, but this might change. This is a HACK but if we
-    put an explicit ordering here I'd match the implicit ordering.
+    values are locked together (for example, you cannot have
+    `{"email": "always", "slack": "subscribe_only"}` but you can have
+    `{"email": "always", "slack": "never"}` and
+    `{"email": "always", "slack": "always"}`), but this might change. This is a
+    HACK but if we put an explicit ordering here It'd match the implicit ordering.
     """
     if not notification_settings_by_provider:
         return None
