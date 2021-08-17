@@ -161,7 +161,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -189,7 +188,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -212,7 +210,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -233,7 +230,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -274,7 +270,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );

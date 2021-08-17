@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
@@ -48,7 +48,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
-} & Pick<WithRouterProps, 'router'>;
+};
 
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
