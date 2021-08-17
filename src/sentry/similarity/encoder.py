@@ -22,7 +22,7 @@ class Encoder:
         elif isinstance(value, self.number_types):
             return str(value).encode("utf8")
         elif isinstance(value, Set):
-            return b"\x00".join(sorted(list(map(self.dumps, value))))
+            return b"\x00".join(sorted(map(self.dumps, value)))
         elif isinstance(value, Sequence):
             return b"\x01".join(list(map(self.dumps, value)))
         elif isinstance(value, Mapping):

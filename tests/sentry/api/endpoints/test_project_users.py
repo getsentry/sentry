@@ -40,7 +40,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(list(map(lambda x: x["id"], response.data))) == sorted(
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
             [str(self.euser1.id), str(self.euser2.id)]
         )
 

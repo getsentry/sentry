@@ -272,7 +272,7 @@ class BaseAuth:
         return {
             "next": next_idx,
             "backend": self.AUTH_BACKEND.name,
-            "args": tuple(list(map(model_to_ctype, args))),
+            "args": tuple(map(model_to_ctype, args)),
             "kwargs": {key: model_to_ctype(val) for key, val in kwargs.items()},
         }
 
@@ -280,7 +280,7 @@ class BaseAuth:
         """Takes session saved data to continue pipeline and merges with any
         new extra argument needed. Returns tuple with next pipeline index
         entry, arguments and keyword arguments to continue the process."""
-        args = args[:] + tuple(list(map(ctype_to_model, session_data["args"])))
+        args = args[:] + tuple(map(ctype_to_model, session_data["args"]))
 
         kwargs = kwargs.copy()
         saved_kwargs = {key: ctype_to_model(val) for key, val in session_data["kwargs"].items()}

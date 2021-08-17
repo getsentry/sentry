@@ -415,7 +415,7 @@ def _semver_filter_converter(
     # the passed filter.
     order_by = Release.SEMVER_COLS
     if operator.startswith("<"):
-        order_by = list(list(map(_flip_field_sort, order_by)))
+        order_by = list(map(_flip_field_sort, order_by))
     qs = (
         Release.objects.filter_by_semver(
             organization_id,
@@ -1674,7 +1674,7 @@ class QueryFilter(QueryFields):
         # the passed filter.
         order_by = Release.SEMVER_COLS
         if operator.startswith("<"):
-            order_by = list(list(map(_flip_field_sort, order_by)))
+            order_by = list(map(_flip_field_sort, order_by))
         qs = (
             Release.objects.filter_by_semver(
                 organization_id,

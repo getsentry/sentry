@@ -357,7 +357,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
         )
 
         assert any(
-            list(map(lambda x: x[1] == (2, 0), response))
+            map(lambda x: x[1] == (2, 0), response)
         ), "must show two issues resolved in one rollup window"
 
 
