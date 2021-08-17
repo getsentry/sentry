@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -30,7 +30,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
-} & Pick<WithRouterProps, 'router'>;
+};
 
 type State = {
   eventView: EventView | undefined;
