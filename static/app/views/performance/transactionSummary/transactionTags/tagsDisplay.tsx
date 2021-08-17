@@ -99,7 +99,9 @@ export const TAGS_TABLE_COLUMN_ORDER: TagsTableColumn[] = [
 ];
 
 const TagsDisplay = (props: Props) => {
-  const {eventView, location, organization, projects, tagKey} = props;
+  const {eventView: _eventView, location, organization, projects, tagKey} = props;
+  const eventView = _eventView.clone();
+
   const aggregateColumn = getTransactionField(
     SpanOperationBreakdownFilter.None,
     projects,
@@ -141,11 +143,11 @@ const TagsDisplay = (props: Props) => {
             orgSlug={organization.slug}
             location={location}
             aggregateColumn={aggregateColumn}
-            tagKeyLimit={HISTOGRAM_TAG_KEY_LIMIT}
             numBucketsPerKey={HISTOGRAM_BUCKET_LIMIT}
             tagKey={tagKey}
+            limit={HISTOGRAM_TAG_KEY_LIMIT}
             cursor={cursor}
-            sort={tagSort}
+            sort={tagSort ?? '-sumdelta'}
           >
             {({isLoading, tableData}) => {
               return (

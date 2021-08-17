@@ -24,6 +24,7 @@ ALLOWED_AGGREGATE_COLUMNS = {
 }
 
 TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
+DEFAULT_TAG_KEY_LIMIT = 5
 
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
@@ -138,24 +139,22 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
             return Response([])
 
         tag_key = request.GET.get("tagKey")
-        tag_key_limit = request.GET.get("tagKeyLimit")
         num_buckets_per_key = request.GET.get("numBucketsPerKey")
+        per_page = request.GET.get("per_page", DEFAULT_TAG_KEY_LIMIT)
 
-        if not tag_key_limit:
-            raise ParseError(detail="'tagKeyLimit' must be provided for the performance histogram.")
         if not num_buckets_per_key:
             raise ParseError(
                 detail="'numBucketsPerKey' must be provided for the performance histogram."
             )
         try:
-            tag_key_limit = int(tag_key_limit)
+            per_page = int(per_page)
             num_buckets_per_key = int(num_buckets_per_key)
         except ValueError:
-            raise ParseError(detail="Bucket and tag key limits must be numeric.")
+            raise ParseError(detail="Bucket and tag key per_pages must be numeric.")
 
-        if tag_key_limit * num_buckets_per_key > 500:
+        if per_page * num_buckets_per_key > 500:
             raise ParseError(
-                detail="The number of total buckets ('tagKeyLimit' * 'numBucketsPerKey') cannot exceed 500"
+                detail="The number of total buckets ('per_page' * 'numBucketsPerKey') cannot exceed 500"
             )
 
         if not tag_key:
@@ -164,12 +163,12 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
 
-        def data_fn(offset, limit):
+        def data_fn(offset, limit, raw_limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
                 top_tags = query_top_tags(
                     tag_key=tag_key,
-                    limit=tag_key_limit,
+                    limit=limit,
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
                     params=params,
@@ -181,14 +180,17 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 if not top_tags:
                     return {"tags": [], "histogram": {"data": []}}
 
+                # Only pass exactly the number of tags so histogram fetches correct number of rows
+                histogram_top_tags = top_tags[0:raw_limit]
+
                 histogram = query_facet_performance_key_histogram(
-                    top_tags=top_tags,
+                    top_tags=histogram_top_tags,
                     tag_key=tag_key,
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
                     referrer=referrer,
                     params=params,
-                    limit=tag_key_limit,
+                    limit=raw_limit,
                     num_buckets_per_key=num_buckets_per_key,
                 )
 
@@ -215,7 +217,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 request=request,
                 paginator=HistogramPaginator(data_fn=data_fn),
                 on_results=on_results,
-                default_per_page=10,
+                default_per_page=DEFAULT_TAG_KEY_LIMIT,
                 max_per_page=50,
             )
 
@@ -225,7 +227,8 @@ class HistogramPaginator(GenericOffsetPaginator):
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
-        data = self.data_fn(offset=offset, limit=limit + 1)
+        # Use raw_limit for the histogram itself so bucket calculations are correct
+        data = self.data_fn(offset=offset, limit=limit + 1, raw_limit=limit)
 
         if isinstance(data["tags"], list):
             has_more = len(data["tags"]) == limit + 1
