@@ -785,6 +785,9 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+
+export type EventType = 'error' | 'transaction' | 'attachment';
+
 export const DataCategoryName = {
   [DataCategory.ERRORS]: 'Errors',
   [DataCategory.TRANSACTIONS]: 'Transactions',

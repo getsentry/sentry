@@ -16,7 +16,7 @@ type Props = {
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
-  hasGroupingTreeUI: boolean;
+  hasHierarchicalGrouping: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
@@ -30,7 +30,7 @@ const ExceptionStacktraceContent = ({
   platform,
   newestFirst,
   groupingCurrentLevel,
-  hasGroupingTreeUI,
+  hasHierarchicalGrouping,
   data,
   expandFirstFrame,
   event,
@@ -67,7 +67,7 @@ const ExceptionStacktraceContent = ({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (hasGroupingTreeUI) {
+  if (hasHierarchicalGrouping) {
     return (
       <StacktraceContentV2
         data={data}
