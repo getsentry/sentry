@@ -3,15 +3,11 @@ from sentry.notifications.helpers import (
     _get_setting_mapping_from_mapping,
     collect_groups_by_project,
     get_fallback_settings,
-    get_groups_for_query,
     get_scope_type,
     get_settings_by_provider,
     get_subscription_from_attributes,
     get_target_id,
-    get_user_subscriptions_for_groups,
     get_values_by_provider_by_type,
-    transform_to_notification_settings_by_parent_id,
-    transform_to_notification_settings_by_user,
     validate,
 )
 from sentry.notifications.notify import notification_providers
@@ -120,49 +116,6 @@ class NotificationHelpersTest(TestCase):
             ExternalProviders.SLACK: NotificationSettingOptionValues.COMMITTED_ONLY,
         }
 
-    def test_transform_to_notification_settings_by_user(self):
-        notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-            NotificationSettingTypes.WORKFLOW,
-            recipients=[self.user],
-            parent=self.group.project,
-        )
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, [self.user]
-        )
-        assert notification_settings_by_user == {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
-                }
-            }
-        }
-
-    def test_transform_to_notification_settings_by_parent_id(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
-            project=self.project,
-        )
-        notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-            NotificationSettingTypes.WORKFLOW,
-            self.user,
-            [self.project],
-        )
-        (
-            notification_settings_by_project_id_by_provider,
-            default_subscribe_by_provider,
-        ) = transform_to_notification_settings_by_parent_id(
-            notification_settings, NotificationSettingOptionValues.ALWAYS
-        )
-        assert notification_settings_by_project_id_by_provider == {
-            ExternalProviders.SLACK: {self.project.id: NotificationSettingOptionValues.ALWAYS}
-        }
-        assert default_subscribe_by_provider == {
-            ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
-        }
-
     def test_validate(self):
         self.assertTrue(
             validate(NotificationSettingTypes.ISSUE_ALERTS, NotificationSettingOptionValues.ALWAYS)
@@ -232,32 +185,8 @@ class NotificationHelpersTest(TestCase):
         attrs = {"subscription": (True, False, None)}
         assert get_subscription_from_attributes(attrs) == (False, {"disabled": True})
 
-    def test_get_groups_for_query(self):
-        groups_by_project = {self.project: {self.group}}
-        notification_settings_by_key = {5: NotificationSettingOptionValues.ALWAYS}
-        global_default_workflow_option = NotificationSettingOptionValues.ALWAYS
-        query_groups = get_groups_for_query(
-            groups_by_project,
-            notification_settings_by_key,
-            global_default_workflow_option,
-        )
-        assert query_groups == {self.group}
-
     def test_collect_groups_by_project(self):
         assert collect_groups_by_project([self.group]) == {self.project: {self.group}}
-
-    def test_get_user_subscriptions_for_groups(self):
-        groups_by_project = {self.project: {self.group}}
-        notification_settings_by_key = {5: NotificationSettingOptionValues.ALWAYS}
-        subscriptions_by_group_id = {2: None}
-        global_default_workflow_option = NotificationSettingOptionValues.ALWAYS
-        subscriptions = get_user_subscriptions_for_groups(
-            groups_by_project,
-            notification_settings_by_key,
-            subscriptions_by_group_id,
-            global_default_workflow_option,
-        )
-        assert subscriptions == {self.group.id: (False, True, None)}
 
     def test_get_settings_by_provider(self):
         settings = {
