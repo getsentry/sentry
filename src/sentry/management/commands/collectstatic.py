@@ -22,7 +22,7 @@ def checksum(file_):
 
 def get_bundle_version(files):
     hasher = md5()
-    for (short, _), sum in list(zip(files, list(map(checksum, files)))):
+    for (short, _), sum in zip(files, list(map(checksum, files))):
         echo(f"{sum}  {short}")
         hasher.update(f"{sum}  {short}\n".encode())
     return hasher.hexdigest()

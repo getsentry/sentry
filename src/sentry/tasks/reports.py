@@ -185,7 +185,7 @@ def merge_sequences(target, other, function=operator.add):
     if rt_type == range:
         rt_type = list
 
-    return rt_type([function(x, y) for x, y in list(zip(target, other))])
+    return rt_type([function(x, y) for x, y in zip(target, other)])
 
 
 def merge_mappings(target, other, function=operator.add):
@@ -967,7 +967,7 @@ def to_calendar(organization, interval, series):
 
     calendar = Calendar(6)
     sheets = []
-    for year, month in list(map(index_to_month, range(start, stop + 1))):
+    for year, month in map(index_to_month, range(start, stop + 1)):
         weeks = []
 
         for week in calendar.monthdatescalendar(year, month):

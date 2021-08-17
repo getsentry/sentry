@@ -798,7 +798,7 @@ class RedisTSDB(BaseTSDB):
             members = items[key]
 
             chunk = results[key] = []
-            for timestamp, scores in list(zip(series, responses[0].value)):
+            for timestamp, scores in zip(series, responses[0].value):
                 chunk.append((timestamp, dict(list(zip(members, list(map(float, scores)))))))
 
         return results
@@ -870,9 +870,7 @@ class RedisTSDB(BaseTSDB):
                 results = iter(results)
                 for rollup, series in rollups:
                     for timestamp in series:
-                        for environment_id, payload in list(
-                            zip(environment_ids, next(results).value)
-                        ):
+                        for environment_id, payload in zip(environment_ids, next(results).value):
                             imports.append(
                                 (
                                     CountMinScript,

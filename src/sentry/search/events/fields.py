@@ -1470,7 +1470,7 @@ class DiscoverFunction:
         arguments = {}
 
         # normalize the arguments before putting them in a dict
-        for argument, column in list(zip(self.args, columns)):
+        for argument, column in zip(self.args, columns):
             try:
                 normalized_value = argument.normalize(column, params)
                 if not isinstance(self, SnQLFunction) and isinstance(argument, NumericColumn):

@@ -131,7 +131,7 @@ class GroupSerializerBase(Serializer):
             cache_keys.append("group-mechanism-handled:%d" % item.id)
 
         cache_data = cache.get_many(cache_keys)
-        for item, cache_key in list(zip(item_list, cache_keys)):
+        for item, cache_key in zip(item_list, cache_keys):
             unhandled[item.id] = cache_data.get(cache_key)
 
         filter_keys = {}
@@ -278,7 +278,7 @@ class GroupSerializerBase(Serializer):
                 )
             )
             commit_resolutions = {
-                i.group_id: d for i, d in list(zip(commit_results, serialize(commit_results, user)))
+                i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
             }
         else:
             release_resolutions = {}
@@ -288,7 +288,7 @@ class GroupSerializerBase(Serializer):
         actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in list(zip(users, serialize(users, user)))}
+            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
         else:
             actors = {}
 
