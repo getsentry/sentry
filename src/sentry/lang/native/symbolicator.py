@@ -62,12 +62,11 @@ APP_STORE_CONNECT_SCHEMA = {
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
         "itunesCreated": {"type": "string", "format": "date-time"},
         "itunesPassword": {"type": "string"},
-        "itunesPersonId": {"type": "string"},
         "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgId": {"type": "integer"},
+        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
@@ -81,11 +80,10 @@ APP_STORE_CONNECT_SCHEMA = {
         "itunesCreated",
         "itunesPassword",
         "itunesSession",
-        "itunesPersonId",
         "appName",
         "appId",
         "bundleId",
-        "orgId",
+        "orgPublicId",
         "orgName",
     ],
     "additionalProperties": False,
@@ -304,7 +302,7 @@ def normalize_user_source(source):
     return source
 
 
-def parse_sources(config):
+def parse_sources(config, filter_appconnect=True):
     """
     Parses the given sources in the config string (from JSON).
     """
@@ -323,7 +321,8 @@ def parse_sources(config):
         raise InvalidSourcesError(f"{e}")
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
-    filter(lambda src: src.get("type") != "AppStoreConnect", sources)
+    if filter_appconnect:
+        filter(lambda src: src.get("type") != "appStoreConnect", sources)
 
     ids = set()
     for source in sources:

@@ -44,7 +44,6 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
-    "wip_snql_query",
     "query",
     "prepare_discover_query",
     "timeseries_query",
@@ -179,40 +178,6 @@ def transform_data(result, translated_columns, snuba_filter):
     return result
 
 
-def wip_snql_query(
-    selected_columns,
-    query,
-    params,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-):
-    """
-    Replacement API for query using snql, this function is still a work in
-    progress and is not ready for use in production
-    """
-    builder = QueryBuilder(
-        Dataset.Discover,
-        params,
-        query=query,
-        selected_columns=selected_columns,
-        orderby=orderby,
-        use_aggregate_conditions=use_aggregate_conditions,
-        limit=limit,
-    )
-    snql_query = builder.get_snql_query()
-
-    results = raw_snql_query(snql_query, referrer)
-    return results
-
-
 def query(
     selected_columns,
     query,
@@ -227,6 +192,7 @@ def query(
     use_aggregate_conditions=False,
     conditions=None,
     functions_acl=None,
+    use_snql=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -252,9 +218,27 @@ def query(
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
+
+    if use_snql:
+        builder = QueryBuilder(
+            Dataset.Discover,
+            params,
+            query=query,
+            selected_columns=selected_columns,
+            orderby=orderby,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            limit=limit,
+        )
+        snql_query = builder.get_snql_query()
+
+        results = raw_snql_query(snql_query, referrer)
+        return results
 
     # We clobber this value throughout this code, so copy the value
     selected_columns = selected_columns[:]
@@ -463,7 +447,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     return snuba_filter, translated_columns
 
 
-def timeseries_query(selected_columns, query, params, rollup, referrer=None):
+def timeseries_query(selected_columns, query, params, rollup, referrer=None, zerofill_results=True):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -517,7 +501,11 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
         op="discover.discover", description="timeseries.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+        result = (
+            zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+            if zerofill_results
+            else result["data"]
+        )
 
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
@@ -551,6 +539,7 @@ def top_events_timeseries(
     referrer=None,
     top_events=None,
     allow_empty=True,
+    zerofill_results=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -648,7 +637,11 @@ def top_events_timeseries(
 
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
-            {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
+            {
+                "data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")
+                if zerofill_results
+                else [],
+            },
             snuba_filter.start,
             snuba_filter.end,
             rollup,
@@ -695,7 +688,9 @@ def top_events_timeseries(
                 {
                     "data": zerofill(
                         item["data"], snuba_filter.start, snuba_filter.end, rollup, "time"
-                    ),
+                    )
+                    if zerofill_results
+                    else item["data"],
                     "order": item["order"],
                 },
                 snuba_filter.start,

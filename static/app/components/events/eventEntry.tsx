@@ -24,7 +24,10 @@ type Props = {
 };
 
 function EventEntry({entry, projectSlug, event, organization, group}: Props) {
-  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
+  const hasHierarchicalGrouping =
+    !!organization.features?.includes('grouping-stacktrace-ui') &&
+    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
+
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {
@@ -37,7 +40,7 @@ function EventEntry({entry, projectSlug, event, organization, group}: Props) {
           data={data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
     }
@@ -58,7 +61,7 @@ function EventEntry({entry, projectSlug, event, organization, group}: Props) {
           data={data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
     }
@@ -96,7 +99,7 @@ function EventEntry({entry, projectSlug, event, organization, group}: Props) {
           data={data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
     }

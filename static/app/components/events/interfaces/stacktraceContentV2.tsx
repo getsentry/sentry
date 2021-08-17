@@ -123,6 +123,21 @@ function StackTraceContent({
     };
   }
 
+  function getLastFrameIndex() {
+    const inAppFrameIndexes = frames
+      .map((frame, frameIndex) => {
+        if (frame.inApp) {
+          return frameIndex;
+        }
+        return undefined;
+      })
+      .filter(frame => frame !== undefined);
+
+    return !inAppFrameIndexes.length
+      ? frames.length - 1
+      : inAppFrameIndexes[inAppFrameIndexes.length - 1];
+  }
+
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
     return (
       <ListItem className="frame frames-omitted">
@@ -138,7 +153,8 @@ function StackTraceContent({
   function renderConvertedFrames() {
     const firstFrameOmitted = framesOmitted?.[0] ?? null;
     const lastFrameOmitted = framesOmitted?.[1] ?? null;
-    const lastFrameIndex = frames.length - 1;
+    const lastFrameIndex = getLastFrameIndex();
+
     const {haveFramesAtLeastOneExpandedFrame, haveFramesAtLeastOneGroupingBadge} =
       getFramesDetails();
 
@@ -184,16 +200,24 @@ function StackTraceContent({
           nRepeats++;
         }
 
+        const isUsedForGrouping = isFrameUsedForGrouping(frame);
+
         const isVisible =
-          includeSystemFrames || frame.inApp || frame.minGroupingLevel !== undefined;
+          includeSystemFrames ||
+          frame.inApp ||
+          (nextFrame && nextFrame.inApp) ||
+          // the last non-app frame
+          (!frame.inApp && !nextFrame) ||
+          isUsedForGrouping;
 
         if (isVisible && !repeatedFrame) {
           const lineProps = {
             event,
             frame,
+            prevFrame,
+            nextFrame,
             isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
             emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-            prevFrame,
             platform,
             timesRepeated: nRepeats,
             showingAbsoluteAddress: showingAbsoluteAddresses,
@@ -207,7 +231,7 @@ function StackTraceContent({
             isHoverPreviewed,
             isPrefix: !!frame.isPrefix,
             isSentinel: !!frame.isSentinel,
-            isUsedForGrouping: isFrameUsedForGrouping(frame),
+            isUsedForGrouping,
             haveFramesAtLeastOneExpandedFrame,
             haveFramesAtLeastOneGroupingBadge,
           };

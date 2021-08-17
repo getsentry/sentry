@@ -1,12 +1,14 @@
 import logging
 from typing import Any, Mapping, Optional, Set
 
+from django.utils.encoding import force_text
+
 from sentry import options
-from sentry.models import ProjectOption, User
-from sentry.notifications.activity.base import ActivityNotification
-from sentry.notifications.base import BaseNotification
+from sentry.models import Project, ProjectOption, User
+from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.notifications.rules import AlertRuleNotification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -21,39 +23,45 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
         "X-SMTPAPI": json.dumps({"category": notification.get_category()}),
     }
 
-    if notification.group:
+    group = getattr(notification, "group", None)
+    if group:
         headers.update(
             {
-                "X-Sentry-Logger": notification.group.logger,
-                "X-Sentry-Logger-Level": notification.group.get_level_display(),
-                "X-Sentry-Reply-To": group_id_to_email(notification.group.id),
+                "X-Sentry-Logger": group.logger,
+                "X-Sentry-Logger-Level": group.get_level_display(),
+                "X-Sentry-Reply-To": group_id_to_email(group.id),
             }
         )
 
     return headers
 
 
-def get_subject_with_prefix(
-    notification: BaseNotification, mail_option_key: Optional[str] = None
-) -> bytes:
+def build_subject_prefix(project: Project, mail_option_key: Optional[str] = None) -> str:
     key = mail_option_key or "mail:subject_prefix"
-    prefix = str(
-        ProjectOption.objects.get_value(notification.project, key)
-        or options.get("mail.subject-prefix")
+    return force_text(
+        ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
     )
-    return f"{prefix}{notification.get_subject()}".encode("utf-8")
 
 
-def get_unsubscribe_link(user_id: int, group_id: int) -> str:
+def get_subject_with_prefix(
+    notification: BaseNotification,
+    context: Optional[Mapping[str, Any]] = None,
+    mail_option_key: Optional[str] = None,
+) -> bytes:
+
+    prefix = build_subject_prefix(notification.project, mail_option_key)
+    return f"{prefix}{notification.get_subject(context)}".encode("utf-8")
+
+
+def get_unsubscribe_link(
+    user_id: int, resource_id: int, key: str = "issue", referrer: Optional[str] = None
+) -> str:
     return generate_signed_link(
         user_id,
-        "sentry-account-email-unsubscribe-issue",
-        kwargs={"issue_id": group_id},
+        f"sentry-account-email-unsubscribe-{key}",
+        referrer,
+        kwargs={f"{key}_id": resource_id},
     )
-
-
-def can_users_unsubscribe(notification: BaseNotification) -> bool:
-    return bool(notification.group)
 
 
 def log_message(notification: BaseNotification, user: User) -> None:
@@ -61,8 +69,9 @@ def log_message(notification: BaseNotification, user: User) -> None:
         "project_id": notification.project.id,
         "user_id": user.id,
     }
-    if notification.group:
-        extra.update({"group": notification.group.id})
+    group = getattr(notification, "group", None)
+    if group:
+        extra.update({"group": group.id})
 
     if isinstance(notification, AlertRuleNotification):
         extra.update(
@@ -92,8 +101,11 @@ def get_context(
         **shared_context,
         **notification.get_user_context(user, extra_context),
     }
-    if can_users_unsubscribe(notification) and notification.group:
-        context.update({"unsubscribe_link": get_unsubscribe_link(user.id, notification.group.id)})
+    if notification.get_unsubscribe_key():
+        key, resource_id, referrer = notification.get_unsubscribe_key()
+        context.update(
+            {"unsubscribe_link": get_unsubscribe_link(user.id, resource_id, key, referrer)}
+        )
 
     return context
 
@@ -106,14 +118,15 @@ def send_notification_as_email(
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     headers = get_headers(notification)
-    subject = get_subject_with_prefix(notification)
 
     for user in users:
         extra_context = (extra_context_by_user_id or {}).get(user.id, {})
         log_message(notification, user)
+        context = get_context(notification, user, shared_context, extra_context)
+        subject = get_subject_with_prefix(notification, context=context)
         msg = MessageBuilder(
             subject=subject,
-            context=get_context(notification, user, shared_context, extra_context),
+            context=context,
             template=notification.get_template(),
             html_template=notification.get_html_template(),
             headers=headers,

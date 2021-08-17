@@ -2,6 +2,7 @@ import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -463,6 +464,13 @@ class IssueListOverview extends React.Component<Props, State> {
       },
       complete: () => {
         this._lastStatsRequest = null;
+
+        // End navigation transaction to prevent additional page requests from impacting page metrics.
+        // Other transactions include stacktrace preview request
+        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        if (currentTransaction?.op === 'navigation') {
+          currentTransaction.finish();
+        }
       },
     });
   };
@@ -587,14 +595,14 @@ class IssueListOverview extends React.Component<Props, State> {
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
-      success: (data, _, jqXHR) => {
-        if (!jqXHR) {
+      success: (data, _, resp) => {
+        if (!resp) {
           return;
         }
 
         const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
-        if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
@@ -614,13 +622,13 @@ class IssueListOverview extends React.Component<Props, State> {
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
-        const hits = jqXHR.getResponseHeader('X-Hits');
+        const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
+        const maxHits = resp.getResponseHeader('X-Max-Hits');
         const queryMaxCount =
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const pageLinks = jqXHR.getResponseHeader('Link');
+        const pageLinks = resp.getResponseHeader('Link');
 
         this.fetchCounts(queryCount, fetchAllCounts);
 

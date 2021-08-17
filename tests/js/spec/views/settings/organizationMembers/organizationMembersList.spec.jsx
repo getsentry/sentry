@@ -490,8 +490,8 @@ describe('OrganizationMembersList', function () {
         {
           invite_status: inviteRequest.inviteStatus,
           member_id: parseInt(inviteRequest.id, 10),
-        },
-        org
+          organization: org,
+        }
       );
     });
 
@@ -534,14 +534,11 @@ describe('OrganizationMembersList', function () {
 
       expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
-      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-        'invite_request.denied',
-        {
-          invite_status: joinRequest.inviteStatus,
-          member_id: parseInt(joinRequest.id, 10),
-        },
-        org
-      );
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith('invite_request.denied', {
+        invite_status: joinRequest.inviteStatus,
+        member_id: parseInt(joinRequest.id, 10),
+        organization: org,
+      });
     });
 
     it('can update invite requests', async function () {

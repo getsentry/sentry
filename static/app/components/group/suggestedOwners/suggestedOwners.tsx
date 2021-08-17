@@ -1,10 +1,12 @@
 import * as React from 'react';
 
 import {assignToActor, assignToUser} from 'app/actionCreators/group';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import {Actor, Committer, Group, Organization, Project} from 'app/types';
+import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
 import withOrganization from 'app/utils/withOrganization';
@@ -27,12 +29,16 @@ type Props = {
 type State = {
   rules: Rules;
   owners: Array<Actor>;
+  codeowners: CodeOwner[];
+  isDismissed: boolean;
 };
 
 class SuggestedOwners extends React.Component<Props, State> {
   state: State = {
     rules: null,
     owners: [],
+    codeowners: [],
+    isDismissed: true,
   };
 
   componentDidMount() {
@@ -56,7 +62,71 @@ class SuggestedOwners extends React.Component<Props, State> {
 
   async fetchData(event: Event) {
     this.fetchOwners(event.id);
+    this.fetchCodeOwners();
+    this.checkCodeOwnersPrompt();
   }
+
+  async checkCodeOwnersPrompt() {
+    const {api, organization, project} = this.props;
+
+    // check our prompt backend
+    const promptData = await promptsCheck(api, {
+      organizationId: organization.id,
+      projectId: project.id,
+      feature: 'code_owners',
+    });
+    const isDismissed = promptIsDismissed(promptData, 30);
+    this.setState({isDismissed}, () => {
+      if (!isDismissed) {
+        // now record the results
+        trackIntegrationEvent(
+          'integrations.show_code_owners_prompt',
+          {
+            view: 'stacktrace_issue_details',
+            project_id: project.id,
+            organization,
+          },
+          {startSession: true}
+        );
+      }
+    });
+  }
+
+  handleCTAClose = () => {
+    const {api, organization, project} = this.props;
+
+    promptsUpdate(api, {
+      organizationId: organization.id,
+      projectId: project.id,
+      feature: 'code_owners',
+      status: 'dismissed',
+    });
+
+    this.setState({isDismissed: true}, () =>
+      trackIntegrationEvent('integrations.dismissed_code_owners_prompt', {
+        view: 'stacktrace_issue_details',
+        project_id: project.id,
+        organization,
+      })
+    );
+  };
+
+  fetchCodeOwners = async () => {
+    const {api, project, organization} = this.props;
+
+    try {
+      const data = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners/`
+      );
+      this.setState({
+        codeowners: data,
+      });
+    } catch {
+      this.setState({
+        codeowners: [],
+      });
+    }
+  };
 
   fetchOwners = async (eventId: Event['id']) => {
     const {api, project, organization} = this.props;
@@ -137,16 +207,25 @@ class SuggestedOwners extends React.Component<Props, State> {
       // TODO(ts): `event` here may not be 100% correct
       // in this case groupID should always exist on event
       // since this is only used in Issue Details
-      assignToUser({id: event.groupID as string, user: actor});
+      assignToUser({
+        id: event.groupID as string,
+        user: actor,
+        assignedBy: 'suggested_assignee',
+      });
     }
 
     if (actor.type === 'team') {
-      assignToActor({id: event.groupID as string, actor});
+      assignToActor({
+        id: event.groupID as string,
+        actor,
+        assignedBy: 'suggested_assignee',
+      });
     }
   };
 
   render() {
     const {organization, project, group} = this.props;
+    const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
 
     return (
@@ -154,13 +233,14 @@ class SuggestedOwners extends React.Component<Props, State> {
         {owners.length > 0 && (
           <SuggestedAssignees owners={owners} onAssign={this.handleAssign} />
         )}
-        <Access access={['project:write']}>
-          <OwnershipRules
-            issueId={group.id}
-            project={project}
-            organization={organization}
-          />
-        </Access>
+        <OwnershipRules
+          issueId={group.id}
+          project={project}
+          organization={organization}
+          codeowners={codeowners}
+          isDismissed={isDismissed}
+          handleCTAClose={this.handleCTAClose}
+        />
       </React.Fragment>
     );
   }

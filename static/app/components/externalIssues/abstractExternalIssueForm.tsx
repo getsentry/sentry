@@ -58,8 +58,8 @@ export default class AbstractExternalIssueForm<
     this.api.request(endpoint, {
       method: 'GET',
       query,
-      success: (data, _, jqXHR) => {
-        this.handleRequestSuccess({stateKey: 'integrationDetails', data, jqXHR}, true);
+      success: (data, _, resp) => {
+        this.handleRequestSuccess({stateKey: 'integrationDetails', data, resp}, true);
       },
       error: error => {
         this.handleError(error, ['integrationDetails', endpoint, null, null]);

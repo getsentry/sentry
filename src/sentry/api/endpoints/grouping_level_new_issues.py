@@ -130,7 +130,14 @@ def _query_snuba(group: Group, id: int, offset=None, limit=None):
             ]
         )
         .set_groupby([Column("new_materialized_hash")])
-        .set_orderby([OrderBy(Column("latest_event_timestamp"), Direction.DESC)])
+        .set_orderby(
+            [
+                OrderBy(Column("event_count"), Direction.DESC),
+                # Completely useless sorting key, only there to achieve stable sort
+                # order in tests.
+                OrderBy(Column("latest_event_timestamp"), Direction.DESC),
+            ]
+        )
     )
 
     levels_overview = get_levels_overview(group)
@@ -202,7 +209,9 @@ def _process_snuba_results(query_res, group: Group, id: int, user):
             event = Event(group.project_id, event_id, group_id=group.id, data=event_data)
             response_item["latestEvent"] = serialize(event, user, EventSerializer())
 
-            tree_label = get_path(event_data, "hierarchical_tree_labels", id)
+            tree_label = get_path(event_data, "hierarchical_tree_labels", id) or get_path(
+                event_data, "hierarchical_tree_labels", -1
+            )
 
             # Rough approximation of what happens with Group title
             event_type = get_event_type(event.data)

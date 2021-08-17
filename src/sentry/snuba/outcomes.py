@@ -1,8 +1,13 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.http import QueryDict
+from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.entity import Entity
+from snuba_sdk.expressions import Granularity, Limit, Offset
+from snuba_sdk.function import Function
+from snuba_sdk.query import Query
 
 from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
@@ -13,7 +18,7 @@ from sentry.snuba.sessions_v2 import (
     massage_sessions_result,
 )
 from sentry.utils.outcomes import Outcome
-from sentry.utils.snuba import raw_query
+from sentry.utils.snuba import raw_snql_query
 
 from .dataset import Dataset
 
@@ -44,7 +49,7 @@ by these fields
 """
 
 ResultSet = List[Dict[str, Any]]
-Condition = Tuple[str, str, List[Any]]
+QueryCondition = Tuple[str, str, List[Any]]
 
 
 class Field(ABC):
@@ -59,7 +64,7 @@ class Field(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
+    def select_params(self, dataset: Dataset) -> Tuple[str, str, str]:
         raise NotImplementedError()
 
 
@@ -74,8 +79,8 @@ class QuantityField(Field):
             return 0
         return int(row["quantity"])
 
-    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
-        return ("sum", "quantity", "quantity")
+    def select_params(self, dataset: Dataset) -> Function:
+        return Function("sum", [Column("quantity")], "quantity")
 
 
 class TimesSeenField(Field):
@@ -89,12 +94,12 @@ class TimesSeenField(Field):
             return 0
         return int(row["times_seen"])
 
-    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
+    def select_params(self, dataset: Dataset) -> Function:
         if dataset == Dataset.Outcomes:
-            return ("sum", "times_seen", "times_seen")
+            return Function("sum", [Column("times_seen")], "times_seen")
         else:
             # RawOutcomes doesnt have times_seen, do a count instead
-            return ("count()", "", "times_seen")
+            return Function("count()", [Column("times_seen")], "times_seen")
 
 
 class Dimension(SimpleGroupBy, ABC):  # type: ignore
@@ -189,26 +194,6 @@ TS_COL = "time"
 ONE_HOUR = 3600
 
 
-def get_filter(
-    query: QueryDict, params: Mapping[Any, Any]
-) -> Tuple[List[Condition], Dict[str, Any]]:
-    filter_keys = {}
-    conditions: List[Condition] = []
-
-    for filter_name in DIMENSION_MAP:
-        raw_filter = query.getlist(filter_name, [])
-        resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
-        if len(resolved_filter) > 0:
-            conditions.append((filter_name, "IN", resolved_filter))
-
-    if "project_id" in params:
-        filter_keys["project_id"] = params["project_id"]
-    if "organization_id" in params:
-        filter_keys["org_id"] = [params["organization_id"]]
-
-    return conditions, filter_keys
-
-
 class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
@@ -227,19 +212,18 @@ class QueryDefinition:
         if len(raw_fields) == 0:
             raise InvalidField('At least one "field" is required.')
         self.fields = {}
-        self.aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
-        self.dataset = _outcomes_dataset(rollup)
+        self.dataset, self.match = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
         self.end = end
-
+        self.select_params = []
         for key in raw_fields:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
-            self.aggregations.append(field.aggregation(self.dataset))
+            self.select_params.append(field.select_params(self.dataset))
             self.fields[key] = field
 
         self.groupby = []
@@ -263,40 +247,60 @@ class QueryDefinition:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        self.conditions, self.filter_keys = get_filter(query, params)
+        self.group_by = []
+        for key in self.query_groupby:
+            self.group_by.append(Column(key))
+
+        self.conditions = self.get_conditions(query, params)
+
+    def get_conditions(self, query: QueryDict, params: Mapping[Any, Any]) -> List[Any]:
+        query_conditions = [
+            Condition(Column("timestamp"), Op.GTE, self.start),
+            Condition(Column("timestamp"), Op.LT, self.end),
+        ]
+        for filter_name in DIMENSION_MAP:
+            raw_filter = query.getlist(filter_name, [])
+            resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
+            if len(resolved_filter) > 0:
+                query_conditions.append(Condition(Column(filter_name), Op.IN, resolved_filter))
+        if "project_id" in params:
+            query_conditions.append(
+                Condition(Column("project_id"), Op.IN, params["project_id"]),
+            )
+        if "organization_id" in params:
+            query_conditions.append(
+                Condition(Column("org_id"), Op.EQ, params["organization_id"]),
+            )
+        return query_conditions
 
 
 def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
-    result = raw_query(
-        dataset=query.dataset,
-        start=query.start,
-        end=query.end,
-        groupby=query.query_groupby,
-        aggregations=query.aggregations,
-        rollup=query.rollup,
-        filter_keys=query.filter_keys,
-        conditions=query.conditions,
-        selected_columns=query.query_columns,
-        referrer="outcomes.totals",
-        limit=10000,
+    snql_query = Query(
+        dataset=query.dataset.value,
+        match=Entity(query.match),
+        select=query.select_params,
+        groupby=query.group_by,
+        where=query.conditions,
+        limit=Limit(10000),
+        offset=Offset(0),
+        granularity=Granularity(query.rollup),
     )
+    result = raw_snql_query(snql_query, referrer="outcomes.totals")
     return _format_rows(result["data"], query)
 
 
 def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
-    result_timeseries = raw_query(
-        dataset=query.dataset,
-        selected_columns=[TS_COL] + query.query_columns,
-        groupby=[TS_COL] + query.query_groupby,
-        aggregations=query.aggregations,
-        conditions=query.conditions,
-        filter_keys=query.filter_keys,
-        start=query.start,
-        end=query.end,
-        rollup=query.rollup,
-        referrer="outcomes.timeseries",
-        limit=10000,
+    snql_query = Query(
+        dataset=query.dataset.value,
+        match=Entity(query.match),
+        select=query.select_params,
+        groupby=query.group_by + [Column(TS_COL)],
+        where=query.conditions,
+        limit=Limit(10000),
+        offset=Offset(0),
+        granularity=Granularity(query.rollup),
     )
+    result_timeseries = raw_snql_query(snql_query, referrer="outcomes.timeseries")
     return _format_rows(result_timeseries["data"], query)
 
 
@@ -329,18 +333,17 @@ def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
 def _rename_row_fields(row: Dict[str, Any]) -> None:
     for dimension in DIMENSION_MAP:
         DIMENSION_MAP[dimension].map_row(row)
-    if TS_COL in row:
-        # have to use "time" column -- "timestamp" column doesnt
-        # rollup correctly. TODO: look into this
-        row[TS_COL] = datetime.utcfromtimestamp(row[TS_COL]).isoformat()
 
 
 def _outcomes_dataset(rollup: int) -> Dataset:
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
-        return Dataset.Outcomes
+        dataset = Dataset.Outcomes
+        match = "outcomes"
     else:
-        return Dataset.OutcomesRaw
+        dataset = Dataset.OutcomesRaw
+        match = "outcomes_raw"
+    return dataset, match
 
 
 def massage_outcomes_result(

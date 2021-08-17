@@ -153,8 +153,8 @@ function generateTagsEventView(
     location
   );
 
-  eventView.additionalConditions.setTagValues('event.type', ['transaction']);
-  eventView.additionalConditions.setTagValues('transaction', [transactionName]);
+  eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.setFilterValues('transaction', [transactionName]);
   return eventView;
 }
 

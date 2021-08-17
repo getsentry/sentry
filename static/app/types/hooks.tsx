@@ -270,11 +270,7 @@ type AnalyticsTrackEventV2 = (
      */
     [key: string]: any;
   },
-  options: {
-    /**
-     * If true, send the event to marketing analytics
-     */
-    sendMarketing?: boolean;
+  options?: {
     /**
      * If true, starts an analytics session. This session can be used
      * to construct funnels. The start of the funnel should have

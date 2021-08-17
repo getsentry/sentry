@@ -359,6 +359,187 @@ describe('EventsV2 -> ColumnEditModal', function () {
     });
   });
 
+  describe('equation automatic update', function () {
+    let onApply;
+    beforeEach(function () {
+      onApply = jest.fn();
+    });
+    it('update simple equation columns when they change', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count_unique', 'user'],
+            },
+            {
+              kind: 'function',
+              function: ['p95', ''],
+            },
+            {
+              kind: 'equation',
+              field: '(p95() / count_unique(user)  ) *   100',
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+      selectByLabel(newWrapper, 'count_if(\u2026)', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count_if', 'user', 'equals', '300']},
+        {kind: 'function', function: ['p95', '']},
+        {kind: 'equation', field: '(p95() / count_if(user,equals,300)  ) *   100'},
+      ]);
+    });
+    it('update equation with repeated columns when they change', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count_unique', 'user'],
+            },
+            {
+              kind: 'equation',
+              field:
+                'count_unique(user) +  (count_unique(user) - count_unique(user)) * 5',
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+      selectByLabel(newWrapper, 'count()', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count', '', undefined, undefined]},
+        {kind: 'equation', field: 'count() +  (count() - count()) * 5'},
+      ]);
+    });
+    it('handles equations with duplicate fields', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'field',
+              field: 'spans.db',
+            },
+            {
+              kind: 'field',
+              field: 'spans.db',
+            },
+            {
+              kind: 'equation',
+              field: 'spans.db - spans.db',
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+      selectByLabel(newWrapper, 'count()', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      // Because spans.db is still a selected column it isn't swapped
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count', '', undefined, undefined]},
+        {kind: 'field', field: 'spans.db'},
+        {kind: 'equation', field: 'spans.db - spans.db'},
+      ]);
+    });
+    it('handles equations with duplicate functions', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+            {
+              kind: 'equation',
+              field: 'count() - count()',
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+      selectByLabel(newWrapper, 'count_unique(\u2026)', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
+        {kind: 'function', function: ['count', '', undefined, undefined]},
+        {kind: 'equation', field: 'count() - count()'},
+      ]);
+    });
+    it('handles incomplete equations', function () {
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+            {
+              kind: 'equation',
+              field: 'count() - count() arst count() ',
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+      expect(newWrapper.find('QueryField ArithmeticError')).toHaveLength(1);
+      selectByLabel(newWrapper, 'count_unique(\u2026)', {
+        name: 'field',
+        at: 0,
+        control: true,
+      });
+
+      // Apply the changes so we can see the new columns.
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      // With the way the parser works only tokens up to the error will be updated
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
+        {kind: 'equation', field: 'count_unique() - count_unique() arst count() '},
+      ]);
+    });
+  });
+
   describe('adding rows', function () {
     const wrapper = mountModal(
       {
@@ -429,13 +610,14 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       expect(newWrapper.find('QueryField')).toHaveLength(2);
 
-      // Last row cannot be removed or dragged.
+      // Can still remove the equation
       expect(
         newWrapper.find('RowContainer button[aria-label="Remove column"]')
-      ).toHaveLength(0);
+      ).toHaveLength(1);
+      // And both are draggable
       expect(
         newWrapper.find('RowContainer button[aria-label="Drag to reorder"]')
-      ).toHaveLength(0);
+      ).toHaveLength(2);
     });
     it('handles equations being deleted', function () {
       const newWrapper = mountModal(

@@ -14,7 +14,7 @@ type NotifyOptions = {
 };
 
 type Props = {
-  hasGroupingTreeUI: boolean;
+  hasHierarchicalGrouping: boolean;
   stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
   platform?: string;
@@ -25,6 +25,7 @@ type Props = {
 };
 
 const CrashActions = ({
+  hasHierarchicalGrouping,
   stackView,
   stackType,
   stacktrace,
@@ -32,7 +33,6 @@ const CrashActions = ({
   exception,
   platform,
   onChange,
-  hasGroupingTreeUI,
 }: Props) => {
   const hasSystemFrames: boolean =
     stacktrace?.hasSystemFrames ||
@@ -80,7 +80,7 @@ const CrashActions = ({
             size="xsmall"
             onClick={setStackView(STACK_VIEW.APP)}
           >
-            {hasGroupingTreeUI ? t('Relevant Only') : t('App Only')}
+            {hasHierarchicalGrouping ? t('Most Revelant') : t('App Only')}
           </Button>
         )}
         <Button

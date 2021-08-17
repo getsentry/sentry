@@ -35,7 +35,7 @@ import {
   VITAL_GROUPS,
 } from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
-import {isSummaryViewFrontendPageLoad} from '../utils';
+import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
@@ -124,10 +124,10 @@ class SummaryContent extends React.Component<Props, State> {
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       // no need to include transaction as its already in the query params
-      searchConditions.removeTag('transaction');
+      searchConditions.removeFilter('transaction');
 
       updateQuery(searchConditions, action, column, value);
 
@@ -220,6 +220,9 @@ class SummaryContent extends React.Component<Props, State> {
     const hasPerformanceEventsPage = organization.features.includes(
       'performance-events-page'
     );
+    const hasPerformanceChartInterpolation = organization.features.includes(
+      'performance-chart-interpolation'
+    );
 
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
@@ -236,6 +239,8 @@ class SummaryContent extends React.Component<Props, State> {
             return Number.isFinite(totalValues[alias]);
           })
         ));
+
+    const isFrontendView = isSummaryViewFrontend(eventView, projects);
 
     const transactionsListTitles = [
       t('event id'),
@@ -322,7 +327,7 @@ class SummaryContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.TransactionSummary}
-          hasWebVitals={hasWebVitals}
+          hasWebVitals="maybe"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
           onChangeThreshold={onChangeThreshold}
         />
@@ -354,6 +359,7 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               totalValues={totalCount}
               currentFilter={spanOperationBreakdownFilter}
+              withoutZerofill={hasPerformanceChartInterpolation}
             />
             <TransactionsList
               location={location}
@@ -415,11 +421,13 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
-            />
+            {!isFrontendView && (
+              <StatusBreakdown
+                eventView={eventView}
+                organization={organization}
+                location={location}
+              />
+            )}
             <SidebarSpacer />
             <SidebarCharts
               organization={organization}

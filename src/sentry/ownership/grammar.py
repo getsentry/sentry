@@ -80,7 +80,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     A Matcher represents a type:pattern pairing for use in
     comparing with an Event.
 
-    type is either `path`, `url`, `module` or `codeowners` at this point.
+    type is either `path`, `tags`, `url`, `module` or `codeowners` at this point.
 
     TODO(mattrobenolt): pattern needs to be parsed into a regex
 
@@ -144,7 +144,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
         """
         spec = _path_to_regex(self.pattern)
-        keys = ["abs_path"]
+        keys = ["filename", "abs_path"]
         for frame in _iter_frames(data):
             value = next((frame.get(key) for key in keys if frame.get(key)), None)
 

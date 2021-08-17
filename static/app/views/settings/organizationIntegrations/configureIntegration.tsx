@@ -68,14 +68,11 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     if (stateKey !== 'integration') {
       return;
     }
-    trackIntegrationEvent(
-      'integrations.details_viewed',
-      {
-        integration: data.provider.key,
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.details_viewed', {
+      integration: data.provider.key,
+      integration_type: 'first_party',
+      organization: this.props.organization,
+    });
   }
 
   getTitle() {

@@ -8,6 +8,7 @@ import dataclasses
 import io
 import logging
 import pathlib
+import time
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -19,7 +20,7 @@ from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
-from sentry.utils import json
+from sentry.utils import json, sdk
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
@@ -28,12 +29,13 @@ logger = logging.getLogger(__name__)
 # The key in the project options under which all symbol sources are stored.
 SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
-# The key in the project options under which all of the dates corresponding to the last time sentry
-# checked for new builds in App Store Connect are stored.
-APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
-
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
+
+# The key in the project options under which all of the dates corresponding to the last time sentry
+# checked for new builds in App Store Connect are stored.
+# TODO: Remove this before App Store Connect GA
+APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
 
 
 class InvalidCredentialsError(Exception):
@@ -90,12 +92,6 @@ class AppStoreConnectConfig:
     # Password for the iTunes credentials.
     itunesPassword: str
 
-    # Person ID of the iTunes user.
-    #
-    # This is an internal field that some iTunes calls need, but it is also relatively
-    # easily to retrieve via an HTTP request to iTunes.
-    itunesPersonId: str
-
     # The iTunes session cookie.
     #
     # Loading this cookie into ``requests.Session`` (see
@@ -122,11 +118,11 @@ class AppStoreConnectConfig:
     # This is guaranteed to be unique and should map 1:1 to ``appId``.
     bundleId: str
 
-    # The organisation ID according to iTunes.
+    # The publicProviderId of the organisation according to iTunes.
     #
     # An iTunes session can have multiple organisations and needs this ID to be able to
     # select the correct organisation to operate on.
-    orgId: int
+    orgPublicId: itunes_connect.PublicProviderId
 
     # The name of an organisation, as supplied by iTunes.
     orgName: str
@@ -165,13 +161,33 @@ class AppStoreConnectConfig:
         :raises KeyError: if the config is not found.
         :raises InvalidConfigError if the stored config is somehow invalid.
         """
-        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+
+        # UI bug: the UI writes an empty string when removing the last symbol source from
+        # the list.  So we need to cater for both `None` and `''` being returned from
+        # .get_option().
+        if not raw:
+            raw = "[]"
+
         all_sources = json.loads(raw)
         for source in all_sources:
             if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
                 return cls.from_json(source)
         else:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
+
+    @staticmethod
+    def all_config_ids(project: Project) -> List[str]:
+        """Return the config IDs of all appStoreConnect symbol sources configured in the project."""
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+        if not raw:
+            raw = "[]"
+        all_sources = json.loads(raw)
+        return [
+            s.get("id")
+            for s in all_sources
+            if s.get("type") == SYMBOL_SOURCE_TYPE_NAME and s.get("id")
+        ]
 
     def to_json(self) -> Dict[str, Any]:
         """Creates a dict which can be serialised to JSON.
@@ -193,31 +209,35 @@ class AppStoreConnectConfig:
             raise InvalidConfigError from e
         return data
 
-    def update_project_symbol_source(self, project: Project) -> json.JSONData:
+    def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
         """Updates this configuration in the Project's symbol sources.
 
         If a symbol source of type ``appStoreConnect`` already exists the ID must match and it
-        will be updated.  If not ``appStoreConnect`` source exists yet it is added.
+        will be updated.  If no ``appStoreConnect`` source exists yet it is added.
+
+        :param allow_multiple: Whether multiple appStoreConnect sources are allowed for this
+           project.
 
         :returns: The new value of the sources.  Use this in a call to
            `ProjectEndpoint.create_audit_entry()` to create an audit log.
 
         :raises ValueError: if an ``appStoreConnect`` source already exists but the ID does not
-           match.
+           match
         """
         with transaction.atomic():
-            all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
-            all_sources = json.loads(all_sources_raw)
+            all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+            all_sources = json.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):
                 if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
-                    if source.get("id") != self.id:
+                    if source.get("id") == self.id:
+                        all_sources[i] = self.to_json()
+                        break
+                    elif not allow_multiple:
                         raise ValueError(
                             "Existing appStoreConnect symbolSource config does not match id"
                         )
-                    all_sources[i] = self.to_json()
-                    break
             else:
-                # No existing appStoreConnect symbol source, simply append it.
+                # No matching existing appStoreConnect symbol source, append it.
                 all_sources.append(self.to_json())
             project.update_option(SYMBOL_SOURCES_PROP_NAME, json.dumps(all_sources))
         return all_sources
@@ -263,23 +283,31 @@ class ITunesClient:
     session.
     """
 
-    def __init__(self, itunes_cookie: str, itunes_org: int):
-        self._session = requests.Session()
-        itunes_connect.load_session_cookie(self._session, itunes_cookie)
-        # itunes_connect.set_provider(self._session, itunes_org)
+    def __init__(self, itunes_cookie: str, itunes_org: itunes_connect.PublicProviderId):
+        self._client = itunes_connect.ITunesClient.from_session_cookie(itunes_cookie)
+        self._client.set_provider(itunes_org)
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
         with sentry_sdk.start_span(op="dsyms", description="Download dSYMs"):
-            url = itunes_connect.get_dsym_url(
-                self._session, build.app_id, build.version, build.build_number, build.platform
+            url = self._client.get_dsym_url(
+                build.app_id, build.version, build.build_number, build.platform
             )
             if not url:
                 raise NoDsymsError
             logger.debug("Fetching dSYM from: %s", url)
-            with requests.get(url, stream=True) as req:
+            # The 315s is just above how long it would take a 4MB/s connection to download
+            # 2GB.
+            with requests.get(url, stream=True, timeout=15) as req:
                 req.raise_for_status()
+                start = time.time()
+                bytes_count = 0
                 with open(path, "wb") as fp:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        if (time.time() - start) > 315:
+                            with sdk.configure_scope() as scope:
+                                scope.set_extra("dSYM.bytes_fetched", bytes_count)
+                            raise requests.Timeout("Timeout during dSYM download")
+                        bytes_count += len(chunk)
                         fp.write(chunk)
 
 
@@ -295,7 +323,7 @@ class AppConnectClient:
         self,
         api_credentials: appstore_connect.AppConnectCredentials,
         itunes_cookie: str,
-        itunes_org: int,
+        itunes_org: itunes_connect.PublicProviderId,
         app_id: str,
     ) -> None:
         """Internal init, use one of the classmethods instead."""
@@ -331,14 +359,14 @@ class AppConnectClient:
         return cls(
             api_credentials=api_credentials,
             itunes_cookie=config.itunesSession,
-            itunes_org=config.orgId,
+            itunes_org=config.orgPublicId,
             app_id=config.appId,
         )
 
     def itunes_client(self) -> ITunesClient:
         """Returns an iTunes client capable of downloading dSYMs.
 
-        This will raise an exception if the session cookie is expired.
+        :raises itunes_connect.SessionExpired: if the session cookie is expired.
         """
         return ITunesClient(itunes_cookie=self._itunes_cookie, itunes_org=self._itunes_org)
 

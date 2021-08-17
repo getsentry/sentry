@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import eventstream, features, search
+from sentry import analytics, eventstream, features, search
 from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
 from sentry.api.issue_search import convert_query_values, parse_search_query
@@ -536,7 +536,11 @@ def get_current_release_version_of_group(group, follows_semver=False):
             ...
     else:
         # This sets current_release_version to the most recent release associated with a group
-        current_release_version = group.get_last_release()
+        # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
+        # group.get_last_release might not return the actual latest release associated with a
+        # group but rather a cached version (which might or might not be the actual latest. It is
+        # the first latest observed by Sentry)
+        current_release_version = group.get_last_release(use_cache=False)
     return current_release_version
 
 
@@ -725,6 +729,29 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                             resolution_params.update(
                                 {"current_release_version": current_release_version}
                             )
+
+                            # Sets `current_release_version` for activity, since there is no point
+                            # waiting for when a new release is created i.e.
+                            # clear_expired_resolutions task to be run.
+                            # Activity should look like "... resolved in version
+                            # >current_release_version" in the UI
+                            if follows_semver:
+                                activity_data.update(
+                                    {"current_release_version": current_release_version}
+                                )
+
+                                # In semver projects, and thereby semver releases, we determine
+                                # resolutions by comparing against an expression rather than a
+                                # specific release (i.e. >current_release_version). Consequently,
+                                # at this point we can consider this GroupResolution as resolved
+                                # in release
+                                resolution_params.update(
+                                    {
+                                        "type": GroupResolution.Type.in_release,
+                                        "status": GroupResolution.Status.resolved,
+                                    }
+                                )
+
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params
                     )
@@ -923,20 +950,55 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                         kwargs={"project_id": group.project_id, "group_id": group.id}
                     )
 
+    # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
+    # what performance impact this might have & this possibly should be moved else where
+    try:
+        if len(group_list) == 1:
+            if res_type in (
+                GroupResolution.Type.in_next_release,
+                GroupResolution.Type.in_release,
+            ):
+                result["activity"] = serialize(
+                    Activity.get_activities_for_group(group=group_list[0], num=100), acting_user
+                )
+    except UnboundLocalError:
+        pass
+
     if "assignedTo" in result:
         assigned_actor = result["assignedTo"]
+        assigned_by = (
+            request.data.get("assignedBy")
+            if request.data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
+            else None
+        )
         if assigned_actor:
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
 
-                GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                assignment = GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                analytics.record(
+                    "manual.issue_assignment",
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=assignment["updated_assignment"],
+                )
             result["assignedTo"] = serialize(
                 assigned_actor.resolve(), acting_user, ActorSerializer()
             )
+
         else:
             for group in group_list:
                 GroupAssignee.objects.deassign(group, acting_user)
-
+                analytics.record(
+                    "manual.issue_assignment",
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=True,
+                )
     is_member_map = {
         project.id: project.member_set.filter(user=acting_user).exists() for project in projects
     }

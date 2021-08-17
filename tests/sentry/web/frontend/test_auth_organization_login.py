@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.test import override_settings
 from django.urls import reverse
 from exam import fixture
@@ -12,6 +14,7 @@ from sentry.models import (
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
+from sentry.utils import json
 
 
 # TODO(dcramer): this is an integration test and repeats tests from
@@ -72,12 +75,15 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
         assert resp.status_code == 200
 
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+
         with self.settings(
             TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
         ):
             resp = self.client.post(path, {"op": "newuser"}, follow=True)
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
+                (reverse("sentry-login") + f"?{marketing_query}", 302),
                 ("/organizations/foo/issues/", 302),
             ]
 
@@ -164,9 +170,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["existing_user"] == user
         assert resp.context["login_form"]
 
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
+            (reverse("sentry-login") + f"?{marketing_query}", 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -397,9 +406,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not resp.context["existing_user"]
         assert resp.context["login_form"]
 
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
+            (reverse("sentry-login") + f"?{marketing_query}", 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -659,6 +671,41 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # Ensure the ident was migrated from the legacy identity
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)
         assert updated_ident.ident == "foo@new-domain.com"
+
+    def test_flow_as_authenticated_user_with_invite_joining(self):
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        user = self.create_user("bar@example.com")
+        member = self.create_member(email="bar@example.com", organization=self.organization)
+        member.user = None
+        member.save()
+        self.login_as(user)
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+
+        resp = self.client.post(path, {"email": "bar@example.com"})
+
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
+        assert resp.status_code == 200
+
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+        assert user == auth_identity.user
+
+        test_member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        assert member.id == test_member.id
+        assert getattr(test_member.flags, "sso:linked")
+        assert not getattr(test_member.flags, "sso:invalid")
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})

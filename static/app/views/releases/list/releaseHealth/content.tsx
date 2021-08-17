@@ -8,6 +8,7 @@ import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Link from 'app/components/links/link';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
@@ -18,6 +19,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
+import {Theme} from 'app/utils/theme';
 import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
@@ -30,17 +32,23 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
-const ADOPTION_STAGE_LABELS = {
+const ADOPTION_STAGE_LABELS: Record<
+  string,
+  {name: string; tooltipTitle: string; type: keyof Theme['tag']}
+> = {
   low_adoption: {
     name: t('Low Adoption'),
+    tooltipTitle: t('Never exceeded 10% adoption in a 6 hour period'),
     type: 'warning',
   },
   adopted: {
     name: t('Adopted'),
+    tooltipTitle: t('At least 10% adoption in the last 6 hours'),
     type: 'success',
   },
   replaced: {
     name: t('Replaced'),
+    tooltipTitle: t('Was previously adopted'),
     type: 'default',
   },
 };
@@ -54,13 +62,13 @@ type Props = {
   showPlaceholders: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
-  showAdoptionStageLabels: boolean;
+  showReleaseAdoptionStages: boolean;
   adoptionStages?: Release['adoptionStages'];
 };
 
 const Content = ({
   projects,
-  showAdoptionStageLabels,
+  showReleaseAdoptionStages,
   adoptionStages,
   releaseVersion,
   location,
@@ -69,186 +77,192 @@ const Content = ({
   showPlaceholders,
   isTopRelease,
   getHealthData,
-}: Props) => {
-  const anyProjectMobile =
-    projects.filter(
-      project => project.platform && isProjectMobileForReleases(project.platform)
-    ).length > 0;
-  const hasAdoptionStagesColumn: boolean = anyProjectMobile && showAdoptionStageLabels;
-  return (
-    <Fragment>
-      <Header>
-        <Layout hasAdoptionStagesColumn={hasAdoptionStagesColumn}>
-          <Column>{t('Project Name')}</Column>
-          {hasAdoptionStagesColumn && (
-            <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
-          )}
-          <AdoptionColumn>
-            <span>{t('Adoption')}</span>
-            <HealthStatsPeriod location={location} />
-          </AdoptionColumn>
-          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
-          <CrashesColumn>{t('Crashes')}</CrashesColumn>
-          <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-        </Layout>
-      </Header>
+}: Props) => (
+  <Fragment>
+    <Header>
+      <Layout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+        <Column>{t('Project Name')}</Column>
+        {showReleaseAdoptionStages && (
+          <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
+        )}
+        <AdoptionColumn>
+          <span>{t('Adoption')}</span>
+          <HealthStatsPeriod location={location} />
+        </AdoptionColumn>
+        <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
+        <CrashesColumn>{t('Crashes')}</CrashesColumn>
+        <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
+      </Layout>
+    </Header>
 
-      <ProjectRows>
-        <Collapsible
-          expandButton={({onExpand, numberOfHiddenItems}) => (
-            <ExpandButtonWrapper>
-              <Button priority="primary" size="xsmall" onClick={onExpand}>
-                {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
-              </Button>
-            </ExpandButtonWrapper>
-          )}
-          collapseButton={({onCollapse}) => (
-            <CollapseButtonWrapper>
-              <Button priority="primary" size="xsmall" onClick={onCollapse}>
-                {t('Collapse')}
-              </Button>
-            </CollapseButtonWrapper>
-          )}
-        >
-          {projects.map((project, index) => {
-            const {id, slug, newGroups} = project;
+    <ProjectRows>
+      <Collapsible
+        expandButton={({onExpand, numberOfHiddenItems}) => (
+          <ExpandButtonWrapper>
+            <Button priority="primary" size="xsmall" onClick={onExpand}>
+              {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
+            </Button>
+          </ExpandButtonWrapper>
+        )}
+        collapseButton={({onCollapse}) => (
+          <CollapseButtonWrapper>
+            <Button priority="primary" size="xsmall" onClick={onCollapse}>
+              {t('Collapse')}
+            </Button>
+          </CollapseButtonWrapper>
+        )}
+      >
+        {projects.map((project, index) => {
+          const {id, slug, newGroups} = project;
 
-            const crashCount = getHealthData.getCrashCount(
-              releaseVersion,
-              id,
-              DisplayOption.SESSIONS
-            );
-            const crashFreeRate = getHealthData.getCrashFreeRate(
-              releaseVersion,
-              id,
-              activeDisplay
-            );
-            const get24hCountByProject = getHealthData.get24hCountByProject(
-              id,
-              activeDisplay
-            );
-            const timeSeries = getHealthData.getTimeSeries(
-              releaseVersion,
-              id,
-              activeDisplay
-            );
-            const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
-            // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
-            const hasCountHistogram =
-              timeSeries?.[0].data.length > 7 &&
-              timeSeries[0].data.some(item => item.value > 0);
+          const crashCount = getHealthData.getCrashCount(
+            releaseVersion,
+            id,
+            DisplayOption.SESSIONS
+          );
+          const crashFreeRate = getHealthData.getCrashFreeRate(
+            releaseVersion,
+            id,
+            activeDisplay
+          );
+          const get24hCountByProject = getHealthData.get24hCountByProject(
+            id,
+            activeDisplay
+          );
+          const timeSeries = getHealthData.getTimeSeries(
+            releaseVersion,
+            id,
+            activeDisplay
+          );
+          const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
+          // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
+          const hasCountHistogram =
+            timeSeries?.[0].data.length > 7 &&
+            timeSeries[0].data.some(item => item.value > 0);
 
-            const adoptionStage =
-              hasAdoptionStagesColumn &&
-              adoptionStages?.[project.slug] &&
-              adoptionStages?.[project.slug].stage;
+          const adoptionStage =
+            showReleaseAdoptionStages &&
+            adoptionStages?.[project.slug] &&
+            adoptionStages?.[project.slug].stage;
 
-            const isMobileProject = isProjectMobileForReleases(project.platform);
-            const hasAdoptionStagesLabel =
-              get24hCountByProject && adoptionStage && isMobileProject;
+          const isMobileProject = isProjectMobileForReleases(project.platform);
+          const adoptionStageLabel =
+            Boolean(get24hCountByProject && adoptionStage && isMobileProject) &&
+            ADOPTION_STAGE_LABELS[adoptionStage];
 
-            return (
-              <ProjectRow key={`${releaseVersion}-${slug}-health`}>
-                <Layout hasAdoptionStagesColumn={hasAdoptionStagesColumn}>
-                  <Column>
-                    <ProjectBadge project={project} avatarSize={16} />
-                  </Column>
+          return (
+            <ProjectRow key={`${releaseVersion}-${slug}-health`}>
+              <Layout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+                <Column>
+                  <ProjectBadge project={project} avatarSize={16} />
+                </Column>
 
-                  {hasAdoptionStagesColumn && (
-                    <AdoptionStageColumn>
-                      {hasAdoptionStagesLabel ? (
-                        <Tag type={ADOPTION_STAGE_LABELS[adoptionStage].type}>
-                          {ADOPTION_STAGE_LABELS[adoptionStage].name}
-                        </Tag>
-                      ) : (
-                        <NotAvailable />
-                      )}
-                    </AdoptionStageColumn>
+                {showReleaseAdoptionStages && (
+                  <AdoptionStageColumn>
+                    {adoptionStageLabel ? (
+                      <Link
+                        to={{
+                          pathname: `/organizations/${organization.slug}/releases/`,
+                          query: {
+                            ...location.query,
+                            query: `release.stage:${adoptionStage}`,
+                          },
+                        }}
+                      >
+                        <Tooltip title={adoptionStageLabel.tooltipTitle}>
+                          <Tag type={adoptionStageLabel.type}>
+                            {adoptionStageLabel.name}
+                          </Tag>
+                        </Tooltip>
+                      </Link>
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </AdoptionStageColumn>
+                )}
+
+                <AdoptionColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder width="100px" />
+                  ) : adoption && hasCountHistogram ? (
+                    <AdoptionWrapper>
+                      <span>{Math.round(adoption)}%</span>
+                      <HealthStatsChart
+                        data={timeSeries}
+                        height={20}
+                        activeDisplay={activeDisplay}
+                      />
+                    </AdoptionWrapper>
+                  ) : (
+                    <NotAvailable />
                   )}
+                </AdoptionColumn>
 
-                  <AdoptionColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="100px" />
-                    ) : adoption && hasCountHistogram ? (
-                      <AdoptionWrapper>
-                        <span>{Math.round(adoption)}%</span>
-                        <HealthStatsChart
-                          data={timeSeries}
-                          height={20}
-                          activeDisplay={activeDisplay}
-                        />
-                      </AdoptionWrapper>
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </AdoptionColumn>
+                <CrashFreeRateColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder width="60px" />
+                  ) : defined(crashFreeRate) ? (
+                    <CrashFree percent={crashFreeRate} />
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </CrashFreeRateColumn>
 
-                  <CrashFreeRateColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeRate) ? (
-                      <CrashFree percent={crashFreeRate} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeRateColumn>
-
-                  <CrashesColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="30px" />
-                    ) : defined(crashCount) ? (
-                      <Tooltip title={t('Open in Issues')}>
-                        <GlobalSelectionLink
-                          to={getReleaseUnhandledIssuesUrl(
-                            organization.slug,
-                            project.id,
-                            releaseVersion
-                          )}
-                        >
-                          <Count value={crashCount} />
-                        </GlobalSelectionLink>
-                      </Tooltip>
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashesColumn>
-
-                  <NewIssuesColumn>
+                <CrashesColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder width="30px" />
+                  ) : defined(crashCount) ? (
                     <Tooltip title={t('Open in Issues')}>
                       <GlobalSelectionLink
-                        to={getReleaseNewIssuesUrl(
+                        to={getReleaseUnhandledIssuesUrl(
                           organization.slug,
                           project.id,
                           releaseVersion
                         )}
                       >
-                        <Count value={newGroups || 0} />
+                        <Count value={crashCount} />
                       </GlobalSelectionLink>
                     </Tooltip>
-                  </NewIssuesColumn>
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </CrashesColumn>
 
-                  <ViewColumn>
-                    <GuideAnchor
-                      disabled={!isTopRelease || index !== 0}
-                      target="view_release"
+                <NewIssuesColumn>
+                  <Tooltip title={t('Open in Issues')}>
+                    <GlobalSelectionLink
+                      to={getReleaseNewIssuesUrl(
+                        organization.slug,
+                        project.id,
+                        releaseVersion
+                      )}
                     >
-                      <ProjectLink
-                        orgSlug={organization.slug}
-                        project={project}
-                        releaseVersion={releaseVersion}
-                        location={location}
-                      />
-                    </GuideAnchor>
-                  </ViewColumn>
-                </Layout>
-              </ProjectRow>
-            );
-          })}
-        </Collapsible>
-      </ProjectRows>
-    </Fragment>
-  );
-};
+                      <Count value={newGroups || 0} />
+                    </GlobalSelectionLink>
+                  </Tooltip>
+                </NewIssuesColumn>
+
+                <ViewColumn>
+                  <GuideAnchor
+                    disabled={!isTopRelease || index !== 0}
+                    target="view_release"
+                  >
+                    <ProjectLink
+                      orgSlug={organization.slug}
+                      project={project}
+                      releaseVersion={releaseVersion}
+                      location={location}
+                    />
+                  </GuideAnchor>
+                </ViewColumn>
+              </Layout>
+            </ProjectRow>
+          );
+        })}
+      </Collapsible>
+    </ProjectRows>
+  </Fragment>
+);
 
 export default Content;
 
@@ -291,7 +305,7 @@ const ProjectRow = styled(PanelItem)`
   }
 `;
 
-const Layout = styled('div')<{hasAdoptionStagesColumn?: boolean}>`
+const Layout = styled('div')<{showReleaseAdoptionStages?: boolean}>`
   display: grid;
   grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
@@ -309,7 +323,7 @@ const Layout = styled('div')<{hasAdoptionStagesColumn?: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     ${p =>
-      p.hasAdoptionStagesColumn
+      p.showReleaseAdoptionStages
         ? `
       grid-template-columns: 1fr 0.7fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
     `

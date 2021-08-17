@@ -47,6 +47,7 @@ type Props = ReactRouter.WithRouterProps &
     location: Location;
     organization: OrganizationSummary;
     queryExtra: object;
+    withoutZerofill: boolean;
   };
 
 const YAXIS_VALUES = [
@@ -84,6 +85,7 @@ class VitalsChart extends Component<Props> {
       statsPeriod,
       router,
       queryExtra,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -110,30 +112,6 @@ class VitalsChart extends Component<Props> {
       start,
       end,
       period: statsPeriod,
-    };
-
-    const chartOptions = {
-      grid: {
-        left: '10px',
-        right: '10px',
-        top: '40px',
-        bottom: '0px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis' as const,
-        valueFormatter: tooltipFormatter,
-      },
-      yAxis: {
-        axisLabel: {
-          color: theme.chartLabel,
-          // p75(measurements.fcp) coerces the axis to be time based
-          formatter: (value: number) =>
-            axisLabelFormatter(value, 'p75(measurements.fcp)'),
-        },
-      },
     };
 
     return (
@@ -170,8 +148,9 @@ class VitalsChart extends Component<Props> {
               includePrevious={false}
               yAxis={YAXIS_VALUES}
               partial
+              withoutZerofill={withoutZerofill}
             >
-              {({results, errored, loading, reloading}) => {
+              {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -179,6 +158,37 @@ class VitalsChart extends Component<Props> {
                     </ErrorPanel>
                   );
                 }
+
+                const chartOptions = {
+                  grid: {
+                    left: '10px',
+                    right: '10px',
+                    top: '40px',
+                    bottom: '0px',
+                  },
+                  seriesOptions: {
+                    showSymbol: false,
+                  },
+                  tooltip: {
+                    trigger: 'axis' as const,
+                    valueFormatter: tooltipFormatter,
+                  },
+                  xAxis: timeframe
+                    ? {
+                        min: timeframe.start,
+                        max: timeframe.end,
+                      }
+                    : undefined,
+                  yAxis: {
+                    axisLabel: {
+                      color: theme.chartLabel,
+                      // p75(measurements.fcp) coerces the axis to be time based
+                      formatter: (value: number) =>
+                        axisLabelFormatter(value, 'p75(measurements.fcp)'),
+                    },
+                  },
+                };
+
                 const colors =
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
 
