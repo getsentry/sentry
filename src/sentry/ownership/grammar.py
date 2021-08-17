@@ -80,7 +80,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     A Matcher represents a type:pattern pairing for use in
     comparing with an Event.
 
-    type is either `path`, `url`, `module` or `codeowners` at this point.
+    type is either `path`, `tags`, `url`, `module` or `codeowners` at this point.
 
     TODO(mattrobenolt): pattern needs to be parsed into a regex
 
