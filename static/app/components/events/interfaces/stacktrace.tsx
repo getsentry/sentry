@@ -37,12 +37,14 @@ const defaultProps = {
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
-type Props = Pick<CrashContentProps, 'groupingCurrentLevel' | 'hasGroupingTreeUI'> & {
+type Props = Pick<
+  CrashContentProps,
+  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
+> & {
   event: Event;
   type: string;
   data: NonNullable<CrashContentProps['stacktrace']>;
   projectId: Project['id'];
-  hasGroupingTreeUI: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 } & typeof defaultProps;
@@ -84,7 +86,7 @@ class StacktraceInterface extends React.Component<Props, State> {
       hideGuide,
       type,
       groupingCurrentLevel,
-      hasGroupingTreeUI,
+      hasHierarchicalGrouping,
     } = this.props;
     const {stackView, newestFirst} = this.state;
 
@@ -107,7 +109,7 @@ class StacktraceInterface extends React.Component<Props, State> {
               stackView={stackView}
               platform={event.platform}
               stacktrace={data}
-              hasGroupingTreeUI={hasGroupingTreeUI}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
               onChange={this.handleChangeStackView}
             />
           )
@@ -125,7 +127,7 @@ class StacktraceInterface extends React.Component<Props, State> {
             stacktrace={data}
             stackType={STACK_TYPE.ORIGINAL}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasGroupingTreeUI={hasGroupingTreeUI}
+            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         )}
       </EventDataSection>

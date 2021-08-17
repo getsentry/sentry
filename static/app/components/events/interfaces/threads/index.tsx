@@ -23,7 +23,7 @@ const defaultProps = {
 
 type Props = Pick<
   React.ComponentProps<typeof Content>,
-  'groupingCurrentLevel' | 'hasGroupingTreeUI'
+  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
 > & {
   event: Event;
   projectId: Project['id'];
@@ -100,7 +100,7 @@ class Threads extends Component<Props, State> {
       projectId,
       hideGuide,
       type,
-      hasGroupingTreeUI,
+      hasHierarchicalGrouping,
       groupingCurrentLevel,
     } = this.props;
 
@@ -161,7 +161,7 @@ class Threads extends Component<Props, State> {
               thread={hasMoreThanOneThread ? activeThread : undefined}
               exception={exception}
               onChange={this.handleChangeStackView}
-              hasGroupingTreeUI={hasGroupingTreeUI}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
             />
           )
         }
@@ -179,7 +179,7 @@ class Threads extends Component<Props, State> {
           projectId={projectId}
           groupingCurrentLevel={groupingCurrentLevel}
           stackTraceNotFound={stackTraceNotFound}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       </EventDataSection>
     );

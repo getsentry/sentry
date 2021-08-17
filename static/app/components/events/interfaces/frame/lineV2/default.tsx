@@ -10,9 +10,11 @@ import DefaultTitle from '../defaultTitle';
 
 import Expander from './expander';
 import GroupingBadges from './groupingBadges';
+import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
+  React.ComponentProps<typeof LeadHint> &
   Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
     frame: Frame;
     timesRepeated?: number;
@@ -22,6 +24,7 @@ type Props = React.ComponentProps<typeof Expander> &
 
 function Default({
   frame,
+  nextFrame,
   isHoverPreviewed,
   isExpanded,
   platform,
@@ -29,6 +32,7 @@ function Default({
   isPrefix,
   isSentinel,
   isUsedForGrouping,
+  leadsToApp,
   haveFramesAtLeastOneGroupingBadge,
   haveFramesAtLeastOneExpandedFrame,
   ...props
@@ -57,6 +61,7 @@ function Default({
       haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
     >
       <VertCenterWrapper>
+        <LeadHint isExpanded={isExpanded} nextFrame={nextFrame} leadsToApp={leadsToApp} />
         <DefaultTitle
           frame={frame}
           platform={platform}

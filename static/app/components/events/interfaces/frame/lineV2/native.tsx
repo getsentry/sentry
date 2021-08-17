@@ -18,9 +18,11 @@ import {getPlatform} from '../utils';
 
 import Expander from './expander';
 import GroupingBadges from './groupingBadges';
+import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
+  React.ComponentProps<typeof LeadHint> &
   Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
     frame: Frame;
     isFrameAfterLastNonApp?: boolean;
@@ -55,6 +57,8 @@ function Native({
   isUsedForGrouping,
   haveFramesAtLeastOneExpandedFrame,
   haveFramesAtLeastOneGroupingBadge,
+  nextFrame,
+  leadsToApp,
   ...props
 }: Props) {
   const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
@@ -106,6 +110,7 @@ function Native({
     instructionAddr === prevFrame.instructionAddr;
 
   const isFoundByStackScanning = trust === 'scan' || trust === 'cfi-scan';
+
   return (
     <Wrapper
       className="title as-table"
@@ -113,10 +118,15 @@ function Native({
       haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
     >
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-        <PackageLinkWrapper>
+        <PackageInfo>
+          <LeadHint
+            isExpanded={isExpanded}
+            nextFrame={nextFrame}
+            leadsToApp={leadsToApp}
+          />
           <PackageLink
             includeSystemFrames={!!includeSystemFrames}
-            withLeadHint={false}
+            withLeadHint={!(isExpanded || !leadsToApp)}
             packagePath={frame.package}
             onClick={scrollToImage}
             isClickable={shouldShowLinkToImage}
@@ -129,7 +139,7 @@ function Native({
               />
             )}
           </PackageLink>
-        </PackageLinkWrapper>
+        </PackageInfo>
         {instructionAddr && (
           <TogglableAddress
             address={instructionAddr}
@@ -168,9 +178,11 @@ function Native({
 
 export default Native;
 
-const PackageLinkWrapper = styled('span')`
+const PackageInfo = styled('span')`
+  display: grid;
+  grid-template-columns: auto 1fr;
   order: 2;
-
+  align-items: flex-start;
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     order: 0;
   }
