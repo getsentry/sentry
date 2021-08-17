@@ -419,11 +419,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # check the ids of the mentions in the entities
             mentioned = (
                 len(
-                    list(
-                        filter(
-                            lambda x: x.get("mentioned", {}).get("id") == recipient_id,
-                            data.get("entities", []),
-                        )
+                    filter(
+                        lambda x: x.get("mentioned", {}).get("id") == recipient_id,
+                        data.get("entities", []),
                     )
                 )
                 > 0
