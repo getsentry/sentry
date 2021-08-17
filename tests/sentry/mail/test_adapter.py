@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import datetime
 
 import pytz
@@ -11,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.mail import mail_adapter, send_notification_as_email
+from sentry.mail import build_subject_prefix, mail_adapter, send_notification_as_email
 from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
@@ -31,6 +32,7 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.utils.digest import get_digest_subject
 from sentry.notifications.utils.participants import (
     get_send_to,
     get_send_to_member,
@@ -218,37 +220,14 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
     def test_default_prefix(self):
-        assert self.adapter._build_subject_prefix(self.project) == "[Sentry] "
+        assert build_subject_prefix(self.project) == "[Sentry] "
 
     def test_project_level_prefix(self):
         prefix = "[Example prefix] "
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value=prefix
         )
-        assert self.adapter._build_subject_prefix(self.project) == prefix
-
-
-class MailAdapterBuildMessageTest(BaseMailAdapterTest, TestCase):
-    def test(self):
-        subject = "hello"
-        assert self.adapter._build_message(self.project, subject) is None
-
-    def test_specify_send_to(self):
-        subject = "hello"
-        send_to_user = self.create_user("hello@timecube.com")
-        msg = self.adapter._build_message(self.project, subject, send_to=[send_to_user.id])
-        assert msg._send_to == {send_to_user.email}
-        assert msg.subject.endswith(subject)
-
-
-class MailAdapterSendMailTest(BaseMailAdapterTest, TestCase):
-    def test(self):
-        subject = "hello"
-        with self.tasks():
-            self.adapter._send_mail(self.project, subject, body="hi", send_to=[self.user.id])
-            msg = mail.outbox[0]
-            assert msg.subject.endswith(subject)
-            assert msg.recipients() == [self.user.email]
+        assert build_subject_prefix(self.project) == prefix
 
 
 class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
@@ -584,9 +563,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
     def test_get_digest_subject(self):
         assert (
-            self.adapter.get_digest_subject(
+            get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
-                {mock.sentinel.group: 3},
+                Counter({mock.sentinel.group: 3}),
                 datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"

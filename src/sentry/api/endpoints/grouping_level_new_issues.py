@@ -209,7 +209,9 @@ def _process_snuba_results(query_res, group: Group, id: int, user):
             event = Event(group.project_id, event_id, group_id=group.id, data=event_data)
             response_item["latestEvent"] = serialize(event, user, EventSerializer())
 
-            tree_label = get_path(event_data, "hierarchical_tree_labels", id)
+            tree_label = get_path(event_data, "hierarchical_tree_labels", id) or get_path(
+                event_data, "hierarchical_tree_labels", -1
+            )
 
             # Rough approximation of what happens with Group title
             event_type = get_event_type(event.data)

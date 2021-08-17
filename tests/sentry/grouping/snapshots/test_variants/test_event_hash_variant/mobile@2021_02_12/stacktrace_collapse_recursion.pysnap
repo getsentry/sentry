@@ -1,5 +1,5 @@
 ---
-created: '2021-07-07T15:30:53.770188Z'
+created: '2021-08-04T15:53:48.979617Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -164,20 +164,6 @@ app-depth-max:
           function*
             "normalFunc"
         frame*
-          module*
-            "io.sentry.example.Application"
-          filename (module takes precedence)
-            "application.java"
-          function*
-            "recurFunc"
-        frame (ignored due to recursion)
-          module*
-            "io.sentry.example.Application"
-          filename (module takes precedence)
-            "application.java"
-          function*
-            "recurFunc"
-        frame (ignored due to recursion)
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)

@@ -1,5 +1,5 @@
 ---
-created: '2021-08-03T17:19:32.756591Z'
+created: '2021-08-04T15:53:49.605487Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -139,82 +139,18 @@ app-depth-5:
           "autoplayOption"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "a8c8d09a9cb9715bacc7c85ddf5211a4"
-  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter | CurrentUserProfile.isVideoAutoplay.getter | MediaSlideshow.toSource | MediaSlideshow.toSources | Sequence.compactMap<T> | MediaSlideshow.toSources | MediaSlideshow.toSources | DailyDigestTableViewSection.photoCell | AnyTableViewController.tableView | AnyTableViewController.tableView | -[UITableView layoutSubviews] | TableView.layoutSubviews | -[UIApplication _run]"
+  hash: "a4b8f7cba448e74848f45e204ae9dc26"
+  tree_label: "value | CurrentUserProfile.isVideoAutoplay.getter | CurrentUserProfile.isVideoAutoplay.getter | MediaSlideshow.toSource | MediaSlideshow.toSources | Sequence.compactMap<T> | MediaSlideshow.toSources | MediaSlideshow.toSources | DailyDigestTableViewSection.photoCell | AnyTableViewController.tableView | AnyTableViewController.tableView | TableView.layoutSubviews"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "main.m"
-            function*
-              "main"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "UIApplicationMain"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "GSEventRunModal"
-          frame (ignored by stack trace rule (category:indirection -group))
-            function*
-              "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRunLoopDoObservers"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CA::Transaction::observer_callback"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CA::Transaction::commit"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CA::Context::commit_transaction"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CA::Layer::layout_and_display_if_needed"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CA::Layer::layout_if_needed"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[CALayer layoutSublayers]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
           frame*
             filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UITableView layoutSubviews]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UITableView _updateVisibleCellsNow:]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
           frame*
-            filename (discarded native filename for grouping stability)
-              "<compiler-generated>"
-            function*
-              "AnyTableViewController.tableView"
-          frame (ignored due to recursion)
             filename (discarded native filename for grouping stability)
               "<compiler-generated>"
             function*
@@ -224,11 +160,6 @@ app-depth-max:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
-              "<compiler-generated>"
-            function*
-              "closure"
           frame*
             filename (discarded native filename for grouping stability)
               "dailydigesttableviewsection.swift"
@@ -249,11 +180,6 @@ app-depth-max:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
-              "<compiler-generated>"
-            function*
-              "closure"
           frame*
             filename (discarded native filename for grouping stability)
               "mediaslideshow+extensions.swift"

@@ -127,14 +127,25 @@ discover_top5 = {
     }
 }
 
+discover_empty = {
+    "seriesName": "Discover empty",
+    "stats": {
+        "data": [],
+    },
+}
+
 
 class DebugChartRendererView(View):
     def get(self, request):
         charts = []
 
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_total_period))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_empty))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_empty))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_top5))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty))
 
         return render_to_response("sentry/debug/chart-renderer.html", context={"charts": charts})

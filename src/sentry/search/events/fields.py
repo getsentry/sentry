@@ -1201,6 +1201,15 @@ class ColumnArg(FunctionArg):
             return snuba_column
 
 
+class ColumnTagArg(ColumnArg):
+    """Validate that the argument is either a column or a valid tag"""
+
+    def normalize(self, value: str, params: ParamsType) -> str:
+        if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
+            return value
+        return super().normalize(value, params)
+
+
 class CountColumn(ColumnArg):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
@@ -2141,13 +2150,30 @@ FUNCTIONS = {
     ]
 }
 
-
-# In Performance TPM is used as an alias to EPM
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
+
+
+def normalize_percentile_alias(args: Mapping[str, str]) -> str:
+    # The compare_numeric_aggregate SnQL function accepts a percentile
+    # alias which is resolved to the percentile function call here
+    # to maintain backward compatibility with the legacy compare_numeric_aggregate
+    # function signature. This function only accepts percentile
+    # aliases.
+    aggregate_alias = args["aggregate_alias"]
+    match = re.match(r"(p\d{2,3})_(\w+)", aggregate_alias)
+
+    if not match:
+        raise InvalidFunctionArgument("Aggregate alias must be a percentile function.")
+
+    # Translating an arg of the pattern `measurements_lcp`
+    # to `measurements.lcp`.
+    aggregate_arg = ".".join(match.group(2).split("_"))
+
+    return f"{match.group(1)}({aggregate_arg})"
 
 
 class SnQLFunction(DiscoverFunction):
@@ -2234,10 +2260,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count_miserable",
-                    # Using the generic FunctionArg here temporarily till we
-                    # implement a resolver for count columns in SnQL. The only
-                    # column to be passed through here for now is `user`.
-                    required_args=[FunctionArg("column")],
+                    required_args=[ColumnTagArg("column")],
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[
                         {
@@ -2474,6 +2497,133 @@ class QueryFields(QueryBase):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "count_if",
+                    required_args=[
+                        ColumnTagArg("column"),
+                        ConditionArg("condition"),
+                        SnQLStringArg(
+                            "value", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "typed_value",
+                            "fn": normalize_count_if_value,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                args["condition"],
+                                [
+                                    args["column"],
+                                    args["typed_value"],
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_unique",
+                    required_args=[ColumnTagArg("column")],
+                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_at_least",
+                    required_args=[NumericColumn("column"), NumberRange("threshold", 0, None)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [Function("greaterOrEquals", [args["column"], args["threshold"]])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "min",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "avg",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "var",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("varSamp", [args["column"]], alias),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "stddev",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "stddevSamp", [args["column"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "cov",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "covarSamp", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "corr",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "corr", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "sum",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "any",
+                    required_args=[FieldColumn("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "absolute_delta",
+                    required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
+                    snql_column=lambda args, alias: Function(
+                        "abs", [Function("minus", [args["column"], args["target"]])], alias
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
                         "divide", [Function("count", []), args["interval"]], alias
@@ -2491,28 +2641,33 @@ class QueryFields(QueryBase):
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "compare_numeric_aggregate",
+                    required_args=[
+                        FunctionAliasArg("aggregate_alias"),
+                        ConditionArg("condition"),
+                        NumberRange("value", 0, None),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "aggregate_function",
+                            "fn": normalize_percentile_alias,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        args["condition"],
+                        [self.resolve_function(args["aggregate_function"]), args["value"]],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
                 # TODO: implement these
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("avg", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("var", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("stddev", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("cov", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
-                ),
             ]
         }
         for alias, name in FUNCTION_ALIASES.items():
@@ -2963,14 +3118,7 @@ class QueryFields(QueryBase):
             )
         col = args["column"]
 
-        return Function(
-            "uniqIf",
-            [
-                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
-                Function("greater", [lhs, rhs]),
-            ],
-            alias,
-        )
+        return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
