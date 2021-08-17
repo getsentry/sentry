@@ -25,11 +25,11 @@ import Native from './native';
 
 type Props = Omit<
   React.ComponentProps<typeof Native>,
-  'onToggleContext' | 'isExpandable' | 'hasGroupingBadge'
+  'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
 > &
   Omit<
     React.ComponentProps<typeof Default>,
-    'onToggleContext' | 'isExpandable' | 'hasGroupingBadge'
+    'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
   > & {
     event: Event;
     registers: Record<string, string>;
@@ -40,6 +40,7 @@ type Props = Omit<
 
 function Line({
   frame,
+  nextFrame,
   prevFrame,
   timesRepeated,
   includeSystemFrames,
@@ -66,11 +67,11 @@ function Line({
   isHoverPreviewed = false,
   ...props
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(props.isExpanded ?? false);
-
   /* Prioritize the frame platform but fall back to the platform
    of the stack trace / exception */
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
+  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+
   const expandable = isExpandable({
     frame,
     registers,
@@ -78,6 +79,10 @@ function Line({
     emptySourceNotation,
     isOnlyFrame,
   });
+
+  const [isExpanded, setIsExpanded] = useState(
+    expandable ? props.isExpanded ?? false : false
+  );
 
   function toggleContext(evt?: React.MouseEvent) {
     evt && evt.preventDefault();
@@ -94,8 +99,10 @@ function Line({
         return (
           <StrictClick onClick={expandable ? toggleContext : undefined}>
             <Native
+              leadsToApp={leadsToApp}
               frame={frame}
               prevFrame={prevFrame}
+              nextFrame={nextFrame}
               isHoverPreviewed={isHoverPreviewed}
               platform={platform}
               isExpanded={isExpanded}
@@ -121,7 +128,9 @@ function Line({
         return (
           <StrictClick onClick={expandable ? toggleContext : undefined}>
             <Default
+              leadsToApp={leadsToApp}
               frame={frame}
+              nextFrame={nextFrame}
               timesRepeated={timesRepeated}
               isHoverPreviewed={isHoverPreviewed}
               platform={platform}
@@ -146,6 +155,7 @@ function Line({
     collapsed: !isExpanded,
     'system-frame': !frame.inApp,
     'frame-errors': !!(frame.errors ?? []).length,
+    'leads-to-app': leadsToApp,
   });
 
   return (
