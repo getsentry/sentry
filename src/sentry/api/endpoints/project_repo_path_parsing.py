@@ -40,11 +40,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
     @property
     def providers(self):
-        providers = list(
-            filter(
-                lambda x: x.has_feature(IntegrationFeatures.STACKTRACE_LINK),
-                list(integrations.all()),
-            )
+        providers = filter(
+            lambda x: x.has_feature(IntegrationFeatures.STACKTRACE_LINK),
+            list(integrations.all()),
         )
         return list(map(lambda x: x.key, providers))
 
