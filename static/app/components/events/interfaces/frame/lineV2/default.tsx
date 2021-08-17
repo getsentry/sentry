@@ -7,19 +7,17 @@ import {Frame} from 'app/types';
 import {defined} from 'app/utils';
 
 import DefaultTitle from '../defaultTitle';
+import GroupingIndicator from '../groupingIndicator';
 
 import Expander from './expander';
-import GroupingBadges from './groupingBadges';
 import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
-  React.ComponentProps<typeof LeadHint> &
-  Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
+  React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
+    isUsedForGrouping: boolean;
     timesRepeated?: number;
-    haveFramesAtLeastOneExpandedFrame?: boolean;
-    haveFramesAtLeastOneGroupingBadge?: boolean;
   };
 
 function Default({
@@ -29,12 +27,8 @@ function Default({
   isExpanded,
   platform,
   timesRepeated,
-  isPrefix,
-  isSentinel,
   isUsedForGrouping,
   leadsToApp,
-  haveFramesAtLeastOneGroupingBadge,
-  haveFramesAtLeastOneExpandedFrame,
   ...props
 }: Props) {
   function renderRepeats() {
@@ -55,11 +49,7 @@ function Default({
   }
 
   return (
-    <Wrapper
-      className="title"
-      haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
-      haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-    >
+    <Wrapper className="title">
       <VertCenterWrapper>
         <LeadHint isExpanded={isExpanded} nextFrame={nextFrame} leadsToApp={leadsToApp} />
         <DefaultTitle
@@ -68,14 +58,8 @@ function Default({
           isHoverPreviewed={isHoverPreviewed}
         />
         {renderRepeats()}
+        {isUsedForGrouping && <GroupingIndicator />}
       </VertCenterWrapper>
-      {haveFramesAtLeastOneGroupingBadge && (
-        <GroupingBadges
-          isPrefix={isPrefix}
-          isSentinel={isSentinel}
-          isUsedForGrouping={isUsedForGrouping}
-        />
-      )}
       <Expander
         isExpanded={isExpanded}
         isHoverPreviewed={isHoverPreviewed}
