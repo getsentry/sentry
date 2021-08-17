@@ -1,8 +1,8 @@
 import 'focus-visible';
 import '../docs-ui/index.js';
 
-import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {DocsContainer} from '@storybook/addon-docs';
+import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {ThemeProvider} from 'emotion-theming';
 
 import GlobalStyles from '../static/app/styles/global';
