@@ -147,6 +147,7 @@ default_manager.add("organizations:transaction-comparison", OrganizationFeature,
 default_manager.add("organizations:transaction-events", OrganizationFeature, True)
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
+default_manager.add("organizations:split-on-demand-budgets", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
