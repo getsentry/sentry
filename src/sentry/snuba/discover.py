@@ -44,7 +44,6 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
-    "wip_snql_query",
     "query",
     "prepare_discover_query",
     "timeseries_query",
@@ -179,40 +178,6 @@ def transform_data(result, translated_columns, snuba_filter):
     return result
 
 
-def wip_snql_query(
-    selected_columns,
-    query,
-    params,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-):
-    """
-    Replacement API for query using snql, this function is still a work in
-    progress and is not ready for use in production
-    """
-    builder = QueryBuilder(
-        Dataset.Discover,
-        params,
-        query=query,
-        selected_columns=selected_columns,
-        orderby=orderby,
-        use_aggregate_conditions=use_aggregate_conditions,
-        limit=limit,
-    )
-    snql_query = builder.get_snql_query()
-
-    results = raw_snql_query(snql_query, referrer)
-    return results
-
-
 def query(
     selected_columns,
     query,
@@ -227,6 +192,7 @@ def query(
     use_aggregate_conditions=False,
     conditions=None,
     functions_acl=None,
+    use_snql=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -252,9 +218,27 @@ def query(
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
+
+    if use_snql:
+        builder = QueryBuilder(
+            Dataset.Discover,
+            params,
+            query=query,
+            selected_columns=selected_columns,
+            orderby=orderby,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            limit=limit,
+        )
+        snql_query = builder.get_snql_query()
+
+        results = raw_snql_query(snql_query, referrer)
+        return results
 
     # We clobber this value throughout this code, so copy the value
     selected_columns = selected_columns[:]

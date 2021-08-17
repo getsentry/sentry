@@ -16,6 +16,15 @@ describe('IssueListSearchBar', function () {
   const clickInput = searchBar =>
     searchBar.find('textarea[name="query"]').simulate('click');
 
+  const mockCursorPosition = (wrapper, pos) => {
+    const component = wrapper.find('SmartSearchBar').instance();
+    delete component.cursorPosition;
+    Object.defineProperty(component, 'cursorPosition', {
+      get: jest.fn().mockReturnValue(pos),
+      configurable: true,
+    });
+  };
+
   beforeEach(function () {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
@@ -64,6 +73,7 @@ describe('IssueListSearchBar', function () {
         onSearch: jest.fn(),
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -87,6 +97,7 @@ describe('IssueListSearchBar', function () {
       };
 
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       expect(searchBar.state.searchTerm).toEqual();
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual(
@@ -137,6 +148,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
