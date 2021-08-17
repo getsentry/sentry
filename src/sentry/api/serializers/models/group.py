@@ -57,6 +57,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
+from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, aliased_query, raw_query
 
@@ -1006,6 +1007,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                         groupby=["project_id"],
                         referrer="serializers.GroupSerializerSnuba.session_totals",
                     )
+
                     results = {}
                     for data in result_totals["data"]:
                         cache_key = self._build_session_cache_key(data["project_id"])
@@ -1080,20 +1082,24 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return result
 
     def _build_session_cache_key(self, project_id):
-        session_count_key = f"w-s:{project_id}"
-
+        start_key = end_key = env_key = ""
         if self.start:
-            session_count_key = f"{session_count_key}-{self.start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
-                " ", ""
-            )
+            start_key = self.start.replace(second=0, microsecond=0, tzinfo=None)
 
         if self.end:
-            session_count_key = f"{session_count_key}-{self.end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
-                " ", ""
-            )
+            end_key = self.end.replace(second=0, microsecond=0, tzinfo=None)
+
+        if self.end and self.start and self.end - self.start >= timedelta(minutes=60):
+            # Cache to the hour for longer time range queries, and to the minute if the query if for a time period under 1 hour
+            end_key = end_key.replace(minute=0)
+            start_key = start_key.replace(minute=0)
 
         if self.environment_ids:
-            envs = "-".join(str(eid) for eid in self.environment_ids)
-            session_count_key = f"{session_count_key}-{envs}"
+            self.environment_ids.sort()
+            env_key = "-".join(str(eid) for eid in self.environment_ids)
 
-        return session_count_key
+        start_key = start_key.strftime("%m/%d/%Y, %H:%M:%S") if start_key != "" else ""
+        end_key = end_key.strftime("%m/%d/%Y, %H:%M:%S") if end_key != "" else ""
+        key_hash = hash_values([project_id, start_key, end_key, env_key])
+        session_cache_key = f"w-s:{key_hash}"
+        return session_cache_key
