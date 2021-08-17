@@ -352,7 +352,7 @@ class SearchFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(list(map(str, (self.key.name, self.operator, self.value.raw_value))))
+        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
     @property
     def is_negation(self) -> bool:
@@ -379,7 +379,7 @@ class AggregateFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(list(map(str, (self.key.name, self.operator, self.value.raw_value))))
+        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
 
 class AggregateKey(NamedTuple):

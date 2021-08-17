@@ -37,7 +37,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
 
         arguments = []
         for bucket in band(self.bands, self.signature_builder(features)):
-            arguments.extend([1, ",".join(list(map("{}".format, bucket))), 1])
+            arguments.extend([1, ",".join(map("{}".format, bucket)), 1])
         return arguments
 
     def __index(self, scope, args):
