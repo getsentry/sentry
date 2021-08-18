@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.cursors import Cursor
 from sentry.utils.samples import load_data
 
 
@@ -127,32 +128,13 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         )
         assert error_response.status_code == 404
 
-    def test_tag_key_limit_error(self):
-        request = {
-            "aggregateColumn": "transaction.duration",
-            "sort": "-frequency",
-            "per_page": 5,
-            "statsPeriod": "14d",
-            "query": "(color:red or color:blue)",
-        }
-        # With feature access, no tag key
-        error_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
-
-        assert error_response.status_code == 400, error_response.content
-        assert error_response.data == {
-            "detail": "'tagKeyLimit' must be provided for the performance histogram."
-        }
-
     def test_num_buckets_error(self):
         request = {
             "aggregateColumn": "transaction.duration",
             "sort": "-frequency",
-            "per_page": 5,
             "statsPeriod": "14d",
             "query": "(color:red or color:blue)",
-            "tagKeyLimit": 5,
+            "per_page": 5,
         }
         # With feature access, no tag key
         error_response = self.do_request(
@@ -168,9 +150,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         request = {
             "aggregateColumn": "transaction.duration",
             "sort": "-frequency",
-            "per_page": 5,
             "statsPeriod": "14d",
-            "tagKeyLimit": 10,
+            "per_page": 10,
             "numBucketsPerKey": 10,
             "query": "(color:red or color:blue)",
         }
@@ -208,9 +189,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         request = {
             "aggregateColumn": "transaction.duration",
             "sort": "-frequency",
-            "per_page": 5,
             "statsPeriod": "14d",
-            "tagKeyLimit": 10,
+            "per_page": 10,
             "numBucketsPerKey": 10,
             "tagKey": "color",
             "query": "(color:teal or color:oak)",
@@ -230,9 +210,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         request = {
             "aggregateColumn": "transaction.duration",
             "sort": "-frequency",
-            "per_page": 5,
             "statsPeriod": "14d",
-            "tagKeyLimit": 1,
+            "per_page": 1,
             "numBucketsPerKey": 2,
             "tagKey": "color",
             "query": "(color:red or color:blue or color:green)",
@@ -249,7 +228,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         assert histogram_data[0]["tags_value"] == "red"
         assert histogram_data[0]["tags_key"] == "color"
 
-        request["tagKeyLimit"] = 3
+        request["per_page"] = 3
         data_response = self.do_request(
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
@@ -275,9 +254,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         request = {
             "aggregateColumn": "transaction.duration",
             "sort": "-frequency",
-            "per_page": 5,
             "statsPeriod": "14d",
-            "tagKeyLimit": 3,
+            "per_page": 3,
             "numBucketsPerKey": 2,
             "tagKey": "color",
             "query": "(color:red or color:blue or color:green or color:orange)",
@@ -287,7 +265,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
         )
 
-        assert data_response.data["tags"]["data"][2]["tags_value"] == "orange"
+        assert data_response.data["tags"]["data"][2]["tags_value"] == "green"
 
         request["aggregateColumn"] = "measurements.lcp"
 
@@ -321,8 +299,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
 
         request = {
             "aggregateColumn": "transaction.duration",
-            "per_page": 5,
-            "tagKeyLimit": 1,
+            "per_page": 1,
             "numBucketsPerKey": 2,
             "tagKey": "user",
             "query": "(user.id:555)",
@@ -340,3 +317,56 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         tag_data = data_response.data["tags"]["data"]
         assert tag_data[0]["count"] == 1
         assert tag_data[0]["tags_value"] == "id:555"
+
+    def test_histogram_pagination(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "per_page": 3,
+            "numBucketsPerKey": 2,
+            "tagKey": "color",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 3
+
+        request["cursor"] = Cursor(0, 3)
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 1
+
+    def test_histogram_sorting(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "per_page": 1,
+            "sort": "-frequency",
+            "numBucketsPerKey": 2,
+            "tagKey": "color",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 1
+        assert tag_data[0]["tags_value"] == "red"
+        assert tag_data[0]["count"] == 14
+
+        request["sort"] = "-aggregate"
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        tag_data = data_response.data["tags"]["data"]
+        assert len(tag_data) == 1
+        assert tag_data[0]["tags_value"] == "green"
+        assert tag_data[0]["count"] == 1
