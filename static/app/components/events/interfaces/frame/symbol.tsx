@@ -10,11 +10,13 @@ import {Frame} from 'app/types';
 import {defined} from 'app/utils';
 
 import FunctionName from './functionName';
+import GroupingIndicator from './groupingIndicator';
 import {getFrameHint} from './utils';
 
 type Props = {
   frame: Frame;
   showCompleteFunctionName: boolean;
+  isUsedForGrouping?: boolean;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   /**
    * Is the stack trace being previewed in a hovercard?
@@ -28,6 +30,7 @@ const Symbol = ({
   onFunctionNameToggle,
   showCompleteFunctionName,
   isHoverPreviewed,
+  isUsedForGrouping,
   className,
 }: Props) => {
   const hasFunctionNameHiddenDetails =
@@ -93,6 +96,7 @@ const Symbol = ({
             </Filename>
           </FileNameTooltip>
         )}
+        {isUsedForGrouping && <GroupingIndicator />}
       </Data>
     </Wrapper>
   );
@@ -126,6 +130,9 @@ const StyledFunctionName = styled(FunctionName)`
 
 const Data = styled('div')`
   max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 `;
 
 const HintStatus = styled('span')`

@@ -49,11 +49,7 @@ function Line({
   showingAbsoluteAddress,
   showCompleteFunctionName,
   isFrameAfterLastNonApp,
-  isSentinel,
   isUsedForGrouping,
-  isPrefix,
-  haveFramesAtLeastOneExpandedFrame,
-  haveFramesAtLeastOneGroupingBadge,
   maxLengthOfRelativeAddress,
   image,
   registers,
@@ -114,13 +110,9 @@ function Line({
               showCompleteFunctionName={showCompleteFunctionName}
               isFrameAfterLastNonApp={isFrameAfterLastNonApp}
               onToggleContext={toggleContext}
-              isSentinel={isSentinel}
-              isPrefix={isPrefix}
-              isUsedForGrouping={isUsedForGrouping}
-              haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-              haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
               image={image}
               maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
+              isUsedForGrouping={isUsedForGrouping}
             />
           </StrictClick>
         );
@@ -137,11 +129,7 @@ function Line({
               isExpanded={isExpanded}
               isExpandable={expandable}
               onToggleContext={toggleContext}
-              isSentinel={isSentinel}
-              isPrefix={isPrefix}
               isUsedForGrouping={isUsedForGrouping}
-              haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-              haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
             />
           </StrictClick>
         );
