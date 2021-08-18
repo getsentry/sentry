@@ -61,7 +61,7 @@ class IntegrationPipeline(Pipeline):
                     "provider_key": self.provider.key,
                 },
             )
-            return self.warning(str(e))
+            return self.render_warning(str(e))
 
         response = self._finish_pipeline(data)
 

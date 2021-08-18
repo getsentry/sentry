@@ -297,7 +297,7 @@ class Pipeline:
         logger.error("pipeline error", extra=extra)
         return render_to_response("sentry/pipeline-error.html", context, self.request)
 
-    def warning(self, message):
+    def render_warning(self, message):
         """For situations when we want to display an error without triggering an issue"""
         context = {"error": message}
         return render_to_response("sentry/pipeline-provider-error.html", context, self.request)
