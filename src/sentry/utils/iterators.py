@@ -16,11 +16,9 @@ def shingle(n, iterator):
     """
     return list(
         zip(
-            *list(
-                map(
-                    lambda i__iterator: advance(i__iterator[0], i__iterator[1]),
-                    enumerate(itertools.tee(iterator, n)),
-                )
+            *map(
+                lambda i__iterator: advance(i__iterator[0], i__iterator[1]),
+                enumerate(itertools.tee(iterator, n)),
             )
         )
     )
