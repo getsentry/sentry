@@ -119,6 +119,7 @@ type SpanBarProps = {
     | undefined;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   toggleSpanGroup: (() => void) | undefined;
+  numOfSpans: number;
 };
 
 type SpanBarState = {
@@ -521,8 +522,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return;
           }
 
-          const shouldMoveMinimap =
-            this.props.trace.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
+          const shouldMoveMinimap = this.props.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
 
           if (!shouldMoveMinimap) {
             return;
@@ -616,10 +616,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           const panYPixels =
             totalHeightOfHiddenSpans + currentSpanHiddenRatio * MINIMAP_SPAN_BAR_HEIGHT;
 
-          // invariant: this.props.trace.numOfSpansend - spanNumberToStopMoving + 1 = NUM_OF_SPANS_FIT_IN_MINI_MAP
+          // invariant: this.props.numOfSpans - spanNumberToStopMoving + 1 = NUM_OF_SPANS_FIT_IN_MINI_MAP
 
           const spanNumberToStopMoving =
-            this.props.trace.numOfSpans + 1 - NUM_OF_SPANS_FIT_IN_MINI_MAP;
+            this.props.numOfSpans + 1 - NUM_OF_SPANS_FIT_IN_MINI_MAP;
 
           if (spanNumber > spanNumberToStopMoving) {
             // if the last span bar appears on the minimap, we do not want the minimap

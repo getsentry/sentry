@@ -156,6 +156,20 @@ class SpanTree extends React.Component<PropType> {
       spanNumber: number;
     };
 
+    const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
+      switch (payload.type) {
+        case 'root_span':
+        case 'span':
+        case 'span_group_chain': {
+          return sum + 1;
+        }
+
+        default: {
+          return sum;
+        }
+      }
+    }, 0);
+
     const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} = spans.reduce(
       (acc: AccType, payload: EnhancedProcessedSpanType) => {
         const {type} = payload;
@@ -244,6 +258,7 @@ class SpanTree extends React.Component<PropType> {
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
             toggleSpanGroup={toggleSpanGroup}
+            numOfSpans={numOfSpans}
           />
         );
 

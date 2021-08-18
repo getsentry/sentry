@@ -117,7 +117,6 @@ export type ParsedTraceType = {
   parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
-  numOfSpans: number;
   spans: SpanType[];
   description?: string;
 };
