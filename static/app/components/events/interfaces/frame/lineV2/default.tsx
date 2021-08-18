@@ -9,17 +9,14 @@ import {defined} from 'app/utils';
 import DefaultTitle from '../defaultTitle';
 
 import Expander from './expander';
-import GroupingBadges from './groupingBadges';
 import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
-  React.ComponentProps<typeof LeadHint> &
-  Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
+  React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
+    isUsedForGrouping: boolean;
     timesRepeated?: number;
-    haveFramesAtLeastOneExpandedFrame?: boolean;
-    haveFramesAtLeastOneGroupingBadge?: boolean;
   };
 
 function Default({
@@ -29,12 +26,8 @@ function Default({
   isExpanded,
   platform,
   timesRepeated,
-  isPrefix,
-  isSentinel,
   isUsedForGrouping,
   leadsToApp,
-  haveFramesAtLeastOneGroupingBadge,
-  haveFramesAtLeastOneExpandedFrame,
   ...props
 }: Props) {
   function renderRepeats() {
@@ -55,27 +48,17 @@ function Default({
   }
 
   return (
-    <Wrapper
-      className="title"
-      haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
-      haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-    >
+    <Wrapper className="title">
       <VertCenterWrapper>
         <LeadHint isExpanded={isExpanded} nextFrame={nextFrame} leadsToApp={leadsToApp} />
         <DefaultTitle
           frame={frame}
           platform={platform}
           isHoverPreviewed={isHoverPreviewed}
+          isUsedForGrouping={isUsedForGrouping}
         />
         {renderRepeats()}
       </VertCenterWrapper>
-      {haveFramesAtLeastOneGroupingBadge && (
-        <GroupingBadges
-          isPrefix={isPrefix}
-          isSentinel={isSentinel}
-          isUsedForGrouping={isUsedForGrouping}
-        />
-      )}
       <Expander
         isExpanded={isExpanded}
         isHoverPreviewed={isHoverPreviewed}
@@ -90,9 +73,11 @@ export default Default;
 
 const VertCenterWrapper = styled('div')`
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    align-items: center;
+  margin-left: -${space(0.5)};
+  > * {
+    margin-left: ${space(0.5)};
   }
 `;
 
