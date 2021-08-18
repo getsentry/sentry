@@ -235,7 +235,7 @@ def build_project_series(start__stop, project):
     tsdb_range_resolved = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
     resolved_series = reduce(
         merge_series,
-        list(map(clean, tsdb_range_resolved.values())),
+        map(clean, tsdb_range_resolved.values()),
         clean([(timestamp, 0) for timestamp in series]),
     )
 
@@ -446,7 +446,7 @@ def build_report(fields):
     The merge function is used to merge the value of that field together for
     multiple reports.
     """
-    names, field_builders, field_mergers = list(zip(*fields))
+    names, field_builders, field_mergers = zip(*fields)
 
     cls = namedtuple("Report", names)
 
@@ -729,11 +729,9 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        list(
-            filter(
-                lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-                list(zip(projects, backend.fetch(timestamp, duration, organization, projects))),
-            )
+        filter(
+            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
+            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
         )
     )
 
@@ -819,7 +817,7 @@ def build_project_breakdown_series(reports):
                 ),
                 reports[project__color[0]],
             ),
-            list(zip(projects, project_breakdown_colors)),
+            zip(projects, project_breakdown_colors),
         )
     )[::-1]
 
@@ -869,15 +867,13 @@ def to_context(organization, interval, reports):
         },
         "distribution": {
             "types": list(
-                list(
-                    zip(
-                        (
-                            DistributionType("New", "#DF5120"),
-                            DistributionType("Reopened", "#FF7738"),
-                            DistributionType("Existing", "#F9C7B9"),
-                        ),
-                        report.issue_summaries,
-                    )
+                zip(
+                    (
+                        DistributionType("New", "#DF5120"),
+                        DistributionType("Reopened", "#FF7738"),
+                        DistributionType("Existing", "#F9C7B9"),
+                    ),
+                    report.issue_summaries,
                 )
             ),
             "total": sum(report.issue_summaries),
