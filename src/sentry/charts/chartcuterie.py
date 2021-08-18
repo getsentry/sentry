@@ -64,7 +64,8 @@ class Chartcuterie(ChartRenderer):
             with sentry_sdk.start_span(
                 op="charts.chartcuterie.generate_chart",
                 description=type(self).__name__,
-            ):
+            ) as span:
+                session.headers.update({"sentry-trace": f"{span.trace_id}-{span.span_id}"})
                 resp = session.request(
                     method="POST",
                     url=urljoin(self.service_url, "render"),
