@@ -192,7 +192,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return organizations.filter(organization => {
       const externalID = integrationExternalIDsByOrganizationID[organization.id];
       const identity = identitiesByExternalId[externalID];
-      return identity === null;
+      return identity === undefined || identity === null;
     });
   };
 
