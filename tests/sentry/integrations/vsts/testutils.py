@@ -53,7 +53,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            "https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1"
+            "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
             % self.vsts_user_id,
             json={
                 "count": 1,
@@ -179,9 +179,10 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         # User choosing which VSTS Account to use (AccountConfigView)
         # Final step.
-        return self.client.post(
+        resp = self.client.post(
             self.setup_path, {"account": self.vsts_account_id, "provider": "vsts"}
         )
+        return resp
 
 
 COMPARE_COMMITS_EXAMPLE = b"""

@@ -150,7 +150,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     def test_accounts_list_failure(self):
         responses.replace(
             responses.GET,
-            "https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1"
+            "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
             % self.vsts_user_id,
             status=403,
             json={"$id": 1, "message": "Your account is not good"},
