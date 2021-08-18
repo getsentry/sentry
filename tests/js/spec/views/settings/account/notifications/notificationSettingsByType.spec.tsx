@@ -13,6 +13,20 @@ const createWrapper = (notificationSettings: NotificationSettingsObject) => {
     body: notificationSettings,
   });
 
+  // @ts-expect-error
+  MockApiClient.addMockResponse({
+    url: '/users/me/identities/',
+    method: 'GET',
+    body: {},
+  });
+
+  // @ts-expect-error
+  MockApiClient.addMockResponse({
+    url: '/users/me/organization-integrations/',
+    method: 'GET',
+    body: {},
+  });
+
   return mountWithTheme(
     <NotificationSettingsByType notificationType="alerts" />,
     routerContext

@@ -39,6 +39,8 @@ type Props = {
 
 type State = {
   notificationSettings: NotificationSettingsObject;
+  identities;
+  organizationIntegrations;
 } & AsyncComponent['state'];
 
 class NotificationSettingsByType extends AsyncComponent<Props, State> {
@@ -46,6 +48,8 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       notificationSettings: {},
+      identities: {},
+      organizationIntegrations: {},
     };
   }
 
@@ -180,15 +184,25 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getUnlinkedOrgs = (): OrganizationSummary[] => {
     const {organizations} = this.props;
     const {identities, organizationIntegrations} = this.state;
-    const integrationExternalIDsByOrganizationID = Object.fromEntries(
-      organizationIntegrations.map(organizationIntegration => [
-        organizationIntegration.organizationID,
-        organizationIntegration.externalID,
-      ])
-    );
-    const identitiesByExternalId = Object.fromEntries(
-      identities.map(identity => [identity.identityProvider.externalId, identity])
-    );
+    // const integrationExternalIDsByOrganizationID = Object.fromEntries(
+    //   organizationIntegrations.map(organizationIntegration => [
+    //     organizationIntegration.organizationID,
+    //     organizationIntegration.externalID,
+    //   ])
+    // );
+    const integrationExternalIDsByOrganizationID = {};
+    for (const organizationIntegration of organizationIntegrations) {
+      integrationExternalIDsByOrganizationID[organizationIntegration.organizationID] =
+        organizationIntegration.externalID;
+    }
+
+    // const identitiesByExternalId = Object.fromEntries(
+    //   identities.map(identity => [identity.identityProvider.externalId, identity])
+    // );
+    const identitiesByExternalId = {};
+    for (const identity of identities) {
+      identitiesByExternalId[identity.identityProvider.externalId] = identity;
+    }
     return organizations.filter(organization => {
       const externalID = integrationExternalIDsByOrganizationID[organization.id];
       const identity = identitiesByExternalId[externalID];

@@ -16,7 +16,7 @@ class UnlinkedAlert extends React.Component<Props> {
     return (
       <StyledAlert type="warning" icon={<IconWarning />}>
         {t(
-          'You\'ve selected Slack as your delivery method, but do not have a linked account for the following organizations. You\'ll receive email notifications instead until you type "/sentry link" into your Slack workspace to link your account.'
+          'You\'ve selected Slack as your delivery method, but do not have a linked account for the following organizations. You\'ll receive email notifications instead until you type "/sentry link" into your Slack workspace to link your account. If slash commands are not working, please re-install the Slack integration.'
         )}
         <ul>
           {organizations.map(organization => (
