@@ -511,6 +511,9 @@ def fetch_release_artifact(url, release, dist):
         try:
             archive = ReleaseArchive(archive_file)
         except Exception as exc:
+            archive_file.seek(0)
+            # Assign to variable to make contents visible in Sentry:
+            contents = archive_file.read(n=256)  # NOQA
             logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
             # TODO(jjbayer): cache error and return here
         else:
