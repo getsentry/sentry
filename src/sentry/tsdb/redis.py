@@ -799,7 +799,7 @@ class RedisTSDB(BaseTSDB):
 
             chunk = results[key] = []
             for timestamp, scores in zip(series, responses[0].value):
-                chunk.append((timestamp, dict(list(zip(members, list(map(float, scores)))))))
+                chunk.append((timestamp, dict(zip(members, list(map(float, scores))))))
 
         return results
 
