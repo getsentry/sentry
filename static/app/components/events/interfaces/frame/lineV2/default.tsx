@@ -7,7 +7,6 @@ import {Frame} from 'app/types';
 import {defined} from 'app/utils';
 
 import DefaultTitle from '../defaultTitle';
-import GroupingIndicator from '../groupingIndicator';
 
 import Expander from './expander';
 import LeadHint from './leadHint';
@@ -56,9 +55,9 @@ function Default({
           frame={frame}
           platform={platform}
           isHoverPreviewed={isHoverPreviewed}
+          isUsedForGrouping={isUsedForGrouping}
         />
         {renderRepeats()}
-        {isUsedForGrouping && <GroupingIndicator />}
       </VertCenterWrapper>
       <Expander
         isExpanded={isExpanded}
@@ -74,9 +73,11 @@ export default Default;
 
 const VertCenterWrapper = styled('div')`
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    align-items: center;
+  margin-left: -${space(0.5)};
+  > * {
+    margin-left: ${space(0.5)};
   }
 `;
 

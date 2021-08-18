@@ -5,11 +5,16 @@ import {IconInfo} from 'app/icons/iconInfo';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-function GroupingIndicator() {
+type Props = {
+  className?: string;
+};
+
+function GroupingIndicator({className}: Props) {
   return (
     <StyledTooltip
       title={t('This frame appears in all other events related to this issue')}
       containerDisplayMode="inline-flex"
+      className={className}
     >
       <IconInfo size="xs" color="gray300" />
     </StyledTooltip>
