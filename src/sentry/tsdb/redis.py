@@ -507,7 +507,7 @@ class RedisTSDB(BaseTSDB):
                 pipeline.execute_command(
                     "PFMERGE",
                     destination,
-                    *itertools.chain.from_iterable(list(map(expand_key, keys))),
+                    *itertools.chain.from_iterable(map(expand_key, keys)),
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
