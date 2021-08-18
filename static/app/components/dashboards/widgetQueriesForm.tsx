@@ -38,7 +38,6 @@ type Props = {
   handleAddSearchConditions: () => void;
   handleDeleteQuery: (queryIndex: number) => void;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
-  disabled?: boolean;
 };
 
 /**

@@ -466,7 +466,6 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
                   canAddSearchConditions={this.canAddSearchConditions()}
                   handleAddSearchConditions={this.handleAddSearchConditions}
                   handleDeleteQuery={this.handleQueryRemove}
-                  disabled={state.loading}
                 />
               );
             }}
