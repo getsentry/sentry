@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/lineV2';
-import {isExpandable} from 'app/components/events/interfaces/frame/utils';
 import {
   getImageRange,
   parseAddress,
@@ -91,36 +90,19 @@ function StackTraceContent({
     return minGroupingLevel <= groupingCurrentLevel;
   }
 
-  function getFramesDetails() {
-    let haveFramesAtLeastOneExpandedFrame = false;
-    let haveFramesAtLeastOneGroupingBadge = false;
+  function getLastFrameIndex() {
+    const inAppFrameIndexes = frames
+      .map((frame, frameIndex) => {
+        if (frame.inApp) {
+          return frameIndex;
+        }
+        return undefined;
+      })
+      .filter(frame => frame !== undefined);
 
-    for (const frameIndex in frames) {
-      const frame = frames[Number(frameIndex)];
-      if (!haveFramesAtLeastOneExpandedFrame) {
-        haveFramesAtLeastOneExpandedFrame = isExpandable({
-          frame,
-          registers: registers ?? {},
-          emptySourceNotation:
-            frames.length - 1 === Number(frameIndex) && Number(frameIndex) === 0,
-          platform,
-        });
-      }
-
-      if (!haveFramesAtLeastOneGroupingBadge) {
-        haveFramesAtLeastOneGroupingBadge =
-          isFrameUsedForGrouping(frame) || !!frame.isPrefix || !!frame.isSentinel;
-      }
-
-      if (haveFramesAtLeastOneExpandedFrame && haveFramesAtLeastOneGroupingBadge) {
-        break;
-      }
-    }
-
-    return {
-      haveFramesAtLeastOneExpandedFrame,
-      haveFramesAtLeastOneGroupingBadge,
-    };
+    return !inAppFrameIndexes.length
+      ? frames.length - 1
+      : inAppFrameIndexes[inAppFrameIndexes.length - 1];
   }
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
@@ -138,9 +120,7 @@ function StackTraceContent({
   function renderConvertedFrames() {
     const firstFrameOmitted = framesOmitted?.[0] ?? null;
     const lastFrameOmitted = framesOmitted?.[1] ?? null;
-    const lastFrameIndex = frames.length - 1;
-    const {haveFramesAtLeastOneExpandedFrame, haveFramesAtLeastOneGroupingBadge} =
-      getFramesDetails();
+    const lastFrameIndex = getLastFrameIndex();
 
     let nRepeats = 0;
 
@@ -184,16 +164,24 @@ function StackTraceContent({
           nRepeats++;
         }
 
+        const isUsedForGrouping = isFrameUsedForGrouping(frame);
+
         const isVisible =
-          includeSystemFrames || frame.inApp || frame.minGroupingLevel !== undefined;
+          includeSystemFrames ||
+          frame.inApp ||
+          (nextFrame && nextFrame.inApp) ||
+          // the last non-app frame
+          (!frame.inApp && !nextFrame) ||
+          isUsedForGrouping;
 
         if (isVisible && !repeatedFrame) {
           const lineProps = {
             event,
             frame,
+            prevFrame,
+            nextFrame,
             isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
             emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-            prevFrame,
             platform,
             timesRepeated: nRepeats,
             showingAbsoluteAddress: showingAbsoluteAddresses,
@@ -205,11 +193,7 @@ function StackTraceContent({
             onFunctionNameToggle: handleToggleFunctionName,
             showCompleteFunctionName,
             isHoverPreviewed,
-            isPrefix: !!frame.isPrefix,
-            isSentinel: !!frame.isSentinel,
-            isUsedForGrouping: isFrameUsedForGrouping(frame),
-            haveFramesAtLeastOneExpandedFrame,
-            haveFramesAtLeastOneGroupingBadge,
+            isUsedForGrouping,
           };
 
           nRepeats = 0;

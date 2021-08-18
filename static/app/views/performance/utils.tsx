@@ -2,7 +2,7 @@ import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'app/components/duration';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {backend, frontend} from 'app/data/platformCategories';
+import {backend, frontend, mobile} from 'app/data/platformCategories';
 import {GlobalSelection, OrganizationSummary, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
@@ -21,10 +21,12 @@ export enum PROJECT_PERFORMANCE_TYPE {
   FRONTEND = 'frontend',
   BACKEND = 'backend',
   FRONTEND_OTHER = 'frontend_other',
+  MOBILE = 'mobile',
 }
 
 const FRONTEND_PLATFORMS: string[] = [...frontend];
 const BACKEND_PLATFORMS: string[] = [...backend];
+const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
   projects: Project[],
@@ -54,6 +56,14 @@ export function platformToPerformanceType(
     return PROJECT_PERFORMANCE_TYPE.BACKEND;
   }
 
+  if (
+    selectedProjects.every(project =>
+      MOBILE_PLATFORMS.includes(project.platform as string)
+    )
+  ) {
+    return PROJECT_PERFORMANCE_TYPE.MOBILE;
+  }
+
   return PROJECT_PERFORMANCE_TYPE.ANY;
 }
 
@@ -67,7 +77,7 @@ export function platformAndConditionsToPerformanceType(
   const performanceType = platformToPerformanceType(projects, eventView.project);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
     const conditions = tokenizeSearch(eventView.query);
-    const ops = conditions.getTagValues('!transaction.op');
+    const ops = conditions.getFilterValues('!transaction.op');
     if (ops.some(op => op === 'pageload')) {
       return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
     }

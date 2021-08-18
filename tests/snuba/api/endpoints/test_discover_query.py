@@ -173,7 +173,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                     "conditionFields": [
                         [
                             "if",
-                            [["in", ["release", "tuple", ["'foo'"]]], "release", "'other'"],
+                            [["in", ["release", ["tuple", ["'foo'"]]]], "release", "'other'"],
                             "release",
                         ]
                     ],

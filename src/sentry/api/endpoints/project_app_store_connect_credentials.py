@@ -5,7 +5,7 @@ There are currently two sets of credentials required:
 - iTunes credentials
 
 Note that for the iTunes credential Sentry needs to keep a session alive, which typically
-lasts 10-14 days.  The UI may need to re-fresh these using endpoints 2-4 at regular
+lasts not very long.  The UI may need to re-fresh these using endpoints 2-4 at regular
 intervals.
 
 To create and manage these credentials, several API endpoints exist:
@@ -62,6 +62,7 @@ from sentry import features, projectoptions
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
+    AppConnectMultipleSourcesError,
     ItunesAuthenticationError,
     ItunesTwoFactorAuthenticationRequired,
 )
@@ -75,6 +76,9 @@ logger = logging.getLogger(__name__)
 
 # The name of the feature flag which enables the App Store Connect symbol source.
 APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
+
+# The feature which allows multiple sources per project.
+MULTIPLE_SOURCES_FEATURE_NAME = "organizations:app-store-connect-multiple"
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
@@ -234,8 +238,17 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         # is just an opaque value.
         config["orgPublicId"] = config.pop("orgId")
 
-        validated_config = appconnect.AppStoreConnectConfig.from_json(config)
-        new_sources = validated_config.update_project_symbol_source(project)
+        try:
+            validated_config = appconnect.AppStoreConnectConfig.from_json(config)
+        except ValueError:
+            raise AppConnectMultipleSourcesError
+        allow_multiple = features.has(
+            MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user
+        )
+        try:
+            new_sources = validated_config.update_project_symbol_source(project, allow_multiple)
+        except ValueError:
+            raise AppConnectMultipleSourcesError
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -330,7 +343,12 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         new_data = symbol_source_config.to_json()
         new_data.update(data)
         symbol_source_config = appconnect.AppStoreConnectConfig.from_json(new_data)
-        new_sources = symbol_source_config.update_project_symbol_source(project)
+
+        # We are sure we are only updating, no point in actually checking if multiple are allowed.
+        new_sources = symbol_source_config.update_project_symbol_source(
+            project, allow_multiple=True
+        )
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -511,6 +529,13 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
+        if (
+            not features.has(
+                MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user
+            )
+            and len(appconnect.AppStoreConnectConfig.all_config_ids(project)) > 1
+        ):
+            raise AppConnectMultipleSourcesError
 
         serializer = AppStoreConnectStartAuthSerializer(data=request.data)
         if not serializer.is_valid():

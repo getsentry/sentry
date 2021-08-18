@@ -62,7 +62,7 @@ type State = {};
 class LandingContent extends Component<Props, State> {
   getSummaryConditions(query: string) {
     const parsed = tokenizeSearch(query);
-    parsed.query = [];
+    parsed.freeText = [];
 
     return parsed.formatString();
   }
@@ -81,7 +81,7 @@ class LandingContent extends Component<Props, State> {
     // Transaction op can affect the display and show no results if it is explicitly set.
     const query = decodeScalar(location.query.query, '');
     const searchConditions = tokenizeSearch(query);
-    searchConditions.removeTag('transaction.op');
+    searchConditions.removeFilter('transaction.op');
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.landingv2.display_change',
@@ -296,7 +296,7 @@ class LandingContent extends Component<Props, State> {
           >
             {LANDING_DISPLAYS.filter(
               ({isShown}) => !isShown || isShown(organization)
-            ).map(({alpha, label, field}) => (
+            ).map(({badge, label, field}) => (
               <DropdownItem
                 key={field}
                 onSelect={this.handleLandingDisplayChange}
@@ -305,7 +305,7 @@ class LandingContent extends Component<Props, State> {
                 isActive={field === currentLandingDisplay.field}
               >
                 {label}
-                {alpha && <FeatureBadge type="alpha" noTooltip />}
+                {badge && <FeatureBadge type={badge} noTooltip />}
               </DropdownItem>
             ))}
           </DropdownControl>

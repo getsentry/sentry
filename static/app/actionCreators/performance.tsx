@@ -53,7 +53,7 @@ export async function fetchTeamKeyTransactions(
         delete payload.project;
       }
 
-      const [data, , xhr] = await api.requestPromise(url, {
+      const [data, , resp] = await api.requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
         query: payload,
@@ -61,7 +61,7 @@ export async function fetchTeamKeyTransactions(
 
       datas.push(data);
 
-      const pageLinks = xhr && xhr.getResponseHeader('Link');
+      const pageLinks = resp?.getResponseHeader('Link');
       if (pageLinks) {
         const paginationObject = parseLinkHeader(pageLinks);
         hasMore = paginationObject?.next?.results ?? false;

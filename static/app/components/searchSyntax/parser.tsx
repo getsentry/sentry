@@ -14,14 +14,15 @@ import {getKeyName} from './utils';
 type TextFn = () => string;
 type LocationFn = () => LocationRange;
 
-type ListItem<K> = [
+type ListItem<V> = [
   space: ReturnType<TokenConverter['tokenSpaces']>,
   comma: string,
   space: ReturnType<TokenConverter['tokenSpaces']>,
-  key: K
+  notComma: undefined,
+  value: V | null
 ];
 
-const listJoiner = <K,>([s1, comma, s2, value]: ListItem<K>) => ({
+const listJoiner = <K,>([s1, comma, s2, _, value]: ListItem<K>) => ({
   separator: [s1.value, comma, s2.value].join(''),
   value,
 });
@@ -284,6 +285,7 @@ type FilterMap = {
 };
 
 type TextFilter = FilterMap[FilterType.Text];
+type InFilter = FilterMap[FilterType.TextIn] | FilterMap[FilterType.NumericIn];
 
 /**
  * The Filter type discriminates on the FilterType enum using the `filter` key.
@@ -530,6 +532,9 @@ export class TokenConverter {
 
     const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
 
+    const checkAggregate = (check: (s: string) => boolean) =>
+      aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? ''));
+
     switch (type) {
       case FilterType.Numeric:
       case FilterType.NumericIn:
@@ -547,13 +552,13 @@ export class TokenConverter {
         return isDate(keyName);
 
       case FilterType.AggregateDuration:
-        return aggregateKey.args?.args.some(arg => isDuration(arg.value.value));
+        return checkAggregate(isDuration);
 
       case FilterType.AggregateDate:
-        return aggregateKey.args?.args.some(arg => isDate(arg.value.value));
+        return checkAggregate(isDate);
 
       case FilterType.AggregatePercentage:
-        return aggregateKey.args?.args.some(arg => isPercentage(arg.value.value));
+        return checkAggregate(isPercentage);
 
       default:
         return true;
@@ -574,16 +579,20 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value']
   ) => {
-    // Only text filters may currently be invalid, since the text filter is the
-    // "fall through" filter that will match when other filter predicates fail.
-    if (filter !== FilterType.Text) {
-      return null;
+    // Text filter is the "fall through" filter that will match when other
+    // filter predicates fail.
+    if (filter === FilterType.Text) {
+      return this.checkInvalidTextFilter(
+        key as TextFilter['key'],
+        value as TextFilter['value']
+      );
     }
 
-    return this.checkInvalidTextFilter(
-      key as TextFilter['key'],
-      value as TextFilter['value']
-    );
+    if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {
+      return this.checkInvalidInFilter(value as InFilter['value']);
+    }
+
+    return null;
   };
 
   /**
@@ -649,6 +658,19 @@ export class TokenConverter {
 
     if (!value.quoted && value.value === '') {
       return {reason: t('Filter must have a value')};
+    }
+
+    return null;
+  };
+
+  /**
+   * Validates IN filter values do not have an missing elements
+   */
+  checkInvalidInFilter = ({items}: InFilter['value']) => {
+    const hasEmptyValue = items.some(item => item.value === null);
+
+    if (hasEmptyValue) {
+      return {reason: t('Lists should not have empty values')};
     }
 
     return null;

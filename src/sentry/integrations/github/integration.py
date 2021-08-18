@@ -79,7 +79,7 @@ API_ERRORS = {
 
 def build_repository_query(metadata, name, query):
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return (f"{account_type}:{name} {query}").encode("utf-8")
+    return (f"{account_type}:{name} {query}").encode()
 
 
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):

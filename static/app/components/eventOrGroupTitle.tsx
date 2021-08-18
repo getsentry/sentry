@@ -58,11 +58,7 @@ function EventOrGroupTitle({
           disablePreview={!withStackTracePreview}
           hasGroupingStacktraceUI={hasGroupingStacktraceUI}
         >
-          {treeLabel && hasGroupingTreeUI ? (
-            <EventTitleTreeLabel treeLabel={treeLabel} />
-          ) : (
-            title
-          )}
+          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
         </StyledStacktracePreview>
       </GuideAnchor>
       {subtitle && (

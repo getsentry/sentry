@@ -29,6 +29,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
+from sentry.utils.hashlib import hash_values
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
@@ -458,7 +459,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         self.store_session(
             {
                 "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102667",
                 "status": "ok",
                 "seq": 0,
                 "release": self.session_release,
@@ -466,17 +467,17 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 "retention_days": 90,
                 "org_id": self.project.organization_id,
                 "project_id": self.project.id,
-                "duration": 60.0,
+                "duration": 1,
                 "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
+                "started": self.session_started - 120,
+                "received": self.received - 120,
             }
         )
 
         self.store_session(
             {
                 "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102668",
                 "status": "ok",
                 "seq": 0,
                 "release": self.session_release,
@@ -484,17 +485,17 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 "retention_days": 90,
                 "org_id": self.project.organization_id,
                 "project_id": self.project.id,
-                "duration": None,
+                "duration": 60.0,
                 "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
+                "started": self.session_started - 240,
+                "received": self.received - 240,
             }
         )
 
         self.store_session(
             {
                 "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102669",
                 "status": "exited",
                 "seq": 1,
                 "release": self.session_release,
@@ -512,7 +513,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         self.store_session(
             {
                 "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102660",
                 "status": "crashed",
                 "seq": 0,
                 "release": self.session_crashed_release,
@@ -534,7 +535,10 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         assert "sessionCount" not in result[0]
         result = serialize(
             [group],
-            serializer=StreamGroupSerializerSnuba(stats_period="14d", expand=["sessions"]),
+            serializer=StreamGroupSerializerSnuba(
+                stats_period="14d",
+                expand=["sessions"],
+            ),
         )
         assert result[0]["sessionCount"] == 3
         result = serialize(
@@ -566,7 +570,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         self.store_session(
             {
                 "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf83",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102667",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102627",
                 "status": "ok",
                 "seq": 0,
                 "release": self.session_release,
@@ -594,7 +598,8 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         assert result[0]["sessionCount"] == 1
 
         # Delete the cache from the query we did above, else this result comes back as 1 instead of 0.5
-        cache.delete(f"w-s:{group.project.id}-{dev_environment.id}")
+        key_hash = hash_values([group.project.id, "", "", f"{dev_environment.id}"])
+        cache.delete(f"w-s:{key_hash}")
         project2 = self.create_project(
             organization=self.organization, teams=[self.team], name="Another project"
         )

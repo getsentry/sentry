@@ -121,7 +121,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     setError(undefined);
 
     try {
-      const [response, , xhr] = await api.requestPromise(
+      const [data, , resp] = await api.requestPromise(
         `/issues/${groupId}/grouping/levels/${activeGroupingLevel}/new-issues/`,
         {
           method: 'GET',
@@ -133,9 +133,9 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
         }
       );
 
-      const pageLinks = xhr && xhr.getResponseHeader?.('Link');
+      const pageLinks = resp?.getResponseHeader?.('Link');
       setPagination(pageLinks ?? '');
-      setActiveGroupingLevelDetails(Array.isArray(response) ? response : [response]);
+      setActiveGroupingLevelDetails(Array.isArray(data) ? data : [data]);
       setIsGroupingLevelDetailsLoading(false);
     } catch (err) {
       setIsGroupingLevelDetailsLoading(false);
@@ -237,7 +237,10 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                     key={hash}
                     sampleEvent={{
                       ...latestEvent,
-                      metadata: metadata || latestEvent.metadata,
+                      metadata: {
+                        ...(metadata || latestEvent.metadata),
+                        current_level: activeGroupingLevel,
+                      },
                       title: title || latestEvent.title,
                     }}
                     eventCount={eventCount}

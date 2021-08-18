@@ -152,8 +152,8 @@ export class IntegrationListDirectory extends AsyncComponent<
       {
         integrations_installed: integrationsInstalled.size,
         view: 'integrations_directory',
+        organization: this.props.organization,
       },
-      this.props.organization,
       {startSession: true}
     );
   }
@@ -268,15 +268,12 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
-    trackIntegrationEvent(
-      'integrations.directory_item_searched',
-      {
-        view: 'integrations_directory',
-        search_term: search,
-        num_results: numResults,
-      },
-      this.props.organization
-    );
+    trackIntegrationEvent('integrations.directory_item_searched', {
+      view: 'integrations_directory',
+      search_term: search,
+      num_results: numResults,
+      organization: this.props.organization,
+    });
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
   /**
@@ -349,14 +346,11 @@ export class IntegrationListDirectory extends AsyncComponent<
       this.updateDisplayedList();
 
       if (category) {
-        trackIntegrationEvent(
-          'integrations.directory_category_selected',
-          {
-            view: 'integrations_directory',
-            category,
-          },
-          this.props.organization
-        );
+        trackIntegrationEvent('integrations.directory_category_selected', {
+          view: 'integrations_directory',
+          category,
+          organization: this.props.organization,
+        });
       }
     });
   };

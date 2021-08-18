@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
@@ -48,7 +48,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
-} & Pick<WithRouterProps, 'router'>;
+};
 
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
@@ -158,7 +158,7 @@ class TransactionEvents extends Component<Props, State> {
     const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
       const query = tokenizeSearch(filteredEventView.query);
-      filter.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       filteredEventView.query = query.formatString();
     }
     return filteredEventView;
@@ -309,11 +309,11 @@ function generateEventsEventView(
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
-    .setTagValues('event.type', ['transaction'])
-    .setTagValues('transaction', [transactionName]);
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction', [transactionName]);
 
-  Object.keys(conditions.tagValues).forEach(field => {
-    if (isAggregateField(field)) conditions.removeTag(field);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) conditions.removeFilter(field);
   });
 
   // Default fields for relative span view

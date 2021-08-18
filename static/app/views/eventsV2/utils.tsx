@@ -378,10 +378,10 @@ function generateExpandedConditions(
 
   // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
-  for (const key in parsedQuery.tagValues) {
+  for (const key in parsedQuery.filters) {
     const column = explodeFieldString(key);
     if (column.kind === 'function') {
-      parsedQuery.removeTag(key);
+      parsedQuery.removeFilter(key);
     }
   }
 
@@ -396,7 +396,7 @@ function generateExpandedConditions(
     const value = conditions[key];
 
     if (Array.isArray(value)) {
-      parsedQuery.setTagValues(key, value);
+      parsedQuery.setFilterValues(key, value);
       continue;
     }
 
@@ -416,7 +416,7 @@ function generateExpandedConditions(
       continue;
     }
 
-    parsedQuery.setTagValues(key, [value]);
+    parsedQuery.setFilterValues(key, [value]);
   }
 
   return parsedQuery.formatString();

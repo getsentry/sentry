@@ -62,6 +62,11 @@ class WidgetCard extends React.Component<Props> {
     return false;
   }
 
+  isAllowWidgetsToDiscover() {
+    const {organization} = this.props;
+    return organization.features.includes('connect-discover-and-dashboards');
+  }
+
   renderToolbar() {
     const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
 
@@ -110,7 +115,7 @@ class WidgetCard extends React.Component<Props> {
     const menuOptions: React.ReactNode[] = [];
 
     if (
-      widget.displayType === 'table' &&
+      (widget.displayType === 'table' || this.isAllowWidgetsToDiscover()) &&
       organization.features.includes('discover-basic')
     ) {
       // Open table widget in Discover
@@ -119,7 +124,12 @@ class WidgetCard extends React.Component<Props> {
         // We expect Table widgets to have only one query.
         const query = widget.queries[0];
 
-        const eventView = eventViewFromWidget(widget.title, query, selection);
+        const eventView = eventViewFromWidget(
+          widget.title,
+          query,
+          selection,
+          widget.displayType
+        );
 
         menuOptions.push(
           <MenuItem

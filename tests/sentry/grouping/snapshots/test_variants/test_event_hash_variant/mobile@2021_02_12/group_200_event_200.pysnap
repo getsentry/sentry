@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:41.938457Z'
+created: '2021-08-09T15:01:33.810359Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -53,17 +53,17 @@ app-depth-2:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
+  hash: "ca733a48a19d237df8577d09449095d9"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
   component:
     app-depth-3*
       exception*
         stacktrace*
           frame*
             function*
-              "TppWorkerThread"
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
             package (ignored because function takes precedence)
-              "ntdll.dll"
+              "winhttp.dll"
           frame*
             function*
               "destructor'"
@@ -90,65 +90,20 @@ app-depth-3:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
+  hash: "ca733a48a19d237df8577d09449095d9"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "RtlUserThreadStart"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "BaseThreadInitThunk"
-            package (ignored because function takes precedence)
-              "kernel32.dll"
           frame*
-            function*
-              "TppWorkerThread"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "TppWorkpExecuteCallback"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
             function*
               "HTTP_THREAD_POOL::_StaticWorkItemCallback"
             package (ignored because function takes precedence)
               "winhttp.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
-            package (ignored because function takes precedence)
-              "winhttp.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "WEBIO_REQUEST::OnIoComplete"
-            package (ignored because function takes precedence)
-              "winhttp.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "HTTP_USER_REQUEST::OnSendRequest"
-            package (ignored because function takes precedence)
-              "winhttp.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "HTTP_BASE_OBJECT::Dereference"
-            package (ignored because function takes precedence)
-              "winhttp.dll"
           frame*
             function*
               "destructor'"
-            package (ignored because function takes precedence)
-              "winhttp.dll"
-          frame (ignored by stack trace rule (category:indirection -group))
-            function*
-              "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
             package (ignored because function takes precedence)
               "winhttp.dll"
           frame*
@@ -161,59 +116,9 @@ app-depth-max:
               "RtlFreeHeap"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "memset"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpFreeUserBlock"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpFreeUserBlockToHeap"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
           frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpFreeHeapInternal"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpFreeHeap"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlEnterCriticalSection"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpEnterCriticalSectionContended"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpWaitOnCriticalSection"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpWaitOnAddress"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpOptimizeWaitOnAddressWaitList"
             package (ignored because function takes precedence)
               "ntdll.dll"
         type (ignored because exception is synthetic)
@@ -222,8 +127,8 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "10146d13e5c34b7cf85e040908fedbe2"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | TppWorkerThread"
+  hash: "7f70cabce0d2163b9e8b69d47e39c494"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
   component:
     system*
       exception*
@@ -238,17 +143,17 @@ system:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkpExecuteCallback"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "HTTP_THREAD_POOL::_StaticWorkItemCallback"
             package (ignored because function takes precedence)

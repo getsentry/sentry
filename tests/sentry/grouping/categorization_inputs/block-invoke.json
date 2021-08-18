@@ -1,55 +1,68 @@
 {
-  "event_id": "09dae7bdbf714f239ccd8c2b1b82202e",
+  "event_id": "8138d4842dd949488e627b9f6df1437e",
   "exception": {
     "values": [
       {
         "mechanism": {
-          "data": null,
-          "description": null,
-          "handled": false,
-          "help_link": null,
           "meta": {
-            "signal": {
-              "name": "SIGSEGV",
-              "number": 11
+            "ns_error": {
+              "code": 2,
+              "domain": "Error.noExperimentsWhenBucketQueried"
             }
           },
-          "synthetic": true,
-          "type": "signalhandler"
+          "type": "NSError"
         },
         "stacktrace": {
           "frames": [
             {
-              "function": "stripped_application_code"
-            },
-            {
-              "function": "__start_thread",
-              "package": "/system/lib/libc.so"
-            },
-            {
-              "function": "__pthread_start",
-              "package": "/system/lib/libc.so"
-            },
-            {
-              "function": "std::__ndk1::__thread_proxy<T>"
+              "function": "start",
+              "package": "libdyld.dylib"
             },
             {
               "function": "stripped_application_code"
             },
             {
-              "function": "stripped_application_code"
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
             },
             {
-              "function": "stripped_application_code"
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
             },
             {
-              "function": "std::__ndk1::__function::__func<T>::operator()"
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices"
             },
             {
-              "function": "stripped_application_code"
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
             },
             {
-              "function": "stripped_application_code"
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_async_and_wait_invoke",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "__30-[TWAnalyticsBatcher spadeURL]_block_invoke"
             },
             {
               "function": "stripped_application_code"
@@ -97,11 +110,9 @@
               "function": "stripped_application_code"
             }
           ]
-        },
-        "type": "SIGSEGV",
-        "value": "Segfault"
+        }
       }
     ]
   },
-  "platform": "native"
+  "platform": "cocoa"
 }

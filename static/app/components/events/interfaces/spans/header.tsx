@@ -53,6 +53,7 @@ type PropType = {
   trace: ParsedTraceType;
   event: EventTransaction;
   operationNameFilters: ActiveOperationFilter;
+  rootSpan: RawSpanType;
 };
 
 type State = {
@@ -440,6 +441,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
                 <ActualMinimap
                   trace={this.props.trace}
                   dividerPosition={dividerPosition}
+                  rootSpan={this.props.rootSpan}
                 />
                 <CursorGuideHandler.Consumer>
                   {({
@@ -508,9 +510,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
 class ActualMinimap extends React.PureComponent<{
   trace: ParsedTraceType;
   dividerPosition: number;
+  rootSpan: RawSpanType;
 }> {
   renderRootSpan(): React.ReactNode {
-    const {trace} = this.props;
+    const {trace, rootSpan} = this.props;
 
     const generateBounds = boundsGenerator({
       traceStartTimestamp: trace.traceStartTimestamp,
@@ -518,15 +521,6 @@ class ActualMinimap extends React.PureComponent<{
       viewStart: 0,
       viewEnd: 1,
     });
-
-    const rootSpan: RawSpanType = {
-      trace_id: trace.traceID,
-      span_id: trace.rootSpanID,
-      start_timestamp: trace.traceStartTimestamp,
-      timestamp: trace.traceEndTimestamp,
-      op: trace.op,
-      data: {},
-    };
 
     return this.renderSpan({
       spanNumber: 0,
