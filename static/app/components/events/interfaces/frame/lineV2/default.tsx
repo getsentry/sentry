@@ -1,3 +1,4 @@
+import {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {IconRefresh} from 'app/icons/iconRefresh';
@@ -16,6 +17,8 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
+    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onClick?: () => void;
     timesRepeated?: number;
   };
 
@@ -28,6 +31,8 @@ function Default({
   timesRepeated,
   isUsedForGrouping,
   leadsToApp,
+  onMouseDown,
+  onClick,
   ...props
 }: Props) {
   function renderRepeats() {
@@ -48,7 +53,7 @@ function Default({
   }
 
   return (
-    <Wrapper className="title">
+    <Wrapper className="title" onMouseDown={onMouseDown} onClick={onClick}>
       <VertCenterWrapper>
         <LeadHint isExpanded={isExpanded} nextFrame={nextFrame} leadsToApp={leadsToApp} />
         <DefaultTitle

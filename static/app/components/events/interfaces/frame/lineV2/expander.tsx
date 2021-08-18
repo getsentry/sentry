@@ -13,7 +13,7 @@ import {isDotnet} from '../utils';
 type Props = {
   isExpandable: boolean;
   platform: PlatformType;
-  onToggleContext: (evt?: MouseEvent) => void;
+  onToggleContext: (evt: MouseEvent) => void;
   isHoverPreviewed?: boolean;
   isExpanded?: boolean;
 };

@@ -1,4 +1,4 @@
-import {MouseEvent} from 'react';
+import {MouseEvent, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -24,6 +24,8 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
+    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onClick?: () => void;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
     showingAbsoluteAddress?: boolean;
@@ -52,6 +54,8 @@ function Native({
   isUsedForGrouping,
   nextFrame,
   leadsToApp,
+  onMouseDown,
+  onClick,
   ...props
 }: Props) {
   const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
@@ -105,7 +109,7 @@ function Native({
   const isFoundByStackScanning = trust === 'scan' || trust === 'cfi-scan';
 
   return (
-    <Wrapper className="title as-table">
+    <Wrapper className="title as-table" onMouseDown={onMouseDown} onClick={onClick}>
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
         <PackageInfo>
           <LeadHint
