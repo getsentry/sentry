@@ -1,4 +1,4 @@
-import {MouseEvent} from 'react';
+import {MouseEvent, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -17,14 +17,15 @@ import Symbol from '../symbol';
 import {getPlatform} from '../utils';
 
 import Expander from './expander';
-import GroupingBadges from './groupingBadges';
 import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
-  React.ComponentProps<typeof LeadHint> &
-  Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
+  React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
+    isUsedForGrouping: boolean;
+    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onClick?: () => void;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
     showingAbsoluteAddress?: boolean;
@@ -32,8 +33,6 @@ type Props = React.ComponentProps<typeof Expander> &
     prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
     maxLengthOfRelativeAddress?: number;
-    haveFramesAtLeastOneExpandedFrame?: boolean;
-    haveFramesAtLeastOneGroupingBadge?: boolean;
     onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
     onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   };
@@ -52,13 +51,11 @@ function Native({
   maxLengthOfRelativeAddress,
   platform,
   prevFrame,
-  isPrefix,
-  isSentinel,
   isUsedForGrouping,
-  haveFramesAtLeastOneExpandedFrame,
-  haveFramesAtLeastOneGroupingBadge,
   nextFrame,
   leadsToApp,
+  onMouseDown,
+  onClick,
   ...props
 }: Props) {
   const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
@@ -112,11 +109,7 @@ function Native({
   const isFoundByStackScanning = trust === 'scan' || trust === 'cfi-scan';
 
   return (
-    <Wrapper
-      className="title as-table"
-      haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-      haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
-    >
+    <Wrapper className="title as-table" onMouseDown={onMouseDown} onClick={onClick}>
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
         <PackageInfo>
           <LeadHint
@@ -157,15 +150,9 @@ function Native({
           showCompleteFunctionName={!!showCompleteFunctionName}
           onFunctionNameToggle={onFunctionNameToggle}
           isHoverPreviewed={isHoverPreviewed}
-        />
-      </NativeLineContent>
-      {haveFramesAtLeastOneGroupingBadge && (
-        <GroupingBadges
-          isPrefix={isPrefix}
-          isSentinel={isSentinel}
           isUsedForGrouping={isUsedForGrouping}
         />
-      )}
+      </NativeLineContent>
       <Expander
         isExpanded={isExpanded}
         isHoverPreviewed={isHoverPreviewed}

@@ -237,7 +237,10 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                     key={hash}
                     sampleEvent={{
                       ...latestEvent,
-                      metadata: metadata || latestEvent.metadata,
+                      metadata: {
+                        ...(metadata || latestEvent.metadata),
+                        current_level: activeGroupingLevel,
+                      },
                       title: title || latestEvent.title,
                     }}
                     eventCount={eventCount}
