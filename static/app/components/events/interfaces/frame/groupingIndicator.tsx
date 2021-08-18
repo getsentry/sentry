@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import {IconInfo} from 'app/icons/iconInfo';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 
 type Props = {
   className?: string;
@@ -24,6 +23,5 @@ function GroupingIndicator({className}: Props) {
 export default GroupingIndicator;
 
 const StyledTooltip = styled(Tooltip)`
-  margin-left: ${space(1)};
   align-items: center;
 `;
