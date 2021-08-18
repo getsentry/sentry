@@ -14,6 +14,7 @@ import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Hovercard from 'app/components/hovercard';
+import MenuItem from 'app/components/menuItem';
 import {IconDelete, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -25,6 +26,7 @@ import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
+import DiscoverQueryMenu from './discoverQueryMenu';
 import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
 
 type DefaultProps = {
@@ -330,15 +332,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
-  renderButtonAddDashboardWidget() {
-    return (
-      <Button
-        data-test-id="add-dashboard-widget-from-discover"
+  renderDiscoverQueryMenu() {
+    const menuOptions: React.ReactNode[] = [];
+    menuOptions.push(
+      <MenuItem
+        key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
         {t('Add to Dashboard')}
-      </Button>
+      </MenuItem>
     );
+    return <DiscoverQueryMenu>{menuOptions}</DiscoverQueryMenu>;
   }
 
   render() {
@@ -383,7 +387,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           organization={organization}
           features={['connect-discover-and-dashboards']}
         >
-          {({hasFeature}) => hasFeature && this.renderButtonAddDashboardWidget()}
+          {({hasFeature}) => hasFeature && this.renderDiscoverQueryMenu()}
         </Feature>
       </ResponsiveButtonBar>
     );
