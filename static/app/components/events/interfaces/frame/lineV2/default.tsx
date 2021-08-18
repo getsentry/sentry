@@ -8,7 +8,6 @@ import {Frame} from 'app/types';
 import {defined} from 'app/utils';
 
 import DefaultTitle from '../defaultTitle';
-import GroupingIndicator from '../groupingIndicator';
 
 import Expander from './expander';
 import LeadHint from './leadHint';
@@ -64,7 +63,6 @@ function Default({
           isUsedForGrouping={isUsedForGrouping}
         />
         {renderRepeats()}
-        {isUsedForGrouping && <GroupingIndicator />}
       </VertCenterWrapper>
       <Expander
         isExpanded={isExpanded}
