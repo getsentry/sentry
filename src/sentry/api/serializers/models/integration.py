@@ -135,8 +135,8 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
                 logger.info(name, extra=log_info)
 
         integration.update({"configData": config_data})
-        integration.update({"organizationID": obj.organization.id})
-        integration.update({"externalID": obj.integration.external_id})
+        integration.update({"organizationId": obj.organization.id})
+        integration.update({"externalId": obj.integration.external_id})
 
         if dynamic_display_information:
             integration.update({"dynamicDisplayInformation": dynamic_display_information})

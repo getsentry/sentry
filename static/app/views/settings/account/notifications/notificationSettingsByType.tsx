@@ -13,6 +13,10 @@ import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notificati
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
 import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
+import {
+  Identity,
+  OrganizationIntegration,
+} from 'app/views/settings/account/notifications/types';
 import UnlinkedAlert from 'app/views/settings/account/notifications/unlinkedAlert';
 import {
   getCurrentDefault,
@@ -39,8 +43,8 @@ type Props = {
 
 type State = {
   notificationSettings: NotificationSettingsObject;
-  identities;
-  organizationIntegrations;
+  identities: Identity[];
+  organizationIntegrations: OrganizationIntegration[];
 } & AsyncComponent['state'];
 
 class NotificationSettingsByType extends AsyncComponent<Props, State> {
@@ -48,8 +52,8 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       notificationSettings: {},
-      identities: {},
-      organizationIntegrations: {},
+      identities: [],
+      organizationIntegrations: [],
     };
   }
 
@@ -184,25 +188,16 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getUnlinkedOrgs = (): OrganizationSummary[] => {
     const {organizations} = this.props;
     const {identities, organizationIntegrations} = this.state;
-    // const integrationExternalIDsByOrganizationID = Object.fromEntries(
-    //   organizationIntegrations.map(organizationIntegration => [
-    //     organizationIntegration.organizationID,
-    //     organizationIntegration.externalID,
-    //   ])
-    // );
-    const integrationExternalIDsByOrganizationID = {};
-    for (const organizationIntegration of organizationIntegrations) {
-      integrationExternalIDsByOrganizationID[organizationIntegration.organizationID] =
-        organizationIntegration.externalID;
-    }
+    const integrationExternalIDsByOrganizationID = Object.fromEntries(
+      organizationIntegrations.map(organizationIntegration => [
+        organizationIntegration.organizationId,
+        organizationIntegration.externalId,
+      ])
+    );
+    const identitiesByExternalId = Object.fromEntries(
+      identities.map(identity => [identity?.identityProvider?.externalId, identity])
+    );
 
-    // const identitiesByExternalId = Object.fromEntries(
-    //   identities.map(identity => [identity.identityProvider.externalId, identity])
-    // );
-    const identitiesByExternalId = {};
-    for (const identity of identities) {
-      identitiesByExternalId[identity.identityProvider.externalId] = identity;
-    }
     return organizations.filter(organization => {
       const externalID = integrationExternalIDsByOrganizationID[organization.id];
       const identity = identitiesByExternalId[externalID];

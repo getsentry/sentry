@@ -17,14 +17,16 @@ const createWrapper = (notificationSettings: NotificationSettingsObject) => {
   MockApiClient.addMockResponse({
     url: '/users/me/identities/',
     method: 'GET',
-    body: {},
+    // @ts-expect-error
+    body: [TestStubs.UserIdentity()],
   });
 
   // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/organization-integrations/',
     method: 'GET',
-    body: {},
+    // @ts-expect-error
+    body: [TestStubs.OrganizationIntegrations()],
   });
 
   return mountWithTheme(
@@ -44,5 +46,17 @@ describe('NotificationSettingsByType', function () {
     expect(fields).toHaveLength(1);
     expect(fields.at(0).find('FieldLabel').text()).toEqual('Issue Alerts');
     expect(fields.at(0).find('Select').text()).toEqual('Off');
+  });
+
+  it('should render when notification settings are enabled', function () {
+    const wrapper = createWrapper({
+      alerts: {user: {me: {email: 'always', slack: 'always'}}},
+    });
+    const fields = wrapper.find('Field');
+    expect(fields).toHaveLength(2);
+    expect(fields.at(0).find('FieldLabel').text()).toEqual('Issue Alerts');
+    expect(fields.at(0).find('Select').text()).toEqual('On');
+    expect(fields.at(1).find('FieldLabel').text()).toEqual('Delivery Method');
+    expect(fields.at(1).find('Select').text()).toEqual('Send to Email and Slack');
   });
 });
