@@ -665,14 +665,16 @@ describe('SmartSearchBar', function () {
 
     it('shows errors on incorrect tokens', async function () {
       const props = {
-        query: 'tag: ',
+        query: 'tag: is: has: ',
         organization,
         location,
         supportedTags,
       };
       jest.useRealTimers();
       const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
-      expect(wrapper.find('Filter').prop('invalid')).toBe(true);
+      wrapper.find('Filter').forEach(filter => {
+        expect(filter.prop('invalid')).toBe(true);
+      });
     });
   });
 

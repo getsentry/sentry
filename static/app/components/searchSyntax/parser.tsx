@@ -588,6 +588,10 @@ export class TokenConverter {
       );
     }
 
+    if (filter === FilterType.Is || filter === FilterType.Has) {
+      return this.checkInvalidTextValue(value as TextFilter['value']);
+    }
+
     if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {
       return this.checkInvalidInFilter(value as InFilter['value']);
     }
