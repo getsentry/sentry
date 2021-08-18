@@ -68,20 +68,23 @@ function Line({
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
   const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
 
-  const expandable = isExpandable({
-    frame,
-    registers,
-    platform,
-    emptySourceNotation,
-    isOnlyFrame,
-  });
+  const expandable =
+    !leadsToApp || includeSystemFrames
+      ? isExpandable({
+          frame,
+          registers,
+          platform,
+          emptySourceNotation,
+          isOnlyFrame,
+        })
+      : false;
 
   const [isExpanded, setIsExpanded] = useState(
     expandable ? props.isExpanded ?? false : false
   );
 
-  function toggleContext(evt?: React.MouseEvent) {
-    evt && evt.preventDefault();
+  function toggleContext(evt: React.MouseEvent) {
+    evt.preventDefault();
     setIsExpanded(!isExpanded);
   }
 
@@ -93,45 +96,41 @@ function Line({
       // fallthrough
       case 'native':
         return (
-          <StrictClick onClick={expandable ? toggleContext : undefined}>
-            <Native
-              leadsToApp={leadsToApp}
-              frame={frame}
-              prevFrame={prevFrame}
-              nextFrame={nextFrame}
-              isHoverPreviewed={isHoverPreviewed}
-              platform={platform}
-              isExpanded={isExpanded}
-              isExpandable={expandable}
-              onAddressToggle={onAddressToggle}
-              onFunctionNameToggle={onFunctionNameToggle}
-              includeSystemFrames={includeSystemFrames}
-              showingAbsoluteAddress={showingAbsoluteAddress}
-              showCompleteFunctionName={showCompleteFunctionName}
-              isFrameAfterLastNonApp={isFrameAfterLastNonApp}
-              onToggleContext={toggleContext}
-              image={image}
-              maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
-              isUsedForGrouping={isUsedForGrouping}
-            />
-          </StrictClick>
+          <Native
+            leadsToApp={leadsToApp}
+            frame={frame}
+            prevFrame={prevFrame}
+            nextFrame={nextFrame}
+            isHoverPreviewed={isHoverPreviewed}
+            platform={platform}
+            isExpanded={isExpanded}
+            isExpandable={expandable}
+            onAddressToggle={onAddressToggle}
+            onFunctionNameToggle={onFunctionNameToggle}
+            includeSystemFrames={includeSystemFrames}
+            showingAbsoluteAddress={showingAbsoluteAddress}
+            showCompleteFunctionName={showCompleteFunctionName}
+            isFrameAfterLastNonApp={isFrameAfterLastNonApp}
+            onToggleContext={toggleContext}
+            image={image}
+            maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
+            isUsedForGrouping={isUsedForGrouping}
+          />
         );
       default:
         return (
-          <StrictClick onClick={expandable ? toggleContext : undefined}>
-            <Default
-              leadsToApp={leadsToApp}
-              frame={frame}
-              nextFrame={nextFrame}
-              timesRepeated={timesRepeated}
-              isHoverPreviewed={isHoverPreviewed}
-              platform={platform}
-              isExpanded={isExpanded}
-              isExpandable={expandable}
-              onToggleContext={toggleContext}
-              isUsedForGrouping={isUsedForGrouping}
-            />
-          </StrictClick>
+          <Default
+            leadsToApp={leadsToApp}
+            frame={frame}
+            nextFrame={nextFrame}
+            timesRepeated={timesRepeated}
+            isHoverPreviewed={isHoverPreviewed}
+            platform={platform}
+            isExpanded={isExpanded}
+            isExpandable={expandable}
+            onToggleContext={toggleContext}
+            isUsedForGrouping={isUsedForGrouping}
+          />
         );
     }
   }
@@ -148,7 +147,9 @@ function Line({
 
   return (
     <StyledLi className={className}>
-      {renderLine()}
+      <StrictClick onClick={expandable ? toggleContext : undefined}>
+        {renderLine()}
+      </StrictClick>
       <Context
         frame={frame}
         event={event}
