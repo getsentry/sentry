@@ -55,13 +55,19 @@ function Default({
   return (
     <Wrapper className="title" onMouseDown={onMouseDown} onClick={onClick}>
       <VertCenterWrapper>
-        <LeadHint isExpanded={isExpanded} nextFrame={nextFrame} leadsToApp={leadsToApp} />
-        <DefaultTitle
-          frame={frame}
-          platform={platform}
-          isHoverPreviewed={isHoverPreviewed}
-          isUsedForGrouping={isUsedForGrouping}
-        />
+        <Title>
+          <LeadHint
+            isExpanded={isExpanded}
+            nextFrame={nextFrame}
+            leadsToApp={leadsToApp}
+          />
+          <DefaultTitle
+            frame={frame}
+            platform={platform}
+            isHoverPreviewed={isHoverPreviewed}
+            isUsedForGrouping={isUsedForGrouping}
+          />
+        </Title>
         {renderRepeats()}
       </VertCenterWrapper>
       <Expander
@@ -79,10 +85,12 @@ export default Default;
 const VertCenterWrapper = styled('div')`
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  margin-left: -${space(0.5)};
+`;
+
+const Title = styled('div')`
   > * {
-    margin-left: ${space(0.5)};
+    vertical-align: middle;
+    line-height: 1;
   }
 `;
 

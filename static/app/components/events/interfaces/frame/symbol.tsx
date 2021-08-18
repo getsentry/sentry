@@ -142,7 +142,7 @@ const HintStatus = styled('span')`
 `;
 
 const FileNameTooltip = styled(Tooltip)`
-  margin-right: ${space(0.5)};
+  margin-right: ${space(0.75)};
 `;
 
 const Filename = styled('span')`

@@ -211,5 +211,5 @@ const InFramePosition = styled('span')`
 `;
 
 const StyledGroupingIndicator = styled(GroupingIndicator)`
-  padding-left: ${space(0.5)};
+  margin-left: ${space(0.75)};
 `;
