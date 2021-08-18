@@ -1,3 +1,4 @@
+import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -11,6 +12,7 @@ type Props = {
   selectedDisplay: DisplayOption;
   onSelect: (key: string) => void;
   organization: Organization;
+  environments: string[];
 };
 
 function ReleaseListSortOptions({
@@ -18,28 +20,36 @@ function ReleaseListSortOptions({
   selectedDisplay,
   onSelect,
   organization,
+  environments,
 }: Props) {
   const sortOptions = {
-    [SortOption.DATE]: t('Date Created'),
-    [SortOption.SESSIONS]: t('Total Sessions'),
+    [SortOption.DATE]: {label: t('Date Created')},
+    [SortOption.SESSIONS]: {label: t('Total Sessions')},
     ...(selectedDisplay === DisplayOption.USERS
       ? {
-          [SortOption.USERS_24_HOURS]: t('Active Users'),
-          [SortOption.CRASH_FREE_USERS]: t('Crash Free Users'),
+          [SortOption.USERS_24_HOURS]: {label: t('Active Users')},
+          [SortOption.CRASH_FREE_USERS]: {label: t('Crash Free Users')},
         }
       : {
-          [SortOption.SESSIONS_24_HOURS]: t('Active Sessions'),
-          [SortOption.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
+          [SortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
+          [SortOption.CRASH_FREE_SESSIONS]: {label: t('Crash Free Sessions')},
         }),
-  } as Record<SortOption, string>;
+  } as ComponentProps<typeof ReleaseListDropdown>['options'];
 
   if (organization.features.includes('semver')) {
-    sortOptions[SortOption.BUILD] = t('Build Number');
-    sortOptions[SortOption.SEMVER] = t('Semantic Version');
+    sortOptions[SortOption.BUILD] = {label: t('Build Number')};
+    sortOptions[SortOption.SEMVER] = {label: t('Semantic Version')};
   }
 
   if (organization.features.includes('release-adoption-stage')) {
-    sortOptions[SortOption.ADOPTION] = t('Date Adopted');
+    const isDisabled = environments.length !== 1;
+    sortOptions[SortOption.ADOPTION] = {
+      label: t('Date Adopted'),
+      disabled: isDisabled,
+      tooltip: isDisabled
+        ? t('Select one environment to use this sort option.')
+        : undefined,
+    };
   }
 
   return (

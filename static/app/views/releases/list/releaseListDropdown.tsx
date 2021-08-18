@@ -1,13 +1,19 @@
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import {ComponentProps} from 'react';
 
-import {DisplayOption, SortOption, StatusOption} from './utils';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import Tooltip from 'app/components/tooltip';
+
+type DropdownItemProps = Pick<
+  ComponentProps<typeof DropdownItem>,
+  'disabled' | 'title'
+> & {
+  label: string;
+  tooltip?: string;
+};
 
 type Props = {
   label: string;
-  options:
-    | Record<DisplayOption, string>
-    | Record<SortOption, string>
-    | Record<StatusOption, string>;
+  options: Record<string, DropdownItemProps>;
   selected: string;
   onSelect: (key: string) => void;
   className?: string;
@@ -24,16 +30,29 @@ const ReleaseListDropdown = ({
   const selectedLabel = optionEntries.find(([key, _value]) => key === selected)?.[1];
 
   return (
-    <DropdownControl buttonProps={{prefix}} label={selectedLabel} className={className}>
-      {optionEntries.map(([key, label]) => (
-        <DropdownItem
+    <DropdownControl
+      alwaysRenderMenu={false}
+      buttonProps={{prefix}}
+      label={selectedLabel?.label}
+      className={className}
+    >
+      {optionEntries.map(([key, {label, tooltip, ...props}]) => (
+        <Tooltip
           key={key}
-          onSelect={onSelect}
-          eventKey={key}
-          isActive={selected === key}
+          containerDisplayMode="block"
+          title={tooltip}
+          delay={500}
+          disabled={!tooltip}
         >
-          {label}
-        </DropdownItem>
+          <DropdownItem
+            onSelect={onSelect}
+            eventKey={key}
+            isActive={selected === key}
+            {...props}
+          >
+            {label}
+          </DropdownItem>
+        </Tooltip>
       ))}
     </DropdownControl>
   );
