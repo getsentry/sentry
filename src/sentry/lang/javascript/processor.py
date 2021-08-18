@@ -23,9 +23,10 @@ from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, r
 from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils import json, metrics
 
-# separate from either the source cache or the source maps cache, this is for
-# holding the results of attempting to fetch both kinds of files, either from the
-# database or from the internet
+# separate from either the source cache or the source maps cache, this is a
+# general purpose cache for holding the results of database and/or internet
+# searches for release files, metadata about those files, and release artifact
+# archives and archive indices pulled from the database
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
@@ -35,6 +36,15 @@ from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 from .cache import SourceCache, SourceMapCache
+
+# Because each type of data the cache is storing is indexed under a different
+# cache-key scheme, it's effectively multiple caches. By giving each use of it a
+# different name, we can more easily differentiate which scheme we're using and
+# what type of data is being stored.
+uploaded_release_file_cache = cache
+web_scraping_cache = cache
+artifact_index_cache = cache
+archive_cache = cache
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
@@ -232,7 +242,7 @@ def fetch_and_cache_artifact(filename, fetch_fn, cache_key, cache_key_meta, head
     z_body_size = None
 
     if CACHE_MAX_VALUE_SIZE:
-        cache_meta = cache.get(cache_key_meta)
+        cache_meta = uploaded_release_file_cache.get(cache_key_meta)
         if cache_meta:
             z_body_size = int(cache_meta.get("compressed_size"))
 
@@ -260,17 +270,17 @@ def fetch_and_cache_artifact(filename, fetch_fn, cache_key, cache_key_meta, head
         if z_body:
             # This will implicitly skip too large payloads. Those will be cached
             # on the file system by `ReleaseFile.cache`, instead.
-            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+            uploaded_release_file_cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
             # In case the previous call to cache implicitly fails, we use
             # the meta data to avoid pointless compression which is done
             # only for caching.
-            cache.set(cache_key_meta, {"compressed_size": len(z_body)}, 3600)
+            uploaded_release_file_cache.set(cache_key_meta, {"compressed_size": len(z_body)}, 3600)
 
     return result
 
 
-def get_cache_keys(filename, release, dist):
+def get_release_file_cache_keys(filename, release, dist):
     dist_name = dist and dist.name or None
     releasefile_ident = ReleaseFile.get_ident(filename, dist_name)
     cache_key = get_release_file_cache_key(
@@ -307,10 +317,10 @@ def fetch_release_file(filename, release, dist=None):
     Caches the result of that attempt (whether successful or not).
     """
     dist_name = dist and dist.name or None
-    cache_key, cache_key_meta = get_cache_keys(filename, release, dist)
+    cache_key, cache_key_meta = get_release_file_cache_keys(filename, release, dist)
 
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
-    result = cache.get(cache_key)
+    result = uploaded_release_file_cache.get(cache_key)
 
     # not in the cache (meaning we haven't checked the database recently), so check the database
     if result is None:
@@ -336,7 +346,7 @@ def fetch_release_file(filename, release, dist=None):
                     filename,
                     release.id,
                 )
-                cache.set(cache_key, -1, 60)
+                uploaded_release_file_cache.set(cache_key, -1, 60)
                 return None
 
             elif len(possible_files) == 1:
@@ -396,7 +406,7 @@ def get_artifact_index(release, dist):
 
     ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist_name)
     cache_key = f"artifact-index:v1:{release.id}:{ident}"
-    result = cache.get(cache_key)
+    result = artifact_index_cache.get(cache_key)
     if result == -1:
         index = None
     elif result:
@@ -405,7 +415,7 @@ def get_artifact_index(release, dist):
         index = read_artifact_index(release, dist, use_cache=True)
         cache_value = -1 if index is None else json.dumps(index)
         # Only cache for a short time to keep the manifest up-to-date
-        cache.set(cache_key, cache_value, timeout=60)
+        artifact_index_cache.set(cache_key, cache_value, timeout=60)
 
     return index
 
@@ -448,7 +458,7 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
 
     cache_key = get_release_file_cache_key(release_id=release.id, releasefile_ident=archive_ident)
 
-    result = cache.get(cache_key)
+    result = archive_cache.get(cache_key)
 
     if result == -1:
         return None
@@ -464,7 +474,7 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
             # This should not happen when there is an archive_ident in the manifest
             logger.error("sourcemaps.missing_archive", exc_info=sys.exc_info())
             # Cache as nonexistent:
-            cache.set(cache_key, -1, 60)
+            archive_cache.set(cache_key, -1, 60)
             return None
         else:
             try:
@@ -475,7 +485,7 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
                 return None
 
             # This will implicitly skip too large payloads.
-            cache.set(cache_key, file_.read(), 3600)
+            archive_cache.set(cache_key, file_.read(), 3600)
             file_.seek(0)
 
             return file_
@@ -495,9 +505,9 @@ def fetch_release_artifact(url, release, dist):
     from the archive.
 
     """
-    cache_key, cache_key_meta = get_cache_keys(url, release, dist)
+    cache_key, cache_key_meta = get_release_file_cache_keys(url, release, dist)
 
-    result = cache.get(cache_key)
+    result = uploaded_release_file_cache.get(cache_key)
 
     if result == -1:  # Cached as unavailable
         return None
@@ -523,7 +533,7 @@ def fetch_release_artifact(url, release, dist):
                     logger.error(
                         "Release artifact %r not found in archive %s", url, archive_file.id
                     )
-                    cache.set(cache_key, -1, 60)
+                    uploaded_release_file_cache.set(cache_key, -1, 60)
                     metrics.timing(
                         "sourcemaps.release_artifact_from_archive", time.monotonic() - start
                     )
@@ -584,7 +594,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             raise http.CannotFetch(error)
 
         logger.debug("Checking cache for url %r", url)
-        result = cache.get(cache_key)
+        result = web_scraping_cache.get(cache_key)
         if result is not None:
             # Previous caches would be a 3-tuple instead of a 4-tuple,
             # so this is being maintained for backwards compatibility
@@ -611,7 +621,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
         with metrics.timer("sourcemaps.fetch"):
             result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
             z_body = zlib.compress(result.body)
-            cache.set(
+            web_scraping_cache.set(
                 cache_key,
                 (url, result.headers, z_body, result.status, result.encoding),
                 get_max_age(result.headers),
@@ -621,7 +631,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             # where the file is too large for the cache. In that case we abort
             # the fetch and cache a failure and lock the domain for future
             # http fetches.
-            if cache.get(cache_key) is None:
+            if web_scraping_cache.get(cache_key) is None:
                 error = {
                     "type": EventError.TOO_LARGE_FOR_CACHE,
                     "url": http.expose_url(url),
@@ -783,11 +793,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.sourcemaps_touched = set()
 
         # cache holding mangled code, original code, and errors associated with
-        # each abs_path in the stacktrace
-        self.cache = SourceCache()
+        # each abs_path in the raw stacktrace
+        self.sourceview_cache = SourceCache()
 
         # cache holding source URLs, corresponding source map URLs, and source map contents
-        self.sourcemaps = SourceMapCache()
+        self.sourcemap_cache = SourceMapCache()
 
         self.release = None
         self.dist = None
@@ -844,8 +854,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         frame = processable_frame.frame
         token = None
 
-        cache = self.cache
-        sourcemaps = self.sourcemaps
         all_errors = []
         sourcemap_applied = False
 
@@ -861,7 +869,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         ):
             return
 
-        errors = cache.get_errors(frame["abs_path"])
+        errors = self.sourceview_cache.get_errors(frame["abs_path"])
         if errors:
             all_errors.extend(errors)
 
@@ -873,7 +881,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         new_frame = dict(frame)
         raw_frame = dict(frame)
 
-        sourcemap_url, sourcemap_view = sourcemaps.get_link(frame["abs_path"])
+        sourcemap_url, sourcemap_view = self.sourcemap_cache.get_link(frame["abs_path"])
         self.sourcemaps_touched.add(sourcemap_url)
         if sourcemap_view and frame.get("colno") is None:
             all_errors.append(
@@ -929,7 +937,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 source = self.get_sourceview(abs_path)
 
             if source is None:
-                errors = cache.get_errors(abs_path)
+                errors = self.sourceview_cache.get_errors(abs_path)
                 if errors:
                     all_errors.extend(errors)
                 else:
@@ -1074,9 +1082,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         return False
 
     def get_sourceview(self, filename):
-        if filename not in self.cache:
+        if filename not in self.sourceview_cache:
             self.cache_source(filename)
-        return self.cache.get(filename)
+        return self.sourceview_cache.get(filename)
 
     def cache_source(self, filename):
         """
@@ -1084,13 +1092,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         map (if any).
         """
 
-        sourcemaps = self.sourcemaps
-        cache = self.cache
-
         self.fetch_count += 1
 
         if self.fetch_count > self.max_fetches:
-            cache.add_error(filename, {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES})
+            self.sourceview_cache.add_error(
+                filename, {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES}
+            )
             return
 
         # TODO: respect cache-control/max-age headers to some extent
@@ -1114,13 +1121,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             if exc.data["type"] == EventError.JS_MISSING_SOURCE and "node_modules" in filename:
                 pass
             else:
-                cache.add_error(filename, exc.data)
+                self.sourceview_cache.add_error(filename, exc.data)
 
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
             return
-        cache.add(filename, result.body, result.encoding)
-        cache.alias(result.url, filename)
+        self.sourceview_cache.add(filename, result.body, result.encoding)
+        self.sourceview_cache.alias(result.url, filename)
 
         sourcemap_url = discover_sourcemap(result)
         if not sourcemap_url:
@@ -1129,8 +1136,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         logger.debug(
             "Found sourcemap URL %r for minified script %r", sourcemap_url[:256], result.url
         )
-        sourcemaps.link(filename, sourcemap_url)
-        if sourcemap_url in sourcemaps:
+        self.sourcemap_cache.link(filename, sourcemap_url)
+        if sourcemap_url in self.sourcemap_cache:
             return
 
         # pull down sourcemap
@@ -1153,16 +1160,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # working, if that's the case). If they're not looking for it to be
             # mapped, then they shouldn't be uploading the source file in the
             # first place.
-            cache.add_error(filename, exc.data)
+            self.sourceview_cache.add_error(filename, exc.data)
             return
 
-        sourcemaps.add(sourcemap_url, sourcemap_view)
+        self.sourcemap_cache.add(sourcemap_url, sourcemap_view)
 
         # cache any inlined sources
         for src_id, source_name in sourcemap_view.iter_sources():
             source_view = sourcemap_view.get_sourceview(src_id)
             if source_view is not None:
-                self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
+                self.sourceview_cache.add(
+                    non_standard_url_join(sourcemap_url, source_name), source_view
+                )
 
     def populate_source_cache(self, frames):
         """

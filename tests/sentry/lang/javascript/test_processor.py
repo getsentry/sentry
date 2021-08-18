@@ -1203,13 +1203,16 @@ class CacheSourceTest(TestCase):
         abs_path = "app:///i/dont/exist.js"
 
         # before caching, no errors
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        assert len(processor.sourceview_cache.get_errors(abs_path)) == 0
 
         processor.cache_source(abs_path)
 
         # now we have an error
-        assert len(processor.cache.get_errors(abs_path)) == 1
-        assert processor.cache.get_errors(abs_path)[0] == {"url": abs_path, "type": "js_no_source"}
+        assert len(processor.sourceview_cache.get_errors(abs_path)) == 1
+        assert processor.sourceview_cache.get_errors(abs_path)[0] == {
+            "url": abs_path,
+            "type": "js_no_source",
+        }
 
     def test_node_modules_file_no_source_no_error(self):
         """
@@ -1229,7 +1232,7 @@ class CacheSourceTest(TestCase):
         processor.cache_source(abs_path)
 
         # no errors, even though the file can't have been found
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        assert len(processor.sourceview_cache.get_errors(abs_path)) == 0
 
     def test_node_modules_file_with_source_is_used(self):
         """
@@ -1254,8 +1257,8 @@ class CacheSourceTest(TestCase):
         processor.cache_source(abs_path)
 
         # file is cached, no errors are generated
-        assert processor.cache.get(abs_path)
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        assert processor.sourceview_cache.get(abs_path)
+        assert len(processor.sourceview_cache.get_errors(abs_path)) == 0
 
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
     def test_node_modules_file_with_source_but_no_map_records_error(self, mock_discover_sourcemap):
@@ -1282,10 +1285,13 @@ class CacheSourceTest(TestCase):
         processor.release = release
 
         # before caching, no errors
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        assert len(processor.sourceview_cache.get_errors(abs_path)) == 0
 
         processor.cache_source(abs_path)
 
         # now we have an error
-        assert len(processor.cache.get_errors(abs_path)) == 1
-        assert processor.cache.get_errors(abs_path)[0] == {"url": map_url, "type": "js_no_source"}
+        assert len(processor.sourceview_cache.get_errors(abs_path)) == 1
+        assert processor.sourceview_cache.get_errors(abs_path)[0] == {
+            "url": map_url,
+            "type": "js_no_source",
+        }
