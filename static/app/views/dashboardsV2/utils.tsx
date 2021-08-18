@@ -70,8 +70,13 @@ export function constructWidgetFromQuery(query): Widget | undefined {
       ...pick(query, ['title', 'displayType', 'interval']),
       queries,
     };
-    // TODO: more elegant way to check if newWidget is valid?
-    if (Object.keys(newWidget).length === 4) return newWidget;
+    if (
+      newWidget.title !== undefined &&
+      newWidget.displayType !== undefined &&
+      newWidget.interval !== undefined &&
+      newWidget.queries !== undefined
+    )
+      return newWidget;
   }
   return undefined;
 }

@@ -236,7 +236,6 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
       this.setState({errors});
     }
     if (!Object.keys(errors).length && this.state.selectedDashboard) {
-      // TODO: redirect user to dashboard view
       closeModal();
 
       const queryData: {

@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
@@ -49,7 +50,7 @@ class Dashboard extends Component<Props> {
         this.handleAddComplete(newWidget);
       } catch (error) {
         // Don't do anything, widget isn't valid
-        // TODO: add error alerting
+        addErrorMessage(error);
       }
     }
   }

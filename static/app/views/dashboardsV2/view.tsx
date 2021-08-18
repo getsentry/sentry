@@ -30,7 +30,6 @@ function ViewEditDashboard(props: Props) {
     const constructedWidget = constructWidgetFromQuery(location.query);
     setNewWidget(constructedWidget);
     // Clean up url after constructing widget from query string
-    // TODO: more elegant way to do this?
     if (constructedWidget) {
       browserHistory.replace(location.pathname);
     }
