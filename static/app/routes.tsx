@@ -23,7 +23,7 @@ import OrganizationContext from 'app/views/organizationContext';
 import OrganizationDetails, {
   LightWeightOrganizationDetails,
 } from 'app/views/organizationDetails';
-import {TAB} from 'app/views/organizationGroupDetails/header';
+import {Tab} from 'app/views/organizationGroupDetails/types';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
@@ -933,7 +933,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.DETAILS,
+                currentTab: Tab.DETAILS,
                 isEventRoute: false,
               }}
             />
@@ -944,7 +944,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.ACTIVITY,
+                currentTab: Tab.ACTIVITY,
                 isEventRoute: false,
               }}
             />
@@ -955,7 +955,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.EVENTS,
+                currentTab: Tab.EVENTS,
                 isEventRoute: false,
               }}
             />
@@ -966,7 +966,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.TAGS,
+                currentTab: Tab.TAGS,
                 isEventRoute: false,
               }}
             />
@@ -977,7 +977,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.TAGS,
+                currentTab: Tab.TAGS,
                 isEventRoute: false,
               }}
             />
@@ -988,7 +988,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.USER_FEEDBACK,
+                currentTab: Tab.USER_FEEDBACK,
                 isEventRoute: false,
               }}
             />
@@ -999,7 +999,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.ATTACHMENTS,
+                currentTab: Tab.ATTACHMENTS,
                 isEventRoute: false,
               }}
             />
@@ -1010,7 +1010,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.SIMILAR_ISSUES,
+                currentTab: Tab.SIMILAR_ISSUES,
                 isEventRoute: false,
               }}
             />
@@ -1021,7 +1021,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.MERGED,
+                currentTab: Tab.MERGED,
                 isEventRoute: false,
               }}
             />
@@ -1032,7 +1032,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.GROUPING,
+                currentTab: Tab.GROUPING,
                 isEventRoute: false,
               }}
             />
@@ -1043,7 +1043,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.DETAILS,
+                  currentTab: Tab.DETAILS,
                   isEventRoute: true,
                 }}
               />
@@ -1054,7 +1054,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.ACTIVITY,
+                  currentTab: Tab.ACTIVITY,
                   isEventRoute: true,
                 }}
               />
@@ -1065,7 +1065,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.EVENTS,
+                  currentTab: Tab.EVENTS,
                   isEventRoute: true,
                 }}
               />
@@ -1076,7 +1076,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.SIMILAR_ISSUES,
+                  currentTab: Tab.SIMILAR_ISSUES,
                   isEventRoute: true,
                 }}
               />
@@ -1087,7 +1087,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.TAGS,
+                  currentTab: Tab.TAGS,
                   isEventRoute: true,
                 }}
               />
@@ -1098,7 +1098,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.TAGS,
+                  currentTab: Tab.TAGS,
                   isEventRoute: true,
                 }}
               />
@@ -1109,7 +1109,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.USER_FEEDBACK,
+                  currentTab: Tab.USER_FEEDBACK,
                   isEventRoute: true,
                 }}
               />
@@ -1120,7 +1120,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.ATTACHMENTS,
+                  currentTab: Tab.ATTACHMENTS,
                   isEventRoute: true,
                 }}
               />
@@ -1131,7 +1131,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.MERGED,
+                  currentTab: Tab.MERGED,
                   isEventRoute: true,
                 }}
               />
@@ -1142,7 +1142,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.GROUPING,
+                  currentTab: Tab.GROUPING,
                   isEventRoute: true,
                 }}
               />
