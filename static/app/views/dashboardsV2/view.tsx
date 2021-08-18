@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -15,7 +14,8 @@ import withOrganization from 'app/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState, Widget, WidgetQuery} from './types';
+import {DashboardState, Widget} from './types';
+import {constructWidgetFromQuery} from './utils';
 
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   api: Client;
@@ -67,37 +67,6 @@ function ViewEditDashboard(props: Props) {
       </OrgDashboards>
     </DashboardBasicFeature>
   );
-}
-
-function constructWidgetFromQuery(query): Widget | undefined {
-  if (query) {
-    const queryNames =
-      typeof query.queryNames === 'string' ? [query.queryNames] : query.queryNames;
-    const queryConditions =
-      typeof query.queryConditions === 'string'
-        ? [query.queryConditions]
-        : query.queryConditions;
-    const queries: WidgetQuery[] = [];
-    if (queryConditions)
-      queryConditions.forEach((condition, index) => {
-        queries.push({
-          name: queryNames?.[index],
-          conditions: condition,
-          fields:
-            typeof query.queryFields === 'string'
-              ? [query.queryFields]
-              : query.queryFields,
-          orderby: query.queryOrderby,
-        });
-      });
-    const newWidget: Widget = {
-      ...pick(query, ['title', 'displayType', 'interval']),
-      queries,
-    };
-    // TODO: more elegant way to check if newWidget is valid?
-    if (Object.keys(newWidget).length === 4) return newWidget;
-  }
-  return undefined;
 }
 
 export default withApi(withOrganization(ViewEditDashboard));
