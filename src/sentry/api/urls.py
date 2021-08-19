@@ -403,12 +403,14 @@ from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_identity import UserIdentityEndpoint
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
+from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
@@ -634,6 +636,11 @@ urlpatterns = [
                     name="sentry-api-0-user-identity-details",
                 ),
                 url(
+                    r"^(?P<user_id>[^\/]+)/identities/$",
+                    UserIdentityEndpoint.as_view(),
+                    name="sentry-api-0-user-identity",
+                ),
+                url(
                     r"^(?P<user_id>[^\/]+)/ips/$",
                     UserIPsEndpoint.as_view(),
                     name="sentry-api-0-user-ips",
@@ -677,6 +684,11 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/subscriptions/$",
                     UserSubscriptionsEndpoint.as_view(),
                     name="sentry-api-0-user-subscriptions",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/organization-integrations/$",
+                    UserOrganizationIntegrationsEndpoint.as_view(),
+                    name="sentry-api-0-user-organization-integrations",
                 ),
             ]
         ),
