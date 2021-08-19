@@ -33,7 +33,6 @@ function Default({
   leadsToApp,
   onMouseDown,
   onClick,
-  hasInAppFrames,
   ...props
 }: Props) {
   function renderRepeats() {
@@ -61,7 +60,6 @@ function Default({
             isExpanded={isExpanded}
             nextFrame={nextFrame}
             leadsToApp={leadsToApp}
-            hasInAppFrames={hasInAppFrames}
           />
           <DefaultTitle
             frame={frame}

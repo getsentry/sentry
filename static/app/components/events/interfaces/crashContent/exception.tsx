@@ -11,7 +11,6 @@ type Props = {
   event: Event;
   newestFirst: boolean;
   platform: PlatformType;
-  hasRelevantFrames: boolean;
   hasHierarchicalGrouping: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
@@ -27,7 +26,6 @@ const Exception = ({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   platform = 'other',
-  hasRelevantFrames,
 }: Props) => (
   <ErrorBoundary mini>
     {stackView === STACK_VIEW.RAW ? (
@@ -47,7 +45,6 @@ const Exception = ({
         newestFirst={newestFirst}
         event={event}
         hasHierarchicalGrouping={hasHierarchicalGrouping}
-        hasRelevantFrames={hasRelevantFrames}
         groupingCurrentLevel={groupingCurrentLevel}
       />
     )}

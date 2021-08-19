@@ -11,7 +11,6 @@ import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 import NoStackTraceMessage from './noStackTraceMessage';
-import {isFrameUsedForGrouping} from './utils';
 
 export function isStacktraceNewestFirst() {
   const user = ConfigStore.get('user');
@@ -55,12 +54,8 @@ function StacktraceInterface({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
-  const hasRelevantFrames = hasHierarchicalGrouping
-    ? !!data.frames?.find(frame => isFrameUsedForGrouping(frame, groupingCurrentLevel))
-    : false;
-
   const [stackView, setStackView] = useState<STACK_VIEW>(
-    data.hasSystemFrames || hasRelevantFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
+    data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
   );
   const [newestFirst, setNewestFirst] = useState(isStacktraceNewestFirst());
 
@@ -86,7 +81,6 @@ function StacktraceInterface({
             platform={event.platform}
             stacktrace={data}
             hasHierarchicalGrouping={hasHierarchicalGrouping}
-            hasRelevantFrames={hasRelevantFrames}
             onChange={value => setStackView(value.stackView ?? stackView)}
           />
         )
@@ -104,7 +98,6 @@ function StacktraceInterface({
           stacktrace={data}
           stackType={STACK_TYPE.ORIGINAL}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasRelevantFrames={hasRelevantFrames}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       )}

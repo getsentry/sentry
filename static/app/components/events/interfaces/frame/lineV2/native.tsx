@@ -56,7 +56,6 @@ function Native({
   leadsToApp,
   onMouseDown,
   onClick,
-  hasInAppFrames,
   ...props
 }: Props) {
   const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
@@ -117,7 +116,6 @@ function Native({
             isExpanded={isExpanded}
             nextFrame={nextFrame}
             leadsToApp={leadsToApp}
-            hasInAppFrames={hasInAppFrames}
           />
           <PackageLink
             includeSystemFrames={!!includeSystemFrames}

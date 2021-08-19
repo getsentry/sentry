@@ -11,12 +11,7 @@ import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 
 import Line from './frame/lineV2';
-import {
-  getImageRange,
-  isFrameUsedForGrouping,
-  parseAddress,
-  stackTracePlatformIcon,
-} from './utils';
+import {getImageRange, parseAddress, stackTracePlatformIcon} from './utils';
 
 type Props = {
   data: StacktraceType;
@@ -46,8 +41,6 @@ function StackTraceContent({
 
   const {frames = [], framesOmitted, registers} = data;
 
-  const hasInAppFrames = frames.some(frame => frame.inApp);
-
   function findImageForAddress(
     address: Frame['instructionAddr'],
     addrMode: Frame['addrMode']
@@ -71,11 +64,17 @@ function StackTraceContent({
       return `${className} traceback full-traceback`;
     }
 
-    if (!hasInAppFrames) {
-      return `${className} traceback in-app-traceback grouping-only`;
+    return `${className} traceback in-app-traceback`;
+  }
+
+  function isFrameUsedForGrouping(frame: Frame) {
+    const {minGroupingLevel} = frame;
+
+    if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
+      return false;
     }
 
-    return `${className} traceback in-app-traceback`;
+    return minGroupingLevel <= groupingCurrentLevel;
   }
 
   function handleToggleAddresses(mouseEvent: MouseEvent<SVGElement>) {
@@ -162,7 +161,7 @@ function StackTraceContent({
           nRepeats++;
         }
 
-        const isUsedForGrouping = isFrameUsedForGrouping(frame, groupingCurrentLevel);
+        const isUsedForGrouping = isFrameUsedForGrouping(frame);
 
         const isVisible =
           includeSystemFrames ||
@@ -192,7 +191,6 @@ function StackTraceContent({
             showCompleteFunctionName,
             isHoverPreviewed,
             isUsedForGrouping,
-            hasInAppFrames,
           };
 
           nRepeats = 0;

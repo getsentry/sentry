@@ -211,13 +211,3 @@ export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) 
 
   return platform;
 }
-
-export function isFrameUsedForGrouping(frame: Frame, groupingCurrentLevel?: number) {
-  const {minGroupingLevel} = frame;
-
-  if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
-    return false;
-  }
-
-  return minGroupingLevel <= groupingCurrentLevel;
-}

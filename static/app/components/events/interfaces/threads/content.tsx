@@ -24,11 +24,7 @@ type Props = {
   data?: Thread;
 } & Pick<
   CrashContentProps,
-  | 'exception'
-  | 'stacktrace'
-  | 'hasHierarchicalGrouping'
-  | 'hasRelevantFrames'
-  | 'groupingCurrentLevel'
+  'exception' | 'stacktrace' | 'hasHierarchicalGrouping' | 'groupingCurrentLevel'
 >;
 
 const Content = ({
@@ -42,7 +38,6 @@ const Content = ({
   exception,
   stacktrace,
   stackTraceNotFound,
-  hasRelevantFrames,
   hasHierarchicalGrouping,
 }: Props) => (
   <div className="thread">
@@ -70,7 +65,6 @@ const Content = ({
         stacktrace={stacktrace}
         groupingCurrentLevel={groupingCurrentLevel}
         hasHierarchicalGrouping={hasHierarchicalGrouping}
-        hasRelevantFrames={hasRelevantFrames}
       />
     )}
   </div>

@@ -9,7 +9,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import StacktraceContent from './stacktraceContent';
 import StacktraceContentV2 from './stacktraceContentV2';
-import {isFrameUsedForGrouping} from './utils';
 
 type Props = {
   data: ExceptionValue['stacktrace'];
@@ -18,7 +17,6 @@ type Props = {
   stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
   hasHierarchicalGrouping: boolean;
-  hasRelevantFrames?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
@@ -36,7 +34,6 @@ const ExceptionStacktraceContent = ({
   data,
   expandFirstFrame,
   event,
-  hasRelevantFrames,
 }: Props) => {
   if (!defined(stacktrace)) {
     return null;
@@ -45,8 +42,7 @@ const ExceptionStacktraceContent = ({
   if (
     stackView === STACK_VIEW.APP &&
     (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
-    !chainedException &&
-    !hasRelevantFrames
+    !chainedException
   ) {
     return (
       <Panel dashedBorder>
@@ -66,6 +62,10 @@ const ExceptionStacktraceContent = ({
     return null;
   }
 
+  const includeSystemFrames =
+    stackView === STACK_VIEW.FULL ||
+    (chainedException && data.frames?.every(frame => !frame.inApp));
+
   /**
    * Armin, Markus:
    * If all frames are in app, then no frame is in app.
@@ -80,14 +80,7 @@ const ExceptionStacktraceContent = ({
       <StacktraceContentV2
         data={data}
         expandFirstFrame={expandFirstFrame}
-        includeSystemFrames={
-          stackView === STACK_VIEW.FULL ||
-          (chainedException &&
-            data.frames?.every(
-              frame =>
-                !frame.inApp && !isFrameUsedForGrouping(frame, groupingCurrentLevel)
-            ))
-        }
+        includeSystemFrames={includeSystemFrames}
         groupingCurrentLevel={groupingCurrentLevel}
         platform={platform}
         newestFirst={newestFirst}
@@ -100,10 +93,7 @@ const ExceptionStacktraceContent = ({
     <StacktraceContent
       data={data}
       expandFirstFrame={expandFirstFrame}
-      includeSystemFrames={
-        stackView === STACK_VIEW.FULL ||
-        (chainedException && (stacktrace.frames ?? []).every(frame => !frame.inApp))
-      }
+      includeSystemFrames={includeSystemFrames}
       platform={platform}
       newestFirst={newestFirst}
       event={event}

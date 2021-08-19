@@ -14,7 +14,6 @@ type NotifyOptions = {
 };
 
 type Props = {
-  hasRelevantFrames: boolean;
   hasHierarchicalGrouping: boolean;
   stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
@@ -34,13 +33,10 @@ const CrashActions = ({
   exception,
   platform,
   onChange,
-  ...props
 }: Props) => {
   const hasSystemFrames: boolean =
     stacktrace?.hasSystemFrames ||
     !!exception?.values?.find(value => !!value.stacktrace?.hasSystemFrames);
-
-  const hasRelevantFrames: boolean = hasSystemFrames || props.hasRelevantFrames;
 
   const hasMinified = !stackType
     ? false
@@ -78,25 +74,15 @@ const CrashActions = ({
   return (
     <ButtonGroupWrapper>
       <ButtonBar active={stackView} merged>
-        {hasHierarchicalGrouping
-          ? hasRelevantFrames && (
-              <Button
-                barId={STACK_VIEW.APP}
-                size="xsmall"
-                onClick={setStackView(STACK_VIEW.APP)}
-              >
-                {t('Most Revelant')}
-              </Button>
-            )
-          : hasSystemFrames && (
-              <Button
-                barId={STACK_VIEW.APP}
-                size="xsmall"
-                onClick={setStackView(STACK_VIEW.APP)}
-              >
-                {t('App Only')}
-              </Button>
-            )}
+        {hasSystemFrames && (
+          <Button
+            barId={STACK_VIEW.APP}
+            size="xsmall"
+            onClick={setStackView(STACK_VIEW.APP)}
+          >
+            {hasHierarchicalGrouping ? t('Most Revelant') : t('App Only')}
+          </Button>
+        )}
         <Button
           barId={STACK_VIEW.FULL}
           size="xsmall"

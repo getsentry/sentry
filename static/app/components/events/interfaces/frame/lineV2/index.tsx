@@ -56,7 +56,6 @@ function Line({
   isOnlyFrame,
   event,
   components,
-  hasInAppFrames,
   emptySourceNotation = false,
   /**
    * Is the stack trace being previewed in a hovercard?
@@ -116,7 +115,6 @@ function Line({
             image={image}
             maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
             isUsedForGrouping={isUsedForGrouping}
-            hasInAppFrames={hasInAppFrames}
           />
         );
       default:
@@ -132,7 +130,6 @@ function Line({
             isExpandable={expandable}
             onToggleContext={toggleContext}
             isUsedForGrouping={isUsedForGrouping}
-            hasInAppFrames={hasInAppFrames}
           />
         );
     }
