@@ -51,7 +51,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   transactionName: string;
-  tagKey: string;
+  tagKey?: string;
 };
 
 const findRowKey = row => {
@@ -301,9 +301,11 @@ const TagsHeatMap = (
                 );
               }
 
-              newTransactionEventView.additionalConditions.setFilterValues(tagKey, [
-                tagValue,
-              ]);
+              if (tagKey) {
+                newTransactionEventView.additionalConditions.setFilterValues(tagKey, [
+                  tagValue,
+                ]);
+              }
 
               setTransactionEventView(newTransactionEventView);
               trackTagPageInteraction(organization);

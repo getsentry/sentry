@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {GlobalSelection, Organization} from 'app/types';
 import {analytics, metric} from 'app/utils/analytics';
@@ -13,7 +13,7 @@ type Props = {
   isGlobalSelectionReady: boolean;
   organization: Organization;
   children: React.ReactNode;
-} & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
+} & RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
 class OrganizationGroupDetails extends React.Component<Props> {
   constructor(props: Props) {

@@ -238,7 +238,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       ['codeMappings', t('Code Mappings')],
       ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
       ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
-    ];
+    ] as [id: Tab, label: string][];
 
     if (this.isCustomIntegration()) {
       tabs.unshift(['settings', t('Settings')]);
@@ -251,7 +251,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             <li
               key={tabTuple[0]}
               className={this.tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => this.onTabChange(tabTuple[0] as Tab)}
+              onClick={() => this.onTabChange(tabTuple[0])}
             >
               <CapitalizedLink>{tabTuple[1]}</CapitalizedLink>
             </li>
