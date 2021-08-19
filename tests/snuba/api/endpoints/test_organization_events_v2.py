@@ -4433,7 +4433,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
         assert response.status_code == 200
@@ -4453,7 +4452,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
 
@@ -4470,7 +4468,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
 
