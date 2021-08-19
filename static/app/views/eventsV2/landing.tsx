@@ -1,7 +1,6 @@
 import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {stringify} from 'query-string';
@@ -42,10 +41,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
-  params: Params;
-} & AsyncComponent['props'];
+} & RouteComponentProps<{}, {}> &
+  AsyncComponent['props'];
 
 type State = {
   savedQueries: SavedQuery[] | null;
@@ -118,7 +115,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       }
     }
 
-    const queryParams: Location['query'] = {
+    const queryParams: Props['location']['query'] = {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage.toString(),
