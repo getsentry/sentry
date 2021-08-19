@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -29,7 +29,7 @@ type Props = {
   eventView: EventView;
   organization: Organization;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
 };
 
 class Container extends Component<Props> {

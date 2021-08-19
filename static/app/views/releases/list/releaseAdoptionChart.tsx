@@ -1,4 +1,4 @@
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import compact from 'lodash/compact';
@@ -49,7 +49,7 @@ type Props = AsyncComponent['props'] & {
   selection: GlobalSelection;
   activeDisplay: DisplayOption;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
 };
 
 type State = AsyncComponent['state'] & {

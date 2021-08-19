@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import partition from 'lodash/partition';
 
 import ConfigStore from 'app/stores/configStore';
@@ -18,7 +18,7 @@ type GlobalSelectionHeaderProps = Omit<
 type Props = {
   organization: Organization;
   projects: Project[];
-} & ReactRouter.WithRouterProps &
+} & WithRouterProps &
   GlobalSelectionHeaderProps &
   Partial<
     Pick<React.ComponentProps<typeof InitializeGlobalSelectionHeader>, 'skipLoadLastUsed'>
@@ -97,5 +97,5 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
 }
 
 export default withOrganization(
-  withProjectsSpecified(ReactRouter.withRouter(GlobalSelectionHeaderContainer))
+  withProjectsSpecified(withRouter(GlobalSelectionHeaderContainer))
 );

@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -27,16 +28,18 @@ type Props = {
    * lead to very confusing behavior.
    */
   skipLoadLastUsed: boolean;
-} & Pick<ReactRouter.WithRouterProps, 'location' | 'router'> &
-  Pick<
-    React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
-    | 'defaultSelection'
-    | 'forceProject'
-    | 'shouldForceProject'
-    | 'memberProjects'
-    | 'organization'
-    | 'showAbsolute'
-  >;
+
+  location: Location;
+  router: InjectedRouter;
+} & Pick<
+  React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
+  | 'defaultSelection'
+  | 'forceProject'
+  | 'shouldForceProject'
+  | 'memberProjects'
+  | 'organization'
+  | 'showAbsolute'
+>;
 
 /**
  * Initializes GlobalSelectionHeader

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -34,17 +34,17 @@ type TableResultProps = Pick<
   'errorMessage' | 'loading' | 'tableResults'
 >;
 
-type WidgetCardChartProps = Pick<ReactRouter.WithRouterProps, 'router'> &
-  Pick<
-    WidgetQueries['state'],
-    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
-  > & {
-    theme: Theme;
-    organization: Organization;
-    location: Location;
-    widget: Widget;
-    selection: GlobalSelection;
-  };
+type WidgetCardChartProps = Pick<
+  WidgetQueries['state'],
+  'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
+> & {
+  theme: Theme;
+  organization: Organization;
+  location: Location;
+  widget: Widget;
+  selection: GlobalSelection;
+  router: InjectedRouter;
+};
 
 class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {

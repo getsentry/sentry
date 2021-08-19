@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -26,7 +26,7 @@ type DefaultProps = {
   debounceWait?: number; // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
 };
 
-type Props = ReactRouter.WithRouterProps &
+type Props = WithRouterProps &
   DefaultProps & {
     api: Client;
     className?: string;
@@ -158,4 +158,4 @@ const Form = styled('form')`
   position: relative;
 `;
 
-export default ReactRouter.withRouter(AsyncComponentSearchInput);
+export default withRouter(AsyncComponentSearchInput);

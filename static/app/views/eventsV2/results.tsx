@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -48,7 +48,7 @@ import {generateTitle} from './utils';
 
 type Props = {
   api: Client;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   location: Location;
   organization: Organization;
   selection: GlobalSelection;
@@ -246,9 +246,7 @@ class Results extends React.Component<Props, State> {
       nextEventView.query = decodeScalar(location.query.query, '');
     }
 
-    ReactRouter.browserHistory.replace(
-      nextEventView.getResultsViewUrlTarget(organization.slug)
-    );
+    browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
   }
 
   handleChangeShowTags = () => {

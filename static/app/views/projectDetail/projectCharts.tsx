@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
@@ -59,7 +58,7 @@ type Props = {
   api: Client;
   location: Location;
   organization: Organization;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   chartId: string;
   chartIndex: number;
   theme: Theme;

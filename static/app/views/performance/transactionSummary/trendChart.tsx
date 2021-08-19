@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
@@ -40,7 +39,7 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = ReactRouter.WithRouterProps &
+type Props = WithRouterProps &
   ViewProps & {
     theme: Theme;
     api: Client;
@@ -243,4 +242,4 @@ class TrendChart extends Component<Props> {
   }
 }
 
-export default withApi(withTheme(ReactRouter.withRouter(TrendChart)));
+export default withApi(withTheme(withRouter(TrendChart)));

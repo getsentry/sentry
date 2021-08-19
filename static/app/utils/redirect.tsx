@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {LocationDescriptor} from 'history';
 
 type Props = {
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   to: LocationDescriptor;
 };
 

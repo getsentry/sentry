@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
@@ -35,7 +35,7 @@ const recordAnalytics = (
     action,
   });
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   /**
    * Task to render
    */
@@ -277,7 +277,7 @@ TaskBlankAvatar.defaultProps = {
   transition,
 };
 
-const WrappedTask = withOrganization(ReactRouter.withRouter(Task));
+const WrappedTask = withOrganization(withRouter(Task));
 
 export default React.forwardRef<
   HTMLDivElement,

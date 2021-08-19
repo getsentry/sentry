@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -31,7 +31,7 @@ type Props = {
   isLoading: boolean;
   errored: boolean;
   selection: GlobalSelection;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   theme: Theme;
   platform?: PlatformKey;
 };

@@ -1,5 +1,4 @@
-import * as ReactRouter from 'react-router';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -157,7 +156,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSearchQuery = (searchQuery: string) => {
     const {location} = this.props;
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -175,7 +174,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       organization_id: parseInt(this.props.organization.id, 10),
       sort: value,
     });
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,

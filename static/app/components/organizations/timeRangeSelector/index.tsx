@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -89,7 +89,7 @@ const defaultProps = {
   onChange: (() => {}) as (data: ChangeData) => void,
 };
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   /**
    * Start date value for absolute date selector
    */
@@ -491,6 +491,6 @@ const SubmitRow = styled('div')`
   border-left: 1px solid ${p => p.theme.border};
 `;
 
-export default ReactRouter.withRouter(TimeRangeSelector);
+export default withRouter(TimeRangeSelector);
 
 export {TimeRangeRoot};

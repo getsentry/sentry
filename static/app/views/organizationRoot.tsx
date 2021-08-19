@@ -1,10 +1,10 @@
 import {Component} from 'react';
-import {RouteComponentProps, withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 
 import {setLastRoute} from 'app/actionCreators/navigation';
 import {setActiveProject} from 'app/actionCreators/projects';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = WithRouterProps;
 
 /**
  * This is the parent container for organization-level views such

@@ -1,6 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -31,7 +30,7 @@ import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
   location: Location;
@@ -207,9 +206,7 @@ class WidgetCard extends React.Component<Props> {
   }
 }
 
-export default withApi(
-  withOrganization(withGlobalSelection(ReactRouter.withRouter(WidgetCard)))
-);
+export default withApi(withOrganization(withGlobalSelection(withRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;
