@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 

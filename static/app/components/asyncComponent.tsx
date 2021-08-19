@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {RouteComponentProps} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {RouteComponentProps, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';

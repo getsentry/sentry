@@ -1,7 +1,6 @@
 import {Component} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {Client} from 'app/api';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -21,11 +20,9 @@ import withOrganization from 'app/utils/withOrganization';
 
 import TraceDetailsContent from './content';
 
-type Props = {
+type Props = RouteComponentProps<{traceSlug: string}, {}> & {
   api: Client;
-  location: Location;
   organization: Organization;
-  params: Params;
 };
 
 class TraceSummary extends Component<Props> {

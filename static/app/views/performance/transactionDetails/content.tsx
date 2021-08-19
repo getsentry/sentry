@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
@@ -34,10 +33,8 @@ import {getTransactionDetailsUrl} from '../utils';
 
 import EventMetas from './eventMetas';
 
-type Props = {
+type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   eventSlug: string;
 };
 

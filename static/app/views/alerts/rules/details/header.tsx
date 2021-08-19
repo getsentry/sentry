@@ -1,4 +1,4 @@
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -13,10 +13,9 @@ import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 
 import {isIssueAlert} from '../../utils';
 
-type Props = {
+type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'params'> & {
   hasIncidentRuleDetailsError: boolean;
   rule?: IncidentRule;
-  params: Params;
 };
 
 function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {WithRouterProps} from 'react-router';
 import {EChartOption} from 'echarts/lib/echarts';
 import moment from 'moment';
 import * as qs from 'query-string';

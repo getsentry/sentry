@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import round from 'lodash/round';
 

@@ -1,6 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 
 import {Client} from 'app/api';

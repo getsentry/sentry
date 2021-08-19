@@ -1,7 +1,6 @@
 import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {Client} from 'app/api';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -19,13 +18,11 @@ import {generatePerformanceEventView} from '../data';
 
 import TrendsContent from './content';
 
-type Props = {
+type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  location: Location;
   selection: GlobalSelection;
   organization: Organization;
   projects: Project[];
-  params: Params;
 };
 
 type State = {
