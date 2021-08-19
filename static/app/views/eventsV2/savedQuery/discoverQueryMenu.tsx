@@ -29,8 +29,8 @@ const DiscoverQueryMenu = ({children}) => (
               },
             })}
           >
-            <Button>
-              <IconEllipsis data-test-id="context-menu" size="14px" />
+            <Button size="small">
+              <IconEllipsis data-test-id="context-menu" size="md" />
             </Button>
           </DropdownTarget>
           {isOpen && (
@@ -51,6 +51,7 @@ const DropdownTarget = styled('div')`
 
 const Menu = styled('ul')`
   margin-top: ${space(2)};
+  margin-right: ${space(0.25)};
 `;
 
 export default DiscoverQueryMenu;
