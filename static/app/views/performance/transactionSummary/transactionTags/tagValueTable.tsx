@@ -91,7 +91,6 @@ export class TagValueTable extends Component<Props, State> {
         direction={currentSortKind}
         canSort
         generateSortLink={generateSortLink}
-        onClick={() => {}} // TODO(k-fish): Implement sorting
       />
     );
   }
