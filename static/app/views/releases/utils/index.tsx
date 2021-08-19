@@ -8,7 +8,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {tn} from 'app/locale';
 import {Release, ReleaseStatus} from 'app/types';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import {DisplayOption} from '../list/utils';
@@ -81,7 +81,7 @@ export const getReleaseNewIssuesUrl = (
       statsPeriod: undefined,
       start: undefined,
       end: undefined,
-      query: new QueryResults([`firstRelease:${version}`]).formatString(),
+      query: new MutableSearch([`firstRelease:${version}`]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
   };
@@ -98,7 +98,7 @@ export const getReleaseUnhandledIssuesUrl = (
     query: {
       ...dateTime,
       project: projectId,
-      query: new QueryResults([
+      query: new MutableSearch([
         `release:${version}`,
         'error.unhandled:true',
       ]).formatString(),
@@ -118,7 +118,7 @@ export const getReleaseHandledIssuesUrl = (
     query: {
       ...dateTime,
       project: projectId,
-      query: new QueryResults([
+      query: new MutableSearch([
         `release:${version}`,
         'error.handled:true',
       ]).formatString(),

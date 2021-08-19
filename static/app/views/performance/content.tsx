@@ -20,7 +20,7 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {QueryResults, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -136,7 +136,7 @@ class PerformanceContent extends Component<Props, State> {
     };
 
     const query = decodeScalar(location.query.query, '');
-    const conditions = tokenizeSearch(query);
+    const conditions = new MutableSearch(query);
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.change_view',
@@ -145,7 +145,7 @@ class PerformanceContent extends Component<Props, State> {
       view_name: 'TRENDS',
     });
 
-    const modifiedConditions = new QueryResults([]);
+    const modifiedConditions = new MutableSearch([]);
 
     if (conditions.hasFilter('tpm()')) {
       modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));

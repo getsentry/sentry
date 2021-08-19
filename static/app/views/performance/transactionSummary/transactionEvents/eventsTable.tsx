@@ -22,7 +22,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -97,7 +97,7 @@ class EventsTable extends React.Component<Props, State> {
         action,
       });
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
       searchConditions.removeFilter('event.type');

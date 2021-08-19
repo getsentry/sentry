@@ -24,7 +24,7 @@ import {
   SessionApiResponse,
 } from 'app/types';
 import {defined, percent} from 'app/utils';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
 import {DisplayOption} from '../list/utils';
@@ -143,7 +143,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
     const {location, selection, defaultStatsPeriod, releases} = this.props;
 
     return {
-      query: new QueryResults(
+      query: new MutableSearch(
         releases.reduce((acc, release, index, allReleases) => {
           acc.push(`release:"${release}"`);
           if (index < allReleases.length - 1) {

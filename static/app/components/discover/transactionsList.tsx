@@ -18,7 +18,7 @@ import {Sort} from 'app/utils/discover/fields';
 import BaselineQuery from 'app/utils/performance/baseline/baselineQuery';
 import {TrendsEventsDiscoverQuery} from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
@@ -149,7 +149,7 @@ class TransactionsList extends React.Component<Props> {
 
     const sortedEventView = eventView.withSorts([selected.sort]);
     if (selected.query) {
-      const query = tokenizeSearch(sortedEventView.query);
+      const query = new MutableSearch(sortedEventView.query);
       selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       sortedEventView.query = query.formatString();
     }
@@ -343,7 +343,7 @@ class TransactionsList extends React.Component<Props> {
     sortedEventView.sorts = [selected.sort];
     sortedEventView.trendType = selected.trendType;
     if (selected.query) {
-      const query = tokenizeSearch(sortedEventView.query);
+      const query = new MutableSearch(sortedEventView.query);
       selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       sortedEventView.query = query.formatString();
     }

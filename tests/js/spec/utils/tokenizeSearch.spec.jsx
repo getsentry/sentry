@@ -1,7 +1,7 @@
-import {QueryResults, tokenizeSearch, TokenType} from 'app/utils/tokenizeSearch';
+import {MutableSearch, TokenType} from 'app/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', function () {
-  describe('tokenizeSearch()', function () {
+  describe('new MutableSearch()', function () {
     const cases = [
       {
         name: 'should convert a basic query string to a query object',
@@ -183,13 +183,13 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      it(name, () => expect(tokenizeSearch(string)).toEqual(object));
+      it(name, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
 
   describe('QueryResults operations', function () {
     it('add tokens to query object', function () {
-      const results = new QueryResults([]);
+      const results = new MutableSearch([]);
 
       results.addStringFilter('a:a');
       expect(results.formatString()).toEqual('a:a');
@@ -213,7 +213,7 @@ describe('utils/tokenizeSearch', function () {
     });
 
     it('add text searches to query object', function () {
-      const results = new QueryResults(['a:a']);
+      const results = new MutableSearch(['a:a']);
 
       results.addFreeText('b');
       expect(results.formatString()).toEqual('a:a b');
@@ -243,7 +243,7 @@ describe('utils/tokenizeSearch', function () {
     });
 
     it('add ops to query object', function () {
-      const results = new QueryResults(['x', 'a:a', 'y']);
+      const results = new MutableSearch(['x', 'a:a', 'y']);
 
       results.addOp('OR');
       expect(results.formatString()).toEqual('x a:a y OR');
@@ -261,21 +261,21 @@ describe('utils/tokenizeSearch', function () {
     });
 
     it('adds tags to query', function () {
-      const results = new QueryResults(['tag:value']);
+      const results = new MutableSearch(['tag:value']);
 
       results.addStringFilter('new:too');
       expect(results.formatString()).toEqual('tag:value new:too');
     });
 
     it('setTag() replaces tags', function () {
-      const results = new QueryResults(['tag:value']);
+      const results = new MutableSearch(['tag:value']);
 
       results.setFilterValues('tag', ['too']);
       expect(results.formatString()).toEqual('tag:too');
     });
 
     it('setTag() replaces tags in OR', function () {
-      let results = new QueryResults([
+      let results = new MutableSearch([
         '(',
         'transaction:xyz',
         'OR',
@@ -286,13 +286,13 @@ describe('utils/tokenizeSearch', function () {
       results.setFilterValues('transaction', ['def']);
       expect(results.formatString()).toEqual('transaction:def');
 
-      results = new QueryResults(['(transaction:xyz', 'OR', 'transaction:abc)']);
+      results = new MutableSearch(['(transaction:xyz', 'OR', 'transaction:abc)']);
       results.setFilterValues('transaction', ['def']);
       expect(results.formatString()).toEqual('transaction:def');
     });
 
     it('does not remove boolean operators after setting tag values', function () {
-      const results = new QueryResults([
+      const results = new MutableSearch([
         '(',
         'start:xyz',
         'AND',
@@ -313,51 +313,51 @@ describe('utils/tokenizeSearch', function () {
     });
 
     it('removes tags from query object', function () {
-      let results = new QueryResults(['x', 'a:a', 'b:b']);
+      let results = new MutableSearch(['x', 'a:a', 'b:b']);
       results.removeFilter('a');
       expect(results.formatString()).toEqual('x b:b');
 
-      results = new QueryResults(['a:a']);
+      results = new MutableSearch(['a:a']);
       results.removeFilter('a');
       expect(results.formatString()).toEqual('');
 
-      results = new QueryResults(['x', 'a:a', 'a:a2']);
+      results = new MutableSearch(['x', 'a:a', 'a:a2']);
       results.removeFilter('a');
       expect(results.formatString()).toEqual('x');
 
-      results = new QueryResults(['a:a', 'OR', 'b:b']);
+      results = new MutableSearch(['a:a', 'OR', 'b:b']);
       results.removeFilter('a');
       expect(results.formatString()).toEqual('b:b');
 
-      results = new QueryResults(['a:a', 'OR', 'a:a1', 'AND', 'b:b']);
+      results = new MutableSearch(['a:a', 'OR', 'a:a1', 'AND', 'b:b']);
       results.removeFilter('a');
       expect(results.formatString()).toEqual('b:b');
 
-      results = new QueryResults(['(a:a', 'OR', 'b:b)']);
+      results = new MutableSearch(['(a:a', 'OR', 'b:b)']);
       results.removeFilter('a');
       expect(results.formatString()).toEqual('b:b');
 
-      results = new QueryResults(['(a:a', 'OR', 'b:b', 'OR', 'y)']);
+      results = new MutableSearch(['(a:a', 'OR', 'b:b', 'OR', 'y)']);
       results.removeFilter('a');
       expect(results.formatString()).toEqual('( b:b OR y )');
 
-      results = new QueryResults(['(a:a', 'OR', '(b:b1', 'OR', '(c:c', 'OR', 'b:b2)))']);
+      results = new MutableSearch(['(a:a', 'OR', '(b:b1', 'OR', '(c:c', 'OR', 'b:b2)))']);
       results.removeFilter('b');
       expect(results.formatString()).toEqual('( a:a OR c:c )');
 
-      results = new QueryResults(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
+      results = new MutableSearch(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
       results.removeFilter('b');
       expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
     });
 
     it('can return the tag keys', function () {
-      const results = new QueryResults(['tag:value', 'other:value', 'additional text']);
+      const results = new MutableSearch(['tag:value', 'other:value', 'additional text']);
 
       expect(results.getFilterKeys()).toEqual(['tag', 'other']);
     });
 
     it('getTagValues', () => {
-      const results = new QueryResults([
+      const results = new MutableSearch([
         'tag:value',
         'other:value',
         'tag:value2',
@@ -373,27 +373,27 @@ describe('utils/tokenizeSearch', function () {
     const cases = [
       {
         name: 'should convert a basic object to a query string',
-        object: new QueryResults(['is:unresolved']),
+        object: new MutableSearch(['is:unresolved']),
         string: 'is:unresolved',
       },
       {
         name: 'should quote tags with spaces',
-        object: new QueryResults(['is:unresolved', 'browser:"Chrome 36"']),
+        object: new MutableSearch(['is:unresolved', 'browser:"Chrome 36"']),
         string: 'is:unresolved browser:"Chrome 36"',
       },
       {
         name: 'should stringify the query',
-        object: new QueryResults(['python', 'is:unresolved', 'browser:"Chrome 36"']),
+        object: new MutableSearch(['python', 'is:unresolved', 'browser:"Chrome 36"']),
         string: 'python is:unresolved browser:"Chrome 36"',
       },
       {
         name: 'should join tokenized queries',
-        object: new QueryResults(['python', 'exception']),
+        object: new MutableSearch(['python', 'exception']),
         string: 'python exception',
       },
       {
         name: 'should quote tags with spaces',
-        object: new QueryResults([
+        object: new MutableSearch([
           'oh',
           'me',
           'oh',
@@ -405,7 +405,7 @@ describe('utils/tokenizeSearch', function () {
       },
       {
         name: 'should quote tags with parens',
-        object: new QueryResults([
+        object: new MutableSearch([
           'bad',
           'things',
           'repository_id:"UUID(\'long-value\')"',
@@ -417,27 +417,31 @@ describe('utils/tokenizeSearch', function () {
         // furthermore, timestamps contain colons
         // but the backend currently does not support quoted date formats
         name: 'should not quote tags with colon',
-        object: new QueryResults(['bad', 'things', 'user:"id:123"']),
+        object: new MutableSearch(['bad', 'things', 'user:"id:123"']),
         string: 'bad things user:id:123',
       },
       {
         name: 'should escape quote tags with double quotes',
-        object: new QueryResults(['bad', 'things', 'name:"Ernest \\"Papa\\" Hemingway"']),
+        object: new MutableSearch([
+          'bad',
+          'things',
+          'name:"Ernest \\"Papa\\" Hemingway"',
+        ]),
         string: 'bad things name:"Ernest \\"Papa\\" Hemingway"',
       },
       {
         name: 'should include blank strings',
-        object: new QueryResults(['bad', 'things', 'name:""']),
+        object: new MutableSearch(['bad', 'things', 'name:""']),
         string: 'bad things name:""',
       },
       {
         name: 'correctly preserve boolean operators',
-        object: new QueryResults(['country:canada', 'OR', 'country:newzealand']),
+        object: new MutableSearch(['country:canada', 'OR', 'country:newzealand']),
         string: 'country:canada OR country:newzealand',
       },
       {
         name: 'correctly preserve parens',
-        object: new QueryResults([
+        object: new MutableSearch([
           '(country:canada',
           'OR',
           'country:newzealand)',
@@ -448,7 +452,7 @@ describe('utils/tokenizeSearch', function () {
       },
       {
         name: 'query tags boolean and parens are all stitched back together correctly',
-        object: new QueryResults([
+        object: new MutableSearch([
           '(a:a',
           'OR',
           '(b:b',
@@ -464,12 +468,12 @@ describe('utils/tokenizeSearch', function () {
       },
       {
         name: 'correctly preserve filters with functions',
-        object: new QueryResults(['country:>canada', 'OR', 'coronaFree():<newzealand']),
+        object: new MutableSearch(['country:>canada', 'OR', 'coronaFree():<newzealand']),
         string: 'country:>canada OR coronaFree():<newzealand',
       },
       {
         name: 'should quote tags with parens and spaces',
-        object: new QueryResults(['release:4.9.0 build (0.0.01)', 'error.handled:0']),
+        object: new MutableSearch(['release:4.9.0 build (0.0.01)', 'error.handled:0']),
         string: 'release:"4.9.0 build (0.0.01)" error.handled:0',
       },
     ];

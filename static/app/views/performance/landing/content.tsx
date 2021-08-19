@@ -16,7 +16,7 @@ import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withTeams from 'app/utils/withTeams';
 
 import Charts from '../charts/index';
@@ -61,7 +61,7 @@ type Props = {
 type State = {};
 class LandingContent extends Component<Props, State> {
   getSummaryConditions(query: string) {
-    const parsed = tokenizeSearch(query);
+    const parsed = new MutableSearch(query);
     parsed.freeText = [];
 
     return parsed.formatString();
@@ -80,7 +80,7 @@ class LandingContent extends Component<Props, State> {
 
     // Transaction op can affect the display and show no results if it is explicitly set.
     const query = decodeScalar(location.query.query, '');
-    const searchConditions = tokenizeSearch(query);
+    const searchConditions = new MutableSearch(query);
     searchConditions.removeFilter('transaction.op');
 
     trackAnalyticsEvent({

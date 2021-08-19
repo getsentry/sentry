@@ -33,10 +33,22 @@ function isParen(token: Token, character: '(' | ')') {
 // searchSyntax/parser. We should absolutely replace the internals of this API
 // with `parseSearch`.
 
-export class QueryResults {
+export class MutableSearch {
   tokens: Token[];
 
-  constructor(strTokens: string[]) {
+  /**
+   * Creates a MutableSearch from a string query
+   */
+  constructor(query: string);
+  /**
+   * Creates a mutable search query from a list of query parts
+   */
+  constructor(queries: string[]);
+  constructor(tokensOrQuery: string[] | string) {
+    const strTokens = Array.isArray(tokensOrQuery)
+      ? tokensOrQuery
+      : splitSearchIntoTokens(tokensOrQuery);
+
     this.tokens = [];
 
     for (let token of strTokens) {
@@ -286,7 +298,7 @@ export class QueryResults {
   }
 
   copy() {
-    const q = new QueryResults([]);
+    const q = new MutableSearch([]);
     q.tokens = [...this.tokens];
     return q;
   }
@@ -294,16 +306,6 @@ export class QueryResults {
   isEmpty() {
     return this.tokens.length === 0;
   }
-}
-
-/**
- * Tokenize a search into a QueryResult
- *
- * Should stay in sync with src.sentry.search.utils:tokenize_query
- */
-export function tokenizeSearch(query: string) {
-  const tokens = splitSearchIntoTokens(query);
-  return new QueryResults(tokens);
 }
 
 /**

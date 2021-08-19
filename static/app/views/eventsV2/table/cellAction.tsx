@@ -16,7 +16,7 @@ import {
   isRelativeSpanOperationBreakdownField,
 } from 'app/utils/discover/fields';
 import {getDuration} from 'app/utils/formatters';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {TableColumn} from './types';
 
@@ -32,7 +32,7 @@ export enum Actions {
 }
 
 export function updateQuery(
-  results: QueryResults,
+  results: MutableSearch,
   action: Actions,
   column: TableColumn<keyof TableDataRow>,
   value: React.ReactText | string[]
