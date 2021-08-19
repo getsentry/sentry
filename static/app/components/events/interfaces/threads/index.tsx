@@ -11,6 +11,8 @@ import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 
+import {isFrameUsedForGrouping} from '../utils';
+
 import findBestThread from './threadSelector/findBestThread';
 import getThreadException from './threadSelector/getThreadException';
 import getThreadStacktrace from './threadSelector/getThreadStacktrace';
@@ -40,16 +42,40 @@ type State = {
   stackView?: STACK_VIEW;
 };
 
-function getIntendedStackView(thread: Thread, event: Event) {
+function getIntendedStackView(
+  thread: Thread,
+  event: Event,
+  hasHierarchicalGrouping: boolean,
+  groupingCurrentLevel?: number
+) {
   const exception = getThreadException(event, thread);
   if (exception) {
-    return !!exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
+    return !!exception.values.find(value => {
+      if (hasHierarchicalGrouping) {
+        return (
+          !!value.stacktrace?.hasSystemFrames ||
+          // check for relevant frames
+          !!value.stacktrace?.frames?.find(frame =>
+            isFrameUsedForGrouping(frame, groupingCurrentLevel)
+          )
+        );
+      }
+      return !!value.stacktrace?.hasSystemFrames;
+    })
       ? STACK_VIEW.APP
       : STACK_VIEW.FULL;
   }
 
   const stacktrace = getThreadStacktrace(false, thread);
-  return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
+  const hasRelevantFrames = hasHierarchicalGrouping
+    ? !!stacktrace?.frames?.find(frame =>
+        isFrameUsedForGrouping(frame, groupingCurrentLevel)
+      )
+    : false;
+
+  return stacktrace?.hasSystemFrames || hasRelevantFrames
+    ? STACK_VIEW.APP
+    : STACK_VIEW.FULL;
 }
 
 class Threads extends Component<Props, State> {
@@ -58,22 +84,36 @@ class Threads extends Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState(): State {
-    const {data, event} = this.props;
+    const {data, event, groupingCurrentLevel, hasHierarchicalGrouping} = this.props;
     const thread = defined(data.values) ? findBestThread(data.values) : undefined;
     return {
       activeThread: thread,
-      stackView: thread ? getIntendedStackView(thread, event) : undefined,
+      stackView: thread
+        ? getIntendedStackView(
+            thread,
+            event,
+            hasHierarchicalGrouping,
+            groupingCurrentLevel
+          )
+        : undefined,
       stackType: STACK_TYPE.ORIGINAL,
       newestFirst: isStacktraceNewestFirst(),
     };
   }
 
   handleSelectNewThread = (thread: Thread) => {
+    const {hasHierarchicalGrouping, groupingCurrentLevel, event} = this.props;
+
     this.setState(prevState => ({
       activeThread: thread,
       stackView:
         prevState.stackView !== STACK_VIEW.RAW
-          ? getIntendedStackView(thread, this.props.event)
+          ? getIntendedStackView(
+              thread,
+              event,
+              hasHierarchicalGrouping,
+              groupingCurrentLevel
+            )
           : prevState.stackView,
       stackType: STACK_TYPE.ORIGINAL,
     }));
@@ -120,6 +160,12 @@ class Threads extends Component<Props, State> {
     const stackTraceNotFound = !(exception || stacktrace);
     const hasMoreThanOneThread = threads.length > 1;
 
+    const hasRelevantFrames = hasHierarchicalGrouping
+      ? !!stacktrace?.frames?.find(frame =>
+          isFrameUsedForGrouping(frame, groupingCurrentLevel)
+        )
+      : false;
+
     return (
       <EventDataSection
         type={type}
@@ -162,6 +208,7 @@ class Threads extends Component<Props, State> {
               exception={exception}
               onChange={this.handleChangeStackView}
               hasHierarchicalGrouping={hasHierarchicalGrouping}
+              hasRelevantFrames={hasRelevantFrames}
             />
           )
         }
@@ -179,6 +226,7 @@ class Threads extends Component<Props, State> {
           projectId={projectId}
           groupingCurrentLevel={groupingCurrentLevel}
           stackTraceNotFound={stackTraceNotFound}
+          hasRelevantFrames={hasRelevantFrames}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       </EventDataSection>

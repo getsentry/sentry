@@ -2,12 +2,6 @@ import {cloneElement, Fragment, MouseEvent, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import Line from 'app/components/events/interfaces/frame/lineV2';
-import {
-  getImageRange,
-  parseAddress,
-  stackTracePlatformIcon,
-} from 'app/components/events/interfaces/utils';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
@@ -15,6 +9,14 @@ import space from 'app/styles/space';
 import {Frame, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
+
+import Line from './frame/lineV2';
+import {
+  getImageRange,
+  isFrameUsedForGrouping,
+  parseAddress,
+  stackTracePlatformIcon,
+} from './utils';
 
 type Props = {
   data: StacktraceType;
@@ -44,6 +46,8 @@ function StackTraceContent({
 
   const {frames = [], framesOmitted, registers} = data;
 
+  const hasInAppFrames = frames.some(frame => frame.inApp);
+
   function findImageForAddress(
     address: Frame['instructionAddr'],
     addrMode: Frame['addrMode']
@@ -67,6 +71,10 @@ function StackTraceContent({
       return `${className} traceback full-traceback`;
     }
 
+    if (!hasInAppFrames) {
+      return `${className} traceback in-app-traceback grouping-only`;
+    }
+
     return `${className} traceback in-app-traceback`;
   }
 
@@ -78,16 +86,6 @@ function StackTraceContent({
   function handleToggleFunctionName(mouseEvent: MouseEvent<SVGElement>) {
     mouseEvent.stopPropagation(); // to prevent collapsing if collapsable
     setShowCompleteFunctionName(!showCompleteFunctionName);
-  }
-
-  function isFrameUsedForGrouping(frame: Frame) {
-    const {minGroupingLevel} = frame;
-
-    if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
-      return false;
-    }
-
-    return minGroupingLevel <= groupingCurrentLevel;
   }
 
   function getLastFrameIndex() {
@@ -164,7 +162,7 @@ function StackTraceContent({
           nRepeats++;
         }
 
-        const isUsedForGrouping = isFrameUsedForGrouping(frame);
+        const isUsedForGrouping = isFrameUsedForGrouping(frame, groupingCurrentLevel);
 
         const isVisible =
           includeSystemFrames ||
@@ -194,6 +192,7 @@ function StackTraceContent({
             showCompleteFunctionName,
             isHoverPreviewed,
             isUsedForGrouping,
+            hasInAppFrames,
           };
 
           nRepeats = 0;

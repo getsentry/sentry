@@ -11,6 +11,8 @@ import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 
+import {isFrameUsedForGrouping} from './utils';
+
 type Props = {
   event: Event;
   type: string;
@@ -30,8 +32,17 @@ function Exception({
   groupingCurrentLevel,
   hideGuide = false,
 }: Props) {
+  const hasRelevantFrames = hasHierarchicalGrouping
+    ? !!data.values?.find(
+        value =>
+          !!value.stacktrace?.frames?.find(frame =>
+            isFrameUsedForGrouping(frame, groupingCurrentLevel)
+          )
+      )
+    : false;
+
   const [stackView, setStackView] = useState<STACK_VIEW>(
-    data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
+    data.hasSystemFrames || hasRelevantFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
   );
   const [stackType, setStackType] = useState<STACK_TYPE>(STACK_TYPE.ORIGINAL);
   const [newestFirst, setNewestFirst] = useState(isStacktraceNewestFirst());
@@ -84,6 +95,7 @@ function Exception({
           platform={event.platform}
           exception={data}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          hasRelevantFrames={hasRelevantFrames}
           {...commonCrashHeaderProps}
         />
       }
@@ -96,8 +108,9 @@ function Exception({
         stackView={stackView}
         newestFirst={newestFirst}
         exception={data}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasRelevantFrames={hasRelevantFrames}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     </EventDataSection>
   );

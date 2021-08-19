@@ -6,18 +6,23 @@ import {Frame} from 'app/types';
 
 type Props = {
   leadsToApp: boolean;
+  hasInAppFrames: boolean;
   isExpanded?: boolean;
   nextFrame?: Frame;
 };
 
-function LeadHint({isExpanded, leadsToApp, nextFrame}: Props) {
+function LeadHint({leadsToApp, hasInAppFrames, isExpanded, nextFrame}: Props) {
   if (isExpanded || !leadsToApp) {
     return null;
   }
 
   return (
     <Wrapper className="leads-to-app-hint" width={!nextFrame ? '115px' : ''}>
-      {!nextFrame ? t('Crashed in non-app') : t('Called from')}
+      {!nextFrame
+        ? hasInAppFrames
+          ? t('Crashed in non-app')
+          : t('Crashed in')
+        : t('Called from')}
       {': '}
     </Wrapper>
   );

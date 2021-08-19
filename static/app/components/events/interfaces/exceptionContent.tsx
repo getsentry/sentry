@@ -21,6 +21,7 @@ type Props = {
   platform: ExceptionStacktraceContentProps['platform'];
   stackView?: ExceptionStacktraceContentProps['stackView'];
   newestFirst?: boolean;
+  hasRelevantFrames?: boolean;
 } & Pick<ExceptionType, 'values'> &
   Pick<
     React.ComponentProps<typeof ExceptionStacktraceContent>,
@@ -36,6 +37,7 @@ const ExceptionContent = ({
   platform,
   values,
   type,
+  hasRelevantFrames,
 }: Props) => {
   if (!values) {
     return null;
@@ -63,6 +65,7 @@ const ExceptionContent = ({
         chainedException={values.length > 1}
         hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasRelevantFrames={hasRelevantFrames}
       />
     </div>
   ));

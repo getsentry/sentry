@@ -15,6 +15,7 @@ type Props = Pick<
   | 'newestFirst'
   | 'groupingCurrentLevel'
   | 'hasHierarchicalGrouping'
+  | 'hasRelevantFrames'
 > & {
   exception?: ExceptionType;
   stacktrace?: ExceptionValue['stacktrace'];
@@ -27,6 +28,7 @@ const CrashContent = ({
   newestFirst,
   projectId,
   groupingCurrentLevel,
+  hasRelevantFrames,
   hasHierarchicalGrouping,
   exception,
   stacktrace,
@@ -43,8 +45,9 @@ const CrashContent = ({
         event={event}
         platform={platform}
         values={exception.values}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasRelevantFrames={hasRelevantFrames}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }
@@ -57,8 +60,8 @@ const CrashContent = ({
         newestFirst={newestFirst}
         event={event}
         platform={platform}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }

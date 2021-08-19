@@ -9,6 +9,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import StacktraceContent from './stacktraceContent';
 import StacktraceContentV2 from './stacktraceContentV2';
+import {isFrameUsedForGrouping} from './utils';
 
 type Props = {
   data: ExceptionValue['stacktrace'];
@@ -17,6 +18,7 @@ type Props = {
   stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
   hasHierarchicalGrouping: boolean;
+  hasRelevantFrames?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
@@ -34,6 +36,7 @@ const ExceptionStacktraceContent = ({
   data,
   expandFirstFrame,
   event,
+  hasRelevantFrames,
 }: Props) => {
   if (!defined(stacktrace)) {
     return null;
@@ -42,13 +45,18 @@ const ExceptionStacktraceContent = ({
   if (
     stackView === STACK_VIEW.APP &&
     (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
-    !chainedException
+    !chainedException &&
+    !hasRelevantFrames
   ) {
     return (
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xs" />}
-          title={t('No app only stack trace has been found!')}
+          title={
+            hasHierarchicalGrouping
+              ? t('No relevant stack trace has been found!')
+              : t('No app only stack trace has been found!')
+          }
         />
       </Panel>
     );
@@ -72,7 +80,14 @@ const ExceptionStacktraceContent = ({
       <StacktraceContentV2
         data={data}
         expandFirstFrame={expandFirstFrame}
-        includeSystemFrames={stackView === STACK_VIEW.FULL}
+        includeSystemFrames={
+          stackView === STACK_VIEW.FULL ||
+          (chainedException &&
+            data.frames?.every(
+              frame =>
+                !frame.inApp && !isFrameUsedForGrouping(frame, groupingCurrentLevel)
+            ))
+        }
         groupingCurrentLevel={groupingCurrentLevel}
         platform={platform}
         newestFirst={newestFirst}
