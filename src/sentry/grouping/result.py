@@ -79,10 +79,14 @@ def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> Stripped
     return rv
 
 
-def _write_tree_labels(tree_labels: Sequence[TreeLabel], event_data: EventData) -> None:
+def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: EventData) -> None:
     event_data["hierarchical_tree_labels"] = event_labels = []
 
     for level, tree_label in enumerate(tree_labels):
+        if tree_label is None:
+            event_labels.append(None)
+            continue
+
         event_labels.append(_strip_tree_label(tree_label))
 
         for part in tree_label:
