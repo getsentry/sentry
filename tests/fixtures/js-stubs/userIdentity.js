@@ -3,7 +3,7 @@ export const UserIdentity = () => ({
   identityProvider: {
     id: '4',
     type: 'slack',
-    externalId: 'TA17GH2QL',
+    externalId: 'TA99AB9CD',
   },
   externalId: 'UA1J9RTE1',
   status: 1,

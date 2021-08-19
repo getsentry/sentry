@@ -194,6 +194,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         organizationIntegration.externalId,
       ])
     );
+
     const identitiesByExternalId = Object.fromEntries(
       identities.map(identity => [identity?.identityProvider?.externalId, identity])
     );

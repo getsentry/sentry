@@ -4,8 +4,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {NotificationSettingsObject} from 'app/views/settings/account/notifications/constants';
 import NotificationSettingsByType from 'app/views/settings/account/notifications/notificationSettingsByType';
 
-const createWrapper = (notificationSettings: NotificationSettingsObject) => {
-  const {routerContext} = initializeOrg();
+const addMockResponses = (
+  notificationSettings: NotificationSettingsObject,
+  identities: Identity[] = [],
+  organizationIntegrations: OrganizationIntegration[] = []
+) => {
   // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/notification-settings/',
@@ -17,20 +20,27 @@ const createWrapper = (notificationSettings: NotificationSettingsObject) => {
   MockApiClient.addMockResponse({
     url: '/users/me/identities/',
     method: 'GET',
-    // @ts-expect-error
-    body: [TestStubs.UserIdentity()],
+    body: identities,
   });
 
   // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/organization-integrations/',
     method: 'GET',
-    // @ts-expect-error
-    body: [TestStubs.OrganizationIntegrations()],
+    body: organizationIntegrations,
   });
+};
 
+const createWrapper = (
+  notificationSettings: NotificationSettingsObject,
+  identities: Identity[] = [],
+  organizationIntegrations: OrganizationIntegration[] = []
+) => {
+  const {routerContext} = initializeOrg();
+  const org = TestStubs.Organization({features: ['notification-platform']});
+  addMockResponses(notificationSettings, identities, organizationIntegrations);
   return mountWithTheme(
-    <NotificationSettingsByType notificationType="alerts" />,
+    <NotificationSettingsByType notificationType="alerts" organizations={[org]} />,
     routerContext
   );
 };
@@ -58,5 +68,36 @@ describe('NotificationSettingsByType', function () {
     expect(fields.at(0).find('Select').text()).toEqual('On');
     expect(fields.at(1).find('FieldLabel').text()).toEqual('Delivery Method');
     expect(fields.at(1).find('Select').text()).toEqual('Send to Email and Slack');
+  });
+
+  it('should render warning modal when identity not linked', function () {
+    const org = TestStubs.Organization({features: ['notification-platform']});
+    const wrapper = createWrapper(
+      {
+        alerts: {user: {me: {email: 'always', slack: 'always'}}},
+      },
+      [],
+      [TestStubs.OrganizationIntegrations()],
+      org
+    );
+    const alert = wrapper.find('StyledAlert');
+    expect(alert).toHaveLength(2);
+    const organizationSlugs = alert.at(0).find('li');
+    expect(organizationSlugs).toHaveLength(1);
+    expect(organizationSlugs.at(0).text()).toEqual(org.slug);
+  });
+
+  it('should not render warning modal when identity is linked', function () {
+    const org = TestStubs.Organization({features: ['notification-platform']});
+    const wrapper = createWrapper(
+      {
+        alerts: {user: {me: {email: 'always', slack: 'always'}}},
+      },
+      [TestStubs.UserIdentity()],
+      [TestStubs.OrganizationIntegrations(org.id)],
+      org
+    );
+    const alert = wrapper.find('StyledAlert');
+    expect(alert).toHaveLength(1);
   });
 });

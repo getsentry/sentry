@@ -1,4 +1,4 @@
-export const OrganizationIntegrations = () => ({
+export const OrganizationIntegrations = organizationId => ({
   id: '15',
   name: 'hb-testing',
   icon: 'https://a.slack-edge.com/80588/img/avatars-teams/ava_0012-132.png',
@@ -25,6 +25,6 @@ export const OrganizationIntegrations = () => ({
   configData: {
     installationType: 'born_as_bot',
   },
-  organizationId: 1,
+  organizationId,
   externalId: 'TA99AB9CD',
 });
