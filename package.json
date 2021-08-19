@@ -84,7 +84,6 @@
     "intersection-observer": "^0.12.0",
     "ios-device-list": "^1.1.35",
     "jed": "^1.1.0",
-    "jquery": "2.2.2",
     "js-cookie": "2.2.1",
     "less": "^3.12.2",
     "less-loader": "^10.0.1",

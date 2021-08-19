@@ -9715,11 +9715,6 @@ jest@27.0.6:
     import-local "^3.0.2"
     jest-cli "^27.0.6"
 
-jquery@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/jquery/-/jquery-2.2.2.tgz#3e302dc61eb329a21e9efac937d731f061134c59"
-  integrity sha1-PjAtxh6zKaIenvrJN9cx8GETTFk=
-
 js-cookie@2.2.1:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/js-cookie/-/js-cookie-2.2.1.tgz#69e106dc5d5806894562902aa5baec3744e9b2b8"
