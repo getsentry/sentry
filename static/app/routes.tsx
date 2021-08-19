@@ -57,7 +57,7 @@ type ComponentCallback = Parameters<NonNullable<RouteProps['getComponent']>>[1];
  * Use react-router to lazy load a route. Use this for codesplitting containers
  * (e.g. SettingsLayout)
  *
- * The tpyical method for lazy loading a route leaf node is using the
+ * The typical method for lazy loading a route leaf node is using the
  * <LazyLoad> component + `componentPromise`
  *
  * For wrapper / layout views react-router handles the route tree better by
