@@ -559,7 +559,7 @@ function TagsHeader(props: HeaderProps) {
     <Header>
       <div>
         <SectionHeading>{t('Suspect Tags')}</SectionHeading>
-        <FeatureBadge type="beta" />
+        <FeatureBadge type="new" />
       </div>
       <Feature features={['performance-tag-page']} organization={organization}>
         <Button
