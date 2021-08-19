@@ -56,7 +56,7 @@ const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & Cust
 const lazyLoad =
   (load: () => Promise<any>): RouteProps['getComponent'] =>
   (_loc, cb) =>
-    load().then(module => cb(null, errorHandler(module.default)));
+    load().then(module => cb(null, module.default));
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
