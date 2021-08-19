@@ -10,7 +10,8 @@ from django.views.generic import View
 from jwt.exceptions import ExpiredSignatureError
 from rest_framework.request import Request
 
-from sentry import features, options
+from sentry import options
+from sentry.features.helpers import any_organization_has_feature
 from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -59,7 +60,9 @@ class BaseJiraWidgetView(View):
 class JiraUIWidgetView(BaseJiraWidgetView):
     @transaction_start("JiraUIWidgetView.get")
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not features.has("organizations:jira-ac-plugin", request.user.get_orgs()):
+        if not any_organization_has_feature(
+            "organizations:jira-ac-plugin", request.user.get_orgs()
+        ):
             raise Http404
         with configure_scope() as scope:
             try:
@@ -102,7 +105,9 @@ class JiraConfigView(BaseJiraWidgetView):
 
     @transaction_start("JiraConfigView.get")
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not features.has("organizations:jira-ac-plugin", request.user.get_orgs()):
+        if not any_organization_has_feature(
+            "organizations:jira-ac-plugin", request.user.get_orgs()
+        ):
             raise Http404
         try:
             jira_auth = self.get_jira_auth()
@@ -126,7 +131,9 @@ class JiraConfigView(BaseJiraWidgetView):
 
     @transaction_start("JiraConfigView.post")
     def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not features.has("organizations:jira-ac-plugin", request.user.get_orgs()):
+        if not any_organization_has_feature(
+            "organizations:jira-ac-plugin", request.user.get_orgs()
+        ):
             raise Http404
         try:
             jira_auth = self.get_jira_auth()
@@ -159,7 +166,9 @@ class JiraConfigView(BaseJiraWidgetView):
 class JiraDescriptorView(View):
     @transaction_start("JiraDescriptorView.get")
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not features.has("organizations:jira-ac-plugin", request.user.get_orgs()):
+        if not any_organization_has_feature(
+            "organizations:jira-ac-plugin", request.user.get_orgs()
+        ):
             raise Http404
         return HttpResponse(
             json.dumps(
@@ -202,7 +211,9 @@ class JiraInstalledCallback(View):
     @method_decorator(csrf_exempt)
     @transaction_start("JiraInstalledCallback.post")
     def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not features.has("organizations:jira-ac-plugin", request.user.get_orgs()):
+        if not any_organization_has_feature(
+            "organizations:jira-ac-plugin", request.user.get_orgs()
+        ):
             raise Http404
         registration_info = json.loads(request.body)
         JiraTenant.objects.create_or_update(
