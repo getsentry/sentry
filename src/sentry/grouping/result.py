@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union
 
 from sentry.utils.safe import get_path, safe_execute, set_path
 
@@ -80,7 +80,8 @@ def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> Stripped
 
 
 def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: EventData) -> None:
-    event_data["hierarchical_tree_labels"] = event_labels = []
+    event_labels: List[Optional[StrippedTreeLabel]] = []
+    event_data["hierarchical_tree_labels"] = event_labels
 
     for level, tree_label in enumerate(tree_labels):
         if tree_label is None:
