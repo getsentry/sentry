@@ -19,7 +19,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {IssueSortOptions} from 'app/views/issueList/utils';
@@ -144,7 +144,7 @@ class Issues extends Component<Props, State> {
     const {version, organization} = this.props;
     const {issuesType} = this.state;
     const {queryParams} = this.getIssuesEndpoint();
-    const query = new QueryResults([]);
+    const query = new MutableSearch([]);
 
     switch (issuesType) {
       case IssuesType.NEW:
@@ -194,7 +194,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([`${IssuesQuery.ALL}:${version}`]).formatString(),
+            query: new MutableSearch([`${IssuesQuery.ALL}:${version}`]).formatString(),
           },
         };
       case IssuesType.RESOLVED:
@@ -207,7 +207,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([
+            query: new MutableSearch([
               `${IssuesQuery.ALL}:${version}`,
               IssuesQuery.UNHANDLED,
             ]).formatString(),
@@ -219,7 +219,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([`${IssuesQuery.NEW}:${version}`]).formatString(),
+            query: new MutableSearch([`${IssuesQuery.NEW}:${version}`]).formatString(),
           },
         };
     }

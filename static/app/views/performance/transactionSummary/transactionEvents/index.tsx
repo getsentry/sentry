@@ -21,7 +21,7 @@ import {
 } from 'app/utils/discover/fields';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -157,7 +157,7 @@ class TransactionEvents extends Component<Props, State> {
     ];
     const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
-      const query = tokenizeSearch(filteredEventView.query);
+      const query = new MutableSearch(filteredEventView.query);
       filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       filteredEventView.query = query.formatString();
     }
@@ -307,7 +307,7 @@ function generateEventsEventView(
     return undefined;
   }
   const query = decodeScalar(location.query.query, '');
-  const conditions = tokenizeSearch(query);
+  const conditions = new MutableSearch(query);
   conditions
     .setFilterValues('event.type', ['transaction'])
     .setFilterValues('transaction', [transactionName]);

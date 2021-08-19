@@ -1,6 +1,6 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
-import * as Router from 'react-router';
+import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -15,9 +15,9 @@ const globals = {
   PropTypes,
   React,
   Reflux,
-  Router,
   Sentry,
   moment,
+  Router: ReactRouter,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,

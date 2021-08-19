@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
@@ -32,7 +31,7 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import {
   getSessionTermDescription,
@@ -59,7 +58,7 @@ type Props = {
   api: Client;
   location: Location;
   organization: Organization;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   chartId: string;
   chartIndex: number;
   theme: Theme;
@@ -293,7 +292,7 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseEventsChart
                   title={t('Apdex')}
                   help={getTermHelp(organization, apdexPerformanceTerm)}
-                  query={new QueryResults([
+                  query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
                   ]).formatString()}
@@ -310,7 +309,7 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseEventsChart
                   title={t('Failure Rate')}
                   help={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
-                  query={new QueryResults([
+                  query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
                   ]).formatString()}
@@ -327,7 +326,7 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseEventsChart
                   title={t('Transactions Per Minute')}
                   help={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
-                  query={new QueryResults([
+                  query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
                   ]).formatString()}
@@ -345,7 +344,7 @@ class ProjectCharts extends Component<Props, State> {
                 (hasDiscover ? (
                   <ProjectBaseEventsChart
                     title={t('Number of Errors')}
-                    query={new QueryResults([
+                    query={new MutableSearch([
                       '!event.type:transaction',
                       query ?? '',
                     ]).formatString()}
@@ -371,7 +370,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.TRANSACTIONS && (
                 <ProjectBaseEventsChart
                   title={t('Number of Transactions')}
-                  query={new QueryResults([
+                  query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
                   ]).formatString()}

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
-import {PlainRoute} from 'react-router/lib/Route';
+import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AlertLink from 'app/components/alertLink';

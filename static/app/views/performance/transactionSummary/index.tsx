@@ -1,6 +1,5 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -24,7 +23,7 @@ import {
 } from 'app/utils/discover/fields';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -45,10 +44,8 @@ import {
 import {ZOOM_END, ZOOM_START} from './latencyChart';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 
-type Props = {
+type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
@@ -319,7 +316,7 @@ function generateSummaryEventView(
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query, '');
-  const conditions = tokenizeSearch(query);
+  const conditions = new MutableSearch(query);
   conditions
     .setFilterValues('event.type', ['transaction'])
     .setFilterValues('transaction', [transactionName]);
