@@ -19,7 +19,7 @@ import {
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {
   NormalizedTrendsTransaction,
@@ -317,7 +317,7 @@ export function movingAverage(data, index, size) {
  * This function applies defaults for trend and count percentage, and adds the confidence limit to the query
  */
 function getLimitTransactionItems(query: string) {
-  const limitQuery = tokenizeSearch(query);
+  const limitQuery = new MutableSearch(query);
   if (!limitQuery.hasFilter('count_percentage()')) {
     limitQuery.addFilterValues('count_percentage()', ['>0.25', '<4']);
   }
