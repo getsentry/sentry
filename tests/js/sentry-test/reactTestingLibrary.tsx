@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import {cache} from '@emotion/css';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-import {render, RenderOptions, within} from '@testing-library/react';
+import {render, RenderOptions} from '@testing-library/react';
 
 import {lightTheme} from 'app/utils/theme';
 
@@ -50,4 +50,4 @@ const mountWithTheme = (ui: React.ReactElement, options?: ContextRenderOptions) 
 };
 
 export * from '@testing-library/react';
-export {mountWithTheme, within};
+export {mountWithTheme};
