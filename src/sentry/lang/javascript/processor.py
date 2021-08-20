@@ -516,7 +516,7 @@ def fetch_release_artifact(url, release, dist):
                 "Failed to initialize archive for release %s",
                 release.id,
                 exc_info=exc,
-                extra={"contents": archive_file.read(n=256)},
+                extra={"contents": archive_file.read(256)},
             )
             # TODO(jjbayer): cache error and return here
         else:
