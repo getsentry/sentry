@@ -7,7 +7,6 @@ import {getOptionByLabel, selectByLabel} from 'sentry-test/select-new';
 
 import DiscoverAddToDashboardModal from 'app/components/modals/discoverAddToDashboardModal';
 import {t} from 'app/locale';
-import TagStore from 'app/stores/tagStore';
 
 const stubEl = props => <div>{props.children}</div>;
 const styledStubEl = styled(stubEl)();
@@ -68,13 +67,8 @@ describe('Modals -> DiscoverAddToDashboardModal', function () {
     projects: undefined,
     router: undefined,
   });
-  const tags = [
-    {name: 'browser.name', key: 'browser.name'},
-    {name: 'custom-field', key: 'custom-field'},
-  ];
 
   beforeEach(function () {
-    TagStore.onLoadTagsSuccess(tags);
     // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
@@ -94,11 +88,6 @@ describe('Modals -> DiscoverAddToDashboardModal', function () {
     });
     // @ts-expect-error
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
-    });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
@@ -107,6 +96,7 @@ describe('Modals -> DiscoverAddToDashboardModal', function () {
       url: '/organizations/org-slug/dashboards/',
       body: [{id: '1', title: t('Test Dashboard')}],
     });
+    // @ts-expect-error
     browserHistory.push.mockReset();
   });
 
