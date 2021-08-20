@@ -65,9 +65,10 @@ const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => 
   };
 
   const doOpenModal = (integration: GroupIntegration) =>
-    openModal(deps => (
-      <ExternalIssueForm {...deps} {...{group, onChange, integration}} />
-    ));
+    openModal(
+      deps => <ExternalIssueForm {...deps} {...{group, onChange, integration}} />,
+      {allowClickClose: false}
+    );
 
   return (
     <Fragment>
