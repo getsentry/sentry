@@ -1,3 +1,4 @@
+import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 
@@ -45,38 +46,41 @@ export function eventViewFromWidget(
   });
 }
 
-export function constructWidgetFromQuery(query): Widget | undefined {
+function coerceStringToArray(value?: string | string[] | null) {
+  return typeof value === 'string' ? [value] : value;
+}
+
+export function constructWidgetFromQuery(query: Query): Widget | undefined {
   if (query) {
-    const queryNames =
-      typeof query.queryNames === 'string' ? [query.queryNames] : query.queryNames;
-    const queryConditions =
-      typeof query.queryConditions === 'string'
-        ? [query.queryConditions]
-        : query.queryConditions;
+    const queryNames = coerceStringToArray(query.queryNames);
+    const queryConditions = coerceStringToArray(query.queryConditions);
+    const queryFields = coerceStringToArray(query.queryFields);
     const queries: WidgetQuery[] = [];
-    if (queryConditions)
+    if (
+      queryConditions &&
+      queryNames &&
+      queryFields &&
+      typeof query.queryOrderby === 'string'
+    )
       queryConditions.forEach((condition, index) => {
         queries.push({
-          name: queryNames?.[index],
+          name: queryNames[index],
           conditions: condition,
-          fields:
-            typeof query.queryFields === 'string'
-              ? [query.queryFields]
-              : query.queryFields,
-          orderby: query.queryOrderby,
+          fields: queryFields,
+          orderby: query.queryOrderby as string,
         });
       });
-    const newWidget: Widget = {
-      ...pick(query, ['title', 'displayType', 'interval']),
-      queries,
-    };
-    if (
-      newWidget.title !== undefined &&
-      newWidget.displayType !== undefined &&
-      newWidget.interval !== undefined &&
-      newWidget.queries !== undefined
-    )
+    if (query.title && query.displayType && query.interval && queries.length > 0) {
+      const newWidget: Widget = {
+        ...(pick(query, ['title', 'displayType', 'interval']) as {
+          title: string;
+          displayType: DisplayType;
+          interval: string;
+        }),
+        queries,
+      };
       return newWidget;
+    }
   }
   return undefined;
 }
