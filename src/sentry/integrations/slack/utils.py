@@ -61,7 +61,7 @@ def strip_channel_name(name: str):
 
 
 def get_channel_id(
-    organization: Organization, integration: Integration, name: str, use_async_lookup: bool = False
+    organization: Organization, integration: Integration, name: str, use_async_lookup: bool = True
 ):
     """
     Fetches the internal slack id of a channel.
@@ -72,6 +72,7 @@ def get_channel_id(
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
         3. timed_out: boolean (whether we hit our self-imposed time limit)
+        4. error: ApiError or `None`
     """
 
     name = strip_channel_name(name)
@@ -134,6 +135,7 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
         3. timed_out: boolean (whether we hit our self-imposed time limit)
+        4. error: ApiError or `None`
     """
 
     headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
@@ -152,19 +154,19 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
     id_data = None
     found_duplicate = False
     prefix = ""
-
     for list_type, result_name, prefix in list_types:
         cursor = ""
         while True:
             endpoint = "/%s.list" % list_type
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                items = client.get(
-                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
-                )
+                for i in range(2000):
+                    items = client.get(
+                        endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1)
+                    )
             except ApiError as e:
                 logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
-                return (prefix, None, False)
+                return (prefix, None, False, e)
 
             if not isinstance(items, dict):
                 continue
@@ -174,7 +176,7 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
                 # so we return immediately if we find a match.
                 # convert to lower case since all names in Slack are lowercase
                 if c["name"].lower() == name.lower():
-                    return (prefix, c["id"], False)
+                    return (prefix, c["id"], False, None)
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.
                 if list_type == "users":
@@ -183,11 +185,11 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
                         if id_data:
                             found_duplicate = True
                         else:
-                            id_data = (prefix, c["id"], False)
+                            id_data = (prefix, c["id"], False, None)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
             if time.time() > time_to_quit:
-                return (prefix, None, True)
+                return (prefix, None, True, None)
 
             if not cursor:
                 break
@@ -196,7 +198,7 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
         elif id_data:
             return id_data
 
-    return (prefix, None, False)
+    return (prefix, None, False, None)
 
 
 def send_incident_alert_notification(action, incident, metric_value, method):

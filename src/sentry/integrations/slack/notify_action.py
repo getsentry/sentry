@@ -90,7 +90,7 @@ class SlackNotifyServiceForm(forms.Form):
         # are assuming that they passed in the correct channel_id for the channel
         if not channel_id:
             try:
-                channel_prefix, channel_id, timed_out = self.channel_transformer(
+                channel_prefix, channel_id, timed_out, error = self.channel_transformer(
                     integration, channel
                 )
             except DuplicateDisplayNameError:
@@ -107,7 +107,6 @@ class SlackNotifyServiceForm(forms.Form):
                 )
 
         channel = strip_channel_name(channel)
-
         if channel_id is None and timed_out:
             cleaned_data["channel"] = channel_prefix + channel
             self._pending_save = True
@@ -118,11 +117,15 @@ class SlackNotifyServiceForm(forms.Form):
                 "channel": channel,
                 "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
             }
+            if error:
+                error_message = _("this is a rate limiting message")
+            else:
+                error_message = _(
+                    'The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'
+                )
 
             raise forms.ValidationError(
-                _(
-                    'The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'
-                ),
+                error_message,
                 code="invalid",
                 params=params,
             )
