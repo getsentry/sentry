@@ -93,17 +93,6 @@ class QueryDefinition:
 
     """
 
-    _entity_map = {
-        "session": "metrics_counters",
-        "user": "metrics_sets",
-        "session.duration": "metrics_distributions",
-    }
-
-    #: Datasets actually implemented in snuba:
-    _implemented_datasets = {
-        "metrics_sets",
-    }
-
     def __init__(self, query_params, allow_minute_resolution=False):
 
         self.query = query_params.get("query", "")
@@ -114,14 +103,6 @@ class QueryDefinition:
             raise InvalidField('Request is missing a "field"')
 
         self.fields = {key: parse_field(key) for key in raw_fields}
-
-        # HACK: Define a single field for now:
-        if len(self.fields) != 1:
-            # Would have to fetch from multiple datasets
-            raise NotImplementedError
-        self.field, (self.op, self.metric_name) = next(iter(self.fields.items()))
-
-        self.match = self._get_entity(self.metric_name)
 
         start, end, rollup = get_constrained_date_range(
             query_params, allow_minute_resolution, max_points=MAX_POINTS
@@ -137,15 +118,6 @@ class QueryDefinition:
         while start < end:
             yield start
             start += delta
-
-    def _get_entity(self, metric_name) -> str:
-
-        entity = self._entity_map[metric_name]
-
-        if entity not in self._implemented_datasets:
-            raise NotImplementedError(f"Dataset not yet implemented: {entity}")
-
-        return entity
 
 
 class DataSource(ABC):
@@ -475,6 +447,17 @@ class SnubaDataSource(IndexMockingDataSource):
 
     _indexer = StringIndexer()
 
+    _entity_map = {
+        "session": "metrics_counters",
+        "user": "metrics_sets",
+        "session.duration": "metrics_distributions",
+    }
+
+    #: Datasets actually implemented in snuba:
+    _implemented_datasets = {
+        "metrics_sets",
+    }
+
     #: Map operation to snuba / clickhouse function
     _op_map = {
         "count_unique": None,  # values already give you uniq
@@ -487,8 +470,6 @@ class SnubaDataSource(IndexMockingDataSource):
 
         self._verify_query(query)
 
-        total = self._run_query_totals(project, query)
-
         return {
             "start": query.start,
             "end": query.end,
@@ -497,19 +478,33 @@ class SnubaDataSource(IndexMockingDataSource):
             "groups": [
                 {
                     "by": {},  # TODO: handle tags
-                    "totals": {query.field: total},  # TODO: handle multiple fields
+                    "totals": {
+                        field: self._run_query_total(project, query, op, metric_name)
+                        for field, (op, metric_name) in query.fields.items()
+                    },
                 }
             ],
         }
 
-    def _run_query_totals(self, project: Project, query: QueryDefinition):
+    def _get_entity(self, metric_name) -> str:
 
-        metric_id = self._indexer.get_int(query.metric_name)
-        function = self._op_map[query.op]
+        entity = self._entity_map[metric_name]
+
+        if entity not in self._implemented_datasets:
+            raise NotImplementedError(f"Dataset not yet implemented: {entity}")
+
+        return entity
+
+    def _run_query_total(
+        self, project: Project, query: QueryDefinition, op: str, metric_name: str
+    ) -> int:
+
+        metric_id = self._indexer.get_int(metric_name)
+        function = self._op_map[op]
 
         snql_query = Query(
             dataset=self._dataset,
-            match=Entity(query.match),
+            match=Entity(self._get_entity(metric_name)),
             select=[
                 (Function(function, [Column("value")], "value") if function else Column("value"))
             ],
