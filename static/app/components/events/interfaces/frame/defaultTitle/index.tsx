@@ -14,6 +14,7 @@ import {Frame, Meta, PlatformType} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 
 import FunctionName from '../functionName';
+import GroupingIndicator from '../groupingIndicator';
 import {getPlatform, isDotnet, trimPackage} from '../utils';
 
 import OriginalSourceInfo from './originalSourceInfo';
@@ -21,6 +22,7 @@ import OriginalSourceInfo from './originalSourceInfo';
 type Props = {
   frame: Frame;
   platform: PlatformType;
+  isUsedForGrouping?: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
@@ -29,7 +31,7 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
+const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Props) => {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
@@ -188,6 +190,10 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
     );
   }
 
+  if (isUsedForGrouping) {
+    title.push(<StyledGroupingIndicator key="info-tooltip" />);
+  }
+
   return <React.Fragment>{title}</React.Fragment>;
 };
 
@@ -202,4 +208,8 @@ const StyledExternalLink = styled(ExternalLink)`
 const InFramePosition = styled('span')`
   color: ${p => p.theme.textColor};
   opacity: 0.6;
+`;
+
+const StyledGroupingIndicator = styled(GroupingIndicator)`
+  margin-left: ${space(0.75)};
 `;
