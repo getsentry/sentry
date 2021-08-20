@@ -69,16 +69,13 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     );
 
     e?.preventDefault();
-    openModal(
-      deps => (
-        <SentryAppExternalIssueModal
-          {...deps}
-          {...{group, event, sentryAppComponent, sentryAppInstallation}}
-          onSubmitSuccess={this.onSubmitSuccess}
-        />
-      ),
-      {allowClickClose: false}
-    );
+    openModal(deps => (
+      <SentryAppExternalIssueModal
+        {...deps}
+        {...{group, event, sentryAppComponent, sentryAppInstallation}}
+        onSubmitSuccess={this.onSubmitSuccess}
+      />
+    ));
   };
 
   deleteIssue = () => {

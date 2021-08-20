@@ -32,12 +32,6 @@ type ModalOptions = {
    * Set to true (the default) to show a translucent backdrop
    */
   backdrop?: 'static' | boolean;
-  /**
-   * Set to `false` to disable the ability to click outside the modal to
-   * close it. This is useful for modals containing user input which will
-   * disappear on an accidental click. Defaults to `true`.
-   */
-  allowClickClose?: boolean;
 };
 
 type ModalRenderProps = {
@@ -158,13 +152,10 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
 
-  // Default to enabled click close
-  const allowClickClose = options.allowClickClose ?? true;
-
   // Only close when we directly click outside of the modal.
   const containerRef = React.useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
-    containerRef.current === e.target && allowClickClose && closeModal();
+    containerRef.current === e.target && closeModal();
 
   return ReactDOM.createPortal(
     <React.Fragment>
