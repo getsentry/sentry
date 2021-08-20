@@ -116,7 +116,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           }}
         />
       ),
-      {}
+      {allowClickClose: false}
     );
   };
 
