@@ -228,8 +228,12 @@ class DiscoverAddToDashboardModal extends React.Component<Props, State> {
     if (
       !this.state.selectedDashboard ||
       !(
-        this.state.dashboards.includes(this.state.selectedDashboard) ||
-        this.state.selectedDashboard.value === 'new'
+        this.state.dashboards.find(({label, value}) => {
+          return (
+            label === this.state.selectedDashboard?.label &&
+            value === this.state.selectedDashboard?.value
+          );
+        }) || this.state.selectedDashboard.value === 'new'
       )
     ) {
       errors.dashboard = t('This field may not be blank');
