@@ -1,7 +1,6 @@
 import {Component} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -13,10 +12,8 @@ import withOrganization from 'app/utils/withOrganization';
 
 import EventDetailsContent from './content';
 
-type Props = {
+type Props = RouteComponentProps<{eventSlug: string}, {}> & {
   organization: Organization;
-  location: Location;
-  params: Params;
 };
 
 class EventDetails extends Component<Props> {

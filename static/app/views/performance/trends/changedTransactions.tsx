@@ -26,7 +26,7 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -161,7 +161,7 @@ enum FilterSymbols {
 
 function handleFilterTransaction(location: Location, transaction: string) {
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
   conditions.addFilterValues('!transaction', [transaction]);
 
@@ -179,7 +179,7 @@ function handleFilterTransaction(location: Location, transaction: string) {
 function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
   const durationTag = getCurrentTrendParameter(location).column;
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
   const existingValues = conditions.getFilterValues(durationTag);
   const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';

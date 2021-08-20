@@ -33,11 +33,13 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
+from sentry.notifications.helpers import (
+    get_most_specific_notification_setting_value,
+    transform_to_notification_settings_by_scope,
+)
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
 from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -183,23 +185,16 @@ class ProjectSerializer(Serializer):
                     ).values_list("project_id", flat=True)
                 )
 
-                notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    user,
-                    item_list,
+                notification_settings_by_scope = transform_to_notification_settings_by_scope(
+                    NotificationSetting.objects.get_for_user_by_projects(
+                        NotificationSettingTypes.ISSUE_ALERTS,
+                        user,
+                        item_list,
+                    )
                 )
-                (
-                    notification_settings_by_project_id_by_provider,
-                    default_subscribe_by_provider,
-                ) = transform_to_notification_settings_by_parent_id(notification_settings)
-                notification_settings_by_project_id = (
-                    notification_settings_by_project_id_by_provider.get(ExternalProviders.EMAIL, {})
-                )
-                default_subscribe = default_subscribe_by_provider.get(ExternalProviders.EMAIL)
             else:
                 bookmarks = set()
-                notification_settings_by_project_id = {}
-                default_subscribe = None
+                notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -233,10 +228,13 @@ class ProjectSerializer(Serializer):
 
         with measure_span("other"):
             for project, serialized in result.items():
-                is_subscribed = (
-                    notification_settings_by_project_id.get(project.id, default_subscribe)
-                    == NotificationSettingOptionValues.ALWAYS
+                value = get_most_specific_notification_setting_value(
+                    notification_settings_by_scope,
+                    user=user,
+                    parent_id=project.id,
+                    type=NotificationSettingTypes.ISSUE_ALERTS,
                 )
+                is_subscribed = value == NotificationSettingOptionValues.ALWAYS
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,

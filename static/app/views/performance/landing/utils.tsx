@@ -54,7 +54,7 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.MOBILE,
     isShown: (organization: Organization) =>
       organization.features.includes('performance-mobile-vitals'),
-    badge: 'beta' as const,
+    badge: 'new' as const,
   },
 ];
 
@@ -98,6 +98,7 @@ export function getDefaultDisplayFieldForPlatform(
     [PROJECT_PERFORMANCE_TYPE.ANY]: LandingDisplayField.ALL,
     [PROJECT_PERFORMANCE_TYPE.FRONTEND]: LandingDisplayField.FRONTEND_PAGELOAD,
     [PROJECT_PERFORMANCE_TYPE.BACKEND]: LandingDisplayField.BACKEND,
+    [PROJECT_PERFORMANCE_TYPE.MOBILE]: LandingDisplayField.MOBILE,
   };
   const performanceType = platformToPerformanceType(projects, projectIds);
   const landingField =

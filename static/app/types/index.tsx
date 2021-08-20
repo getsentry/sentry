@@ -1989,9 +1989,9 @@ export type Frame = {
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
-  symbolicatorStatus: SymbolicatorStatus;
   trust: any | null;
   vars: Record<string, any> | null;
+  symbolicatorStatus?: SymbolicatorStatus;
   addrMode?: string;
   origAbsPath?: string | null;
   mapUrl?: string | null;
