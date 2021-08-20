@@ -126,7 +126,7 @@ export const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(5, auto);
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: auto repeat(4, 100px);
+    grid-template-columns: 1fr repeat(4, minmax(0, auto));
   }
 `;
 export const CellStat = styled('div')`
