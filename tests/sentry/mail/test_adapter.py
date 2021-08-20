@@ -40,7 +40,7 @@ from sentry.notifications.utils.participants import (
     get_send_to_team,
 )
 from sentry.ownership import grammar
-from sentry.ownership.grammar import dump_schema, Matcher, Owner
+from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
