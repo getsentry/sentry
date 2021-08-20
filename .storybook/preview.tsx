@@ -1,12 +1,14 @@
 import 'focus-visible';
 import '../docs-ui/index.js';
 
-import {DocsContainer} from '@storybook/addon-docs';
+import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {ThemeProvider} from 'emotion-theming';
 
+import {ColorChip, DocsLinks, DoDont} from '../docs-ui/components';
 import GlobalStyles from '../static/app/styles/global';
 import {darkTheme, lightTheme} from '../static/app/utils/theme';
+import PreviewGlobalStyles from './previewGlobalStyles';
 
 // Theme decorator for stories
 const withThemeStory: DecoratorFn = (Story, context) => {
@@ -41,6 +43,7 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
   return (
     <ThemeProvider theme={currentTheme}>
       <GlobalStyles isDark={isDark} theme={currentTheme} />
+      <PreviewGlobalStyles theme={currentTheme} />
       <DocsContainer context={context}>{children}</DocsContainer>
     </ThemeProvider>
   );
@@ -50,6 +53,7 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
 addParameters({
   docs: {
     container: withThemeDocs,
+    components: {Meta, ColorChip, DocsLinks, DoDont},
   },
   options: {
     /**
