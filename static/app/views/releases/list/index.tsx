@@ -169,28 +169,20 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   getSort(): SortOption {
+    const {environments} = this.props.selection;
     const {sort} = this.props.location.query;
 
-    switch (sort) {
-      case SortOption.CRASH_FREE_USERS:
-        return SortOption.CRASH_FREE_USERS;
-      case SortOption.CRASH_FREE_SESSIONS:
-        return SortOption.CRASH_FREE_SESSIONS;
-      case SortOption.SESSIONS:
-        return SortOption.SESSIONS;
-      case SortOption.USERS_24_HOURS:
-        return SortOption.USERS_24_HOURS;
-      case SortOption.SESSIONS_24_HOURS:
-        return SortOption.SESSIONS_24_HOURS;
-      case SortOption.BUILD:
-        return SortOption.BUILD;
-      case SortOption.SEMVER:
-        return SortOption.SEMVER;
-      case SortOption.ADOPTION:
-        return SortOption.ADOPTION;
-      default:
-        return SortOption.DATE;
+    // Require 1 environment for date adopted
+    if (sort === SortOption.ADOPTION && environments.length !== 1) {
+      return SortOption.DATE;
     }
+
+    const sortExists = Object.values(SortOption).includes(sort);
+    if (sortExists) {
+      return sort;
+    }
+
+    return SortOption.DATE;
   }
 
   getDisplay(): DisplayOption {
@@ -569,7 +561,7 @@ class ReleasesList extends AsyncView<Props, State> {
                     <SmartSearchBar
                       searchSource="releases"
                       query={this.getQuery()}
-                      placeholder={t('Search by release version')}
+                      placeholder={t('Search by version, build, package, or stage')}
                       maxSearchItems={5}
                       hasRecentSearches={false}
                       supportedTags={supportedTags}
@@ -594,6 +586,7 @@ class ReleasesList extends AsyncView<Props, State> {
                   selected={activeSort}
                   selectedDisplay={activeDisplay}
                   onSelect={this.handleSortBy}
+                  environments={selection.environments}
                   organization={organization}
                 />
                 <ReleaseDisplayOptions
