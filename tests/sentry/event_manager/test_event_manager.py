@@ -28,6 +28,7 @@ from sentry.models import (
     GroupEnvironment,
     GroupHash,
     GroupLink,
+    GroupRegression,
     GroupRelease,
     GroupResolution,
     GroupStatus,
@@ -370,6 +371,8 @@ class EventManagerTest(TestCase):
         assert not GroupResolution.objects.filter(group=group).exists()
 
         activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        regressed_release = Release.objects.get(version="b")
+        assert GroupRegression.objects.get(group=group, release=regressed_release)
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
@@ -427,6 +430,9 @@ class EventManagerTest(TestCase):
         regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
         assert regressed_activity.data["version"] == "b"
 
+        regressed_release = Release.objects.get(version="b")
+        assert GroupRegression.objects.get(group=group, release=regressed_release)
+
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
@@ -483,6 +489,9 @@ class EventManagerTest(TestCase):
 
         regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
         assert regressed_activity.data["version"] == "b"
+
+        regressed_release = Release.objects.get(version="b")
+        assert GroupRegression.objects.get(group=group, release=regressed_release)
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
@@ -662,6 +671,9 @@ class EventManagerTest(TestCase):
                 assert not GroupResolution.objects.filter(group=group).exists()
 
                 activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+
+                regressed_release = Release.objects.get(version="b")
+                assert GroupRegression.objects.get(group=group, release=regressed_release)
 
                 mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 

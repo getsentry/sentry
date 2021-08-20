@@ -51,6 +51,7 @@ from sentry.models import (
     GroupEnvironment,
     GroupHash,
     GroupLink,
+    GroupRegression,
     GroupRelease,
     GroupResolution,
     GroupStatus,
@@ -1318,6 +1319,7 @@ def _handle_regression(group, event, release):
             type=Activity.SET_REGRESSION,
             data={"version": release.version if release else ""},
         )
+        GroupRegression.objects.create(group=group, release=release)
         activity.send_notification()
 
         kick_off_status_syncs.apply_async(
