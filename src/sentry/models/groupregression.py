@@ -13,7 +13,7 @@ class GroupRegression(Model):
 
     group = FlexibleForeignKey("sentry.Group")
     # the release in which this regressed in
-    release = FlexibleForeignKey("sentry.Release", db_index=True)
+    release = FlexibleForeignKey("sentry.Release", db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
