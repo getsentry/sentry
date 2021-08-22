@@ -1,4 +1,4 @@
-import {cleanup, mountWithTheme, within} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, within} from 'sentry-test/reactTestingLibrary';
 
 import Line from 'app/components/events/interfaces/frame/line';
 import {Frame} from 'app/types';
@@ -26,10 +26,6 @@ describe('Frame - Line', function () {
     trust: null,
     vars: null,
   };
-
-  afterEach(() => {
-    cleanup();
-  });
 
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
