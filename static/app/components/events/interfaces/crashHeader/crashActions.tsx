@@ -79,8 +79,15 @@ const CrashActions = ({
             barId={STACK_VIEW.APP}
             size="xsmall"
             onClick={setStackView(STACK_VIEW.APP)}
+            title={
+              hasHierarchicalGrouping
+                ? t(
+                    'The stack trace only shows application frames and frames responsible for grouping this issue'
+                  )
+                : undefined
+            }
           >
-            {hasHierarchicalGrouping ? t('Most Revelant') : t('App Only')}
+            {hasHierarchicalGrouping ? t('Most Relevant') : t('App Only')}
           </Button>
         )}
         <Button
