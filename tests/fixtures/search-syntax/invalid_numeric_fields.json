@@ -55,5 +55,43 @@
       },
       {"type": "spaces", "value": ""}
     ]
+  },
+  {
+    "query": "measurements.lcp:>hotdog",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["duration"]
+        },
+        "key": {"type": "keySimple", "value": "measurements.lcp", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "spans.db:>hotdog",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["duration"]
+        },
+        "key": {"type": "keySimple", "value": "spans.db", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
   }
 ]
