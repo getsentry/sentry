@@ -43,8 +43,8 @@ const CrashContent = ({
         event={event}
         platform={platform}
         values={exception.values}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }
@@ -57,8 +57,8 @@ const CrashContent = ({
         newestFirst={newestFirst}
         event={event}
         platform={platform}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }

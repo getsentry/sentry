@@ -10,7 +10,7 @@ type Props = {
   nextFrame?: Frame;
 };
 
-function LeadHint({isExpanded, leadsToApp, nextFrame}: Props) {
+function LeadHint({leadsToApp, isExpanded, nextFrame}: Props) {
   if (isExpanded || !leadsToApp) {
     return null;
   }

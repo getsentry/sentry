@@ -49,6 +49,7 @@ function getIntendedStackView(thread: Thread, event: Event) {
   }
 
   const stacktrace = getThreadStacktrace(false, thread);
+
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
@@ -69,11 +70,13 @@ class Threads extends Component<Props, State> {
   }
 
   handleSelectNewThread = (thread: Thread) => {
+    const {event} = this.props;
+
     this.setState(prevState => ({
       activeThread: thread,
       stackView:
         prevState.stackView !== STACK_VIEW.RAW
-          ? getIntendedStackView(thread, this.props.event)
+          ? getIntendedStackView(thread, event)
           : prevState.stackView,
       stackType: STACK_TYPE.ORIGINAL,
     }));
