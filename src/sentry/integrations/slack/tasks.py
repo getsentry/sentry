@@ -33,7 +33,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiRateLimited, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.redis import redis_clusters
@@ -80,7 +80,8 @@ class RedisRuleStatus:
             value[
                 "error"
             ] = "The slack resource does not exist or has not been granted access in that workspace."
-
+        elif status == "ratelimited":
+            value["error"] = "Requests to slack were rate limited. Please try again later."
         return json.dumps(value)
 
 
@@ -133,6 +134,8 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
         item_id = None
+    except ApiRateLimited:
+        redis_rule_status.set_value("ratelimited")
 
     if item_id:
         for action in actions:
@@ -189,7 +192,11 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
 
     try:
         mapped_ids = get_slack_channel_ids(organization, user, data)
-    except (serializers.ValidationError, ChannelLookupTimeoutError, InvalidTriggerActionError) as e:
+    except (
+        serializers.ValidationError,
+        ChannelLookupTimeoutError,
+        InvalidTriggerActionError,
+    ) as e:
         # channel doesn't exist error or validation error
         logger.info(
             "get_slack_channel_ids.failed",
@@ -198,6 +205,15 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             },
         )
         redis_rule_status.set_value("failed")
+        return
+    except ApiRateLimited as e:
+        logger.info(
+            "get_slack_channel_ids.ratelimited",
+            extra={
+                "exception": e,
+            },
+        )
+        redis_rule_status.set_value("ratelimited")
         return
 
     for trigger in data["triggers"]:
