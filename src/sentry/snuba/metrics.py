@@ -1,4 +1,5 @@
 import itertools
+import math
 import random
 import re
 from abc import ABC, abstractmethod
@@ -6,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import List, Tuple
 
 from sentry_relay.metrics import to_metrics_symbol
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import Column, Condition, Entity, Granularity, Limit, Offset, Op, Query
 
 from sentry.models import Project
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -252,6 +253,7 @@ class IndexMockingDataSource(DataSource):
 
 
 class MockDataSource(IndexMockingDataSource):
+    """Mocks metadata and time series"""
 
     _base_tags = {
         "environment": [
@@ -403,6 +405,7 @@ class StringIndexer:
 
 
 class SnubaDataSource(IndexMockingDataSource):
+    """Mocks metrics metadata and string indexing, but fetches real time series"""
 
     _base_tags = {
         "environment": [
@@ -418,26 +421,34 @@ class SnubaDataSource(IndexMockingDataSource):
         ],
     }
 
+    _op_to_field = {
+        "counter": {"sum": "value"},
+        "distribution": {
+            "avg": "avg",
+            "count": "count",
+            "max": "max",
+            "min": "min",
+        },
+        "set": {"count_unique": "value"},
+        # TODO: distribution percentiles
+    }
+
+    _fields_by_type = {type_: sorted(mapping.keys()) for type_, mapping in _op_to_field.items()}
+
     _metrics = {
         "session": {
-            # "type": "counter",
-            "operations": ["sum"],
+            "type": "counter",
+            "operations": _fields_by_type["counter"],
             "tags": _base_tags,
         },
         "user": {
-            # "type": "set",
-            "operations": ["count_unique"],
+            "type": "set",
+            "operations": _fields_by_type["set"],
             "tags": _base_tags,
         },
         "session.duration": {
-            # "type": "distribution",
-            "operations": ["avg", "p50", "p75", "p90", "p95", "p99", "max"],
-            "tags": _base_tags,
-            "unit": "seconds",
-        },
-        "parallel_users": {
-            # "type": "gauge",
-            "operations": ["avg", "count", "max", "min", "sum"],
+            "type": "distribution",
+            "operations": _fields_by_type["distribution"],
             "tags": _base_tags,
             "unit": "seconds",
         },
@@ -448,20 +459,20 @@ class SnubaDataSource(IndexMockingDataSource):
     _indexer = StringIndexer()
 
     _entity_map = {
+        "session.duration": "metrics_distributions",
+        "session.error": "metrics_sets",
         "session": "metrics_counters",
         "user": "metrics_sets",
-        "session.duration": "metrics_distributions",
     }
 
     #: Datasets actually implemented in snuba:
     _implemented_datasets = {
+        "metrics_counters",
+        "metrics_distributions",
         "metrics_sets",
     }
 
-    #: Map operation to snuba / clickhouse function
-    _op_map = {
-        "count_unique": None,  # values already give you uniq
-    }
+    #: Map operation to corresponding field in snuba
 
     def get_series(self, project: Project, query: QueryDefinition) -> dict:
         """Get time series for the given query"""
@@ -499,15 +510,15 @@ class SnubaDataSource(IndexMockingDataSource):
         self, project: Project, query: QueryDefinition, op: str, metric_name: str
     ) -> int:
 
+        metric = self._metrics[metric_name]
         metric_id = self._indexer.get_int(metric_name)
-        function = self._op_map[op]
+
+        column = self._op_to_field[metric["type"]][op]
 
         snql_query = Query(
             dataset=self._dataset,
             match=Entity(self._get_entity(metric_name)),
-            select=[
-                (Function(function, [Column("value")], "value") if function else Column("value"))
-            ],
+            select=[Column(column)],
             # groupby=[Column(field) for field in query.groupby],
             where=[
                 Condition(Column("org_id"), Op.EQ, project.organization.id),
@@ -522,21 +533,8 @@ class SnubaDataSource(IndexMockingDataSource):
             granularity=Granularity(query.rollup),
         )
         result = raw_snql_query(snql_query, referrer="metrics.totals")
-        return result["data"][0]["value"]
-
-    # def _run_query_timeseries(self, query: QueryDefinition):
-    #     snql_query = Query(
-    #         dataset=self._dataset,
-    #         match=Entity(query.match),
-    #         select=query.select_params,
-    #         groupby=query.groupby + [Column(TS_COL)],
-    #         where=query.conditions,
-    #         limit=Limit(MAX_POINTS),
-    #         offset=Offset(0),
-    #         granularity=Granularity(query.rollup),
-    #     )
-    #     result_timeseries = raw_snql_query(snql_query, referrer="outcomes.timeseries")
-    #     return _format_rows(result_timeseries["data"], query)
+        total = result["data"][0][column]
+        return 0 if math.isnan(total) else total  # HACK
 
 
 DATA_SOURCE = SnubaDataSource()
