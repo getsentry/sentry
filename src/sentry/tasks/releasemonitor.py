@@ -184,7 +184,6 @@ def sum_sessions_and_releases(org_id, project_ids):
                 "process_projects_with_sessions.loop_timeout",
                 extra={"org_id": org_id, "project_ids": project_ids},
             )
-
     return totals
 
 
@@ -216,8 +215,8 @@ def adopt_releases(org_id, totals):
                                 environment__organization_id=org_id,
                             )
                             adopted_ids.append(rpe.id)
-                            if rpe.adopted is None:
-                                rpe.update(adopted=timezone.now())
+                            if rpe.adopted is None or rpe.unadopted is not None:
+                                rpe.update(adopted=timezone.now(), unadopted=None)
                         except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
                             metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
                             try:
