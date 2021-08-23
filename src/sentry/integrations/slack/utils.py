@@ -61,9 +61,8 @@ def strip_channel_name(name: str):
     return name.lstrip(strip_channel_chars)
 
 
-# TODO(Leander): Remove force-async
 def get_channel_id(
-    organization: Organization, integration: Integration, name: str, use_async_lookup: bool = True
+    organization: Organization, integration: Integration, name: str, use_async_lookup: bool = False
 ):
     """
     Fetches the internal slack id of a channel.
@@ -160,11 +159,9 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
             endpoint = "/%s.list" % list_type
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                # TODO(Leander): Remove repeater and limit to one
-                for i in range(2000):
-                    items = client.get(
-                        endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1)
-                    )
+                items = client.get(
+                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
+                )
             except ApiRateLimited as e:
                 logger.info("rule.slack.%s_list_ratelimited" % list_type, extra={"error": str(e)})
                 raise e
