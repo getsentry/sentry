@@ -96,8 +96,8 @@ function Exception({
         stackView={stackView}
         newestFirst={newestFirst}
         exception={data}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     </EventDataSection>
   );
