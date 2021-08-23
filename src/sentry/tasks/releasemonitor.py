@@ -243,12 +243,13 @@ def adopt_releases(org_id, totals):
                                     environment=env, organization_id=org_id, release=release
                                 )
 
-                                ReleaseProjectEnvironment.objects.create(
+                                rpe = ReleaseProjectEnvironment.objects.create(
                                     project_id=project_id,
                                     release_id=release.id,
                                     environment=env,
                                     adopted=timezone.now(),
                                 )
+                                adopted_ids.append(rpe.id)
                             except (
                                 Environment.DoesNotExist,
                                 Release.DoesNotExist,
