@@ -4,6 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import ProjectsStore from 'app/stores/projectsStore';
 import {DataCategory} from 'app/types';
 import {OrganizationStats} from 'app/views/organizationStats';
 import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/organizationStats/usageChart';
@@ -241,6 +242,12 @@ describe('OrganizationStats', function () {
   });
 
   it('pushes state to router', async function () {
+    // Add another 30 projects to allow us to test pagination
+    const moreProjects = Array.from(Array(30).keys()).map(id =>
+      TestStubs.Project({id, slug: `myProjectSlug-${id}`})
+    );
+    ProjectsStore.loadInitialData(moreProjects);
+
     const wrapper = mountWithTheme(
       <OrganizationStats
         organization={organization}
@@ -303,10 +310,9 @@ describe('OrganizationStats', function () {
       }),
     });
 
-    const paginate = wrapper.find('Pagination');
-    paginate.props().onCursor('0:100:0');
+    wrapper.find('Pagination Button').last().simulate('click');
     expect(browserHistory.push).toHaveBeenCalledWith({
-      query: expect.objectContaining({cursor: '0:100:0'}),
+      query: expect.objectContaining({cursor: '0:25:0'}),
     });
   });
 

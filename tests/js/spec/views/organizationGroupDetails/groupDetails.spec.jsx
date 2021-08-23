@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {cleanup, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
@@ -106,7 +106,6 @@ describe('groupDetails', () => {
     });
   });
   afterEach(() => {
-    cleanup();
     ProjectsStore.reset();
     GroupStore.reset();
     GlobalSelectionStore.reset();
