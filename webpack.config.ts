@@ -295,7 +295,6 @@ let appConfig: Configuration = {
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
-      /dist\/jquery\.js/,
       /jed\/jed\.js/,
       /marked\/lib\/marked\.js/,
       /terser\/dist\/bundle\.min\.js/,
@@ -310,13 +309,9 @@ let appConfig: Configuration = {
     }),
 
     /**
-     * jQuery must be provided in the global scope specifically and only for
-     * bootstrap, as it will not import jQuery itself.
-     *
-     * We discourage the use of global jQuery through eslint rules
+     * TODO(epurkhiser): Figure out if we still need these
      */
     new webpack.ProvidePlugin({
-      jQuery: 'jquery',
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
     }),

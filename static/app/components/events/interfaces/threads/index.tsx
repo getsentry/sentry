@@ -23,7 +23,7 @@ const defaultProps = {
 
 type Props = Pick<
   React.ComponentProps<typeof Content>,
-  'groupingCurrentLevel' | 'hasGroupingTreeUI'
+  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
 > & {
   event: Event;
   projectId: Project['id'];
@@ -49,6 +49,7 @@ function getIntendedStackView(thread: Thread, event: Event) {
   }
 
   const stacktrace = getThreadStacktrace(false, thread);
+
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
@@ -69,11 +70,13 @@ class Threads extends Component<Props, State> {
   }
 
   handleSelectNewThread = (thread: Thread) => {
+    const {event} = this.props;
+
     this.setState(prevState => ({
       activeThread: thread,
       stackView:
         prevState.stackView !== STACK_VIEW.RAW
-          ? getIntendedStackView(thread, this.props.event)
+          ? getIntendedStackView(thread, event)
           : prevState.stackView,
       stackType: STACK_TYPE.ORIGINAL,
     }));
@@ -100,7 +103,7 @@ class Threads extends Component<Props, State> {
       projectId,
       hideGuide,
       type,
-      hasGroupingTreeUI,
+      hasHierarchicalGrouping,
       groupingCurrentLevel,
     } = this.props;
 
@@ -161,7 +164,7 @@ class Threads extends Component<Props, State> {
               thread={hasMoreThanOneThread ? activeThread : undefined}
               exception={exception}
               onChange={this.handleChangeStackView}
-              hasGroupingTreeUI={hasGroupingTreeUI}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
             />
           )
         }
@@ -179,7 +182,7 @@ class Threads extends Component<Props, State> {
           projectId={projectId}
           groupingCurrentLevel={groupingCurrentLevel}
           stackTraceNotFound={stackTraceNotFound}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       </EventDataSection>
     );

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useState} from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashContent from 'app/components/events/interfaces/crashContent';
@@ -31,106 +31,78 @@ export function isStacktraceNewestFirst() {
   }
 }
 
-const defaultProps = {
-  hideGuide: false,
-};
-
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
-type Props = Pick<CrashContentProps, 'groupingCurrentLevel' | 'hasGroupingTreeUI'> & {
+type Props = Pick<
+  CrashContentProps,
+  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
+> & {
   event: Event;
   type: string;
   data: NonNullable<CrashContentProps['stacktrace']>;
   projectId: Project['id'];
-  hasGroupingTreeUI: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
-} & typeof defaultProps;
-
-type State = {
-  stackView: STACK_VIEW;
-  newestFirst: boolean;
 };
 
-class StacktraceInterface extends React.Component<Props, State> {
-  static defaultProps = defaultProps;
+function StacktraceInterface({
+  hideGuide = false,
+  projectId,
+  event,
+  data,
+  type,
+  hasHierarchicalGrouping,
+  groupingCurrentLevel,
+}: Props) {
+  const [stackView, setStackView] = useState<STACK_VIEW>(
+    data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
+  );
+  const [newestFirst, setNewestFirst] = useState(isStacktraceNewestFirst());
 
-  state: State = {
-    stackView: this.props.data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL,
-    newestFirst: isStacktraceNewestFirst(),
-  };
+  const stackTraceNotFound = !(data.frames ?? []).length;
 
-  handleChangeNewestFirst = ({newestFirst}: Pick<State, 'newestFirst'>) => {
-    this.setState(prevState => ({...prevState, newestFirst}));
-  };
-
-  handleChangeStackView = ({
-    stackView,
-  }: Parameters<
-    NonNullable<React.ComponentProps<typeof CrashActions>['onChange']>
-  >[0]) => {
-    if (!stackView) {
-      return;
-    }
-
-    this.setState(prevState => ({...prevState, stackView}));
-  };
-
-  render() {
-    const {
-      projectId,
-      event,
-      data,
-      hideGuide,
-      type,
-      groupingCurrentLevel,
-      hasGroupingTreeUI,
-    } = this.props;
-    const {stackView, newestFirst} = this.state;
-
-    const stackTraceNotFound = !(data.frames ?? []).length;
-
-    return (
-      <EventDataSection
-        type={type}
-        title={
-          <CrashTitle
-            title={t('Stack Trace')}
-            hideGuide={hideGuide}
-            newestFirst={newestFirst}
-            onChange={!stackTraceNotFound ? this.handleChangeNewestFirst : undefined}
-          />
-        }
-        actions={
-          !stackTraceNotFound && (
-            <CrashActions
-              stackView={stackView}
-              platform={event.platform}
-              stacktrace={data}
-              hasGroupingTreeUI={hasGroupingTreeUI}
-              onChange={this.handleChangeStackView}
-            />
-          )
-        }
-        wrapTitle={false}
-      >
-        {stackTraceNotFound ? (
-          <NoStackTraceMessage />
-        ) : (
-          <CrashContent
-            projectId={projectId}
-            event={event}
+  return (
+    <EventDataSection
+      type={type}
+      title={
+        <CrashTitle
+          title={t('Stack Trace')}
+          hideGuide={hideGuide}
+          newestFirst={newestFirst}
+          onChange={
+            !stackTraceNotFound ? value => setNewestFirst(value.newestFirst) : undefined
+          }
+        />
+      }
+      actions={
+        !stackTraceNotFound && (
+          <CrashActions
             stackView={stackView}
-            newestFirst={newestFirst}
+            platform={event.platform}
             stacktrace={data}
-            stackType={STACK_TYPE.ORIGINAL}
-            groupingCurrentLevel={groupingCurrentLevel}
-            hasGroupingTreeUI={hasGroupingTreeUI}
+            hasHierarchicalGrouping={hasHierarchicalGrouping}
+            onChange={value => setStackView(value.stackView ?? stackView)}
           />
-        )}
-      </EventDataSection>
-    );
-  }
+        )
+      }
+      wrapTitle={false}
+    >
+      {stackTraceNotFound ? (
+        <NoStackTraceMessage />
+      ) : (
+        <CrashContent
+          projectId={projectId}
+          event={event}
+          stackView={stackView}
+          newestFirst={newestFirst}
+          stacktrace={data}
+          stackType={STACK_TYPE.ORIGINAL}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      )}
+    </EventDataSection>
+  );
 }
 
 export default StacktraceInterface;

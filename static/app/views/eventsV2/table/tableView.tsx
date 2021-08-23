@@ -33,7 +33,7 @@ import {
 } from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -352,7 +352,7 @@ class TableView extends React.Component<TableViewProps> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, organization, projects} = this.props;
 
-      const query = tokenizeSearch(eventView.query);
+      const query = new MutableSearch(eventView.query);
 
       let nextView = eventView.clone();
 

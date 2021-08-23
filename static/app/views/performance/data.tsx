@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import {LightWeightOrganization, NewQuery, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
@@ -447,7 +447,7 @@ function generateGenericPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = tokenizeSearch(searchQuery);
+  const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
   if (!conditions.hasFilter('transaction.duration')) {
@@ -519,7 +519,7 @@ function generateBackendPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = tokenizeSearch(searchQuery);
+  const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
   if (!conditions.hasFilter('transaction.duration')) {
@@ -612,7 +612,7 @@ function generateMobilePerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = tokenizeSearch(searchQuery);
+  const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
   if (!conditions.hasFilter('transaction.duration')) {
@@ -682,7 +682,7 @@ function generateFrontendPageloadPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = tokenizeSearch(searchQuery);
+  const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
   if (!conditions.hasFilter('transaction.duration')) {
@@ -754,7 +754,7 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = tokenizeSearch(searchQuery);
+  const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
   if (!conditions.hasFilter('transaction.duration')) {
@@ -847,7 +847,7 @@ export function generatePerformanceVitalDetailView(
   savedQuery.orderby = decodeScalar(query.sort, '-count');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = tokenizeSearch(searchQuery);
+  const conditions = new MutableSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.

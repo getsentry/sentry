@@ -16,7 +16,7 @@ type Props = {
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
-  hasGroupingTreeUI: boolean;
+  hasHierarchicalGrouping: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
@@ -30,7 +30,7 @@ const ExceptionStacktraceContent = ({
   platform,
   newestFirst,
   groupingCurrentLevel,
-  hasGroupingTreeUI,
+  hasHierarchicalGrouping,
   data,
   expandFirstFrame,
   event,
@@ -48,7 +48,11 @@ const ExceptionStacktraceContent = ({
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xs" />}
-          title={t('No app only stack trace has been found!')}
+          title={
+            hasHierarchicalGrouping
+              ? t('No relevant stack trace has been found!')
+              : t('No app only stack trace has been found!')
+          }
         />
       </Panel>
     );
@@ -57,6 +61,10 @@ const ExceptionStacktraceContent = ({
   if (!data) {
     return null;
   }
+
+  const includeSystemFrames =
+    stackView === STACK_VIEW.FULL ||
+    (chainedException && data.frames?.every(frame => !frame.inApp));
 
   /**
    * Armin, Markus:
@@ -67,12 +75,12 @@ const ExceptionStacktraceContent = ({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (hasGroupingTreeUI) {
+  if (hasHierarchicalGrouping) {
     return (
       <StacktraceContentV2
         data={data}
         expandFirstFrame={expandFirstFrame}
-        includeSystemFrames={stackView === STACK_VIEW.FULL}
+        includeSystemFrames={includeSystemFrames}
         groupingCurrentLevel={groupingCurrentLevel}
         platform={platform}
         newestFirst={newestFirst}
@@ -85,10 +93,7 @@ const ExceptionStacktraceContent = ({
     <StacktraceContent
       data={data}
       expandFirstFrame={expandFirstFrame}
-      includeSystemFrames={
-        stackView === STACK_VIEW.FULL ||
-        (chainedException && (stacktrace.frames ?? []).every(frame => !frame.inApp))
-      }
+      includeSystemFrames={includeSystemFrames}
       platform={platform}
       newestFirst={newestFirst}
       event={event}

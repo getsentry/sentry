@@ -14,6 +14,7 @@ import {
   RawSpanType,
   SpanChildrenLookupType,
   SpanType,
+  TraceBound,
   TreeDepthType,
 } from './types';
 import {
@@ -180,6 +181,8 @@ class SpanTreeModel {
     spanGrouping: EnhancedSpan[] | undefined;
     toggleSpanGroup: (() => void) | undefined;
     showSpanGroup: boolean;
+    addTraceBounds: (bounds: TraceBound) => void;
+    removeTraceBounds: (eventSlug: string) => void;
   }): EnhancedProcessedSpanType[] => {
     const {
       operationNameFilters,
@@ -195,6 +198,8 @@ class SpanTreeModel {
       spanGrouping,
       toggleSpanGroup,
       showSpanGroup,
+      addTraceBounds,
+      removeTraceBounds,
     } = props;
     let {treeDepth, continuingTreeDepths} = props;
 
@@ -257,7 +262,10 @@ class SpanTreeModel {
       continuingTreeDepths,
       fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
       showEmbeddedChildren: this.showEmbeddedChildren,
-      toggleEmbeddedChildren: this.toggleEmbeddedChildren,
+      toggleEmbeddedChildren: this.toggleEmbeddedChildren({
+        addTraceBounds,
+        removeTraceBounds,
+      }),
       toggleSpanGroup:
         spanGroupingCriteria && toggleSpanGroup && !showSpanGroup
           ? toggleSpanGroup
@@ -323,6 +331,8 @@ class SpanTreeModel {
                 ? this.showSpanGroup
                 : showSpanGroup
               : false,
+            addTraceBounds,
+            removeTraceBounds,
           })
         );
 
@@ -428,18 +438,47 @@ class SpanTreeModel {
     return [wrappedSpan, ...descendants];
   };
 
-  toggleEmbeddedChildren = (props: {orgSlug: string; eventSlug: string}) => {
-    this.showEmbeddedChildren = !this.showEmbeddedChildren;
-    this.fetchEmbeddedChildrenState = 'idle';
+  toggleEmbeddedChildren =
+    ({
+      addTraceBounds,
+      removeTraceBounds,
+    }: {
+      addTraceBounds: (bounds: TraceBound) => void;
+      removeTraceBounds: (eventSlug: string) => void;
+    }) =>
+    (props: {orgSlug: string; eventSlug: string}) => {
+      this.showEmbeddedChildren = !this.showEmbeddedChildren;
+      this.fetchEmbeddedChildrenState = 'idle';
 
-    if (this.showEmbeddedChildren && this.embeddedChildren.length === 0) {
-      return this.fetchEmbeddedTransactions(props);
-    }
+      if (!this.showEmbeddedChildren) {
+        if (this.embeddedChildren.length > 0) {
+          this.embeddedChildren.forEach(child => {
+            removeTraceBounds(child.generateTraceBounds().spanId);
+          });
+        }
+      }
 
-    return Promise.resolve(undefined);
-  };
+      if (this.showEmbeddedChildren) {
+        if (this.embeddedChildren.length === 0) {
+          return this.fetchEmbeddedTransactions({...props, addTraceBounds});
+        }
+        this.embeddedChildren.forEach(child => {
+          addTraceBounds(child.generateTraceBounds());
+        });
+      }
 
-  fetchEmbeddedTransactions({orgSlug, eventSlug}: {orgSlug: string; eventSlug: string}) {
+      return Promise.resolve(undefined);
+    };
+
+  fetchEmbeddedTransactions({
+    orgSlug,
+    eventSlug,
+    addTraceBounds,
+  }: {
+    orgSlug: string;
+    eventSlug: string;
+    addTraceBounds: (bounds: TraceBound) => void;
+  }) {
     const url = `/organizations/${orgSlug}/events/${eventSlug}/`;
 
     this.fetchEmbeddedChildrenState = 'loading_embedded_transactions';
@@ -466,6 +505,7 @@ class SpanTreeModel {
 
           this.embeddedChildren = [parsedRootSpan];
           this.fetchEmbeddedChildrenState = 'idle';
+          addTraceBounds(parsedRootSpan.generateTraceBounds());
         })
       )
       .catch(
@@ -478,6 +518,14 @@ class SpanTreeModel {
 
   toggleSpanGroup = () => {
     this.showSpanGroup = !this.showSpanGroup;
+  };
+
+  generateTraceBounds = (): TraceBound => {
+    return {
+      spanId: this.span.span_id,
+      traceStartTimestamp: this.span.start_timestamp,
+      traceEndTimestamp: this.span.timestamp,
+    };
   };
 }
 
