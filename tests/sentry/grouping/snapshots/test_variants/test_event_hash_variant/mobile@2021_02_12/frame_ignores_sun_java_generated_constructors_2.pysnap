@@ -1,11 +1,11 @@
 ---
-created: '2021-08-04T15:53:48.656257Z'
+created: '2021-08-23T08:27:23.292074Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "09e0efcab18f545166318118ed4e0292"
-  tree_label: "invoke"
+  tree_label: "GeneratedConstructorAccessor<auto>.invoke"
   component:
     app-depth-1*
       stacktrace*
@@ -17,7 +17,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "09e0efcab18f545166318118ed4e0292"
-  tree_label: "invoke"
+  tree_label: "GeneratedConstructorAccessor<auto>.invoke"
   component:
     app-depth-max*
       stacktrace*
@@ -29,7 +29,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "09e0efcab18f545166318118ed4e0292"
-  tree_label: "invoke"
+  tree_label: "GeneratedConstructorAccessor<auto>.invoke"
   component:
     system*
       stacktrace*

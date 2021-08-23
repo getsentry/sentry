@@ -134,6 +134,11 @@ def get_module_component(abs_path, module, platform):
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
 
+        for part in reversed(module.split(".")):
+            if "$" not in part:
+                module_component.update(tree_label={"classbase": part})
+                break
+
     return module_component
 
 
@@ -364,7 +369,16 @@ def frame(frame, event, context, **meta):
         rv.update(contributes=False, hint="ignored due to recursion")
 
     if rv.tree_label:
-        rv.tree_label = {"datapath": frame.datapath, **rv.tree_label}
+        tree_label = {}
+        for value in rv.values:
+            if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
+                tree_label.update(value.tree_label)
+
+        if tree_label and context["hierarchical_grouping"]:
+            tree_label["datapath"] = frame.datapath
+            rv.tree_label = tree_label
+        else:
+            rv.tree_label = None
 
     return {context["variant"]: rv}
 
