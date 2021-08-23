@@ -33,6 +33,9 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+    deprecation_date = "Sept 20, 2021"
+    alternative = "clubhouse"
+    alt_is_sentry_app = True
 
     issue_fields = frozenset(["id", "title", "url"])
 

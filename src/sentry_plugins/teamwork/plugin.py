@@ -80,6 +80,9 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+    deprecation_date = "Sept 20, 2021"
+    alternative = "clubhouse"
+    alt_is_sentry_app = True
 
     conf_title = title
     conf_key = slug

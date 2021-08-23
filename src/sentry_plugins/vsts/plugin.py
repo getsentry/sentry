@@ -36,6 +36,9 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+    deprecation_date = "Sept 20, 2021"
+    alternative = "vsts"
+    alt_is_sentry_app = False
 
     issue_fields = frozenset(["id", "title", "url"])
 

@@ -48,6 +48,7 @@ class PluginSerializer(Serializer):
             "doc": doc,
             "firstPartyAlternative": obj.alternative if hasattr(obj, "alternative") else None,
             "deprecationDate": obj.deprecation_date if hasattr(obj, "deprecation_date") else None,
+            "altIsSentryApp": obj.alt_is_sentry_app if hasattr(obj, "alt_is_sentry_app") else None,
         }
         if self.project:
             d["enabled"] = obj.is_enabled(self.project)
