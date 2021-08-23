@@ -214,7 +214,6 @@ def adopt_releases(org_id, totals):
                                 environment__name=environment,
                                 environment__organization_id=org_id,
                             )
-                            adopted_ids.append(rpe.id)
                             if rpe.adopted is None or rpe.unadopted is not None:
                                 rpe.update(adopted=timezone.now(), unadopted=None)
                         except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
@@ -249,7 +248,6 @@ def adopt_releases(org_id, totals):
                                     environment=env,
                                     adopted=timezone.now(),
                                 )
-                                adopted_ids.append(rpe.id)
                             except (
                                 Environment.DoesNotExist,
                                 Release.DoesNotExist,
@@ -260,6 +258,7 @@ def adopt_releases(org_id, totals):
                                     "sentry.tasks.process_projects_with_sessions.skipped_update"
                                 )
                                 capture_exception(exc)
+                        adopted_ids.append(rpe.id)
 
     return adopted_ids
 
