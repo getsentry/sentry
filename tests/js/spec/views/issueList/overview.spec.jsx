@@ -958,7 +958,6 @@ describe('IssueList', function () {
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
-      wrapper.setContext({location: pushArgs});
 
       expect(wrapper.find('Pagination Button').first().prop('disabled')).toBe(false);
 
@@ -980,7 +979,6 @@ describe('IssueList', function () {
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
-      wrapper.setContext({location: pushArgs});
 
       // Click previous
       wrapper.find('Pagination Button').first().simulate('click');
@@ -1000,7 +998,6 @@ describe('IssueList', function () {
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
-      wrapper.setContext({location: pushArgs});
 
       // Click previous back to initial page
       wrapper.find('Pagination Button').first().simulate('click');
@@ -1682,15 +1679,19 @@ describe('IssueList', function () {
         },
       },
     };
-    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+
+    const {routerContext} = initializeOrg();
+    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
       queryMaxCount: 1000,
+      pageLinks: DEFAULT_LINKS_HEADER,
     });
 
-    const paginationWrapper = wrapper.find('PaginationWrapper');
-    expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+    const paginationCaption = wrapper.find('PaginationCaption');
+
+    expect(paginationCaption.text()).toBe('Showing 25 of 500 issues');
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
@@ -1708,7 +1709,7 @@ describe('IssueList', function () {
         },
       },
     });
-    expect(paginationWrapper.text()).toBe('Showing 50 of 500 issues');
+    expect(paginationCaption.text()).toBe('Showing 50 of 500 issues');
     expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
   });
 
@@ -1731,15 +1732,18 @@ describe('IssueList', function () {
         },
       },
     };
-    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+
+    const {routerContext} = initializeOrg();
+    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
       queryMaxCount: 1000,
+      pageLinks: DEFAULT_LINKS_HEADER,
     });
 
-    const paginationWrapper = wrapper.find('PaginationWrapper');
-    expect(paginationWrapper.text()).toBe('Showing 500 of 500 issues');
+    const paginationCaption = wrapper.find('PaginationCaption');
+    expect(paginationCaption.text()).toBe('Showing 500 of 500 issues');
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
@@ -1758,7 +1762,7 @@ describe('IssueList', function () {
         },
       },
     });
-    expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+    expect(paginationCaption.text()).toBe('Showing 25 of 500 issues');
     expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
   });
 
@@ -1780,17 +1784,20 @@ describe('IssueList', function () {
         },
       },
     };
-    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+
+    const {routerContext} = initializeOrg();
+    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 75,
       itemsRemoved: 1,
       queryMaxCount: 1000,
+      pageLinks: DEFAULT_LINKS_HEADER,
     });
 
-    const paginationWrapper = wrapper.find('PaginationWrapper');
+    const paginationCaption = wrapper.find('PaginationCaption');
     // 2nd page subtracts the one removed
-    expect(paginationWrapper.text()).toBe('Showing 49 of 74 issues');
+    expect(paginationCaption.text()).toBe('Showing 49 of 74 issues');
   });
 
   describe('with relative change feature', function () {

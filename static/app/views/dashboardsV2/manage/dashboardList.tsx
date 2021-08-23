@@ -180,8 +180,8 @@ function DashboardList({
       {renderDashboardGrid()}
       <PaginationRow
         pageLinks={pageLinks}
-        onCursor={(cursor: string, path: string, query: Query, direction: number) => {
-          const offset = Number(cursor.split(':')[1]);
+        onCursor={(cursor, path, query, direction) => {
+          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
 
           const newQuery: Query & {cursor?: string} = {...query, cursor};
           const isPrevious = direction === -1;
