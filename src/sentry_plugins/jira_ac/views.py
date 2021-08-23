@@ -60,7 +60,7 @@ class BaseJiraWidgetView(View):
 class JiraUIWidgetView(BaseJiraWidgetView):
     @transaction_start("JiraUIWidgetView.get")
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not any_organization_has_feature(
+        if request.user.is_anonymous or not any_organization_has_feature(
             "organizations:jira-ac-plugin", request.user.get_orgs()
         ):
             raise Http404
@@ -105,7 +105,7 @@ class JiraConfigView(BaseJiraWidgetView):
 
     @transaction_start("JiraConfigView.get")
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not any_organization_has_feature(
+        if request.user.is_anonymous or not any_organization_has_feature(
             "organizations:jira-ac-plugin", request.user.get_orgs()
         ):
             raise Http404
@@ -131,7 +131,7 @@ class JiraConfigView(BaseJiraWidgetView):
 
     @transaction_start("JiraConfigView.post")
     def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not any_organization_has_feature(
+        if request.user.is_anonymous or not any_organization_has_feature(
             "organizations:jira-ac-plugin", request.user.get_orgs()
         ):
             raise Http404
@@ -166,7 +166,7 @@ class JiraConfigView(BaseJiraWidgetView):
 class JiraDescriptorView(View):
     @transaction_start("JiraDescriptorView.get")
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not any_organization_has_feature(
+        if request.user.is_anonymous or not any_organization_has_feature(
             "organizations:jira-ac-plugin", request.user.get_orgs()
         ):
             raise Http404
@@ -211,7 +211,7 @@ class JiraInstalledCallback(View):
     @method_decorator(csrf_exempt)
     @transaction_start("JiraInstalledCallback.post")
     def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not any_organization_has_feature(
+        if request.user.is_anonymous or not any_organization_has_feature(
             "organizations:jira-ac-plugin", request.user.get_orgs()
         ):
             raise Http404
