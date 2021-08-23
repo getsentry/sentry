@@ -478,7 +478,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         attachment, text = get_attachment()
         assert (
             text
-            == f"Release {release.version[:12]} deployed to {self.environment.name} for these projects"
+            == f"Release {release.version[:12]} was deployed to {self.environment.name} for these projects"
         )
         assert attachment["actions"][0]["text"] == self.project.slug
         assert (
