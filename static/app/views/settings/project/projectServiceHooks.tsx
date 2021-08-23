@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -7,6 +7,7 @@ import {
   clearIndicators,
 } from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import Switch from 'app/components/switchButton';
 import Truncate from 'app/components/truncate';
