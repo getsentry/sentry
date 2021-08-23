@@ -1,5 +1,4 @@
 import {Component, createRef} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
@@ -7,6 +6,7 @@ import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
 import IssueLink from 'app/components/issueLink';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import PullRequestLink from 'app/components/pullRequestLink';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';

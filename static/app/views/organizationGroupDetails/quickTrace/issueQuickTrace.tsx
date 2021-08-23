@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -9,6 +8,7 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
 import {generateTraceTarget} from 'app/components/quickTrace/utils';

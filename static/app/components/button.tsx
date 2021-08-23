@@ -1,10 +1,10 @@
 import * as React from 'react';
-import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import mergeRefs from 'app/utils/mergeRefs';
 import {Theme} from 'app/utils/theme';

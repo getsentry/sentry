@@ -1,10 +1,11 @@
 import {PureComponent} from 'react';
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';

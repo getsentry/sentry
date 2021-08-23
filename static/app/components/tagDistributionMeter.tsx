@@ -1,10 +1,10 @@
 import * as React from 'react';
-import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import {TagSegment} from 'app/actionCreators/events';
+import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Version from 'app/components/version';
 import {t} from 'app/locale';

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -8,6 +7,7 @@ import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';

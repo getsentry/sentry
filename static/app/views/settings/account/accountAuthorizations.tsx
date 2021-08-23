@@ -1,8 +1,9 @@
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';

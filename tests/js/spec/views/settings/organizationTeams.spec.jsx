@@ -66,7 +66,7 @@ describe('OrganizationTeams', function () {
       expect(wrapper.find('button[aria-label="Join Team"]')).toHaveLength(1);
 
       // Should also link to details
-      expect(wrapper.find('Link')).toHaveLength(1);
+      expect(wrapper.find('Link')).not.toHaveLength(0);
     });
   });
 
