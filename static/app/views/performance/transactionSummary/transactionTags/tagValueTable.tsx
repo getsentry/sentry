@@ -19,7 +19,7 @@ import {
   TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -91,7 +91,6 @@ export class TagValueTable extends Component<Props, State> {
         direction={currentSortKind}
         canSort
         generateSortLink={generateSortLink}
-        onClick={() => {}} // TODO(k-fish): Implement sorting
       />
     );
   }
@@ -107,7 +106,7 @@ export class TagValueTable extends Component<Props, State> {
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
     const queryString = decodeScalar(location.query.query);
-    const conditions = tokenizeSearch(queryString || '');
+    const conditions = new MutableSearch(queryString ?? '');
 
     conditions.addFilterValues(tagKey, [tagValue]);
 
@@ -130,7 +129,7 @@ export class TagValueTable extends Component<Props, State> {
       const {eventView, location, organization} = this.props;
       trackTagPageInteraction(organization);
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       searchConditions.removeFilter('event.type');
 
@@ -180,7 +179,7 @@ export class TagValueTable extends Component<Props, State> {
     }
 
     if (column.key === 'action') {
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
       const disabled = searchConditions.hasFilter(dataRow.tags_key);
       return (
         <Link

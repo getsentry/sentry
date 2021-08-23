@@ -35,7 +35,7 @@ import {formatPercentage} from 'app/utils/formatters';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,
@@ -159,7 +159,7 @@ function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new QueryResults([
+            query: new MutableSearch([
               'event.type:transaction',
               `release:${release.version}`,
             ]).formatString(),
@@ -169,14 +169,14 @@ function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new QueryResults(['event.type:transaction']).formatString(),
+            query: new MutableSearch(['event.type:transaction']).formatString(),
             ...commonQuery,
           },
         }),
         api.requestPromise(url, {
           query: {
             field: ['count()'],
-            query: new QueryResults([
+            query: new MutableSearch([
               'event.type:error',
               `release:${release.version}`,
             ]).formatString(),
@@ -186,7 +186,7 @@ function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['count()'],
-            query: new QueryResults(['event.type:error']).formatString(),
+            query: new MutableSearch(['event.type:error']).formatString(),
             ...commonQuery,
           },
         }),

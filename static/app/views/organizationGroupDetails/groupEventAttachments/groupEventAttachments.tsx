@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -14,7 +14,7 @@ import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 
 type Props = {
   projectSlug: string;
-} & ReactRouter.WithRouterProps &
+} & WithRouterProps &
   AsyncComponent['props'];
 
 type State = {
@@ -113,4 +113,4 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 }
 
-export default ReactRouter.withRouter(GroupEventAttachments);
+export default withRouter(GroupEventAttachments);

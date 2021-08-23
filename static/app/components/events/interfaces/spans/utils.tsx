@@ -304,7 +304,6 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
       rootSpanID,
       rootSpanStatus,
       parentSpanID,
-      numOfSpans: 0,
       spans: [],
       description,
     };
@@ -331,7 +330,6 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
     rootSpanID,
     rootSpanStatus,
     parentSpanID,
-    numOfSpans: spans.length,
     spans,
     description,
   };

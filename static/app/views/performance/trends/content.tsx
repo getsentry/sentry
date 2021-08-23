@@ -18,7 +18,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
@@ -147,7 +147,7 @@ class TrendsContent extends React.Component<Props, State> {
       ...location.query,
     };
     const query = decodeScalar(location.query.query, '');
-    const conditions = tokenizeSearch(query);
+    const conditions = new MutableSearch(query);
 
     // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
     conditions.removeFilter('tpm()');
@@ -314,7 +314,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 
     const queryString = decodeScalar(location.query.query);
     const trendParameter = getCurrentTrendParameter(location);
-    const conditions = tokenizeSearch(queryString || '');
+    const conditions = new MutableSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
       this.hasPushedDefaults = true;
