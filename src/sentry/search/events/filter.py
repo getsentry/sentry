@@ -1629,12 +1629,14 @@ class QueryFilter(QueryFields):
 
         organization_id: int = self.params["organization_id"]
         project_ids: Optional[list[int]] = self.params.get("project_id")
+        environments: Optional[list[str]] = self.params.get("environment")
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
                 search_filter.operator,
                 search_filter.value.value,
                 project_ids=project_ids,
+                environments=environments,
             )
             .values_list("version", flat=True)
             .order_by("date_added")[:MAX_SEARCH_RELEASES]
