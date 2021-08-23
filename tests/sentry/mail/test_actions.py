@@ -1,7 +1,8 @@
 from django.core import mail
 
-from sentry.mail.actions import ActionTargetType, NotifyEmailAction, NotifyEmailForm
+from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Rule
+from sentry.notifications.types import ActionTargetType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
 from sentry.testutils.cases import RuleTestCase

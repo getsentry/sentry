@@ -1,12 +1,17 @@
 import logging
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional
 
 from sentry.utils.imports import import_string
 from sentry.utils.services import Service
 
+if TYPE_CHECKING:
+    from sentry.digests import Record, ScheduleEntry
+    from sentry.models import Project
+
 logger = logging.getLogger("sentry.digests")
 
 
-def load(options):
+def load(options: Mapping[str, str]) -> Any:
     return import_string(options["path"])(**options.get("options", {}))
 
 
@@ -20,7 +25,7 @@ class InvalidState(Exception):
     """
 
 
-class Backend(Service):
+class Backend(Service):  # type: ignore
     """
     A digest backend coordinates the addition of records to timelines, as well
     as scheduling their digestion (processing.) This allows for summarizations
@@ -55,7 +60,7 @@ class Backend(Service):
 
     __all__ = ("add", "delete", "digest", "enabled", "maintenance", "schedule", "validate")
 
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         # The ``minimum_delay`` option defines the default minimum amount of
         # time (in seconds) to wait between scheduling digests for delivery
         # after the initial scheduling.
@@ -100,13 +105,20 @@ class Backend(Service):
             else:
                 self.truncation_chance = 0.0
 
-    def enabled(self, project):
+    def enabled(self, project: "Project") -> bool:
         """
         Check if a project has digests enabled.
         """
         return True
 
-    def add(self, key, record, increment_delay=None, maximum_delay=None):
+    def add(
+        self,
+        key: str,
+        record: "Record",
+        increment_delay: Optional[int] = None,
+        maximum_delay: Optional[int] = None,
+        timestamp: Optional[float] = None,
+    ) -> bool:
         """
         Add a record to a timeline.
 
@@ -121,7 +133,7 @@ class Backend(Service):
         """
         raise NotImplementedError
 
-    def digest(self, key, minimum_delay=None):
+    def digest(self, key: str, minimum_delay: Optional[int] = None) -> Any:
         """
         Extract records from a timeline for processing.
 
@@ -156,7 +168,9 @@ class Backend(Service):
         """
         raise NotImplementedError
 
-    def schedule(self, deadline):
+    def schedule(
+        self, deadline: float, timestamp: Optional[float] = None
+    ) -> Optional[Iterable["ScheduleEntry"]]:
         """
         Identify timelines that are ready for processing.
 
@@ -167,7 +181,7 @@ class Backend(Service):
         """
         raise NotImplementedError
 
-    def maintenance(self, deadline):
+    def maintenance(self, deadline: float, timestamp: Optional[float] = None) -> None:
         """
         Identify timelines that appear to be stuck in the ready state.
 
@@ -207,7 +221,7 @@ class Backend(Service):
         """
         raise NotImplementedError
 
-    def delete(self, key):
+    def delete(self, key: str) -> None:
         """
         Delete a timeline and all of it's contents from the database.
         """

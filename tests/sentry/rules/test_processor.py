@@ -2,8 +2,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.mail.actions import ActionTargetType
 from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
