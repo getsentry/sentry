@@ -23,7 +23,7 @@ from sentry.notifications.notifications.activity.release import ReleaseActivityN
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    ApiRateLimited,
+    ApiRateLimitedError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
@@ -162,12 +162,12 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
                 items = client.get(
                     endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
                 )
-            except ApiRateLimited as e:
-                logger.info("rule.slack.%s_list_ratelimited" % list_type, extra={"error": str(e)})
+            except ApiRateLimitedError as e:
+                logger.info("rule.slack.%s_list_rate_limited" % list_type, extra={"error": str(e)})
                 raise e
             except ApiError as e:
                 logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
-                raise e
+                return (prefix, None, False)
 
             if not isinstance(items, dict):
                 continue

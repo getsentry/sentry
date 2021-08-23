@@ -37,7 +37,7 @@ class ApiError(Exception):
         if response.status_code == 401:
             return ApiUnauthorized(response.text)
         elif response.status_code == 429:
-            return ApiRateLimited(response.text)
+            return ApiRateLimitedError(response.text)
         return cls(response.text, response.status_code, url=url)
 
 
@@ -75,7 +75,7 @@ class ApiUnauthorized(ApiError):
     code = 401
 
 
-class ApiRateLimited(ApiError):
+class ApiRateLimitedError(ApiError):
     code = 429
 
 

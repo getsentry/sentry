@@ -9,7 +9,7 @@ from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    ApiRateLimited,
+    ApiRateLimitedError,
     DuplicateDisplayNameError,
 )
 from sentry.utils import json, metrics
@@ -109,9 +109,9 @@ class SlackNotifyServiceForm(forms.Form):
                     code="invalid",
                     params=params,
                 )
-            except ApiRateLimited:
+            except ApiRateLimitedError:
                 raise forms.ValidationError(
-                    _("You are being rate-limited by Slack. Please try again later."),
+                    _("You are being rate limited by Slack. Please try again later."),
                 )
 
         channel = strip_channel_name(channel)

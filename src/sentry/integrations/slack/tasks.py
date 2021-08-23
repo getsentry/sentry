@@ -33,7 +33,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.shared_integrations.exceptions import ApiRateLimited, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.redis import redis_clusters
@@ -134,7 +134,7 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
         item_id = None
-    except ApiRateLimited:
+    except ApiRateLimitedError:
         redis_rule_status.set_value("ratelimited")
 
     if item_id:
@@ -192,11 +192,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
 
     try:
         mapped_ids = get_slack_channel_ids(organization, user, data)
-    except (
-        serializers.ValidationError,
-        ChannelLookupTimeoutError,
-        InvalidTriggerActionError,
-    ) as e:
+    except (serializers.ValidationError, ChannelLookupTimeoutError, InvalidTriggerActionError) as e:
         # channel doesn't exist error or validation error
         logger.info(
             "get_slack_channel_ids.failed",
@@ -206,9 +202,9 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
         )
         redis_rule_status.set_value("failed")
         return
-    except ApiRateLimited as e:
+    except ApiRateLimitedError as e:
         logger.info(
-            "get_slack_channel_ids.ratelimited",
+            "get_slack_channel_ids.rate_limited",
             extra={
                 "exception": e,
             },
