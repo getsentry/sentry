@@ -105,7 +105,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
           disabled={!enablePathTooltip}
           delay={tooltipDelay}
         >
-          <code key="filename" className="filename">
+          <code key="filename" className="filename" data-test-id="filename">
             <AnnotatedText
               value={<Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />}
               meta={pathNameOrModule.meta}
@@ -148,7 +148,14 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
   }
 
   if (defined(frame.function) || defined(frame.rawFunction)) {
-    title.push(<FunctionName frame={frame} key="function" className="function" />);
+    title.push(
+      <FunctionName
+        frame={frame}
+        key="function"
+        className="function"
+        data-test-id="function"
+      />
+    );
   }
 
   // we don't want to render out zero line numbers which are used to
