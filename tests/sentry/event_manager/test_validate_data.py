@@ -248,7 +248,7 @@ def test_environment_too_long():
     data = validate_and_normalize({"environment": "a" * 65})
     assert not data.get("environment")
     (error,) = data["errors"]
-    error["type"] == "invalid_data"
+    assert error["type"] == "invalid_data"
 
     assert error["name"] == "environment"
     assert error["value"] == "a" * 65
@@ -258,7 +258,7 @@ def test_environment_invalid():
     data = validate_and_normalize({"environment": "a/b"})
     assert not data.get("environment")
     (error,) = data["errors"]
-    error["type"] == "invalid_data"
+    assert error["type"] == "invalid_data"
 
     assert error["name"] == "environment"
     assert error["value"] == "a/b"

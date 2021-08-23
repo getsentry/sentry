@@ -50,7 +50,7 @@ def get_subject_with_prefix(
 ) -> bytes:
 
     prefix = build_subject_prefix(notification.project, mail_option_key)
-    return f"{prefix}{notification.get_subject(context)}".encode("utf-8")
+    return f"{prefix}{notification.get_subject(context)}".encode()
 
 
 def get_unsubscribe_link(

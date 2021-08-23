@@ -331,11 +331,20 @@ describe('SpanTreeModel', () => {
       spanGrouping: undefined,
       toggleSpanGroup: undefined,
       showSpanGroup: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
     });
 
     expect(spans).toEqual(fullWaterfall);
 
-    const promise = spanTreeModel.toggleEmbeddedChildren({
+    let mockAddTraceBounds = jest.fn();
+    let mockRemoveTraceBounds = jest.fn();
+
+    // embed a child transaction
+    let promise = spanTreeModel.toggleEmbeddedChildren({
+      addTraceBounds: mockAddTraceBounds,
+      removeTraceBounds: mockRemoveTraceBounds,
+    })({
       orgSlug: 'sentry',
       eventSlug: 'project:19c403a10af34db2b7d93ad669bb51ed',
     });
@@ -345,6 +354,8 @@ describe('SpanTreeModel', () => {
 
     await promise;
 
+    expect(mockAddTraceBounds).toHaveBeenCalled();
+    expect(mockRemoveTraceBounds).not.toHaveBeenCalled();
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
 
     spans = spanTreeModel.getSpansList({
@@ -364,6 +375,8 @@ describe('SpanTreeModel', () => {
       spanGrouping: undefined,
       toggleSpanGroup: undefined,
       showSpanGroup: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
     });
 
     const fullWaterfallExpected: EnhancedProcessedSpanType[] = [...fullWaterfall];
@@ -418,11 +431,56 @@ describe('SpanTreeModel', () => {
       }
     );
 
+    fullWaterfallExpected[0] = {
+      ...fullWaterfallExpected[0],
+    };
     assert(fullWaterfallExpected[0].type === 'span');
     fullWaterfallExpected[0].numOfSpanChildren += 1;
     fullWaterfallExpected[0].showEmbeddedChildren = true;
 
     expect(spans).toEqual(fullWaterfallExpected);
+
+    mockAddTraceBounds = jest.fn();
+    mockRemoveTraceBounds = jest.fn();
+
+    // un-embed a child transaction
+    promise = spanTreeModel.toggleEmbeddedChildren({
+      addTraceBounds: mockAddTraceBounds,
+      removeTraceBounds: mockRemoveTraceBounds,
+    })({
+      orgSlug: 'sentry',
+      eventSlug: 'project:19c403a10af34db2b7d93ad669bb51ed',
+    });
+    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
+
+    await promise;
+
+    expect(mockAddTraceBounds).not.toHaveBeenCalled();
+    expect(mockRemoveTraceBounds).toHaveBeenCalled();
+    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
+
+    spans = spanTreeModel.getSpansList({
+      operationNameFilters: {
+        type: 'no_filter',
+      },
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanGroups: new Set(),
+      spanGroups: new Set(),
+      filterSpans: undefined,
+      previousSiblingEndTimestamp: undefined,
+      event,
+      isOnlySibling: true,
+      spanGrouping: undefined,
+      toggleSpanGroup: undefined,
+      showSpanGroup: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
+    });
+
+    expect(spans).toEqual(fullWaterfall);
   });
 
   it('toggleEmbeddedChildren - error state', async () => {
@@ -432,6 +490,9 @@ describe('SpanTreeModel', () => {
     const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
 
     const promise = spanTreeModel.toggleEmbeddedChildren({
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
+    })({
       orgSlug: 'sentry',
       eventSlug: 'project:broken',
     });

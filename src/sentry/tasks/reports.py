@@ -452,10 +452,10 @@ def build_report(fields):
     cls = namedtuple("Report", names)
 
     def prepare(*args):
-        return cls(*[f(*args) for f in field_builders])
+        return cls(*(f(*args) for f in field_builders))
 
     def merge(target, other):
-        return cls(*[f(target[i], other[i]) for i, f in enumerate(field_mergers)])
+        return cls(*(f(target[i], other[i]) for i, f in enumerate(field_mergers)))
 
     return cls, prepare, merge
 

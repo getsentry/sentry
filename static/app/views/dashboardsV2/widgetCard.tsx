@@ -1,6 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -31,7 +30,7 @@ import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
   location: Location;
@@ -60,6 +59,11 @@ class WidgetCard extends React.Component<Props> {
       return true;
     }
     return false;
+  }
+
+  isAllowWidgetsToDiscover() {
+    const {organization} = this.props;
+    return organization.features.includes('connect-discover-and-dashboards');
   }
 
   renderToolbar() {
@@ -110,7 +114,7 @@ class WidgetCard extends React.Component<Props> {
     const menuOptions: React.ReactNode[] = [];
 
     if (
-      widget.displayType === 'table' &&
+      (widget.displayType === 'table' || this.isAllowWidgetsToDiscover()) &&
       organization.features.includes('discover-basic')
     ) {
       // Open table widget in Discover
@@ -119,7 +123,12 @@ class WidgetCard extends React.Component<Props> {
         // We expect Table widgets to have only one query.
         const query = widget.queries[0];
 
-        const eventView = eventViewFromWidget(widget.title, query, selection);
+        const eventView = eventViewFromWidget(
+          widget.title,
+          query,
+          selection,
+          widget.displayType
+        );
 
         menuOptions.push(
           <MenuItem
@@ -197,9 +206,7 @@ class WidgetCard extends React.Component<Props> {
   }
 }
 
-export default withApi(
-  withOrganization(withGlobalSelection(ReactRouter.withRouter(WidgetCard)))
-);
+export default withApi(withOrganization(withGlobalSelection(withRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;

@@ -3,7 +3,7 @@ import Tag from 'app/components/tag';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import {Deploy} from 'app/types';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 type Props = {
   deploy: Deploy;
@@ -39,7 +39,7 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
         query: {
           project: projectId ?? null,
           environment: deploy.environment,
-          query: new QueryResults([`release:${version!}`]).formatString(),
+          query: new MutableSearch([`release:${version!}`]).formatString(),
         },
       }}
     >

@@ -1,5 +1,5 @@
 import {PureComponent} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {
   createIncidentNote,
@@ -28,11 +28,10 @@ import Activity from './activity';
 
 type Activities = Array<ActivityType | ActivityType>;
 
-type Props = {
+type Props = Pick<RouteComponentProps<{alertId: string; orgId: string}, {}>, 'params'> & {
   api: Client;
   incident?: Incident;
   incidentStatus: IncidentStatus | null;
-  params: Params;
 };
 
 type State = {

@@ -117,7 +117,6 @@ export type ParsedTraceType = {
   parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
-  numOfSpans: number;
   spans: SpanType[];
   description?: string;
 };
@@ -175,4 +174,10 @@ export type SpanFuseOptions = {
   location: number;
   distance: number;
   maxPatternLength: number;
+};
+
+export type TraceBound = {
+  spanId: string;
+  traceStartTimestamp: number;
+  traceEndTimestamp: number;
 };
