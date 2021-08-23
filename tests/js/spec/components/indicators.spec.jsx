@@ -1,10 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  cleanup,
-  fireEvent,
-  mountWithTheme,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   addErrorMessage,
@@ -35,10 +30,6 @@ describe('Indicators', function () {
 
     clearIndicators();
     jest.runAllTimers();
-  });
-
-  afterEach(function () {
-    cleanup();
   });
 
   it('renders nothing by default', function () {

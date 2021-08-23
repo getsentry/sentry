@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {cleanup, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 
@@ -16,7 +16,6 @@ describe('GroupTagValues', () => {
   });
 
   afterEach(() => {
-    cleanup();
     MockApiClient.clearMockResponses();
   });
 
