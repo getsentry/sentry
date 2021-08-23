@@ -7,7 +7,11 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimited,
+    DuplicateDisplayNameError,
+)
 from sentry.utils import json, metrics
 
 from .client import SlackClient
@@ -90,7 +94,7 @@ class SlackNotifyServiceForm(forms.Form):
         # are assuming that they passed in the correct channel_id for the channel
         if not channel_id:
             try:
-                channel_prefix, channel_id, timed_out, error = self.channel_transformer(
+                channel_prefix, channel_id, timed_out = self.channel_transformer(
                     integration, channel
                 )
             except DuplicateDisplayNameError:
@@ -105,6 +109,10 @@ class SlackNotifyServiceForm(forms.Form):
                     code="invalid",
                     params=params,
                 )
+            except ApiRateLimited:
+                raise forms.ValidationError(
+                    _("You are being rate-limited by Slack. Please try again later."),
+                )
 
         channel = strip_channel_name(channel)
         if channel_id is None and timed_out:
@@ -117,15 +125,10 @@ class SlackNotifyServiceForm(forms.Form):
                 "channel": channel,
                 "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
             }
-            if error:
-                error_message = _("this is a rate limiting message")
-            else:
-                error_message = _(
-                    'The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'
-                )
-
             raise forms.ValidationError(
-                error_message,
+                _(
+                    'The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'
+                ),
                 code="invalid",
                 params=params,
             )

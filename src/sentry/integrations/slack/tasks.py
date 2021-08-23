@@ -125,7 +125,7 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
     # we can always update later
     try:
-        (prefix, item_id, _timed_out, _error) = get_channel_id_with_timeout(
+        (prefix, item_id, _timed_out) = get_channel_id_with_timeout(
             integration, channel_name, 3 * 60
         )
     except DuplicateDisplayNameError:
