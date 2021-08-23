@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -51,10 +50,8 @@ import LinkedIssue from './linkedIssue';
  */
 const EXCLUDED_TAG_KEYS = new Set(['release']);
 
-type Props = {
+type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   eventSlug: string;
   eventView: EventView;
 };

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,7 +18,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
 });
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
   className?: string;
   index?: boolean;
@@ -151,7 +151,7 @@ const SidebarItem = ({
   );
 };
 
-export default ReactRouter.withRouter(SidebarItem);
+export default withRouter(SidebarItem);
 
 const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   if (!active) {

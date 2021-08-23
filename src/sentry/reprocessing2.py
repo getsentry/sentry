@@ -98,7 +98,8 @@ logger = logging.getLogger("sentry.reprocessing")
 _REDIS_SYNC_TTL = 3600 * 24
 
 
-# Note: Event attachments and group reports are migrated in save_event.
+# Group-related models are only a few per-group and are migrated at
+# once.
 GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 # If we were to move groupinbox to the new, empty group, inbox would show the
@@ -106,13 +107,20 @@ GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 # care of assigning GroupInbox like normally.
 GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != models.GroupInbox)
 
+# Event attachments and group reports are per-event. This means that:
+#
+# 1. they are migrated as part of the processing pipeline (post-process/save-event)
+# 2. there are a lot of them per group. For remaining events, we need to chunk
+#    up those queries for them to not get too slow
+EVENT_MODELS_TO_MIGRATE = (models.EventAttachment, models.UserReport)
+
 
 class CannotReprocess(Exception):
     pass
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
-    return hashlib.md5(f"{project_id}:{event_id}:unprocessed".encode("utf-8")).hexdigest()
+    return hashlib.md5(f"{project_id}:{event_id}:unprocessed".encode()).hexdigest()
 
 
 def save_unprocessed_event(project, event_id):

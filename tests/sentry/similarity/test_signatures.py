@@ -10,7 +10,7 @@ class MinHashSignatureBuilderTestCase(TestCase):
         n = 32
         r = 0xFFFF
         get_signature = MinHashSignatureBuilder(n, r)
-        get_signature({"foo", "bar", "baz"}) == get_signature({"foo", "bar", "baz"})
+        assert get_signature({"foo", "bar", "baz"}) == get_signature({"foo", "bar", "baz"})
 
         assert len(get_signature("hello world")) == n
         for value in get_signature("hello world"):

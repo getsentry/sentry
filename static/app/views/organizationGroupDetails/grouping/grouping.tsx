@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -237,7 +237,10 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                     key={hash}
                     sampleEvent={{
                       ...latestEvent,
-                      metadata: metadata || latestEvent.metadata,
+                      metadata: {
+                        ...(metadata || latestEvent.metadata),
+                        current_level: activeGroupingLevel,
+                      },
                       title: title || latestEvent.title,
                     }}
                     eventCount={eventCount}

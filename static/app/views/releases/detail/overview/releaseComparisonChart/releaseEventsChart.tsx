@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {EChartOption} from 'echarts';
 
@@ -20,7 +19,7 @@ import {
 } from 'app/types';
 import {tooltipFormatter} from 'app/utils/discover/charts';
 import {Theme} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
@@ -81,14 +80,20 @@ function ReleaseEventsChart({
 
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
-        return new QueryResults([
+        return new MutableSearch([
           '!event.type:transaction',
           releaseFilter,
         ]).formatString();
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
-        return new QueryResults(['event.type:transaction', releaseFilter]).formatString();
+        return new MutableSearch([
+          'event.type:transaction',
+          releaseFilter,
+        ]).formatString();
       case ReleaseComparisonChartType.FAILURE_RATE:
-        return new QueryResults(['event.type:transaction', releaseFilter]).formatString();
+        return new MutableSearch([
+          'event.type:transaction',
+          releaseFilter,
+        ]).formatString();
       default:
         return '';
     }

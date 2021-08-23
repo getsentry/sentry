@@ -145,8 +145,8 @@ class OptionsManagerTest(TestCase):
             self.manager.set("nostore", "thing")
 
         # Make sure that we don't touch either of the stores
-        with patch.object(self.store.cache, "get", side_effect=Exception()):
-            with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
+        with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
+            with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
                 assert self.manager.get("nostore") == ""
                 self.store.flush_local_cache()
 
@@ -203,23 +203,23 @@ class OptionsManagerTest(TestCase):
             assert self.manager.get("prioritize_disk") == "foo"
 
     def test_db_unavailable(self):
-        with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
+        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
-            with self.assertRaises(Exception):
+            with self.assertRaises(RuntimeError):
                 self.manager.set("foo", "bar")
 
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
 
-        with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
+        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             assert self.manager.get("foo") == "bar"
             self.store.flush_local_cache()
 
-            with patch.object(self.store.cache, "get", side_effect=Exception()):
+            with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
                 assert self.manager.get("foo") == ""
                 self.store.flush_local_cache()
 
-                with patch.object(self.store.cache, "set", side_effect=Exception()):
+                with patch.object(self.store.cache, "set", side_effect=RuntimeError()):
                     assert self.manager.get("foo") == ""
                     self.store.flush_local_cache()
 
@@ -228,12 +228,12 @@ class OptionsManagerTest(TestCase):
         self.store.flush_local_cache()
 
         with self.settings(SENTRY_OPTIONS={"foo": "baz"}):
-            with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
-                with patch.object(self.store.cache, "get", side_effect=Exception()):
+            with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+                with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
                     assert self.manager.get("foo") == "baz"
                     self.store.flush_local_cache()
 
-                    with patch.object(self.store.cache, "set", side_effect=Exception()):
+                    with patch.object(self.store.cache, "set", side_effect=RuntimeError()):
                         assert self.manager.get("foo") == "baz"
                         self.store.flush_local_cache()
 
@@ -241,11 +241,11 @@ class OptionsManagerTest(TestCase):
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
 
-        with patch.object(self.store.cache, "get", side_effect=Exception()):
+        with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
             assert self.manager.get("foo") == "bar"
             self.store.flush_local_cache()
 
-            with patch.object(self.store.cache, "set", side_effect=Exception()):
+            with patch.object(self.store.cache, "set", side_effect=RuntimeError()):
                 assert self.manager.get("foo") == "bar"
                 self.store.flush_local_cache()
 
@@ -259,11 +259,11 @@ class OptionsManagerTest(TestCase):
         self.store.flush_local_cache()
 
         # when the cache poofs, the db will be return the most-true answer
-        with patch.object(self.store.cache, "get", side_effect=Exception()):
+        with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
             assert self.manager.get("foo") == "baz"
             self.store.flush_local_cache()
 
-            with patch.object(self.store.cache, "set", side_effect=Exception()):
+            with patch.object(self.store.cache, "set", side_effect=RuntimeError()):
                 assert self.manager.get("foo") == "baz"
                 self.store.flush_local_cache()
 

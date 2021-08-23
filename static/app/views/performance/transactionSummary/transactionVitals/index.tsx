@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -15,7 +15,7 @@ import EventView from 'app/utils/discover/eventView';
 import {isAggregateField, WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -30,7 +30,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
-} & Pick<WithRouterProps, 'router'>;
+};
 
 type State = {
   eventView: EventView | undefined;
@@ -143,7 +143,7 @@ function generateRumEventView(
     return undefined;
   }
   const query = decodeScalar(location.query.query, '');
-  const conditions = tokenizeSearch(query);
+  const conditions = new MutableSearch(query);
   conditions
     .setFilterValues('event.type', ['transaction'])
     .setFilterValues('transaction.op', ['pageload'])

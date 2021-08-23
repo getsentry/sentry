@@ -1,7 +1,5 @@
-import * as ReactRouter from 'react-router';
-import withRouter, {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
@@ -28,8 +26,6 @@ type Props = {
   api: Client;
   eventView: EventView;
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
   field: string;
   title: string;
   titleTooltip: string;

@@ -128,7 +128,7 @@ class FeatureAdoptionManager(BaseManager):
         with redis.clusters.get("default").map() as client:
             result.append(client.smembers(org_key))
 
-        return {int(x) for x in set.union(*[p.value for p in result])}
+        return {int(x) for x in set.union(*(p.value for p in result))}
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:
@@ -175,20 +175,19 @@ class FeatureAdoptionManager(BaseManager):
                     organization_id=organization_id, feature_id=feature_id, complete=True
                 )
             )
+
         try:
             with transaction.atomic():
                 self.bulk_create(features)
-                return True
-
         except IntegrityError:
             # This can occur if redis somehow loses the set of complete features and
             # we attempt to insert duplicate (org_id, feature_id) rows
             # This also will happen if we get parallel processes running `bulk_record` and
             # `get_all_cache` returns in the second process before the first process
             # can `bulk_set_cache`.
-            return False
-        finally:
-            return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
+            pass
+
+        return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
 
     def get_by_slug(self, organization, slug):
         return self.filter(

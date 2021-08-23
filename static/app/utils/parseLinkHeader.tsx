@@ -5,10 +5,10 @@ export default function parseLinkHeader(header: string | null): {
     return {};
   }
 
-  const header_vals = header.split(',');
+  const headerValues = header.split(',');
   const links = {};
 
-  header_vals.forEach(val => {
+  headerValues.forEach(val => {
     const match =
       /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/g.exec(
         val
