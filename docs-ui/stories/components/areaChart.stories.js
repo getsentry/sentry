@@ -1,4 +1,7 @@
+import styled from '@emotion/styled';
+
 import AreaChart from 'app/components/charts/areaChart';
+import space from 'app/styles/space';
 
 export default {
   title: 'Components/Data Visualization/Charts/Area Chart',
@@ -16,7 +19,7 @@ export const _AreaChart = () => {
   const getData = num =>
     [...Array(num)].map((_v, i) => ({value: getValue(), name: getDate(i)}));
   return (
-    <div>
+    <Container>
       <AreaChart
         style={{height: 250}}
         series={[
@@ -36,7 +39,7 @@ export const _AreaChart = () => {
           },
         ]}
       />
-    </div>
+    </Container>
   );
 };
 
@@ -48,3 +51,7 @@ _AreaChart.parameters = {
     },
   },
 };
+
+const Container = styled('div')`
+  padding: 100px ${space(2)} 0;
+`;
