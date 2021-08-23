@@ -1,10 +1,10 @@
+import enum
 import itertools
-import math
 import random
 import re
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from sentry_relay.metrics import to_metrics_symbol
 from snuba_sdk import Column, Condition, Entity, Granularity, Limit, Offset, Op, Query
@@ -13,6 +13,7 @@ from sentry.models import Project
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     InvalidField,
     InvalidParams,
+    finite_or_none,
     get_constrained_date_range,
 )
 from sentry.utils.snuba import raw_snql_query
@@ -404,6 +405,29 @@ class StringIndexer:
         return to_metrics_symbol(value)
 
 
+PERCENTILE_INDEX = {}
+
+
+class Percentile(enum.Enum):
+    p50 = 0
+    p75 = 1
+    p90 = 2
+    p95 = 3
+    p99 = 4
+
+
+def massage_timeseries(operation: str, series):
+    return [
+        {
+            key: finite_or_none(
+                value[Percentile[operation].value] if key == "percentiles" else value
+            )
+            for key, value in row.items()
+        }
+        for row in series
+    ]
+
+
 class SnubaDataSource(IndexMockingDataSource):
     """Mocks metrics metadata and string indexing, but fetches real time series"""
 
@@ -428,9 +452,13 @@ class SnubaDataSource(IndexMockingDataSource):
             "count": "count",
             "max": "max",
             "min": "min",
+            "p50": "percentiles",
+            "p75": "percentiles",
+            "p90": "percentiles",
+            "p95": "percentiles",
+            "p99": "percentiles",
         },
         "set": {"count_unique": "value"},
-        # TODO: distribution percentiles
     }
 
     _fields_by_type = {type_: sorted(mapping.keys()) for type_, mapping in _op_to_field.items()}
@@ -508,7 +536,7 @@ class SnubaDataSource(IndexMockingDataSource):
 
     def _run_query_total(
         self, project: Project, query: QueryDefinition, op: str, metric_name: str
-    ) -> int:
+    ) -> Optional[int]:
 
         metric = self._metrics[metric_name]
         metric_id = self._indexer.get_int(metric_name)
@@ -533,8 +561,10 @@ class SnubaDataSource(IndexMockingDataSource):
             granularity=Granularity(query.rollup),
         )
         result = raw_snql_query(snql_query, referrer="metrics.totals")
-        total = result["data"][0][column]
-        return 0 if math.isnan(total) else total  # HACK
+        data = massage_timeseries(op, result["data"])
+        total = data[0]
+
+        return total
 
 
 DATA_SOURCE = SnubaDataSource()
