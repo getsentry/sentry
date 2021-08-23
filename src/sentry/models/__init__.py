@@ -49,7 +49,6 @@ from .grouplink import *  # NOQA
 from .groupmeta import *  # NOQA
 from .groupowner import *  # NOQA
 from .groupredirect import *  # NOQA
-from .groupregression import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
