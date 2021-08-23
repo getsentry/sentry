@@ -18,6 +18,14 @@ def format_title_from_tree_label(tree_label):
         else:
             part = x.get("function") or x.get("package") or x.get("type")
 
+            classbase = x.get("classbase")
+
+            if classbase:
+                if part:
+                    part = f"{classbase}.{part}"
+                else:
+                    part = classbase
+
         parts.append(part or "<unknown>")
 
     return " | ".join(parts)
