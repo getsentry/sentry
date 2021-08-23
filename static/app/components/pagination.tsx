@@ -56,8 +56,8 @@ const Pagination = ({
   const path = to ?? location.pathname;
   const query = location.query;
   const links = parseLinkHeader(pageLinks);
-  const previousDisabled = disabled || links.previous.results === false;
-  const nextDisabled = disabled || links.next.results === false;
+  const previousDisabled = disabled || links.previous?.results === false;
+  const nextDisabled = disabled || links.next?.results === false;
 
   return (
     <Wrapper className={className}>
