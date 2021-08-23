@@ -117,6 +117,8 @@ default_manager.add("organizations:performance-tag-explorer", OrganizationFeatur
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
+default_manager.add("organizations:performance-suspect-spans-ingestion", OrganizationFeature)
+default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add(
     "organizations:performance-create-sample-transaction", OrganizationFeature, True
