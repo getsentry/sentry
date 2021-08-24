@@ -158,7 +158,7 @@ app:true                                        -> {{ default }}
 
 
 @with_fingerprint_input("input")
-def test_event_hash_variant(insta_snapshot, input):
+def test_event_hash_variant(insta_snapshot: int, input):
     config, evt = input.create_event()
 
     def dump_variant(v):
