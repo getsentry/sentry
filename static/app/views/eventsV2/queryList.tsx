@@ -93,6 +93,9 @@ class QueryList extends React.Component<Props> {
       openDiscoverAddToDashboardModal({
         organization,
         defaultQuery: eventView.query,
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
       });
     };
 
