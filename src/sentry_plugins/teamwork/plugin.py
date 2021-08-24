@@ -81,7 +81,7 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
         ),
     ]
     deprecation_date = "Sept 20, 2021"
-    alternative = "clubhouse"
+    alternative = "teamwork"
     alt_is_sentry_app = True
 
     conf_title = title
