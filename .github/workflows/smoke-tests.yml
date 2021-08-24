@@ -16,5 +16,13 @@ jobs:
           node-version: '14'
       - name: Install operating system dependencies
         run: npx playwright install-deps
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-${{ hashFiles('package.json', 'yarn.lock') }}
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
       - name: Run tests
         run: npx playwright test --browser all tests/smoke
