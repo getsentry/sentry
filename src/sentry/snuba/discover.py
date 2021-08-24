@@ -887,7 +887,7 @@ def histogram_query(
     group_by=None,
     order_by=None,
     limit_by=None,
-    histogram_rows=1,
+    histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
 ):
@@ -967,7 +967,8 @@ def histogram_query(
         conditions.append([histogram_alias, "<=", max_bin])
 
     columns = [] if key_column is None else [key_column]
-    limit = len(fields) * num_buckets * histogram_rows
+    groups = len(fields) if histogram_rows is None else histogram_rows
+    limit = groups * num_buckets
 
     histogram_query = prepare_discover_query(
         selected_columns=columns + [histogram_column, "count()"],
