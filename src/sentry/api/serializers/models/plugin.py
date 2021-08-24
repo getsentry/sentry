@@ -29,6 +29,9 @@ class PluginSerializer(Serializer):
         contexts = []
         if hasattr(obj, "get_custom_contexts"):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
+
+        deprecation_date = getattr(obj, "deprecation_date", None)
+
         d = {
             "id": obj.slug,
             "name": str(obj.get_title()),
@@ -46,6 +49,11 @@ class PluginSerializer(Serializer):
                 for asset in obj.get_assets()
             ],
             "doc": doc,
+            "firstPartyAlternative": getattr(obj, "alternative", None),
+            "deprecationDate": deprecation_date.strftime("%b %-d, %Y")
+            if deprecation_date
+            else None,
+            "altIsSentryApp": getattr(obj, "alt_is_sentry_app", None),
         }
         if self.project:
             d["enabled"] = obj.is_enabled(self.project)
