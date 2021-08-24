@@ -15,6 +15,6 @@ jobs:
         with:
           node-version: '14'
       - name: Install operating system dependencies
-        run: npx playwright install-deps
+        run: npm install @playwright/test
       - name: Run your tests
         run: npx playwright test --browser all tests/smoke
