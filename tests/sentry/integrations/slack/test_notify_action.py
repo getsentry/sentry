@@ -223,7 +223,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert "You are being rate limited by Slack. Please try again later." in str(
+        assert "Requests to slack were rate limited. Please try again later." in str(
             form.errors.values()
         )
 

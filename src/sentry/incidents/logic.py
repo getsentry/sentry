@@ -36,7 +36,7 @@ from sentry.incidents.models import (
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
-from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
@@ -1296,11 +1296,6 @@ def get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError(
             'Multiple users were found with display name "%s". Please use your username, found at %s/account/settings.'
             % (e, domain)
-        )
-
-    except ApiRateLimitedError:
-        raise ApiRateLimitedError(
-            "Requests to identify your slack resource were rate limited. Please try again later."
         )
 
     if timed_out:

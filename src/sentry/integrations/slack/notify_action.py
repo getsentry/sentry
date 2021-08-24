@@ -111,7 +111,7 @@ class SlackNotifyServiceForm(forms.Form):
                 )
             except ApiRateLimitedError:
                 raise forms.ValidationError(
-                    _("You are being rate limited by Slack. Please try again later."),
+                    _("Requests to slack were rate limited. Please try again later."),
                 )
 
         channel = strip_channel_name(channel)
