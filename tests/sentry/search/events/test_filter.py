@@ -1361,7 +1361,7 @@ class GetSnubaQueryArgsTest(TestCase):
         )
         _filter = get_filter(
             f"{RELEASE_STAGE_ALIAS}:adopted",
-            {"organization_id": self.organization.id, "environment_id": [self.environment.id]},
+            {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
 
         assert _filter.conditions == [["release", "IN", ["adopted_release"]]]
@@ -1369,7 +1369,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
         _filter = get_filter(
             f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.LOW_ADOPTION}]",
-            {"organization_id": self.organization.id, "environment_id": [self.environment.id]},
+            {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
         assert _filter.conditions == [
             ["release", "IN", [replaced_release.version, not_adopted_release.version]]
@@ -1378,7 +1378,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
         _filter = get_filter(
             f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.LOW_ADOPTION}]",
-            {"organization_id": self.organization.id, "environment_id": [self.environment.id]},
+            {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
         assert _filter.conditions == [["release", "IN", [replaced_release.version]]]
         assert _filter.filter_keys == {}
