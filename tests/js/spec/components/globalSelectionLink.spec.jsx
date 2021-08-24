@@ -17,7 +17,7 @@ describe('GlobalSelectionLink', function () {
       </GlobalSelectionLink>
     );
 
-    const updatedToProp = wrapper.find('Link').prop('to');
+    const updatedToProp = wrapper.find('Link').at(0).prop('to');
 
     expect(updatedToProp).toEqual({pathname: path, query});
 
@@ -31,7 +31,7 @@ describe('GlobalSelectionLink', function () {
       </GlobalSelectionLink>
     );
 
-    const updatedToProp = wrapper.find('Link').prop('to');
+    const updatedToProp = wrapper.find('Link').at(0).prop('to');
 
     expect(updatedToProp).toEqual(path);
 
@@ -50,7 +50,7 @@ describe('GlobalSelectionLink', function () {
       </GlobalSelectionLink>
     );
 
-    const updatedToProp = wrapper.find('Link').prop('to');
+    const updatedToProp = wrapper.find('Link').at(0).prop('to');
 
     expect(updatedToProp).toEqual({
       pathname: path,
@@ -69,7 +69,7 @@ describe('GlobalSelectionLink', function () {
       </GlobalSelectionLink>
     );
 
-    const updatedToProp = wrapper.find('Link').prop('to');
+    const updatedToProp = wrapper.find('Link').at(0).prop('to');
 
     expect(updatedToProp).toEqual({pathname: path, query});
   });

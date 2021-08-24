@@ -2,6 +2,7 @@ import logging
 import random
 import time
 from contextlib import contextmanager
+from typing import Optional
 
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Lock:
-    def __init__(self, backend, key, duration, routing_key=None):
+    def __init__(self, backend, key: str, duration: int, routing_key: Optional[str] = None) -> None:
         self.backend = backend
         self.key = key
         self.duration = duration

@@ -3,12 +3,7 @@ import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
-import {
-  cleanup,
-  fireEvent,
-  mountWithTheme,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -113,7 +108,6 @@ describe('ProjectAlertsCreate', function () {
   });
 
   afterEach(function () {
-    cleanup();
     MockApiClient.clearMockResponses();
     trackAnalyticsEvent.mockClear();
   });

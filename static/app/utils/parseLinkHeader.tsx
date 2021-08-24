@@ -1,6 +1,6 @@
-export default function parseLinkHeader(header: string | null): {
-  [key: string]: {href: string; results: boolean | null; cursor: string};
-} {
+type Result = Record<string, {href: string; results: boolean | null; cursor: string}>;
+
+export default function parseLinkHeader(header: string | null): Result {
   if (header === null || header === '') {
     return {};
   }
