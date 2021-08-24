@@ -380,13 +380,23 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   renderPlugin = (plugin: PluginWithProjectList) => {
     const {organization} = this.props;
-
+    let upgradeUrl = '';
+    let deprecationText = '';
+    if (plugin.deprecationDate !== null) {
+      deprecationText = `This integration is being deprecated on ${plugin.deprecationDate}. Please upgrade to avoid any disruption.`;
+    }
+    if (plugin.firstPartyAlternative !== null) {
+      upgradeUrl =
+        plugin.altIsSentryApp === false
+          ? `/settings/${organization.slug}/integrations/${plugin.firstPartyAlternative}/`
+          : `/settings/${organization.slug}/sentry-apps/${plugin.firstPartyAlternative}/`;
+    }
     const isLegacy = plugin.isHidden;
     const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     // hide legacy integrations if we don't have any projects with them
-    if (isLegacy && !plugin.projectList.length) {
-      return null;
-    }
+    // if (isLegacy && !plugin.projectList.length) {
+    //   return null;
+    // }
     return (
       <IntegrationRow
         key={`row-plugin-${plugin.id}`}
@@ -399,6 +409,8 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus="published"
         configurations={plugin.projectList.length}
         categories={getCategoriesForIntegration(plugin)}
+        deprecationText={deprecationText}
+        upgradeUrl={upgradeUrl}
       />
     );
   };

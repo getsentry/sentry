@@ -612,6 +612,9 @@ export type PluginProjectItem = {
 
 export type PluginWithProjectList = PluginNoProject & {
   projectList: PluginProjectItem[];
+  altIsSentryApp: boolean;
+  deprecationDate: string;
+  firstPartyAlternative: string;
 };
 
 export type AppOrProviderOrPlugin =

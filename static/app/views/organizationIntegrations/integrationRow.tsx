@@ -27,6 +27,8 @@ type Props = {
   configurations: number;
   categories: string[];
   alertText?: string;
+  deprecationText?: string;
+  upgradeUrl?: string;
 };
 
 const urlMap = {
@@ -47,6 +49,8 @@ const IntegrationRow = (props: Props) => {
     configurations,
     categories,
     alertText,
+    deprecationText,
+    upgradeUrl,
   } = props;
 
   const baseUrl =
@@ -111,6 +115,26 @@ const IntegrationRow = (props: Props) => {
               }
             >
               {t('Resolve Now')}
+            </ResolveNowButton>
+          </Alert>
+        </AlertContainer>
+      )}
+      {deprecationText && (
+        <AlertContainer>
+          <Alert type="warning" icon={<IconWarning size="sm" />}>
+            <span>{deprecationText}</span>
+            <ResolveNowButton
+              href={`${upgradeUrl}?tab=configurations&referrer=directory_upgrade_now`}
+              size="xsmall"
+              onClick={() =>
+                trackIntegrationEvent('integrations.resolve_now_clicked', {
+                  integration_type: convertIntegrationTypeToSnakeCase(type),
+                  integration: slug,
+                  organization,
+                })
+              }
+            >
+              {t('Upgrade Now')}
             </ResolveNowButton>
           </Alert>
         </AlertContainer>
