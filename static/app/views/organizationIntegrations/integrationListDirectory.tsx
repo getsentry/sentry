@@ -394,9 +394,9 @@ export class IntegrationListDirectory extends AsyncComponent<
     const isLegacy = plugin.isHidden;
     const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     // hide legacy integrations if we don't have any projects with them
-    // if (isLegacy && !plugin.projectList.length) {
-    //   return null;
-    // }
+    if (isLegacy && !plugin.projectList.length) {
+      return null;
+    }
     return (
       <IntegrationRow
         key={`row-plugin-${plugin.id}`}

@@ -166,14 +166,14 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           : `/settings/${organization.slug}/sentry-apps/${plugin.firstPartyAlternative}/`;
     }
 
-    if (plugin.projectList.length && plugin.deprecationText !== '') {
+    if (plugin.projectList.length && deprecationText !== '') {
       return (
         <Fragment>
           {plugin.deprecationDate && (
-            <AlertContainer>
+            <div>
               <Alert type="warning" icon={<IconWarning size="sm" />}>
                 <span>{deprecationText}</span>
-                <ResolveNowButton
+                <UpgradeNowButton
                   href={`${upgradeUrl}?tab=configurations&referrer=directory_upgrade_now`}
                   size="xsmall"
                   onClick={() =>
@@ -185,9 +185,9 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
                   }
                 >
                   {t('Upgrade Now')}
-                </ResolveNowButton>
+                </UpgradeNowButton>
               </Alert>
-            </AlertContainer>
+            </div>
           )}
           <div>
             {plugin.projectList.map((projectItem: PluginProjectItem) => (
@@ -213,13 +213,9 @@ const AddButton = styled(Button)`
   margin-bottom: ${space(1)};
 `;
 
-const ResolveNowButton = styled(Button)`
+const UpgradeNowButton = styled(Button)`
   color: ${p => p.theme.subText};
   float: right;
-`;
-
-const AlertContainer = styled('div')`
-  padding: 0px ${space(3)} 0px 68px;
 `;
 
 export default withOrganization(PluginDetailedView);
