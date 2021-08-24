@@ -17,7 +17,7 @@ import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, PluginNoProject, PluginProjectItem} from 'app/types';
-import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
 import withApi from 'app/utils/withApi';
 
 export type Props = {

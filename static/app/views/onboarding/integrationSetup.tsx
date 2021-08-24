@@ -15,7 +15,7 @@ import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationProvider, Organization} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/analytics/advancedAnalytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';

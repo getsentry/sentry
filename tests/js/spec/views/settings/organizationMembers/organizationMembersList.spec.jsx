@@ -8,10 +8,10 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/analytics/advancedAnalytics';
 import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
 
-jest.mock('app/utils/advancedAnalytics', () => ({
+jest.mock('app/utils/analytics/advancedAnalytics', () => ({
   trackAdvancedAnalyticsEvent: jest.fn(),
 }));
 

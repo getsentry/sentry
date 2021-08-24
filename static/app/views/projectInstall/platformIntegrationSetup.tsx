@@ -12,7 +12,7 @@ import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/analytics/advancedAnalytics';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import FirstEventFooter from 'app/views/onboarding/components/firstEventFooter';

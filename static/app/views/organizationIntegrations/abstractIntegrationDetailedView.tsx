@@ -23,7 +23,7 @@ import {
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
-} from 'app/utils/integrationEvents';
+} from 'app/utils/analytics/integrationAnalyticsEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,

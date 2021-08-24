@@ -1,10 +1,10 @@
-import makeAnalyticsFunction from 'app/utils/analytics/makeAnalyticsFunction';
-import {growthEventMap, GrowthEventParameters} from 'app/utils/growthAnalyticsEvents';
-import {issueEventMap, IssueEventParameters} from 'app/utils/issueEvents';
+import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
+import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
+import makeAnalyticsFunction from './makeAnalyticsFunction';
 import {
   performanceEventMap,
   PerformanceEventParameters,
-} from 'app/utils/performanceEvents';
+} from './performanceAnalyticsEvents';
 
 export type EventParameters = GrowthEventParameters &
   IssueEventParameters &
