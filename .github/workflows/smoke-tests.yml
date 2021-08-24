@@ -15,8 +15,8 @@ jobs:
         with:
           node-version: '14'
       - name: Install playwright
-        run: yarn add --global playright @playwright/test
+        run: yarn global add playright @playwright/test
       - name: Install operating system dependencies
-        run: playwright install-deps
+        run: yarn global run playwright install-deps
       - name: Run your tests
-        run: playwright test --browser all tests/smoke
+        run: yarn global playwright test --browser all tests/smoke
