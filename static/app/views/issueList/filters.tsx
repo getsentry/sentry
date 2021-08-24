@@ -85,16 +85,20 @@ class IssueListFilters extends React.Component<Props> {
 
         <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
           {hasIssuePercentDisplay && (
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasSessions={hasSessions}
-              hasMultipleProjectsSelected={
-                selectedProjects.length !== 1 || selectedProjects[0] === -1
-              }
-            />
+            <div>
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasSessions={hasSessions}
+                hasMultipleProjectsSelected={
+                  selectedProjects.length !== 1 || selectedProjects[0] === -1
+                }
+              />
+            </div>
           )}
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          <div>
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </div>
         </DropdownsWrapper>
       </SearchContainer>
     );
