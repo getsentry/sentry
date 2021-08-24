@@ -59,10 +59,10 @@ const config: Config.InitialOptions = {
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     '<rootDir>/tests/js/throw-on-react-error.js',
-    '<rootDir>/tests/js/setup.js',
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
+    '<rootDir>/tests/js/setup.js',
     '<rootDir>/tests/js/setupFramework.ts',
     '@testing-library/jest-dom/extend-expect',
   ],

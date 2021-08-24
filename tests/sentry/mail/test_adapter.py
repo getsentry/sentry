@@ -13,7 +13,6 @@ from sentry.api.serializers.models.userreport import UserReportWithGroupSerializ
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.mail import build_subject_prefix, mail_adapter, send_notification_as_email
-from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
     GroupRelease,
@@ -31,7 +30,11 @@ from sentry.models import (
     UserReport,
 )
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    ActionTargetType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.notifications.utils.digest import get_digest_subject
 from sentry.notifications.utils.participants import (
     get_send_to,

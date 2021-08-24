@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
+import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
