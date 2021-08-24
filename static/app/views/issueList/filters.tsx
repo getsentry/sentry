@@ -85,20 +85,16 @@ class IssueListFilters extends React.Component<Props> {
 
         <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
           {hasIssuePercentDisplay && (
-            <div>
-              <IssueListDisplayOptions
-                onDisplayChange={onDisplayChange}
-                display={display}
-                hasSessions={hasSessions}
-                hasMultipleProjectsSelected={
-                  selectedProjects.length !== 1 || selectedProjects[0] === -1
-                }
-              />
-            </div>
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasSessions={hasSessions}
+              hasMultipleProjectsSelected={
+                selectedProjects.length !== 1 || selectedProjects[0] === -1
+              }
+            />
           )}
-          <div>
-            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          </div>
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
         </DropdownsWrapper>
       </SearchContainer>
     );
@@ -124,6 +120,7 @@ const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   display: grid;
   grid-gap: ${space(1)};
   grid-template-columns: 1fr ${p => (p.hasIssuePercentDisplay ? '1fr' : '')};
+  align-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
