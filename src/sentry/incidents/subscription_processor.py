@@ -18,7 +18,6 @@ from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
     AlertRuleTrigger,
-    AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
     IncidentStatusMethod,
@@ -205,6 +204,24 @@ class SubscriptionProcessor:
                     metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                     incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
                     if incident_trigger is not None:
+                        # If the conditions for a Critical Trigger are met, then we should only
+                        # fire a Critical action, not both Critical and Warning actions. Hence,
+                        # if an active warning trigger is present in the `fired_incident_triggers`
+                        # array, it is popped out of the array and the instance of
+                        # `IncidentTrigger` corresponding to the Warning Trigger is deleted
+                        # before adding the Critical Incident Trigger to the
+                        # `fired_incident_triggers` array
+                        if trigger.label == CRITICAL_TRIGGER_LABEL:
+                            del_index = -1
+                            for idx, it in enumerate(fired_incident_triggers):
+                                if (
+                                    it.alert_rule_trigger.label == WARNING_TRIGGER_LABEL
+                                    and it.status == TriggerStatus.ACTIVE.value
+                                ):
+                                    it.delete()
+                                    del_index = idx
+                            if del_index >= 0:
+                                fired_incident_triggers.pop(del_index)
                         fired_incident_triggers.append(incident_trigger)
                 else:
                     self.trigger_alert_counts[trigger.id] = 0
@@ -340,14 +357,7 @@ class SubscriptionProcessor:
             return incident_trigger
 
     def handle_trigger_actions(self, incident_triggers, metric_value):
-        actions = deduplicate_trigger_actions(
-            list(
-                AlertRuleTriggerAction.objects.filter(
-                    alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
-                ).select_related("alert_rule_trigger")
-            )
-        )
-
+        actions = deduplicate_trigger_actions(triggers=deepcopy(incident_triggers))
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
