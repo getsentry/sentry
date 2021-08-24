@@ -7,7 +7,9 @@ import {Location, Query} from 'history';
 import moment from 'moment';
 
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
+import {openDiscoverAddToDashboardModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MenuItem from 'app/components/menuItem';
@@ -82,6 +84,17 @@ class QueryList extends React.Component<Props> {
       });
     });
   };
+
+  handleAddQueryToDashboard =
+    (eventView: EventView) => (event: React.MouseEvent<Element>) => {
+      const {organization} = this.props;
+      event.preventDefault();
+      event.stopPropagation();
+      openDiscoverAddToDashboardModal({
+        organization,
+        defaultQuery: eventView.query,
+      });
+    };
 
   renderQueries() {
     const {pageLinks, renderPrebuilt} = this.props;
@@ -208,6 +221,21 @@ class QueryList extends React.Component<Props> {
           )}
           renderContextMenu={() => (
             <ContextMenu>
+              <Feature
+                organization={organization}
+                features={['connect-discover-and-dashboards']}
+              >
+                {({hasFeature}) =>
+                  hasFeature && (
+                    <MenuItem
+                      data-test-id="add-query-to-dashboard"
+                      onClick={this.handleAddQueryToDashboard(eventView)}
+                    >
+                      {t('Add to Dashboard')}
+                    </MenuItem>
+                  )
+                }
+              </Feature>
               <MenuItem
                 data-test-id="delete-query"
                 onClick={this.handleDeleteQuery(eventView)}
