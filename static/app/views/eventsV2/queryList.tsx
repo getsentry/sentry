@@ -235,7 +235,7 @@ class QueryList extends React.Component<Props> {
         <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor, path, query, direction) => {
-            const offset = Number(cursor?.split(':')?.[1]);
+            const offset = Number(cursor?.split(':')?.[1] ?? 0);
 
             const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
