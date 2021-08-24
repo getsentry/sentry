@@ -147,7 +147,9 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     // DynamicSamplingConditionLogicalInnerGlob
     if (
       condition.category === DynamicSamplingInnerName.EVENT_RELEASE ||
-      condition.category === DynamicSamplingInnerName.TRACE_RELEASE
+      condition.category === DynamicSamplingInnerName.TRACE_RELEASE ||
+      condition.category === DynamicSamplingInnerName.EVENT_TRACE ||
+      condition.category === DynamicSamplingInnerName.TRACE_TRANSACTION
     ) {
       return {
         op: DynamicSamplingInnerOperator.GLOB_MATCH,
