@@ -77,6 +77,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import ActorTuple, PagerDutyService
 from sentry.models.integration import Integration
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1401,6 +1402,38 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 integration=integration,
             )
 
+    @responses.activate
+    def test_slack_rate_limiting(self):
+        """Should handle 429 from Slack on new Metric Alert creation"""
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps({"ok": "false", "error": "ratelimited"}),
+        )
+        with self.assertRaises(ApiRateLimitedError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_name,
+                integration=integration,
+            )
+
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
         integration = Integration.objects.create(external_id="1", provider="msteams")
@@ -1567,6 +1600,38 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
         with self.assertRaises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_name,
+                integration=integration,
+            )
+
+    @responses.activate
+    def test_slack_rate_limiting(self):
+        """Should handle 429 from Slack on existing Metric Alert update"""
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps({"ok": "false", "error": "ratelimited"}),
+        )
+        with self.assertRaises(ApiRateLimitedError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
