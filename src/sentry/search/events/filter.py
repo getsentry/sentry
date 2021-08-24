@@ -362,12 +362,7 @@ def _release_stage_filter_converter(
 
     organization_id: int = params["organization_id"]
     project_ids: Optional[list[int]] = params.get("project_id")
-    environment_ids: Optional[list[int]] = params.get("environment_id", [])
-    environments = list(
-        Environment.objects.filter(
-            organization_id=organization_id, id__in=environment_ids
-        ).values_list("name", flat=True)
-    )
+    environments: Optional[list[int]] = params.get("environment")
     qs = (
         Release.objects.filter_by_stage(
             organization_id,
