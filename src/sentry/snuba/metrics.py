@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
 from sentry_relay.metrics import to_metrics_symbol
-from snuba_sdk import Column, Condition, Entity, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 
 from sentry.models import Project
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -76,6 +76,7 @@ def parse_tag(tag_string: str) -> Tuple[str, str]:
 
 
 def parse_query(query_string: str) -> dict:
+    # TODO: move this to QueryDefinition
     return {
         "or": [
             {"and": [parse_tag(and_part) for and_part in or_part.split(" and ")]}
@@ -518,6 +519,7 @@ class SnubaDataSource(IndexMockingDataSource):
                 {
                     "by": {},  # TODO: handle tags
                     "totals": {
+                        # TODO: One query per table
                         field: self._run_query_total(project, query, op, metric_name)
                         for field, (op, metric_name) in query.fields.items()
                     },
@@ -543,19 +545,52 @@ class SnubaDataSource(IndexMockingDataSource):
 
         column = self._op_to_field[metric["type"]][op]
 
+        where = [
+            Condition(Column("org_id"), Op.EQ, project.organization.id),
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("metric_id"), Op.EQ, metric_id),
+            Condition(Column(TS_COL), Op.GTE, query.start),
+            Condition(Column(TS_COL), Op.LT, query.end),
+        ]
+
+        def build_logical(operator, operands):
+            """Snuba only accepts And and Or if they have 2 elements or more"""
+            operands = [operand for operand in operands if operand is not None]
+            if not operands:
+                return None
+            if len(operands) == 1:
+                return operands[0]
+
+            return operator(operands)
+
+        if query.query:
+            filter_ = parse_query(query.query)
+            snuba_filter = build_logical(
+                Or,
+                [
+                    build_logical(
+                        And,
+                        [
+                            Condition(
+                                Column(f"tags[{to_metrics_symbol(tag)}]"),
+                                Op.EQ,
+                                to_metrics_symbol(value),
+                            )
+                            for tag, value in or_operand["and"]
+                        ],
+                    )
+                    for or_operand in filter_["or"]
+                ],
+            )
+
+            where.append(snuba_filter)
+
         snql_query = Query(
             dataset=self._dataset,
             match=Entity(self._get_entity(metric_name)),
             select=[Column(column)],
             # groupby=[Column(field) for field in query.groupby],
-            where=[
-                Condition(Column("org_id"), Op.EQ, project.organization.id),
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("metric_id"), Op.EQ, metric_id),
-                Condition(Column(TS_COL), Op.GTE, query.start),
-                Condition(Column(TS_COL), Op.LT, query.end),
-                # TODO: filter by tag values
-            ],
+            where=where,
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
             granularity=Granularity(query.rollup),
