@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -13,7 +13,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Radio from 'app/components/radio';
@@ -26,7 +26,7 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -75,13 +75,9 @@ type TrendsCursorQuery = {
   regressionCursor?: string;
 };
 
-function onTrendsCursor(trendChangeType: TrendChangeType) {
-  return function onCursor(
-    cursor: string,
-    path: string,
-    query: Query,
-    _direction: number
-  ) {
+const makeTrendsCursorHandler =
+  (trendChangeType: TrendChangeType): CursorHandler =>
+  (cursor, path, query) => {
     const cursorQuery = {} as TrendsCursorQuery;
     if (trendChangeType === TrendChangeType.IMPROVED) {
       cursorQuery.improvedCursor = cursor;
@@ -97,7 +93,6 @@ function onTrendsCursor(trendChangeType: TrendChangeType) {
       query: {...query, ...cursorQuery},
     });
   };
-}
 
 function getChartTitle(trendChangeType: TrendChangeType): string {
   switch (trendChangeType) {
@@ -161,7 +156,7 @@ enum FilterSymbols {
 
 function handleFilterTransaction(location: Location, transaction: string) {
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
   conditions.addFilterValues('!transaction', [transaction]);
 
@@ -179,7 +174,7 @@ function handleFilterTransaction(location: Location, transaction: string) {
 function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
   const durationTag = getCurrentTrendParameter(location).column;
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
   const existingValues = conditions.getFilterValues(durationTag);
   const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
@@ -220,7 +215,7 @@ function ChangedTransactions(props: Props) {
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
 
-  const onCursor = onTrendsCursor(trendChangeType);
+  const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
 
   return (

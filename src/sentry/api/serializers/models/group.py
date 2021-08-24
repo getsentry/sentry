@@ -45,15 +45,14 @@ from sentry.notifications.helpers import (
     get_groups_for_query,
     get_subscription_from_attributes,
     get_user_subscriptions_for_groups,
-    transform_to_notification_settings_by_parent_id,
+    transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
@@ -182,28 +181,14 @@ class GroupSerializerBase(Serializer):
             return {}
 
         groups_by_project = collect_groups_by_project(groups)
-        notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-            NotificationSettingTypes.WORKFLOW,
-            user,
-            groups_by_project.keys(),
+        notification_settings_by_scope = transform_to_notification_settings_by_scope(
+            NotificationSetting.objects.get_for_user_by_projects(
+                NotificationSettingTypes.WORKFLOW,
+                user,
+                groups_by_project.keys(),
+            )
         )
-
-        (
-            notification_settings_by_project_id_by_provider,
-            default_subscribe_by_provider,
-        ) = transform_to_notification_settings_by_parent_id(
-            notification_settings, NotificationSettingOptionValues.SUBSCRIBE_ONLY
-        )
-        notification_settings_by_key = notification_settings_by_project_id_by_provider[
-            ExternalProviders.EMAIL
-        ]
-        global_default_workflow_option = default_subscribe_by_provider[ExternalProviders.EMAIL]
-
-        query_groups = get_groups_for_query(
-            groups_by_project,
-            notification_settings_by_key,
-            global_default_workflow_option,
-        )
+        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
         subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user=user)
         subscriptions_by_group_id = {
             subscription.group_id: subscription for subscription in subscriptions
@@ -211,9 +196,9 @@ class GroupSerializerBase(Serializer):
 
         return get_user_subscriptions_for_groups(
             groups_by_project,
-            notification_settings_by_key,
+            notification_settings_by_scope,
             subscriptions_by_group_id,
-            global_default_workflow_option,
+            user,
         )
 
     def get_attrs(self, item_list, user):

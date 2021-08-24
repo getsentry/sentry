@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import sentry_sdk
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -751,6 +752,56 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                                         "status": GroupResolution.Status.resolved,
                                     }
                                 )
+                            else:
+                                # If we already know the `next` release in date based ordering
+                                # when clicking on `resolvedInNextRelease` because it is already
+                                # been released, there is no point in setting GroupResolution to
+                                # be of type in_next_release but rather in_release would suffice
+
+                                try:
+                                    # Get current release object from current_release_version
+                                    current_release_obj = Release.objects.get(
+                                        version=current_release_version,
+                                        organization_id=projects[0].organization_id,
+                                    )
+
+                                    date_order_q = Q(
+                                        date_added__gt=current_release_obj.date_added
+                                    ) | Q(
+                                        date_added=current_release_obj.date_added,
+                                        id__gt=current_release_obj.id,
+                                    )
+
+                                    # Find the next release after the current_release_version
+                                    # i.e. the release that resolves the issue
+                                    resolved_in_release = (
+                                        Release.objects.filter(
+                                            date_order_q,
+                                            projects=projects[0],
+                                            organization_id=projects[0].organization_id,
+                                        )
+                                        .extra(
+                                            select={"sort": "COALESCE(date_released, date_added)"}
+                                        )
+                                        .order_by("sort", "id")[:1]
+                                        .get()
+                                    )
+
+                                    # If we get here, we assume it exists and so we update
+                                    # GroupResolution and Activity
+                                    resolution_params.update(
+                                        {
+                                            "release": resolved_in_release,
+                                            "type": GroupResolution.Type.in_release,
+                                            "status": GroupResolution.Status.resolved,
+                                        }
+                                    )
+                                    activity_data.update({"version": resolved_in_release.version})
+                                except Release.DoesNotExist:
+                                    # If it gets here, it means we don't know the upcoming
+                                    # release yet because it does not exist, and so we should
+                                    # fall back to our current model
+                                    ...
 
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params

@@ -15,6 +15,7 @@ import {
   ParsedTraceType,
   RawSpanType,
   SpanFuseOptions,
+  TraceBound,
 } from './types';
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 
@@ -32,6 +33,7 @@ class WaterfallModel {
   filterSpans: FilterSpans | undefined = undefined;
   searchQuery: string | undefined = undefined;
   hiddenSpanGroups: Set<string>;
+  traceBounds: Array<TraceBound>;
 
   constructor(event: Readonly<EventTransaction>) {
     this.event = event;
@@ -45,6 +47,10 @@ class WaterfallModel {
       true
     );
 
+    // Track the trace bounds of the current transaction and the trace bounds of
+    // any embedded transactions
+    this.traceBounds = [this.rootSpan.generateTraceBounds()];
+
     this.indexSearch(this.parsedTrace, rootSpan);
 
     // Set of span IDs whose sub-trees should be hidden. This is used for the
@@ -52,6 +58,7 @@ class WaterfallModel {
     this.hiddenSpanGroups = new Set();
 
     makeObservable(this, {
+      parsedTrace: observable,
       rootSpan: observable,
 
       // operation names filtering
@@ -68,6 +75,11 @@ class WaterfallModel {
       // span group toggling
       hiddenSpanGroups: observable,
       toggleSpanGroup: action,
+
+      // trace bounds
+      traceBounds: observable,
+      addTraceBounds: action,
+      removeTraceBounds: action,
     });
   }
 
@@ -205,6 +217,52 @@ class WaterfallModel {
     this.hiddenSpanGroups.add(spanID);
   };
 
+  addTraceBounds = (traceBound: TraceBound) => {
+    this.traceBounds.push(traceBound);
+
+    this.parsedTrace = {
+      ...this.parsedTrace,
+      ...this.getTraceBounds(),
+    };
+  };
+
+  removeTraceBounds = (spanId: string) => {
+    this.traceBounds = this.traceBounds.filter(bound => bound.spanId !== spanId);
+
+    // traceBounds must always be non-empty
+    if (this.traceBounds.length === 0) {
+      this.traceBounds = [this.rootSpan.generateTraceBounds()];
+    }
+
+    this.parsedTrace = {
+      ...this.parsedTrace,
+      ...this.getTraceBounds(),
+    };
+  };
+
+  getTraceBounds = () => {
+    // traceBounds must always be non-empty
+    if (this.traceBounds.length === 0) {
+      this.traceBounds = [this.rootSpan.generateTraceBounds()];
+    }
+
+    return this.traceBounds.reduce(
+      (acc, bounds) => {
+        return {
+          traceStartTimestamp: Math.min(
+            acc.traceStartTimestamp,
+            bounds.traceStartTimestamp
+          ),
+          traceEndTimestamp: Math.max(acc.traceEndTimestamp, bounds.traceEndTimestamp),
+        };
+      },
+      {
+        traceStartTimestamp: this.traceBounds[0].traceStartTimestamp,
+        traceEndTimestamp: this.traceBounds[0].traceEndTimestamp,
+      }
+    );
+  };
+
   generateBounds = ({
     viewStart,
     viewEnd,
@@ -213,8 +271,7 @@ class WaterfallModel {
     viewEnd: number; // in [0, 1]
   }) => {
     return boundsGenerator({
-      traceStartTimestamp: this.parsedTrace.traceStartTimestamp,
-      traceEndTimestamp: this.parsedTrace.traceEndTimestamp,
+      ...this.getTraceBounds(),
       viewStart,
       viewEnd,
     });
@@ -247,6 +304,8 @@ class WaterfallModel {
       spanGrouping: undefined,
       toggleSpanGroup: undefined,
       showSpanGroup: false,
+      addTraceBounds: this.addTraceBounds,
+      removeTraceBounds: this.removeTraceBounds,
     });
   };
 }
