@@ -1,7 +1,10 @@
 name: 'Run Smoke Tests'
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  push:  # This is for testing only -- DELETE BEFORE LANDING
+    branches:
+      - byk/ci/smoke-tests
+  # schedule:
+  #   - cron: '*/5 * * * *'
   workflow_dispatch:
 jobs:
   smoke_tests:
