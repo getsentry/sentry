@@ -1,12 +1,12 @@
 import React, {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject, Query} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {IconAdd} from 'app/icons/iconAdd';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -46,7 +46,7 @@ type Props = {
   tableData: TableData | null;
   pageLinks: string | null;
   isLoading: boolean;
-  onCursor?: (cursor: string, path: string, query: Query, _direction: number) => void;
+  onCursor?: CursorHandler;
 };
 
 type State = {
@@ -91,7 +91,6 @@ export class TagValueTable extends Component<Props, State> {
         direction={currentSortKind}
         canSort
         generateSortLink={generateSortLink}
-        onClick={() => {}} // TODO(k-fish): Implement sorting
       />
     );
   }

@@ -63,8 +63,8 @@ const Content = ({
         projectId={projectId}
         exception={exception}
         stacktrace={stacktrace}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     )}
   </div>

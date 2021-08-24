@@ -1,4 +1,4 @@
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
@@ -71,7 +71,7 @@ type UrlParams = {
 /**
  * This can be null which will not perform any router side effects, and instead updates store.
  */
-type Router = ReactRouter.InjectedRouter | null | undefined;
+type Router = InjectedRouter | null | undefined;
 
 // Reset values in global selection store
 export function resetGlobalSelection() {
@@ -84,8 +84,8 @@ function getProjectIdFromProject(project: MinimalProject) {
 
 type InitializeUrlStateParams = {
   organization: Organization;
-  queryParams: ReactRouter.WithRouterProps['location']['query'];
-  router: ReactRouter.WithRouterProps['router'];
+  queryParams: InjectedRouter['location']['query'];
+  router: InjectedRouter;
   memberProjects: Project[];
   shouldForceProject?: boolean;
   shouldEnforceSingleProject: boolean;
