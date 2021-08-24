@@ -122,7 +122,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
             url = generate_chart(style, chart_data)
         except RuntimeError as exc:
             logger.error(
-                "Failed to generate chat for discover unfurl: %s",
+                "Failed to generate chart for discover unfurl: %s",
                 str(exc),
                 exc_info=True,
             )
