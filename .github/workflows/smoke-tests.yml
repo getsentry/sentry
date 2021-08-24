@@ -15,8 +15,10 @@ jobs:
         with:
           node-version: '14'
       - name: Install playwright
-        run: yarn global add playright @playwright/test
+        run: |
+          yarn global add playright @playwright/test
+          echo "PATH=$(yarn global bin):$PATH" >> $GITHUB_ENV;
       - name: Install operating system dependencies
-        run: yarn global run playwright install-deps
+        run: playwright install-deps
       - name: Run your tests
-        run: yarn global playwright test --browser all tests/smoke
+        run: playwright test --browser all tests/smoke
