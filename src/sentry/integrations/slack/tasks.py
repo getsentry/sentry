@@ -53,8 +53,8 @@ class RedisRuleStatus:
     def uuid(self):
         return self._uuid
 
-    def set_value(self, status, rule_id=None):
-        value = self._format_value(status, rule_id)
+    def set_value(self, status, rule_id=None, error_message=None):
+        value = self._format_value(status, rule_id, error_message)
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60)
 
     def get_value(self):
@@ -72,16 +72,16 @@ class RedisRuleStatus:
     def _get_redis_key(self):
         return f"slack-channel-task:1:{self.uuid}"
 
-    def _format_value(self, status, rule_id):
+    def _format_value(self, status, rule_id, error_message):
         value = {"status": status}
         if rule_id:
             value["rule_id"] = str(rule_id)
-        if status == "failed":
+        if error_message:
+            value["error"] = error_message
+        elif status == "failed":
             value[
                 "error"
             ] = "The slack resource does not exist or has not been granted access in that workspace."
-        elif status == "ratelimited":
-            value["error"] = "Requests to slack were rate limited. Please try again later."
         return json.dumps(value)
 
 
@@ -135,7 +135,9 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         # over the next block and hit the failed status at the end.
         item_id = None
     except ApiRateLimitedError:
-        redis_rule_status.set_value("ratelimited")
+        redis_rule_status.set_value(
+            "failed", None, "Requests to slack were rate limited. Please try again later."
+        )
 
     if item_id:
         for action in actions:
@@ -209,7 +211,9 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
                 "exception": e,
             },
         )
-        redis_rule_status.set_value("ratelimited")
+        redis_rule_status.set_value(
+            "failed", None, "Requests to slack were rate limited. Please try again later."
+        )
         return
 
     for trigger in data["triggers"]:

@@ -48,7 +48,7 @@ import {
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
 type RuleTaskResponse = {
-  status: 'pending' | 'failed' | 'success' | 'ratelimited';
+  status: 'pending' | 'failed' | 'success';
   alertRule?: IncidentRule;
   error?: string;
 };
@@ -196,7 +196,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       this.resetPollingState(loadingSlackIndicator);
 
-      if (status === 'failed' || status === 'ratelimited') {
+      if (status === 'failed') {
         this.handleRuleSaveFailure(error);
       }
       if (alertRule) {
