@@ -887,6 +887,7 @@ def histogram_query(
     group_by=None,
     order_by=None,
     limit_by=None,
+    histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
 ):
@@ -908,9 +909,10 @@ def histogram_query(
     :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
-    :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
-    :param [str] order_by: Experimental. Allows additional ordering within each alias to serve multifacet histograms.
-    :param [str] limit_by: Experimental. Allows limiting within a group when serving multifacet histograms.
+    :param [str] group_by: Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
+    :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
+    :param int histogram_rows: Used to modify the limit when fetching multiple rows of buckets (performance facets).
     :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
@@ -965,7 +967,8 @@ def histogram_query(
         conditions.append([histogram_alias, "<=", max_bin])
 
     columns = [] if key_column is None else [key_column]
-    limit = len(fields) * num_buckets
+    groups = len(fields) if histogram_rows is None else histogram_rows
+    limit = groups * num_buckets
 
     histogram_query = prepare_discover_query(
         selected_columns=columns + [histogram_column, "count()"],
