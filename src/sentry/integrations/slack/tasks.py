@@ -14,6 +14,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRule
 from sentry.integrations.slack.utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
     get_channel_id_with_timeout,
     get_identities_by_user,
     get_slack_data_by_user,
@@ -33,7 +34,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.redis import redis_clusters
@@ -53,8 +54,8 @@ class RedisRuleStatus:
     def uuid(self):
         return self._uuid
 
-    def set_value(self, status, rule_id=None):
-        value = self._format_value(status, rule_id)
+    def set_value(self, status, rule_id=None, error_message=None):
+        value = self._format_value(status, rule_id, error_message)
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60)
 
     def get_value(self):
@@ -72,15 +73,16 @@ class RedisRuleStatus:
     def _get_redis_key(self):
         return f"slack-channel-task:1:{self.uuid}"
 
-    def _format_value(self, status, rule_id):
+    def _format_value(self, status, rule_id, error_message):
         value = {"status": status}
         if rule_id:
             value["rule_id"] = str(rule_id)
-        if status == "failed":
+        if error_message:
+            value["error"] = error_message
+        elif status == "failed":
             value[
                 "error"
             ] = "The slack resource does not exist or has not been granted access in that workspace."
-
         return json.dumps(value)
 
 
@@ -133,6 +135,9 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
         item_id = None
+    except ApiRateLimitedError:
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
+        return
 
     if item_id:
         for action in actions:
@@ -198,6 +203,15 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             },
         )
         redis_rule_status.set_value("failed")
+        return
+    except ApiRateLimitedError as e:
+        logger.info(
+            "get_slack_channel_ids.rate_limited",
+            extra={
+                "exception": e,
+            },
+        )
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
         return
 
     for trigger in data["triggers"]:

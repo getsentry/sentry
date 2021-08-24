@@ -9,6 +9,7 @@ from sentry.integrations.slack.tasks import (
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
 )
+from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration, Rule
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -198,6 +199,43 @@ class SlackTasksTest(TestCase):
             find_channel_id_for_rule(**data)
 
         mock_set_value.assert_called_with("failed")
+
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    def test_task_rate_limited_channel_id_lookup(self, mock_set_value):
+        """Should set the correct error value when rate limited"""
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/users.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "error": "ratelimited"}),
+        )
+
+        data = {
+            "name": "Test Rule",
+            "environment": None,
+            "project": self.project1,
+            "action_match": "all",
+            "filter_match": "all",
+            "conditions": [{"id": "sentry.rules.conditions.every_event.EveryEventCondition"}],
+            "actions": [
+                {
+                    "channel": "@user",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
+                    "tags": "",
+                    "workspace": self.integration.id,
+                }
+            ],
+            "frequency": 5,
+            "uuid": self.uuid,
+        }
+
+        with self.tasks():
+            find_channel_id_for_rule(**data)
+
+        mock_set_value.assert_called_with("failed", None, SLACK_RATE_LIMITED_MESSAGE)
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(

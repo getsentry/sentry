@@ -7,11 +7,20 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    DuplicateDisplayNameError,
+)
 from sentry.utils import json, metrics
 
 from .client import SlackClient
-from .utils import get_channel_id, strip_channel_name, validate_channel_id
+from .utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
+    get_channel_id,
+    strip_channel_name,
+    validate_channel_id,
+)
 
 logger = logging.getLogger("sentry.rules")
 
@@ -105,9 +114,10 @@ class SlackNotifyServiceForm(forms.Form):
                     code="invalid",
                     params=params,
                 )
+            except ApiRateLimitedError:
+                raise forms.ValidationError(_(SLACK_RATE_LIMITED_MESSAGE))
 
         channel = strip_channel_name(channel)
-
         if channel_id is None and timed_out:
             cleaned_data["channel"] = channel_prefix + channel
             self._pending_save = True
@@ -118,7 +128,6 @@ class SlackNotifyServiceForm(forms.Form):
                 "channel": channel,
                 "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
             }
-
             raise forms.ValidationError(
                 _(
                     'The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'

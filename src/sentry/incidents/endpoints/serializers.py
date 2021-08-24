@@ -41,6 +41,7 @@ from sentry.models import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
@@ -179,6 +180,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         except InvalidTriggerActionError as e:
             raise serializers.ValidationError(force_text(e))
+        except ApiRateLimitedError as e:
+            raise serializers.ValidationError(force_text(e))
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
@@ -186,6 +189,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         try:
             return update_alert_rule_trigger_action(instance, **validated_data)
         except InvalidTriggerActionError as e:
+            raise serializers.ValidationError(force_text(e))
+        except ApiRateLimitedError as e:
             raise serializers.ValidationError(force_text(e))
 
 
