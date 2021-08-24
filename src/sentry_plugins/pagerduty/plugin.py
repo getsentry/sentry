@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.utils.http import absolute_uri
@@ -29,7 +31,8 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             IntegrationFeatures.ALERT_RULE,
         ),
     ]
-    deprecation_date = "Sept 20, 2021"
+    deprecation_date = datetime(2021, 9, 20)
+
     alternative = "pagerduty"
     alt_is_sentry_app = False
 

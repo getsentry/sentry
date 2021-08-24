@@ -1,6 +1,7 @@
 """ A plugin to incorporate work-item creation in VSTS
 easily out of issues detected from Sentry.io """
 
+from datetime import datetime
 
 from mistune import markdown
 
@@ -36,7 +37,7 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
-    deprecation_date = "Sept 20, 2021"
+    deprecation_date = datetime(2021, 9, 20)
     alternative = "vsts"
     alt_is_sentry_app = False
 

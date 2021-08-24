@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
@@ -80,7 +82,7 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
-    deprecation_date = "Sept 20, 2021"
+    deprecation_date = datetime(2021, 9, 20)
     alternative = "teamwork"
     alt_is_sentry_app = True
 
