@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps, withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import QRCode from 'qrcode.react';
 
@@ -131,7 +131,7 @@ const getFields = ({
   return null;
 };
 
-type Props = AsyncView['props'] & RouteComponentProps<{authId: string}, {}> & {};
+type Props = AsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
 
 type State = AsyncView['state'] & {
   authenticator: Authenticator | null;

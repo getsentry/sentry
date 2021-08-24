@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -24,7 +24,7 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = {
   api: Client;
-} & WithRouterProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
   isLoading: boolean;

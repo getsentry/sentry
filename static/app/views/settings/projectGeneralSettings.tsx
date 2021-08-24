@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {
   changeProjectSlug,
@@ -29,7 +29,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = AsyncView['props'] &
-  WithRouterProps<{orgId: string; projectId: string}> & {
+  RouteComponentProps<{orgId: string; projectId: string}, {}> & {
     organization: Organization;
     onChangeSlug: (slug: string) => void;
   };
@@ -327,7 +327,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
 type ContainerProps = {
   organization: Organization;
-} & WithRouterProps<{orgId: string; projectId: string}>;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
   componentWillUnmount() {
