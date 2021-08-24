@@ -135,6 +135,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.14.5",
+    "@playwright/test": "^1.14.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.4.2",
     "@size-limit/preset-small-lib": "^4.10.2",
     "@storybook/addon-a11y": "6.3.6",
