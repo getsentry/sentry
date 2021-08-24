@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import * as React from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import Access from 'app/components/acl/access';
 import Link from 'app/components/links/link';
@@ -24,7 +24,7 @@ type Props = {
   error: React.ComponentProps<typeof RouteError>['error'];
   onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
   project: Project;
-} & WithRouterProps<{orgId: string}>;
+} & RouteComponentProps<{orgId: string}, {}>;
 
 class ProjectPlugins extends Component<Props> {
   render() {

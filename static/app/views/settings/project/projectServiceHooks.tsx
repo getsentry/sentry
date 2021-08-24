@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -53,7 +53,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   );
 }
 
-type Props = WithRouterProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: LightWeightOrganization;
 };
 
