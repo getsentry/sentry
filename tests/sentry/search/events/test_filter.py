@@ -1364,7 +1364,10 @@ class GetSnubaQueryArgsTest(TestCase):
             {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
 
-        assert _filter.conditions == [["release", "IN", ["adopted_release"]]]
+        assert _filter.conditions == [
+            ["release", "IN", ["adopted_release"]],
+            [["environment", "=", "development"]],
+        ]
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
@@ -1372,7 +1375,8 @@ class GetSnubaQueryArgsTest(TestCase):
             {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
         assert _filter.conditions == [
-            ["release", "IN", [replaced_release.version, not_adopted_release.version]]
+            ["release", "IN", [replaced_release.version, not_adopted_release.version]],
+            [["environment", "=", "development"]],
         ]
         assert _filter.filter_keys == {}
 
@@ -1380,7 +1384,10 @@ class GetSnubaQueryArgsTest(TestCase):
             f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.LOW_ADOPTION}]",
             {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
-        assert _filter.conditions == [["release", "IN", [replaced_release.version]]]
+        assert _filter.conditions == [
+            ["release", "IN", [replaced_release.version]],
+            [["environment", "=", "development"]],
+        ]
         assert _filter.filter_keys == {}
 
         with self.assertRaises(InvalidSearchQuery):
