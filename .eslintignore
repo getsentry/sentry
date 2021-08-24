@@ -1,6 +1,5 @@
 **/dist/**/*
 **/vendor/**/*
-**/tests/smoke/**/*
 **/tests/**/lang/javascript/fixtures/**/*
 **/tests/**/lang/javascript/example-project/**/*
 /examples/
