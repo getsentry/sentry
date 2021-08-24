@@ -23,13 +23,13 @@ export type Props = {
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  trackIntegrationEvent: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
+  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
   handleUninstallClick = () => {
-    this.props.trackIntegrationEvent('integrations.uninstall_clicked');
+    this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
   getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
@@ -50,7 +50,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   handleRemove(integration: Integration) {
     this.props.onRemove(integration);
-    this.props.trackIntegrationEvent('integrations.uninstall_completed');
+    this.props.trackIntegrationAnalytics('integrations.uninstall_completed');
   }
 
   get removeConfirmProps() {

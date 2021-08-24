@@ -38,7 +38,7 @@ const mapIntegrationParams = analyticsParams => {
   return fullParams;
 };
 
-export const trackIntegrationEvent = makeAnalyticsFunction<
+export const trackIntegrationAnalytics = makeAnalyticsFunction<
   IntegrationEventParameters,
   {organization: LightWeightOrganization} // org is required
 >(integrationEventMap, {

@@ -6,7 +6,7 @@ import {
   PerformanceEventParameters,
 } from './performanceAnalyticsEvents';
 
-export type EventParameters = GrowthEventParameters &
+type EventParameters = GrowthEventParameters &
   IssueEventParameters &
   PerformanceEventParameters;
 
@@ -18,7 +18,8 @@ const allEventMap = {
 
 /**
  * Generic typed analytics function for growth, issue, and performance events.
- * Can split up analytics functions to a smaller set of events like we do for trackIntegrationEvent
+ * Can split up analytics functions to a smaller set of events like we do for trackIntegrationAnalytics
  */
-export const trackAdvancedAnalyticsEvent =
-  makeAnalyticsFunction<EventParameters>(allEventMap);
+const trackAdvancedAnalyticsEvent = makeAnalyticsFunction<EventParameters>(allEventMap);
+
+export default trackAdvancedAnalyticsEvent;

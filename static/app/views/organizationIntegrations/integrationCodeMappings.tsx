@@ -25,7 +25,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
-import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -93,7 +93,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     // We don't start new session if the user was coming from choosing
     // the manual setup option flow from the issue details page
     const startSession = referrer === 'stacktrace-issue-details' ? false : true;
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.code_mappings_viewed',
       {
         integration: this.props.integration.provider.key,
@@ -127,7 +127,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
-    trackIntegrationEvent('integrations.stacktrace_complete_setup', {
+    trackIntegrationAnalytics('integrations.stacktrace_complete_setup', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
@@ -143,7 +143,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
-    trackIntegrationEvent('integrations.stacktrace_start_setup', {
+    trackIntegrationAnalytics('integrations.stacktrace_start_setup', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
@@ -214,7 +214,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
                     size="small"
                     onClick={() => {
-                      trackIntegrationEvent('integrations.stacktrace_docs_clicked', {
+                      trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
                         view: 'integration_configuration_detail',
                         provider: this.props.integration.provider.key,
                         organization: this.props.organization,
