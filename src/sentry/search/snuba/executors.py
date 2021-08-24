@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.models import Group
+from sentry.models import Environment, Group
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.utils import json, metrics, snuba
@@ -115,8 +115,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         filters = {"project_id": project_ids}
 
+        environments = None
         if environment_ids is not None:
             filters["environment"] = environment_ids
+            environments = list(
+                Environment.objects.filter(
+                    organization_id=organization_id, id__in=environment_ids
+                ).values_list("name", flat=True)
+            )
 
         if group_ids:
             filters["group_id"] = sorted(group_ids)
@@ -137,7 +143,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 params={
                     "organization_id": organization_id,
                     "project_id": project_ids,
-                    "environment_id": environment_ids,
+                    "environment": environments,
                 },
             )
             converted_filter = self._transform_converted_filter(
