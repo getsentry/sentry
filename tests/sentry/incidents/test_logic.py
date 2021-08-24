@@ -1404,6 +1404,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @responses.activate
     def test_slack_rate_limiting(self):
+        """Should handle 429 from Slack on new Metric Alert creation"""
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",
@@ -1609,6 +1610,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @responses.activate
     def test_slack_rate_limiting(self):
+        """Should handle 429 from Slack on existing Metric Alert update"""
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",

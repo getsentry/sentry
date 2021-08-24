@@ -100,6 +100,7 @@ class GetChannelIdErrorBotTest(TestCase):
         self.resp.__exit__(None, None, None)
 
     def test_rate_limiting(self):
+        """Should handle 429 from Slack when searching for channels"""
         self.resp.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.list",

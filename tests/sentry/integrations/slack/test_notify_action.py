@@ -3,6 +3,7 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
@@ -192,6 +193,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_rate_limited_response(self):
+        """Should surface a 429 from Slack to the frontend form"""
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
@@ -223,9 +225,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert "Requests to slack were rate limited. Please try again later." in str(
-            form.errors.values()
-        )
+        assert SLACK_RATE_LIMITED_MESSAGE in str(form.errors.values())
 
     @responses.activate
     def test_channel_id_provided(self):

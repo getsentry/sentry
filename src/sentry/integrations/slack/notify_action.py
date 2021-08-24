@@ -15,7 +15,12 @@ from sentry.shared_integrations.exceptions import (
 from sentry.utils import json, metrics
 
 from .client import SlackClient
-from .utils import get_channel_id, strip_channel_name, validate_channel_id
+from .utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
+    get_channel_id,
+    strip_channel_name,
+    validate_channel_id,
+)
 
 logger = logging.getLogger("sentry.rules")
 
@@ -110,9 +115,7 @@ class SlackNotifyServiceForm(forms.Form):
                     params=params,
                 )
             except ApiRateLimitedError:
-                raise forms.ValidationError(
-                    _("Requests to slack were rate limited. Please try again later."),
-                )
+                raise forms.ValidationError(_(SLACK_RATE_LIMITED_MESSAGE))
 
         channel = strip_channel_name(channel)
         if channel_id is None and timed_out:

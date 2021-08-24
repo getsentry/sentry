@@ -14,6 +14,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRule
 from sentry.integrations.slack.utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
     get_channel_id_with_timeout,
     get_identities_by_user,
     get_slack_data_by_user,
@@ -135,9 +136,8 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         # over the next block and hit the failed status at the end.
         item_id = None
     except ApiRateLimitedError:
-        redis_rule_status.set_value(
-            "failed", None, "Requests to slack were rate limited. Please try again later."
-        )
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
+        return
 
     if item_id:
         for action in actions:
@@ -211,9 +211,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
                 "exception": e,
             },
         )
-        redis_rule_status.set_value(
-            "failed", None, "Requests to slack were rate limited. Please try again later."
-        )
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
         return
 
     for trigger in data["triggers"]:

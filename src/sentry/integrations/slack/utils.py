@@ -39,6 +39,7 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
+SLACK_RATE_LIMITED_MESSAGE = "Requests to slack were rate limited. Please try again later."
 ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 
@@ -163,10 +164,10 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
                     endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
                 )
             except ApiRateLimitedError as e:
-                logger.info("rule.slack.%s_list_rate_limited" % list_type, extra={"error": str(e)})
+                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
                 raise e
             except ApiError as e:
-                logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
+                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
                 return (prefix, None, False)
 
             if not isinstance(items, dict):
