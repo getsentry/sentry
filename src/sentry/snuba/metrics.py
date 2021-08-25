@@ -205,6 +205,15 @@ _METRICS = {
 }
 
 
+def _get_metric(metric_name: str) -> dict:
+    try:
+        metric = _METRICS[metric_name]
+    except KeyError:
+        raise InvalidParams(f"Unknown metric '{metric_name}'")
+
+    return metric
+
+
 class IndexMockingDataSource(DataSource):
     def get_metrics(self, project: Project) -> List[dict]:
         """Get metrics metadata, without tags"""
@@ -233,15 +242,6 @@ class IndexMockingDataSource(DataSource):
         )
 
     @classmethod
-    def _get_metric(cls, metric_name: str) -> dict:
-        try:
-            metric = _METRICS[metric_name]
-        except KeyError:
-            raise InvalidParams(f"Unknown metric '{metric_name}'")
-
-        return metric
-
-    @classmethod
     def _validate_metric_names(cls, metric_names):
         unknown_metric_names = set(metric_names) - _METRICS.keys()
         if unknown_metric_names:
@@ -266,7 +266,7 @@ class IndexMockingDataSource(DataSource):
 
     @classmethod
     def _get_tag_values(cls, metric_name: str, tag_name: str) -> List[str]:
-        metric = cls._get_metric(metric_name)
+        metric = _get_metric(metric_name)
         try:
             tags = metric["tags"][tag_name]
         except KeyError:
@@ -320,7 +320,7 @@ class MockDataSource(IndexMockingDataSource):
         totals = {}
         for field, (operation, metric_name) in fields.items():
 
-            metric = self._get_metric(metric_name)
+            metric = _get_metric(metric_name)
 
             if operation not in metric["operations"]:
                 raise InvalidParams(f"Invalid operation '{operation}' for metric '{metric_name}'")
@@ -470,7 +470,12 @@ class SnubaQueryBuilder:
         if filter_ is None:
             return None
 
-        to_int = STRING_INDEXER.get_int
+        def to_int(string_type, string):
+            try:
+                return STRING_INDEXER.get_int(self._project.id, string_type, string)
+            except KeyError:
+                return None
+
         return self._build_logical(
             Or,
             [
@@ -478,9 +483,9 @@ class SnubaQueryBuilder:
                     And,
                     [
                         Condition(
-                            Column(f"tags[{to_int(self._project.id, StringType.TAG_KEY, tag)}]"),
+                            Column(f"tags[{to_int(StringType.TAG_KEY, tag)}]"),
                             Op.EQ,
-                            to_int(self._project.id, StringType.TAG_VALUE, value),
+                            to_int(StringType.TAG_VALUE, value),
                         )
                         for tag, value in or_operand["and"]
                     ],
@@ -522,7 +527,7 @@ class SnubaQueryBuilder:
 
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
-            type_ = _METRICS[metric_name]["type"]
+            type_ = _get_metric(metric_name)["type"]
             entity = self._get_entity(type_)
             queries_by_entity.setdefault(entity, []).append((op, metric_name))
 
