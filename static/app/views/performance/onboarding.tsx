@@ -108,9 +108,6 @@ function Onboarding({organization, project, api}: Props) {
       organization,
     });
   }
-  const showSampleTransactionBtn = organization.features.includes(
-    'performance-create-sample-transaction'
-  );
   const featureTourBtn = (
     <FeatureTourModal
       steps={PERFORMANCE_TOUR_STEPS}
@@ -121,7 +118,7 @@ function Onboarding({organization, project, api}: Props) {
     >
       {({showModal}) => (
         <Button
-          priority={showSampleTransactionBtn ? 'link' : 'default'}
+          priority="link"
           onClick={() => {
             trackAdvancedAnalyticsEvent('performance_views.tour.start', {organization});
             showModal();
@@ -132,7 +129,7 @@ function Onboarding({organization, project, api}: Props) {
       )}
     </FeatureTourModal>
   );
-  const secondaryBtn = showSampleTransactionBtn ? (
+  const secondaryBtn = (
     <Button
       data-test-id="create-sample-transaction-btn"
       onClick={async () => {
@@ -163,8 +160,6 @@ function Onboarding({organization, project, api}: Props) {
     >
       {t('Create Sample Transaction')}
     </Button>
-  ) : (
-    featureTourBtn
   );
 
   return (
@@ -185,7 +180,7 @@ function Onboarding({organization, project, api}: Props) {
         </Button>
         {secondaryBtn}
       </ButtonList>
-      {showSampleTransactionBtn && featureTourBtn}
+      {featureTourBtn}
     </OnboardingPanel>
   );
 }
