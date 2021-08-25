@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
-from sentry_relay.metrics import to_metrics_symbol
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 
 from sentry.models import Project
@@ -373,6 +372,14 @@ class MockDataSource(IndexMockingDataSource):
         }
 
 
+class StringType(enum.Enum):
+    """Type for string indexing"""
+
+    METRIC = 1
+    TAG_KEY = 2
+    TAG_VALUE = 3
+
+
 class StringIndexer:
     """
     Converts metrics tags from integer to string and vice versa.
@@ -382,28 +389,30 @@ class StringIndexer:
     TODO: Make this a utils.Service
     """
 
-    _to_string = {
-        to_metrics_symbol(name): name
-        for name in [
-            "abnormal",
-            "crashed",
-            "environment",
-            "errored",
-            "healthy",
-            "production",
-            "release",
-            "session.duration",
-            "session",
-            "staging",
-            "user",
-        ]
-    }
+    _to_string = dict(
+        enumerate(
+            [
+                "abnormal",
+                "crashed",
+                "environment",
+                "errored",
+                "healthy",
+                "production",
+                "release",
+                "session.duration",
+                "session",
+                "staging",
+                "user",
+            ]
+        )
+    )
+    _to_int = {value: key for key, value in _to_string.items()}
 
-    def get_string(self, value: int) -> str:
+    def get_string(self, project_id: int, type: StringType, value: int) -> str:
         return self._to_string[value]
 
-    def get_int(self, value: str) -> int:
-        return to_metrics_symbol(value)
+    def get_int(self, project_id: int, type: StringType, value: str) -> int:
+        return self._to_int[value]
 
 
 PERCENTILE_INDEX = {}
@@ -541,7 +550,7 @@ class SnubaDataSource(IndexMockingDataSource):
     ) -> Optional[int]:
 
         metric = self._metrics[metric_name]
-        metric_id = self._indexer.get_int(metric_name)
+        metric_id = self._indexer.get_int(project.id, StringType.METRIC, metric_name)
 
         column = self._op_to_field[metric["type"]][op]
 
@@ -572,9 +581,11 @@ class SnubaDataSource(IndexMockingDataSource):
                         And,
                         [
                             Condition(
-                                Column(f"tags[{to_metrics_symbol(tag)}]"),
+                                Column(
+                                    f"tags[{self._indexer.get_int(project.id, StringType.TAG_KEY, tag)}]"
+                                ),
                                 Op.EQ,
-                                to_metrics_symbol(value),
+                                self._indexer.get_int(project.id, StringType.TAG_VALUE, value),
                             )
                             for tag, value in or_operand["and"]
                         ],
