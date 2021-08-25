@@ -8,7 +8,7 @@ import LogoSentry from 'app/components/logoSentry';
 import {t} from 'app/locale';
 import PreferencesStore from 'app/stores/preferencesStore';
 import space from 'app/styles/space';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {emailQueryParameter, extraQueryParameter} from 'app/utils/demoMode';
 import getCookie from 'app/utils/getCookie';
 
