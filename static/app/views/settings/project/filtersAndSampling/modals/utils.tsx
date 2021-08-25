@@ -89,6 +89,9 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('ex. file://* or example.com (Multiline)');
     case DynamicSamplingInnerName.EVENT_ERROR_MESSAGES:
       return t('ex. TypeError* (Multiline)');
+    case DynamicSamplingInnerName.TRACE_TRANSACTION:
+    case DynamicSamplingInnerName.EVENT_TRANSACTION:
+      return t('ex. "page-load" (Multiline)');
     default:
       return '';
   }
