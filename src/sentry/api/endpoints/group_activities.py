@@ -11,7 +11,7 @@ class GroupActivitiesEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         Retrieve all the Activities for a Group
         """
-        activity = Activity.get_activities_for_group(group, num=self.get_per_page(request))
+        activity = Activity.get_activities_for_group(group, num=100)
         return Response(
             {
                 "activity": serialize(activity, request.user),
