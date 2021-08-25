@@ -73,12 +73,12 @@ class RuleNodeList extends React.Component<Props> {
 
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
       actions.map(node => {
-        const isBeta = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+        const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
         return {
           value: node.id,
           label: (
             <React.Fragment>
-              {isBeta && <StyledFeatureBadge type="beta" noTooltip />}
+              {isNew && <StyledFeatureBadge type="new" noTooltip />}
               {shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label}
             </React.Fragment>
           ),

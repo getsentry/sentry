@@ -334,12 +334,12 @@ class RuleNode extends React.Component<Props> {
   render() {
     const {data, disabled, index, node, organization} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
-    const isBeta = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+    const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
     return (
       <RuleRowContainer>
         <RuleRow>
           <Rule>
-            {isBeta && <StyledFeatureBadge type="beta" />}
+            {isNew && <StyledFeatureBadge type="new" />}
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
             {ticketRule && node && (
