@@ -187,10 +187,7 @@ class AuthIdentityHandler:
         flags = OrganizationMember.flags["sso:linked"]
         # if the org doesn't have the ability to add members then anyone who get added
         # this way should be disabled until the org upgrades
-        if (
-            not features.has("organizations:invite-members", self.organization)
-            and self.organization.default_role != "owner"
-        ):
+        if not features.has("organizations:invite-members", self.organization):
             flags = flags | OrganizationMember.flags["member-limit:restricted"]
 
         # Otherwise create a new membership
