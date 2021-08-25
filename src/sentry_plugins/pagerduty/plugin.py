@@ -32,7 +32,6 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
         ),
     ]
     deprecation_date = datetime(2021, 9, 20)
-
     alternative = "pagerduty"
     alt_is_sentry_app = False
 

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as modal from 'app/actionCreators/modal';
@@ -10,6 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import InstalledPlugin from './installedPlugin';
+import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -149,21 +151,25 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderConfigurations() {
     const plugin = this.plugin;
     const {organization} = this.props;
+
     if (plugin.projectList.length) {
       return (
-        <div>
-          {plugin.projectList.map((projectItem: PluginProjectItem) => (
-            <InstalledPlugin
-              key={projectItem.projectId}
-              organization={organization}
-              plugin={plugin}
-              projectItem={projectItem}
-              onResetConfiguration={this.handleResetConfiguration}
-              onPluginEnableStatusChange={this.handlePluginEnableStatus}
-              trackIntegrationAnalytics={this.trackIntegrationAnalytics}
-            />
-          ))}
-        </div>
+        <Fragment>
+          <PluginDeprecationAlert organization={organization} plugin={plugin} />
+          <div>
+            {plugin.projectList.map((projectItem: PluginProjectItem) => (
+              <InstalledPlugin
+                key={projectItem.projectId}
+                organization={organization}
+                plugin={plugin}
+                projectItem={projectItem}
+                onResetConfiguration={this.handleResetConfiguration}
+                onPluginEnableStatusChange={this.handlePluginEnableStatus}
+                trackIntegrationAnalytics={this.trackIntegrationAnalytics}
+              />
+            ))}
+          </div>
+        </Fragment>
       );
     }
     return this.renderEmptyConfigurations();
