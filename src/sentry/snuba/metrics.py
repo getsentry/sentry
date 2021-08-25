@@ -3,10 +3,12 @@ import itertools
 import random
 import re
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
+from snuba_sdk.conditions import BooleanCondition
 
 from sentry.models import Project
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -75,7 +77,6 @@ def parse_tag(tag_string: str) -> Tuple[str, str]:
 
 
 def parse_query(query_string: str) -> dict:
-    # TODO: move this to QueryDefinition
     return {
         "or": [
             {"and": [parse_tag(and_part) for and_part in or_part.split(" and ")]}
@@ -98,6 +99,7 @@ class QueryDefinition:
     def __init__(self, query_params, allow_minute_resolution=False):
 
         self.query = query_params.get("query", "")
+        self.parsed_query = parse_query(self.query)
         raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
 
@@ -180,12 +182,6 @@ class IndexMockingDataSource(DataSource):
                 for key, value in metric.items()
             },
         )
-
-    def _verify_query(self, query: QueryDefinition):
-        if not query.query:
-            return
-
-        parse_query(query.query)
 
     @classmethod
     def _get_metric(cls, metric_name: str) -> dict:
@@ -400,6 +396,7 @@ class StringIndexer:
                 "production",
                 "release",
                 "session.duration",
+                "session.status",
                 "session",
                 "staging",
                 "user",
@@ -408,11 +405,14 @@ class StringIndexer:
     )
     _to_int = {value: key for key, value in _to_string.items()}
 
-    def get_string(self, project_id: int, type: StringType, value: int) -> str:
-        return self._to_string[value]
+    def get_string(self, project_id: int, type: StringType, n: int) -> str:
+        return self._to_string[n]
 
-    def get_int(self, project_id: int, type: StringType, value: str) -> int:
-        return self._to_int[value]
+    def get_int(self, project_id: int, type: StringType, s: str) -> int:
+        return self._to_int[s]
+
+
+STRING_INDEXER = StringIndexer()
 
 
 PERCENTILE_INDEX = {}
@@ -438,21 +438,20 @@ def massage_timeseries(operation: str, series):
     ]
 
 
-class SnubaDataSource(IndexMockingDataSource):
-    """Mocks metrics metadata and string indexing, but fetches real time series"""
+class SnubaQueryBuilder:
 
-    _base_tags = {
-        "environment": [
-            "production",
-            "staging",
-        ],
-        "release": [],
-        "session.status": [
-            "abnormal",
-            "crashed",
-            "errored",
-            "healthy",
-        ],
+    _entity_map = {
+        "session.duration": "metrics_distributions",
+        "session.error": "metrics_sets",
+        "session": "metrics_counters",
+        "user": "metrics_sets",
+    }
+
+    #: Datasets actually implemented in snuba:
+    _implemented_datasets = {
+        "metrics_counters",
+        "metrics_distributions",
+        "metrics_sets",
     }
 
     _op_to_field = {
@@ -470,8 +469,21 @@ class SnubaDataSource(IndexMockingDataSource):
         },
         "set": {"count_unique": "value"},
     }
-
     _fields_by_type = {type_: sorted(mapping.keys()) for type_, mapping in _op_to_field.items()}
+
+    _base_tags = {
+        "environment": [
+            "production",
+            "staging",
+        ],
+        "release": [],
+        "session.status": [
+            "abnormal",
+            "crashed",
+            "errored",
+            "healthy",
+        ],
+    }
 
     _metrics = {
         "session": {
@@ -491,6 +503,99 @@ class SnubaDataSource(IndexMockingDataSource):
             "unit": "seconds",
         },
     }
+
+    def __init__(self, project_id: int, query_definition: QueryDefinition):
+        self._project_id = project_id
+        self._queries = list(self._build_queries(query_definition))
+
+    def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
+        """Snuba only accepts And and Or if they have 2 elements or more"""
+        operands = [operand for operand in operands if operand is not None]
+        if not operands:
+            return None
+        if len(operands) == 1:
+            return operands[0]
+
+        return operator(operands)
+
+    def _build_where(self, query_definition: QueryDefinition) -> Optional[BooleanCondition]:
+        filter_ = query_definition.parsed_query
+        to_int = STRING_INDEXER.get_int
+        return self._build_logical(
+            Or,
+            [
+                self._build_logical(
+                    And,
+                    [
+                        Condition(
+                            Column(f"tags[{to_int(self._project_id, StringType.TAG_KEY, tag)}]"),
+                            Op.EQ,
+                            to_int(self._project_id, StringType.TAG_VALUE, value),
+                        )
+                        for tag, value in or_operand["and"]
+                    ],
+                )
+                for or_operand in filter_["or"]
+            ],
+        )
+
+    def _build_groupby(self, query_definition: QueryDefinition):
+        return [
+            Column(f"tags[{STRING_INDEXER.get_int(self._project_id, StringType.TAG_KEY, field)}]")
+            for field in query_definition.groupby
+        ]
+
+    def _build_queries(self, query_definition):
+
+        queries_by_entity = OrderedDict()
+        for op, metric_name in query_definition.fields.values():
+            entity = self._get_entity(metric_name)
+            queries_by_entity.setdefault(entity, []).append((op, metric_name))
+
+        where = self._build_where(query_definition)
+        groupby = self._build_groupby(query_definition)
+
+        for entity, fields in queries_by_entity.items():
+            yield Query(
+                dataset="metrics",
+                match=Entity(entity),
+                groupby=groupby,
+                select=list(
+                    map(
+                        Column,
+                        {
+                            self._op_to_field[self._metrics[metric_name]["type"]][op]
+                            for op, metric_name in fields
+                        },
+                    )
+                ),
+                where=[where] if where else None,
+                limit=Limit(MAX_POINTS),
+                offset=Offset(0),
+                granularity=Granularity(query_definition.rollup),
+            )
+
+    def get_snuba_queries(self):
+        return self._queries
+
+    def _get_entity(self, metric_name) -> str:
+
+        entity = self._entity_map[metric_name]
+
+        if entity not in self._implemented_datasets:
+            raise NotImplementedError(f"Dataset not yet implemented: {entity}")
+
+        return entity
+
+    # def _build_base_query():
+    #     dataset = self._dataset
+    #     match=Entity(self._get_entity(metric_name)),
+    #     select=[Column(column)],
+    #     where=
+
+
+class SnubaDataSource(IndexMockingDataSource):
+    """Mocks metrics metadata and string indexing, but fetches real time series"""
 
     _dataset = "metrics"
 
@@ -517,8 +622,6 @@ class SnubaDataSource(IndexMockingDataSource):
 
         intervals = list(query.get_intervals())
 
-        self._verify_query(query)
-
         return {
             "start": query.start,
             "end": query.end,
@@ -535,15 +638,6 @@ class SnubaDataSource(IndexMockingDataSource):
                 }
             ],
         }
-
-    def _get_entity(self, metric_name) -> str:
-
-        entity = self._entity_map[metric_name]
-
-        if entity not in self._implemented_datasets:
-            raise NotImplementedError(f"Dataset not yet implemented: {entity}")
-
-        return entity
 
     def _run_query_total(
         self, project: Project, query: QueryDefinition, op: str, metric_name: str
@@ -562,18 +656,8 @@ class SnubaDataSource(IndexMockingDataSource):
             Condition(Column(TS_COL), Op.LT, query.end),
         ]
 
-        def build_logical(operator, operands):
-            """Snuba only accepts And and Or if they have 2 elements or more"""
-            operands = [operand for operand in operands if operand is not None]
-            if not operands:
-                return None
-            if len(operands) == 1:
-                return operands[0]
-
-            return operator(operands)
-
         if query.query:
-            filter_ = parse_query(query.query)
+            filter_ = query.parsed_query
             snuba_filter = build_logical(
                 Or,
                 [
