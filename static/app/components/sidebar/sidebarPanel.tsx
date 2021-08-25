@@ -32,7 +32,7 @@ const PanelContainer = styled('div')<PositionProps>`
           right: 0;
         `
       : css`
-          width: 360px;
+          width: 460px;
           top: 0;
           left: ${p.collapsed
             ? p.theme.sidebar.collapsedWidth
