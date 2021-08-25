@@ -274,6 +274,11 @@ class SpanTreeModel {
           : undefined,
     };
 
+    if (wrappedSpan.type === 'root_span') {
+      // @ts-expect-error
+      delete wrappedSpan.toggleSpanGroup;
+    }
+
     const treeDepthEntry = isOrphanSpan(this.span)
       ? ({type: 'orphan', depth: treeDepth} as OrphanTreeDepth)
       : treeDepth;
