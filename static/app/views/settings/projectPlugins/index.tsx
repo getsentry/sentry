@@ -5,7 +5,7 @@ import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plug
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {Organization, Plugin, Project} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withPlugins from 'app/utils/withPlugins';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
@@ -32,7 +32,7 @@ class ProjectPluginsContainer extends React.Component<Props> {
     const installCount = plugins.filter(
       plugin => plugin.hasConfiguration && plugin.enabled
     ).length;
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.index_viewed',
       {
         integrations_installed: installCount,

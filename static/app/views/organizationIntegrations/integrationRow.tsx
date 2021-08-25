@@ -12,7 +12,7 @@ import space from 'app/styles/space';
 import {IntegrationInstallationStatus, Organization, SentryApp} from 'app/types';
 import {
   convertIntegrationTypeToSnakeCase,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
@@ -103,7 +103,7 @@ const IntegrationRow = (props: Props) => {
               href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
               size="xsmall"
               onClick={() =>
-                trackIntegrationEvent('integrations.resolve_now_clicked', {
+                trackIntegrationAnalytics('integrations.resolve_now_clicked', {
                   integration_type: convertIntegrationTypeToSnakeCase(type),
                   integration: slug,
                   organization,

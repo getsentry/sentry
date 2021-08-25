@@ -11,7 +11,7 @@ import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
-import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 import InputField from 'app/views/settings/components/forms/inputField';
 
@@ -40,7 +40,7 @@ class StacktraceLinkModal extends Component<Props, State> {
   }
 
   onManualSetup(provider: string) {
-    trackIntegrationEvent('integrations.stacktrace_manual_option_clicked', {
+    trackIntegrationAnalytics('integrations.stacktrace_manual_option_clicked', {
       view: 'stacktrace_issue_details',
       setup_type: 'manual',
       provider,
@@ -51,7 +51,7 @@ class StacktraceLinkModal extends Component<Props, State> {
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
     const {api, closeModal, filename, onSubmit, organization, project} = this.props;
-    trackIntegrationEvent('integrations.stacktrace_submit_config', {
+    trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'automatic',
       view: 'stacktrace_issue_details',
       organization,
@@ -78,7 +78,7 @@ class StacktraceLinkModal extends Component<Props, State> {
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
-      trackIntegrationEvent('integrations.stacktrace_complete_setup', {
+      trackIntegrationAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
         provider: configData.config?.provider.key,
         view: 'stacktrace_issue_details',

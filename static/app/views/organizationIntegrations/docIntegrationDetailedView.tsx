@@ -58,13 +58,13 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   componentDidMount() {
     super.componentDidMount();
-    this.trackIntegrationEvent('integrations.integration_viewed', {
+    this.trackIntegrationAnalytics('integrations.integration_viewed', {
       integration_tab: 'overview',
     });
   }
 
   trackClick = () => {
-    this.trackIntegrationEvent('integrations.installation_start');
+    this.trackIntegrationAnalytics('integrations.installation_start');
   };
 
   renderTopButton() {

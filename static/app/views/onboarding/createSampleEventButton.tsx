@@ -11,8 +11,8 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 

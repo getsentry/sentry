@@ -15,7 +15,7 @@ import {t, tct} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 import {Organization, PlatformIntegration} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;

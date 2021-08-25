@@ -24,7 +24,7 @@ import FeatureTourModal, {
 import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 
 const performanceSetupUrl =

@@ -9,7 +9,7 @@ import space from 'app/styles/space';
 import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 
 import IntegrationServerlessRow from './integrationServerlessRow';
 
@@ -45,7 +45,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
   }
 
   onLoadAllEndpointsSuccess() {
-    trackIntegrationEvent('integrations.serverless_functions_viewed', {
+    trackIntegrationAnalytics('integrations.serverless_functions_viewed', {
       integration: this.props.integration.provider.key,
       integration_type: 'first_party',
       num_functions: this.serverlessFunctions.length,

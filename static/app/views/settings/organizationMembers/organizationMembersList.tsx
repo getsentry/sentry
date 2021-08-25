@@ -17,7 +17,7 @@ import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Member, MemberRole, Organization, Team} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';

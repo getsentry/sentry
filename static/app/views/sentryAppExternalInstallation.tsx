@@ -16,7 +16,7 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
@@ -96,7 +96,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     if (!organization || !sentryApp) {
       return undefined;
     }
-    trackIntegrationEvent('integrations.installation_start', {
+    trackIntegrationAnalytics('integrations.installation_start', {
       integration_type: 'sentry_app',
       integration: sentryApp.slug,
       view: 'external_install',
@@ -107,7 +107,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     const install = await installSentryApp(this.api, organization.slug, sentryApp);
     // installation is complete if the status is installed
     if (install.status === 'installed') {
-      trackIntegrationEvent('integrations.installation_complete', {
+      trackIntegrationAnalytics('integrations.installation_complete', {
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
         view: 'external_install',
