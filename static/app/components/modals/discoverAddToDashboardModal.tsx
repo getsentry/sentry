@@ -52,10 +52,6 @@ type Props = ModalRenderProps &
     tags: TagCollection;
   };
 
-type ValidationError = {
-  [key: string]: string[] | ValidationError[] | ValidationError;
-};
-
 type FlatValidationError = {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
