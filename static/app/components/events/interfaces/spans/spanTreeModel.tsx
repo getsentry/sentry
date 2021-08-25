@@ -420,7 +420,15 @@ class SpanTreeModel {
     // Do not autogroup groups that will only have two spans
     if (isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length === 1) {
       if (!showSpanGroup) {
-        return [spanGrouping[0], wrappedSpan, ...descendants];
+        const parentSpan = spanGrouping[0].span;
+        const parentSpanBounds = generateBounds({
+          startTimestamp: parentSpan.start_timestamp,
+          endTimestamp: parentSpan.timestamp,
+        });
+        const isParentSpanOutOfView = !parentSpanBounds.isSpanVisibleInView;
+        if (!isParentSpanOutOfView) {
+          return [spanGrouping[0], wrappedSpan, ...descendants];
+        }
       }
 
       return [wrappedSpan, ...descendants];
