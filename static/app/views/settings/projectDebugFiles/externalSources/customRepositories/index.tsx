@@ -1,4 +1,4 @@
-import {useContext, useEffect} from 'react';
+import {Fragment, useContext, useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -10,6 +10,7 @@ import {Client} from 'app/api';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import HookOrDefault from 'app/components/hookOrDefault';
 import MenuItem from 'app/components/menuItem';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
@@ -25,6 +26,11 @@ import {
   expandKeys,
   getRequestMessages,
 } from './utils';
+
+const HookedOAppStoreConnectMultiple = HookOrDefault({
+  hookName: 'component:disabled-app-store-connect-multiple-tooltip',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
 type Props = {
   api: Client;
@@ -51,8 +57,13 @@ function CustomRepositories({
 
   const hasAppStoreConnectFeatureFlag =
     !!organization.features?.includes('app-store-connect');
+
   const hasAppStoreConnectMultipleFeatureFlag = !!organization.features?.includes(
     'app-store-connect-multiple'
+  );
+
+  const hasAppStoreConnectRepo = !!repositories.find(
+    repository => repository.type === CustomRepoType.APP_STORE_CONNECT
   );
 
   if (
@@ -62,25 +73,11 @@ function CustomRepositories({
       dropDownItem => dropDownItem.value === CustomRepoType.APP_STORE_CONNECT
     )
   ) {
-    if (
-      repositories.find(
-        repository => repository.type === CustomRepoType.APP_STORE_CONNECT
-      )
-    ) {
-      if (hasAppStoreConnectMultipleFeatureFlag) {
-        dropDownItems.push({
-          value: CustomRepoType.APP_STORE_CONNECT,
-          label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
-          searchKey: t('apple store connect itunes ios'),
-        });
-      }
-    } else {
-      dropDownItems.push({
-        value: CustomRepoType.APP_STORE_CONNECT,
-        label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
-        searchKey: t('apple store connect itunes ios'),
-      });
-    }
+    dropDownItems.push({
+      value: CustomRepoType.APP_STORE_CONNECT,
+      label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
+      searchKey: t('apple store connect itunes ios'),
+    });
   }
 
   function openDebugFileSourceDialog() {
@@ -205,19 +202,32 @@ function CustomRepositories({
         {t('Custom Repositories')}
         <DropdownAutoComplete
           alignMenu="right"
-          items={dropDownItems.map(dropDownItem => ({
-            ...dropDownItem,
-            label: (
-              <StyledMenuItem
-                onClick={event => {
-                  event.preventDefault();
-                  handleAddRepository(dropDownItem.value);
-                }}
-              >
-                {dropDownItem.label}
-              </StyledMenuItem>
-            ),
-          }))}
+          items={dropDownItems.map(dropDownItem => {
+            const disabled =
+              dropDownItem.value === CustomRepoType.APP_STORE_CONNECT &&
+              hasAppStoreConnectRepo &&
+              !hasAppStoreConnectMultipleFeatureFlag;
+
+            return {
+              ...dropDownItem,
+              label: (
+                <HookedOAppStoreConnectMultiple
+                  organization={organization}
+                  disabled={disabled}
+                >
+                  <StyledMenuItem
+                    onClick={event => {
+                      event.preventDefault();
+                      handleAddRepository(dropDownItem.value);
+                    }}
+                    disabled={disabled}
+                  >
+                    {dropDownItem.label}
+                  </StyledMenuItem>
+                </HookedOAppStoreConnectMultiple>
+              ),
+            };
+          })}
         >
           {({isOpen}) => (
             <DropdownButton isOpen={isOpen} size="small">

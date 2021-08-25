@@ -63,6 +63,11 @@ type MemberListHeaderProps = {
   members: Member[];
   organization: Organization;
 };
+type DisabledAppStoreConnectTooltip = {
+  disabled: boolean;
+  organization: Organization;
+  children: React.ReactNode;
+};
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
@@ -76,6 +81,7 @@ export type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
+  'component:disabled-app-store-connect-multiple-tooltip': () => React.ComponentType<DisabledAppStoreConnectTooltip>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
 };
 
