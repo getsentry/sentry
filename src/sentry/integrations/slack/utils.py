@@ -276,7 +276,7 @@ def parse_link(url):
     return parsed_path
 
 
-def get_slack_data_by_user(integration, organization, emails_by_user):
+def get_slack_info_by_email(integration, organization):
     access_token = (
         integration.metadata.get("user_access_token") or integration.metadata["access_token"]
     )
@@ -315,6 +315,12 @@ def get_slack_data_by_user(integration, organization, emails_by_user):
         next_cursor = user_list["response_metadata"]["next_cursor"]
         if not next_cursor:
             break
+
+    return slack_info_by_email
+
+
+def get_slack_data_by_user(integration, organization, emails_by_user):
+    slack_info_by_email = get_slack_info_by_email(integration, organization)
     slack_data_by_user = {}
     for user, emails in emails_by_user.items():
         for email in emails:
