@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {openEditOwnershipRules, openModal} from 'app/actionCreators/modal';
+import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -263,14 +264,20 @@ tags.sku_class:enterprise #enterprise`;
                 {t('View Issues')}
               </Button>
               <Feature features={['integrations-codeowners']}>
-                <CodeOwnerButton
-                  onClick={this.handleAddCodeOwner}
-                  size="small"
-                  priority="primary"
-                  data-test-id="add-codeowner-button"
-                >
-                  {t('Add CODEOWNERS File')}
-                </CodeOwnerButton>
+                <Access access={['project:write']}>
+                  {({hasAccess}) =>
+                    hasAccess && (
+                      <CodeOwnerButton
+                        onClick={this.handleAddCodeOwner}
+                        size="small"
+                        priority="primary"
+                        data-test-id="add-codeowner-button"
+                      >
+                        {t('Add CODEOWNERS File')}
+                      </CodeOwnerButton>
+                    )
+                  }
+                </Access>
               </Feature>
             </Fragment>
           }

@@ -85,7 +85,7 @@ describe('IntegrationCodeMappings', function () {
     const modal = await mountGlobalModal();
 
     expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
-    wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
+    wrapper.find('button[data-test-id="add-mapping-button"]').first().simulate('click');
 
     await tick();
     modal.update();
@@ -107,7 +107,7 @@ describe('IntegrationCodeMappings', function () {
         defaultBranch,
       }),
     });
-    wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
+    wrapper.find('button[data-test-id="add-mapping-button"]').first().simulate('click');
 
     const modal = await mountGlobalModal();
 
