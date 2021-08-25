@@ -25,7 +25,7 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
       return t('Web Crawlers');
     case DynamicSamplingInnerName.EVENT_LEGACY_BROWSER:
       return t('Legacy Browsers');
-    case DynamicSamplingInnerName.EVENT_TRACE:
+    case DynamicSamplingInnerName.EVENT_TRANSACTION:
     case DynamicSamplingInnerName.TRACE_TRANSACTION:
       return t('Transactions');
     default: {

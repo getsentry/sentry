@@ -57,7 +57,7 @@ export enum DynamicSamplingInnerName {
   EVENT_LOCALHOST = 'event.is_local_ip',
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
   EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
-  EVENT_TRACE = 'event.trace',
+  EVENT_TRANSACTION = 'event.transaction',
   // Custom operators
   EVENT_IP_ADDRESSES = 'event.client_ip',
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
@@ -81,7 +81,7 @@ type DynamicSamplingConditionLogicalInnerGlob = {
   name:
     | DynamicSamplingInnerName.EVENT_RELEASE
     | DynamicSamplingInnerName.TRACE_RELEASE
-    | DynamicSamplingInnerName.EVENT_TRACE
+    | DynamicSamplingInnerName.EVENT_TRANSACTION
     | DynamicSamplingInnerName.TRACE_TRANSACTION;
   value: Array<string>;
 };

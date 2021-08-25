@@ -148,7 +148,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     if (
       condition.category === DynamicSamplingInnerName.EVENT_RELEASE ||
       condition.category === DynamicSamplingInnerName.TRACE_RELEASE ||
-      condition.category === DynamicSamplingInnerName.EVENT_TRACE ||
+      condition.category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
       condition.category === DynamicSamplingInnerName.TRACE_TRANSACTION
     ) {
       return {

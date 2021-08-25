@@ -107,7 +107,7 @@ class TransactionRuleModal extends Form<Props, State> {
       [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Addresses')],
       [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
       [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Messages')],
-      [DynamicSamplingInnerName.EVENT_TRACE, t('Transactions')],
+      [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transactions')],
     ];
   }
 
