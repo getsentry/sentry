@@ -22,6 +22,8 @@ type State = AsyncView['state'] & {
   integrations: Integration[];
 };
 
+const DOCS_LINK =
+  'https://docs.sentry.io/product/integrations/notification-incidents/slack/#team-notifications';
 const NOTIFICATION_PROVIDERS = ['slack'];
 
 class TeamNotificationSettings extends AsyncView<Props, State> {
@@ -79,7 +81,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
           <NotDisabledSubText>
             {tct('Head over to Slack and type [code] to get started. [link].', {
               code: <code>/sentry link team</code>,
-              link: <a>{t('Learn more')}</a>,
+              link: <a href={DOCS_LINK}>{t('Learn more')}</a>,
             })}
           </NotDisabledSubText>
         </EmptyMessage>
@@ -103,7 +105,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
             <NotDisabledSubText>
               {tct('Unlink this channel in Slack with [code]. [link].', {
                 code: <code>/sentry unlink team</code>,
-                link: <a>{t('Learn more')}</a>,
+                link: <a href={DOCS_LINK}>{t('Learn more')}</a>,
               })}
             </NotDisabledSubText>
           </div>
