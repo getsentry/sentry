@@ -211,10 +211,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    const {organization, eventView} = this.props;
+    const {organization, eventView, savedQuery} = this.props;
     openDiscoverAddToDashboardModal({
       organization,
       defaultQuery: eventView.query,
+      defaultTitle:
+        savedQuery?.name ?? eventView.name !== 'All Events' ? eventView.name : undefined,
     });
   };
 
@@ -385,7 +387,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
         <Feature
           organization={organization}
-          features={['connect-discover-and-dashboards']}
+          features={['connect-discover-and-dashboards', 'dashboards-edit']}
         >
           {({hasFeature}) => hasFeature && this.renderDiscoverQueryMenu()}
         </Feature>

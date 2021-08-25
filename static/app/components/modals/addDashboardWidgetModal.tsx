@@ -2,7 +2,6 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import set from 'lodash/set';
 
@@ -18,11 +17,6 @@ import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import {
-  aggregateOutputType,
-  isAggregateField,
-  isLegalYAxisType,
-} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -34,6 +28,10 @@ import {
   Widget,
   WidgetQuery,
 } from 'app/views/dashboardsV2/types';
+import {
+  mapErrors,
+  normalizeQueries,
+} from 'app/views/dashboardsV2/widget/eventWidget/utils';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -56,14 +54,6 @@ type Props = ModalRenderProps &
     tags: TagCollection;
   };
 
-type ValidationError = {
-  [key: string]: string[] | ValidationError[] | ValidationError;
-};
-
-type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
-};
-
 type State = {
   title: string;
   displayType: Widget['displayType'];
@@ -79,109 +69,6 @@ const newQuery = {
   conditions: '',
   orderby: '',
 };
-
-function mapErrors(
-  data: ValidationError,
-  update: FlatValidationError
-): FlatValidationError {
-  Object.keys(data).forEach((key: string) => {
-    const value = data[key];
-    // Recurse into nested objects.
-    if (Array.isArray(value) && typeof value[0] === 'string') {
-      update[key] = value[0];
-    } else if (Array.isArray(value) && typeof value[0] === 'object') {
-      update[key] = (value as ValidationError[]).map(item => mapErrors(item, {}));
-    } else {
-      update[key] = mapErrors(value as ValidationError, {});
-    }
-  });
-
-  return update;
-}
-
-function normalizeQueries(
-  displayType: Widget['displayType'],
-  queries: Widget['queries']
-): Widget['queries'] {
-  const isTimeseriesChart = ['line', 'area', 'stacked_area', 'bar'].includes(displayType);
-
-  if (['table', 'world_map', 'big_number'].includes(displayType)) {
-    // Some display types may only support at most 1 query.
-    queries = queries.slice(0, 1);
-  } else if (isTimeseriesChart) {
-    // Timeseries charts supports at most 3 queries.
-    queries = queries.slice(0, 3);
-  }
-
-  if (displayType === 'table') {
-    return queries;
-  }
-
-  // Filter out non-aggregate fields
-  queries = queries.map(query => {
-    let fields = query.fields.filter(isAggregateField);
-
-    if (isTimeseriesChart || displayType === 'world_map') {
-      // Filter out fields that will not generate numeric output types
-      fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
-    }
-
-    if (isTimeseriesChart && fields.length && fields.length > 3) {
-      // Timeseries charts supports at most 3 fields.
-      fields = fields.slice(0, 3);
-    }
-
-    return {
-      ...query,
-      fields: fields.length ? fields : ['count()'],
-    };
-  });
-
-  if (isTimeseriesChart) {
-    // For timeseries widget, all queries must share identical set of fields.
-
-    const referenceFields = [...queries[0].fields];
-
-    queryLoop: for (const query of queries) {
-      if (referenceFields.length >= 3) {
-        break;
-      }
-
-      if (isEqual(referenceFields, query.fields)) {
-        continue;
-      }
-
-      for (const field of query.fields) {
-        if (referenceFields.length >= 3) {
-          break queryLoop;
-        }
-
-        if (!referenceFields.includes(field)) {
-          referenceFields.push(field);
-        }
-      }
-    }
-
-    queries = queries.map(query => {
-      return {
-        ...query,
-        fields: referenceFields,
-      };
-    });
-  }
-
-  if (['world_map', 'big_number'].includes(displayType)) {
-    // For world map chart, cap fields of the queries to only one field.
-    queries = queries.map(query => {
-      return {
-        ...query,
-        fields: query.fields.slice(0, 1),
-      };
-    });
-  }
-
-  return queries;
-}
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {

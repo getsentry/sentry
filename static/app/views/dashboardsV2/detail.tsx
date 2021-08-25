@@ -307,6 +307,9 @@ class DashboardDetail extends Component<Props, State> {
                 modifiedDashboard: null,
               });
 
+              if (reloadData) {
+                reloadData();
+              }
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -315,9 +318,6 @@ class DashboardDetail extends Component<Props, State> {
                   },
                 });
                 return;
-              }
-              if (reloadData) {
-                reloadData();
               }
             }
           );
