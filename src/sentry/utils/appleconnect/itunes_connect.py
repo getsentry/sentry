@@ -325,6 +325,9 @@ class ITunesClient:
 
         :raises ITunesError: if there was an error requesting to use the trusted phone.
         """
+        if self.state is ClientState.SMS_AUTH_REQUESTED:
+            # Impatient user, we already did this.
+            return
         assert self.state is ClientState.AUTH_REQUESTED
         self._request_trusted_phone_info()
         assert self._trusted_phone is not None
