@@ -40,7 +40,7 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.compat import map
-from sentry.utils.compat.mock import Mock, call, patch
+from sentry.utils.compat.mock import Mock, call
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
@@ -49,6 +49,7 @@ EMPTY = object()
 @freeze_time()
 class ProcessUpdateTest(TestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
+    slack_client = patcher("sentry.integrations.slack.utils.SlackClient.post")
 
     def setUp(self):
         super().setUp()
@@ -142,6 +143,15 @@ class ProcessUpdateTest(TestCase):
         ), self.capture_on_commit_callbacks(execute=True):
             processor.process_update(message)
         return processor
+
+    def assert_slack_calls(self, trigger_labels):
+        expected = [f"{label}: some rule 2" for label in trigger_labels]
+        actual = [
+            json.loads(call_kwargs["data"]["attachments"])[0]["title"]
+            for (_, call_kwargs) in self.slack_client.call_args_list
+        ]
+        assert expected == actual
+        self.slack_client.reset_mock()
 
     def assert_trigger_exists_with_status(self, incident, trigger, status):
         assert IncidentTrigger.objects.filter(
@@ -756,8 +766,7 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(incident, [self.action, other_action])
 
-    @patch("sentry.integrations.slack.utils.SlackClient.post")
-    def test_slack_multiple_triggers(self, client):
+    def test_slack_multiple_triggers_critical_before_warning(self):
         """
         Test that ensures that when we get a critical update is sent followed by a warning update,
         the warning update is not swallowed and an alert is triggered as a warning alert granted
@@ -817,6 +826,7 @@ class ProcessUpdateTest(TestCase):
             timedelta(minutes=-10),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
+        self.assert_slack_calls(["Critical"])
 
         # Send Warning Update
         self.send_update(
@@ -825,14 +835,92 @@ class ProcessUpdateTest(TestCase):
             timedelta(minutes=0),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
+        self.assert_slack_calls(["Warning"])
         self.assert_active_incident(rule)
 
-        for idx, label in enumerate(["Critical", "Warning"]):
-            _, call_kwargs = client.call_args_list[idx]
-            assert (
-                json.loads(call_kwargs["data"]["attachments"])[0]["title"]
-                == f"{label}: some rule 2"
+    def test_slack_multiple_triggers_critical_fired_twice_before_warning(self):
+        """
+        Test that ensures that when we get a critical update is sent followed by a warning update,
+        the warning update is not swallowed and an alert is triggered as a warning alert granted
+        the count is above the warning trigger threshold
+        """
+        from sentry.incidents.action_handlers import SlackActionHandler
+
+        slack_handler = SlackActionHandler
+
+        # Create Slack Integration
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.project.organization, self.user)
+
+        # Register Slack Handler
+        AlertRuleTriggerAction.register_type(
+            "slack",
+            AlertRuleTriggerAction.Type.SLACK,
+            [AlertRuleTriggerAction.TargetType.SPECIFIC],
+            integration_provider="slack",
+        )(slack_handler)
+
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule 2",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+
+        trigger = create_alert_rule_trigger(rule, "critical", 100)
+        trigger_warning = create_alert_rule_trigger(rule, "warning", 10)
+
+        for t in [trigger, trigger_warning]:
+            create_alert_rule_trigger_action(
+                t,
+                AlertRuleTriggerAction.Type.SLACK,
+                AlertRuleTriggerAction.TargetType.SPECIFIC,
+                integration=integration,
+                input_channel_id="#workflow",
             )
+
+        self.assert_slack_calls([])
+
+        # Send update above critical
+        self.send_update(
+            rule,
+            trigger.alert_threshold + 5,
+            timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+
+        self.assert_slack_calls(["Critical"])
+
+        # Send second update above critical
+        self.send_update(
+            rule,
+            trigger.alert_threshold + 6,
+            timedelta(minutes=-9),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_slack_calls([])
+
+        # Send update below critical but above warning
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold + 5,
+            timedelta(minutes=0),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_active_incident(rule)
+        self.assert_slack_calls(["Warning"])
 
     def test_multiple_triggers_at_same_time(self):
         # Check that both triggers fire if an update comes through that exceeds both of

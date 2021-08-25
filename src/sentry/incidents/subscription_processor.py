@@ -139,6 +139,25 @@ class SubscriptionProcessor:
 
         return trigger.alert_threshold + resolve_add
 
+    def find_and_fire_active_warning_trigger(self, alert_operator, aggregation_value):
+        """
+        Function used to re-fire a Warning trigger when making the transition from Critical to
+        Warning
+        """
+        active_warning_it = None
+        for it in self.incident_triggers.values():
+            current_trigger = it.alert_rule_trigger
+            # Check if there is a Warning incident trigger that is active, and then check if the
+            # aggregation value is above the threshold
+            if (
+                it.status == TriggerStatus.ACTIVE.value
+                and current_trigger.label == WARNING_TRIGGER_LABEL
+                and alert_operator(aggregation_value, current_trigger.alert_threshold)
+            ):
+                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                active_warning_it = self.trigger_alert_threshold(current_trigger, aggregation_value)
+        return active_warning_it
+
     def process_update(self, subscription_update):
         dataset = self.subscription.snuba_query.dataset
         try:
@@ -204,24 +223,6 @@ class SubscriptionProcessor:
                     metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                     incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
                     if incident_trigger is not None:
-                        # If the conditions for a Critical Trigger are met, then we should only
-                        # fire a Critical action, not both Critical and Warning actions. Hence,
-                        # if an active warning trigger is present in the `fired_incident_triggers`
-                        # array, it is popped out of the array and the instance of
-                        # `IncidentTrigger` corresponding to the Warning Trigger is deleted
-                        # before adding the Critical Incident Trigger to the
-                        # `fired_incident_triggers` array
-                        if trigger.label == CRITICAL_TRIGGER_LABEL:
-                            del_index = -1
-                            for idx, it in enumerate(fired_incident_triggers):
-                                if (
-                                    it.alert_rule_trigger.label == WARNING_TRIGGER_LABEL
-                                    and it.status == TriggerStatus.ACTIVE.value
-                                ):
-                                    it.delete()
-                                    del_index = idx
-                            if del_index >= 0:
-                                fired_incident_triggers.pop(del_index)
                         fired_incident_triggers.append(incident_trigger)
                 else:
                     self.trigger_alert_counts[trigger.id] = 0
@@ -233,6 +234,23 @@ class SubscriptionProcessor:
                 ):
                     metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
                     incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
+
+                    # Check that ensures that we are resolving a Critical trigger and that after
+                    # resolving it, we still have active triggers i.e. self.incident_triggers was
+                    # not cleared out, which means that we are probably still above the warning
+                    # threshold, and so we will check if we are above the warning threshold and
+                    # if so fire a warning alert
+                    # This is mainly for handling transition from Critical -> Warning
+                    if (
+                        incident_trigger.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
+                        and self.incident_triggers
+                    ):
+                        active_warning_it = self.find_and_fire_active_warning_trigger(
+                            alert_operator=alert_operator, aggregation_value=aggregation_value
+                        )
+                        if active_warning_it is not None:
+                            fired_incident_triggers.append(active_warning_it)
+
                     if incident_trigger is not None:
                         fired_incident_triggers.append(incident_trigger)
                 else:
