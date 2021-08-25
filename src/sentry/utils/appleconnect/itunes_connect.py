@@ -226,7 +226,10 @@ class ITunesClient:
         Alternatively after calling this you can switch to SMS two factor authentication by
         calling :meth:`request_sms`.
         """
-        assert self.state in [ClientState.NEW, ClientState.EXPIRED]
+        assert self.state in [
+            ClientState.NEW,
+            ClientState.EXPIRED,
+        ], f"Actual client state: {self.state}"
         url = "https://idmsa.apple.com/appleauth/auth/signin"
         logger.debug("POST %s", url)
 
@@ -263,7 +266,7 @@ class ITunesClient:
 
         :raises: :class:`InvalidTwoFactorAuthError`
         """
-        assert self.state is ClientState.AUTH_REQUESTED
+        assert self.state is ClientState.AUTH_REQUESTED, f"Actual client state: {self.state}"
         url = "https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode"
         logger.debug("POST %s", url)
         response = self.session.post(
@@ -289,7 +292,7 @@ class ITunesClient:
 
     def _request_trusted_phone_info(self) -> None:
         """Requests the trusted phone info for the account."""
-        assert self.state is ClientState.AUTH_REQUESTED
+        assert self.state is ClientState.AUTH_REQUESTED, f"Actual client state: {self.state}"
         url = "https://idmsa.apple.com/appleauth/auth"
         logger.debug("GET %s", url)
         response = self.session.get(
@@ -325,7 +328,7 @@ class ITunesClient:
 
         :raises ITunesError: if there was an error requesting to use the trusted phone.
         """
-        assert self.state is ClientState.AUTH_REQUESTED
+        assert self.state is ClientState.AUTH_REQUESTED, f"Actual client state: {self.state}"
         self._request_trusted_phone_info()
         assert self._trusted_phone is not None
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone"
@@ -354,7 +357,7 @@ class ITunesClient:
 
         :raises InvalidSmsAuthError:
         """
-        assert self.state is ClientState.SMS_AUTH_REQUESTED
+        assert self.state is ClientState.SMS_AUTH_REQUESTED, f"Actual client state: {self.state}"
         assert self._trusted_phone is not None
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode"
         logger.debug("PUT %s", url)
@@ -403,7 +406,7 @@ class ITunesClient:
         :raises: an exception if the client is not yet authenticated and has no session
            cookie.
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
         return self.session.cookies.get(SESSION_COOKIE_NAME)  # type: ignore
 
     def load_session_cookie(self, cookie: str) -> None:
@@ -427,7 +430,11 @@ class ITunesClient:
         :returns: the dict with the session info.
         :raises SessionExpiredError: if the session is no longer valid.
         """
-        assert self.state in [ClientState.NEW, ClientState.AUTHENTICATED, ClientState.EXPIRED]
+        assert self.state in [
+            ClientState.NEW,
+            ClientState.AUTHENTICATED,
+            ClientState.EXPIRED,
+        ], f"Actual client state: {self.state}"
         return self._request_session_info()
 
     def _request_session_info(self) -> json.JSONData:
@@ -447,7 +454,7 @@ class ITunesClient:
 
         ITunes calls organisations providers.
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
         session_info = self.request_session_info()
         return [
             ITunesProvider(
@@ -467,7 +474,7 @@ class ITunesClient:
         in the API.  On a session you need to activate one before you can use the apps of that
         organisation.
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
 
         # Collect list of valid provider IDs so we can give better error reporting.  iTunes
         # reports this confusingly.
@@ -510,7 +517,7 @@ class ITunesClient:
 
         :raises SessionExpiredError:
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
         with sentry_sdk.start_span(
             op="itunes-dsym-url", description="Request iTunes dSYM download URL"
         ):
