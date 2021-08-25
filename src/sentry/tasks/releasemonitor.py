@@ -205,6 +205,7 @@ def adopt_releases(org_id, totals):
                         / environment_totals["total_sessions"]
                         >= threshold
                     ):
+                        rpe = None
                         try:
                             rpe = ReleaseProjectEnvironment.objects.get(
                                 project_id=project_id,
@@ -258,7 +259,8 @@ def adopt_releases(org_id, totals):
                                     "sentry.tasks.process_projects_with_sessions.skipped_update"
                                 )
                                 capture_exception(exc)
-                        adopted_ids.append(rpe.id)
+                        if rpe:
+                            adopted_ids.append(rpe.id)
 
     return adopted_ids
 
