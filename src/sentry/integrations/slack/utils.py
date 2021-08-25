@@ -283,29 +283,46 @@ def get_slack_data_by_user(integration, organization, emails_by_user):
     headers = {"Authorization": "Bearer %s" % access_token}
     client = SlackClient()
 
+    slack_info_by_email = {}
+    page_number = 1
+    page_limit = 100  # an arbitrary limit
+
+    while page_number < page_limit:
+        page_number += 1
+        next_cursor = None
+        try:
+            user_list = client.get(
+                "/users.list/", headers=headers, params={"limit": 200, "cursor": next_cursor}
+            )
+        except ApiError as e:
+            logger.info(
+                "post_install.fail.slack_users.list",
+                extra={
+                    "error": str(e),
+                    "organization": organization.slug,
+                    "integration_id": integration.id,
+                },
+            )
+            break
+
+        for member in user_list["members"]:
+            if not member["deleted"]:
+                slack_info_by_email[member["profile"]["email"]] = {
+                    "team_id": member["team_id"],
+                    "slack_id": member["id"],
+                }
+
+        next_cursor = user_list["response_metadata"]["next_cursor"]
+        if not next_cursor:
+            break
     slack_data_by_user = {}
     for user, emails in emails_by_user.items():
         for email in emails:
-            try:
-                # TODO use users.list instead to reduce API calls
-                resp = client.get("/users.lookupByEmail/", headers=headers, params={"email": email})
-            except ApiError as e:
-                logger.info(
-                    "post_install.fail.slack_lookupByEmail",
-                    extra={
-                        "error": str(e),
-                        "organization": organization.slug,
-                        "integration_id": integration.id,
-                        "email": email,
-                    },
-                )
-                continue
-
-            if resp["ok"] is True:
+            if email in slack_info_by_email.keys():
                 slack_data_by_user[user] = {
-                    "email": resp["user"]["profile"]["email"],
-                    "team_id": resp["user"]["team_id"],
-                    "slack_id": resp["user"]["id"],
+                    "email": email,
+                    "team_id": slack_info_by_email[email]["team_id"],
+                    "slack_id": slack_info_by_email[email]["slack_id"],
                 }
                 break
     return slack_data_by_user
