@@ -9,13 +9,14 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-import {IntegrationInstallationStatus, Organization, SentryApp} from 'app/types';
+import {IntegrationInstallationStatus, Organization, Plugin, SentryApp} from 'app/types';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
+import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type Props = {
   organization: Organization;
@@ -27,8 +28,7 @@ type Props = {
   configurations: number;
   categories: string[];
   alertText?: string;
-  deprecationText?: string;
-  upgradeUrl?: string;
+  plugin?: Plugin;
 };
 
 const urlMap = {
@@ -49,8 +49,7 @@ const IntegrationRow = (props: Props) => {
     configurations,
     categories,
     alertText,
-    deprecationText,
-    upgradeUrl,
+    plugin,
   } = props;
 
   const baseUrl =
@@ -119,29 +118,18 @@ const IntegrationRow = (props: Props) => {
           </Alert>
         </AlertContainer>
       )}
-      {deprecationText && (
-        <AlertContainer>
-          <Alert type="warning" icon={<IconWarning size="sm" />}>
-            <span>{deprecationText}</span>
-            <ResolveNowButton
-              href={`${upgradeUrl}?tab=configurations&referrer=directory_upgrade_now`}
-              size="xsmall"
-              onClick={() =>
-                trackIntegrationEvent('integrations.resolve_now_clicked', {
-                  integration_type: convertIntegrationTypeToSnakeCase(type),
-                  integration: slug,
-                  organization,
-                })
-              }
-            >
-              {t('Upgrade Now')}
-            </ResolveNowButton>
-          </Alert>
-        </AlertContainer>
+      {plugin?.deprecationDate && (
+        <PluginDeprecationAlertWrapper>
+          <PluginDeprecationAlert organization={organization} plugin={plugin} />
+        </PluginDeprecationAlertWrapper>
       )}
     </PanelRow>
   );
 };
+
+const PluginDeprecationAlertWrapper = styled('div')`
+  padding: 0px ${space(3)} 0px 68px;
+`;
 
 const PanelRow = styled(PanelItem)`
   flex-direction: column;

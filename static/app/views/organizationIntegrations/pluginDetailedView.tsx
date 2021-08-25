@@ -2,18 +2,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as modal from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ContextPickerModal from 'app/components/contextPickerModal';
-import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {PluginProjectItem, PluginWithProjectList} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import InstalledPlugin from './installedPlugin';
+import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -154,41 +152,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     const plugin = this.plugin;
     const {organization} = this.props;
 
-    let upgradeUrl = '';
-    let deprecationText = '';
-    if (plugin.deprecationDate !== null) {
-      deprecationText = `This integration is being deprecated on ${plugin.deprecationDate}. Please upgrade to avoid any disruption.`;
-    }
-    if (plugin.firstPartyAlternative !== null) {
-      upgradeUrl =
-        plugin.altIsSentryApp === false
-          ? `/settings/${organization.slug}/integrations/${plugin.firstPartyAlternative}/`
-          : `/settings/${organization.slug}/sentry-apps/${plugin.firstPartyAlternative}/`;
-    }
-
-    if (plugin.projectList.length && deprecationText !== '') {
+    if (plugin.projectList.length && plugin.deprecationDate !== '') {
       return (
         <Fragment>
-          {plugin.deprecationDate && (
-            <div>
-              <Alert type="warning" icon={<IconWarning size="sm" />}>
-                <span>{deprecationText}</span>
-                <UpgradeNowButton
-                  href={`${upgradeUrl}?tab=configurations&referrer=directory_upgrade_now`}
-                  size="xsmall"
-                  onClick={() =>
-                    trackIntegrationEvent('integrations.resolve_now_clicked', {
-                      integration_type: 'plugin',
-                      integration: plugin.slug,
-                      organization,
-                    })
-                  }
-                >
-                  {t('Upgrade Now')}
-                </UpgradeNowButton>
-              </Alert>
-            </div>
-          )}
+          <PluginDeprecationAlert organization={organization} plugin={plugin} />
           <div>
             {plugin.projectList.map((projectItem: PluginProjectItem) => (
               <InstalledPlugin
@@ -211,11 +178,6 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
 const AddButton = styled(Button)`
   margin-bottom: ${space(1)};
-`;
-
-const UpgradeNowButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  float: right;
 `;
 
 export default withOrganization(PluginDetailedView);

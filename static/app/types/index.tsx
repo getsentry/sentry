@@ -599,6 +599,9 @@ export type PluginNoProject = {
 
 export type Plugin = PluginNoProject & {
   enabled: boolean;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type PluginProjectItem = {
@@ -612,9 +615,6 @@ export type PluginProjectItem = {
 
 export type PluginWithProjectList = PluginNoProject & {
   projectList: PluginProjectItem[];
-  altIsSentryApp: boolean;
-  deprecationDate: string;
-  firstPartyAlternative: string;
 };
 
 export type AppOrProviderOrPlugin =
