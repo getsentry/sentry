@@ -149,6 +149,33 @@ tags.sku_class:enterprise #enterprise`;
       </Fragment>
     );
 
+    const errMessageListComponent = (
+      message: string,
+      values: string[],
+      linkFunction: (s: string) => string,
+      linkValueFunction: (s: string) => string
+    ) => {
+      return (
+        <Fragment>
+          <ErrorMessageContainer>
+            <span>{message}</span>
+          </ErrorMessageContainer>
+          <ErrorMessageListContainer>
+            {values.map((value, index) => (
+              <ErrorInlineContainer key={index}>
+                <b>{value}</b>
+                <ErrorCtaContainer>
+                  <ExternalLink href={linkFunction(value)} key={index}>
+                    {linkValueFunction(value)}
+                  </ExternalLink>
+                </ErrorCtaContainer>
+              </ErrorInlineContainer>
+            ))}
+          </ErrorMessageListContainer>
+        </Fragment>
+      );
+    };
+
     return (codeowners || [])
       .filter(({errors}) => Object.values(errors).flat().length)
       .map(({id, codeMapping, errors}) => {
@@ -179,13 +206,11 @@ tags.sku_class:enterprise #enterprise`;
               );
 
             case 'teams_without_access':
-              return values.map(value =>
-                errMessageComponent(
-                  `The following team do not have access to the project: ${project.slug}`,
-                  [value],
-                  `/settings/${organization.slug}/teams/${value.slice(1)}/projects/`,
-                  `Configure ${value} Team Permissions`
-                )
+              return errMessageListComponent(
+                `The following team do not have access to the project: ${project.slug}`,
+                values,
+                value => `/settings/${organization.slug}/teams/${value}/projects/`,
+                value => `Configure ${value} Permissions`
               );
             default:
               return null;
@@ -196,13 +221,17 @@ tags.sku_class:enterprise #enterprise`;
             key={id}
             type="error"
             icon={<IconWarning size="md" />}
-            expand={Object.entries(errors)
-              .filter(([_, values]) => values.length)
-              .map(([type, values]) => (
-                <ErrorContainer key={`${id}-${type}`}>
-                  {errMessage(type, values)}
-                </ErrorContainer>
-              ))}
+            expand={[
+              <AlertContentContainer key="container">
+                {Object.entries(errors)
+                  .filter(([_, values]) => values.length)
+                  .map(([type, values]) => (
+                    <ErrorContainer key={`${id}-${type}`}>
+                      {errMessage(type, values)}
+                    </ErrorContainer>
+                  ))}
+              </AlertContentContainer>,
+            ]}
           >
             {`There were ${
               Object.values(errors).flat().length
@@ -330,6 +359,11 @@ const CodeOwnerButton = styled(Button)`
   margin-left: ${space(1)};
 `;
 
+const AlertContentContainer = styled('div')`
+  overflow-y: scroll;
+  max-height: 350px;
+`;
+
 const ErrorContainer = styled('div')`
   display: grid;
   grid-template-areas: 'message cta';
@@ -338,9 +372,21 @@ const ErrorContainer = styled('div')`
   padding: ${space(1.5)} 0;
 `;
 
+const ErrorInlineContainer = styled(ErrorContainer)`
+  gap: ${space(1.5)};
+  grid-template-columns: 1fr 2fr;
+  align-items: center;
+  padding: 0;
+`;
+
 const ErrorMessageContainer = styled('div')`
   grid-area: message;
   display: grid;
+  gap: ${space(1.5)};
+`;
+
+const ErrorMessageListContainer = styled('div')`
+  grid-column: message / cta-end;
   gap: ${space(1.5)};
 `;
 
