@@ -14,6 +14,7 @@ from typing import List, NewType, Optional
 import requests
 import sentry_sdk
 
+from sentry.api.exceptions import ItunesSmsBlocked
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -328,10 +329,11 @@ class ITunesClient:
 
         :raises ITunesError: if there was an error requesting to use the trusted phone.
         """
-        if self.state is ClientState.SMS_AUTH_REQUESTED:
-            # Impatient user, we already did this.
-            return
-        assert self.state is ClientState.AUTH_REQUESTED, f"Actual client state: {self.state}"
+
+        assert self.state in [
+            ClientState.AUTH_REQUESTED,
+            ClientState.SMS_AUTH_REQUESTED,
+        ], f"Actual client state: {self.state}"
         self._request_trusted_phone_info()
         assert self._trusted_phone is not None
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone"
@@ -351,6 +353,8 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
+        if response.status_code == HTTPStatus.LOCKED:
+            raise ItunesSmsBlocked()
         if response.status_code != HTTPStatus.OK:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
         self.state = ClientState.SMS_AUTH_REQUESTED
