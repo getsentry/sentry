@@ -49,22 +49,38 @@ function CustomRepositories({
     openDebugFileSourceDialog();
   }, [location.query, appStoreConnectContext]);
 
-  const hasAppConnectStoreFeatureFlag =
+  const hasAppStoreConnectFeatureFlag =
     !!organization.features?.includes('app-store-connect');
+  const hasAppStoreConnectMultipleFeatureFlag = !!organization.features?.includes(
+    'app-store-connect-multiple'
+  );
 
   if (
-    hasAppConnectStoreFeatureFlag &&
+    hasAppStoreConnectFeatureFlag &&
     !appStoreConnectContext &&
     !dropDownItems.find(
       dropDownItem => dropDownItem.value === CustomRepoType.APP_STORE_CONNECT
-    ) &&
-    !repositories.find(repository => repository.type === CustomRepoType.APP_STORE_CONNECT)
+    )
   ) {
-    dropDownItems.push({
-      value: CustomRepoType.APP_STORE_CONNECT,
-      label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
-      searchKey: t('apple store connect itunes ios'),
-    });
+    if (
+      repositories.find(
+        repository => repository.type === CustomRepoType.APP_STORE_CONNECT
+      )
+    ) {
+      if (hasAppStoreConnectMultipleFeatureFlag) {
+        dropDownItems.push({
+          value: CustomRepoType.APP_STORE_CONNECT,
+          label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
+          searchKey: t('apple store connect itunes ios'),
+        });
+      }
+    } else {
+      dropDownItems.push({
+        value: CustomRepoType.APP_STORE_CONNECT,
+        label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
+        searchKey: t('apple store connect itunes ios'),
+      });
+    }
   }
 
   function openDebugFileSourceDialog() {
