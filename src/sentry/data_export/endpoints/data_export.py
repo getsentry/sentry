@@ -52,14 +52,11 @@ class DataExportQuerySerializer(serializers.Serializer):
 
             equations = []
             fields = []
-            if self.context.get("has_arithmetic"):
-                for field in base_fields:
-                    if is_equation(field):
-                        equations.append(strip_equation(field))
-                    else:
-                        fields.append(field)
-            else:
-                fields = base_fields
+            for field in base_fields:
+                if is_equation(field):
+                    equations.append(strip_equation(field))
+                else:
+                    fields.append(field)
 
             if len(base_fields) > MAX_FIELDS:
                 detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
@@ -147,9 +144,6 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     project_query, request, organization
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
-                "has_arithmetic": features.has(
-                    "organizations:discover-arithmetic", organization, actor=request.user
-                ),
             },
         )
         if not serializer.is_valid():

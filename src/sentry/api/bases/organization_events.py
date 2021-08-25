@@ -35,25 +35,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             "organizations:discover-basic", organization, actor=request.user
         ) or features.has("organizations:performance-view", organization, actor=request.user)
 
-    def has_arithmetic(self, organization, request):
-        return features.has("organizations:discover-arithmetic", organization, actor=request.user)
-
     def get_equation_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
-        if self.has_arithmetic(organization, request):
-            return [
-                strip_equation(field)
-                for field in request.GET.getlist("field")[:]
-                if is_equation(field)
-            ]
-        else:
-            return []
+        return [
+            strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
+        ]
 
     def get_field_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
-        if self.has_arithmetic(organization, request):
-            return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
-        else:
-            return request.GET.getlist("field")[:]
+        return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:

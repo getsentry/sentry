@@ -25,7 +25,7 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-arithmetic'],
+      features: ['performance-view'],
       apdexThreshold: 400,
     },
   });

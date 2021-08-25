@@ -305,7 +305,7 @@ class DataExportTest(APITestCase):
         Ensures that equations are handled
         """
         payload = self.make_payload("discover", {"field": ["equation|count() / 2", "count()"]})
-        with self.feature(["organizations:discover-query", "organizations:discover-arithmetic"]):
+        with self.feature(["organizations:discover-query"]):
             response = self.get_valid_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info

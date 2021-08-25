@@ -622,7 +622,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_equation_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -642,7 +642,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_equation_mixed_multi_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -667,7 +667,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_equation_multi_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -1655,7 +1655,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         )
 
     def test_top_events_with_equations(self):
-        self.enabled_features["organizations:discover-arithmetic"] = True
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
