@@ -412,11 +412,8 @@ class SpanTreeModel {
       wrappedSpan.toggleSpanGroup = undefined;
     }
 
+    // Do not autogroup groups that will only have two spans
     if (isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length === 1) {
-      if (toggleSpanGroup !== undefined && !showSpanGroup) {
-        toggleSpanGroup();
-      }
-
       if (!showSpanGroup) {
         return [spanGrouping[0], wrappedSpan, ...descendants];
       }
