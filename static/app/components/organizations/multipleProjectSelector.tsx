@@ -1,9 +1,10 @@
 import * as React from 'react';
-import {Link, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import HeaderItem from 'app/components/organizations/headerItem';
 import PlatformList from 'app/components/platformList';
 import Tooltip from 'app/components/tooltip';

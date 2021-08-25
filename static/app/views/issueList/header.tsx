@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {InjectedRouter, Link} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -7,6 +7,7 @@ import Badge from 'app/components/badge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import * as Layout from 'app/components/layouts/thirds';
+import Link from 'app/components/links/link';
 import QueryCount from 'app/components/queryCount';
 import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay} from 'app/icons';
