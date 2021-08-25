@@ -153,11 +153,59 @@ class DataSource(ABC):
         """Get all known values for a specific tag"""
 
 
+_OP_TO_FIELD = {
+    "metrics_counters": {"sum": "value"},
+    "metrics_distributions": {
+        "avg": "avg",
+        "count": "count",
+        "max": "max",
+        "min": "min",
+        "p50": "percentiles",
+        "p75": "percentiles",
+        "p90": "percentiles",
+        "p95": "percentiles",
+        "p99": "percentiles",
+    },
+    "metrics_sets": {"count_unique": "value"},
+}
+_FIELDS_BY_ENTITY = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
+
+
+_BASE_TAGS = {
+    "environment": [
+        "production",
+        "staging",
+    ],
+    "release": [],
+    "session.status": [
+        "abnormal",
+        "crashed",
+        "errored",
+        "healthy",
+    ],
+}
+
+_METRICS = {
+    "session": {
+        "type": "counter",
+        "operations": _FIELDS_BY_ENTITY["metrics_counters"],
+        "tags": _BASE_TAGS,
+    },
+    "user": {
+        "type": "set",
+        "operations": _FIELDS_BY_ENTITY["metrics_sets"],
+        "tags": _BASE_TAGS,
+    },
+    "session.duration": {
+        "type": "distribution",
+        "operations": _FIELDS_BY_ENTITY["metrics_distributions"],
+        "tags": _BASE_TAGS,
+        "unit": "seconds",
+    },
+}
+
+
 class IndexMockingDataSource(DataSource):
-
-    _base_tags = {}
-    _metrics = {}
-
     def get_metrics(self, project: Project) -> List[dict]:
         """Get metrics metadata, without tags"""
         return [
@@ -165,13 +213,13 @@ class IndexMockingDataSource(DataSource):
                 name=name,
                 **{key: value for key, value in metric.items() if key != "tags"},
             )
-            for name, metric in self._metrics.items()
+            for name, metric in _METRICS.items()
         ]
 
     def get_single_metric(self, project: Project, metric_name: str) -> dict:
         """Get metadata for a single metric, without tag values"""
         try:
-            metric = self._metrics[metric_name]
+            metric = _METRICS[metric_name]
         except KeyError:
             raise InvalidParams()
 
@@ -187,7 +235,7 @@ class IndexMockingDataSource(DataSource):
     @classmethod
     def _get_metric(cls, metric_name: str) -> dict:
         try:
-            metric = cls._metrics[metric_name]
+            metric = _METRICS[metric_name]
         except KeyError:
             raise InvalidParams(f"Unknown metric '{metric_name}'")
 
@@ -195,7 +243,7 @@ class IndexMockingDataSource(DataSource):
 
     @classmethod
     def _validate_metric_names(cls, metric_names):
-        unknown_metric_names = set(metric_names) - cls._metrics.keys()
+        unknown_metric_names = set(metric_names) - _METRICS.keys()
         if unknown_metric_names:
             raise InvalidParams(f"Unknown metrics '{', '.join(unknown_metric_names)}'")
 
@@ -208,13 +256,11 @@ class IndexMockingDataSource(DataSource):
         only contain tags that appear in *all* these metrics.
         """
         if metric_names is None:
-            return sorted(
-                {tag_name for metric in self._metrics.values() for tag_name in metric["tags"]}
-            )
+            return sorted({tag_name for metric in _METRICS.values() for tag_name in metric["tags"]})
 
         metric_names = self._validate_metric_names(metric_names)
 
-        key_sets = [set(self._metrics[metric_name]["tags"].keys()) for metric_name in metric_names]
+        key_sets = [set(_METRICS[metric_name]["tags"].keys()) for metric_name in metric_names]
 
         return sorted(set.intersection(*key_sets))
 
@@ -234,7 +280,7 @@ class IndexMockingDataSource(DataSource):
             return sorted(
                 {
                     tag_value
-                    for metric in self._metrics.values()
+                    for metric in _METRICS.values()
                     for tag_value in metric["tags"].get(
                         tag_name, []
                     )  # TODO: validation of tag name
@@ -252,50 +298,6 @@ class IndexMockingDataSource(DataSource):
 
 class MockDataSource(IndexMockingDataSource):
     """Mocks metadata and time series"""
-
-    _base_tags = {
-        "environment": [
-            "production",
-            "staging",
-        ],
-        "release": [  # High cardinality
-            f"myapp@{major}.{minor}.{bugfix}"
-            for major in range(3)
-            for minor in range(13)
-            for bugfix in range(4)
-        ],
-        "session.status": [
-            "abnormal",
-            "crashed",
-            "errored",
-            "healthy",
-        ],
-    }
-
-    _metrics = {
-        "session": {
-            # "type": "counter",
-            "operations": ["sum"],
-            "tags": dict(_base_tags, custom_session_tag=["foo", "bar"]),
-        },
-        "user": {
-            # "type": "set",
-            "operations": ["count_unique"],
-            "tags": dict(_base_tags, custom_user_tag=[""]),
-        },
-        "session.duration": {
-            # "type": "distribution",
-            "operations": ["avg", "p50", "p75", "p90", "p95", "p99", "max"],
-            "tags": _base_tags,
-            "unit": "seconds",
-        },
-        "parallel_users": {
-            # "type": "gauge",
-            "operations": ["avg", "count", "max", "min", "sum"],
-            "tags": _base_tags,
-            "unit": "seconds",
-        },
-    }
 
     #: Used to compute totals from series
     #: NOTE: Not mathematically correct but plausible mock
@@ -344,7 +346,7 @@ class MockDataSource(IndexMockingDataSource):
         tags = [
             {
                 (tag_name, tag_value)
-                for metric in self._metrics.values()
+                for metric in _METRICS.values()
                 for tag_value in metric["tags"].get(tag_name, [])
             }
             for tag_name in query.groupby
@@ -433,24 +435,6 @@ def massage_timeseries(operation: str, series):
     ]
 
 
-_OP_TO_FIELD = {
-    "metrics_counters": {"sum": "value"},
-    "metrics_distributions": {
-        "avg": "avg",
-        "count": "count",
-        "max": "max",
-        "min": "min",
-        "p50": "percentiles",
-        "p75": "percentiles",
-        "p90": "percentiles",
-        "p95": "percentiles",
-        "p99": "percentiles",
-    },
-    "metrics_sets": {"count_unique": "value"},
-}
-_FIELDS_BY_ENTITY = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
-
-
 class SnubaQueryBuilder:
 
     _entity_map = {
@@ -465,39 +449,6 @@ class SnubaQueryBuilder:
         "metrics_counters",
         "metrics_distributions",
         "metrics_sets",
-    }
-
-    _base_tags = {
-        "environment": [
-            "production",
-            "staging",
-        ],
-        "release": [],
-        "session.status": [
-            "abnormal",
-            "crashed",
-            "errored",
-            "healthy",
-        ],
-    }
-
-    _metrics = {
-        "session": {
-            "type": "counter",
-            "operations": _FIELDS_BY_ENTITY["metrics_counters"],
-            "tags": _base_tags,
-        },
-        "user": {
-            "type": "set",
-            "operations": _FIELDS_BY_ENTITY["metrics_sets"],
-            "tags": _base_tags,
-        },
-        "session.duration": {
-            "type": "distribution",
-            "operations": _FIELDS_BY_ENTITY["metrics_distributions"],
-            "tags": _base_tags,
-            "unit": "seconds",
-        },
     }
 
     def __init__(self, project: Project, query_definition: QueryDefinition):
@@ -571,7 +522,7 @@ class SnubaQueryBuilder:
 
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
-            type_ = self._metrics[metric_name]["type"]
+            type_ = _METRICS[metric_name]["type"]
             entity = self._get_entity(type_)
             queries_by_entity.setdefault(entity, []).append((op, metric_name))
 
