@@ -1,20 +1,11 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  cleanup,
-  fireEvent,
-  mountWithTheme,
-  screen,
-} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseComparisonChart from 'app/views/releases/detail/overview/releaseComparisonChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   const {routerContext, organization, project} = initializeOrg();
   // @ts-expect-error
   const api = new MockApiClient();

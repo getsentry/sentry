@@ -1,9 +1,10 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {withTheme} from '@emotion/react';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 
 import {GridColumnOrder} from 'app/components/gridEditable';
+import {CursorHandler} from 'app/components/pagination';
 import {Organization, Project} from 'app/types';
 import EventView, {fromSorts} from 'app/utils/discover/eventView';
 import SegmentExplorerQuery from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
@@ -27,7 +28,7 @@ type Props = {
 };
 
 const HISTOGRAM_TAG_KEY_LIMIT = 8;
-const HISTOGRAM_BUCKET_LIMIT = 20;
+const HISTOGRAM_BUCKET_LIMIT = 40;
 const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
 
 export type TagsTableColumnKeys =
@@ -108,12 +109,11 @@ const TagsDisplay = (props: Props) => {
     eventView
   );
 
-  const handleCursor = (cursor: string, pathname: string, query: Query) => {
+  const handleCursor: CursorHandler = (cursor, pathname, query) =>
     browserHistory.push({
       pathname,
       query: {...query, [TAG_PAGE_TABLE_CURSOR]: cursor},
     });
-  };
 
   const cursor = decodeScalar(location.query?.[TAG_PAGE_TABLE_CURSOR]);
 

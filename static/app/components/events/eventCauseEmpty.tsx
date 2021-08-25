@@ -14,9 +14,9 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Commit, Organization, Project, RepositoryStatus} from 'app/types';
 import {Event} from 'app/types/event';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {IssueEventKey} from 'app/utils/analytics/issueAnalyticsEvents';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'app/utils/getDynamicText';
-import {IssueEventKey} from 'app/utils/issueEvents';
 import {promptCanShow, promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 
