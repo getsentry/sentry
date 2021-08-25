@@ -331,7 +331,7 @@ const DropdownDataCategory = styled(DropdownControl)`
   grid-column: auto / span 1;
   justify-self: stretch;
   align-self: stretch;
-  z-index: 1;
+  z-index: ${p => p.theme.zIndex.orgStats.dataCategory};
 
   button {
     width: 100%;
@@ -353,7 +353,7 @@ const DropdownDataCategory = styled(DropdownControl)`
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   grid-column: auto / span 1;
-  z-index: 2;
+  z-index: ${p => p.theme.zIndex.orgStats.timeRange};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: auto / span 2;
