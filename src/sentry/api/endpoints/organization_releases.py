@@ -291,15 +291,13 @@ class OrganizationReleasesEndpoint(
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by = [f"-{col}" for col in Release.SEMVER_COLS]
+            queryset = queryset.annotate_prerelease_column()
+
+            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
-            queryset = (
-                queryset.annotate_prerelease_column()
-                .filter_to_semver()
-                .order_by(*order_by, "-date_added")
-            )
+            order_by.append(F("date_added").desc())
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
