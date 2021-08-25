@@ -471,6 +471,19 @@ class Event:
 
         return None
 
+    def get_span_groupings(self, force_config=None):
+        from sentry.spans.grouping.api import load_span_grouping_config
+
+        # TODO: if the span hashes with the same configs are already
+        # being stored on the event, then use them. Otherwise, we
+        # generate new ones from the data.
+
+        config = load_span_grouping_config(force_config)
+        return config.execute_strategy(self.data)
+
+    def get_span_grouping_variant(self, span, config):
+        return
+
     @property
     def organization(self):
         return self.project.organization

@@ -1695,6 +1695,22 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     return hashes
 
 
+def _calculate_span_grouping(jobs, projects):
+    for job in jobs:
+        event = job["event"]
+        project = projects[job["project_id"]]
+
+        # TODO: check if this cached
+        organization = project.organization
+        if not features.has(
+            "organizations:performance-suspect-spans-ingestion", organization, actor=None
+        ):
+            continue
+
+        groupings = event.get_span_groupings()
+        groupings.write_to_event(event.data)
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -1728,6 +1744,7 @@ def save_transaction_events(jobs, projects):
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
+    _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
