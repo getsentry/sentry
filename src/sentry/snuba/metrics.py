@@ -5,10 +5,11 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
+from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Project
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -385,25 +386,21 @@ class StringIndexer:
     TODO: Make this a utils.Service
     """
 
-    _to_string = dict(
-        enumerate(
-            [
-                "abnormal",
-                "crashed",
-                "environment",
-                "errored",
-                "healthy",
-                "production",
-                "release",
-                "session.duration",
-                "session.status",
-                "session",
-                "staging",
-                "user",
-            ]
-        )
-    )
-    _to_int = {value: key for key, value in _to_string.items()}
+    _to_int = {
+        "abnormal": 0,
+        "crashed": 1,
+        "environment": 2,
+        "errored": 3,
+        "healthy": 4,
+        "production": 5,
+        "release": 6,
+        "session.duration": 7,
+        "session.status": 8,
+        "session": 9,
+        "staging": 10,
+        "user": 11,
+    }
+    _to_string = {value: key for key, value in _to_int.items()}
 
     def get_string(self, project_id: int, type: StringType, n: int) -> str:
         return self._to_string[n]
@@ -504,8 +501,8 @@ class SnubaQueryBuilder:
         },
     }
 
-    def __init__(self, project_id: int, query_definition: QueryDefinition):
-        self._project_id = project_id
+    def __init__(self, project: Project, query_definition: QueryDefinition):
+        self._project = project
         self._queries = list(self._build_queries(query_definition))
 
     def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
@@ -518,7 +515,7 @@ class SnubaQueryBuilder:
 
         return operator(operands)
 
-    def _build_where(self, query_definition: QueryDefinition) -> Optional[BooleanCondition]:
+    def _build_filter(self, query_definition: QueryDefinition) -> Optional[BooleanCondition]:
         filter_ = query_definition.parsed_query
         to_int = STRING_INDEXER.get_int
         return self._build_logical(
@@ -528,9 +525,9 @@ class SnubaQueryBuilder:
                     And,
                     [
                         Condition(
-                            Column(f"tags[{to_int(self._project_id, StringType.TAG_KEY, tag)}]"),
+                            Column(f"tags[{to_int(self._project.id, StringType.TAG_KEY, tag)}]"),
                             Op.EQ,
-                            to_int(self._project_id, StringType.TAG_VALUE, value),
+                            to_int(self._project.id, StringType.TAG_VALUE, value),
                         )
                         for tag, value in or_operand["and"]
                     ],
@@ -539,9 +536,32 @@ class SnubaQueryBuilder:
             ],
         )
 
-    def _build_groupby(self, query_definition: QueryDefinition):
+    def _build_where(
+        self, query_definition: QueryDefinition
+    ) -> List[Union[BooleanCondition, Condition]]:
+        where: List[Union[BooleanCondition, Condition]] = [
+            Condition(Column("org_id"), Op.EQ, self._project.organization_id),
+            Condition(Column("project_id"), Op.EQ, self._project.id),
+            Condition(
+                Column("metric_id"),
+                Op.IN,
+                [
+                    STRING_INDEXER.get_int(self._project.id, StringType.METRIC, name)
+                    for _, name in query_definition.fields.values()
+                ],
+            ),
+            Condition(Column(TS_COL), Op.GTE, query_definition.start),
+            Condition(Column(TS_COL), Op.LT, query_definition.end),
+        ]
+        filter_ = self._build_filter(query_definition)
+        if filter_:
+            where.append(filter_)
+
+        return where
+
+    def _build_groupby(self, query_definition: QueryDefinition) -> List[SelectableExpression]:
         return [
-            Column(f"tags[{STRING_INDEXER.get_int(self._project_id, StringType.TAG_KEY, field)}]")
+            Column(f"tags[{STRING_INDEXER.get_int(self._project.id, StringType.TAG_KEY, field)}]")
             for field in query_definition.groupby
         ]
 
@@ -556,7 +576,7 @@ class SnubaQueryBuilder:
         groupby = self._build_groupby(query_definition)
 
         for entity, fields in queries_by_entity.items():
-            yield Query(
+            totals_query = Query(
                 dataset="metrics",
                 match=Entity(entity),
                 groupby=groupby,
@@ -569,11 +589,15 @@ class SnubaQueryBuilder:
                         },
                     )
                 ),
-                where=[where] if where else None,
+                where=where,
                 limit=Limit(MAX_POINTS),
                 offset=Offset(0),
                 granularity=Granularity(query_definition.rollup),
             )
+            series_query = totals_query.set_groupby((totals_query.groupby or []) + [Column(TS_COL)])
+
+            yield totals_query
+            yield series_query
 
     def get_snuba_queries(self):
         return self._queries
