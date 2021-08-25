@@ -9,7 +9,12 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-import {IntegrationInstallationStatus, Organization, PluginWithProjectList, SentryApp} from 'app/types';
+import {
+  IntegrationInstallationStatus,
+  Organization,
+  PluginWithProjectList,
+  SentryApp,
+} from 'app/types';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,
