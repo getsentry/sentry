@@ -150,10 +150,10 @@ tags.sku_class:enterprise #enterprise`;
     );
 
     const errMessageListComponent = (
-      message,
-      values,
-      linkFunction,
-      linkValueFunction
+      message: string,
+      values: string[],
+      linkFunction: (s: string) => string,
+      linkValueFunction: (s: string) => string
     ) => {
       return (
         <Fragment>
