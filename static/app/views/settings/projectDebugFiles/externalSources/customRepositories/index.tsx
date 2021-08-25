@@ -27,8 +27,8 @@ import {
   getRequestMessages,
 } from './utils';
 
-const HookedOAppStoreConnectMultiple = HookOrDefault({
-  hookName: 'component:disabled-app-store-connect-multiple-tooltip',
+const HookedAppStoreConnectItem = HookOrDefault({
+  hookName: 'component:disabled-app-store-connect-item',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
@@ -211,9 +211,11 @@ function CustomRepositories({
             return {
               ...dropDownItem,
               label: (
-                <HookedOAppStoreConnectMultiple
-                  organization={organization}
+                <HookedAppStoreConnectItem
                   disabled={disabled}
+                  onTrialStarted={() => {
+                    handleAddRepository(dropDownItem.value);
+                  }}
                 >
                   <StyledMenuItem
                     onClick={event => {
@@ -224,7 +226,7 @@ function CustomRepositories({
                   >
                     {dropDownItem.label}
                   </StyledMenuItem>
-                </HookedOAppStoreConnectMultiple>
+                </HookedAppStoreConnectItem>
               ),
             };
           })}
