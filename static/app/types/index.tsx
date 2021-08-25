@@ -595,13 +595,13 @@ export type PluginNoProject = {
   author?: {name: string; url: string};
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type Plugin = PluginNoProject & {
   enabled: boolean;
-  altIsSentryApp?: boolean;
-  deprecationDate?: string;
-  firstPartyAlternative?: string;
 };
 
 export type PluginProjectItem = {
