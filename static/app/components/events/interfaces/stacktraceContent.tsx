@@ -139,6 +139,7 @@ class StacktraceContent extends React.Component<Props, State> {
       includeSystemFrames,
       isHoverPreviewed,
     } = this.props;
+
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
     let firstFrameOmitted = null;
@@ -255,15 +256,17 @@ class StacktraceContent extends React.Component<Props, State> {
     }
 
     const className = this.getClassName();
+    const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
     return (
-      <Wrapper className={className}>
+      <Wrapper className={className} data-test-id="stack-trace-content">
         <StyledPlatformIcon
-          platform={stackTracePlatformIcon(platform, data.frames ?? [])}
+          platform={platformIcon}
           size="20px"
           style={{borderRadius: '3px 0 0 3px'}}
+          data-test-id={`platform-icon-${platformIcon}`}
         />
-        <StyledList>{frames}</StyledList>
+        <StyledList data-test-id="frames">{frames}</StyledList>
       </Wrapper>
     );
   }

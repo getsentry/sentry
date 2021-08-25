@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {InjectedRouter} from 'react-router';
 import {EChartOption} from 'echarts/lib/echarts';
 import moment from 'moment';
 import * as qs from 'query-string';
@@ -46,7 +46,7 @@ export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
 };
 
 type Props = {
-  router?: WithRouterProps['router'];
+  router?: InjectedRouter;
   children: (props: ZoomRenderProps) => React.ReactNode;
   disabled?: boolean;
   xAxis?: EChartOption.XAxis;

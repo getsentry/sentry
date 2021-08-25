@@ -78,7 +78,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
         )
 
         assert response.status_code == 200, response.content
@@ -1873,7 +1873,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
-        response.data["meta"]["max_timestamp"] == "date"
+        assert response.data["meta"]["max_timestamp"] == "date"
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 

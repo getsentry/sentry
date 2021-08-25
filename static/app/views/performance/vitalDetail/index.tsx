@@ -1,8 +1,6 @@
 import {Component} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -26,15 +24,12 @@ import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 import VitalDetailContent from './vitalDetailContent';
 
-type Props = {
+type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
   loadingProjects: boolean;
-  router: InjectedRouter;
 };
 
 type State = {

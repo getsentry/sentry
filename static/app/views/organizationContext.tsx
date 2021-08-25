@@ -1,7 +1,6 @@
 import * as React from 'react';
 import DocumentTitle from 'react-document-title';
-import {RouteComponentProps} from 'react-router';
-import {PlainRoute} from 'react-router/lib/Route';
+import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 

@@ -50,6 +50,17 @@ export function tagsRouteWithQuery({
   };
 }
 
+export function getTagSortForTagsPage(location: Location) {
+  // Retrieves the tag from the same query param segment explorer uses, but removes columns that aren't supported.
+  let tagSort = decodeScalar(location.query?.tagSort) ?? '-frequency';
+
+  if (['sumdelta'].find(denied => tagSort?.includes(denied))) {
+    tagSort = '-frequency';
+  }
+
+  return tagSort;
+}
+
 // TODO(k-fish): Improve meta of backend response to return these directly
 export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) {
   const field = Object.keys(row).find(f => f.includes('histogram'));

@@ -3,6 +3,7 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
@@ -189,6 +190,42 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    @responses.activate
+    def test_rate_limited_response(self):
+        """Should surface a 429 from Slack to the frontend form"""
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "ok": "false",
+                    "error": "ratelimited",
+                }
+            ),
+        )
+
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "input_channel_id": "",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert SLACK_RATE_LIMITED_MESSAGE in str(form.errors.values())
 
     @responses.activate
     def test_channel_id_provided(self):

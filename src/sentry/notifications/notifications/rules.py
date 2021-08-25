@@ -109,7 +109,7 @@ class AlertRuleNotification(BaseNotification):
     def get_notification_title(self) -> Any:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
 
-        title_str = "Issue triggered"
+        title_str = "Alert triggered"
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)

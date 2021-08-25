@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {RouteComponentProps} from 'react-router';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -12,7 +12,7 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import ProjectPlugins from './projectPlugins';
 
-type Props = WithRouterProps<{orgId: string; projectId: string}> & {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   plugins: {
     plugins: Plugin[];
     error: React.ComponentProps<typeof ProjectPlugins>['error'];

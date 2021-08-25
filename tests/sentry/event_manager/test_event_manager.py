@@ -1731,6 +1731,40 @@ class EventManagerTest(TestCase):
 
         assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
 
+    def test_write_none_tree_labels(self):
+        """Write tree labels even if None"""
+
+        event = make_event(
+            platform="native",
+            exception={
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "<redacted>",
+                                },
+                                {
+                                    "function": "<redacted>",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+        manager = EventManager(event)
+        manager.normalize()
+
+        manager.get_data()["grouping_config"] = {
+            "id": "mobile:2021-02-12",
+        }
+        event = manager.save(1)
+
+        assert event.data["hierarchical_tree_labels"] == [None]
+
     def test_synthetic_exception_detection(self):
         manager = EventManager(
             make_event(

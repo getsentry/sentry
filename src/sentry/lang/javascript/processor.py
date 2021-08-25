@@ -511,7 +511,13 @@ def fetch_release_artifact(url, release, dist):
         try:
             archive = ReleaseArchive(archive_file)
         except Exception as exc:
-            logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
+            archive_file.seek(0)
+            logger.error(
+                "Failed to initialize archive for release %s",
+                release.id,
+                exc_info=exc,
+                extra={"contents": archive_file.read(256)},
+            )
             # TODO(jjbayer): cache error and return here
         else:
             with archive:
