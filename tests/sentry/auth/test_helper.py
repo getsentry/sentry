@@ -171,7 +171,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
 
     @mock.patch("sentry.auth.helper.auth")
     def test_no_invite_members_flag(self, mock_auth):
-        with self.feature({"organizations:sso-basic": False}):
+        with mock.patch("sentry.features.has", return_value=False) as features_has:
             mock_auth.get_login_redirect.return_value = "test_login_url"
             user, auth_identity = self.set_up_user_identity()
 
@@ -189,6 +189,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
             assert getattr(persisted_om.flags, "sso:linked")
             assert getattr(persisted_om.flags, "member-limit:restricted")
             assert not getattr(persisted_om.flags, "sso:invalid")
+            features_has.assert_called_once_with("organizations:invite-members", self.organization)
 
 
 class HandleAttachIdentityTest(AuthIdentityHandlerTest):
