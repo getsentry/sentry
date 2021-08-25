@@ -364,7 +364,9 @@ class OrganizationReleaseListTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:adopted",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == []
 
@@ -391,23 +393,30 @@ class OrganizationReleaseListTest(APITestCase):
         )
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [replaced_release.version]
 
         response = self.get_valid_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [
             adopted_release.version,
@@ -415,7 +424,9 @@ class OrganizationReleaseListTest(APITestCase):
         ]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]",
+            environment=self.environment.name,
         )
 
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
@@ -494,6 +505,7 @@ class OrganizationReleaseListTest(APITestCase):
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION},{ReleaseStages.REPLACED}]",
             sort="adoption",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [
             replaced_release.version,
@@ -501,7 +513,16 @@ class OrganizationReleaseListTest(APITestCase):
         ]
 
         response = self.get_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:invalid_stage"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:invalid_stage",
+            environment=self.environment.name,
+        )
+        assert response.status_code == 400
+
+        response = self.get_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            # No environment
         )
         assert response.status_code == 400
 
@@ -810,7 +831,9 @@ class OrganizationReleasesStatsTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:adopted"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:adopted",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == []
 
@@ -837,23 +860,30 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [replaced_release.version]
 
         response = self.get_valid_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [
             adopted_release.version,
@@ -861,12 +891,23 @@ class OrganizationReleasesStatsTest(APITestCase):
         ]
 
         response = self.get_valid_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]",
+            environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
         response = self.get_response(
-            self.organization.slug, query=f"{RELEASE_STAGE_ALIAS}:invalid_stage"
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:invalid_stage",
+            environment=self.environment.name,
+        )
+        assert response.status_code == 400
+
+        response = self.get_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            # No environment
         )
         assert response.status_code == 400
 

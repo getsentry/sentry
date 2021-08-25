@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {RouteComponentProps, WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
@@ -29,7 +29,7 @@ type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
 
 type RenderSearchInputArgs = Omit<
   SearchInputProps,
-  'api' | 'onSuccess' | 'onError' | 'url' | keyof WithRouterProps
+  'api' | 'onSuccess' | 'onError' | 'url' | keyof RouteComponentProps<{}, {}>
 > & {
   stateKey?: string;
   url?: SearchInputProps['url'];
