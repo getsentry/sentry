@@ -4,10 +4,14 @@ from unittest import mock
 
 import pytz
 from django.utils.datastructures import MultiValueDict
-from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
+from snuba_sdk import Column, Condition, Entity, Granularity, Limit, Offset, Op, Query
 
-from sentry.api.bases import organization
-from sentry.snuba.metrics import MAX_POINTS, QueryDefinition, SnubaDataSource, SnubaQueryBuilder
+from sentry.snuba.metrics import (
+    MAX_POINTS,
+    QueryDefinition,
+    SnubaQueryBuilder,
+    SnubaResultConverter,
+)
 
 
 @dataclass
@@ -16,10 +20,12 @@ class PseudoProject:
     id: int
 
 
-@mock.patch(
-    "sentry.snuba.sessions_v2.get_now", return_value=datetime(2021, 8, 25, 17, 59, tzinfo=pytz.utc)
-)
-def test_build_snuba_query(mock_now):
+MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+
+
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_build_snuba_query(mock_now, mock_now2):
 
     # Your typical release health query querying everything
     query_params = MultiValueDict(
@@ -43,19 +49,23 @@ def test_build_snuba_query(mock_now):
             dataset="metrics",
             match=Entity(match),
             select=[Column(select)],
-            groupby=[Column("tags[8]"), Column("tags[2]")] + extra_groupby,
+            groupby=[Column("metric_id"), Column("tags[8]"), Column("tags[2]")] + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.EQ, 1),
                 Condition(Column("metric_id"), Op.IN, [9, 11, 7]),
-                Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 27, 14, tzinfo=pytz.utc)),
-                Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 25, 14, tzinfo=pytz.utc)),
+                Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+                Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
                 Condition(Column("tags[6]"), Op.EQ, 10),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
             granularity=Granularity(query_definition.rollup),
         )
+
+    assert snuba_queries["metrics_counters"]["totals"] == expected_query(
+        "metrics_counters", "value", []
+    )
 
     assert snuba_queries == {
         "metrics_counters": {
@@ -94,12 +104,12 @@ def test_translate_results():
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,  # session.status:healthy
-                        "value": 1715553,
+                        "value": 300,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,  # session.status:abnormal
-                        "value": 150,
+                        "value": 330,
                     },
                 ],
             },
@@ -108,26 +118,26 @@ def test_translate_results():
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "timestamp": "2021-02-01T00:00:00Z",
-                        "value": 1715553,
-                    },
-                    {
-                        "metric_id": 9,  # session
-                        "tags[8]": 0,
-                        "timestamp": "2021-02-01T00:00:00Z",
+                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
                         "value": 100,
                     },
                     {
                         "metric_id": 9,  # session
+                        "tags[8]": 0,
+                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
+                        "value": 110,
+                    },
+                    {
+                        "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "timestamp": "2021-02-02T00:00:00Z",
-                        "value": 677788,
+                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
+                        "value": 200,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,
-                        "timestamp": "2021-02-02T00:00:00Z",
-                        "value": 50,
+                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
+                        "value": 220,
                     },
                 ],
             },
@@ -154,28 +164,28 @@ def test_translate_results():
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "timestamp": "2021-02-01T00:00:00Z",
+                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
                         "max": 10.1,
                         "percentiles": [1.1, 2.1, 3.1, 4.1, 5.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "timestamp": "2021-02-01T00:00:00Z",
+                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
                         "max": 20.2,
                         "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "timestamp": "2021-02-02T00:00:00Z",
+                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
                         "max": 30.3,
                         "percentiles": [1.3, 2.3, 3.3, 4.3, 5.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "timestamp": "2021-02-02T00:00:00Z",
+                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
                         "max": 40.4,
                         "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
                     },
@@ -184,25 +194,51 @@ def test_translate_results():
         },
     }
 
-    assert SnubaDataSource()._translate_results(1, query_definition, results) == [
+    assert SnubaResultConverter(1, query_definition, results).translate_results() == [
         {
             "by": {"session.status": "healthy"},
             "totals": {
-                "sum(session)": 1715553,
+                "sum(session)": 300,
                 "max(session.duration)": 123.4,
                 "p50(session.duration)": 1,
                 "p95(session.duration)": 4,
             },
-            "series": {"sum(session)": [683772, 677788, 353993]},
+            "series": [
+                {
+                    "sum(session)": 100,
+                    "max(session.duration)": 10.1,
+                    "p50(session.duration)": 1.1,
+                    "p95(session.duration)": 4.1,
+                },
+                {
+                    "sum(session)": 200,
+                    "max(session.duration)": 30.3,
+                    "p50(session.duration)": 1.3,
+                    "p95(session.duration)": 4.3,
+                },
+            ],
         },
         {
             "by": {"session.status": "abnormal"},
             "totals": {
-                "sum(session)": 150,
+                "sum(session)": 330,
                 "max(session.duration)": 456.7,
                 "p50(session.duration)": 1.5,
                 "p95(session.duration)": 4.5,
             },
-            "series": {"sum(session)": [0, 0, 0]},
+            "series": [
+                {
+                    "sum(session)": 110,
+                    "max(session.duration)": 20.2,
+                    "p50(session.duration)": 1.2,
+                    "p95(session.duration)": 4.2,
+                },
+                {
+                    "sum(session)": 220,
+                    "max(session.duration)": 40.4,
+                    "p50(session.duration)": 1.4,
+                    "p95(session.duration)": 4.4,
+                },
+            ],
         },
     ]

@@ -5,7 +5,7 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
@@ -17,9 +17,8 @@ from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     InvalidParams,
     finite_or_none,
     get_constrained_date_range,
-    massage_sessions_result,
 )
-from sentry.utils.snuba import _snuba_query, raw_snql_query
+from sentry.utils.snuba import raw_snql_query
 
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
@@ -622,10 +621,87 @@ class SnubaQueryBuilder:
         return entity
 
 
+class SnubaResultConverter:
+    """Interpret a Snuba result and convert it to API format"""
+
+    def __init__(self, project_id: int, query_definition: QueryDefinition, results):
+        self._project_id = project_id
+        self._query_definition = query_definition
+        self._results = results
+
+        self._ops_by_metric = ops_by_metric = {}
+        for op, metric in query_definition.fields.values():
+            ops_by_metric.setdefault(metric, []).append(op)
+
+    def _parse_tag(self, tag_string: str) -> str:
+        tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
+        return STRING_INDEXER.get_string(self._project_id, StringType.TAG_KEY, tag_key)
+
+    def _extract_data(self, entity, data, groups):
+        tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
+        tag_data = groups.setdefault(tags, {"totals": {}, "series": {}})
+
+        # If this is time series data, add it to the appropriate series.
+        # Else, add to totals
+        timestamp = data.pop("timestamp", None)
+        if timestamp is None:
+            target = tag_data["totals"]
+        else:
+            # Create an entry for current timestamp
+            target = tag_data["series"].setdefault(timestamp, {})
+
+        metric_name = STRING_INDEXER.get_string(
+            self._project_id, StringType.METRIC, data["metric_id"]
+        )
+
+        ops = self._ops_by_metric[metric_name]
+        for op in ops:
+            field = _OP_TO_FIELD[entity][op]
+            value = data[field]
+            if field == "percentiles":
+                value = value[Percentile[op].value]
+
+            target[f"{op}({metric_name})"] = value
+
+    def _transform_series(self, groups):
+        for data in groups:
+            series = data["series"]
+            data["series"] = [series[ts] for ts in sorted(series.keys())]
+
+    def translate_results(self):
+        groups = {}
+
+        for entity, subresults in self._results.items():
+            totals = subresults["totals"]["data"]
+            for data in totals:
+                self._extract_data(entity, data, groups)
+
+            series = subresults["series"]["data"]
+            for data in series:
+                self._extract_data(entity, data, groups)
+
+        project_id = self._project_id
+
+        groups = [
+            dict(
+                by={
+                    self._parse_tag(key): STRING_INDEXER.get_string(
+                        project_id, StringType.TAG_VALUE, value
+                    )
+                    for key, value in tags
+                },
+                **data,
+            )
+            for tags, data in groups.items()
+        ]
+
+        self._transform_series(groups)
+
+        return groups
+
+
 class SnubaDataSource(IndexMockingDataSource):
     """Mocks metrics metadata and string indexing, but fetches real time series"""
-
-    _extractors = {}
 
     def get_series(self, project: Project, query: QueryDefinition) -> dict:
         """Get time series for the given query"""
@@ -638,66 +714,15 @@ class SnubaDataSource(IndexMockingDataSource):
             for entity, queries in snuba_queries.items()
         }
 
+        converter = SnubaResultConverter(project.id, query, results)
+
         return {
             "start": query.start,
             "end": query.end,
             "query": query.query,
             "intervals": intervals,
-            "groups": self._translate_results(results),
+            "groups": converter.translate_results(),
         }
-
-    def _parse_tag(self, project_id: int, tag_string: str) -> str:
-        tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return STRING_INDEXER.get_string(project_id, StringType.TAG_KEY, tag_key)
-
-    def _translate_results(self, project_id: int, query_definition: QueryDefinition, results):
-
-        ops_by_metric = {}
-        for op, metric in query_definition.fields.values():
-            ops_by_metric.setdefault(metric, []).append(op)
-
-        totals = {}
-        # series_by_timestamp = {}
-        groups = {}
-
-        for entity, subresults in results.items():
-            totals = subresults["totals"]["data"]
-            for data in totals:
-                tags = tuple(
-                    (key, data[key]) for key in sorted(data.keys()) if key.startswith("tags[")
-                )
-                target = groups.setdefault(tags, {}).setdefault("totals", {})
-                metric_name = STRING_INDEXER.get_string(
-                    project_id, StringType.METRIC, data["metric_id"]
-                )
-
-                ops = ops_by_metric[metric_name]
-                for op in ops:
-                    field = _OP_TO_FIELD[entity][op]
-                    value = data[field]
-                    if field == "percentiles":
-                        value = value[Percentile[op].value]
-
-                    target[f"{op}({metric_name})"] = value
-
-        groups = [
-            dict(
-                by={
-                    self._parse_tag(project_id, key): STRING_INDEXER.get_string(
-                        project_id, StringType.TAG_VALUE, value
-                    )
-                    for key, value in tags
-                },
-                **data,
-            )
-            for tags, data in groups.items()
-        ]
-
-        import pprint
-
-        pprint.pprint(groups)
-
-        return groups
 
 
 DATA_SOURCE = SnubaDataSource()
