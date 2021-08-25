@@ -20,7 +20,7 @@ import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {LightWeightOrganization, Organization} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -57,7 +57,9 @@ type State = {
   };
 };
 
-export const OrganizationContext = createContext<Organization | null>(null);
+const OrganizationContext = createContext<Organization | LightWeightOrganization | null>(
+  null
+);
 class OrganizationContextContainer extends React.Component<Props, State> {
   static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
     const {prevProps} = prevState;
@@ -386,7 +388,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
 export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
-export {OrganizationContextContainer as OrganizationLegacyContext};
+export {OrganizationContextContainer as OrganizationLegacyContext, OrganizationContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};
