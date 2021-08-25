@@ -900,9 +900,15 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         ]
 
     def test_release_stage(self):
-        replaced_release = self.create_release(version="replaced_release")
-        adopted_release = self.create_release(version="adopted_release")
-        not_adopted_release = self.create_release(version="not_adopted_release")
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=adopted_release.id,
@@ -925,12 +931,14 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         env_2 = self.create_environment()
         project_2 = self.create_project()
 
-        self.run_test(ReleaseStages.ADOPTED, [adopted_release])
-        self.run_test(ReleaseStages.LOW_ADOPTION, [not_adopted_release])
-        self.run_test(ReleaseStages.REPLACED, [replaced_release])
+        self.run_test(ReleaseStages.ADOPTED, [adopted_release], environment=self.environment)
+        self.run_test(
+            ReleaseStages.LOW_ADOPTION, [not_adopted_release], environment=self.environment
+        )
+        self.run_test(ReleaseStages.REPLACED, [replaced_release], environment=self.environment)
 
         self.run_test(ReleaseStages.ADOPTED, [], environment=env_2)
-        self.run_test(ReleaseStages.ADOPTED, [], project=project_2)
+        self.run_test(ReleaseStages.ADOPTED, [], project=project_2, environment=self.environment)
 
 
 class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, SnubaTestCase):

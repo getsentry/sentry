@@ -776,7 +776,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
             [
                 convert_search_filter_to_snuba_query(
                     search_filter,
-                    params={"organization_id": organization_id, "project_id": project_ids},
+                    params={
+                        "organization_id": organization_id,
+                        "project_id": project_ids,
+                        "environment_id": environment_ids,
+                    },
                 )
                 for search_filter in search_filters
                 if search_filter.key.name not in self.skip_snuba_fields

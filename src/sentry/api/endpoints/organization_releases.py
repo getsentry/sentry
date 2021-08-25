@@ -118,6 +118,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                 search_filter.operator,
                 search_filter.value.value,
                 project_ids=filter_params["project_id"],
+                environments=filter_params.get("environment"),
             )
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:

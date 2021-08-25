@@ -809,6 +809,7 @@ class SnubaTagStorage(TagStorage):
             "=",
             query,
             project_ids=projects,
+            environments=environments,
         )
         if environments:
             versions = versions.filter(
