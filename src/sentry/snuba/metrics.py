@@ -17,8 +17,9 @@ from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     InvalidParams,
     finite_or_none,
     get_constrained_date_range,
+    massage_sessions_result,
 )
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import _snuba_query, raw_snql_query
 
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
@@ -100,7 +101,7 @@ class QueryDefinition:
     def __init__(self, query_params, allow_minute_resolution=False):
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query)
+        self.parsed_query = parse_query(self.query) if self.query else None
         raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
 
@@ -435,13 +436,31 @@ def massage_timeseries(operation: str, series):
     ]
 
 
+_OP_TO_FIELD = {
+    "metrics_counters": {"sum": "value"},
+    "metrics_distributions": {
+        "avg": "avg",
+        "count": "count",
+        "max": "max",
+        "min": "min",
+        "p50": "percentiles",
+        "p75": "percentiles",
+        "p90": "percentiles",
+        "p95": "percentiles",
+        "p99": "percentiles",
+    },
+    "metrics_sets": {"count_unique": "value"},
+}
+_FIELDS_BY_ENTITY = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
+
+
 class SnubaQueryBuilder:
 
     _entity_map = {
-        "session.duration": "metrics_distributions",
-        "session.error": "metrics_sets",
-        "session": "metrics_counters",
-        "user": "metrics_sets",
+        "counter": "metrics_counters",
+        "distribution": "metrics_distributions",
+        "gauge": "metrics_gauges",
+        "set": "metrics_sets",
     }
 
     #: Datasets actually implemented in snuba:
@@ -450,23 +469,6 @@ class SnubaQueryBuilder:
         "metrics_distributions",
         "metrics_sets",
     }
-
-    _op_to_field = {
-        "counter": {"sum": "value"},
-        "distribution": {
-            "avg": "avg",
-            "count": "count",
-            "max": "max",
-            "min": "min",
-            "p50": "percentiles",
-            "p75": "percentiles",
-            "p90": "percentiles",
-            "p95": "percentiles",
-            "p99": "percentiles",
-        },
-        "set": {"count_unique": "value"},
-    }
-    _fields_by_type = {type_: sorted(mapping.keys()) for type_, mapping in _op_to_field.items()}
 
     _base_tags = {
         "environment": [
@@ -485,17 +487,17 @@ class SnubaQueryBuilder:
     _metrics = {
         "session": {
             "type": "counter",
-            "operations": _fields_by_type["counter"],
+            "operations": _FIELDS_BY_ENTITY["metrics_counters"],
             "tags": _base_tags,
         },
         "user": {
             "type": "set",
-            "operations": _fields_by_type["set"],
+            "operations": _FIELDS_BY_ENTITY["metrics_sets"],
             "tags": _base_tags,
         },
         "session.duration": {
             "type": "distribution",
-            "operations": _fields_by_type["distribution"],
+            "operations": _FIELDS_BY_ENTITY["metrics_distributions"],
             "tags": _base_tags,
             "unit": "seconds",
         },
@@ -503,7 +505,7 @@ class SnubaQueryBuilder:
 
     def __init__(self, project: Project, query_definition: QueryDefinition):
         self._project = project
-        self._queries = list(self._build_queries(query_definition))
+        self._queries = self._build_queries(query_definition)
 
     def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
         """Snuba only accepts And and Or if they have 2 elements or more"""
@@ -517,6 +519,9 @@ class SnubaQueryBuilder:
 
     def _build_filter(self, query_definition: QueryDefinition) -> Optional[BooleanCondition]:
         filter_ = query_definition.parsed_query
+        if filter_ is None:
+            return None
+
         to_int = STRING_INDEXER.get_int
         return self._build_logical(
             Or,
@@ -560,7 +565,7 @@ class SnubaQueryBuilder:
         return where
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[SelectableExpression]:
-        return [
+        return [Column("metric_id")] + [
             Column(f"tags[{STRING_INDEXER.get_int(self._project.id, StringType.TAG_KEY, field)}]")
             for field in query_definition.groupby
         ]
@@ -569,156 +574,130 @@ class SnubaQueryBuilder:
 
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
-            entity = self._get_entity(metric_name)
+            type_ = self._metrics[metric_name]["type"]
+            entity = self._get_entity(type_)
             queries_by_entity.setdefault(entity, []).append((op, metric_name))
 
         where = self._build_where(query_definition)
         groupby = self._build_groupby(query_definition)
 
-        for entity, fields in queries_by_entity.items():
-            totals_query = Query(
-                dataset="metrics",
-                match=Entity(entity),
-                groupby=groupby,
-                select=list(
-                    map(
-                        Column,
-                        {
-                            self._op_to_field[self._metrics[metric_name]["type"]][op]
-                            for op, metric_name in fields
-                        },
-                    )
-                ),
-                where=where,
-                limit=Limit(MAX_POINTS),
-                offset=Offset(0),
-                granularity=Granularity(query_definition.rollup),
-            )
-            series_query = totals_query.set_groupby((totals_query.groupby or []) + [Column(TS_COL)])
+        return {
+            entity: self._build_queries_for_entity(query_definition, entity, fields, where, groupby)
+            for entity, fields in queries_by_entity.items()
+        }
 
-            yield totals_query
-            yield series_query
+    def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
+        totals_query = Query(
+            dataset="metrics",
+            match=Entity(entity),
+            groupby=groupby,
+            select=list(
+                map(
+                    Column,
+                    {_OP_TO_FIELD[entity][op] for op, _ in fields},
+                )
+            ),
+            where=where,
+            limit=Limit(MAX_POINTS),
+            offset=Offset(0),
+            granularity=Granularity(query_definition.rollup),
+        )
+        series_query = totals_query.set_groupby((totals_query.groupby or []) + [Column(TS_COL)])
+
+        return {
+            "totals": totals_query,
+            "series": series_query,
+        }
 
     def get_snuba_queries(self):
         return self._queries
 
-    def _get_entity(self, metric_name) -> str:
+    def _get_entity(self, metric_type: str) -> str:
 
-        entity = self._entity_map[metric_name]
+        entity = self._entity_map[metric_type]
 
         if entity not in self._implemented_datasets:
             raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
         return entity
 
-    # def _build_base_query():
-    #     dataset = self._dataset
-    #     match=Entity(self._get_entity(metric_name)),
-    #     select=[Column(column)],
-    #     where=
-
 
 class SnubaDataSource(IndexMockingDataSource):
     """Mocks metrics metadata and string indexing, but fetches real time series"""
 
-    _dataset = "metrics"
-
-    _indexer = StringIndexer()
-
-    _entity_map = {
-        "session.duration": "metrics_distributions",
-        "session.error": "metrics_sets",
-        "session": "metrics_counters",
-        "user": "metrics_sets",
-    }
-
-    #: Datasets actually implemented in snuba:
-    _implemented_datasets = {
-        "metrics_counters",
-        "metrics_distributions",
-        "metrics_sets",
-    }
-
-    #: Map operation to corresponding field in snuba
+    _extractors = {}
 
     def get_series(self, project: Project, query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
         intervals = list(query.get_intervals())
 
+        snuba_queries = SnubaQueryBuilder(project, query).get_snuba_queries()
+        results = {
+            entity: {key: raw_snql_query(query) for key, query in queries.items()}
+            for entity, queries in snuba_queries.items()
+        }
+
         return {
             "start": query.start,
             "end": query.end,
             "query": query.query,
             "intervals": intervals,
-            "groups": [
-                {
-                    "by": {},  # TODO: handle tags
-                    "totals": {
-                        # TODO: One query per table
-                        field: self._run_query_total(project, query, op, metric_name)
-                        for field, (op, metric_name) in query.fields.items()
-                    },
-                }
-            ],
+            "groups": self._translate_results(results),
         }
 
-    def _run_query_total(
-        self, project: Project, query: QueryDefinition, op: str, metric_name: str
-    ) -> Optional[int]:
+    def _parse_tag(self, project_id: int, tag_string: str) -> str:
+        tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
+        return STRING_INDEXER.get_string(project_id, StringType.TAG_KEY, tag_key)
 
-        metric = self._metrics[metric_name]
-        metric_id = self._indexer.get_int(project.id, StringType.METRIC, metric_name)
+    def _translate_results(self, project_id: int, query_definition: QueryDefinition, results):
 
-        column = self._op_to_field[metric["type"]][op]
+        ops_by_metric = {}
+        for op, metric in query_definition.fields.values():
+            ops_by_metric.setdefault(metric, []).append(op)
 
-        where = [
-            Condition(Column("org_id"), Op.EQ, project.organization.id),
-            Condition(Column("project_id"), Op.EQ, project.id),
-            Condition(Column("metric_id"), Op.EQ, metric_id),
-            Condition(Column(TS_COL), Op.GTE, query.start),
-            Condition(Column(TS_COL), Op.LT, query.end),
+        totals = {}
+        # series_by_timestamp = {}
+        groups = {}
+
+        for entity, subresults in results.items():
+            totals = subresults["totals"]["data"]
+            for data in totals:
+                tags = tuple(
+                    (key, data[key]) for key in sorted(data.keys()) if key.startswith("tags[")
+                )
+                target = groups.setdefault(tags, {}).setdefault("totals", {})
+                metric_name = STRING_INDEXER.get_string(
+                    project_id, StringType.METRIC, data["metric_id"]
+                )
+
+                ops = ops_by_metric[metric_name]
+                for op in ops:
+                    field = _OP_TO_FIELD[entity][op]
+                    value = data[field]
+                    if field == "percentiles":
+                        value = value[Percentile[op].value]
+
+                    target[f"{op}({metric_name})"] = value
+
+        groups = [
+            dict(
+                by={
+                    self._parse_tag(project_id, key): STRING_INDEXER.get_string(
+                        project_id, StringType.TAG_VALUE, value
+                    )
+                    for key, value in tags
+                },
+                **data,
+            )
+            for tags, data in groups.items()
         ]
 
-        if query.query:
-            filter_ = query.parsed_query
-            snuba_filter = build_logical(
-                Or,
-                [
-                    build_logical(
-                        And,
-                        [
-                            Condition(
-                                Column(
-                                    f"tags[{self._indexer.get_int(project.id, StringType.TAG_KEY, tag)}]"
-                                ),
-                                Op.EQ,
-                                self._indexer.get_int(project.id, StringType.TAG_VALUE, value),
-                            )
-                            for tag, value in or_operand["and"]
-                        ],
-                    )
-                    for or_operand in filter_["or"]
-                ],
-            )
+        import pprint
 
-            where.append(snuba_filter)
+        pprint.pprint(groups)
 
-        snql_query = Query(
-            dataset=self._dataset,
-            match=Entity(self._get_entity(metric_name)),
-            select=[Column(column)],
-            # groupby=[Column(field) for field in query.groupby],
-            where=where,
-            limit=Limit(MAX_POINTS),
-            offset=Offset(0),
-            granularity=Granularity(query.rollup),
-        )
-        result = raw_snql_query(snql_query, referrer="metrics.totals")
-        data = massage_timeseries(op, result["data"])
-        total = data[0]
-
-        return total
+        return groups
 
 
 DATA_SOURCE = SnubaDataSource()

@@ -7,7 +7,7 @@ from django.utils.datastructures import MultiValueDict
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 
 from sentry.api.bases import organization
-from sentry.snuba.metrics import MAX_POINTS, QueryDefinition, SnubaQueryBuilder
+from sentry.snuba.metrics import MAX_POINTS, QueryDefinition, SnubaDataSource, SnubaQueryBuilder
 
 
 @dataclass
@@ -57,11 +57,152 @@ def test_build_snuba_query(mock_now):
             granularity=Granularity(query_definition.rollup),
         )
 
-    assert snuba_queries[0] == expected_query("metrics_counters", "value", [])
-    assert snuba_queries[1] == expected_query("metrics_counters", "value", [Column("timestamp")])
-    assert snuba_queries[2] == expected_query("metrics_sets", "value", [])
-    assert snuba_queries[3] == expected_query("metrics_sets", "value", [Column("timestamp")])
-    assert snuba_queries[4] == expected_query("metrics_distributions", "percentiles", [])
-    assert snuba_queries[5] == expected_query(
-        "metrics_distributions", "percentiles", [Column("timestamp")]
+    assert snuba_queries == {
+        "metrics_counters": {
+            "totals": expected_query("metrics_counters", "value", []),
+            "series": expected_query("metrics_counters", "value", [Column("timestamp")]),
+        },
+        "metrics_sets": {
+            "totals": expected_query("metrics_sets", "value", []),
+            "series": expected_query("metrics_sets", "value", [Column("timestamp")]),
+        },
+        "metrics_distributions": {
+            "totals": expected_query("metrics_distributions", "percentiles", []),
+            "series": expected_query("metrics_distributions", "percentiles", [Column("timestamp")]),
+        },
+    }
+
+
+def test_translate_results():
+    query_params = MultiValueDict(
+        {
+            "groupBy": ["session.status"],
+            "field": [
+                "sum(session)",
+                "max(session.duration)",
+                "p50(session.duration)",
+                "p95(session.duration)",
+            ],
+        }
     )
+    query_definition = QueryDefinition(query_params)
+
+    results = {
+        "metrics_counters": {
+            "totals": {
+                "data": [
+                    {
+                        "metric_id": 9,  # session
+                        "tags[8]": 4,  # session.status:healthy
+                        "value": 1715553,
+                    },
+                    {
+                        "metric_id": 9,  # session
+                        "tags[8]": 0,  # session.status:abnormal
+                        "value": 150,
+                    },
+                ],
+            },
+            "series": {
+                "data": [
+                    {
+                        "metric_id": 9,  # session
+                        "tags[8]": 4,
+                        "timestamp": "2021-02-01T00:00:00Z",
+                        "value": 1715553,
+                    },
+                    {
+                        "metric_id": 9,  # session
+                        "tags[8]": 0,
+                        "timestamp": "2021-02-01T00:00:00Z",
+                        "value": 100,
+                    },
+                    {
+                        "metric_id": 9,  # session
+                        "tags[8]": 4,
+                        "timestamp": "2021-02-02T00:00:00Z",
+                        "value": 677788,
+                    },
+                    {
+                        "metric_id": 9,  # session
+                        "tags[8]": 0,
+                        "timestamp": "2021-02-02T00:00:00Z",
+                        "value": 50,
+                    },
+                ],
+            },
+        },
+        "metrics_distributions": {
+            "totals": {
+                "data": [
+                    {
+                        "metric_id": 7,  # session.duration
+                        "tags[8]": 4,
+                        "max": 123.4,
+                        "percentiles": [1, 2, 3, 4, 5],
+                    },
+                    {
+                        "metric_id": 7,  # session.duration
+                        "tags[8]": 0,
+                        "max": 456.7,
+                        "percentiles": [1.5, 2.5, 3.5, 4.5, 5.5],
+                    },
+                ],
+            },
+            "series": {
+                "data": [
+                    {
+                        "metric_id": 7,  # session.duration
+                        "tags[8]": 4,
+                        "timestamp": "2021-02-01T00:00:00Z",
+                        "max": 10.1,
+                        "percentiles": [1.1, 2.1, 3.1, 4.1, 5.1],
+                    },
+                    {
+                        "metric_id": 7,  # session.duration
+                        "tags[8]": 0,
+                        "timestamp": "2021-02-01T00:00:00Z",
+                        "max": 20.2,
+                        "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
+                    },
+                    {
+                        "metric_id": 7,  # session.duration
+                        "tags[8]": 4,
+                        "timestamp": "2021-02-02T00:00:00Z",
+                        "max": 30.3,
+                        "percentiles": [1.3, 2.3, 3.3, 4.3, 5.3],
+                    },
+                    {
+                        "metric_id": 7,  # session.duration
+                        "tags[8]": 0,
+                        "timestamp": "2021-02-02T00:00:00Z",
+                        "max": 40.4,
+                        "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
+                    },
+                ],
+            },
+        },
+    }
+
+    assert SnubaDataSource()._translate_results(1, query_definition, results) == [
+        {
+            "by": {"session.status": "healthy"},
+            "totals": {
+                "sum(session)": 1715553,
+                "max(session.duration)": 123.4,
+                "p50(session.duration)": 1,
+                "p95(session.duration)": 4,
+            },
+            "series": {"sum(session)": [683772, 677788, 353993]},
+        },
+        {
+            "by": {"session.status": "abnormal"},
+            "totals": {
+                "sum(session)": 150,
+                "max(session.duration)": 456.7,
+                "p50(session.duration)": 1.5,
+                "p95(session.duration)": 4.5,
+            },
+            "series": {"sum(session)": [0, 0, 0]},
+        },
+    ]
