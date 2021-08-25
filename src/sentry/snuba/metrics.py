@@ -341,8 +341,6 @@ class MockDataSource(IndexMockingDataSource):
 
         intervals = list(query.get_intervals())
 
-        self._verify_query(query)
-
         tags = [
             {
                 (tag_name, tag_value)
@@ -723,6 +721,3 @@ class SnubaDataSource(IndexMockingDataSource):
             "intervals": intervals,
             "groups": converter.translate_results(),
         }
-
-
-DATA_SOURCE = SnubaDataSource()
