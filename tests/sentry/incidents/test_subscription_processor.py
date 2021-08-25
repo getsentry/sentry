@@ -302,8 +302,7 @@ class ProcessUpdateTest(TestCase):
         # alert threshold triggers correctly
         rule = self.rule
         c_trigger = self.trigger
-        c_action = self.action
-        create_alert_rule_trigger_action(
+        c_action_2 = create_alert_rule_trigger_action(
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
@@ -326,7 +325,7 @@ class ProcessUpdateTest(TestCase):
             timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(incident, [c_action])
+        self.assert_actions_fired_for_incident(incident, [c_action_2])
 
     def test_alert_nullable(self):
         # Verify that an alert rule that only expects a single update to be over the
