@@ -1,7 +1,9 @@
 from django.db import models, transaction
+from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import JSONField
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
@@ -34,6 +36,8 @@ class DiscoverSavedQuery(Model):
     version = models.IntegerField(null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
+    visits = BoundedBigIntegerField(null=True, default=1)
+    last_visited = models.DateTimeField(null=True, default=timezone.now)
 
     class Meta:
         app_label = "sentry"
