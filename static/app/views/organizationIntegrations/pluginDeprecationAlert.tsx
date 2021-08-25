@@ -23,9 +23,8 @@ class PluginDeprecationAlert extends Component<Props, State> {
     if (!plugin.deprecationDate) {
       return <React.Fragment />;
     }
-    let upgradeUrl = '';
     const resource = plugin.altIsSentryApp ? 'sentry-apps' : 'integrations';
-    upgradeUrl = `/settings/${organization.slug}/${resource}/${plugin.firstPartyAlternative}/`;
+    const upgradeUrl = `/settings/${organization.slug}/${resource}/${plugin.firstPartyAlternative}/`;
 
     return (
       <div>

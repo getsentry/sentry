@@ -152,7 +152,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     const plugin = this.plugin;
     const {organization} = this.props;
 
-    if (plugin.projectList.length && plugin.deprecationDate !== '') {
+    if (plugin.projectList.length) {
       return (
         <Fragment>
           <PluginDeprecationAlert organization={organization} plugin={plugin} />
