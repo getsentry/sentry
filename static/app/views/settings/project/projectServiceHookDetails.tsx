@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -96,7 +96,7 @@ class HookStats extends AsyncComponent<StatsProps, StatsState> {
   }
 }
 
-type Props = WithRouterProps<Params, {}>;
+type Props = RouteComponentProps<Params, {}>;
 type State = {
   hook: ServiceHook | null;
 } & AsyncView['state'];

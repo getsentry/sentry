@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf.urls import url
 from rest_framework.response import Response
 
@@ -33,6 +35,9 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+    deprecation_date = datetime(2021, 9, 20)
+    alternative = "clubhouse"
+    alt_is_sentry_app = True
 
     issue_fields = frozenset(["id", "title", "url"])
 
