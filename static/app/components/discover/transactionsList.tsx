@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -136,7 +136,7 @@ class TransactionsList extends React.Component<Props> {
     limit: DEFAULT_TRANSACTION_LIMIT,
   };
 
-  handleCursor = (cursor: string, pathname: string, query: Query) => {
+  handleCursor: CursorHandler = (cursor, pathname, query) => {
     const {cursorName} = this.props;
     browserHistory.push({
       pathname,
