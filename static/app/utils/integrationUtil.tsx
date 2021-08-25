@@ -22,8 +22,11 @@ import {
   SentryAppInstallation,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import {EventParameters, trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {
+  integrationEventMap,
+  IntegrationEventParameters,
+} from 'app/utils/analytics/integrationAnalyticsEvents';
+import makeAnalyticsFunction from 'app/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -35,17 +38,12 @@ const mapIntegrationParams = analyticsParams => {
   return fullParams;
 };
 
-// wrapper around trackAdvancedAnalyticsEvent which has some extra
-// data massaging above
-export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
-  eventKey: T,
-  analyticsParams: EventParameters[T] & {organization: LightWeightOrganization}, // integration events should always be tied to an org
-  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[2]
-) {
-  options = options || {};
-  options.mapValuesFn = mapIntegrationParams;
-  return trackAdvancedAnalyticsEvent(eventKey, analyticsParams, options);
-}
+export const trackIntegrationAnalytics = makeAnalyticsFunction<
+  IntegrationEventParameters,
+  {organization: LightWeightOrganization} // org is required
+>(integrationEventMap, {
+  mapValuesFn: mapIntegrationParams,
+});
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook

@@ -76,11 +76,23 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
   ) => {
-    if (isArray(data.stats.data) && data.stats.data.length === 0) {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+
+      const areaSeries = AreaSeries({
+        data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
+          timestamp * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
+        lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
+        areaStyle: {color: color?.[0], opacity: 1},
+      });
+
       return {
         ...slackChartDefaults,
         useUTC: true,
-        series: [],
+        color,
+        series: [areaSeries],
       };
     }
 
@@ -117,11 +129,23 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
   ) => {
-    if (isArray(data.stats.data) && data.stats.data.length === 0) {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+
+      const areaSeries = AreaSeries({
+        data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
+          timestamp * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
+        lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
+        areaStyle: {color: color?.[0], opacity: 1},
+      });
+
       return {
         ...slackChartDefaults,
         useUTC: true,
-        series: [],
+        color,
+        series: [areaSeries],
       };
     }
 

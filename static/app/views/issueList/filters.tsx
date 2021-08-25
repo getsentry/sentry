@@ -120,6 +120,7 @@ const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   display: grid;
   grid-gap: ${space(1)};
   grid-template-columns: 1fr ${p => (p.hasIssuePercentDisplay ? '1fr' : '')};
+  align-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;

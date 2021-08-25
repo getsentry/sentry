@@ -14,10 +14,10 @@ import NarrowLayout from 'app/components/narrowLayout';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Integration, IntegrationProvider, Organization} from 'app/types';
-import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
 import {
   getIntegrationFeatureGate,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 import {singleLineRenderer} from 'app/utils/marked';
 import AsyncView from 'app/views/asyncView';
@@ -42,7 +42,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return t('Choose Installation Organization');
   }
 
-  trackIntegrationEvent = (
+  trackIntegrationAnalytics = (
     eventName: IntegrationAnalyticsKey,
     startSession?: boolean
   ) => {
@@ -52,7 +52,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
       return;
     }
 
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       eventName,
       {
         integration_type: 'first_party',
@@ -67,11 +67,11 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   };
 
   trackOpened() {
-    this.trackIntegrationEvent('integrations.integration_viewed', true);
+    this.trackIntegrationAnalytics('integrations.integration_viewed', true);
   }
 
   trackInstallationStart() {
-    this.trackIntegrationEvent('integrations.installation_start');
+    this.trackIntegrationAnalytics('integrations.installation_start');
   }
 
   get integrationSlug() {
