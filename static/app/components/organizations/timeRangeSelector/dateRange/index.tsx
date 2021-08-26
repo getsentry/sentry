@@ -89,7 +89,7 @@ type State = {
   hasEndErrors: boolean;
 };
 
-class DateRange extends React.Component<Props, State> {
+class BaseDateRange extends React.Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -246,7 +246,7 @@ class DateRange extends React.Component<Props, State> {
   }
 }
 
-const StyledDateRange = styled(withTheme(withRouter(DateRange)))`
+const DateRange = styled(withTheme(withRouter(BaseDateRange)))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.border};
@@ -268,4 +268,4 @@ const UtcPicker = styled('div')`
   flex: 1;
 `;
 
-export default StyledDateRange;
+export default DateRange;
