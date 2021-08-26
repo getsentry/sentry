@@ -65,6 +65,49 @@ describe('ReleaseHealthRequest', function () {
   );
 
   // @ts-expect-error
+  const requestForAutoTotalCountByProjectInPeriod = MockApiClient.addMockResponse(
+    {
+      url: `/organizations/org-slug/sessions/`,
+      // @ts-expect-error
+      body: TestStubs.SessionTotalCountByProjectIn24h(),
+    },
+    {
+      predicate(_url, {query}) {
+        return isEqual(query, {
+          query: undefined,
+          interval: '1d',
+          statsPeriod: '14d',
+          project: [123],
+          field: ['sum(session)'],
+          groupBy: ['project'],
+        });
+      },
+    }
+  );
+
+  // @ts-expect-error
+  const requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse(
+    {
+      url: `/organizations/org-slug/sessions/`,
+      // @ts-expect-error
+      body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+    },
+    {
+      predicate(_url, {query}) {
+        return isEqual(query, {
+          query:
+            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+          interval: '1d',
+          statsPeriod: '14d',
+          project: [123],
+          field: ['sum(session)'],
+          groupBy: ['project', 'release'],
+        });
+      },
+    }
+  );
+
+  // @ts-expect-error
   MockApiClient.addMockResponse(
     {
       url: `/organizations/${organization.slug}/sessions/`,
@@ -709,7 +752,16 @@ describe('ReleaseHealthRequest', function () {
         z: 0,
       },
     ]);
+    expect(
+      healthData.getAdoption(
+        '7a82c130be9143361f20bc77252df783cf91e4fc',
+        projectId,
+        DisplayOption.SESSIONS
+      )
+    ).toBe(26.29607698886915);
 
     expect(requestForAutoHealthStatsPeriodSessionHistogram).toHaveBeenCalledTimes(1);
+    expect(requestForAutoTotalCountByProjectInPeriod).toHaveBeenCalledTimes(1);
+    expect(requestForAutoTotalCountByReleaseInPeriod).toHaveBeenCalledTimes(1);
   });
 });
