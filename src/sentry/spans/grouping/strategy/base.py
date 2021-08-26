@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence
 from urllib.parse import urlparse
 
-from sentry.spans.grouping.utils import hash_values
+from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 
 # TODO(3.8): This is a hack so we can get TypedDicts before 3.8
 if TYPE_CHECKING:
@@ -25,13 +25,14 @@ Span = TypedDict(
         "same_process_as_parent": bool,
         "op": str,
         "description": Optional[str],
+        "fingerprint": Optional[Sequence[str]],
         "tags": Optional[Any],
         "data": Optional[Any],
     },
 )
 
 
-CallableStrategy = Callable[[Span], Optional[str]]
+CallableStrategy = Callable[[Span], Optional[Sequence[str]]]
 
 
 @dataclass(frozen=True)
@@ -40,29 +41,41 @@ class SpanGroupingStrategy:
     strategies: Sequence[CallableStrategy]
 
     def execute(self, spans: Sequence[Span]) -> Dict[str, str]:
-        results = {}
+        return {span["span_id"]: self.get_span_group(span) for span in spans}
 
-        for span in spans:
-            span_group = None
-            # TODO: The following assumes the default fingerprint
-            # of `{{ default }}` and does not handle any other case.
+    def get_span_group(self, span: Span) -> str:
+        fingerprints = span.get("fingerprint") or ["{{ default }}"]
 
-            # Try using all of the strategies in order to generate
-            # the appropriate span group. The first strategy that
-            # successfully generates a span group will be chosen.
-            for strategy in self.strategies:
-                span_group = strategy(span)
-                if span_group is not None:
-                    break
+        result = Hash()
 
-            # If no strategies generated a valid span group,
-            # fall back to using the raw description strategy
-            if span_group is None:
-                span_group = raw_description_strategy(span)
+        for fingerprint in fingerprints:
+            values: Sequence[str] = [fingerprint]
 
-            results[span["span_id"]] = span_group
+            var = parse_fingerprint_var(fingerprint)
+            if var == "default":
+                values = self.handle_default_fingerprint(span)
 
-        return results
+            result.update(values)
+
+        return result.hexdigest()
+
+    def handle_default_fingerprint(self, span: Span) -> Sequence[str]:
+        span_group = None
+
+        # Try using all of the strategies in order to generate
+        # the appropriate span group. The first strategy that
+        # successfully generates a span group will be chosen.
+        for strategy in self.strategies:
+            span_group = strategy(span)
+            if span_group is not None:
+                break
+
+        # If no strategies generated a valid span group,
+        # fall back to using the raw description strategy
+        if span_group is None:
+            span_group = raw_description_strategy(span)
+
+        return span_group
 
 
 def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
@@ -73,20 +86,19 @@ def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
 
 
 def raw_description_strategy(span: Span) -> str:
-    description = span.get("description") or ""
-    return hash_values([description])
+    return span.get("description") or ""
 
 
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(, %s)+\)")
 
 
 @span_op("db")
-def normalized_db_span_in_condition_strategy(span: Span) -> Optional[str]:
+def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
     description = span.get("description") or ""
     cleaned, count = IN_CONDITION_PATTERN.subn(" IN (...)", description)
     if count == 0:
         return None
-    return hash_values([cleaned])
+    return [cleaned]
 
 
 HTTP_METHODS = {
@@ -103,10 +115,10 @@ HTTP_METHODS = {
 
 
 @span_op("http.client")
-def remove_http_client_query_string_strategy(span: Span) -> Optional[str]:
+def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
     description = span.get("description") or ""
     method, url_str = description.split(" ", 1)
     if method not in HTTP_METHODS:
         return None
     url = urlparse(url_str)
-    return hash_values([url.scheme, url.netloc, url.path])
+    return [url.scheme, url.netloc, url.path]
