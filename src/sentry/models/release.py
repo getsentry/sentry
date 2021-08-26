@@ -217,9 +217,13 @@ class ReleaseQuerySet(models.QuerySet):
         operator: str,
         value,
         project_ids: Sequence[int] = None,
+        environments: List[str] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
+
+        if not environments or len(environments) != 1:
+            raise InvalidSearchQuery("Must pick an environment to query by release.stage.")
 
         filters = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
@@ -289,8 +293,11 @@ class ReleaseModelManager(models.Manager):
         operator: str,
         value,
         project_ids: Sequence[int] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
-        return self.get_queryset().filter_by_stage(organization_id, operator, value, project_ids)
+        return self.get_queryset().filter_by_stage(
+            organization_id, operator, value, project_ids, environments
+        )
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):

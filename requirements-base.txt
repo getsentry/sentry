@@ -28,7 +28,8 @@ mmh3==3.0.0
 parsimonious==0.8.0
 petname==2.6
 phonenumberslite==8.12.0
-Pillow==8.2.0
+Pillow==8.2.0; python_version == '3.6'
+Pillow==8.3.1; python_version > '3.6'
 progressbar2==3.32.0
 python-rapidjson==1.4
 # If we bump it to 2.8.4 or greater then Python 3.6 & 3.8 would use the same version
@@ -73,7 +74,8 @@ kombu==4.6.11
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-grpcio==1.35.0
+grpcio==1.35.0; python_version == '3.6'
+grpcio==1.39.0; python_version > '3.6'
 
 # not directly used, but provides a speedup for redis
 hiredis==0.3.1
