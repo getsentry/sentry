@@ -88,7 +88,7 @@ describe('getFieldRenderer', function () {
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
-    const value = wrapper.find('StyledDateTime');
+    const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(1);
     expect(value.props().date).toEqual(data.createdAt);
   });
@@ -97,7 +97,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
-    const value = wrapper.find('StyledDateTime');
+    const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(0);
     expect(wrapper.text()).toEqual('n/a');
   });
