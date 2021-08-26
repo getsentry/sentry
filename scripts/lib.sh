@@ -116,6 +116,7 @@ start-docker() {
 }
 
 upgrade-pip() {
+    set -x
     pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
 }
 
