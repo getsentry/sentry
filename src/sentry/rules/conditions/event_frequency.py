@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import timedelta
 
@@ -138,6 +139,7 @@ percent_intervals = {
     "30m": ("30 minutes", timedelta(minutes=30)),
     "1h": ("1 hour", timedelta(minutes=60)),
 }
+MIN_SESSIONS_TO_FIRE = 250
 
 
 class EventFrequencyPercentForm(EventFrequencyForm):
@@ -156,6 +158,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     label = "The issue affects more than {value} percent of sessions in {interval}"
+    logger = logging.getLogger("rules.event_frequency")
 
     def __init__(self, *args, **kwargs):
         self.intervals = percent_intervals
@@ -190,7 +193,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 session_count_last_hour = False
             cache.set(cache_key, session_count_last_hour, 600)
 
-        if session_count_last_hour:
+        if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
             interval_in_minutes = (
                 percent_intervals[self.get_option("interval")][1].total_seconds() // 60
             )
@@ -203,6 +206,16 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 environment_id=environment_id,
                 use_cache=True,
             )[event.group_id]
+            if issue_count > avg_sessions_in_interval:
+                # We want to better understand when and why this is happening, so we're logging it for now
+                self.logger.info(
+                    "EventFrequencyPercentCondition.query_hook",
+                    extra={
+                        "issue_count": issue_count,
+                        "project_id": project_id,
+                        "avg_sessions_in_interval": avg_sessions_in_interval,
+                    },
+                )
             return 100 * round(issue_count / avg_sessions_in_interval, 4)
 
         return 0

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
@@ -61,7 +61,7 @@ const HELP_LINKS = {
 type Props = {
   api: Client;
   organization: Organization;
-} & WithRouterProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
   formData: object;

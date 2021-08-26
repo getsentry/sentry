@@ -67,7 +67,7 @@ function ReleaseEventsChart({
       case ReleaseComparisonChartType.ERROR_COUNT:
         return [colors[12]];
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
-        return [theme.gray300];
+        return [colors[0]];
       case ReleaseComparisonChartType.FAILURE_RATE:
         return [colors[9]];
       default:

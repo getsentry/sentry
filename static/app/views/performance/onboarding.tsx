@@ -24,7 +24,7 @@ import FeatureTourModal, {
 import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 
 const performanceSetupUrl =
@@ -108,65 +108,6 @@ function Onboarding({organization, project, api}: Props) {
       organization,
     });
   }
-  const showSampleTransactionBtn = organization.features.includes(
-    'performance-create-sample-transaction'
-  );
-  const featureTourBtn = (
-    <FeatureTourModal
-      steps={PERFORMANCE_TOUR_STEPS}
-      onAdvance={handleAdvance}
-      onCloseModal={handleClose}
-      doneUrl={performanceSetupUrl}
-      doneText={t('Start Setup')}
-    >
-      {({showModal}) => (
-        <Button
-          priority={showSampleTransactionBtn ? 'link' : 'default'}
-          onClick={() => {
-            trackAdvancedAnalyticsEvent('performance_views.tour.start', {organization});
-            showModal();
-          }}
-        >
-          {t('Take a Tour')}
-        </Button>
-      )}
-    </FeatureTourModal>
-  );
-  const secondaryBtn = showSampleTransactionBtn ? (
-    <Button
-      data-test-id="create-sample-transaction-btn"
-      onClick={async () => {
-        trackAdvancedAnalyticsEvent('performance_views.create_sample_transaction', {
-          platform: project.platform,
-          organization,
-        });
-        addLoadingMessage(t('Processing sample event...'), {
-          duration: 15000,
-        });
-        const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
-        try {
-          const eventData = await api.requestPromise(url, {method: 'POST'});
-          browserHistory.push(
-            `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
-          );
-          clearIndicators();
-        } catch (error) {
-          Sentry.withScope(scope => {
-            scope.setExtra('error', error);
-            Sentry.captureException(new Error('Failed to create sample event'));
-          });
-          clearIndicators();
-          addErrorMessage(t('Failed to create a new sample event'));
-          return;
-        }
-      }}
-    >
-      {t('Create Sample Transaction')}
-    </Button>
-  ) : (
-    featureTourBtn
-  );
-
   return (
     <OnboardingPanel image={<PerfImage src={emptyStateImg} />}>
       <h3>{t('Pinpoint problems')}</h3>
@@ -183,9 +124,56 @@ function Onboarding({organization, project, api}: Props) {
         >
           {t('Start Setup')}
         </Button>
-        {secondaryBtn}
+        <Button
+          data-test-id="create-sample-transaction-btn"
+          onClick={async () => {
+            trackAdvancedAnalyticsEvent('performance_views.create_sample_transaction', {
+              platform: project.platform,
+              organization,
+            });
+            addLoadingMessage(t('Processing sample event...'), {
+              duration: 15000,
+            });
+            const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
+            try {
+              const eventData = await api.requestPromise(url, {method: 'POST'});
+              browserHistory.push(
+                `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+              );
+              clearIndicators();
+            } catch (error) {
+              Sentry.withScope(scope => {
+                scope.setExtra('error', error);
+                Sentry.captureException(new Error('Failed to create sample event'));
+              });
+              clearIndicators();
+              addErrorMessage(t('Failed to create a new sample event'));
+              return;
+            }
+          }}
+        >
+          {t('Create Sample Transaction')}
+        </Button>
       </ButtonList>
-      {showSampleTransactionBtn && featureTourBtn}
+      <FeatureTourModal
+        steps={PERFORMANCE_TOUR_STEPS}
+        onAdvance={handleAdvance}
+        onCloseModal={handleClose}
+        doneUrl={performanceSetupUrl}
+        doneText={t('Start Setup')}
+      >
+        {({showModal}) => (
+          <Button
+            priority="link"
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('performance_views.tour.start', {organization});
+              showModal();
+            }}
+          >
+            {t('Take a Tour')}
+          </Button>
+        )}
+      </FeatureTourModal>
     </OnboardingPanel>
   );
 }
