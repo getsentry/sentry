@@ -59,15 +59,28 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "-title" if sort_by.startswith("-") else "title",
                 "-date_added",
             ]
+
         elif sort_by in ("dateCreated", "-dateCreated"):
             order_by = "-date_added" if sort_by.startswith("-") else "date_added"
+
+        elif sort_by in ("mostPopular", "-mostPopular"):
+            order_by = [
+                "visits" if sort_by.startswith("-") else "-visits",
+                "-date_added",
+            ]
+
+        elif sort_by in ("recentlyViewed", "-recentlyViewed"):
+            order_by = "last_visited" if sort_by.startswith("-") else "-last_visited"
+
         elif sort_by == "mydashboards":
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
                 "-date_added",
             ]
+
         else:
             order_by = "title"
+
         if not isinstance(order_by, list):
             order_by = [order_by]
 

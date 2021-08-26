@@ -52,17 +52,31 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 "-lower_name" if sort_by.startswith("-") else "lower_name",
                 "-date_created",
             ]
+
         elif sort_by in ("dateCreated", "-dateCreated"):
             order_by = "-date_created" if sort_by.startswith("-") else "date_created"
+
         elif sort_by in ("dateUpdated", "-dateUpdated"):
             order_by = "-date_updated" if sort_by.startswith("-") else "date_updated"
+
+        elif sort_by in ("mostPopular", "-mostPopular"):
+            order_by = [
+                "visits" if sort_by.startswith("-") else "-visits",
+                "-date_updated",
+            ]
+
+        elif sort_by in ("recentlyViewed", "-recentlyViewed"):
+            order_by = "last_visited" if sort_by.startswith("-") else "-last_visited"
+
         elif sort_by == "myqueries":
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
                 "-date_created",
             ]
+
         else:
             order_by = "lower_name"
+
         if not isinstance(order_by, list):
             order_by = [order_by]
         queryset = queryset.order_by(*order_by)
