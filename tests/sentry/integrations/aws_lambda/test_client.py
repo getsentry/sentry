@@ -57,6 +57,7 @@ class AwsLambdaClientTest(TestCase):
                             "Effect": "Allow",
                             "Action": [
                                 "lambda:ListFunctions",
+                                "lambda:ListLayerVersions",
                                 "lambda:GetLayerVersion",
                                 "organizations:DescribeAccount",
                             ],

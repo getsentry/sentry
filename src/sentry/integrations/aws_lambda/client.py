@@ -51,6 +51,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
                         "Effect": "Allow",
                         "Action": [
                             "lambda:ListFunctions",
+                            "lambda:ListLayerVersions",
                             "lambda:GetLayerVersion",
                             "organizations:DescribeAccount",
                         ],
