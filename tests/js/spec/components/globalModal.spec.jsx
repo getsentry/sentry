@@ -66,4 +66,35 @@ describe('GlobalModal', function () {
     wrapper.update();
     expect(closeSpy).toHaveBeenCalled();
   });
+
+  it('calls ignores click out when the allowClickClose option is false', async function () {
+    const wrapper = mountWithTheme(
+      <div id="outside-test">
+        <GlobalModal />
+      </div>
+    );
+
+    openModal(
+      ({Header}) => (
+        <div id="modal-test">
+          <Header closeButton>Header</Header>Hi
+        </div>
+      ),
+      {allowClickClose: false}
+    );
+
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('GlobalModal').prop('visible')).toBe(true);
+
+    wrapper.find('#outside-test').simulate('click');
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('GlobalModal').prop('visible')).toBe(true);
+
+    wrapper.find('CloseButton').simulate('click');
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('GlobalModal').prop('visible')).toBe(false);
+  });
 });

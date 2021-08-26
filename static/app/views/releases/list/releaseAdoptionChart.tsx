@@ -203,6 +203,9 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
 
     const interval = this.getInterval();
     const numDataPoints = releasesSeries[0].data.length;
+    const xAxisData = releasesSeries[0].data.map(point => point.name);
+    const hideLastPoint =
+      releasesSeries.findIndex(series => series.data[numDataPoints - 1].value > 0) === -1;
 
     return (
       <Panel>
@@ -217,7 +220,10 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                 <LineChart
                   {...zoomRenderProps}
                   grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-                  series={releasesSeries}
+                  series={releasesSeries.map(series => ({
+                    ...series,
+                    data: hideLastPoint ? series.data.slice(0, -1) : series.data,
+                  }))}
                   yAxis={{
                     min: 0,
                     max: 100,
@@ -228,6 +234,13 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                     axisLabel: {
                       formatter: '{value}%',
                     },
+                  }}
+                  xAxis={{
+                    show: true,
+                    min: xAxisData[0],
+                    max: xAxisData[numDataPoints - 1],
+                    type: 'time',
+                    data: xAxisData,
                   }}
                   tooltip={{
                     formatter: seriesParams => {

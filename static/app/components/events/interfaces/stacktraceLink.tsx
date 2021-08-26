@@ -19,7 +19,7 @@ import {
   RepositoryProjectPathConfigWithIntegration,
 } from 'app/types';
 import {Event} from 'app/types/event';
-import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -110,7 +110,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       status: 'dismissed',
     });
 
-    trackIntegrationEvent('integrations.stacktrace_link_cta_dismissed', {
+    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
       view: 'stacktrace_issue_details',
       organization,
     });
@@ -156,7 +156,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   onOpenLink() {
     const provider = this.config?.provider;
     if (provider) {
-      trackIntegrationEvent(
+      trackIntegrationAnalytics(
         'integrations.stacktrace_link_clicked',
         {
           view: 'stacktrace_issue_details',
@@ -172,7 +172,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const provider = this.config?.provider;
     const error = this.match.error;
     if (provider) {
-      trackIntegrationEvent(
+      trackIntegrationAnalytics(
         'integrations.reconfigure_stacktrace_setup',
         {
           view: 'stacktrace_issue_details',
@@ -214,7 +214,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
                   link: (
                     <a
                       onClick={() => {
-                        trackIntegrationEvent(
+                        trackIntegrationAnalytics(
                           'integrations.stacktrace_start_setup',
                           {
                             view: 'stacktrace_issue_details',

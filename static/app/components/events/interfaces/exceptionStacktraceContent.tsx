@@ -48,7 +48,11 @@ const ExceptionStacktraceContent = ({
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xs" />}
-          title={t('No app only stack trace has been found!')}
+          title={
+            hasHierarchicalGrouping
+              ? t('No relevant stack trace has been found!')
+              : t('No app only stack trace has been found!')
+          }
         />
       </Panel>
     );
@@ -57,6 +61,10 @@ const ExceptionStacktraceContent = ({
   if (!data) {
     return null;
   }
+
+  const includeSystemFrames =
+    stackView === STACK_VIEW.FULL ||
+    (chainedException && data.frames?.every(frame => !frame.inApp));
 
   /**
    * Armin, Markus:
@@ -72,7 +80,7 @@ const ExceptionStacktraceContent = ({
       <StacktraceContentV2
         data={data}
         expandFirstFrame={expandFirstFrame}
-        includeSystemFrames={stackView === STACK_VIEW.FULL}
+        includeSystemFrames={includeSystemFrames}
         groupingCurrentLevel={groupingCurrentLevel}
         platform={platform}
         newestFirst={newestFirst}
@@ -85,10 +93,7 @@ const ExceptionStacktraceContent = ({
     <StacktraceContent
       data={data}
       expandFirstFrame={expandFirstFrame}
-      includeSystemFrames={
-        stackView === STACK_VIEW.FULL ||
-        (chainedException && (stacktrace.frames ?? []).every(frame => !frame.inApp))
-      }
+      includeSystemFrames={includeSystemFrames}
       platform={platform}
       newestFirst={newestFirst}
       event={event}

@@ -1,0 +1,30 @@
+---
+created: '2021-08-23T14:18:12.299648Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame*
+          filename*
+            "org-dartlang-sdk:///lib/_internal/js_runtime/lib/async_patch.dart"
+          function*
+            "_asyncStartSync"
+          lineno (function takes precedence)
+            342
+--------------------------------------------------------------------------
+system:
+  hash: "74be9a8bc7117f22ea0a61a9b2f524c5"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "org-dartlang-sdk:///lib/_internal/js_runtime/lib/async_patch.dart"
+          function*
+            "_asyncStartSync"
+          lineno (function takes precedence)
+            342
