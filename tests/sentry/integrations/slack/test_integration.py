@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import responses
 
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
+from sentry.integrations.slack.utils import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -56,18 +57,18 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/users.list/?limit=200",
+            url=f"https://slack.com/api/users.list?limit={SLACK_GET_USERS_PAGE_SIZE}",
             match_querystring=True,
             json={
                 "ok": True,
                 "members": [
                     {
-                        "id": "UXXXXXXX1",
-                        "team_id": "TXXXXXXX1",
+                        "id": authorizing_user_id,
+                        "team_id": team_id,
                         "deleted": False,
                         "profile": {
                             "email": self.user.email,
-                            "team": "TXXXXXXX1",
+                            "team": team_id,
                         },
                     },
                 ],
@@ -222,7 +223,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
 
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/users.list/?limit=200",
+            url=f"https://slack.com/api/users.list?limit={SLACK_GET_USERS_PAGE_SIZE}",
             match_querystring=True,
             json={
                 "ok": True,

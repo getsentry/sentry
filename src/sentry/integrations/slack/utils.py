@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from typing import List, Tuple, Union
+from typing import Any, List, Mapping, Sequence, Tuple, Union
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from django.core.exceptions import ValidationError
@@ -41,6 +41,8 @@ strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
 SLACK_RATE_LIMITED_MESSAGE = "Requests to slack were rate limited. Please try again later."
 ALLOWED_ROLES = ["admin", "manager", "owner"]
+SLACK_GET_USERS_PAGE_LIMIT = 100
+SLACK_GET_USERS_PAGE_SIZE = 200
 
 
 def get_integration_type(integration: Integration):
@@ -276,23 +278,21 @@ def parse_link(url):
     return parsed_path
 
 
-def get_slack_info_by_email(integration, organization):
+def get_users(integration: Integration, organization: Organization) -> Sequence[Mapping[str, Any]]:
     access_token = (
         integration.metadata.get("user_access_token") or integration.metadata["access_token"]
     )
-    headers = {"Authorization": "Bearer %s" % access_token}
+    headers = {"Authorization": f"Bearer {access_token}"}
     client = SlackClient()
 
-    slack_info_by_email = {}
-    page_number = 1
-    page_limit = 100  # an arbitrary limit
-
-    while page_number < page_limit:
-        page_number += 1
-        next_cursor = None
+    user_list = []
+    next_cursor = None
+    for i in range(SLACK_GET_USERS_PAGE_LIMIT):
         try:
-            user_list = client.get(
-                "/users.list/", headers=headers, params={"limit": 200, "cursor": next_cursor}
+            next_users = client.get(
+                "/users.list",
+                headers=headers,
+                params={"limit": SLACK_GET_USERS_PAGE_SIZE, "cursor": next_cursor},
             )
         except ApiError as e:
             logger.info(
@@ -304,19 +304,27 @@ def get_slack_info_by_email(integration, organization):
                 },
             )
             break
+        user_list += next_users["members"]
 
-        for member in user_list["members"]:
-            if not member["deleted"]:
-                slack_info_by_email[member["profile"]["email"]] = {
-                    "team_id": member["team_id"],
-                    "slack_id": member["id"],
-                }
-
-        next_cursor = user_list["response_metadata"]["next_cursor"]
+        next_cursor = next_users["response_metadata"]["next_cursor"]
         if not next_cursor:
             break
 
-    return slack_info_by_email
+    return user_list
+
+
+def get_slack_info_by_email(
+    integration: Integration, organization: Organization
+) -> Mapping[str, Mapping[str, str]]:
+    return {
+        member["profile"]["email"]: {
+            "email": member["profile"]["email"],
+            "team_id": member["team_id"],
+            "slack_id": member["id"],
+        }
+        for member in get_users(integration, organization)
+        if not member["deleted"] and member["profile"].get("email")
+    }
 
 
 def get_slack_data_by_user(integration, organization, emails_by_user):
