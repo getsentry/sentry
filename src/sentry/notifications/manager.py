@@ -14,6 +14,7 @@ from typing import (
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
+from sentry import analytics
 from sentry.db.models.manager import BaseManager
 from sentry.notifications.helpers import (
     get_scope,
@@ -108,6 +109,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
         """
+        analytics.record(
+            "notifications.settings_updated",
+            target_type="user" if user else "team",
+        )
+
         # A missing DB row is equivalent to DEFAULT.
         if value == NotificationSettingOptionValues.DEFAULT:
             return self.remove_settings(
@@ -345,3 +351,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 self._update_settings(
                     provider, type, value, scope_type, scope_identifier, target_id
                 )
+        analytics.record(
+            "notifications.settings_updated",
+            target_type="user" if user else "team",
+        )
