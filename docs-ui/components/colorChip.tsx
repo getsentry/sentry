@@ -1,17 +1,21 @@
-import styled from '@emotion/styled';
 import {withTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import Color from 'color';
-import {Component} from 'react';
 
+import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 type Props = {
-  // value is either a CSS color string (e.g. #000)
-  // or a key in the theme object (e.g. 'blue300')
-  value?: string;
-  large: boolean;
-  noText: boolean;
-  // to replace the color name with a custom name
+  /**
+   * value is either a CSS color string (e.g. #000)
+   * or a key in the theme object (e.g. 'blue300')
+   */
+  value: string | keyof Theme;
+  large?: boolean;
+  noText?: boolean;
+  /**
+   * to replace the parsed color name with a custom name
+   */
   textOverwrite?: string;
   theme: Theme;
 };
@@ -23,26 +27,22 @@ const ColorChip = ({
   textOverwrite,
   theme,
 }: Props) => {
-  let color;
-  let colorString;
+  const isThemeColor = value in theme;
 
-  if (theme[value]) {
-    color = Color(theme[value]);
-    colorString = value.split(/(\d+)/).join(' ');
-  } else {
-    color = Color(value);
-    colorString = color && color.hex();
-  }
+  const color = Color(isThemeColor ? theme[value] : value);
+  const colorString = isThemeColor
+    ? value.split(/(\d+)/).join(' ').trim()
+    : color?.hex?.();
 
   return (
     <OuterWrap large={large}>
       <Wrapper large={large} noText={noText}>
         <ColorSwatch
           large={large}
-          background={color && color.hex()}
-          border={color && color.luminosity() > 0.8}
+          background={color?.hex?.()}
+          border={color?.luminosity?.() > 0.8}
         />
-        {!noText && <Text large={large}>{textOverwrite || colorString}</Text>}
+        {!noText && <Text large={large}>{textOverwrite ?? colorString}</Text>}
       </Wrapper>
     </OuterWrap>
   );
@@ -56,7 +56,7 @@ const OuterWrap = styled('span')`
     p.large
       ? `
     display: flex;
-    margin: 16px auto;
+    margin: ${space(2)} auto;
     `
       : `
     display: inline-flex;
@@ -73,11 +73,14 @@ const Wrapper = styled('span')`
     p.large
       ? `
           flex-direction: column;
-          ${!p.noText && 'padding: 0.25em'}
+          ${!p.noText && `padding: ${space(0.5)}`}
         `
       : `
           transform: translateY(0.25em);
-          ${!p.noText && 'padding: 2px 0.25em 2px 2px;'}
+          ${
+            !p.noText &&
+            `padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.25)};`
+          }
         `};
 `;
 
@@ -85,7 +88,7 @@ const Text = styled('span')`
   margin-bottom: 0;
   line-height: 1.2;
   text-transform: capitalize;
-  ${p => (p.large ? `margin-top: 0.25em;` : `margin-left: 0.25em;`)}
+  ${p => (p.large ? `margin-top: ${space(0.5)};` : `margin-left: ${space(0.5)};`)}
 `;
 
 const ColorSwatch = styled('span')`

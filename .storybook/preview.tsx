@@ -5,9 +5,12 @@ import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {ThemeProvider} from 'emotion-theming';
 
-import {ColorChip, DocsLinks, DoDont} from '../docs-ui/components';
+import ColorChip from '../docs-ui/components/colorChip';
+import DocsLinks from '../docs-ui/components/docsLinks';
+import DoDont from '../docs-ui/components/doDont';
 import GlobalStyles from '../static/app/styles/global';
 import {darkTheme, lightTheme} from '../static/app/utils/theme';
+
 import PreviewGlobalStyles from './previewGlobalStyles';
 
 // Theme decorator for stories
