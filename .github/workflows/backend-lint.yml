@@ -41,7 +41,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
+          echo "::set-output name=python-version::$(./scripts/do.sh query-pyenv-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -87,7 +87,6 @@ jobs:
             all:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-base.txt'
-
 
       - name: Run pre-commit on changed files
         if: steps.changes.outputs.backend == 'true'
