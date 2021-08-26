@@ -28,7 +28,7 @@ import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import MissingReleasesButtons, {
-  StyledButtonBar,
+  MissingReleaseButtonBar,
 } from 'app/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
@@ -330,7 +330,7 @@ const FooterWrapper = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     padding: 0;
   }
-  ${StyledButtonBar} {
+  ${MissingReleaseButtonBar} {
     a {
       background-color: ${p => p.theme.background};
       border: 1px solid ${p => p.theme.border};
