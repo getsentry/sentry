@@ -1700,10 +1700,9 @@ def _calculate_span_grouping(jobs, projects):
         event = job["event"]
         project = projects[job["project_id"]]
 
-        # TODO: check if this cached
-        organization = project.organization
+        # TODO: check if this organization is already cached
         if not features.has(
-            "organizations:performance-suspect-spans-ingestion", organization, actor=None
+            "organizations:performance-suspect-spans-ingestion", project.organization, actor=None
         ):
             continue
 

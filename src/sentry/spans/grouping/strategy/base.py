@@ -1,5 +1,7 @@
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence
+from urllib.parse import urlparse
 
 from sentry.spans.grouping.utils import hash_values
 
@@ -27,6 +29,7 @@ Span = TypedDict(
         "data": Optional[Any],
     },
 )
+
 
 CallableStrategy = Callable[[Span], Optional[str]]
 
@@ -62,6 +65,48 @@ class SpanGroupingStrategy:
         return results
 
 
+def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
+    def wrapped(fn: CallableStrategy) -> CallableStrategy:
+        return lambda span: fn(span) if span.get("op") == op_name else None
+
+    return wrapped
+
+
 def raw_description_strategy(span: Span) -> str:
-    description = span.get("description", "")
+    description = span.get("description") or ""
     return hash_values([description])
+
+
+IN_CONDITION_PATTERN = re.compile(r" IN \(%s(, %s)+\)")
+
+
+@span_op("db")
+def normalized_db_span_in_condition_strategy(span: Span) -> Optional[str]:
+    description = span.get("description") or ""
+    cleaned, count = IN_CONDITION_PATTERN.subn(" IN (...)", description)
+    if count == 0:
+        return None
+    return hash_values([cleaned])
+
+
+HTTP_METHODS = {
+    "GET",
+    "HEAD",
+    "POST",
+    "PUT",
+    "DELETE",
+    "CONNECT",
+    "OPTIONS",
+    "TRACE",
+    "PATCH",
+}
+
+
+@span_op("http.client")
+def remove_http_client_query_string_strategy(span: Span) -> Optional[str]:
+    description = span.get("description") or ""
+    method, url_str = description.split(" ", 1)
+    if method not in HTTP_METHODS:
+        return None
+    url = urlparse(url_str)
+    return hash_values([url.scheme, url.netloc, url.path])

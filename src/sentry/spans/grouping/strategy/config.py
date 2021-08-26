@@ -1,8 +1,13 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Sequence
 
 from sentry.spans.grouping.result import SpanGroupingResults
-from sentry.spans.grouping.strategy.base import SpanGroupingStrategy
+from sentry.spans.grouping.strategy.base import (
+    CallableStrategy,
+    SpanGroupingStrategy,
+    normalized_db_span_in_condition_strategy,
+    remove_http_client_query_string_strategy,
+)
 
 
 @dataclass(frozen=True)
@@ -11,6 +16,13 @@ class SpanGroupingConfig:
     strategy: SpanGroupingStrategy
 
     def execute_strategy(self, event_data: Any) -> SpanGroupingResults:
+        # If there are hashes using the same grouping config stored
+        # in the data, they should be reused. Otherwise, fall back to
+        # generating new hashes using the data.
+        config = SpanGroupingResults.from_event(event_data)
+        if config is not None and config.id == self.id:
+            return config
+
         spans = event_data.get("spans", [])
         results = self.strategy.execute(spans)
         return SpanGroupingResults(self.id, results)
@@ -19,13 +31,21 @@ class SpanGroupingConfig:
 CONFIGURATIONS: Dict[str, SpanGroupingStrategy] = {}
 
 
-def register_configuration(id: str, strategies: Optional[Sequence[Any]] = None) -> None:
-    if id in CONFIGURATIONS:
-        # TODO raise an exception for duplicate config ids
-        pass
+def register_configuration(config_id: str, strategies: Sequence[CallableStrategy]) -> None:
+    if config_id in CONFIGURATIONS:
+        raise ValueError(f"Duplicate configuration id: {config_id}")
 
-    strategy = SpanGroupingStrategy(id, [] if strategies is None else strategies)
-    CONFIGURATIONS[id] = SpanGroupingConfig(id, strategy)
+    strategy = SpanGroupingStrategy(config_id, [] if strategies is None else strategies)
+    CONFIGURATIONS[config_id] = SpanGroupingConfig(config_id, strategy)
 
 
-register_configuration("builtin:2021-08-25", strategies=None)
+DEFAULT_CONFIG_ID = "default:2021-08-25"
+
+
+register_configuration(
+    "default:2021-08-25",
+    strategies=[
+        normalized_db_span_in_condition_strategy,
+        remove_http_client_query_string_strategy,
+    ],
+)
