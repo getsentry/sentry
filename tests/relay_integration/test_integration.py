@@ -203,12 +203,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             }
 
             assert [span["exclusive-time"] for span in raw_event["spans"]] == [
-                50.0,
-                0.0,
-                200.0,
-                0.0,
-                200.0,
+                pytest.approx(50),
+                pytest.approx(0),
+                pytest.approx(200),
+                pytest.approx(0),
+                pytest.approx(200),
             ]
-
-            # TODO: testing if this test is run in CI
-            assert False
