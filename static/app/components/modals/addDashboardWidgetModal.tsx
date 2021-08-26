@@ -80,7 +80,7 @@ const newQuery = {
   conditions: '',
   orderby: '',
 };
-class AddDashboardWidgetWodal extends React.Component<Props, State> {
+class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -507,4 +507,4 @@ const StyledField = styled(Field)`
   position: relative;
 `;
 
-export default withApi(withGlobalSelection(withTags(AddDashboardWidgetWodal)));
+export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
