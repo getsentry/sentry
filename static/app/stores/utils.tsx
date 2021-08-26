@@ -6,6 +6,13 @@ type LegacyStoreShape = Reflux.Store & {
   get: () => any;
 };
 
+/**
+ * Returns the state of a reflux store. Automatically unsubscribes when destroyed
+ *
+ * ```ts
+ * const teams = useLegacyStore(TeamStore);
+ * ```
+ */
 export function useLegacyStore<T extends LegacyStoreShape>(
   store: T
 ): ReturnType<T['get']> {
