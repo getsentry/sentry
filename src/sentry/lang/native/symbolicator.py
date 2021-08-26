@@ -347,7 +347,7 @@ def parse_sources(config, filter_appconnect=True):
     return sources
 
 
-def redact_sources(config_sources):
+def redact_source_secrets(config_sources):
     """
     Returns a json string with all of the secrets redacted from every source.
 
