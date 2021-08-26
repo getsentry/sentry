@@ -14,7 +14,6 @@ from typing import List, NewType, Optional
 import requests
 import sentry_sdk
 
-from sentry.api.exceptions import ItunesSmsBlocked
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -61,6 +60,12 @@ class ForbiddenError(ITunesError):
     Most likely because the session has been switched to the wrong organisation by someone,
     probably due to credentials reuse.
     """
+
+    pass
+
+
+class SmsBlockedError(ITunesError):
+    """Blocked from requesting more SMS codes for some period of time."""
 
     pass
 
@@ -327,6 +332,7 @@ class ITunesClient:
     def request_sms_auth(self) -> None:
         """Requests sending the authentication code to a trusted phone.
 
+        :raises SmsBlockedError: if too many requests for the SMS auth code were made.
         :raises ITunesError: if there was an error requesting to use the trusted phone.
         """
 
@@ -354,7 +360,7 @@ class ITunesClient:
             timeout=REQUEST_TIMEOUT,
         )
         if response.status_code == HTTPStatus.LOCKED:
-            raise ItunesSmsBlocked()
+            raise SmsBlockedError
         if response.status_code != HTTPStatus.OK:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
         self.state = ClientState.SMS_AUTH_REQUESTED
