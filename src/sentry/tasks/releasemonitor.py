@@ -215,12 +215,12 @@ def adopt_releases(org_id, totals):
                                 environment__name=environment,
                                 environment__organization_id=org_id,
                             )
-                            updates = None
+                            updates = {}
                             if rpe.adopted is None:
-                                updates = {"adopted": timezone.now()}
+                                updates["adopted"] = timezone.now()
 
                             if rpe.unadopted is not None:
-                                updates = {"unadopted": None}
+                                updates["unadopted"] = None
 
                             if updates:
                                 rpe.update(**updates)
