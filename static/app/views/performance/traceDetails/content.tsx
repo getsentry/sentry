@@ -38,10 +38,10 @@ import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import {
   SearchContainer,
-  StyledPanel,
   StyledSearchBar,
   TraceDetailBody,
   TraceDetailHeader,
+  TracePanel,
   TraceViewContainer,
   TraceViewHeaderContainer,
 } from './styles';
@@ -515,7 +515,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                 dividerPosition={dividerPosition}
                 interactiveLayerRef={this.virtualScrollbarContainerRef}
               >
-                <StyledPanel>
+                <TracePanel>
                   <TraceViewHeaderContainer>
                     <ScrollbarManager.Consumer>
                       {({
@@ -584,7 +584,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                     })}
                     {this.renderLimitExceededMessage(traceInfo)}
                   </TraceViewContainer>
-                </StyledPanel>
+                </TracePanel>
               </ScrollbarManager.Provider>
             )}
           </DividerHandlerManager.Consumer>
