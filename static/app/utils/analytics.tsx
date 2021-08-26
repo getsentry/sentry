@@ -27,6 +27,7 @@ import {Hooks} from 'app/types/hooks';
  * which includes Reload, Amplitude, and Google Analytics.
  * All events go to Reload. If eventName is defined, events also go to Amplitude.
  * For more details, refer to the API defined in hooks.
+ *
  * Shold NOT be used directly.
  * Instead, use makeAnalyticsFunction to generate an analytics function.
  */
