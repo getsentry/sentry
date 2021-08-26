@@ -268,8 +268,8 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        config["appconnectPrivateKey"] = {"_hidden-secret": True}
-        config["itunesPassword"] = {"_hidden-secret": True}
+        config["appconnectPrivateKey"] = {"hidden-secret": True}
+        config["itunesPassword"] = {"hidden-secret": True}
 
         # TODO: Just return the ID instead of the entire config
         return Response(config, status=200)
@@ -405,8 +405,8 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        symbol_source_config.appconnectPrivateKey = {"_hidden-secret": True}
-        symbol_source_config.itunesPassword = {"_hidden-secret": True}
+        symbol_source_config.appconnectPrivateKey = {"hidden-secret": True}
+        symbol_source_config.itunesPassword = {"hidden-secret": True}
 
         return Response(symbol_source_config.to_json(), status=200)
 

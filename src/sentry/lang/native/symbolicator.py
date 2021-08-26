@@ -54,8 +54,8 @@ SECRET_PROPERTY = {
         {"type": "string"},
         {
             "type": "object",
-            "properties": {"_hidden-secret": {"enum": ["true"]}},
-            "required": ["_hidden-secret"],
+            "properties": {"hidden-secret": {"enum": ["true"]}},
+            "required": ["hidden-secret"],
             "additionalProperties": False,
         },
     ]
@@ -364,7 +364,7 @@ def redact_sources(config_sources):
             "private_key",
         ]:
             if secret in source:
-                source[secret] = {"_hidden-secret": True}
+                source[secret] = {"hidden-secret": True}
 
     return json.dumps(sources)
 

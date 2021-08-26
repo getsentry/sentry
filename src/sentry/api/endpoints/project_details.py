@@ -242,7 +242,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(str(e))
 
         # We should really only grab and parse if there are sources whose secrets are set to
-        # {"_hidden-secret":true}, but checking for that would be very ugly right now
+        # {"hidden-secret":true}, but checking for that would be very ugly right now
         orig_sources = parse_sources(
             self.context["project"].get_option("sentry:symbol_sources", filter_appconnect=False)
         )
@@ -254,7 +254,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
                 "secret_key",
                 "private_key",
             ]:
-                if secret in source and secret == {"_hidden-secret": True}:
+                if secret in source and secret == {"hidden-secret": True}:
                     orig_source = next(
                         filter(orig for orig in orig_sources if orig["id"] == source["id"]), None
                     )
