@@ -9,7 +9,7 @@ from sentry.signals import pending_delete
 
 
 class Repository(Model, PendingDeletionMixin):
-    __core__ = True
+    __include_in_export__ = True
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     name = models.CharField(max_length=200)

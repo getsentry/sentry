@@ -252,8 +252,8 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 # Just log and return.
                 return False
 
-            if isinstance(exc, ApiError) and exc.code == 403:
-                # 403s are not errors or actionable for us do not re-raise
+            if isinstance(exc, ApiError) and 401 <= exc.code <= 404:
+                # Most 4xxs are not errors or actionable for us do not re-raise
                 return False
 
             raise

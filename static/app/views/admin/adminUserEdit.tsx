@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -82,7 +82,7 @@ type RemoveModalState = {
   deleteType: DeleteType;
 };
 
-class RemoveUserModal extends React.Component<RemoveModalProps, RemoveModalState> {
+class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
   state: RemoveModalState = {
     deleteType: 'disable',
   };
@@ -97,7 +97,7 @@ class RemoveUserModal extends React.Component<RemoveModalProps, RemoveModalState
     const {deleteType} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <RadioGroup
           value={deleteType}
           label={t('Remove user %s', user.email)}
@@ -113,7 +113,7 @@ class RemoveUserModal extends React.Component<RemoveModalProps, RemoveModalState
           </Button>
           <Button onClick={this.props.closeModal}>{t('Cancel')}</Button>
         </ModalFooter>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -173,7 +173,7 @@ class AdminUserEdit extends AsyncView<Props, State> {
       ));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <h3>{t('Users')}</h3>
         <p>{t('Editing user: %s', user.email)}</p>
         <Form
@@ -200,7 +200,7 @@ class AdminUserEdit extends AsyncView<Props, State> {
         >
           <JsonForm forms={[userEditForm]} />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

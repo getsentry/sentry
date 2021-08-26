@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -43,7 +43,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
     const title = t('Security & Privacy');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
         <SettingsPageHeader title={title} />
         <Form
@@ -71,7 +71,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           organization={organization}
           onSubmitSuccess={this.handleUpdateOrganization}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

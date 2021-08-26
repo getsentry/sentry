@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -62,7 +62,7 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
 }
 
 class GroupVariant extends React.Component<Props, State> {
-  state = {
+  state: State = {
     showNonContributing: false,
   };
 
@@ -285,7 +285,7 @@ const ContributingToggle = styled(ButtonBar)`
 `;
 
 const GroupingTree = styled('div')`
-  color: #2f2936;
+  color: ${p => p.theme.textColor};
 `;
 
 const TextWithQuestionTooltip = styled('div')`

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -50,7 +50,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   };
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.params, this.props.params)) {
+    if (!isEqual(prevProps.params.dashboardId, this.props.params.dashboardId)) {
       this.remountComponent();
     }
   }
@@ -66,7 +66,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         eventKey: 'dashboards2.view',
         eventName: 'Dashboards2: View dashboard',
         organization_id: parseInt(this.props.organization.id, 10),
-        dashboard_id: params.dashboardId,
+        dashboard_id: parseInt(params.dashboardId, 10),
       });
     }
 
@@ -88,7 +88,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     // If we don't have a selected dashboard, and one isn't going to arrive
     // we can redirect to the first dashboard in the list.
     const dashboardId = data.length ? data[0].id : 'default-overview';
-    const url = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
+    const url = `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
     browserHistory.replace({
       pathname: url,
       query: {

@@ -100,7 +100,7 @@ def build_up_org_buffer():
     num_to_populate = ORG_BUFFER_SIZE - num_orgs
     logger.info("build_up_org_buffer.check", extra={"num_to_populate": num_to_populate})
 
-    # synchronnously build up our org buffer if under sized
+    # synchronously build up our org buffer if under sized
     if num_to_populate > 0:
         create_demo_org()
         build_up_org_buffer.apply_async()

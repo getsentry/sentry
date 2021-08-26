@@ -128,9 +128,9 @@ class TestMediator(TestCase):
         class TransactionMediator(Mediator):
             def call(self):
                 User.objects.create(username="beep")
-                raise Exception
+                raise RuntimeError()
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(RuntimeError):
             TransactionMediator.run()
 
         assert not User.objects.filter(username="beep").exists()

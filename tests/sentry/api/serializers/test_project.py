@@ -297,6 +297,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasUserReports"] is True
 
+    def test_has_sessions_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasSessions"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_sessions))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasSessions"] is True
+
     def test_no_environments(self):
         # remove environments and related models
         Deploy.objects.all().delete()
@@ -441,6 +451,54 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert "transactionStats" in results[0]
         assert 24 == len(results[0]["transactionStats"])
         assert [1] == [v[1] for v in results[0]["transactionStats"] if v[1] > 0]
+
+    @mock.patch("sentry.api.serializers.models.project.check_has_health_data")
+    @mock.patch("sentry.api.serializers.models.project.get_current_and_previous_crash_free_rates")
+    def test_stats_with_sessions(
+        self, get_current_and_previous_crash_free_rates, check_has_health_data
+    ):
+        get_current_and_previous_crash_free_rates.return_value = {
+            self.project.id: {
+                "currentCrashFreeRate": 75.63453,
+                "previousCrashFreeRate": 99.324543,
+            }
+        }
+        serializer = ProjectSummarySerializer(stats_period="24h", session_stats=True)
+        results = serialize([self.project], self.user, serializer)
+
+        assert "sessionStats" in results[0]
+        assert results[0]["sessionStats"]["previousCrashFreeRate"] == 99.324543
+        assert results[0]["sessionStats"]["currentCrashFreeRate"] == 75.63453
+        assert results[0]["sessionStats"]["hasHealthData"]
+
+        check_has_health_data.assert_not_called()  # NOQA
+
+    @mock.patch("sentry.api.serializers.models.project.check_has_health_data")
+    @mock.patch("sentry.api.serializers.models.project.get_current_and_previous_crash_free_rates")
+    def test_stats_with_sessions_and_none_crash_free_rates(
+        self, get_current_and_previous_crash_free_rates, check_has_health_data
+    ):
+        """
+        Test that ensures if both `currentCrashFreeRate` and `previousCrashFreeRate` are None, then
+        we need to make a call to `check_has_health_data` to know if we have health data in that
+        specific project_id(s)
+        """
+        check_has_health_data.return_value = {self.project.id}
+        get_current_and_previous_crash_free_rates.return_value = {
+            self.project.id: {
+                "currentCrashFreeRate": None,
+                "previousCrashFreeRate": None,
+            }
+        }
+        serializer = ProjectSummarySerializer(stats_period="24h", session_stats=True)
+        results = serialize([self.project], self.user, serializer)
+
+        assert "sessionStats" in results[0]
+        assert results[0]["sessionStats"]["previousCrashFreeRate"] is None
+        assert results[0]["sessionStats"]["currentCrashFreeRate"] is None
+        assert results[0]["sessionStats"]["hasHealthData"]
+
+        check_has_health_data.assert_called()  # NOQA
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):

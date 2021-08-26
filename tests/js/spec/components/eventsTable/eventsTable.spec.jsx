@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventsTable from 'app/components/eventsTable/eventsTable';

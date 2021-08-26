@@ -1,4 +1,4 @@
-import React from 'react';
+import {act} from 'react-dom/test-utils';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -88,7 +88,7 @@ describe('GroupEventEntries', function () {
       const {bannerSummaryInfoText, errorItem} = await renderComponent(event, errors);
 
       expect(bannerSummaryInfoText).toEqual(
-        `There were ${errors.length} errors encountered while processing this event`
+        `There were ${errors.length} problems processing this event`
       );
       expect(errorItem.length).toBe(2);
       expect(errorItem.at(0).props().error).toEqual(errors[0]);
@@ -112,17 +112,19 @@ describe('GroupEventEntries', function () {
           ],
         };
 
-        const {errorItem, bannerSummaryInfoText} = await renderComponent(newEvent);
+        await act(async () => {
+          const {errorItem, bannerSummaryInfoText} = await renderComponent(newEvent);
 
-        expect(bannerSummaryInfoText).toEqual(
-          'There was 1 error encountered while processing this event'
-        );
+          expect(bannerSummaryInfoText).toEqual(
+            'There was 1 problem processing this event'
+          );
 
-        expect(errorItem.length).toBe(1);
-        expect(errorItem.at(0).props().error).toEqual({
-          type: 'proguard_missing_mapping',
-          message: 'A proguard mapping file was missing.',
-          data: {mapping_uuid: proGuardUuid},
+          expect(errorItem.length).toBe(1);
+          expect(errorItem.at(0).props().error).toEqual({
+            type: 'proguard_missing_mapping',
+            message: 'A proguard mapping file was missing.',
+            data: {mapping_uuid: proGuardUuid},
+          });
         });
       });
 
@@ -150,7 +152,7 @@ describe('GroupEventEntries', function () {
         const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
         expect(bannerSummaryInfoText).toEqual(
-          'There was 1 error encountered while processing this event'
+          'There was 1 problem processing this event'
         );
 
         expect(errorItem.length).toBe(1);
@@ -204,7 +206,7 @@ describe('GroupEventEntries', function () {
           const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
           expect(bannerSummaryInfoText).toEqual(
-            'There was 1 error encountered while processing this event'
+            'There was 1 problem processing this event'
           );
 
           expect(errorItem.length).toBe(1);
@@ -278,7 +280,7 @@ describe('GroupEventEntries', function () {
           const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
           expect(bannerSummaryInfoText).toEqual(
-            'There was 1 error encountered while processing this event'
+            'There was 1 problem processing this event'
           );
 
           expect(errorItem.length).toBe(1);

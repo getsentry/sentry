@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -10,16 +10,13 @@ import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discove
 import EventView, {EventData} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'app/utils/discover/fields';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 const COLUMN_TITLES = ['slowest transactions', 'project', 'p95', 'users', 'user misery'];
 
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
+function getProjectID(eventData: EventData, projects: Project[]): string | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
 
   if (typeof projectSlug === undefined) {
@@ -47,7 +44,7 @@ type TableState = {
   widths: number[];
 };
 class Table extends React.Component<TableProps, TableState> {
-  state = {
+  state: TableState = {
     widths: [],
   };
 

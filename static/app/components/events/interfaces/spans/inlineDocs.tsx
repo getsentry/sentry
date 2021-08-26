@@ -1,9 +1,10 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
@@ -23,7 +24,7 @@ type State = {
   link: string | undefined;
 };
 
-class InlineDocs extends React.Component<Props, State> {
+class InlineDocs extends Component<Props, State> {
   state: State = {
     loading: true,
     html: undefined,
@@ -110,7 +111,7 @@ class InlineDocs extends React.Component<Props, State> {
             `To manually instrument certain regions of your code, view [docLink:our documentation].`,
             {
               docLink: (
-                <a href="https://docs.sentry.io/product/performance/getting-started/" />
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
               ),
             }
           )}

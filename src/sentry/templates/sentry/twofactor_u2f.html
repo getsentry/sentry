@@ -4,12 +4,23 @@
 {% load sentry_assets %}
 
 {% block twofactor_form_body %}
-  <div id="u2f-container"></div>
+  <div id="u2f-container">
+    <div class="loading">
+      <div class="loading-mask"></div>
+      <div class="loading-indicator"></div>
+    </div>
+  </div>
   {% script %}
   <script>
-    ReactDOM.render(React.createElement(SentryApp.U2fSign, {
-      challengeData: {{ activation.challenge|to_json|safe }}
-    }), document.getElementById('u2f-container'));
+    window.__onSentryInit = window.__onSentryInit || [];
+    window.__onSentryInit.push({
+      name: 'renderReact',
+      component: 'U2fSign',
+      container: '#u2f-container',
+      props: {
+        challengeData: {{ activation.challenge|to_json|safe }}
+      },
+    });
   </script>
   {% endscript %}
 {% endblock %}

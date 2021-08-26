@@ -52,3 +52,13 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
+
+    def test_delete_with_existing_codeowners(self):
+        self.create_codeowners(project=self.project, code_mapping=self.config)
+        resp = self.client.delete(self.url)
+        assert resp.status_code == 409
+        assert (
+            resp.data
+            == "Cannot delete Code Mapping. Must delete Code Owner that uses this mapping first."
+        )
+        assert RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()

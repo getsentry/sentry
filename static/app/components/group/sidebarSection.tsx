@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -34,7 +34,7 @@ type Props = {
 } & Omit<React.ComponentProps<typeof Heading>, 'title'>;
 
 /**
- * Used to add a new section in Issue Details's sidebar.
+ * Used to add a new section in Issue Details' sidebar.
  */
 function SidebarSection({title, children, secondary, ...props}: Props) {
   const HeaderComponent = secondary ? Subheading : Heading;

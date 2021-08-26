@@ -1,8 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import {t} from 'app/locale';
 import EventView, {
   isAPIPayloadSimilar,
@@ -77,6 +77,10 @@ type Props<T, P> = RequestProps<P> &
      * A hook to modify data into the correct output after data has been received
      */
     afterFetch?: (data: any, props?: Props<T, P>) => T;
+    /**
+     * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
+     */
+    didFetch?: (data: T) => void;
   };
 
 type State<T> = {
@@ -141,6 +145,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       api,
       beforeFetch,
       afterFetch,
+      didFetch,
       eventView,
       orgSlug,
       route,
@@ -179,19 +184,20 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     beforeFetch?.(api);
 
     try {
-      const [data, , jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload);
+      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
         return;
       }
 
       const tableData = afterFetch ? afterFetch(data, this.props) : data;
+      didFetch?.(tableData);
 
       this.setState(prevState => ({
         isLoading: false,
         tableFetchID: undefined,
         error: null,
-        pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
+        pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
         tableData,
       }));
     } catch (err) {
@@ -228,7 +234,7 @@ export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams
-): Promise<[T, string | undefined, JQueryXHR | undefined]> {
+): Promise<[T, string | undefined, ResponseMeta | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,

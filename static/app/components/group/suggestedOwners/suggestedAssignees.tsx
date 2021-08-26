@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,10 +24,10 @@ type Props = {
 const SuggestedAssignees = ({owners, onAssign}: Props) => (
   <SidebarSection
     title={
-      <React.Fragment>
+      <Fragment>
         {t('Suggested Assignees')}
         <Subheading>{t('Click to assign')}</Subheading>
-      </React.Fragment>
+      </Fragment>
     }
   >
     <Content>

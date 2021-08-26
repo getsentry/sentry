@@ -65,6 +65,11 @@ BASE_STRATEGY = create_strategy_configuration(
         "use_package_fallback": False,
         # Remove platform differences in native frames
         "native_fuzzing": False,
+        # Ignore exception types for native if they are platform specific error
+        # codes. Normally SDKs are supposed to disable error-type grouping with
+        # the `synthetic` flag in the event, but a lot of error types we can
+        # also detect on the backend.
+        "detect_synthetic_exception_types": False,
     },
 )
 
@@ -153,13 +158,21 @@ register_strategy_config(
     base="newstyle:2019-10-29",
     risk=RISK_LEVEL_HIGH,
     changelog="""
-        * Experimentally producing multiple variants.
+        * Produces multiple levels of issue grouping that power issue breakdown.
+        * Filenames in native events are no longer used because they differ
+          between platforms, and package (dll basename) is used as fallback for a
+          frame if a function name is not available.
+        * Error codes (signals) on native/"synthetic" exceptions are now
+          ignored to paper over platform differences.
+        * Anonymous namespaces from different compilers now no longer result in
+          different issues.
     """,
     initial_context={
         "hierarchical_grouping": True,
         "discard_native_filename": True,
         "use_package_fallback": True,
         "native_fuzzing": True,
+        "detect_synthetic_exception_types": True,
     },
     enhancements_base="mobile:2021-04-02",
 )

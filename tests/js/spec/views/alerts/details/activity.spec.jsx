@@ -1,5 +1,3 @@
-import React from 'react';
-
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';

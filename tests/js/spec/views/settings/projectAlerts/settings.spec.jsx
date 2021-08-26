@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -19,6 +17,7 @@ describe('ProjectAlertSettings', function () {
       method: 'GET',
       body: project,
     });
+
     Client.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',

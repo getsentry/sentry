@@ -1,4 +1,3 @@
-import React from 'react';
 import moment from 'moment';
 
 import MarkLine from 'app/components/charts/components/markLine';
@@ -7,7 +6,7 @@ import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Trigger} from 'app/views/settings/incidentRules/types';
+import {Trigger} from 'app/views/alerts/incidentRules/types';
 
 import closedSymbol from './closedSymbol';
 import startedSymbol from './startedSymbol';

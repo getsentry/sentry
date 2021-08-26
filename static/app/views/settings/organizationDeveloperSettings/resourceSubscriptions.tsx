@@ -1,9 +1,9 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {Context} from 'app/components/forms/form';
 import {Permissions, WebhookEvent} from 'app/types';
+import FormContext from 'app/views/settings/components/forms/formContext';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -22,12 +22,7 @@ type Props = DefaultProps & {
   onChange: (events: WebhookEvent[]) => void;
 };
 
-export default class Subscriptions extends React.Component<Props> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
-
+export default class Subscriptions extends Component<Props> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
@@ -56,6 +51,8 @@ export default class Subscriptions extends React.Component<Props> {
     }
   }
 
+  static contextType = FormContext;
+
   onChange = (resource: Resource, checked: boolean) => {
     const events = new Set(this.props.events);
     checked ? events.add(resource) : events.delete(resource);
@@ -76,7 +73,7 @@ export default class Subscriptions extends React.Component<Props> {
           const disabledFromPermissions =
             permissions[PERMISSIONS_MAP[choice]] === 'no-access';
           return (
-            <React.Fragment key={choice}>
+            <Fragment key={choice}>
               <SubscriptionBox
                 key={choice}
                 disabledFromPermissions={disabledFromPermissions}
@@ -85,7 +82,7 @@ export default class Subscriptions extends React.Component<Props> {
                 resource={choice}
                 onChange={this.onChange}
               />
-            </React.Fragment>
+            </Fragment>
           );
         })}
       </SubscriptionGrid>

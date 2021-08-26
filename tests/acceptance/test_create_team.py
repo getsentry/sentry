@@ -19,12 +19,12 @@ class CreateTeamTest(AcceptanceTestCase):
 
         # Open the modal
         self.browser.click('button[aria-label="Create Team"]')
-        self.browser.wait_until(".modal-header")
+        self.browser.wait_until("[role='dialog']")
         self.browser.element('input[id="slug"]').send_keys("new-team")
-        self.browser.click('.modal-dialog button[aria-label="Create Team"]')
+        self.browser.click("[role='dialog'] button[aria-label='Create Team']")
 
         # Wait for modal to go away.
-        self.browser.wait_until_not(".modal-header")
+        self.browser.wait_until_not("[role='dialog']")
 
         # New team should be in dom
         assert self.browser.find_element_by_xpath("//span[contains(text(), 'new-team')]")

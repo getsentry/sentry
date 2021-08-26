@@ -84,7 +84,7 @@ metadata = IntegrationMetadata(
     features=FEATURE_DESCRIPTIONS,
     author="The Sentry Team",
     noun=_("Instance"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Jira%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Jira%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira",
     aspects={"externalInstall": external_install},
 )
@@ -140,6 +140,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "on_unresolve": _("When unresolved"),
                 },
                 "mappedColumnLabel": _("Jira Project"),
+                "formatMessageValue": False,
             },
             {
                 "name": self.outbound_assignee_key,
@@ -324,15 +325,17 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return "\n".join(output)
 
     def get_client(self):
+        logging_context = {"org_id": self.organization_id}
+
+        if self.organization_id is not None:
+            logging_context["integration_id"] = attrgetter("org_integration.integration.id")(self)
+            logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
+
         return JiraApiClient(
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),
             verify_ssl=True,
-            logging_context={
-                "org_id": self.organization_id,
-                "integration_id": attrgetter("org_integration.integration.id")(self),
-                "org_integration_id": attrgetter("org_integration.id")(self),
-            },
+            logging_context=logging_context,
         )
 
     def get_issue(self, issue_id, **kwargs):
@@ -399,7 +402,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
+            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
     def error_fields_from_json(self, data):
@@ -515,7 +518,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         jira_project_ids = "no projects"
         if len(jira_projects):
-            jira_project_ids = ",".join([project["key"] for project in jira_projects])
+            jira_project_ids = ",".join(project["key"] for project in jira_projects)
 
         logger.info(
             "jira.get-issue-create-meta.no-metadata",

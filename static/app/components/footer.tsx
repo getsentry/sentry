@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Hook from 'app/components/hook';
@@ -17,9 +17,9 @@ function Footer({className}: Props) {
   const config = ConfigStore.getConfig();
   return (
     <footer className={className}>
-      <div>
+      <LeftLinks>
         {config.isOnPremise && (
-          <React.Fragment>
+          <Fragment>
             {'Sentry '}
             {getDynamicText({
               fixed: 'Acceptance Test',
@@ -31,11 +31,17 @@ function Footer({className}: Props) {
                 value: config.version.build.substring(0, 7),
               })}
             </Build>
-          </React.Fragment>
+          </Fragment>
         )}
-      </div>
+        {config.privacyUrl && (
+          <FooterLink href={config.privacyUrl}>{t('Privacy Policy')}</FooterLink>
+        )}
+        {config.termsUrl && (
+          <FooterLink href={config.termsUrl}>{t('Terms of Use')}</FooterLink>
+        )}
+      </LeftLinks>
       <LogoLink />
-      <Links>
+      <RightLinks>
         <FooterLink href="/api/">{t('API')}</FooterLink>
         <FooterLink href="/docs/">{t('Docs')}</FooterLink>
         <FooterLink href="https://github.com/getsentry/sentry">
@@ -44,13 +50,22 @@ function Footer({className}: Props) {
         {config.isOnPremise && !config.demoMode && (
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
-      </Links>
+      </RightLinks>
       <Hook name="footer" />
     </footer>
   );
 }
 
-const Links = styled('div')`
+const LeftLinks = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+  justify-self: flex-start;
+  gap: ${space(2)};
+`;
+
+const RightLinks = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
@@ -68,9 +83,9 @@ const FooterLink = styled(ExternalLink)`
 `;
 
 const LogoLink = styled(props => (
-  <a href="/" tabIndex={-1} {...props}>
+  <ExternalLink href="https://sentry.io/welcome/" tabIndex={-1} {...props}>
     <IconSentry size="xl" />
-  </a>
+  </ExternalLink>
 ))`
   color: ${p => p.theme.subText};
   display: block;

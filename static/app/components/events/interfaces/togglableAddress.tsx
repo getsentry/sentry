@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
@@ -21,6 +21,7 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  className?: string;
 };
 
 const TogglableAddress = ({
@@ -32,6 +33,7 @@ const TogglableAddress = ({
   isAbsolute,
   onToggle,
   isHoverPreviewed,
+  className,
 }: Props) => {
   const convertAbsoluteAddressToRelative = () => {
     if (!startingAddress) {
@@ -69,7 +71,7 @@ const TogglableAddress = ({
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       {canBeConverted && (
         <AddressIconTooltip
           title={isAbsolute ? t('Switch to relative') : t('Switch to absolute')}
@@ -125,10 +127,12 @@ const getAddresstextBorderBottom = (
 };
 
 const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
-  padding-left: ${p => (p.canBeConverted ? null : '18px')};
   border-bottom: ${getAddresstextBorderBottom};
-  max-width: 93px;
-  white-space: pre-wrap;
+  white-space: nowrap;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding-left: ${p => (p.canBeConverted ? null : '18px')};
+  }
 `;
 
 const Wrapper = styled('span')`

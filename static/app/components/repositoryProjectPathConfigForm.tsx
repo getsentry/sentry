@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
@@ -9,7 +9,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {FieldFromConfig} from 'app/views/settings/components/forms';
 import Form from 'app/views/settings/components/forms/form';
 import {Field} from 'app/views/settings/components/forms/type';
@@ -24,7 +24,7 @@ type Props = {
   existingConfig?: RepositoryProjectPathConfig;
 };
 
-export default class RepositoryProjectPathConfigForm extends React.Component<Props> {
+export default class RepositoryProjectPathConfigForm extends Component<Props> {
   get initialData() {
     const {existingConfig, integration} = this.props;
     return {
@@ -55,7 +55,6 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
         label: t('Repo'),
         placeholder: t('Choose repo'),
         options: repoChoices,
-        deprecatedSelectControl: false,
       },
       {
         name: 'defaultBranch',
@@ -94,15 +93,12 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
   }
 
   handlePreSubmit() {
-    trackIntegrationEvent(
-      'integrations.stacktrace_submit_config',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
   }
 
   render() {

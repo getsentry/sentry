@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
@@ -25,7 +25,7 @@ type State = {
   window: number | null;
 };
 
-class CustomIgnoreCountModal extends React.Component<Props, State> {
+class CustomIgnoreCountModal extends Component<Props, State> {
   state: State = {
     count: 100,
     window: null,
@@ -48,18 +48,11 @@ class CustomIgnoreCountModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {
-      Header,
-      Footer,
-      Body,
-      countLabel,
-      label,
-      closeModal,
-      windowChoices,
-    } = this.props;
+    const {Header, Footer, Body, countLabel, label, closeModal, windowChoices} =
+      this.props;
     const {count, window} = this.state;
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <h4>{label}</h4>
         </Header>
@@ -100,7 +93,7 @@ class CustomIgnoreCountModal extends React.Component<Props, State> {
             </Button>
           </ButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

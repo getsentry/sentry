@@ -92,12 +92,20 @@ class Endpoint(APIView):
     authentication_classes = DEFAULT_AUTHENTICATION
     permission_classes = (NoPermission,)
 
+    cursor_name = "cursor"
+
     def build_cursor_link(self, request, name, cursor):
-        querystring = "&".join(
-            f"{urlquote(k)}={urlquote(v)}" for k, v in request.GET.items() if k != "cursor"
-        )
+        querystring = None
+        if request.GET.get("cursor") is None:
+            querystring = request.GET.urlencode()
+        else:
+            mutable_query_dict = request.GET.copy()
+            mutable_query_dict.pop("cursor")
+            querystring = mutable_query_dict.urlencode()
+
         base_url = absolute_uri(urlquote(request.path))
-        if querystring:
+
+        if querystring is not None:
             base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
@@ -200,8 +208,11 @@ class Endpoint(APIView):
 
         try:
             with sentry_sdk.start_span(op="base.dispatch.request", description=type(self).__name__):
-                if origin and request.auth:
-                    allowed_origins = request.auth.get_allowed_origins()
+                if origin:
+                    if request.auth:
+                        allowed_origins = request.auth.get_allowed_origins()
+                    else:
+                        allowed_origins = None
                     if not is_valid_origin(origin, allowed=allowed_origins):
                         response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
@@ -281,6 +292,15 @@ class Endpoint(APIView):
 
         return per_page
 
+    def get_cursor_from_request(self, request, cursor_cls=Cursor):
+        if not request.GET.get(self.cursor_name):
+            return
+
+        try:
+            return cursor_cls.from_string(request.GET.get(self.cursor_name))
+        except ValueError:
+            raise ParseError(detail="Invalid cursor parameter.")
+
     def paginate(
         self,
         request,
@@ -296,12 +316,7 @@ class Endpoint(APIView):
 
         per_page = self.get_per_page(request, default_per_page, max_per_page)
 
-        input_cursor = None
-        if request.GET.get("cursor"):
-            try:
-                input_cursor = cursor_cls.from_string(request.GET.get("cursor"))
-            except ValueError:
-                raise ParseError(detail="Invalid cursor parameter.")
+        input_cursor = self.get_cursor_from_request(request, cursor_cls=cursor_cls)
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/actions/button';
@@ -18,7 +18,7 @@ export default function FooterWithButtons({buttonText, ...rest}: Props) {
   );
 }
 
-//wrap in form so we can keep form submission behavior
+// wrap in form so we can keep form submission behavior
 const Footer = styled('form')`
   width: 100%;
   position: fixed;

@@ -1,10 +1,11 @@
-import React from 'react';
-import {Link, RouteComponentProps, withRouter, WithRouterProps} from 'react-router';
+import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Button from 'app/components/button';
 import FeatureBadge from 'app/components/featureBadge';
+import Link from 'app/components/links/link';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
@@ -23,8 +24,7 @@ import MonitorIcon from './monitorIcon';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string}, {}> &
-  WithRouterProps & {
+  WithRouterProps<{orgId: string}> & {
     organization: Organization;
   };
 
@@ -66,7 +66,7 @@ class Monitors extends AsyncView<Props, State> {
     const {monitorList, monitorListPageLinks} = this.state;
     const {organization} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <PageHeader>
           <HeaderTitle>
             <div>
@@ -108,7 +108,7 @@ class Monitors extends AsyncView<Props, State> {
         {monitorListPageLinks && (
           <Pagination pageLinks={monitorListPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

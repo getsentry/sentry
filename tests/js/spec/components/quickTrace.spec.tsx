@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -50,10 +48,16 @@ describe('Quick Trace', function () {
     };
   }
 
-  function makeTransactionTarget(pid, eid, transaction) {
+  function makeTransactionTarget(
+    pid: string,
+    eid: string,
+    transaction: string,
+    project: string
+  ) {
+    const query = {transaction, project};
     return {
       pathname: `/organizations/${organization.slug}/performance/${pid}:${eid}/`,
-      query: {transaction},
+      query,
     };
   }
 
@@ -348,14 +352,9 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(6);
-      [
-        'Root',
-        '3 Ancestors',
-        'Parent',
-        'This Event',
-        '1 Child',
-        '3 Descendants',
-      ].forEach((text, i) => expect(nodes.at(i).text()).toEqual(text));
+      ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
+        (text, i) => expect(nodes.at(i).text()).toEqual(text)
+      );
     });
   });
 
@@ -385,12 +384,12 @@ describe('Quick Trace', function () {
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(6);
       [
-        makeTransactionTarget('p0', 'e0', 't0'),
-        makeTransactionTarget('p1', 'e1', 't1'),
-        makeTransactionTarget('p2', 'e2', 't2'),
+        makeTransactionTarget('p0', 'e0', 't0', '0'),
+        makeTransactionTarget('p1', 'e1', 't1', '1'),
+        makeTransactionTarget('p2', 'e2', 't2', '2'),
         undefined, // the "This Event" node has no target
-        makeTransactionTarget('p4', 'e4', 't4'),
-        makeTransactionTarget('p5', 'e5', 't5'),
+        makeTransactionTarget('p4', 'e4', 't4', '4'),
+        makeTransactionTarget('p5', 'e5', 't5', '5'),
       ].forEach((target, i) => expect(nodes.at(i).props().to).toEqual(target));
     });
 

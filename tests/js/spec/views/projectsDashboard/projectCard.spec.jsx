@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ProjectCard} from 'app/views/projectsDashboard/projectCard';
@@ -106,9 +104,9 @@ describe('ProjectCard', function () {
 
     const total = wrapper.find('a[data-test-id="project-errors"]');
     expect(total).toHaveLength(1);
-    expect(total.text()).toContain('6 errors');
+    expect(total.text()).toContain('errors: 6');
 
-    // No transacations as the feature isn't set.
+    // No transacions as the feature isn't set.
     const transactions = wrapper.find('a[data-test-id="project-transactions"]');
     expect(transactions).toHaveLength(0);
   });
@@ -138,7 +136,7 @@ describe('ProjectCard', function () {
 
     const transactions = wrapper.find('a[data-test-id="project-transactions"]');
     expect(transactions).toHaveLength(1);
-    expect(transactions.text()).toContain('8 transactions');
+    expect(transactions.text()).toContain('transactions: 8');
   });
 
   it('renders loading placeholder card if there are no stats', function () {
@@ -151,6 +149,6 @@ describe('ProjectCard', function () {
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('LoadingCard')).toHaveLength(1);
+    expect(wrapper.find('Placeholder')).toHaveLength(1);
   });
 });

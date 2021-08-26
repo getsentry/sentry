@@ -1,3 +1,6 @@
+import {MouseEvent} from 'react';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import set from 'lodash/set';
@@ -97,13 +100,11 @@ export const boundsGenerator = (bounds: {
 }) => {
   const {viewStart, viewEnd} = bounds;
 
-  const {
-    startTimestamp: traceStartTimestamp,
-    endTimestamp: traceEndTimestamp,
-  } = normalizeTimestamps({
-    startTimestamp: bounds.traceStartTimestamp,
-    endTimestamp: bounds.traceEndTimestamp,
-  });
+  const {startTimestamp: traceStartTimestamp, endTimestamp: traceEndTimestamp} =
+    normalizeTimestamps({
+      startTimestamp: bounds.traceStartTimestamp,
+      endTimestamp: bounds.traceEndTimestamp,
+    });
 
   // viewStart and viewEnd are percentage values (%) of the view window relative to the left
   // side of the trace view minimap
@@ -196,10 +197,10 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
 }
 
 // start and end are assumed to be unix timestamps with fractional seconds
-export function getTraceDateTimeRange(input: {
-  start: number;
-  end: number;
-}): {start: string; end: string} {
+export function getTraceDateTimeRange(input: {start: number; end: number}): {
+  start: string;
+  end: string;
+} {
   const start = moment
     .unix(input.start)
     .subtract(12, 'hours')
@@ -303,7 +304,6 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
       rootSpanID,
       rootSpanStatus,
       parentSpanID,
-      numOfSpans: 0,
       spans: [],
       description,
     };
@@ -330,7 +330,6 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
     rootSpanID,
     rootSpanStatus,
     parentSpanID,
-    numOfSpans: spans.length,
     spans,
     description,
   };
@@ -463,6 +462,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.ember',
     'sentry.javascript.vue',
     'sentry.javascript.angular',
+    'sentry.javascript.nextjs',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -488,7 +488,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
 
   return records.some(record => {
     const value = marks[record.slug];
-    if (typeof value === 'number') {
+    if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
       return value >= record.poorThreshold;
     }
     return false;
@@ -595,4 +595,29 @@ export function getMeasurementBounds(
       return _exhaustiveCheck;
     }
   }
+}
+
+export function scrollToSpan(
+  spanId: string,
+  scrollToHash: (hash: string) => void,
+  location: Location
+) {
+  return (e: MouseEvent<Element>) => {
+    // do not use the default anchor behaviour
+    // because it will be hidden behind the minimap
+    e.preventDefault();
+
+    const hash = `#span-${spanId}`;
+
+    scrollToHash(hash);
+
+    // TODO(txiao): This is causing a rerender of the whole page,
+    // which can be slow.
+    //
+    // make sure to update the location
+    browserHistory.push({
+      ...location,
+      hash,
+    });
+  };
 }

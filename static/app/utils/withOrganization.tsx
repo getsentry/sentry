@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 import {LightWeightOrganization, Organization} from 'app/types';

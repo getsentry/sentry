@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Any, Mapping, Optional, Tuple
 from uuid import uuid4
 
 import pytz
@@ -73,6 +74,19 @@ class SnubaProtocolEventStream(EventStream):
     # non-prefixed variations occur in a response.
     UNEXPECTED_TAG_KEYS = frozenset(["dist", "release", "user"])
 
+    def _get_headers_for_insert(
+        self,
+        group,
+        event,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        received_timestamp,  # type: float
+        skip_consume,
+    ) -> Mapping[str, str]:
+        return {"Received-Timestamp": str(received_timestamp)}
+
     def insert(
         self,
         group,
@@ -97,6 +111,17 @@ class SnubaProtocolEventStream(EventStream):
         }
         if unexpected_tags:
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
+
+        headers = self._get_headers_for_insert(
+            group,
+            event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            received_timestamp,
+            skip_consume,
+        )
 
         self._send(
             project.id,
@@ -123,7 +148,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={"Received-Timestamp": str(received_timestamp)},
+            headers=headers,
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -245,14 +270,22 @@ class SnubaProtocolEventStream(EventStream):
         }
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
 
-    def replace_group_unsafe(self, project_id, event_ids, new_group_id):
+    def replace_group_unsafe(
+        self, project_id, event_ids, new_group_id, from_timestamp=None, to_timestamp=None
+    ):
         """
         Tell Snuba to move events into a new group ID
 
         Same caveats as tombstone_events
         """
 
-        state = {"project_id": project_id, "event_ids": event_ids, "new_group_id": new_group_id}
+        state = {
+            "project_id": project_id,
+            "event_ids": event_ids,
+            "new_group_id": new_group_id,
+            "from_timestamp": from_timestamp,
+            "to_timestamp": to_timestamp,
+        }
         self._send(project_id, "replace_group", extra_data=(state,), asynchronous=False)
 
     def exclude_groups(self, project_id, group_ids):
@@ -268,11 +301,11 @@ class SnubaProtocolEventStream(EventStream):
 
     def _send(
         self,
-        project_id,
-        _type,
-        extra_data=(),
-        asynchronous=True,
-        headers=None,  # Optional[Mapping[str, str]]
+        project_id: int,
+        _type: str,
+        extra_data: Tuple[Any, ...] = (),
+        asynchronous: bool = True,
+        headers: Optional[Mapping[str, str]] = None,
     ):
         raise NotImplementedError
 
@@ -280,11 +313,11 @@ class SnubaProtocolEventStream(EventStream):
 class SnubaEventStream(SnubaProtocolEventStream):
     def _send(
         self,
-        project_id,
-        _type,
-        extra_data=(),
-        asynchronous=True,
-        headers=None,  # Optional[Mapping[str, str]]
+        project_id: int,
+        _type: str,
+        extra_data: Tuple[Any, ...] = (),
+        asynchronous: bool = True,
+        headers: Optional[Mapping[str, str]] = None,
     ):
         if headers is None:
             headers = {}
@@ -337,5 +370,12 @@ class SnubaEventStream(SnubaProtocolEventStream):
             skip_consume,
         )
         self._dispatch_post_process_group_task(
-            event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
+            event.event_id,
+            event.project_id,
+            event.group_id,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            skip_consume,
         )

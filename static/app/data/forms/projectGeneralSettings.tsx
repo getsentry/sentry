@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -57,7 +56,6 @@ export const fields: Record<string, Field> = {
   platform: {
     name: 'platform',
     type: 'select',
-    deprecatedSelectControl: false,
     label: t('Platform'),
     choices: () =>
       platforms.map(({id, name}) => [

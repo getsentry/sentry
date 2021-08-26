@@ -1,4 +1,4 @@
-import * as Router from 'react-router';
+import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import SentryRRWeb from '@sentry/rrweb';
@@ -25,13 +25,16 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
       ...(typeof routes === 'function'
         ? {
             routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-              Router.browserHistory as any,
-              Router.createRoutes(routes()),
-              Router.match
+              browserHistory as any,
+              createRoutes(routes()),
+              match
             ),
           }
         : {}),
-      idleTimeout: 5000,
+      idleTimeout: 4000,
+      _metricOptions: {
+        _reportAllChanges: true,
+      },
     }),
   ];
   if (hasReplays) {
@@ -78,6 +81,13 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(hasReplays, routes),
     tracesSampleRate,
+    /**
+     * There is a bug in Safari, that causes `AbortError` when fetch is aborted, and you are in the middle of reading the response.
+     * In Chrome and other browsers, it is handled gracefully, where in Safari, it produces additional error, that is jumping
+     * outside of the original Promise chain and bubbles up to the `unhandledRejection` handler, that we then captures as error.
+     * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
+     */
+    ignoreErrors: ['AbortError: Fetch is aborted'],
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations

@@ -1,7 +1,7 @@
 import 'prism-sentry/index.css';
 
-import React from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {Component, Fragment} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {loadDocs} from 'app/actionCreators/projects';
@@ -31,7 +31,7 @@ import withOrganization from 'app/utils/withOrganization';
 type Props = {
   api: Client;
   organization: Organization;
-} & WithRouterProps<{orgId: string; projectId: string; platform: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}>;
 
 type State = {
   loading: boolean;
@@ -39,7 +39,7 @@ type State = {
   html: string;
 };
 
-class ProjectInstallPlatform extends React.Component<Props, State> {
+class ProjectInstallPlatform extends Component<Props, State> {
   state: State = {
     loading: true,
     error: false,
@@ -52,7 +52,7 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
 
     const {platform} = this.props.params;
 
-    //redirect if platform is not known.
+    // redirect if platform is not known.
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
@@ -102,7 +102,7 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
     const platformLink = platform.link ?? undefined;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledPageHeader>
           <h2>{t('Configure %(platform)s', {platform: platform.name})}</h2>
           <ButtonBar gap={1}>
@@ -134,13 +134,13 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
           ) : this.state.error ? (
             <LoadingError onRetry={this.fetchData} />
           ) : (
-            <React.Fragment>
+            <Fragment>
               <SentryDocumentTitle
                 title={`${t('Configure')} ${platform.name}`}
                 projectSlug={projectId}
               />
               <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
-            </React.Fragment>
+            </Fragment>
           )}
 
           {this.isGettingStarted && (
@@ -163,7 +163,7 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
                 );
 
                 return (
-                  <React.Fragment>
+                  <Fragment>
                     {showPerformancePrompt && (
                       <Feature
                         features={['performance-view']}
@@ -206,13 +206,13 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
                         {t('Take me to Performance')}
                       </Button>
                     </StyledButtonBar>
-                  </React.Fragment>
+                  </Fragment>
                 );
               }}
             </Projects>
           )}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

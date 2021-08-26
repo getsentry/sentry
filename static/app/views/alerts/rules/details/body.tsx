@@ -1,11 +1,10 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -17,22 +16,24 @@ import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import {parseSearch} from 'app/components/searchSyntax/parser';
+import HighlightQuery from 'app/components/searchSyntax/renderer';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Actor, Organization, Project} from 'app/types';
+import {Actor, DateString, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
-import Timeline from 'app/views/alerts/rules/details/timeline';
 import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
   Trigger,
-} from 'app/views/settings/incidentRules/types';
-import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
+} from 'app/views/alerts/incidentRules/types';
+import {extractEventTypeFilterFromRule} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
+import Timeline from 'app/views/alerts/rules/details/timeline';
 
 import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
@@ -51,6 +52,7 @@ type Props = {
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
+  handleZoom: (start: DateString, end: DateString) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -98,7 +100,7 @@ export default class DetailsBody extends React.Component<Props> {
       return `${timeWindow}m`;
     }
 
-    return getInterval({start, end}, true);
+    return getInterval({start, end}, 'high');
   }
 
   getFilter() {
@@ -107,11 +109,11 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
+    const eventType = extractEventTypeFilterFromRule(rule);
+    const parsedQuery = parseSearch([eventType, rule.query].join(' '));
+
     return (
-      <Filters>
-        <code>{extractEventTypeFilterFromRule(rule)}</code>&nbsp;&nbsp;
-        {rule.query && <code>{rule.query}</code>}
-      </Filters>
+      <Filters>{parsedQuery && <HighlightQuery parsedQuery={parsedQuery} />}</Filters>
     );
   }
 
@@ -164,37 +166,35 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <React.Fragment>
         <SidebarGroup>
-          <SidebarHeading>{t('Metric')}</SidebarHeading>
+          <Heading>{t('Metric')}</Heading>
           <RuleText>{this.getMetricText()}</RuleText>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Environment')}</SidebarHeading>
+          <Heading>{t('Environment')}</Heading>
           <RuleText>{rule.environment ?? 'All'}</RuleText>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Filters')}</SidebarHeading>
+          <Heading>{t('Filters')}</Heading>
           {this.getFilter()}
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Conditions')}</SidebarHeading>
+          <Heading>{t('Conditions')}</Heading>
           {criticalTrigger && this.renderTrigger(criticalTrigger)}
           {warningTrigger && this.renderTrigger(warningTrigger)}
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Other Details')}</SidebarHeading>
+          <Heading>{t('Other Details')}</Heading>
           <KeyValueTable>
-            <Feature features={['organizations:team-alerts-ownership']}>
-              <KeyValueTableRow
-                keyName={t('Team')}
-                value={
-                  teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
-                }
-              />
-            </Feature>
+            <KeyValueTableRow
+              keyName={t('Team')}
+              value={
+                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+              }
+            />
 
             {rule.createdBy && (
               <KeyValueTableRow
@@ -232,18 +232,14 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <StatusContainer>
-        <div>
-          <SidebarHeading noMargin>{t('Status')}</SidebarHeading>
-          <ItemValue>
-            <AlertBadge status={status} />
-          </ItemValue>
-        </div>
-        <div>
-          <SidebarHeading noMargin>
-            {activeIncident ? t('Last Triggered') : t('Last Resolved')}
-          </SidebarHeading>
-          <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
-        </div>
+        <HeaderItem>
+          <Heading noMargin>{t('Current Status')}</Heading>
+          <Status>
+            <AlertBadge status={status} hideText />
+            {activeIncident ? t('Triggered') : t('Resolved')}
+            {activityDate ? <TimeSince date={activityDate} /> : '-'}
+          </Status>
+        </HeaderItem>
       </StatusContainer>
     );
   }
@@ -275,6 +271,7 @@ export default class DetailsBody extends React.Component<Props> {
       organization,
       timePeriod,
       selectedIncident,
+      handleZoom,
       params: {orgId},
     } = this.props;
 
@@ -291,28 +288,31 @@ export default class DetailsBody extends React.Component<Props> {
         {({initiallyLoaded, projects}) => {
           return initiallyLoaded ? (
             <React.Fragment>
-              <StyledLayoutBody>
-                {selectedIncident &&
-                  selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+              {selectedIncident &&
+                selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+                  <StyledLayoutBody>
                     <StyledAlert type="warning" icon={<IconInfo size="md" />}>
                       {t(
                         'Alert Rule settings have been updated since this alert was triggered.'
                       )}
                     </StyledAlert>
-                  )}
-              </StyledLayoutBody>
+                  </StyledLayoutBody>
+                )}
               <StyledLayoutBodyWrapper>
                 <Layout.Main>
                   <HeaderContainer>
                     <HeaderGrid>
-                      <div>
-                        <SidebarHeading noMargin>{t('Display')}</SidebarHeading>
+                      <HeaderItem>
+                        <Heading noMargin>{t('Display')}</Heading>
                         <ChartControls>
                           <DropdownControl label={timePeriod.display}>
                             {TIME_OPTIONS.map(({label, value}) => (
                               <DropdownItem
                                 key={value}
                                 eventKey={value}
+                                isActive={
+                                  !timePeriod.custom && timePeriod.period === value
+                                }
                                 onSelect={this.props.handleTimePeriodChange}
                               >
                                 {label}
@@ -320,28 +320,28 @@ export default class DetailsBody extends React.Component<Props> {
                             ))}
                           </DropdownControl>
                         </ChartControls>
-                      </div>
+                      </HeaderItem>
                       {projects && projects.length && (
-                        <div>
-                          <SidebarHeading noMargin>{t('Project')}</SidebarHeading>
+                        <HeaderItem>
+                          <Heading noMargin>{t('Project')}</Heading>
 
                           <IdBadge avatarSize={16} project={projects[0]} />
-                        </div>
+                        </HeaderItem>
                       )}
-                      <div>
-                        <SidebarHeading noMargin>
+                      <HeaderItem>
+                        <Heading noMargin>
                           {t('Time Interval')}
                           <Tooltip
                             title={t(
-                              'This is the time period which the metric is evaluated by.'
+                              'The time window over which the metric is evaluated.'
                             )}
                           >
                             <IconInfo size="xs" color="gray200" />
                           </Tooltip>
-                        </SidebarHeading>
+                        </Heading>
 
                         <RuleText>{this.getTimeWindow()}</RuleText>
-                      </div>
+                      </HeaderItem>
                     </HeaderGrid>
                   </HeaderContainer>
 
@@ -353,11 +353,11 @@ export default class DetailsBody extends React.Component<Props> {
                     selectedIncident={selectedIncident}
                     organization={organization}
                     projects={projects}
-                    metricText={this.getMetricText()}
                     interval={this.getInterval()}
                     filter={this.getFilter()}
                     query={queryWithTypeFilter}
                     orgId={orgId}
+                    handleZoom={handleZoom}
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
@@ -389,7 +389,12 @@ export default class DetailsBody extends React.Component<Props> {
                 </Layout.Main>
                 <Layout.Side>
                   {this.renderMetricStatus()}
-                  <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
+                  <Timeline
+                    api={api}
+                    organization={organization}
+                    rule={rule}
+                    incidents={incidents}
+                  />
                   {this.renderRuleDetails()}
                 </Layout.Side>
               </StyledLayoutBodyWrapper>
@@ -425,6 +430,7 @@ const StatusWrapper = styled('div')`
 `;
 
 const HeaderContainer = styled('div')`
+  height: 60px;
   display: flex;
   flex-direction: row;
   align-content: flex-start;
@@ -433,8 +439,20 @@ const HeaderContainer = styled('div')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
-  align-items: flex-start;
-  gap: ${space(4)};
+  align-items: stretch;
+  grid-gap: 60px;
+`;
+
+const HeaderItem = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  > *:nth-child(2) {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
 `;
 
 const StyledLayoutBody = styled(Layout.Body)`
@@ -460,22 +478,21 @@ const ActivityWrapper = styled('div')`
   width: 100%;
 `;
 
-const ItemValue = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
+const Status = styled('div')`
   position: relative;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const StatusContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 50% 50%;
-  grid-row-gap: 16px;
-  margin-bottom: 20px;
+  height: 60px;
+  display: flex;
+  margin-bottom: ${space(1.5)};
 `;
 
-const SidebarHeading = styled(SectionHeading)<{noMargin?: boolean}>`
+const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
   display: grid;
   grid-template-columns: auto auto;
   justify-content: flex-start;
@@ -500,10 +517,13 @@ const RuleText = styled('div')`
 `;
 
 const Filters = styled('span')`
-  width: 100%;
   overflow-wrap: break-word;
-  font-size: ${p => p.theme.fontSizeMedium};
-  gap: ${space(1)};
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  line-height: 25px;
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const TriggerCondition = styled('div')`

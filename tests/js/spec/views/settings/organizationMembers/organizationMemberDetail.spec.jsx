@@ -1,9 +1,8 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {updateMember} from 'app/actionCreators/members';
+import TeamStore from 'app/stores/teamStore';
 import OrganizationMemberDetail from 'app/views/settings/organizationMembers/organizationMemberDetail';
 
 jest.mock('app/actionCreators/members', () => ({
@@ -52,6 +51,8 @@ describe('OrganizationMemberDetail', function () {
       organization = TestStubs.Organization({teams});
       routerContext = TestStubs.routerContext([{organization}]);
     });
+
+    TeamStore.loadInitialData(teams);
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -141,7 +142,7 @@ describe('OrganizationMemberDetail', function () {
       wrapper.find('TeamSelect DropdownButton').simulate('click');
 
       // Click the first item
-      wrapper.find('TeamSelect TeamDropdownElement').first().simulate('click');
+      wrapper.find('TeamSelect DropdownTeamBadge').first().simulate('click');
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');

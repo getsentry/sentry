@@ -1,6 +1,6 @@
-import React from 'react';
+import * as React from 'react';
 import DocumentTitle from 'react-document-title';
-import * as ReactRouter from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import PropTypes from 'prop-types';
 
@@ -22,7 +22,8 @@ import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
-import GroupHeader, {TAB} from './header';
+import GroupHeader from './header';
+import {Tab} from './types';
 import {
   fetchGroupEvent,
   getGroupReprocessingStatus,
@@ -38,10 +39,7 @@ type Props = {
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
-} & ReactRouter.RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
-  {}
->;
+} & RouteComponentProps<{orgId: string; groupId: string; eventId?: string}, {}>;
 
 type State = {
   group: Group | null;
@@ -125,6 +123,10 @@ class GroupDetails extends React.Component<Props, State> {
     return `/issues/${this.props.params.groupId}/`;
   }
 
+  get groupReleaseEndpoint() {
+    return `/issues/${this.props.params.groupId}/first-last-release/`;
+  }
+
   async getEvent(group?: Group) {
     if (group) {
       this.setState({loadingEvent: true, eventError: false});
@@ -152,13 +154,13 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  getCurrentRouteInfo(group: Group): {currentTab: keyof typeof TAB; baseUrl: string} {
+  getCurrentRouteInfo(group: Group): {currentTab: Tab; baseUrl: string} {
     const {routes, organization} = this.props;
     const {event} = this.state;
 
     // All the routes under /organizations/:orgId/issues/:groupId have a defined props
     const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
-      currentTab: keyof typeof TAB;
+      currentTab: Tab;
       isEventRoute: boolean;
     };
 
@@ -199,10 +201,10 @@ class GroupDetails extends React.Component<Props, State> {
         // Redirects to the Activities tab
         if (
           reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-          currentTab !== TAB.ACTIVITY
+          currentTab !== Tab.ACTIVITY
         ) {
           return {
-            pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+            pathname: `${baseUrl}${Tab.ACTIVITY}/`,
             query: {...params, groupId: nextGroupId},
           };
         }
@@ -218,7 +220,7 @@ class GroupDetails extends React.Component<Props, State> {
     if (hasReprocessingV2Feature) {
       if (
         reprocessingStatus === ReprocessingStatus.REPROCESSING &&
-        currentTab !== TAB.DETAILS
+        currentTab !== Tab.DETAILS
       ) {
         return {
           pathname: baseUrl,
@@ -228,11 +230,11 @@ class GroupDetails extends React.Component<Props, State> {
 
       if (
         reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-        currentTab !== TAB.ACTIVITY &&
-        currentTab !== TAB.USER_FEEDBACK
+        currentTab !== Tab.ACTIVITY &&
+        currentTab !== Tab.USER_FEEDBACK
       ) {
         return {
-          pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+          pathname: `${baseUrl}${Tab.ACTIVITY}/`,
           query: params,
         };
       }
@@ -242,16 +244,14 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   getGroupQuery(): Record<string, string | string[]> {
-    const {environments, organization} = this.props;
+    const {environments} = this.props;
 
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
+      expand: 'inbox',
+      collapse: 'release',
     };
-
-    if (organization?.features?.includes('inbox')) {
-      query.expand = 'inbox';
-    }
 
     return query;
   }
@@ -308,7 +308,7 @@ class GroupDetails extends React.Component<Props, State> {
       const reprocessingNewRoute = this.getReprocessingNewRoute(updatedGroup);
 
       if (reprocessingNewRoute) {
-        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        browserHistory.push(reprocessingNewRoute);
         return;
       }
 
@@ -317,6 +317,12 @@ class GroupDetails extends React.Component<Props, State> {
       this.handleRequestError(error);
     }
   };
+
+  async fetchGroupReleases() {
+    const {api} = this.props;
+    const releases = await api.requestPromise(this.groupReleaseEndpoint);
+    GroupStore.onPopulateReleases(this.props.params.groupId, releases);
+  }
 
   async fetchData() {
     const {api, isGlobalSelectionReady, params} = this.props;
@@ -336,11 +342,12 @@ class GroupDetails extends React.Component<Props, State> {
       });
 
       const [data] = await Promise.all([groupPromise, eventPromise]);
+      this.fetchGroupReleases();
 
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 
       if (reprocessingNewRoute) {
-        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        browserHistory.push(reprocessingNewRoute);
         return;
       }
 
@@ -358,13 +365,25 @@ class GroupDetails extends React.Component<Props, State> {
           locationWithProject.query.project === undefined &&
           locationWithProject.query._allp === undefined
         ) {
-          //We use _allp as a temporary measure to know they came from the issue list page with no project selected (all projects included in filter).
-          //If it is not defined, we add the locked project id to the URL (this is because if someone navigates directly to an issue on single-project priveleges, then goes back - they were getting assigned to the first project).
-          //If it is defined, we do not so that our back button will bring us to the issue list page with no project selected instead of the locked project.
+          // We use _allp as a temporary measure to know they came from the
+          // issue list page with no project selected (all projects included in
+          // filter).
+          //
+          // If it is not defined, we add the locked project id to the URL
+          // (this is because if someone navigates directly to an issue on
+          // single-project priveleges, then goes back - they were getting
+          // assigned to the first project).
+          //
+          // If it is defined, we do not so that our back button will bring us
+          // to the issue list page with no project selected instead of the
+          // locked project.
           locationWithProject.query.project = project.id;
         }
-        delete locationWithProject.query._allp; //We delete _allp from the URL to keep the hack a bit cleaner, but this is not an ideal solution and will ultimately be replaced with something smarter.
-        ReactRouter.browserHistory.replace(locationWithProject);
+        // We delete _allp from the URL to keep the hack a bit cleaner, but
+        // this is not an ideal solution and will ultimately be replaced with
+        // something smarter.
+        delete locationWithProject.query._allp;
+        browserHistory.replace(locationWithProject);
       }
 
       this.setState({project, loadingGroup: false});
@@ -405,7 +424,7 @@ class GroupDetails extends React.Component<Props, State> {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group, organization);
+    const {title} = getTitle(group, organization?.features);
     const message = getMessage(group);
 
     const {project} = group;
@@ -456,7 +475,7 @@ class GroupDetails extends React.Component<Props, State> {
       project,
     };
 
-    if (currentTab === TAB.DETAILS) {
+    if (currentTab === Tab.DETAILS) {
       childProps = {
         ...childProps,
         event,
@@ -467,7 +486,7 @@ class GroupDetails extends React.Component<Props, State> {
       };
     }
 
-    if (currentTab === TAB.TAGS) {
+    if (currentTab === Tab.TAGS) {
       childProps = {...childProps, event, baseUrl};
     }
 
@@ -513,7 +532,8 @@ class GroupDetails extends React.Component<Props, State> {
             fetchError ? (
               <LoadingError message={t('Error loading the specified project')} />
             ) : (
-              this.renderContent(projects[0], group!) // TODO(ts): Update renderContent function to deal with empty group
+              // TODO(ts): Update renderContent function to deal with empty group
+              this.renderContent(projects[0], group!)
             )
           ) : (
             <LoadingIndicator />

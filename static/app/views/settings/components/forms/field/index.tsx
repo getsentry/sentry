@@ -5,7 +5,7 @@
  * This is unconnected to any Form state
  */
 
-import React from 'react';
+import * as React from 'react';
 
 import QuestionTooltip from 'app/components/questionTooltip';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
@@ -85,7 +85,7 @@ type Props = InheritedFieldControlProps &
      * Error message to display for the field
      */
     error?: string;
-    validate?: Function; //TODO(TS): Do we need this?
+    validate?: Function; // TODO(TS): Do we need this?
     /**
      * The control to render. May be given a function to render with resolved
      * props.

@@ -1,20 +1,18 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import GroupingActions from 'app/actions/groupingActions';
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import Tooltip from 'app/components/tooltip';
 import {IconChevron} from 'app/icons';
-import GroupingStore from 'app/stores/groupingStore';
+import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
 
 type Props = {
-  event: Event;
   organization: Organization;
-  fingerprint: string;
-  disabled: boolean;
+  fingerprint: Fingerprint;
 };
 
 type State = {
@@ -30,10 +28,6 @@ class MergedItem extends React.Component<Props, State> {
     busy: false,
   };
 
-  componentWillUnmount() {
-    this.listener?.();
-  }
-
   listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
 
   onGroupChange = ({unmergeState}) => {
@@ -42,8 +36,8 @@ class MergedItem extends React.Component<Props, State> {
     }
 
     const {fingerprint} = this.props;
-    const stateForId = unmergeState.has(fingerprint)
-      ? unmergeState.get(fingerprint)
+    const stateForId = unmergeState.has(fingerprint.id)
+      ? unmergeState.get(fingerprint.id)
       : undefined;
 
     if (!stateForId) {
@@ -61,7 +55,7 @@ class MergedItem extends React.Component<Props, State> {
 
   handleToggleEvents = () => {
     const {fingerprint} = this.props;
-    GroupingActions.toggleCollapseFingerprint(fingerprint);
+    GroupingActions.toggleCollapseFingerprint(fingerprint.id);
   };
 
   // Disable default behavior of toggling checkbox
@@ -70,14 +64,15 @@ class MergedItem extends React.Component<Props, State> {
   }
 
   handleToggle = () => {
-    const {disabled, fingerprint, event} = this.props;
+    const {fingerprint} = this.props;
+    const {latestEvent} = fingerprint;
 
-    if (disabled || this.state.busy) {
+    if (this.state.busy) {
       return;
     }
 
     // clicking anywhere in the row will toggle the checkbox
-    GroupingActions.toggleUnmerge([fingerprint, event.id]);
+    GroupingActions.toggleUnmerge([fingerprint.id, latestEvent.id]);
   };
 
   handleCheckClick() {
@@ -85,27 +80,40 @@ class MergedItem extends React.Component<Props, State> {
     // we handle change via row click
   }
 
-  render() {
-    const {disabled, event, fingerprint, organization} = this.props;
-    const {collapsed, busy, checked} = this.state;
-    const checkboxDisabled = disabled || busy;
+  renderFingerprint(id: string, label?: string) {
+    if (!label) {
+      return id;
+    }
 
-    // `event` can be null if last event w/ fingerprint is not within retention period
+    return (
+      <Tooltip title={id}>
+        <code>{label}</code>
+      </Tooltip>
+    );
+  }
+
+  render() {
+    const {fingerprint, organization} = this.props;
+    const {latestEvent, id, label} = fingerprint;
+    const {collapsed, busy, checked} = this.state;
+    const checkboxDisabled = busy;
+
+    // `latestEvent` can be null if last event w/ fingerprint is not within retention period
     return (
       <MergedGroup busy={busy}>
         <Controls expanded={!collapsed}>
           <ActionWrapper onClick={this.handleToggle}>
             <Checkbox
-              id={fingerprint}
-              value={fingerprint}
+              id={id}
+              value={id}
               checked={checked}
               disabled={checkboxDisabled}
               onChange={this.handleCheckClick}
             />
 
-            <Fingerprint onClick={this.handleLabelClick} htmlFor={fingerprint}>
-              {fingerprint}
-            </Fingerprint>
+            <FingerprintLabel onClick={this.handleLabelClick} htmlFor={id}>
+              {this.renderFingerprint(id, label)}
+            </FingerprintLabel>
           </ActionWrapper>
 
           <div>
@@ -117,10 +125,10 @@ class MergedItem extends React.Component<Props, State> {
 
         {!collapsed && (
           <MergedEventList className="event-list">
-            {event && (
+            {latestEvent && (
               <EventDetails className="event-details">
                 <EventOrGroupHeader
-                  data={event}
+                  data={latestEvent}
                   organization={organization}
                   hideIcons
                   hideLevel
@@ -169,7 +177,7 @@ const Controls = styled('div')<{expanded: boolean}>`
   }
 `;
 
-const Fingerprint = styled('label')`
+const FingerprintLabel = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
   ${/* sc-selector */ Controls} & {

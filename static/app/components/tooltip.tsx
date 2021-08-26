@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
 import {SerializedStyles} from '@emotion/react';
@@ -72,6 +72,12 @@ type Props = DefaultProps & {
    * Should be set to true if tooltip contains unisolated data (eg. dates)
    */
   disableForVisualTest?: boolean;
+
+  /**
+   * Force the tooltip to be visible without hovering
+   */
+  forceShow?: boolean;
+
   className?: string;
 };
 
@@ -116,9 +122,7 @@ class Tooltip extends React.Component<Props, State> {
 
   async componentDidMount() {
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (
-        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
-      ).default;
+      const TooltipStore = (await import('app/stores/tooltipStore')).default;
       TooltipStore.addTooltip(this);
     }
   }
@@ -127,9 +131,7 @@ class Tooltip extends React.Component<Props, State> {
     const {usesGlobalPortal} = this.state;
 
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (
-        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
-      ).default;
+      const TooltipStore = (await import('app/stores/tooltipStore')).default;
       TooltipStore.removeTooltip(this);
     }
     if (!usesGlobalPortal) {
@@ -141,22 +143,20 @@ class Tooltip extends React.Component<Props, State> {
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
 
-  getPortal = memoize(
-    (usesGlobalPortal): HTMLElement => {
-      if (usesGlobalPortal) {
-        let portal = document.getElementById('tooltip-portal');
-        if (!portal) {
-          portal = document.createElement('div');
-          portal.setAttribute('id', 'tooltip-portal');
-          document.body.appendChild(portal);
-        }
-        return portal;
+  getPortal = memoize((usesGlobalPortal): HTMLElement => {
+    if (usesGlobalPortal) {
+      let portal = document.getElementById('tooltip-portal');
+      if (!portal) {
+        portal = document.createElement('div');
+        portal.setAttribute('id', 'tooltip-portal');
+        document.body.appendChild(portal);
       }
-      const portal = document.createElement('div');
-      document.body.appendChild(portal);
       return portal;
     }
-  );
+    const portal = document.createElement('div');
+    document.body.appendChild(portal);
+    return portal;
+  });
 
   setOpen = () => {
     this.setState({isOpen: true});
@@ -231,8 +231,10 @@ class Tooltip extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
+    const {disabled, forceShow, children, title, position, popperStyle, isHoverable} =
+      this.props;
     const {isOpen, usesGlobalPortal} = this.state;
+
     if (disabled) {
       return children;
     }
@@ -249,7 +251,9 @@ class Tooltip extends React.Component<Props, State> {
       },
     };
 
-    const tip = isOpen ? (
+    const visible = forceShow || isOpen;
+
+    const tip = visible ? (
       <Popper placement={position} modifiers={modifiers}>
         {({ref, style, placement, arrowProps}) => (
           <PositionWrapper style={style}>
@@ -273,7 +277,7 @@ class Tooltip extends React.Component<Props, State> {
               style={computeOriginFromArrow(position, arrowProps)}
               transition={{duration: 0.2}}
               className="tooltip-content"
-              aria-hidden={!isOpen}
+              aria-hidden={!visible}
               ref={ref}
               hide={!title}
               data-placement={placement}

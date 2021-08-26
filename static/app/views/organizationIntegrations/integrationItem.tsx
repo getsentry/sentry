@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -12,7 +12,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   integration: Integration;
 };
-export default class IntegrationItem extends React.Component<Props> {
+export default class IntegrationItem extends Component<Props> {
   static defaultProps: DefaultProps = {
     compact: false,
   };

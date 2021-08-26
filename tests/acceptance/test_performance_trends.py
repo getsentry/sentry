@@ -43,11 +43,10 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = "/organizations/{}/performance/?{}".format(
+        self.path = "/organizations/{}/performance/trends/?{}".format(
             self.org.slug,
             urlencode(
                 {
-                    "view": "TRENDS",
                     "query": "transaction.duration:>0",
                     "statsPeriod": "1h",
                     "project": self.project.id,

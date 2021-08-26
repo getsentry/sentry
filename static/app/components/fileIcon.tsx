@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {IconFile} from 'app/icons';
 import {fileExtensionToPlatform, getFileExtension} from 'app/utils/fileExtension';
 import theme from 'app/utils/theme';

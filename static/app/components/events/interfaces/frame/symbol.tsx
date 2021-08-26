@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
@@ -10,16 +10,19 @@ import {Frame} from 'app/types';
 import {defined} from 'app/utils';
 
 import FunctionName from './functionName';
+import GroupingIndicator from './groupingIndicator';
 import {getFrameHint} from './utils';
 
 type Props = {
   frame: Frame;
   showCompleteFunctionName: boolean;
+  isUsedForGrouping?: boolean;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  className?: string;
 };
 
 const Symbol = ({
@@ -27,6 +30,8 @@ const Symbol = ({
   onFunctionNameToggle,
   showCompleteFunctionName,
   isHoverPreviewed,
+  isUsedForGrouping,
+  className,
 }: Props) => {
   const hasFunctionNameHiddenDetails =
     defined(frame.rawFunction) &&
@@ -51,7 +56,7 @@ const Symbol = ({
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       <FunctionNameToggleTooltip
         title={functionNameTooltipTitle}
         containerDisplayMode="inline-flex"
@@ -91,6 +96,7 @@ const Symbol = ({
             </Filename>
           </FileNameTooltip>
         )}
+        {isUsedForGrouping && <GroupingIndicator />}
       </Data>
     </Wrapper>
   );
@@ -124,6 +130,9 @@ const StyledFunctionName = styled(FunctionName)`
 
 const Data = styled('div')`
   max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 `;
 
 const HintStatus = styled('span')`
@@ -133,14 +142,14 @@ const HintStatus = styled('span')`
 `;
 
 const FileNameTooltip = styled(Tooltip)`
-  margin-right: ${space(0.5)};
+  margin-right: ${space(0.75)};
 `;
 
 const Filename = styled('span')`
   color: ${p => p.theme.purple300};
 `;
 
-const FunctionNameToggleIcon = styled(IconFilter, {
+export const FunctionNameToggleIcon = styled(IconFilter, {
   shouldForwardProp: prop => prop !== 'hasFunctionNameHiddenDetails',
 })<{
   hasFunctionNameHiddenDetails: boolean;
@@ -158,7 +167,9 @@ const FunctionNameToggleTooltip = styled(Tooltip)`
   height: 16px;
   align-items: center;
   margin-right: ${space(0.75)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 export default Symbol;
-export {FunctionNameToggleIcon};

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
@@ -6,11 +6,10 @@ import {t} from 'app/locale';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 
-import {getRelativeTimeFromEventDateCreated} from '../utils';
+import {getFullLanguageDescription, getRelativeTimeFromEventDateCreated} from '../utils';
 
-import formatMemory from './formatMemory';
-import formatStorage from './formatStorage';
 import {DeviceData, DeviceKnownDataType} from './types';
+import {formatMemory, formatStorage} from './utils';
 
 type Output = {
   subject: string;
@@ -88,12 +87,8 @@ function getDeviceKnownDataDetails(
             : undefined,
       };
     case DeviceKnownDataType.STORAGE:
-      const {
-        storage_size,
-        free_storage,
-        external_storage_size,
-        external_free_storage,
-      } = data;
+      const {storage_size, free_storage, external_storage_size, external_free_storage} =
+        data;
       return {
         subject: t('Capacity'),
         value:
@@ -182,7 +177,7 @@ function getDeviceKnownDataDetails(
     case DeviceKnownDataType.LANGUAGE:
       return {
         subject: t('Language'),
-        value: data.language,
+        value: getFullLanguageDescription(data.language),
       };
     case DeviceKnownDataType.LOW_MEMORY:
       return {

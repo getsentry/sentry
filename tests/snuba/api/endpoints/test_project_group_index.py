@@ -293,6 +293,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == group.id
 
+    def test_lookup_by_release_wildcard(self):
+        self.login_as(self.user)
+        version = "12345"
+        event = self.store_event(
+            data={"tags": {"sentry:release": version}}, project_id=self.project.id
+        )
+        group = event.group
+        release_wildcard = version[:3] + "*"
+        url = "{}?query={}".format(self.path, quote('release:"%s"' % release_wildcard))
+        response = self.client.get(url, format="json")
+        issues = json.loads(response.content)
+        assert response.status_code == 200
+        assert len(issues) == 1
+        assert int(issues[0]["id"]) == group.id
+
     def test_pending_delete_pending_merge_excluded(self):
         self.create_group(checksum="a" * 32, status=GroupStatus.PENDING_DELETION)
         group = self.create_group(checksum="b" * 32)
@@ -323,6 +338,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.content
 
+    def test_filter_not_unresolved(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.RESOLVED)
+        self.login_as(user=self.user)
+        response = self.client.get(f"{self.path}?query=!is:unresolved", format="json")
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event.group.id]
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -351,7 +377,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             f"{self.path}?status=unresolved", data={"status": "resolved"}, format="json"
         )
         assert response.status_code == 200, response.data
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         # the previously resolved entry should not be included
         new_group1 = Group.objects.get(id=group1.id)
@@ -397,7 +423,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.data
 
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
 
         assert len(response.data) == 0
@@ -451,7 +477,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group = Group.objects.get(id=group.id)
                 assert group.status == GroupStatus.RESOLVED
 
-                assert response.data == {"status": "resolved", "statusDetails": {}}
+                assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, True, group.project_id
                 )
@@ -580,7 +606,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         url = f"{self.path}?id={group1.id}&id={group2.id}&group4={group4.id}"
         response = self.client.put(url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None
@@ -620,6 +646,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -657,6 +684,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -692,6 +720,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -894,7 +923,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
 
-        assert response.data == {"status": "ignored", "statusDetails": {}}
+        assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
     def test_snooze_duration(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1122,14 +1151,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not r4.exists()
 
     def test_inbox_fields(self):
-        with self.feature("organizations:inbox"):
-            group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
-            add_group_to_inbox(group1, GroupInboxReason.NEW)
-            self.login_as(user=self.user)
-            url = f"{self.path}?id={group1.id}"
-            response = self.client.put(url, data={"status": "resolved"}, format="json")
-            assert "inbox" in response.data
-            assert response.data["inbox"] is None
+        group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        add_group_to_inbox(group1, GroupInboxReason.NEW)
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={group1.id}"
+        response = self.client.put(url, data={"status": "resolved"}, format="json")
+        assert "inbox" in response.data
+        assert response.data["inbox"] is None
 
     @patch("sentry.api.helpers.group_index.uuid4")
     @patch("sentry.api.helpers.group_index.merge_groups")

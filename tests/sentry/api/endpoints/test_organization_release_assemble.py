@@ -55,7 +55,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         total_checksum = sha1(bundle_file).hexdigest()
 
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
-        FileBlobOwner.objects.get_or_create(organization=self.organization, blob=blob1)
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         response = self.client.post(
             self.url,

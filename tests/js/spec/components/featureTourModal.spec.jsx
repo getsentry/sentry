@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -24,7 +24,7 @@ describe('FeatureTourModal', function () {
 
   const createWrapper = (props = {}) =>
     mountWithTheme(
-      <React.Fragment>
+      <Fragment>
         <GlobalModal />
         <FeatureTourModal
           steps={steps}
@@ -38,7 +38,7 @@ describe('FeatureTourModal', function () {
             </a>
           )}
         </FeatureTourModal>
-      </React.Fragment>
+      </Fragment>
     );
 
   const showModal = async wrapper => {

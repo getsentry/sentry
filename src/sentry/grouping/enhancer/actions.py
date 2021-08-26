@@ -39,12 +39,12 @@ class Action:
 
     @property
     def is_modifier(self):
-        """ Does this action modify the frame? """
+        """Does this action modify the frame?"""
         return self._is_modifier
 
     @property
     def is_updater(self):
-        """ Does this action update grouping components? """
+        """Does this action update grouping components?"""
         return self._is_updater
 
     @classmethod
@@ -125,12 +125,12 @@ class FlagAction(Action):
 
             elif self.key == "prefix":
                 component.update(
-                    is_prefix_frame=True, hint=f"marked as prefix frame by {rule_hint}"
+                    is_prefix_frame=self.flag, hint=f"marked as prefix frame by {rule_hint}"
                 )
 
             elif self.key == "sentinel":
                 component.update(
-                    is_sentinel_frame=True, hint=f"marked as sentinel frame by {rule_hint}"
+                    is_sentinel_frame=self.flag, hint=f"marked as sentinel frame by {rule_hint}"
                 )
 
 

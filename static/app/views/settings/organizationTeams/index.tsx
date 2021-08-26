@@ -1,13 +1,14 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'app/actionCreators/projects';
+import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
-import {Organization, Team} from 'app/types';
+import {AccessRequest, Organization, Team} from 'app/types';
 import {sortArray} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
+import AsyncView from 'app/views/asyncView';
 
 import OrganizationTeams from './organizationTeams';
 
@@ -17,7 +18,17 @@ type Props = {
   teams: Team[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
-class OrganizationTeamsContainer extends React.Component<Props> {
+type State = AsyncView['state'] & {
+  requestList: AccessRequest[];
+};
+
+class OrganizationTeamsContainer extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {orgId} = this.props.params;
+
+    return [['requestList', `/organizations/${orgId}/access-requests/`]];
+  }
+
   componentDidMount() {
     this.fetchStats();
   }
@@ -33,7 +44,21 @@ class OrganizationTeamsContainer extends React.Component<Props> {
     });
   }
 
-  render() {
+  removeAccessRequest = (id: string, isApproved: boolean) => {
+    const requestToRemove = this.state.requestList.find(request => request.id === id);
+    this.setState(state => ({
+      requestList: state.requestList.filter(request => request.id !== id),
+    }));
+    if (isApproved && requestToRemove) {
+      const team = requestToRemove.team;
+      TeamActions.updateSuccess(team.slug, {
+        ...team,
+        memberCount: team.memberCount + 1,
+      });
+    }
+  };
+
+  renderBody() {
     const {organization, teams} = this.props;
 
     if (!organization) {
@@ -50,6 +75,8 @@ class OrganizationTeamsContainer extends React.Component<Props> {
         organization={organization}
         allTeams={allTeams}
         activeTeams={activeTeams}
+        requestList={this.state.requestList}
+        onRemoveAccessRequest={this.removeAccessRequest}
       />
     );
   }

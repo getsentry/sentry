@@ -31,10 +31,13 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__("sentry").__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, "data")
 
-BAD_RELEASE_CHARS = "\n\f\t/"
+BAD_RELEASE_CHARS = "\r\n\f\x0c\t/\\"
 MAX_VERSION_LENGTH = 200
 MAX_COMMIT_LENGTH = 64
 COMMIT_RANGE_DELIMITER = ".."
+
+# semver constants
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
 SORT_OPTIONS = OrderedDict(
     (
@@ -146,6 +149,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "legal",
         "community",
         "referrals",
+        "demo",
     )
 )
 
@@ -221,6 +225,7 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
     "sentry.rules.conditions.event_attribute.EventAttributeCondition",
     "sentry.rules.conditions.level.LevelCondition",
     "sentry.rules.filters.age_comparison.AgeComparisonFilter",
@@ -275,6 +280,8 @@ KNOWN_DIF_FORMATS = {
     "application/wasm": "wasm",
     "text/x-proguard+plain": "proguard",
     "application/x-sentry-bundle+zip": "sourcebundle",
+    "application/x-bcsymbolmap": "bcsymbolmap",
+    "application/x-debugid-map": "uuidmap",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

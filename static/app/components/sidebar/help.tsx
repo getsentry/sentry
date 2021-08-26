@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'app/actionCreators/modal';
@@ -35,22 +34,16 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
 
         {isOpen && (
           <HelpMenu {...getMenuProps({})}>
-            <Hook name="sidebar:help-menu" organization={organization} />
             <SidebarMenuItem
               data-test-id="search-docs-and-faqs"
               onClick={() => openHelpSearchModal({organization})}
             >
-              {t('Search Docs and FAQs')}
+              {t('Search support, docs and more')}
             </SidebarMenuItem>
-            <SidebarMenuItem href="https://forum.sentry.io/">
-              {t('Community Discussions')}
+            <SidebarMenuItem href="https://help.sentry.io/">
+              {t('Visit help center')}
             </SidebarMenuItem>
-            <SidebarMenuItem href="https://discord.com/invite/sentry/">
-              {t('Join the Sentry Discord')}
-            </SidebarMenuItem>
-            <SidebarMenuItem href="https://status.sentry.io/">
-              {t('Service Status')}
-            </SidebarMenuItem>
+            <Hook name="sidebar:help-menu" organization={organization} />
           </HelpMenu>
         )}
       </HelpRoot>

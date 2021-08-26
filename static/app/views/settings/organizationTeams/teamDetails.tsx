@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -16,15 +16,17 @@ import NavTabs from 'app/components/navTabs';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t, tct} from 'app/locale';
 import TeamStore from 'app/stores/teamStore';
-import {Team} from 'app/types';
+import {Organization, Team} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 
 type Props = {
   api: Client;
   teams: Team[];
   children: React.ReactNode;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
 type State = {
@@ -37,7 +39,7 @@ type State = {
 class TeamDetails extends React.Component<Props, State> {
   state = this.getInitialState();
 
-  getInitialState() {
+  getInitialState(): State {
     const team = TeamStore.getBySlug(this.props.params.teamId);
 
     return {
@@ -136,7 +138,7 @@ class TeamDetails extends React.Component<Props, State> {
   };
 
   render() {
-    const {params, routes, children} = this.props;
+    const {children, organization, params, routes} = this.props;
     const {team, loading, requesting, error} = this.state;
 
     if (loading) {
@@ -168,7 +170,31 @@ class TeamDetails extends React.Component<Props, State> {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
+    // `/organizations/${orgId}/teams/${teamId}`;
+    const routePrefix = recreateRoute('', {routes, params, stepBack: -1});
+
+    const navigationTabs = [
+      <ListLink key={0} to={`${routePrefix}members/`}>
+        {t('Members')}
+      </ListLink>,
+      <ListLink key={1} to={`${routePrefix}projects/`}>
+        {t('Projects')}
+      </ListLink>,
+      <ListLink key={2} to={`${routePrefix}settings/`}>
+        {t('Settings')}
+      </ListLink>,
+    ];
+
+    if (organization.features.includes('notification-platform')) {
+      navigationTabs.splice(
+        2,
+        0,
+        <ListLink key="x" to={`${routePrefix}notifications/`}>
+          {t('Notifications')}
+        </ListLink>
+      );
+    }
+
     return (
       <div>
         <SentryDocumentTitle title={t('Team Details')} orgSlug={params.orgId} />
@@ -176,11 +202,7 @@ class TeamDetails extends React.Component<Props, State> {
           <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>
 
-        <NavTabs underlined>
-          <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
-          <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
-          <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
-        </NavTabs>
+        <NavTabs underlined>{navigationTabs}</NavTabs>
 
         {React.isValidElement(children) &&
           React.cloneElement(children, {
@@ -192,7 +214,7 @@ class TeamDetails extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withTeams(TeamDetails));
+export default withApi(withOrganization(withTeams(TeamDetails)));
 
 const RequestAccessWrapper = styled('div')`
   display: flex;

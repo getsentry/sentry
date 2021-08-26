@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {PlatformKey} from 'app/data/platformCategories';
@@ -16,7 +16,7 @@ export default function PostInstallCodeSnippet({
   platform,
   isOnboarding,
 }: Props) {
-  //currently supporting both Python and Node
+  // currently supporting both Python and Node
   const token_punctuation: string = platform === 'python-awslambda' ? '()' : '();';
   return (
     <div>
@@ -40,7 +40,7 @@ export default function PostInstallCodeSnippet({
         </CodeWrapper>
       </div>
       {isOnboarding && (
-        <React.Fragment>
+        <Fragment>
           <p>
             {t(
               "If you're new to Sentry, use the email alert to access your account and complete a product tour."
@@ -51,7 +51,7 @@ export default function PostInstallCodeSnippet({
               "If you're an existing user and have disabled alerts, you won't receive this email."
             )}
           </p>
-        </React.Fragment>
+        </Fragment>
       )}
     </div>
   );

@@ -115,23 +115,22 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         # Disable for_review_guide
         AssistantActivity.objects.create(user=self.user, guide_id=9, viewed_ts=timezone.now())
 
-        with self.feature("organizations:inbox"):
-            self.page.visit_issue_list(
-                self.org.slug,
-                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
-            )
-            self.page.wait_for_stream()
-            self.browser.snapshot("organization issues inbox results")
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
-            assert len(groups) == 2
+        self.page.visit_issue_list(
+            self.org.slug,
+            query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
+        )
+        self.page.wait_for_stream()
+        self.browser.snapshot("organization issues inbox results")
+        groups = self.browser.elements('[data-test-id="event-issue-header"]')
+        assert len(groups) == 2
 
-            self.page.select_issue(1)
-            self.page.mark_reviewed_issues()
+        self.page.select_issue(1)
+        self.page.mark_reviewed_issues()
 
-            self.page.visit_issue_list(
-                self.org.slug,
-                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
-            )
-            self.page.wait_for_stream()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
-            assert len(groups) == 1
+        self.page.visit_issue_list(
+            self.org.slug,
+            query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
+        )
+        self.page.wait_for_stream()
+        groups = self.browser.elements('[data-test-id="event-issue-header"]')
+        assert len(groups) == 1

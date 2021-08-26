@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
@@ -35,7 +35,7 @@ type Props = RouteComponentProps<
 
 type State = typeof OrganizationEnvironmentsStore['state'];
 
-export class GroupEventDetailsContainer extends React.Component<Props, State> {
+export class GroupEventDetailsContainer extends Component<Props, State> {
   state = OrganizationEnvironmentsStore.get();
 
   componentDidMount() {
@@ -70,6 +70,7 @@ export class GroupEventDetailsContainer extends React.Component<Props, State> {
     if (!this.state.environments) {
       return <LoadingIndicator />;
     }
+
     const {selection, ...otherProps} = this.props;
     const environments: Environment[] = this.state.environments.filter(env =>
       selection.environments.includes(env.name)

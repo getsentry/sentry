@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -38,18 +37,14 @@ const CardHeader = ({
   );
   return (
     <Header>
-      <MainInfo>
-        <Name>
-          <div>{name}</div>
-          {description && (
-            <QuestionTooltip position="top" size="sm" title={description} />
-          )}
-        </Name>
-        <Date>
-          {tct('Created on [date]', {date: <DateTime date={created} timeAndDate />})}
-        </Date>
-      </MainInfo>
-      <ButtonBar gap={1}>
+      <KeyName>
+        {name}
+        {description && <QuestionTooltip position="top" size="sm" title={description} />}
+      </KeyName>
+      <DateCreated>
+        {tct('Created on [date]', {date: <DateTime date={created} timeAndDate />})}
+      </DateCreated>
+      <StyledButtonBar gap={1}>
         <Clipboard value={publicKey}>
           <Button size="small" icon={<IconCopy />}>
             {t('Copy Key')}
@@ -76,36 +71,39 @@ const CardHeader = ({
             {deleteButton}
           </ConfirmDelete>
         )}
-      </ButtonBar>
+      </StyledButtonBar>
     </Header>
   );
 };
 
 export default CardHeader;
 
-const Name = styled('div')`
+const KeyName = styled('div')`
+  grid-row: 1/2;
   display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.5)};
+  grid-template-columns: repeat(2, max-content);
+  grid-column-gap: ${space(0.5)};
 `;
 
-const MainInfo = styled('div')`
-  color: ${p => p.theme.textColor};
-  display: grid;
-  grid-gap: ${space(1)};
-`;
-
-const Date = styled('small')`
+const DateCreated = styled('div')`
+  grid-row: 2/3;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
+const StyledButtonBar = styled(ButtonBar)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-row: 1/3;
+  }
+`;
+
 const Header = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
-  align-items: flex-start;
+  grid-row-gap: ${space(1)};
+  margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: 1fr max-content;
+    grid-template-rows: repeat(2, max-content);
   }
 `;

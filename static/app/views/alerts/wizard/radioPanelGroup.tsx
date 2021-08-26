@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Radio from 'app/components/radio';
@@ -52,7 +52,7 @@ const Container = styled('div')`
   grid-auto-columns: auto;
 `;
 
-export const RadioLineItem = styled('label')<{
+const RadioLineItem = styled('label')<{
   index: number;
 }>`
   display: grid;

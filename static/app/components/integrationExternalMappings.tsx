@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -24,12 +24,12 @@ type Props = {
 
 type State = {};
 
-class IntegrationExternalMappings extends React.Component<Props, State> {
+class IntegrationExternalMappings extends Component<Props, State> {
   render() {
     const {integration, mappings, type, onCreateOrEdit, onDelete} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
@@ -97,7 +97,7 @@ class IntegrationExternalMappings extends React.Component<Props, State> {
             ))}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -130,7 +130,7 @@ const StyledButton = styled(Button)`
   margin: ${space(0.5)};
 `;
 
-//Columns below
+// Columns below
 const Column = styled('span')`
   overflow: hidden;
   overflow-wrap: break-word;

@@ -1,6 +1,5 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
-import * as ReactRouter from 'react-router';
+import {Component} from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
@@ -44,7 +43,7 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = ReactRouter.WithRouterProps &
+type Props = WithRouterProps &
   ViewProps & {
     theme: Theme;
     api: Client;
@@ -52,7 +51,7 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
   };
 
-class VitalChart extends React.Component<Props> {
+class VitalChart extends Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;
@@ -87,7 +86,7 @@ class VitalChart extends React.Component<Props> {
 
     const vitalName = vitalNameFromLocation(location);
 
-    const yAxis = [`p75(${vitalName})`];
+    const yAxis = `p75(${vitalName})`;
 
     const legend = {
       right: 10,
@@ -166,15 +165,16 @@ class VitalChart extends React.Component<Props> {
       tooltip: {
         trigger: 'axis' as const,
         valueFormatter: (value: number, seriesName?: string) =>
-          tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : 'p75()'),
+          tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : yAxis),
       },
       yAxis: {
         min: 0,
         max: vitalPoor,
         axisLabel: {
           color: theme.chartLabel,
+          showMaxLabel: false,
           // coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p75()'),
+          formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
     };
@@ -206,11 +206,11 @@ class VitalChart extends React.Component<Props> {
                 environment={environment}
                 start={start}
                 end={end}
-                interval={getInterval(datetimeSelection, true)}
+                interval={getInterval(datetimeSelection, 'high')}
                 showLoading={false}
                 query={query}
                 includePrevious={false}
-                yAxis={yAxis}
+                yAxis={[yAxis]}
                 partial
               >
                 {({timeseriesData: results, errored, loading, reloading}) => {
@@ -287,4 +287,4 @@ class VitalChart extends React.Component<Props> {
   }
 }
 
-export default withApi(withTheme(ReactRouter.withRouter(VitalChart)));
+export default withApi(withTheme(withRouter(VitalChart)));

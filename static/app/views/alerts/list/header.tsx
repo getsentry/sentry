@@ -1,5 +1,5 @@
-import React from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import * as React from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import {navigateTo} from 'app/actionCreators/navigation';
@@ -107,9 +107,7 @@ const BorderlessHeader = styled(Layout.Header)`
   border-bottom: 0;
 
   /* Not enough buttons to change direction for tablet view */
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr auto;
-  }
+  grid-template-columns: 1fr auto;
 `;
 
 const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`

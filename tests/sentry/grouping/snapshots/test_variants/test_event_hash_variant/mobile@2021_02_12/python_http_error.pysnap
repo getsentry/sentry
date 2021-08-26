@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:25.549331Z'
+created: '2021-08-04T15:53:48.208895Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,8 +25,8 @@ app-depth-1:
           "<int> Client Error: Too Many Requests for url: <url>"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute | ... | raise_for_status"
+  hash: "d59239f5aad3304d60beb1fde3369b78"
+  tree_label: "send_notification | safe_execute"
   component:
     app-depth-2*
       exception*
@@ -49,25 +49,16 @@ app-depth-2:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
-          frame*
-            module*
-              "requests.models"
-            filename (module takes precedence)
-              "models.py"
-            function*
-              "raise_for_status"
-            context-line*
-              "raise HTTPError(http_error_msg, response=self)"
         type*
           "HTTPError"
         value (ignored because stacktrace takes precedence)
           "<int> Client Error: Too Many Requests for url: <url>"
 --------------------------------------------------------------------------
-app-depth-3:
-  hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "<entire stacktrace>"
+app-depth-max:
+  hash: "d59239f5aad3304d60beb1fde3369b78"
+  tree_label: "send_notification | safe_execute"
   component:
-    app-depth-3*
+    app-depth-max*
       exception*
         stacktrace*
           frame*
@@ -88,15 +79,6 @@ app-depth-3:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
-          frame*
-            module*
-              "requests.models"
-            filename (module takes precedence)
-              "models.py"
-            function*
-              "raise_for_status"
-            context-line*
-              "raise HTTPError(http_error_msg, response=self)"
         type*
           "HTTPError"
         value (ignored because stacktrace takes precedence)
@@ -105,13 +87,13 @@ app-depth-3:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-max/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "<entire stacktrace>"
+  tree_label: "raise_for_status | send_notification | safe_execute"
   component:
     system*
       exception*

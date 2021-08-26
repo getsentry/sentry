@@ -1,0 +1,47 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block css %}
+  <style>
+    ol li {
+      padding:10px 0px;
+    }
+    .code-list {
+      padding: 10px;
+      background-color: #f7f8f9;
+      margin-top: 10px;
+      border-radius: 3px;
+    }
+    .code-list li {
+      font-size: 90%;
+    }
+  </style>
+{% endblock %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "Custom SCM Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+<h3>{% trans "Custom Source Control Management Setup" %}</h3>
+  <p>{% trans "Add your basic source control information in order to create an integration. You will be able to edit this information later." %}</p>
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="custom_scm" />
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+    {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions clearfix">
+      <div class="pull-right">
+        <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
+      </div>
+    </fieldset>
+  </form>
+{% endblock %}

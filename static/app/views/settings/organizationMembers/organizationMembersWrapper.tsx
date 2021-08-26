@@ -1,16 +1,11 @@
-import React from 'react';
+import {cloneElement, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import AlertLink from 'app/components/alertLink';
-import Badge from 'app/components/badge';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
+import Button from 'app/components/button';
 import {IconMail} from 'app/icons';
 import {t} from 'app/locale';
 import {Member, Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -97,56 +92,33 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     });
 
   renderBody() {
-    const {
-      children,
-      organization,
-      params: {orgId},
-    } = this.props;
+    const {children} = this.props;
     const {requestList, inviteRequests} = this.state;
 
+    const action = (
+      <Button
+        priority="primary"
+        size="small"
+        onClick={() =>
+          openInviteMembersModal({
+            onClose: () => {
+              this.fetchData();
+            },
+            source: 'members_settings',
+          })
+        }
+        data-test-id="email-invite"
+        icon={<IconMail />}
+      >
+        {t('Invite Members')}
+      </Button>
+    );
+
     return (
-      <React.Fragment>
-        <SettingsPageHeader title="Members" />
-
-        <AlertLink
-          data-test-id="email-invite"
-          icon={<IconMail />}
-          priority="info"
-          onClick={() => openInviteMembersModal({source: 'members_settings'})}
-        >
-          {t('Invite new members by email to join your organization')}
-        </AlertLink>
-
-        {this.showNavTabs && (
-          <NavTabs underlined>
-            <ListLink
-              to={`/settings/${orgId}/members/`}
-              isActive={() => !this.onRequestsTab}
-              data-test-id="members-tab"
-            >
-              {t('Members')}
-            </ListLink>
-            <ListLink
-              to={`/settings/${orgId}/members/requests/`}
-              isActive={() => this.onRequestsTab}
-              data-test-id="requests-tab"
-              onClick={() => {
-                this.showInviteRequests &&
-                  trackAnalyticsEvent({
-                    eventKey: 'invite_request.tab_clicked',
-                    eventName: 'Invite Request Tab Clicked',
-                    organization_id: organization.id,
-                  });
-              }}
-            >
-              {t('Requests')}
-            </ListLink>
-            {this.requestCount && <StyledBadge text={this.requestCount} />}
-          </NavTabs>
-        )}
-
+      <Fragment>
+        <SettingsPageHeader title="Members" action={action} />
         {children &&
-          React.cloneElement(children, {
+          cloneElement(children, {
             requestList,
             inviteRequests,
             onRemoveInviteRequest: this.removeInviteRequest,
@@ -154,17 +126,9 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
             onRemoveAccessRequest: this.removeAccessRequest,
             showInviteRequests: this.showInviteRequests,
           })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
-
-const StyledBadge = styled(Badge)`
-  margin-left: -12px;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin-left: -6px;
-  }
-`;
 
 export default withOrganization(OrganizationMembersWrapper);

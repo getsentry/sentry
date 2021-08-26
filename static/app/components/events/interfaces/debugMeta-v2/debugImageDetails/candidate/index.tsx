@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
@@ -38,7 +38,7 @@ function Candidate({
   const isInternalSource = source === INTERNAL_SOURCE;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Column>
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
       </Column>
@@ -65,7 +65,7 @@ function Candidate({
           />
         </ActionsColumn>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

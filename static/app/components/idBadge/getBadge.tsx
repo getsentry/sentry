@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import MemberBadge from 'app/components/idBadge/memberBadge';

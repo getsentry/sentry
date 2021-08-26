@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
@@ -25,20 +25,16 @@ type Props = {
   selection: GlobalSelection;
   groupIds: string[];
   onDelete: () => void;
-  onRealtimeChange: (realtime: boolean) => void;
   onSelectStatsPeriod: (period: string) => void;
-  realtimeActive: boolean;
   statsPeriod: string;
   query: string;
   queryCount: number;
   displayCount: React.ReactElement;
   displayReprocessingActions: boolean;
-  hasInbox?: boolean;
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
 type State = {
-  datePickerActive: boolean;
   anySelected: boolean;
   multiSelected: boolean;
   pageSelected: boolean;
@@ -49,7 +45,6 @@ type State = {
 
 class IssueListActions extends React.Component<Props, State> {
   state: State = {
-    datePickerActive: false,
     anySelected: false,
     multiSelected: false, // more than one selected
     pageSelected: false, // all on current page selected (e.g. 25)
@@ -216,10 +211,6 @@ class IssueListActions extends React.Component<Props, State> {
     SelectedGroupStore.toggleSelectAll();
   }
 
-  handleRealtimeChange = () => {
-    this.props.onRealtimeChange(!this.props.realtimeActive);
-  };
-
   shouldConfirm = (action: ConfirmAction) => {
     const selectedItems = SelectedGroupStore.getSelectedIds();
 
@@ -243,9 +234,7 @@ class IssueListActions extends React.Component<Props, State> {
     const {
       allResultsVisible,
       queryCount,
-      hasInbox,
       query,
-      realtimeActive,
       statsPeriod,
       selection,
       organization,
@@ -278,8 +267,6 @@ class IssueListActions extends React.Component<Props, State> {
               orgSlug={organization.slug}
               queryCount={queryCount}
               query={query}
-              realtimeActive={realtimeActive}
-              hasInbox={hasInbox}
               issues={issues}
               allInQuerySelected={allInQuerySelected}
               anySelected={anySelected}
@@ -287,7 +274,6 @@ class IssueListActions extends React.Component<Props, State> {
               selectedProjectSlug={selectedProjectSlug}
               onShouldConfirm={this.shouldConfirm}
               onDelete={this.handleDelete}
-              onRealtimeChange={this.handleRealtimeChange}
               onMerge={this.handleMerge}
               onUpdate={this.handleUpdate}
             />
@@ -297,7 +283,6 @@ class IssueListActions extends React.Component<Props, State> {
             anySelected={anySelected}
             selection={selection}
             statsPeriod={statsPeriod}
-            hasInbox={hasInbox}
             isReprocessingQuery={displayReprocessingActions}
           />
         </StyledFlex>
@@ -346,7 +331,7 @@ class IssueListActions extends React.Component<Props, State> {
 
 const Sticky = styled('div')`
   position: sticky;
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
   top: -1px;
 `;
 
@@ -358,9 +343,10 @@ const StyledFlex = styled('div')`
   padding-bottom: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.border};
+  border-top: none;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  margin-bottom: -1px;
+  margin: 0 -1px -1px;
 `;
 
 const ActionsCheckbox = styled('div')`

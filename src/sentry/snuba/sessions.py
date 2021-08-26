@@ -1,12 +1,50 @@
 from datetime import datetime, timedelta
 
 import pytz
+from snuba_sdk.column import Column
+from snuba_sdk.conditions import And, Condition, Op, Or
+from snuba_sdk.entity import Entity
+from snuba_sdk.function import Function
+from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.query import Query
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.snuba import QueryOutsideRetentionError, parse_snuba_datetime, raw_query
+from sentry.utils.snuba import (
+    QueryOutsideRetentionError,
+    parse_snuba_datetime,
+    raw_query,
+    raw_snql_query,
+)
 
 DATASET_BUCKET = 3600
+
+_next_op_and_direction_dict = {
+    "sessions": {
+        "scope_operation": Op.LT,
+        "scope_direction": Direction.DESC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+    "crash_free_sessions": {
+        "scope_operation": Op.GT,
+        "scope_direction": Direction.ASC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+    "users": {
+        "scope_operation": Op.LT,
+        "scope_direction": Direction.DESC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+    "crash_free_users": {
+        "scope_operation": Op.GT,
+        "scope_direction": Direction.ASC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+}
 
 
 def _convert_duration(val):
@@ -63,21 +101,50 @@ def get_oldest_health_data_for_releases(project_releases):
     return rv
 
 
-def check_has_health_data(project_releases):
-    conditions = [["release", "IN", list(x[1] for x in project_releases)]]
-    filter_keys = {"project_id": list({x[0] for x in project_releases})}
-    return {
-        (x["project_id"], x["release"])
-        for x in raw_query(
-            dataset=Dataset.Sessions,
-            selected_columns=["release", "project_id"],
-            groupby=["release", "project_id"],
-            start=datetime.utcnow() - timedelta(days=90),
-            conditions=conditions,
-            referrer="sessions.health-data-check",
-            filter_keys=filter_keys,
-        )["data"]
+def check_has_health_data(projects_list):
+    """
+    Function that returns a set of all project_ids or (project, release) if they have health data
+    within the last 90 days based on a list of projects or a list of project, release combinations
+    provided as an arg.
+    Inputs:
+        * projects_list: Contains either a list of project ids or a list of tuple (project_id,
+        release)
+    """
+    if len(projects_list) == 0:
+        return set()
+
+    conditions = None
+    projects_list = list(projects_list)
+    # Check if projects_list also contains releases as a tuple of (project_id, releases)
+    includes_releases = type(projects_list[0]) == tuple
+
+    if includes_releases:
+        filter_keys = {"project_id": {x[0] for x in projects_list}}
+        conditions = [["release", "IN", [x[1] for x in projects_list]]]
+        query_cols = ["release", "project_id"]
+
+        def data_tuple(x):
+            return x["project_id"], x["release"]
+
+    else:
+        filter_keys = {"project_id": {x for x in projects_list}}
+        query_cols = ["project_id"]
+
+        def data_tuple(x):
+            return x["project_id"]
+
+    raw_query_args = {
+        "dataset": Dataset.Sessions,
+        "selected_columns": query_cols,
+        "groupby": query_cols,
+        "start": datetime.utcnow() - timedelta(days=90),
+        "referrer": "sessions.health-data-check",
+        "filter_keys": filter_keys,
     }
+    if conditions is not None:
+        raw_query_args.update({"conditions": conditions})
+
+    return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
 
 
 def get_project_releases_by_stability(
@@ -97,8 +164,8 @@ def get_project_releases_by_stability(
     _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
     orderby = {
-        "crash_free_sessions": [["divide", ["sessions_crashed", "sessions"]]],
-        "crash_free_users": [["divide", ["users_crashed", "users"]]],
+        "crash_free_sessions": [["-divide", ["sessions_crashed", "sessions"]]],
+        "crash_free_users": [["-divide", ["users_crashed", "users"]]],
         "sessions": ["-sessions"],
         "users": ["-users"],
     }[scope]
@@ -109,6 +176,11 @@ def get_project_releases_by_stability(
     filter_keys = {"project_id": project_ids}
     rv = []
 
+    # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+    having_dict = {}
+    if scope in ["users", "crash_free_users"]:
+        having_dict["having"] = [["users", ">", 0]]
+
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release"],
@@ -118,6 +190,7 @@ def get_project_releases_by_stability(
         offset=offset,
         limit=limit,
         conditions=conditions,
+        **having_dict,
         filter_keys=filter_keys,
         referrer="sessions.stability-sort",
     )["data"]:
@@ -534,6 +607,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
     correspond to when the first session occurred and when the last session occurred respectively
     """
+
+    def iso_format_snuba_datetime(date):
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
+
     release_sessions_time_bounds = {
         "sessions_lower_bound": None,
         "sessions_upper_bound": None,
@@ -568,8 +645,421 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
+
             release_sessions_time_bounds = {
-                "sessions_lower_bound": rv["first_session_started"],
-                "sessions_upper_bound": rv["last_session_started"],
+                "sessions_lower_bound": iso_format_snuba_datetime(rv["first_session_started"]),
+                "sessions_upper_bound": iso_format_snuba_datetime(rv["last_session_started"]),
             }
     return release_sessions_time_bounds
+
+
+def get_adjacent_releases_based_on_adoption(
+    project_id,
+    org_id,
+    release,
+    scope,
+    limit=20,
+    stats_period=None,
+    environments=None,
+):
+    """
+    Function that returns the releases adjacent (previous and next) to a specific release
+    according to a sort criteria
+    Inputs:
+        * project_id
+        * release
+        * org_id: Organisation Id
+        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
+        * stats_period: duration
+        * environments
+    Return:
+        Dictionary with two keys "previous_release_version" and "next_release_version" that
+    correspond to when the previous release oand the next release respectively
+    """
+    if stats_period is None:
+        stats_period = "24h"
+
+    # Special rule that we support sorting by the last 24h only.
+    if scope.endswith("_24h"):
+        scope = scope[:-4]
+        stats_period = "24h"
+
+    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+
+    try:
+        # Fetch the value of the scope we are trying to sort by for the current release
+        scope_value = __get_scope_value_for_release(
+            org_id=org_id,
+            project_id=project_id,
+            release=release,
+            stats_start=stats_start,
+            scope=scope,
+            environments=environments,
+        )
+    except IndexError:
+        # Theoretically, we should never get to this branch. This only occurs when
+        # no release was found in Snuba, which should never happen given that the
+        # Release Detail Endpoint is what calls this function
+        return {
+            "next_releases_list": [],
+            "prev_releases_list": [],
+        }
+
+    # Figure out if any crash free function need to be applied i.e. in case of
+    # Crash free sessions and Crash free users
+    crash_free_function = None
+    crash_free_function_dict = {
+        "crash_free_sessions": Function(
+            "divide", [Column("sessions_crashed"), Column("sessions")], "crash_free_sessions"
+        ),
+        "crash_free_users": Function(
+            "divide", [Column("users_crashed"), Column("users")], "crash_free_users"
+        ),
+    }
+    if scope in crash_free_function_dict:
+        crash_free_function = crash_free_function_dict[scope]
+
+    prev_versions = __get_release_from_filters(
+        stats_start=stats_start,
+        project_id=project_id,
+        org_id=org_id,
+        environments=environments,
+        scope_value=scope_value,
+        release=release,
+        scope=scope,
+        limit=limit,
+        crash_free_function=crash_free_function,
+        **__get_prev_operation_and_direction(scope),
+    )
+    prev_releases_list = [row["release"] for row in prev_versions]
+
+    # Get next release version
+    next_versions = __get_release_from_filters(
+        stats_start=stats_start,
+        project_id=project_id,
+        org_id=org_id,
+        environments=environments,
+        scope_value=scope_value,
+        release=release,
+        scope=scope,
+        limit=limit,
+        crash_free_function=crash_free_function,
+        **__get_next_operation_and_direction(scope),
+    )
+    next_releases_list = [row["release"] for row in next_versions]
+
+    return {
+        "next_releases_list": next_releases_list,
+        "prev_releases_list": prev_releases_list,
+    }
+
+
+def __get_release_from_filters(
+    org_id,
+    project_id,
+    release,
+    scope,
+    scope_value,
+    stats_start,
+    scope_operation,
+    scope_direction,
+    release_operation,
+    release_direction,
+    limit,
+    crash_free_function=None,
+    environments=None,
+):
+    """
+    Helper function that based on the passed args, constructs a snuba query and runs
+    it to fetch a release
+    Inputs:
+        * org_id: Organisation Id
+        * project_id
+        * release: release version
+        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
+        * scope_value: The value/count of the scope argument
+        * stats_period: duration
+        * scope_operation: Indicates which operation should be used to compare the releases'
+            scope value with current release scope value. either Op.GT or Op.LT
+        * scope_direction: Indicates which ordering should be used to order releases'
+            scope value by either ASC or DESC
+        * release_operation: Indicates which operation should be used to compare the
+            releases' version with current release version. either Op.GT or Op.LT
+        * release_direction: Indicates which ordering should be used to
+            order releases' version by either ASC or DESC
+        * crash_free_function: optional arg that is passed when a function needs to be applied in query like in the
+            case of crash_free_sessions and crash_free_users
+        * environments
+    Return:
+        List of releases that either contains one release or none at all
+    """
+    release_conditions = [
+        Condition(Column("started"), Op.GTE, stats_start),
+        Condition(
+            Column("started"),
+            Op.LT,
+            datetime.utcnow(),
+        ),
+        Condition(Column("project_id"), Op.EQ, project_id),
+        Condition(Column("org_id"), Op.EQ, org_id),
+    ]
+    if environments is not None:
+        release_conditions.append(Condition(Column("environment"), Op.IN, environments))
+
+    # Get select statements and append to the select statement list a function if
+    # crash_free_option whether it is crash_free_users or crash_free_sessions is picked
+    select = [
+        Column("project_id"),
+        Column("release"),
+    ]
+    if crash_free_function is not None:
+        select.append(crash_free_function)
+
+    having = [
+        Or(
+            conditions=[
+                Condition(Column(scope), scope_operation, scope_value),
+                And(
+                    conditions=[
+                        Condition(Column(scope), Op.EQ, scope_value),
+                        Condition(Column("release"), release_operation, release),
+                    ]
+                ),
+            ]
+        )
+    ]
+    orderby = [
+        OrderBy(direction=scope_direction, exp=Column(scope)),
+        OrderBy(direction=release_direction, exp=Column("release")),
+    ]
+
+    query = (
+        Query(
+            dataset=Dataset.Sessions.value,
+            match=Entity("sessions"),
+            select=select,
+            where=release_conditions,
+            having=having,
+            groupby=[Column("release"), Column("project_id")],
+            orderby=orderby,
+        )
+        .set_limit(limit)
+        .set_offset(0)
+    )
+    return raw_snql_query(query, referrer="sessions.get_prev_or_next_release")["data"]
+
+
+def __get_prev_operation_and_direction(scope):
+    """
+    Helper function that based on the scope returns the appropriate operation and direction
+    required for getting the previous element or release according to that scope
+    Inputs:
+        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
+    Returns:
+        A dictionary of keys scope_operation, scope_direction, release_operation and release_direction
+        that correspond to which operations and directions should be carried out in this particular scope's query and
+        the direction they should be ordered in
+    """
+    return __reverse_op_and_direction_dict(_next_op_and_direction_dict[scope])
+
+
+def __get_next_operation_and_direction(scope):
+    """
+    Helper function that based on the scope returns the appropriate operation and direction
+    required for getting the next element or release according to that scope
+    Inputs:
+        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
+    Returns:
+        A dictionary of keys scope_operation, scope_direction, release_operation and release_direction
+        that correspond to which operations and directions should be carried out in this particular scope's query and
+        the direction they should be ordered in
+    """
+    return _next_op_and_direction_dict[scope]
+
+
+def __reverse_op_and_direction_dict(op_and_direction_dict):
+    """
+    Helper function that creates a new dictionary that reverses the values of `scope_direction`,
+    `scope_operation`, `release_direction` and `release_operation` in terms of Direction and Op
+    Inputs:-
+        * op_and_direction_dict: Dictonary with the following keys `scope_direction`,
+    `scope_operation`, `release_direction` and `release_operation`
+        For example:
+        ```
+        {
+            "scope_operation": Op.LT,
+            "scope_direction": Direction.DESC,
+            "release_direction": Direction.ASC,
+            "release_operation": Op.GT,
+        }
+        ```
+    Returns a dictionary that has the opposite operation for each of the keys
+    """
+    reverse_op_and_direction_dict = {}
+    for key in op_and_direction_dict:
+        passed_dict_value = op_and_direction_dict[key]
+
+        if passed_dict_value == Direction.ASC:
+            reverse_op_and_direction_dict[key] = Direction.DESC
+        elif passed_dict_value == Direction.DESC:
+            reverse_op_and_direction_dict[key] = Direction.ASC
+        elif passed_dict_value == Op.LT:
+            reverse_op_and_direction_dict[key] = Op.GT
+        else:
+            reverse_op_and_direction_dict[key] = Op.LT
+    return reverse_op_and_direction_dict
+
+
+def __get_scope_value_for_release(
+    org_id, project_id, release, stats_start, scope, environments=None
+):
+    """
+    Helper function that based on args provided fetched the scope value or count for a specific scope
+    which is required to be able to later on get the prev and next releases according that scope criteria
+    """
+    conditions = [["release", "IN", [release]]]
+    if environments is not None:
+        conditions.append(["environment", "IN", environments])
+
+    filter_keys = {"project_id": [project_id], "org_id": [org_id]}
+
+    selected_columns = ["release", "project_id"]
+
+    scope_columns_dict = {
+        "sessions": ["sessions"],
+        "crash_free_sessions": ["sessions", "sessions_crashed"],
+        "users": ["users"],
+        "crash_free_users": ["users", "users_crashed"],
+    }
+    selected_columns += scope_columns_dict[scope]
+
+    # Query to fetch the scope value
+    rq = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=selected_columns,
+        groupby=["release", "project_id"],
+        start=stats_start,
+        conditions=conditions,
+        filter_keys=filter_keys,
+        referrer="sessions.get-release-scope-value",
+    )["data"]
+    # This will raise an index error if there are no elements in the list but
+    # that is fine because we are catching that index error in the main function
+    # and returning a correct response based on handling that error
+    rq_row = rq[0]
+
+    scope_value = None
+    if scope in ["sessions", "users"]:
+        scope_value = rq_row[scope]
+    elif scope == "crash_free_sessions":
+        scope_value = rq_row["sessions_crashed"] / rq_row["sessions"]
+    elif scope == "crash_free_users":
+        scope_value = rq_row["users_crashed"] / rq_row["users"]
+    return scope_value
+
+
+def __get_crash_free_rate_data(project_ids, start, end, rollup):
+    """
+    Helper function that executes a snuba query on project_ids to fetch the number of crashed
+    sessions and total sessions and returns the crash free rate for those project_ids.
+    Inputs:
+        * project_ids
+        * start
+        * end
+        * rollup
+    Returns:
+        Snuba query results
+    """
+    return raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[
+            "project_id",
+            "sessions_crashed",
+            "sessions_errored",
+            "sessions_abnormal",
+            "sessions",
+        ],
+        filter_keys={"project_id": project_ids},
+        start=start,
+        end=end,
+        rollup=rollup,
+        groupby=["project_id"],
+        referrer="sessions.totals",
+    )["data"]
+
+
+def get_current_and_previous_crash_free_rates(
+    project_ids, current_start, current_end, previous_start, previous_end, rollup
+):
+    """
+    Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
+    based on the inputs provided
+    Inputs:
+        * project_ids
+        * current_start: start interval of currentCrashFreeRate
+        * current_end: end interval of currentCrashFreeRate
+        * previous_start: start interval of previousCrashFreeRate
+        * previous_end: end interval of previousCrashFreeRate
+        * rollup
+    Returns:
+        A dictionary of project_id as key and as value the `currentCrashFreeRate` and the
+        `previousCrashFreeRate`
+
+        As an example:
+        {
+            1: {
+                "currentCrashFreeRate": 100,
+                "previousCrashFreeRate": 66.66666666666667
+            },
+            2: {
+                "currentCrashFreeRate": 50.0,
+                "previousCrashFreeRate": None
+            },
+            ...
+        }
+    """
+    projects_crash_free_rate_dict = {
+        prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None} for prj in project_ids
+    }
+
+    def calculate_crash_free_percentage(row):
+        # XXX: Calculation is done in this way to clamp possible negative values and so to calculate
+        # crash free rates similar to how it is calculated here
+        # Ref: https://github.com/getsentry/sentry/pull/25543
+        healthy_sessions = max(row["sessions"] - row["sessions_errored"], 0)
+        errored_sessions = max(
+            row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"], 0
+        )
+        totals = (
+            healthy_sessions + errored_sessions + row["sessions_crashed"] + row["sessions_abnormal"]
+        )
+        try:
+            crash_free_rate = 100 - (row["sessions_crashed"] / totals) * 100
+        except ZeroDivisionError:
+            crash_free_rate = None
+        return crash_free_rate
+
+    # currentCrashFreeRate
+    current_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=current_start,
+        end=current_end,
+        rollup=rollup,
+    )
+    for row in current_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"currentCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+
+    # previousCrashFreeRate
+    previous_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=previous_start,
+        end=previous_end,
+        rollup=rollup,
+    )
+    for row in previous_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+    return projects_crash_free_rate_dict

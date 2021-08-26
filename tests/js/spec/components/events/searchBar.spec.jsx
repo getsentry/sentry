@@ -1,29 +1,28 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import SearchBar from 'app/components/events/searchBar';
 import TagStore from 'app/stores/tagStore';
 
-const focusInput = el => el.find('input[name="query"]').simulate('focus');
-const selectFirstAutocompleteItem = async el => {
-  focusInput(el);
+const focusTextarea = el => el.find('textarea[name="query"]').simulate('focus');
+const selectNthAutocompleteItem = async (el, index) => {
+  focusTextarea(el);
 
   el.find('SearchListItem[data-test-id="search-autocomplete-item"]')
-    .first()
+    .at(index)
     .simulate('click');
-  const input = el.find('input');
-  input
+  const textarea = el.find('textarea');
+  textarea
     .getDOMNode()
-    .setSelectionRange(input.prop('value').length, input.prop('value').length);
+    .setSelectionRange(textarea.prop('value').length, textarea.prop('value').length);
 
   await tick();
   await el.update();
 };
 
 const setQuery = async (el, query) => {
-  el.find('input')
+  el.find('textarea').simulate('focus');
+  el.find('textarea')
     .simulate('change', {target: {value: query}})
     .getDOMNode()
     .setSelectionRange(query.length, query.length);
@@ -94,6 +93,26 @@ describe('Events > SearchBar', function () {
     );
   });
 
+  it('autocompletes release semver queries', async function () {
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['semver'],
+      },
+    });
+    props.organization = initializationObj.organization;
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+    setQuery(wrapper, 'release.');
+
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('release.');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+      'release.version:'
+    );
+  });
+
   it('autocompletes has suggestions correctly', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
@@ -103,13 +122,13 @@ describe('Events > SearchBar', function () {
     await wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual('gpu');
+    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual('gpu');
 
-    selectFirstAutocompleteItem(wrapper);
+    selectNthAutocompleteItem(wrapper, 2);
     await wrapper.update();
     // the trailing space is important here as without it, autocomplete suggestions will
     // try to complete `has:gpu` thinking the token has not ended yet
-    expect(wrapper.find('input').prop('value')).toBe('has:gpu ');
+    expect(wrapper.find('textarea').prop('value')).toBe('has:gpu ');
   });
 
   it('searches and selects an event field value', async function () {
@@ -128,13 +147,13 @@ describe('Events > SearchBar', function () {
     await wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual(
       '"Nvidia 1080ti"'
     );
 
-    selectFirstAutocompleteItem(wrapper);
+    selectNthAutocompleteItem(wrapper, 2);
     await wrapper.update();
-    expect(wrapper.find('input').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
+    expect(wrapper.find('textarea').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
   });
 
   it('if `useFormWrapper` is false, pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function () {
@@ -159,11 +178,12 @@ describe('Events > SearchBar', function () {
     );
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual(
       '"Nvidia 1080ti"'
     );
+    selectNthAutocompleteItem(wrapper, 2);
 
-    wrapper.find('input').simulate('keydown', {key: 'Enter'});
+    wrapper.find('textarea').simulate('keydown', {key: 'Enter'});
 
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
@@ -205,7 +225,7 @@ describe('Events > SearchBar', function () {
   it('sets maxLength property', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={10} />, options);
     await tick();
-    expect(wrapper.find('input').prop('maxLength')).toBe(10);
+    expect(wrapper.find('textarea').prop('maxLength')).toBe(10);
   });
 
   it('does not requery for event field values if query does not change', async function () {
@@ -218,7 +238,7 @@ describe('Events > SearchBar', function () {
     await wrapper.update();
 
     // Click will fire "updateAutocompleteItems"
-    wrapper.find('input').simulate('click');
+    wrapper.find('textarea').simulate('click');
     await tick();
     wrapper.update();
 
@@ -277,8 +297,8 @@ describe('Events > SearchBar', function () {
         query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
       })
     );
-    selectFirstAutocompleteItem(wrapper);
-    expect(wrapper.find('input').prop('value')).toBe('!gpu:"Nvidia 1080ti" ');
+    selectNthAutocompleteItem(wrapper, 0);
+    expect(wrapper.find('textarea').prop('value')).toBe('!gpu:"Nvidia 1080ti" ');
   });
 
   it('stops searching after no values are returned', async function () {

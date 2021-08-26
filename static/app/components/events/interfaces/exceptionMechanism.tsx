@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
@@ -20,7 +20,7 @@ type Props = {
   data: Mechanism;
 };
 
-class ExceptionMechanism extends React.Component<Props> {
+class ExceptionMechanism extends Component<Props> {
   render() {
     const mechanism = this.props.data;
     const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
@@ -80,7 +80,7 @@ class ExceptionMechanism extends React.Component<Props> {
 
     return (
       <Wrapper>
-        <Pills>{pills}</Pills>
+        <StyledPills>{pills}</StyledPills>
       </Wrapper>
     );
   }
@@ -107,6 +107,15 @@ const StyledExternalLink = styled(ExternalLink)`
 
 const Details = styled('span')`
   margin-right: ${space(1)};
+`;
+
+const StyledPills = styled(Pills)`
+  span:nth-of-type(2) {
+    display: inline;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 const StyledIconInfo = styled(IconInfo)`

@@ -1,8 +1,6 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {TextField} from 'app/components/forms';
+import {Form, TextField} from 'app/components/forms';
 
 describe('TextField', function () {
   describe('render()', function () {
@@ -12,16 +10,11 @@ describe('TextField', function () {
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(<TextField name="fieldName" />, {
-        context: {
-          form: {
-            data: {
-              fieldName: 'fieldValue',
-            },
-            errors: {},
-          },
-        },
-      });
+      const wrapper = mountWithTheme(
+        <Form initialData={{fieldName: 'fieldValue'}}>
+          <TextField name="fieldName" />
+        </Form>
+      );
       expect(wrapper).toSnapshot();
     });
   });

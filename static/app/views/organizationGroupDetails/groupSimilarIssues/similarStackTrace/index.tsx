@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -168,14 +168,8 @@ class SimilarStackTrace extends React.Component<Props, State> {
   render() {
     const {params, project} = this.props;
     const {orgId, groupId} = params;
-    const {
-      similarItems,
-      filteredSimilarItems,
-      loading,
-      error,
-      v2,
-      similarLinks,
-    } = this.state;
+    const {similarItems, filteredSimilarItems, loading, error, v2, similarLinks} =
+      this.state;
 
     const hasV2 = this.hasSimilarityV2Feature();
     const isLoading = loading;

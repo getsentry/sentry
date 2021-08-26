@@ -41,7 +41,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         )
         self.browser.get(self.path + release.version)
         self.browser.wait_until_not(".loading")
-        assert "Select a project to continue" in self.browser.element(".modal-header").text
+        assert "Select a project to continue" in self.browser.element("[role='dialog'] header").text
 
     # This is snapshotting feature of globalSelectionHeader project picker where we see only specified projects
     # and a custom footer message saying "Only projects with this release are visible."

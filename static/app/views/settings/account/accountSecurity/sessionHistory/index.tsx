@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -40,7 +40,7 @@ class SessionHistory extends AsyncView<Props, State> {
     const recreateRouteProps = {routes, params, location};
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Security')}
           tabs={
@@ -71,7 +71,7 @@ class SessionHistory extends AsyncView<Props, State> {
             ))}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

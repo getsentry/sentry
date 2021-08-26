@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
@@ -69,7 +67,7 @@ describe('Data Scrubbing', () => {
       // PanelHeader
       expect(wrapper.find('PanelHeader').text()).toEqual('Advanced Data Scrubbing');
 
-      //PanelAlert
+      // PanelAlert
       const panelAlert = wrapper.find('PanelAlert');
       expect(panelAlert.text()).toEqual(
         `${additionalContext} The new rules will only apply to upcoming events.  For more details, see full documentation on data scrubbing.`
@@ -78,10 +76,10 @@ describe('Data Scrubbing', () => {
       const readDocsLink = panelAlert.find('a');
       expect(readDocsLink.text()).toEqual('full documentation on data scrubbing');
       expect(readDocsLink.prop('href')).toEqual(
-        'https://docs.sentry.io/product/data-management-settings/advanced-datascrubbing/'
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
 
-      //PanelBody
+      // PanelBody
       const panelBody = wrapper.find('PanelBody');
       expect(panelBody).toHaveLength(1);
       expect(panelBody.find('ListItem')).toHaveLength(3);
@@ -101,7 +99,7 @@ describe('Data Scrubbing', () => {
     it('render disabled', () => {
       const wrapper = renderComponent({disabled: true, endpoint});
 
-      //PanelBody
+      // PanelBody
       const panelBody = wrapper.find('PanelBody');
       expect(panelBody).toHaveLength(1);
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);
@@ -128,7 +126,7 @@ describe('Data Scrubbing', () => {
       // PanelHeader
       expect(wrapper.find('PanelHeader').text()).toEqual('Advanced Data Scrubbing');
 
-      //PanelAlert
+      // PanelAlert
       const panelAlert = wrapper.find('PanelAlert');
       expect(panelAlert.text()).toEqual(
         `${additionalContext} The new rules will only apply to upcoming events.  For more details, see full documentation on data scrubbing.`
@@ -137,10 +135,10 @@ describe('Data Scrubbing', () => {
       const readDocsLink = panelAlert.find('a');
       expect(readDocsLink.text()).toEqual('full documentation on data scrubbing');
       expect(readDocsLink.prop('href')).toEqual(
-        'https://docs.sentry.io/product/data-management-settings/advanced-datascrubbing/'
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
 
-      //PanelBody
+      // PanelBody
       const panelBody = wrapper.find('PanelBody');
       expect(panelBody).toHaveLength(1);
       expect(panelBody.find('ListItem')).toHaveLength(3);
@@ -163,7 +161,7 @@ describe('Data Scrubbing', () => {
     it('render disabled', () => {
       const wrapper = renderComponent({disabled: true, endpoint});
 
-      //PanelBody
+      // PanelBody
       const panelBody = wrapper.find('PanelBody');
       expect(panelBody).toHaveLength(1);
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);

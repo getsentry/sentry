@@ -26,7 +26,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
         "name": provider.name,
         "canAdd": provider.can_add,
         "canDisable": provider.can_disable,
-        "features": sorted([f.value for f in provider.features]),
+        "features": sorted(f.value for f in provider.features),
         "aspects": provider.metadata.aspects,
     }
 
@@ -134,7 +134,13 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
                 }
                 logger.info(name, extra=log_info)
 
-        integration.update({"configData": config_data})
+        integration.update(
+            {
+                "configData": config_data,
+                "externalId": obj.integration.external_id,
+                "organizationId": obj.organization.id,
+            }
+        )
 
         if dynamic_display_information:
             integration.update({"dynamicDisplayInformation": dynamic_display_information})

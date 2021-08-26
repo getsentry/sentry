@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
@@ -20,17 +20,18 @@ export default function AwsLambdaFailureDetails({
   lambdaFunctionFailures,
   successCount,
 }: Props) {
-  const baseDocsUrl = 'https://docs.sentry.io/product/integrations/aws-lambda/';
+  const baseDocsUrl =
+    'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
   return (
-    <React.Fragment>
+    <Fragment>
       <HeaderWithHelp docsUrl={baseDocsUrl} />
       <Wrapper>
         <div>
           <StyledCheckmark isCircled color="green300" />
           <h3>
             {tn(
-              'Succesfully updated %s function',
-              'Succesfully updated %s functions',
+              'successfully updated %s function',
+              'successfully updated %s functions',
               successCount
             )}
           </h3>
@@ -53,7 +54,7 @@ export default function AwsLambdaFailureDetails({
         <StyledPanel>{lambdaFunctionFailures.map(SingleFailure)}</StyledPanel>
       </Wrapper>
       <FooterWithButtons buttonText={t('Finish Setup')} href="?finish_pipeline=1" />
-    </React.Fragment>
+    </Fragment>
   );
 }
 

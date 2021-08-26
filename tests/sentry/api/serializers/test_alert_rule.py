@@ -136,7 +136,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(projects=projects)
         result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
-        assert sorted(result["projects"]) == sorted([p.slug for p in projects])
+        assert sorted(result["projects"]) == sorted(p.slug for p in projects)
         assert result["excludedProjects"] == []
         assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
 

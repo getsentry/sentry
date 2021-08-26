@@ -1,4 +1,4 @@
-import React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -6,7 +6,7 @@ import {Client} from 'app/api';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import {Organization, TagCollection} from 'app/types';
-import {metric} from 'app/utils/analytics';
+import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import Measurements from 'app/utils/measurements/measurements';
@@ -46,7 +46,7 @@ type TableState = {
  * It will pass the data it fetched to `TableView`, where the state of the
  * Table is maintained and controlled
  */
-class Table extends React.PureComponent<TableProps, TableState> {
+class Table extends PureComponent<TableProps, TableState> {
   state: TableState = {
     isLoading: true,
     tableFetchID: undefined,
@@ -106,13 +106,13 @@ class Table extends React.PureComponent<TableProps, TableState> {
         includeAllArgs: true,
         query: apiPayload,
       })
-      .then(([data, _, jqXHR]) => {
+      .then(([data, _, resp]) => {
         // We want to measure this metric regardless of whether we use the result
         metric.measure({
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,
           data: {
-            status: jqXHR && jqXHR.status,
+            status: resp && resp.status,
           },
         });
         if (this.state.tableFetchID !== tableFetchID) {
@@ -124,7 +124,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           isLoading: false,
           tableFetchID: undefined,
           error: null,
-          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          pageLinks: resp ? resp.getResponseHeader('Link') : prevState.pageLinks,
           tableData: data,
         }));
       })
@@ -145,12 +145,22 @@ class Table extends React.PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
+
+        trackAnalyticsEvent({
+          eventKey: 'discover_search.failed',
+          eventName: 'Discover Search: Failed',
+          organization_id: this.props.organization.id,
+          search_type: 'events',
+          search_source: 'discover_search',
+          error: message,
+        });
+
         setError(message, err.status);
       });
   };
 
   render() {
-    const {eventView, tags} = this.props;
+    const {eventView, organization, tags} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
     const tagKeys = Object.values(tags).map(({key}) => key);
 
@@ -160,7 +170,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
     return (
       <Container>
-        <Measurements>
+        <Measurements organization={organization}>
           {({measurements}) => {
             const measurementKeys = Object.values(measurements).map(({key}) => key);
 
@@ -189,5 +199,4 @@ export default withApi(withTags(Table));
 
 const Container = styled('div')`
   min-width: 0;
-  overflow: hidden;
 `;

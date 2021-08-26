@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ErrorItem from 'app/components/events/errorItem';
 import List from 'app/components/list';
+import {JavascriptProcessingErrors} from 'app/constants/eventErrors';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -36,7 +37,7 @@ type State = {
   releaseArtifacts?: Array<Artifact>;
 };
 
-class Errors extends React.Component<Props, State> {
+class Errors extends Component<Props, State> {
   state: State = {
     isOpen: false,
   };
@@ -127,7 +128,7 @@ class Errors extends React.Component<Props, State> {
   render() {
     const {event, proGuardErrors} = this.props;
     const {isOpen, releaseArtifacts} = this.state;
-    const {dist, errors: eventErrors = []} = event;
+    const {dist: eventDistribution, errors: eventErrors = []} = event;
 
     // XXX: uniqWith returns unique errors and is not performant with large datasets
     const otherErrors: Array<Error> =
@@ -141,8 +142,8 @@ class Errors extends React.Component<Props, State> {
           <StyledIconWarning />
           <span data-test-id="errors-banner-summary-info">
             {tn(
-              'There was %s error encountered while processing this event',
-              'There were %s errors encountered while processing this event',
+              'There was %s problem processing this event',
+              'There were %s problems processing this event',
               errors.length
             )}
           </span>
@@ -155,34 +156,45 @@ class Errors extends React.Component<Props, State> {
           </StyledButton>
         </BannerSummary>
         {isOpen && (
-          <ErrorList data-test-id="event-error-details" symbol="bullet">
-            {errors.map((error, errorIdx) => {
-              const data = error.data ?? {};
-              if (
-                error.type === 'js_no_source' &&
-                data.url &&
-                !!releaseArtifacts?.length
-              ) {
-                const releaseArtifact = releaseArtifacts.find(releaseArt => {
-                  const pathname = data.url ? this.getURLPathname(data.url) : undefined;
+          <Fragment>
+            <Divider />
+            <ErrorList data-test-id="event-error-details" symbol="bullet">
+              {errors.map((error, errorIdx) => {
+                const data = error.data ?? {};
+                if (
+                  error.type === JavascriptProcessingErrors.JS_MISSING_SOURCE &&
+                  data.url &&
+                  !!releaseArtifacts?.length
+                ) {
+                  const releaseArtifact = releaseArtifacts.find(releaseArt => {
+                    const pathname = data.url ? this.getURLPathname(data.url) : undefined;
 
-                  if (pathname) {
-                    return releaseArt.name.includes(pathname);
+                    if (pathname) {
+                      return releaseArt.name.includes(pathname);
+                    }
+                    return false;
+                  });
+
+                  const releaseArtifactDistribution = releaseArtifact?.dist ?? null;
+
+                  // Neither event nor file have dist -> matching
+                  // Event has dist, file doesn’t -> not matching
+                  // File has dist, event doesn’t -> not matching
+                  // Both have dist, same value -> matching
+                  // Both have dist, different values -> not matching
+                  if (releaseArtifactDistribution !== eventDistribution) {
+                    error.message = t(
+                      'Source code was not found because the distribution did not match'
+                    );
+                    data['expected-distribution'] = eventDistribution;
+                    data['current-distribution'] = releaseArtifactDistribution;
                   }
-                  return false;
-                });
-
-                if (releaseArtifact && !releaseArtifact.dist) {
-                  error.message = t(
-                    'Source code was not found because the distribution did not match'
-                  );
-                  data['expected-distribution'] = dist;
-                  data['current-distribution'] = t('none');
                 }
-              }
-              return <ErrorItem key={errorIdx} error={{...error, data}} />;
-            })}
-          </ErrorList>
+
+                return <ErrorItem key={errorIdx} error={{...error, data}} />;
+              })}
+            </ErrorList>
+          </Fragment>
         )}
       </StyledBanner>
     );
@@ -215,14 +227,15 @@ const StyledIconWarning = styled(IconWarning)`
 // TODO(theme) don't use a custom pink
 const customPink = '#e7c0bc';
 
+const Divider = styled('div')`
+  height: 1px;
+  background-color: ${customPink};
+`;
+
 const ErrorList = styled(List)`
-  border-top: 1px solid ${customPink};
-  padding: ${space(1)} ${space(4)} ${space(0.5)} 40px;
-
-  > li:before {
-    top: 8px;
-  }
-
+  margin: 0 ${space(4)} 0 40px;
+  padding-top: ${space(1)};
+  padding-bottom: ${space(0.5)};
   pre {
     background: #f9eded;
     color: #381618;

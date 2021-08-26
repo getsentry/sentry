@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ExternalLink from 'app/components/links/externalLink';
 import {tct} from 'app/locale';
 import {extractMultilineFields} from 'app/utils';
@@ -129,11 +127,11 @@ export const publicIntegrationForms = [
 ];
 
 const getInternalFormFields = () => {
-  /***
-   * Generate internal form fields copy copying the public form fields and making adjustments:
-   *    1. remove fields not needed for internal integrations
-   *    2. make webhookUrl optional
-   ***/
+  // Generate internal form fields copy copying the public form fields and
+  // making adjustments:
+  //
+  //   1. remove fields not needed for internal integrations
+  //   2. make webhookUrl optional
 
   const internalFormFields = getPublicFormFields().filter(
     formField =>

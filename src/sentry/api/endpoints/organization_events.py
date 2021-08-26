@@ -23,6 +23,7 @@ ALLOWED_EVENTS_V2_REFERRERS = {
     "api.performance.status-breakdown",
     "api.performance.vital-detail",
     "api.performance.durationpercentilechart",
+    "api.performance.tag-page",
     "api.trace-view.span-detail",
     "api.trace-view.errors-view",
     "api.trace-view.hover-card",
@@ -35,6 +36,21 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
+    def has_feature_for_fields(self, feature, organization, request, feature_fields):
+        has_feature = features.has(feature, organization, actor=request.user)
+
+        columns = self.get_field_list(organization, request)
+
+        if has_feature:
+            return True
+
+        if any(field in columns for field in feature_fields):
+            return False
+
+        # TODO: Check feature for search terms in the query
+
+        return True
+
     def get(self, request, organization):
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -49,11 +65,25 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
 
+        if not self.has_feature_for_fields(
+            "organizations:project-transaction-threshold",
+            organization,
+            request,
+            feature_fields=[
+                "project_threshold_config",
+                "count_miserable(user)",
+                "user_misery()",
+                "apdex()",
+            ],
+        ):
+            return Response(status=404)
+
         def data_fn(offset, limit):
             return discover.query(
-                selected_columns=request.GET.getlist("field")[:],
+                selected_columns=self.get_field_list(organization, request),
                 query=request.GET.get("query"),
                 params=params,
+                equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,

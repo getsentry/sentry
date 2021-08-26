@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
@@ -47,9 +47,10 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
-        or resolve an issue to move it out of this list. After 7 days these
-        issues are automatically marked as reviewed.`),
+        tooltipTitle:
+          t(`Issues are marked for review when they are created, unresolved, or unignored.
+          Mark an issue reviewed to move it out of this list.
+          Issues are automatically marked reviewed in 7 days.`),
       },
     ],
     [
@@ -136,5 +137,20 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.DATE:
     default:
       return t('Last Seen');
+  }
+}
+
+export enum IssueDisplayOptions {
+  EVENTS = 'events',
+  SESSIONS = 'sessions',
+}
+
+export function getDisplayLabel(key: IssueDisplayOptions) {
+  switch (key) {
+    case IssueDisplayOptions.SESSIONS:
+      return t('Events as %');
+    case IssueDisplayOptions.EVENTS:
+    default:
+      return t('Event Count');
   }
 }

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
@@ -50,7 +48,7 @@ describe('PasswordForm', function () {
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('does not submit when new passwords dont match', function () {
+  it('does not submit when new passwords do not match', function () {
     wrapper.find('input[name="password"]').simulate('change', {target: {value: 'test'}});
     wrapper
       .find('input[name="passwordNew"]')

@@ -1,5 +1,5 @@
-import React from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {Component, Fragment} from 'react';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
@@ -39,6 +39,7 @@ type Props = {
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   help?: string;
   disablePrevious?: boolean;
+  query?: string;
 };
 
 function ProjectBaseSessionsChart({
@@ -52,12 +53,13 @@ function ProjectBaseSessionsChart({
   displayMode,
   help,
   disablePrevious,
+  query,
 }: Props) {
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
 
   return (
-    <React.Fragment>
+    <Fragment>
       {getDynamicText({
         value: (
           <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
@@ -69,6 +71,7 @@ function ProjectBaseSessionsChart({
                 onTotalValuesChange={onTotalValuesChange}
                 displayMode={displayMode}
                 disablePrevious={disablePrevious}
+                query={query}
               >
                 {({
                   errored,
@@ -84,6 +87,7 @@ function ProjectBaseSessionsChart({
                     end={end}
                     projects={projects}
                     environments={environments}
+                    query={query}
                   >
                     {({releaseSeries}) => {
                       if (errored) {
@@ -129,7 +133,7 @@ function ProjectBaseSessionsChart({
         ),
         fixed: `${title} Chart`,
       })}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -148,7 +152,7 @@ type ChartState = {
   forceUpdate: boolean;
 };
 
-class Chart extends React.Component<ChartProps, ChartState> {
+class Chart extends Component<ChartProps, ChartState> {
   state: ChartState = {
     seriesSelection: {},
     forceUpdate: false,
@@ -281,13 +285,8 @@ class Chart extends React.Component<ChartProps, ChartState> {
   }
 
   render() {
-    const {
-      zoomRenderProps,
-      timeSeries,
-      previousTimeSeries,
-      releaseSeries,
-      displayMode,
-    } = this.props;
+    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries, displayMode} =
+      this.props;
 
     const ChartComponent =
       displayMode === DisplayModes.STABILITY ? LineChart : StackedAreaChart;

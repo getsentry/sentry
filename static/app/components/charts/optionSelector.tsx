@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -8,6 +8,8 @@ import DropdownButton from 'app/components/dropdownButton';
 import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Tooltip from 'app/components/tooltip';
+import Truncate from 'app/components/truncate';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -26,7 +28,7 @@ type State = {
   menuContainerWidth?: number;
 };
 
-class OptionSelector extends React.Component<Props, State> {
+class OptionSelector extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {};
@@ -52,7 +54,7 @@ class OptionSelector extends React.Component<Props, State> {
     }
   }
 
-  menuContainerRef = React.createRef<HTMLDivElement>();
+  menuContainerRef = createRef<HTMLDivElement>();
 
   render() {
     const {menuContainerWidth} = this.state;
@@ -65,9 +67,9 @@ class OptionSelector extends React.Component<Props, State> {
         <MenuContainer ref={this.menuContainerRef}>
           <DropdownMenu alwaysRenderMenu={false}>
             {({isOpen, getMenuProps, getActorProps}) => (
-              <React.Fragment>
+              <Fragment>
                 <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-                  {selectedOption.label}
+                  <TruncatedLabel>{String(selectedOption.label)}</TruncatedLabel>
                 </StyledDropdownButton>
                 <StyledDropdownBubble
                   {...getMenuProps()}
@@ -88,12 +90,17 @@ class OptionSelector extends React.Component<Props, State> {
                       data-test-id={`option-${opt.value}`}
                     >
                       <Tooltip title={opt.tooltip} containerDisplayMode="inline">
-                        {opt.label}
+                        <StyledTruncate
+                          isActive={selected === opt.value}
+                          value={String(opt.label)}
+                          maxLength={60}
+                          expandDirection="left"
+                        />
                       </Tooltip>
                     </StyledDropdownItem>
                   ))}
                 </StyledDropdownBubble>
-              </React.Fragment>
+              </Fragment>
             )}
           </DropdownMenu>
         </MenuContainer>
@@ -101,6 +108,25 @@ class OptionSelector extends React.Component<Props, State> {
     );
   }
 }
+
+const TruncatedLabel = styled('span')`
+  ${overflowEllipsis};
+  max-width: 400px;
+`;
+
+const StyledTruncate = styled(Truncate)<{
+  isActive: boolean;
+}>`
+  & span {
+    ${p =>
+      p.isActive &&
+      `
+      color: ${p.theme.white};
+      background: ${p.theme.active};
+      border: none;
+    `}
+  }
+`;
 
 const MenuContainer = styled('div')`
   display: inline-block;
@@ -118,6 +144,7 @@ const StyledDropdownBubble = styled(DropdownBubble)<{
   minWidth?: number;
 }>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
+  overflow: visible;
   ${p =>
     p.minWidth && p.width === 'auto' && `min-width: calc(${p.minWidth}px + ${space(3)})`};
 `;

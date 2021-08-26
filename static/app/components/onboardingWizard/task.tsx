@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
@@ -10,7 +10,7 @@ import Button from 'app/components/button';
 import Card from 'app/components/card';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconClose, IconEvent, IconLock} from 'app/icons';
+import {IconCheckmark, IconClose, IconLock, IconSync} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
@@ -35,7 +35,7 @@ const recordAnalytics = (
     action,
   });
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   /**
    * Task to render
    */
@@ -200,7 +200,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
         user: user?.name,
       })}
     >
-      <IconEvent />
+      <IconSync />
     </Tooltip>
     {t('Task in progress...')}
   </div>
@@ -277,7 +277,7 @@ TaskBlankAvatar.defaultProps = {
   transition,
 };
 
-const WrappedTask = withOrganization(ReactRouter.withRouter(Task));
+const WrappedTask = withOrganization(withRouter(Task));
 
 export default React.forwardRef<
   HTMLDivElement,

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ReleaseStore from 'app/stores/releaseStore';
@@ -65,13 +63,9 @@ describe('withRelease HoC', function () {
     const Component = () => null;
     const Container = withRelease(Component);
 
-    // XXX(leedongwei): We cannot spy on `fetchRelease` as Jest can't
-    // replace the function in the prototype due to createReactClass.
-    // As such, I'm using `componentDidMount` as a proxy.
     jest.spyOn(api, 'requestPromise');
-    jest.spyOn(Container.prototype, 'componentDidMount');
-    // jest.spyOn(Container.prototype, 'fetchRelease');
-    // jest.spyOn(Container.prototype, 'fetchDeploys');
+    jest.spyOn(Container.prototype, 'fetchRelease');
+    jest.spyOn(Container.prototype, 'fetchDeploys');
 
     // Mount and run component
     mountWithTheme(
@@ -106,8 +100,7 @@ describe('withRelease HoC', function () {
     await tick();
 
     expect(api.requestPromise).toHaveBeenCalledTimes(2); // 1 for fetchRelease, 1 for fetchDeploys
-    expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
-    // expect(Container.prototype.fetchRelease).toHaveBeenCalledTimes(3);
-    // expect(Container.prototype.fetchDeploys).toHaveBeenCalledTimes(3);
+    expect(Container.prototype.fetchRelease).toHaveBeenCalledTimes(3);
+    expect(Container.prototype.fetchDeploys).toHaveBeenCalledTimes(3);
   });
 });

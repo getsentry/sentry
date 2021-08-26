@@ -25,20 +25,46 @@ OK_REMINDERS_SENT = _(
 )
 
 
-class AuthProviderSettingsForm(forms.Form):
-    require_link = forms.BooleanField(
-        label=_("Require SSO"),
-        help_text=_("Require members use a valid linked SSO account to access this organization"),
-        required=False,
+def auth_provider_settings_form(provider, auth_provider, organization, request):
+    class AuthProviderSettingsForm(forms.Form):
+        require_link = forms.BooleanField(
+            label=_("Require SSO"),
+            help_text=_(
+                "Require members use a valid linked SSO account to access this organization"
+            ),
+            required=False,
+        )
+
+        enable_scim = (
+            forms.BooleanField(
+                label=_("Enable SCIM"),
+                help_text=_("Enable SCIM to manage Memberships and Teams via your Provider"),
+                required=False,
+            )
+            if provider.can_use_scim(organization, request.user)
+            else None
+        )
+
+        default_role = forms.ChoiceField(
+            label=_("Default Role"),
+            choices=roles.get_choices(),
+            help_text=_(
+                "The default role new members will receive when logging in for the first time."
+            ),
+        )
+
+    initial = {
+        "require_link": not auth_provider.flags.allow_unlinked,
+        "default_role": organization.default_role,
+    }
+    if provider.can_use_scim(organization, request.user):
+        initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
+
+    form = AuthProviderSettingsForm(
+        data=request.POST if request.POST.get("op") == "settings" else None, initial=initial
     )
 
-    default_role = forms.ChoiceField(
-        label=_("Default Role"),
-        choices=roles.get_choices(),
-        help_text=_(
-            "The default role new members will receive when logging in for the first time."
-        ),
-    )
+    return form
 
 
 class OrganizationAuthSettingsView(OrganizationView):
@@ -65,6 +91,9 @@ class OrganizationAuthSettingsView(OrganizationView):
         User.objects.filter(id__in=user_ids).update(is_managed=False)
 
         email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)
+
+        if auth_provider.flags.scim_enabled:
+            auth_provider.disable_scim(request.user)
         auth_provider.delete()
 
     def handle_existing_provider(self, request, organization, auth_provider):
@@ -89,16 +118,18 @@ class OrganizationAuthSettingsView(OrganizationView):
                 )
                 return self.redirect(next_uri)
 
-        form = AuthProviderSettingsForm(
-            data=request.POST if request.POST.get("op") == "settings" else None,
-            initial={
-                "require_link": not auth_provider.flags.allow_unlinked,
-                "default_role": organization.default_role,
-            },
-        )
+        form = auth_provider_settings_form(provider, auth_provider, organization, request)
 
         if form.is_valid():
             auth_provider.flags.allow_unlinked = not form.cleaned_data["require_link"]
+
+            form_scim_enabled = form.cleaned_data.get("enable_scim", False)
+            if auth_provider.flags.scim_enabled != form_scim_enabled:
+                if form_scim_enabled:
+                    auth_provider.enable_scim(request.user)
+                else:
+                    auth_provider.disable_scim(request.user)
+
             auth_provider.save()
 
             organization.default_role = form.cleaned_data["default_role"]
@@ -143,6 +174,8 @@ class OrganizationAuthSettingsView(OrganizationView):
             "login_url": absolute_uri(organization.get_url()),
             "auth_provider": auth_provider,
             "provider_name": provider.name,
+            "scim_api_token": auth_provider.get_scim_token(),
+            "scim_url": auth_provider.get_scim_url(),
             "content": response,
         }
 
@@ -192,9 +225,9 @@ class OrganizationAuthSettingsView(OrganizationView):
                 return HttpResponse("Provider is not enabled", status=401)
 
             if request.POST.get("init"):
-                helper.init_pipeline()
+                helper.initialize()
 
-            if not helper.pipeline_is_valid():
+            if not helper.is_valid():
                 return helper.error("Something unexpected happened during authentication.")
 
             # render first time setup view

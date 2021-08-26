@@ -1,14 +1,14 @@
-import React from 'react';
-
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import {ExceptionValue, PlatformType} from 'app/types';
+import {ExceptionValue, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+
+import StacktraceContent from './stacktraceContent';
+import StacktraceContentV2 from './stacktraceContentV2';
 
 type Props = {
   data: ExceptionValue['stacktrace'];
@@ -16,6 +16,8 @@ type Props = {
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
+  hasHierarchicalGrouping: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
   newestFirst?: boolean;
@@ -27,6 +29,8 @@ const ExceptionStacktraceContent = ({
   chainedException,
   platform,
   newestFirst,
+  groupingCurrentLevel,
+  hasHierarchicalGrouping,
   data,
   expandFirstFrame,
   event,
@@ -44,7 +48,11 @@ const ExceptionStacktraceContent = ({
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xs" />}
-          title={t('No app only stack trace has been found!')}
+          title={
+            hasHierarchicalGrouping
+              ? t('No relevant stack trace has been found!')
+              : t('No app only stack trace has been found!')
+          }
         />
       </Panel>
     );
@@ -53,6 +61,10 @@ const ExceptionStacktraceContent = ({
   if (!data) {
     return null;
   }
+
+  const includeSystemFrames =
+    stackView === STACK_VIEW.FULL ||
+    (chainedException && data.frames?.every(frame => !frame.inApp));
 
   /**
    * Armin, Markus:
@@ -63,14 +75,25 @@ const ExceptionStacktraceContent = ({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
+  if (hasHierarchicalGrouping) {
+    return (
+      <StacktraceContentV2
+        data={data}
+        expandFirstFrame={expandFirstFrame}
+        includeSystemFrames={includeSystemFrames}
+        groupingCurrentLevel={groupingCurrentLevel}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+      />
+    );
+  }
+
   return (
     <StacktraceContent
       data={data}
       expandFirstFrame={expandFirstFrame}
-      includeSystemFrames={
-        stackView === STACK_VIEW.FULL ||
-        (chainedException && (stacktrace.frames ?? []).every(frame => !frame.inApp))
-      }
+      includeSystemFrames={includeSystemFrames}
       platform={platform}
       newestFirst={newestFirst}
       event={event}

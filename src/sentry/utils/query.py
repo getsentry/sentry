@@ -69,7 +69,16 @@ class RangeQuerySetWrapper:
     Very efficient, but ORDER BY statements will not work.
     """
 
-    def __init__(self, queryset, step=1000, limit=None, min_id=None, order_by="pk", callbacks=()):
+    def __init__(
+        self,
+        queryset,
+        step=1000,
+        limit=None,
+        min_id=None,
+        order_by="pk",
+        callbacks=(),
+        result_value_getter=None,
+    ):
         # Support for slicing
         if queryset.query.low_mark == 0 and not (
             queryset.query.order_by or queryset.query.extra_order_by
@@ -91,6 +100,7 @@ class RangeQuerySetWrapper:
         self.min_value = min_id
         self.order_by = order_by
         self.callbacks = callbacks
+        self.result_value_getter = result_value_getter
 
     def __iter__(self):
         max_value = None
@@ -130,7 +140,8 @@ class RangeQuerySetWrapper:
                 cb(results)
 
             for result in results:
-                if last_object_pk is not None and result.pk == last_object_pk:
+                pk = self.result_value_getter(result) if self.result_value_getter else result.pk
+                if last_object_pk is not None and pk == last_object_pk:
                     continue
 
                 # Need to bind value before yielding, because the caller
@@ -139,8 +150,12 @@ class RangeQuerySetWrapper:
                 # deleting, because a Model.delete() mutates the `id`
                 # to `None` causing the loop to exit early.
                 num += 1
-                last_object_pk = result.pk
-                cur_value = getattr(result, self.order_by)
+                last_object_pk = pk
+                cur_value = (
+                    self.result_value_getter(result)
+                    if self.result_value_getter
+                    else getattr(result, self.order_by)
+                )
 
                 yield result
 

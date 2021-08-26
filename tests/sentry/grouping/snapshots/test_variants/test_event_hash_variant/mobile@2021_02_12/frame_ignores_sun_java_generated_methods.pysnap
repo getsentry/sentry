@@ -1,11 +1,11 @@
 ---
-created: '2021-03-18T11:30:04.752701Z'
+created: '2021-08-23T08:27:22.041062Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "d3c856bb49bc89fc5ee18f6df4348188"
-  tree_label: "invoke"
+  tree_label: "GeneratedMethodAccessor12345.invoke"
   component:
     app-depth-1*
       stacktrace*
@@ -17,7 +17,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "invoke | ..."
+  tree_label: "GeneratedMethodAccessor12345.invoke | GeneratedMethodAccessor12345.invoke"
   component:
     app-depth-2*
       stacktrace*
@@ -32,11 +32,11 @@ app-depth-2:
           function*
             "invoke"
 --------------------------------------------------------------------------
-app-depth-3:
+app-depth-max:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "<entire stacktrace>"
+  tree_label: "GeneratedMethodAccessor12345.invoke | GeneratedMethodAccessor12345.invoke"
   component:
-    app-depth-3*
+    app-depth-max*
       stacktrace*
         frame*
           module* (removed reflection marker)
@@ -51,7 +51,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 system:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "<entire stacktrace>"
+  tree_label: "GeneratedMethodAccessor12345.invoke | GeneratedMethodAccessor12345.invoke"
   component:
     system*
       stacktrace*

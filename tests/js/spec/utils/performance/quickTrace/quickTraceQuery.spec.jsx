@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -15,14 +15,14 @@ function renderQuickTrace({isLoading, error, trace, type}) {
     return error;
   } else {
     return (
-      <React.Fragment>
+      <Fragment>
         <div key="type" data-test-id="type">
           {type}
         </div>
         <div key="trace" data-test-id="trace">
           {trace.length}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -107,7 +107,7 @@ describe('TraceLiteQuery', function () {
     expect(traceMetaMock).toHaveBeenCalledTimes(0);
   });
 
-  it('uses lite results when it cant find current event in full results', async function () {
+  it('uses lite results when it cannot find current event in full results', async function () {
     const wrapper = mountWithTheme(
       <QuickTraceQuery
         withMeta={false}

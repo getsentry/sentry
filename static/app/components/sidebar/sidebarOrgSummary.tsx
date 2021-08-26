@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';

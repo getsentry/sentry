@@ -1,4 +1,3 @@
-import React from 'react';
 import {css, Global} from '@emotion/react';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
@@ -68,19 +67,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .loading .loading-indicator {
           border-color: ${theme.background};
           border-left-color: ${theme.purple300};
-        }
-        .modal-content {
-          background: ${theme.background};
-        }
-        .modal-dialog {
-          border-radius: ${theme.borderRadius};
-          border: 1px solid ${theme.border};
-        }
-        .modal .modal-header {
-          border-bottom-color: ${theme.border};
-        }
-        .modal .modal-footer {
-          border-top-color: ${theme.border};
         }
 
         .saved-search-tab {
@@ -162,9 +148,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .group-detail h3 em {
           color: ${theme.subText};
         }
-        .context-summary {
-          border-top: 1px solid ${theme.border};
-        }
         .event-details-container {
           background-color: ${theme.background};
           .secondary {
@@ -204,11 +187,23 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .dropdown-menu {
           color: ${theme.textColor};
-          background-color: ${theme.background};
+          background-color: ${theme.background} !important;
+          border: 1px solid ${theme.gray400};
           &:after,
           &:before {
-            border-bottom-color: ${theme.background};
+            border-top-color: ${theme.gray400} !important;
           }
+        }
+        .context-summary .context-item.darwin .context-item-icon,
+        .context-summary .context-item.ios .context-item-icon,
+        .context-summary .context-item.macos .context-item-icon,
+        .context-summary .context-item.tvos .context-item-icon,
+        .context-summary .context-item.mac-os-x .context-item-icon,
+        .context-summary .context-item.mac .context-item-icon,
+        .context-summary .context-item.apple .context-item-icon,
+        .context-summary .context-item.watchos .context-item-icon {
+          filter: invert(100%);
+          opacity: 0.8;
         }
       `
     : ''}

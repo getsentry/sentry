@@ -1,23 +1,23 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExternalIssueForm from 'app/components/group/externalIssueForm';
 
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
-  const mockDebounce = (fn, timeout) => (...args) => {
-    if (debounceMap.has(fn)) {
-      clearTimeout(debounceMap.get(fn));
-    }
-    debounceMap.set(
-      fn,
-      setTimeout(() => {
-        fn.apply(fn, args);
-        debounceMap.delete(fn);
-      }, timeout)
-    );
-  };
+  const mockDebounce =
+    (fn, timeout) =>
+    (...args) => {
+      if (debounceMap.has(fn)) {
+        clearTimeout(debounceMap.get(fn));
+      }
+      debounceMap.set(
+        fn,
+        setTimeout(() => {
+          fn.apply(fn, args);
+          debounceMap.delete(fn);
+        }, timeout)
+      );
+    };
   return mockDebounce;
 });
 
@@ -119,13 +119,11 @@ describe('ExternalIssueForm', () => {
           canAdd: true,
           aspects: {
             disable_dialog: {
-              body:
-                'Before deleting this integration, you must uninstall this integration from GitHub. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.',
+              body: 'Before deleting this integration, you must uninstall this integration from GitHub. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.',
               actionText: 'Visit GitHub',
             },
             removal_dialog: {
-              body:
-                'Deleting this integration will delete all associated repositories and commit data. This action cannot be undone. Are you sure you want to delete your integration?',
+              body: 'Deleting this integration will delete all associated repositories and commit data. This action cannot be undone. Are you sure you want to delete your integration?',
               actionText: 'Delete',
             },
           },

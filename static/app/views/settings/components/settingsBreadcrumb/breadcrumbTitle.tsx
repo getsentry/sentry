@@ -1,5 +1,5 @@
-import React from 'react';
-import {PlainRoute} from 'react-router/lib/Route';
+import {Component} from 'react';
+import {PlainRoute} from 'react-router';
 
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 
@@ -8,7 +8,7 @@ type Props = {
   title: string;
 };
 
-class BreadcrumbTitle extends React.Component<Props> {
+class BreadcrumbTitle extends Component<Props> {
   componentDidMount() {
     SettingsBreadcrumbActions.mapTitle(this.props);
   }

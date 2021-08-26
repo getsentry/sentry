@@ -95,6 +95,7 @@ class IntegrationFeatures(Enum):
     SERVERLESS = "serverless"
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
+    CODEOWNERS = "codeowners"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -148,7 +149,7 @@ class IntegrationProvider(PipelineProvider):
 
     # if the integration can be uninstalled in Sentry, set to False
     # if True, the integration must be uninstalled from the other platform
-    # which is uninstalled/disabled via wehbook
+    # which is uninstalled/disabled via webhook
     can_disable = False
 
     # if the integration has no application-style access token, associate

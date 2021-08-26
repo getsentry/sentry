@@ -1,9 +1,24 @@
+from typing import Any, Callable, Optional, Sequence
+
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.models import Organization
+
+# TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
+EndpointFunc = Callable[..., Response]
 
 
-def requires_feature(feature, any_org=None):
+def any_organization_has_feature(
+    feature: str, organizations: Sequence[Organization], **kwargs: Any
+) -> bool:
+    return any([features.has(feature, organization, **kwargs) for organization in organizations])
+
+
+def requires_feature(
+    feature: str, any_org: Optional[bool] = None
+) -> Callable[[EndpointFunc], EndpointFunc]:
     """
     Require a feature flag to access an endpoint.
 
@@ -17,19 +32,18 @@ def requires_feature(feature, any_org=None):
     If any failure case, the API returns a 404.
 
     Example:
-        >>> @requires_feature('organizations:internal-catchall')
+        >>> @requires_feature('organizations:performance-view')
         >>> def get(self, request, organization):
         >>>     return Response()
     """
 
-    def decorator(func):
-        def wrapped(self, request, *args, **kwargs):
+    def decorator(func: EndpointFunc) -> EndpointFunc:
+        def wrapped(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
             # The endpoint is accessible if any of the User's Orgs have the feature
             # flag enabled.
             if any_org:
-                if not any(
-                    features.has(feature, org, actor=request.user)
-                    for org in request.user.get_orgs()
+                if not any_organization_has_feature(
+                    feature, request.user.get_orgs(), actor=request.user
                 ):
                     return Response(status=404)
 

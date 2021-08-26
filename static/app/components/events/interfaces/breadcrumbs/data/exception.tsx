@@ -1,4 +1,3 @@
-import React from 'react';
 import omit from 'lodash/omit';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
@@ -19,7 +18,7 @@ const Exception = ({breadcrumb, searchTerm}: Props) => {
   const dataValue = data?.value;
 
   return (
-    <Summary kvData={omit(data, ['type', 'value'])} searchTerm={searchTerm}>
+    <Summary kvData={omit(data, ['type', 'value'])}>
       {data?.type && (
         <AnnotatedText
           value={

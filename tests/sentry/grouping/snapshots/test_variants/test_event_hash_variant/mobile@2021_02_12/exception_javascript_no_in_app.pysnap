@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:24.895807Z'
+created: '2021-06-30T16:44:00.436983Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "26552f86ca2368e708afa1df6effc1c5"
-  tree_label: "..."
   component:
     app-depth-2*
       exception*
@@ -51,11 +50,10 @@ app-depth-2:
         value (ignored because stacktrace takes precedence)
           "Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
-app-depth-3:
+app-depth-max:
   hash: "26552f86ca2368e708afa1df6effc1c5"
-  tree_label: "<entire stacktrace>"
   component:
-    app-depth-3*
+    app-depth-max*
       exception*
         stacktrace*
           frame*
@@ -81,7 +79,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 system:
   hash: "26552f86ca2368e708afa1df6effc1c5"
-  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

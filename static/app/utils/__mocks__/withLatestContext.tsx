@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 declare const TestStubs;
 
@@ -7,11 +7,11 @@ const DEFAULTS = {
   organization: MOCK_ORG,
   organizations: [MOCK_ORG],
   project: TestStubs.Project(),
-  lastRoute: {},
+  lastRoute: '',
 };
 
 const withLatestContextMock = WrappedComponent =>
-  class WithLatestContextMockWrapper extends React.Component {
+  class WithLatestContextMockWrapper extends Component {
     render() {
       return <WrappedComponent {...DEFAULTS} {...this.props} />;
     }

@@ -3,7 +3,6 @@ import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
 import {canIncludePreviousPeriod} from 'app/components/charts/utils';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {
   DateString,
   EventsStats,
@@ -12,11 +11,13 @@ import {
 } from 'app/types';
 import {LocationQuery} from 'app/utils/discover/eventView';
 import {getPeriod} from 'app/utils/getPeriod';
+import {PERFORMANCE_URL_PARAM} from 'app/utils/performance/constants';
 
 type Options = {
   organization: OrganizationSummary;
   project?: Readonly<number[]>;
   environment?: Readonly<string[]>;
+  team?: Readonly<string | string[]>;
   period?: string;
   start?: DateString;
   end?: DateString;
@@ -29,6 +30,7 @@ type Options = {
   topEvents?: number;
   orderby?: string;
   partial: boolean;
+  withoutZerofill?: boolean;
 };
 
 /**
@@ -39,6 +41,7 @@ type Options = {
  * @param {Object} options.organization Organization object
  * @param {Number[]} options.project List of project ids
  * @param {String[]} options.environment List of environments to query for
+ * @param {String[]} options.team List of teams to query for
  * @param {String} options.period Time period to query for, in the format: <integer><units> where units are "d" or "h"
  * @param {String} options.interval Time interval to group results in, in the format: <integer><units> where units are "d", "h", "m", "s"
  * @param {Boolean} options.includePrevious Should request also return reqsults for previous period?
@@ -51,6 +54,7 @@ export const doEventsRequest = (
     organization,
     project,
     environment,
+    team,
     period,
     start,
     end,
@@ -62,6 +66,7 @@ export const doEventsRequest = (
     topEvents,
     orderby,
     partial,
+    withoutZerofill,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -70,12 +75,14 @@ export const doEventsRequest = (
       interval,
       project,
       environment,
+      team,
       query,
       yAxis,
       field,
       topEvents,
       orderby,
       partial: partial ? '1' : undefined,
+      withoutZerofill: withoutZerofill ? '1' : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -94,6 +101,8 @@ export const doEventsRequest = (
 
 export type EventQuery = {
   field: string[];
+  equation?: string[];
+  team?: string | string[];
   project?: string | string[];
   sort?: string | string[];
   query: string;
@@ -125,7 +134,7 @@ export async function fetchTagFacets(
   orgSlug: string,
   query: EventQuery
 ): Promise<Tag[]> {
-  const urlParams = pick(query, Object.values(URL_PARAM));
+  const urlParams = pick(query, Object.values(PERFORMANCE_URL_PARAM));
 
   const queryOption = {...urlParams, query: query.query};
 
@@ -142,7 +151,7 @@ export async function fetchTotalCount(
   orgSlug: String,
   query: EventQuery & LocationQuery
 ): Promise<number> {
-  const urlParams = pick(query, Object.values(URL_PARAM));
+  const urlParams = pick(query, Object.values(PERFORMANCE_URL_PARAM));
 
   const queryOption = {...urlParams, query: query.query};
 

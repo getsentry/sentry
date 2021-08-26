@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {experimentConfig, unassignedValue} from 'app/data/experimentConfig';
 import ConfigStore from 'app/stores/configStore';
@@ -101,7 +101,7 @@ function withExperiment<
     }
 
     getProps<P extends ExperimentType>() {
-      return (this.props as unknown) as ExpectedProps<P>;
+      return this.props as unknown as ExpectedProps<P>;
     }
 
     get config() {

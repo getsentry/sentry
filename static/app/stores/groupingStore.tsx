@@ -47,17 +47,42 @@ type State = {
 
 type ScoreMap = Record<string, number | null>;
 
-export type Fingerprint = {
+type ApiFingerprint = {
   id: string;
   latestEvent: Event;
   state?: string;
+  lastSeen?: string;
+  eventCount?: number;
+  parentId?: string;
+  label?: string;
+  parentLabel?: string;
+  childId?: string;
+  childLabel?: string;
+};
+
+type ChildFingerprint = {
+  childId: string;
+  childLabel?: string;
+  eventCount?: number;
+  lastSeen?: string;
+  latestEvent?: Event;
+};
+
+export type Fingerprint = {
+  id: string;
+  latestEvent: Event;
+  eventCount: number;
+  children: Array<ChildFingerprint>;
+  state?: string;
+  lastSeen?: string;
+  parentId?: string;
+  label?: string;
+  parentLabel?: string;
 };
 
 type ResponseProcessors = {
-  merged: (item: Fingerprint) => Fingerprint;
-  similar: (
-    data: [Group, ScoreMap]
-  ) => {
+  merged: (item: ApiFingerprint[]) => Fingerprint[];
+  similar: (data: [Group, ScoreMap]) => {
     issue: Group;
     score: ScoreMap;
     scoresByInterface: Record<string, Array<[string, number | null]>>;
@@ -68,7 +93,7 @@ type ResponseProcessors = {
 
 type DataKey = keyof ResponseProcessors;
 
-type ResultsAsArrayDataMerged = Array<Parameters<ResponseProcessors['merged']>[0]>;
+type ResultsAsArrayDataMerged = Parameters<ResponseProcessors['merged']>[0];
 
 type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
 
@@ -223,11 +248,11 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
           this.api.request(endpoint, {
             method: 'GET',
             data: queryParams,
-            success: (data, _, jqXHR) => {
+            success: (data, _, resp) => {
               resolve({
                 dataKey,
                 data,
-                links: jqXHR ? jqXHR.getResponseHeader('Link') : null,
+                links: resp ? resp.getResponseHeader('Link') : null,
               });
             },
             error: err => {
@@ -239,12 +264,48 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     );
 
     const responseProcessors: ResponseProcessors = {
-      merged: item => {
-        // Check for locked items
-        this.setStateForId(this.unmergeState, item.id, {
-          busy: item.state === 'locked',
+      merged: items => {
+        const newItemsMap: Record<string, Fingerprint> = {};
+        const newItems: Fingerprint[] = [];
+
+        items.forEach(item => {
+          if (!newItemsMap[item.id]) {
+            const newItem = {
+              eventCount: 0,
+              children: [],
+              // lastSeen and latestEvent properties are correct
+              // since the server returns items in
+              // descending order of lastSeen
+              ...item,
+            };
+            // Check for locked items
+            this.setStateForId(this.unmergeState, item.id, {
+              busy: item.state === 'locked',
+            });
+
+            newItemsMap[item.id] = newItem;
+            newItems.push(newItem);
+          }
+
+          const newItem = newItemsMap[item.id];
+          const {childId, childLabel, eventCount, lastSeen, latestEvent} = item;
+
+          if (eventCount) {
+            newItem.eventCount += eventCount;
+          }
+
+          if (childId) {
+            newItem.children.push({
+              childId,
+              childLabel,
+              lastSeen,
+              latestEvent,
+              eventCount,
+            });
+          }
         });
-        return item;
+
+        return newItems;
       },
       similar: ([issue, scoreMap]) => {
         // Hide items with a low scores
@@ -301,7 +362,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
           const items =
             dataKey === 'similar'
               ? (data as ResultsAsArrayDataSimilar).map(responseProcessors[dataKey])
-              : (data as ResultsAsArrayDataMerged).map(responseProcessors[dataKey]);
+              : responseProcessors[dataKey](data as ResultsAsArrayDataMerged);
+
           this[`${dataKey}Items`] = items;
           this[`${dataKey}Links`] = links;
         });
@@ -366,8 +428,12 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       checked,
     });
 
-    // Unmerge should be disabled if 0 or all items are selected
-    this.unmergeDisabled = this.unmergeList.size === 0 || this.isAllUnmergedSelected();
+    // Unmerge should be disabled if 0 or all items are selected, or if there's
+    // only one item to select
+    this.unmergeDisabled =
+      this.mergedItems.size <= 1 ||
+      this.unmergeList.size === 0 ||
+      this.isAllUnmergedSelected();
     this.enableFingerprintCompare = this.unmergeList.size === 2;
 
     this.triggerUnmergeState();
@@ -401,7 +467,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         success: () => {
           addSuccessMessage(successMessage);
 
-          // Busy rows after successful merge
+          // Busy rows after successful Unmerge
           this.setStateForId(this.unmergeState, ids, {
             checked: false,
             busy: true,
@@ -422,6 +488,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       });
     });
   },
+
   // For cross-project views, we need to pass projectId instead of
   // depending on router params (since we will only have orgId in that case)
   onMerge({params, query, projectId}) {
@@ -524,6 +591,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         'unmergeState',
         'loading',
         'error',
+        'enableFingerprintCompare',
+        'unmergeList',
       ]),
     };
     this.trigger(state);

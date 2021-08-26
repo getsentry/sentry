@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -21,14 +21,44 @@ import {
   HeaderButtonContainer,
   HeaderTitle,
 } from './styles';
-import {
-  GridColumn,
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-  ObjectKey,
-} from './types';
-import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
+
+// Auto layout width.
+export const COL_WIDTH_UNDEFINED = -1;
+
+// Set to 90 as the edit/trash icons need this much space.
+export const COL_WIDTH_MINIMUM = 90;
+
+// For GridEditable, there are 2 generic types for the component, T and K
+//
+// - T is an element/object that represents the data to be displayed
+// - K is a key of T/
+//   - columnKey should have the same set of values as K
+
+type ObjectKey = React.ReactText;
+
+export type GridColumn<K = ObjectKey> = {
+  key: K;
+  width?: number;
+};
+
+export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
+  name: string;
+};
+
+export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
+
+export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
+  order: 'desc' | 'asc';
+};
+
+/**
+ * Store state at the start of "resize" action
+ */
+export type ColResizeMetadata = {
+  columnIndex: number; // Column being resized
+  columnWidth: number; // Column width at start of resizing
+  cursorX: number; // X-coordinate of cursor on window
+};
 
 type GridEditableProps<DataRow, ColumnKey> = {
   location: Location;
@@ -103,7 +133,7 @@ class GridEditable<
     };
   }
 
-  state = {
+  state: GridEditableState = {
     numColumn: 0,
   };
 
@@ -403,11 +433,3 @@ class GridEditable<
 }
 
 export default GridEditable;
-export {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-  GridColumn,
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-};

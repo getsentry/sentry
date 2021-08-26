@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import ReactDOM from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -58,7 +58,7 @@ const PasswordStrength = ({
   `;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <StrengthProgress
         role="progressbar"
         aria-valuenow={score}
@@ -72,7 +72,7 @@ const PasswordStrength = ({
           textScore: <ScoreText>{labels[score]}</ScoreText>,
         })}
       </StrengthLabel>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

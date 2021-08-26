@@ -1,0 +1,66 @@
+[
+  {
+    "desc": "test date format",
+    "query": "timestamp:>2015-05-18",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "date",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18T00:00:00.000Z"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "test date time format",
+    "query": "timestamp:>2015-05-18T10:15:01",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "date",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.000Z"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "test date time format w microseconds",
+    "query": "timestamp:>2015-05-18T10:15:01.103",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "date",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.103Z"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "test date time format w microseconds and utc marker",
+    "query": "timestamp:>2015-05-18T10:15:01.103Z",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "date",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.103Z"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

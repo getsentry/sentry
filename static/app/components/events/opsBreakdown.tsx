@@ -1,14 +1,16 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
 import {SectionHeading} from 'app/components/charts/styles';
+import {ActiveOperationFilter} from 'app/components/events/interfaces/spans/filter';
 import {
   RawSpanType,
   SpanEntry,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
-import {pickBarColour} from 'app/components/performance/waterfall/utils';
+import {getSpanOperation} from 'app/components/events/interfaces/spans/utils';
+import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -46,10 +48,11 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
+  operationNameFilters: ActiveOperationFilter;
   event: Event;
 };
 
-class OpsBreakdown extends React.Component<Props> {
+class OpsBreakdown extends Component<Props> {
   static defaultProps: DefaultProps = {
     topN: TOP_N_SPANS,
     hideHeader: false,
@@ -66,7 +69,7 @@ class OpsBreakdown extends React.Component<Props> {
   }
 
   generateStats(): OpBreakdownType {
-    const {topN} = this.props;
+    const {topN, operationNameFilters} = this.props;
     const event = this.getTransactionEvent();
 
     if (!event) {
@@ -85,20 +88,34 @@ class OpsBreakdown extends React.Component<Props> {
 
     let spans: RawSpanType[] = spanEntry?.data ?? [];
 
+    const rootSpan = {
+      op: traceContext.op,
+      timestamp: event.endTimestamp,
+      start_timestamp: event.startTimestamp,
+      trace_id: traceContext.trace_id || '',
+      span_id: traceContext.span_id || '',
+      data: {},
+    };
+
     spans =
       spans.length > 0
         ? spans
         : // if there are no descendent spans, then use the transaction root span
-          [
-            {
-              op: traceContext.op,
-              timestamp: event.endTimestamp,
-              start_timestamp: event.startTimestamp,
-              trace_id: traceContext.trace_id || '',
-              span_id: traceContext.span_id || '',
-              data: {},
-            },
-          ];
+          [rootSpan];
+
+    // Filter spans by operation name
+    if (operationNameFilters.type === 'active_filter') {
+      spans = [...spans, rootSpan];
+      spans = spans.filter(span => {
+        const operationName = getSpanOperation(span);
+
+        const shouldFilterOut =
+          typeof operationName === 'string' &&
+          !operationNameFilters.operationNames.has(operationName);
+
+        return !shouldFilterOut;
+      });
+    }
 
     const operationNameIntervals = spans.reduce(
       (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
@@ -174,16 +191,16 @@ class OpsBreakdown extends React.Component<Props> {
       }
     );
 
-    const breakdown = sortedOpsBreakdown.slice(0, topN).map(
-      ([operationName, duration]: [OperationName, Duration]): OpStats => {
+    const breakdown = sortedOpsBreakdown
+      .slice(0, topN)
+      .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
         return {
           name: operationName,
           // percentage to be recalculated after the ops breakdown group is decided
           percentage: 0,
           totalInterval: duration,
         };
-      }
-    );
+      });
 
     const other = sortedOpsBreakdown.slice(topN).reduce(
       (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
@@ -237,7 +254,7 @@ class OpsBreakdown extends React.Component<Props> {
 
       const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
       const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-      const opsColor: string = pickBarColour(operationName);
+      const opsColor: string = pickBarColor(operationName);
 
       return (
         <OpsLine key={operationName}>
@@ -263,7 +280,7 @@ class OpsBreakdown extends React.Component<Props> {
               size="sm"
               containerDisplayMode="block"
               title={t(
-                'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
+                'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once. Percentages are calculated by dividing the summed span durations by the total of all span durations.'
               )}
             />
           </SectionHeading>

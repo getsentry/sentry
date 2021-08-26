@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -86,6 +86,7 @@ class GroupingComponentFrames extends React.Component<Props, State> {
 
 const ToggleCollapse = styled(Button)`
   margin: ${space(0.5)} 0;
+  color: ${p => p.theme.linkColor};
 `;
 
 export default GroupingComponentFrames;

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
@@ -18,7 +18,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release} from 'app/types';
 import {analytics} from 'app/utils/analytics';
-import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
+import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releasePromo';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
@@ -141,7 +141,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     const {lastDeploy, dateCreated} = release;
 
     return (
-      <React.Fragment key={release.version}>
+      <Fragment key={release.version}>
         <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
         <TextOverflow>
           <StyledVersion
@@ -150,7 +150,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
             projectId={projectId}
           />
         </TextOverflow>
-      </React.Fragment>
+      </Fragment>
     );
   };
 

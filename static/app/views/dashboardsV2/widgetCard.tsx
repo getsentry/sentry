@@ -1,21 +1,18 @@
-import React, {MouseEvent} from 'react';
-import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
+import * as React from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
-import DropdownMenu from 'app/components/dropdownMenu';
 import ErrorBoundary from 'app/components/errorBoundary';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconDelete, IconEdit, IconEllipsis, IconGrabbable} from 'app/icons';
+import {IconDelete, IconEdit, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -25,6 +22,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
@@ -32,7 +30,7 @@ import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
   location: Location;
@@ -61,6 +59,11 @@ class WidgetCard extends React.Component<Props> {
       return true;
     }
     return false;
+  }
+
+  isAllowWidgetsToDiscover() {
+    const {organization} = this.props;
+    return organization.features.includes('connect-discover-and-dashboards');
   }
 
   renderToolbar() {
@@ -111,7 +114,7 @@ class WidgetCard extends React.Component<Props> {
     const menuOptions: React.ReactNode[] = [];
 
     if (
-      widget.displayType === 'table' &&
+      (widget.displayType === 'table' || this.isAllowWidgetsToDiscover()) &&
       organization.features.includes('discover-basic')
     ) {
       // Open table widget in Discover
@@ -120,7 +123,12 @@ class WidgetCard extends React.Component<Props> {
         // We expect Table widgets to have only one query.
         const query = widget.queries[0];
 
-        const eventView = eventViewFromWidget(widget.title, query, selection);
+        const eventView = eventViewFromWidget(
+          widget.title,
+          query,
+          selection,
+          widget.displayType
+        );
 
         menuOptions.push(
           <MenuItem
@@ -153,15 +161,8 @@ class WidgetCard extends React.Component<Props> {
   }
 
   render() {
-    const {
-      widget,
-      api,
-      organization,
-      selection,
-      renderErrorMessage,
-      location,
-      router,
-    } = this.props;
+    const {widget, api, organization, selection, renderErrorMessage, location, router} =
+      this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -205,9 +206,7 @@ class WidgetCard extends React.Component<Props> {
   }
 }
 
-export default withApi(
-  withOrganization(withGlobalSelection(ReactRouter.withRouter(WidgetCard)))
-);
+export default withApi(withOrganization(withGlobalSelection(withRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;
@@ -278,51 +277,6 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
-`;
-
-const ContextMenu = ({children}) => (
-  <DropdownMenu>
-    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-      const topLevelCx = classNames('dropdown', {
-        'anchor-right': true,
-        open: isOpen,
-      });
-
-      return (
-        <MoreOptions
-          {...getRootProps({
-            className: topLevelCx,
-          })}
-        >
-          <DropdownTarget
-            {...getActorProps<HTMLDivElement>({
-              onClick: (event: MouseEvent) => {
-                event.stopPropagation();
-                event.preventDefault();
-              },
-            })}
-          >
-            <IconEllipsis data-test-id="context-menu" size="md" />
-          </DropdownTarget>
-          {isOpen && (
-            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
-              {children}
-            </ul>
-          )}
-        </MoreOptions>
-      );
-    }}
-  </DropdownMenu>
-);
-
-const MoreOptions = styled('span')`
-  display: flex;
-  color: ${p => p.theme.textColor};
-`;
-
-const DropdownTarget = styled('div')`
-  display: flex;
-  cursor: pointer;
 `;
 
 const ContextWrapper = styled('div')`

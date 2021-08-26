@@ -1,12 +1,14 @@
 import logging
 import warnings
 from collections import defaultdict
+from typing import TYPE_CHECKING, Sequence
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
-from django.db.models.signals import pre_delete
+from django.db.models import QuerySet
+from django.db.models.signals import post_delete, post_save, pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
@@ -24,29 +26,71 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 
+if TYPE_CHECKING:
+    from sentry.models import Team
+
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
 
 
+class ProjectTeamManager(BaseManager):
+    def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> Sequence["ProjectTeam"]:
+        project_teams = (
+            self.filter(team__in=teams, project__status=ProjectStatus.VISIBLE)
+            .order_by("project__name", "project__slug")
+            .select_related("project")
+        )
+
+        # TODO(dcramer): we should query in bulk for ones we're missing here
+        orgs = {i.organization_id: i.organization for i in teams}
+
+        for project_team in project_teams:
+            project_team.project.set_cached_field_value(
+                "organization", orgs[project_team.project.organization_id]
+            )
+
+        return project_teams
+
+
 class ProjectTeam(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project")
     team = FlexibleForeignKey("sentry.Team")
+
+    objects = ProjectTeamManager()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_projectteam"
         unique_together = (("project", "team"),)
 
+    __repr__ = sane_repr("project_id", "team_id")
+
 
 class ProjectManager(BaseManager):
+    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+        """Returns the QuerySet of all projects that a set of Users have access to."""
+        from sentry.models import ProjectStatus
+
+        return self.filter(
+            status=ProjectStatus.VISIBLE,
+            teams__organizationmember__user_id__in=user_ids,
+        )
+
+    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+        """Returns the QuerySet of all organizations that a set of Teams have access to."""
+        from sentry.models import ProjectStatus
+
+        return self.filter(status=ProjectStatus.VISIBLE, teams__in=team_ids)
+
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
         from sentry.models import Team
@@ -80,7 +124,7 @@ class Project(Model, PendingDeletionMixin):
     are the top level entry point for all data.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
@@ -107,6 +151,7 @@ class Project(Model, PendingDeletionMixin):
             ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
             ("has_transactions", "This Project has sent transactions"),
             ("has_alert_filters", "This Project has filters"),
+            ("has_sessions", "This Project has sessions"),
         ),
         default=10,
         null=True,
@@ -181,21 +226,14 @@ class Project(Model, PendingDeletionMixin):
         return projectoptions.update_rev_for_option(self)
 
     @property
-    def callsign(self):
-        warnings.warn(
-            "Project.callsign is deprecated. Use Group.get_short_id() instead.", DeprecationWarning
-        )
-        return self.slug.upper()
-
-    @property
     def color(self):
         if self.forced_color is not None:
-            return "#%s" % self.forced_color
-        return get_hashed_color(self.callsign or self.slug)
+            return f"#{self.forced_color}"
+        return get_hashed_color(self.slug.upper())
 
     @property
     def member_set(self):
-        """ :returns a QuerySet of all Users that belong to this Project """
+        """:returns a QuerySet of all Users that belong to this Project"""
         from sentry.models import OrganizationMember
 
         return self.organization.member_set.filter(
@@ -399,3 +437,23 @@ class Project(Model, PendingDeletionMixin):
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
+post_save.connect(
+    lambda instance, **kwargs: update_code_owners_schema.apply_async(
+        kwargs={
+            "organization": instance.project.organization,
+            "projects": [instance.project],
+        }
+    ),
+    sender=ProjectTeam,
+    weak=False,
+)
+post_delete.connect(
+    lambda instance, **kwargs: update_code_owners_schema.apply_async(
+        kwargs={
+            "organization": instance.project.organization,
+            "projects": [instance.project],
+        }
+    ),
+    sender=ProjectTeam,
+    weak=False,
+)

@@ -1,26 +1,30 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
+import FeatureBadge from 'app/components/featureBadge';
+import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
+import withTeams from 'app/utils/withTeams';
 
 import Charts from '../charts/index';
 import {
   getBackendAxisOptions,
   getFrontendAxisOptions,
   getFrontendOtherAxisOptions,
+  getMobileAxisOptions,
 } from '../data';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
@@ -30,6 +34,8 @@ import {
   BACKEND_COLUMN_TITLES,
   FRONTEND_OTHER_COLUMN_TITLES,
   FRONTEND_PAGELOAD_COLUMN_TITLES,
+  MOBILE_COLUMN_TITLES,
+  REACT_NATIVE_COLUMN_TITLES,
 } from './data';
 import {
   getCurrentLandingDisplay,
@@ -40,35 +46,25 @@ import {
   LEFT_AXIS_QUERY_KEY,
   RIGHT_AXIS_QUERY_KEY,
 } from './utils';
-import {BackendCards, FrontendCards} from './vitalsCards';
+import {BackendCards, FrontendCards, MobileCards} from './vitalsCards';
 
 type Props = {
   organization: Organization;
   eventView: EventView;
   location: Location;
   projects: Project[];
+  teams: Team[];
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
 
 type State = {};
-class LandingContent extends React.Component<Props, State> {
-  componentDidMount() {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.landingv2.content',
-      eventName: 'Performance Views: Landing V2 Content',
-      organization_id: parseInt(organization.id, 10),
-    });
-  }
-
-  _haveTrackedLandingV2?: boolean;
-
+class LandingContent extends Component<Props, State> {
   getSummaryConditions(query: string) {
-    const parsed = tokenizeSearch(query);
-    parsed.query = [];
+    const parsed = new MutableSearch(query);
+    parsed.freeText = [];
 
-    return stringifyQueryObject(parsed);
+    return parsed.formatString();
   }
 
   handleLandingDisplayChange = (field: string) => {
@@ -81,6 +77,11 @@ class LandingContent extends React.Component<Props, State> {
 
     const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
     const currentDisplay = decodeScalar(location.query.landingDisplay);
+
+    // Transaction op can affect the display and show no results if it is explicitly set.
+    const query = decodeScalar(location.query.query, '');
+    const searchConditions = new MutableSearch(query);
+    searchConditions.removeFilter('transaction.op');
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.landingv2.display_change',
@@ -96,62 +97,11 @@ class LandingContent extends React.Component<Props, State> {
       pathname: location.pathname,
       query: {
         ...newQuery,
+        query: searchConditions.formatString(),
         landingDisplay: field,
       },
     });
   };
-
-  renderLandingV2() {
-    const {organization, location, eventView, projects, handleSearch} = this.props;
-
-    if (!this._haveTrackedLandingV2) {
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.landingv2.new_landing',
-        eventName: 'Performance Views: Landing V2 New Landing',
-        organization_id: parseInt(organization.id, 10),
-      });
-      this._haveTrackedLandingV2 = true;
-    }
-
-    const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
-    const filterString = getTransactionSearchQuery(location, eventView.query);
-
-    return (
-      <React.Fragment>
-        <SearchContainer>
-          <SearchBar
-            organization={organization}
-            projectIds={eventView.project}
-            query={filterString}
-            fields={generateAggregateFields(
-              organization,
-              [...eventView.fields, {field: 'tps()'}],
-              ['epm()', 'eps()']
-            )}
-            onSearch={handleSearch}
-            maxQueryLength={MAX_QUERY_LENGTH}
-          />
-          <DropdownControl
-            buttonProps={{prefix: t('Display')}}
-            label={currentLandingDisplay.label}
-          >
-            {LANDING_DISPLAYS.map(({label, field}) => (
-              <DropdownItem
-                key={field}
-                onSelect={this.handleLandingDisplayChange}
-                eventKey={field}
-                data-test-id={field}
-                isActive={field === currentLandingDisplay.field}
-              >
-                {label}
-              </DropdownItem>
-            ))}
-          </DropdownControl>
-        </SearchContainer>
-        {this.renderSelectedDisplay(currentLandingDisplay.field)}
-      </React.Fragment>
-    );
-  }
 
   renderSelectedDisplay(display) {
     switch (display) {
@@ -163,6 +113,8 @@ class LandingContent extends React.Component<Props, State> {
         return this.renderLandingFrontend(false);
       case LandingDisplayField.BACKEND:
         return this.renderLandingBackend();
+      case LandingDisplayField.MOBILE:
+        return this.renderLandingMobile();
       default:
         throw new Error(`Unknown display: ${display}`);
     }
@@ -181,7 +133,7 @@ class LandingContent extends React.Component<Props, State> {
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isPageload && (
           <FrontendCards
             eventView={eventView}
@@ -207,7 +159,7 @@ class LandingContent extends React.Component<Props, State> {
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -220,7 +172,7 @@ class LandingContent extends React.Component<Props, State> {
     const columnTitles = BACKEND_COLUMN_TITLES;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <BackendCards
           eventView={eventView}
           organization={organization}
@@ -243,7 +195,50 @@ class LandingContent extends React.Component<Props, State> {
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
-      </React.Fragment>
+      </Fragment>
+    );
+  };
+
+  renderLandingMobile = () => {
+    const {organization, location, projects, eventView, setError} = this.props;
+
+    const axisOptions = getMobileAxisOptions(organization);
+    const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
+
+    // only react native should contain the stall percentage column
+    const isReactNative = Boolean(
+      eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
+    );
+    const columnTitles = isReactNative
+      ? REACT_NATIVE_COLUMN_TITLES
+      : MOBILE_COLUMN_TITLES;
+
+    return (
+      <Fragment>
+        <MobileCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          showStallPercentage={isReactNative}
+        />
+        <DoubleAxisDisplay
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          axisOptions={axisOptions}
+          leftAxis={leftAxis}
+          rightAxis={rightAxis}
+        />
+        <Table
+          eventView={eventView}
+          projects={projects}
+          organization={organization}
+          location={location}
+          setError={setError}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
+          columnTitles={columnTitles}
+        />
+      </Fragment>
     );
   };
 
@@ -251,7 +246,7 @@ class LandingContent extends React.Component<Props, State> {
     const {organization, location, router, projects, eventView, setError} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Charts
           eventView={eventView}
           organization={organization}
@@ -266,85 +261,76 @@ class LandingContent extends React.Component<Props, State> {
           setError={setError}
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
         />
-      </React.Fragment>
-    );
-  };
-
-  renderLandingV1 = () => {
-    const {
-      organization,
-      location,
-      router,
-      projects,
-      eventView,
-      setError,
-      handleSearch,
-    } = this.props;
-
-    const filterString = getTransactionSearchQuery(location, eventView.query);
-    const summaryConditions = this.getSummaryConditions(filterString);
-
-    return (
-      <React.Fragment>
-        <SearchBar
-          organization={organization}
-          projectIds={eventView.project}
-          query={filterString}
-          fields={generateAggregateFields(
-            organization,
-            [...eventView.fields, {field: 'tps()'}],
-            ['epm()', 'eps()']
-          )}
-          onSearch={handleSearch}
-          maxQueryLength={MAX_QUERY_LENGTH}
-        />
-        <Feature features={['performance-vitals-overview']}>
-          <FrontendCards
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            projects={projects}
-            frontendOnly
-          />
-        </Feature>
-        <Charts
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          router={router}
-        />
-        <Table
-          eventView={eventView}
-          projects={projects}
-          organization={organization}
-          location={location}
-          setError={setError}
-          summaryConditions={summaryConditions}
-        />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
   render() {
-    const {organization} = this.props;
+    const {organization, location, eventView, projects, teams, handleSearch} = this.props;
+
+    const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
+    const filterString = getTransactionSearchQuery(location, eventView.query);
+
+    const isSuperuser = isActiveSuperuser();
+    const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
     return (
-      <div>
-        <Feature organization={organization} features={['performance-landing-v2']}>
-          {({hasFeature}) =>
-            hasFeature ? this.renderLandingV2() : this.renderLandingV1()
-          }
-        </Feature>
-      </div>
+      <Fragment>
+        <SearchContainer>
+          <SearchBar
+            searchSource="performance_landing"
+            organization={organization}
+            projectIds={eventView.project}
+            query={filterString}
+            fields={generateAggregateFields(
+              organization,
+              [...eventView.fields, {field: 'tps()'}],
+              ['epm()', 'eps()']
+            )}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
+          <DropdownControl
+            buttonProps={{prefix: t('Display')}}
+            label={currentLandingDisplay.label}
+          >
+            {LANDING_DISPLAYS.filter(
+              ({isShown}) => !isShown || isShown(organization)
+            ).map(({badge, label, field}) => (
+              <DropdownItem
+                key={field}
+                onSelect={this.handleLandingDisplayChange}
+                eventKey={field}
+                data-test-id={field}
+                isActive={field === currentLandingDisplay.field}
+              >
+                {label}
+                {badge && <FeatureBadge type={badge} noTooltip />}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
+        </SearchContainer>
+        <TeamKeyTransactionManager.Provider
+          organization={organization}
+          teams={userTeams}
+          selectedTeams={['myteams']}
+          selectedProjects={eventView.project.map(String)}
+        >
+          {this.renderSelectedDisplay(currentLandingDisplay.field)}
+        </TeamKeyTransactionManager.Provider>
+      </Fragment>
     );
   }
 }
 
 const SearchContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr min-content;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr min-content;
+  }
 `;
 
-export default withRouter(LandingContent);
+export default withRouter(withTeams(LandingContent));

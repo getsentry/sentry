@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {updateUser} from 'app/actionCreators/account';
 import {APIRequestMethod} from 'app/api';
 import AvatarChooser from 'app/components/avatarChooser';
@@ -33,7 +31,6 @@ class AccountDetails extends AsyncView {
 
   renderBody() {
     const user = this.state.user as User;
-    const {location} = this.props;
 
     const formCommonProps: Partial<Form['props']> = {
       apiEndpoint: ENDPOINT,
@@ -47,18 +44,10 @@ class AccountDetails extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Account Details')} />
         <Form initialData={user} {...formCommonProps}>
-          <JsonForm
-            location={location}
-            forms={accountDetailsFields}
-            additionalFieldProps={{user}}
-          />
+          <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
         </Form>
         <Form initialData={user.options} {...formCommonProps}>
-          <JsonForm
-            location={location}
-            forms={accountPreferencesFields}
-            additionalFieldProps={{user}}
-          />
+          <JsonForm forms={accountPreferencesFields} additionalFieldProps={{user}} />
         </Form>
         <AvatarChooser
           endpoint="/users/me/avatar/"

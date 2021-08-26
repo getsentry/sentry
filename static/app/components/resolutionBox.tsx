@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -9,20 +9,36 @@ import Version from 'app/components/version';
 import {IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {ResolutionStatusDetails} from 'app/types';
+import {
+  GroupActivity,
+  GroupActivitySetByResolvedInRelease,
+  GroupActivityType,
+  ResolutionStatusDetails,
+} from 'app/types';
 
 type Props = {
   statusDetails: ResolutionStatusDetails;
   projectId: string;
+  activities?: GroupActivity[];
 };
 
-function renderReason(statusDetails: ResolutionStatusDetails, projectId: string) {
+function renderReason(
+  statusDetails: ResolutionStatusDetails,
+  projectId: string,
+  activities: GroupActivity[]
+) {
   const actor = statusDetails.actor ? (
     <strong>
       <UserAvatar user={statusDetails.actor} size={20} className="avatar" />
       <span style={{marginLeft: 5}}>{statusDetails.actor.name}</span>
     </strong>
   ) : null;
+
+  const relevantActivity = activities.find(
+    activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
+  ) as GroupActivitySetByResolvedInRelease | undefined;
+
+  const currentReleaseVersion = relevantActivity?.data.current_release_version!;
 
   if (statusDetails.inNextRelease && statusDetails.actor) {
     return tct('[actor] marked this issue as resolved in the upcoming release.', {
@@ -31,48 +47,72 @@ function renderReason(statusDetails: ResolutionStatusDetails, projectId: string)
   } else if (statusDetails.inNextRelease) {
     return t('This issue has been marked as resolved in the upcoming release.');
   } else if (statusDetails.inRelease && statusDetails.actor) {
-    return tct('[actor] marked this issue as resolved in version [version].', {
-      actor,
-      version: (
-        <Version
-          version={statusDetails.inRelease}
-          projectId={projectId}
-          tooltipRawVersion
-        />
-      ),
-    });
+    return currentReleaseVersion
+      ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
+          actor,
+          version: (
+            <Version
+              version={currentReleaseVersion}
+              projectId={projectId}
+              tooltipRawVersion
+            />
+          ),
+        })
+      : tct('[actor] marked this issue as resolved in version [version].', {
+          actor,
+          version: (
+            <Version
+              version={statusDetails.inRelease}
+              projectId={projectId}
+              tooltipRawVersion
+            />
+          ),
+        });
   } else if (statusDetails.inRelease) {
-    return tct('This issue has been marked as resolved in version [version].', {
-      version: (
-        <Version
-          version={statusDetails.inRelease}
-          projectId={projectId}
-          tooltipRawVersion
-        />
-      ),
-    });
+    return currentReleaseVersion
+      ? tct(
+          'This issue has been marked as resolved in versions greater than [version].',
+          {
+            version: (
+              <Version
+                version={currentReleaseVersion}
+                projectId={projectId}
+                tooltipRawVersion
+              />
+            ),
+          }
+        )
+      : tct('This issue has been marked as resolved in version [version].', {
+          version: (
+            <Version
+              version={statusDetails.inRelease}
+              projectId={projectId}
+              tooltipRawVersion
+            />
+          ),
+        });
   } else if (!!statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
       commit: (
-        <React.Fragment>
+        <Fragment>
           <CommitLink
             commitId={statusDetails.inCommit.id}
             repository={statusDetails.inCommit.repository}
           />
           <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
-        </React.Fragment>
+        </Fragment>
       ),
     });
   }
   return t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox({statusDetails, projectId}: Props) {
+function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
         <StyledIconCheckmark color="green300" />
-        <span>{renderReason(statusDetails, projectId)}</span>
+        <span>{renderReason(statusDetails, projectId, activities)}</span>
       </BannerSummary>
     </BannerContainer>
   );

@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 
+import pytz
 from django.template.defaultfilters import slugify
 from django.urls import reverse
 from django.utils import timezone
@@ -31,7 +32,7 @@ from sentry.models import (
     Rule,
     Team,
 )
-from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
+from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -141,6 +142,20 @@ class MailPreview:
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
         )
+
+
+class MailPreviewAdapter(MailPreview):
+    """
+    This is an adapter for MailPreview that will take similar arguments to MessageBuilder
+    """
+
+    def __init__(self, **kwargs):
+        kwargs["text_template"] = kwargs["template"]
+        del kwargs["template"]
+        if "from_email" in kwargs:
+            del kwargs["from_email"]
+        del kwargs["type"]
+        super().__init__(**kwargs)
 
 
 class ActivityMailPreview:
@@ -260,6 +275,7 @@ def alert(request):
             "rule": rule,
             "group": group,
             "event": event,
+            "timezone": pytz.timezone("Europe/Vienna"),
             "link": "http://example.com/link",
             "interfaces": interface_list,
             "tags": event.tags,
@@ -430,7 +446,7 @@ def report(request):
                 id=next(id_sequence),
                 project=p,
                 organization_id=p.organization_id,
-                version="".join([random.choice("0123456789abcdef") for _ in range(40)]),
+                version="".join(random.choice("0123456789abcdef") for _ in range(40)),
                 date_added=dt,
             )
 
@@ -523,9 +539,7 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
         },
     ).render(request)
@@ -545,9 +559,7 @@ def request_access_for_another_member(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse(
-                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
-                )
+                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
             "requester": request.user.get_display_name(),
         },

@@ -1,5 +1,4 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
@@ -7,26 +6,18 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
-import SelectControl from 'app/components/forms/selectControl';
 import Hovercard from 'app/components/hovercard';
-import {IconAdd, IconEdit} from 'app/icons';
+import {IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
-import {DashboardDetails, DashboardListItem, DashboardState} from './types';
-
-type OptionType = {
-  label: string;
-  value: DashboardListItem;
-};
+import {DashboardListItem, DashboardState} from './types';
 
 type Props = {
   organization: Organization;
   dashboards: DashboardListItem[];
-  dashboard: null | DashboardDetails;
   onEdit: () => void;
-  onCreate: () => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -35,17 +26,7 @@ type Props = {
 
 class Controls extends React.Component<Props> {
   render() {
-    const {
-      dashboardState,
-      dashboards,
-      dashboard,
-      organization,
-      onEdit,
-      onCreate,
-      onCancel,
-      onCommit,
-      onDelete,
-    } = this.props;
+    const {dashboardState, dashboards, onEdit, onCancel, onCommit, onDelete} = this.props;
 
     const cancelButton = (
       <Button
@@ -59,7 +40,7 @@ class Controls extends React.Component<Props> {
       </Button>
     );
 
-    if (['edit', 'pending_delete'].includes(dashboardState)) {
+    if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
           {cancelButton}
@@ -67,6 +48,7 @@ class Controls extends React.Component<Props> {
             priority="danger"
             message={t('Are you sure you want to delete this dashboard?')}
             onConfirm={onDelete}
+            disabled={dashboards.length <= 1}
           >
             <Button data-test-id="dashboard-delete" priority="danger">
               {t('Delete')}
@@ -104,66 +86,8 @@ class Controls extends React.Component<Props> {
       );
     }
 
-    const dropdownOptions: OptionType[] = dashboards.map(item => {
-      return {
-        label: item.title,
-        value: item,
-      };
-    });
-
-    let currentOption: OptionType | undefined = undefined;
-    if (dashboard) {
-      currentOption = {
-        label: dashboard.title,
-        value: {...dashboard, widgetDisplay: dashboard.widgets.map(w => w.displayType)},
-      };
-    } else if (dropdownOptions.length) {
-      currentOption = dropdownOptions[0];
-    }
-
     return (
-      <OverviewControls gap={1} key="controls">
-        <DashboardSelect>
-          <SelectControl
-            key="select"
-            name="parameter"
-            placeholder={t('Select Dashboard')}
-            options={dropdownOptions}
-            value={currentOption}
-            onChange={({value}: {value: DashboardListItem}) => {
-              browserHistory.push({
-                pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
-                // TODO(mark) should this retain global selection?
-                query: {},
-              });
-            }}
-          />
-        </DashboardSelect>
-        <Feature features={['organizations:dashboards-manage']}>
-          <Button
-            data-test-id="dashboard-manage"
-            to={{
-              pathname: `/organizations/${organization.slug}/dashboards/manage/`,
-            }}
-          >
-            {t('Manage Dashboards')}
-          </Button>
-        </Feature>
-        <DashboardEditFeature>
-          {hasFeature => (
-            <Button
-              data-test-id="dashboard-create"
-              onClick={e => {
-                e.preventDefault();
-                onCreate();
-              }}
-              icon={<IconAdd size="xs" isCircled />}
-              disabled={!hasFeature}
-            >
-              {t('Create Dashboard')}
-            </Button>
-          )}
-        </DashboardEditFeature>
+      <StyledButtonBar gap={1} key="controls">
         <DashboardEditFeature>
           {hasFeature => (
             <Button
@@ -180,7 +104,7 @@ class Controls extends React.Component<Props> {
             </Button>
           )}
         </DashboardEditFeature>
-      </OverviewControls>
+      </StyledButtonBar>
     );
   }
 }
@@ -218,16 +142,7 @@ const DashboardEditFeature = ({
   );
 };
 
-const DashboardSelect = styled('div')`
-  min-width: 200px;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
-  flex-shrink: 0;
-`;
-
-const OverviewControls = styled(StyledButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import * as React from 'react';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -34,17 +34,17 @@ type TableResultProps = Pick<
   'errorMessage' | 'loading' | 'tableResults'
 >;
 
-type WidgetCardChartProps = Pick<ReactRouter.WithRouterProps, 'router'> &
-  Pick<
-    WidgetQueries['state'],
-    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
-  > & {
-    theme: Theme;
-    organization: Organization;
-    location: Location;
-    widget: Widget;
-    selection: GlobalSelection;
-  };
+type WidgetCardChartProps = Pick<
+  WidgetQueries['state'],
+  'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
+> & {
+  theme: Theme;
+  organization: Organization;
+  location: Location;
+  widget: Widget;
+  selection: GlobalSelection;
+  router: InjectedRouter;
+};
 
 class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
@@ -157,14 +157,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   }
 
   render() {
-    const {
-      theme,
-      tableResults,
-      timeseriesResults,
-      errorMessage,
-      loading,
-      widget,
-    } = this.props;
+    const {theme, tableResults, timeseriesResults, errorMessage, loading, widget} =
+      this.props;
 
     if (widget.displayType === 'table') {
       return (
@@ -377,10 +371,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: none;
-
-  > div {
-    padding: ${space(1)} ${space(3)};
-  }
 `;
 
 export default withTheme(WidgetCardChart);

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
@@ -42,7 +42,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
     // TODO: Add logic if no projects
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" />
         <StyledList symbol="colored-numeric">
           <React.Fragment />
           <ListItem>

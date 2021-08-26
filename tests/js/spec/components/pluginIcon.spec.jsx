@@ -1,7 +1,5 @@
 /* eslint-disable jest/no-disabled-tests */
 
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import PluginIcon from 'app/plugins/components/pluginIcon';

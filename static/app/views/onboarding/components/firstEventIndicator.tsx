@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, Variants} from 'framer-motion';
 
@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter from 'app/utils/eventWaiter';
 import testableTransition from 'app/utils/testableTransition';
 
@@ -34,6 +35,11 @@ const FirstEventIndicator = ({children, ...props}: Props) => (
             tooltipProps={{disabled: !!firstIssue}}
             disabled={!firstIssue}
             priority="primary"
+            onClick={() =>
+              trackAdvancedAnalyticsEvent('growth.onboarding_take_to_error', {
+                organization: props.organization,
+              })
+            }
             to={`/organizations/${props.organization.slug}/issues/${
               firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
             }`}

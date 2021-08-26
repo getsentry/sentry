@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -43,15 +43,8 @@ class SeenInfo extends React.Component<Props> {
   }
 
   render() {
-    const {
-      date,
-      dateGlobal,
-      environment,
-      release,
-      organization,
-      projectSlug,
-      projectId,
-    } = this.props;
+    const {date, dateGlobal, environment, release, organization, projectSlug, projectId} =
+      this.props;
 
     return (
       <HovercardWrapper>

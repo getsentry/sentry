@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -28,7 +28,7 @@ type State = {
   error: boolean;
 };
 
-class SharedGroupDetails extends React.Component<Props, State> {
+class SharedGroupDetails extends Component<Props, State> {
   static childContextTypes = {
     group: SentryTypes.Group,
   };
@@ -132,6 +132,7 @@ class SharedGroupDetails extends React.Component<Props, State> {
                     event={latestEvent}
                     project={project}
                     api={api}
+                    isBorderless
                     isShare
                   />
                 </Container>

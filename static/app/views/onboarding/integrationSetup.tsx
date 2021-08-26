@@ -1,6 +1,6 @@
 import 'prism-sentry/index.css';
 
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -14,10 +14,10 @@ import {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IntegrationProvider, Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {IntegrationProvider, Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'app/utils/getDynamicText';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
@@ -27,19 +27,6 @@ import AddInstallationInstructions from './components/integrations/addInstallati
 import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
 import {StepProps} from './types';
-
-type AnalyticsOpts = {
-  organization: Organization;
-  project: Project | null;
-  platform: PlatformKey | null;
-};
-
-const recordAnalyticsDocsClicked = ({organization, project, platform}: AnalyticsOpts) =>
-  analytics('onboarding_v2.full_docs_clicked', {
-    org_id: organization.id,
-    project: project?.slug,
-    platform,
-  });
 
 type Props = StepProps & {
   api: Client;
@@ -54,7 +41,7 @@ type State = {
   installed: boolean;
 };
 
-class IntegrationSetup extends React.Component<Props, State> {
+class IntegrationSetup extends Component<Props, State> {
   state: State = {
     loadedPlatform: null,
     hasError: false,
@@ -84,7 +71,7 @@ class IntegrationSetup extends React.Component<Props, State> {
 
   get platformDocs() {
     // TODO: make dynamic based on the integration
-    return 'https://docs.sentry.io/product/integrations/aws-lambda/';
+    return 'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
   }
 
   fetchData = async () => {
@@ -107,21 +94,18 @@ class IntegrationSetup extends React.Component<Props, State> {
   };
 
   handleFullDocsClick = () => {
-    const {organization, project, platform} = this.props;
-    recordAnalyticsDocsClicked({organization, project, platform});
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
   };
 
   trackSwitchToManual = () => {
     const {organization, integrationSlug} = this.props;
-    trackIntegrationEvent(
-      'integrations.switch_manual_sdk_setup',
-      {
-        integration_type: 'first_party',
-        integration: integrationSlug,
-        view: 'onboarding',
-      },
-      organization
-    );
+    trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {
+      integration_type: 'first_party',
+      integration: integrationSlug,
+      view: 'onboarding',
+      organization,
+    });
   };
 
   handleAddIntegration = () => {
@@ -151,7 +135,7 @@ class IntegrationSetup extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderSetupInstructions()}
         <motion.p
           variants={{
@@ -163,7 +147,14 @@ class IntegrationSetup extends React.Component<Props, State> {
           {tct(
             "Don't have have permissions to create a Cloudformation stack? [link:Invite your team instead].",
             {
-              link: <Button priority="link" onClick={openInviteMembersModal} />,
+              link: (
+                <Button
+                  priority="link"
+                  onClick={() => {
+                    openInviteMembersModal();
+                  }}
+                />
+              ),
             }
           )}
         </motion.p>
@@ -200,7 +191,7 @@ class IntegrationSetup extends React.Component<Props, State> {
             </Button>
           </StyledButtonBar>
         </DocsWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -211,7 +202,7 @@ class IntegrationSetup extends React.Component<Props, State> {
       return null;
     }
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderSetupInstructions()}
         <PostInstallCodeSnippet provider={provider} platform={platform} isOnboarding />
         <FirstEventFooter
@@ -220,7 +211,7 @@ class IntegrationSetup extends React.Component<Props, State> {
           docsLink={this.platformDocs}
           docsOnClick={this.handleFullDocsClick}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -242,7 +233,7 @@ class IntegrationSetup extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.state.installed
           ? this.renderPostInstallInstructions()
           : this.renderIntegrationInstructions()}
@@ -250,7 +241,7 @@ class IntegrationSetup extends React.Component<Props, State> {
           value: !hasError ? null : loadingError,
           fixed: testOnlyAlert,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

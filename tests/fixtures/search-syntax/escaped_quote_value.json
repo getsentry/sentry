@@ -1,0 +1,50 @@
+[
+  {
+    "query": "device.family:\\\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "device.family", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "\\\"", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "device.family:te\\\"st",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "device.family", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "te\\\"st", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "This is a weird case. I think this should be an error, but it doesn't seem trivial to rewrite the grammar to handle that.",
+    "query": "url:\"te\"st",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "url", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "te", "quoted": true}
+      },
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "st", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

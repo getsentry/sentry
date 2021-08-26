@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
 import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
@@ -71,11 +71,11 @@ export function getImageAddress(image: Image) {
 
   if (startAddress && endAddress) {
     return (
-      <React.Fragment>
+      <Fragment>
         <span>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</span>
         {' \u2013 '}
         <span>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</span>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

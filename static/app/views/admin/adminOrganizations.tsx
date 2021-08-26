@@ -1,6 +1,6 @@
-import React from 'react';
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
+import Link from 'app/components/links/link';
 import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
 

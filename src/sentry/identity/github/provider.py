@@ -3,18 +3,16 @@ from sentry.identity.oauth2 import OAuth2Provider
 
 
 def get_user_info(access_token):
-    session = http.build_session()
-    resp = session.get(
-        "https://api.github.com/user",
-        headers={
-            "Accept": "application/vnd.github.machine-man-preview+json",
-            "Authorization": "token %s" % access_token,
-        },
-    )
-    resp.raise_for_status()
-    resp = resp.json()
-
-    return resp
+    with http.build_session() as session:
+        resp = session.get(
+            "https://api.github.com/user",
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": f"token {access_token}",
+            },
+        )
+        resp.raise_for_status()
+    return resp.json()
 
 
 # GitHub has 2 types of apps -- GitHub apps and OAuth apps. SSO is implemented

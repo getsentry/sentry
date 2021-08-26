@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -78,11 +76,7 @@ describe('IssueListSavedSearchMenu', () => {
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
     });
 
-    it('hides is:unresolved with inbox flag', () => {
-      expect(wrapper.find('MenuItem')).toHaveLength(2);
-      wrapper.setProps({
-        organization: TestStubs.Organization({features: ['inbox']}),
-      });
+    it('hides is:unresolved global search', () => {
       expect(wrapper.find('MenuItem')).toHaveLength(1);
     });
   });

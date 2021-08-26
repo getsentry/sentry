@@ -1,5 +1,5 @@
-import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {Component} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -11,15 +11,13 @@ import {trackAdhocEvent} from 'app/utils/analytics';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
 
-type Props = {
-  params: Params;
-};
+type Props = RouteComponentProps<{orgId: string}, {}>;
 
 type State = {
   submitSuccess: boolean | null;
 };
 
-class OrganizationJoinRequest extends React.Component<Props, State> {
+class OrganizationJoinRequest extends Component<Props, State> {
   state: State = {
     submitSuccess: null,
   };

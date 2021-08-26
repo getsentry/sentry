@@ -1,6 +1,7 @@
 import errno
 import re
 import unittest
+import zipfile
 from copy import deepcopy
 from io import BytesIO
 
@@ -19,6 +20,7 @@ from sentry.lang.javascript.processor import (
     cache,
     discover_sourcemap,
     fetch_file,
+    fetch_release_archive_for_url,
     fetch_release_file,
     fetch_sourcemap,
     generate_module,
@@ -29,7 +31,9 @@ from sentry.lang.javascript.processor import (
     trim_line,
 )
 from sentry.models import EventError, File, Release, ReleaseFile
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.compat.mock import ANY, MagicMock, call, patch
 from sentry.utils.strings import truncatechars
 
@@ -90,7 +94,10 @@ class FetchReleaseFileTest(TestCase):
         file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
-            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+            name="file.min.js",
+            release_id=release.id,
+            organization_id=project.organization_id,
+            file=file,
         )
 
         result = fetch_release_file("file.min.js", release)
@@ -123,8 +130,8 @@ class FetchReleaseFileTest(TestCase):
         foo_dist = release.add_dist("foo")
         ReleaseFile.objects.create(
             name="file.min.js",
-            release=release,
-            dist=foo_dist,
+            release_id=release.id,
+            dist_id=foo_dist.id,
             organization_id=project.organization_id,
             file=foo_file,
         )
@@ -138,8 +145,8 @@ class FetchReleaseFileTest(TestCase):
         bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
-            release=release,
-            dist=bar_dist,
+            release_id=release.id,
+            dist_id=bar_dist.id,
             organization_id=project.organization_id,
             file=bar_file,
         )
@@ -176,7 +183,7 @@ class FetchReleaseFileTest(TestCase):
 
         ReleaseFile.objects.create(
             name="~/file.min.js",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=file,
         )
@@ -210,7 +217,10 @@ class FetchReleaseFileTest(TestCase):
         file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
-            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+            name="file.min.js",
+            release_id=release.id,
+            organization_id=project.organization_id,
+            file=file,
         )
 
         result = fetch_release_file("file.min.js", release)
@@ -257,7 +267,10 @@ class FetchReleaseFileTest(TestCase):
         file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
-            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+            name="file.min.js",
+            release_id=release.id,
+            organization_id=project.organization_id,
+            file=file,
         )
 
         mock_compress_file.return_value = (binary_body, binary_body)
@@ -364,7 +377,7 @@ class FetchReleaseFileTest(TestCase):
 
         ReleaseFile.objects.create(
             name=file.name,
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=file,
         )
@@ -476,6 +489,7 @@ class FetchFileTest(TestCase):
     @responses.activate
     @patch("sentry.lang.javascript.processor.fetch_release_file")
     def test_non_url_with_release(self, mock_fetch_release_file):
+
         mock_fetch_release_file.return_value = http.UrlResult(
             "/example.js", {"content-type": "application/json"}, b"foo", 200, None
         )
@@ -489,6 +503,139 @@ class FetchFileTest(TestCase):
         assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding is None
+
+    @responses.activate
+    def test_non_url_with_release_archive(self):
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("example.js", b"foo")
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "files": {
+                            "example.js": {
+                                "url": "/example.js",
+                                "headers": {"content-type": "application/json"},
+                            }
+                        }
+                    }
+                ),
+            )
+
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+        release.add_project(self.project)
+
+        compressed.seek(0)
+        file_ = File.objects.create(name="foo", type="release.bundle")
+        file_.putfile(compressed)
+        update_artifact_index(release, None, file_)
+
+        # Attempt to fetch nonexisting
+        with pytest.raises(http.BadSource):
+            fetch_file("does-not-exist.js", release=release)
+
+        # Attempt to fetch nonexsting again (to check if cache works)
+        with pytest.raises(http.BadSource):
+            result = fetch_file("does-not-exist.js", release=release)
+
+        result = fetch_file("/example.js", release=release)
+        assert result.url == "/example.js"
+        assert result.body == b"foo"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json"}
+        assert result.encoding == "utf-8"
+
+        # Make sure cache loading works:
+        result2 = fetch_file("/example.js", release=release)
+        assert result2 == result
+
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
+    def test_archive_caching(self, cache_get, cache_set):
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+
+        def relevant_calls(mock, prefix):
+            return [
+                call
+                for call in mock.mock_calls
+                if (
+                    call.args and call.args[0] or call.kwargs and call.kwargs["key"] or ""
+                ).startswith(prefix)
+            ]
+
+        # No archive exists:
+        result = fetch_release_archive_for_url(release, dist=None, url="foo")
+        assert result is None
+        assert len(relevant_calls(cache_get, "artifact-index")) == 1
+        assert len(relevant_calls(cache_set, "artifact-index")) == 1
+        assert len(relevant_calls(cache_get, "releasefile")) == 0
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # Still no archive, cache is only read
+        result = fetch_release_archive_for_url(release, dist=None, url="foo")
+        assert result is None
+        assert len(relevant_calls(cache_get, "artifact-index")) == 1
+        assert len(relevant_calls(cache_set, "artifact-index")) == 0
+        assert len(relevant_calls(cache_get, "releasefile")) == 0
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # With existing release file:
+
+        release2 = Release.objects.create(version="2", organization_id=self.project.organization_id)
+        pseudo_archive = File.objects.create(name="", type="release.bundle")
+        pseudo_archive.putfile(BytesIO(b"i_am_an_archive"))
+        releasefile = ReleaseFile.objects.create(
+            name=pseudo_archive.name,
+            release_id=release2.id,
+            organization_id=self.organization.id,
+            dist_id=None,
+            file=pseudo_archive,
+        )
+        file = File.objects.create(name=ARTIFACT_INDEX_FILENAME, type="release.artifact-index")
+        file.putfile(
+            BytesIO(json.dumps({"files": {"foo": {"archive_ident": releasefile.ident}}}).encode())
+        )
+        ReleaseFile.objects.create(
+            name=ARTIFACT_INDEX_FILENAME,
+            release_id=release2.id,
+            organization_id=self.project.organization_id,
+            file=file,
+        )
+
+        # No we have one, call set again
+        result = fetch_release_archive_for_url(release2, dist=None, url="foo")
+        assert result is not None
+        assert len(relevant_calls(cache_get, "artifact-index")) == 1
+        assert len(relevant_calls(cache_set, "artifact-index")) == 1
+        assert len(relevant_calls(cache_get, "releasefile")) == 1
+        assert len(relevant_calls(cache_set, "releasefile")) == 1
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # Second time, get it from cache
+        result = fetch_release_archive_for_url(release2, dist=None, url="foo")
+        assert result is not None
+        assert len(relevant_calls(cache_get, "artifact-index")) == 1
+        assert len(relevant_calls(cache_set, "artifact-index")) == 0
+        assert len(relevant_calls(cache_get, "releasefile")) == 1
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # For other file, get cached manifest but no release file
+        result = fetch_release_archive_for_url(release2, dist=None, url="bar")
+        assert result is None
+        assert len(relevant_calls(cache_get, "artifact-index")) == 1
+        assert len(relevant_calls(cache_set, "artifact-index")) == 0
+        assert len(relevant_calls(cache_get, "releasefile")) == 0
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
+        cache_get.reset_mock()
+        cache_set.reset_mock()
 
     @responses.activate
     def test_unicode_body(self):
@@ -1094,7 +1241,7 @@ class CacheSourceTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         abs_path = "app:///../node_modules/some-package/index.js"
-        self.create_release_file(release=release, name=abs_path)
+        self.create_release_file(release_id=release.id, name=abs_path)
 
         processor = JavaScriptStacktraceProcessor(
             data={"release": release.version}, stacktrace_infos=None, project=project
@@ -1124,7 +1271,7 @@ class CacheSourceTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         abs_path = "app:///../node_modules/some-package/index.js"
-        self.create_release_file(release=release, name=abs_path)
+        self.create_release_file(release_id=release.id, name=abs_path)
 
         processor = JavaScriptStacktraceProcessor(
             data={"release": release.version}, stacktrace_infos=None, project=project

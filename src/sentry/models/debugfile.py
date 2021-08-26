@@ -1,7 +1,9 @@
+import enum
 import errno
 import hashlib
 import logging
 import os
+import os.path
 import re
 import shutil
 import tempfile
@@ -9,10 +11,18 @@ import uuid
 
 from django.db import models
 from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
+from symbolic.debuginfo import BcSymbolMap, UuidMapping
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    sane_repr,
+)
 from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
 from sentry.utils.zip import safe_extract_zip
@@ -40,9 +50,9 @@ class ProjectDebugFileManager(BaseManager):
         checksums = [x.lower() for x in checksums]
         missing = set(checksums)
 
-        found = ProjectDebugFile.objects.filter(checksum__in=checksums, project=project).values(
-            "checksum"
-        )
+        found = ProjectDebugFile.objects.filter(
+            checksum__in=checksums, project_id=project.id
+        ).values("checksum")
 
         for values in found:
             missing.discard(list(values.values())[0])
@@ -67,7 +77,7 @@ class ProjectDebugFileManager(BaseManager):
         features = frozenset(features) if features is not None else frozenset()
 
         difs = (
-            ProjectDebugFile.objects.filter(project=project, debug_id__in=debug_ids)
+            ProjectDebugFile.objects.filter(project_id=project.id, debug_id__in=debug_ids)
             .select_related("file")
             .order_by("-id")
         )
@@ -99,20 +109,20 @@ class ProjectDebugFileManager(BaseManager):
 
 
 class ProjectDebugFile(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    project_id = BoundedBigIntegerField(null=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
 
     class Meta:
-        index_together = (("project", "debug_id"), ("project", "code_id"))
+        index_together = (("project_id", "debug_id"), ("project_id", "code_id"))
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"
 
@@ -146,6 +156,10 @@ class ProjectDebugFile(Model):
             return ".src.zip"
         if self.file_format == "wasm":
             return ".wasm"
+        if self.file_format == "bcsymbolmap":
+            return ".bcsymbolmap"
+        if self.file_format == "uuidmap":
+            return ".plist"
 
         return ""
 
@@ -164,30 +178,61 @@ def clean_redundant_difs(project, debug_id):
     identifier and the same or a superset of its features.
     """
     difs = (
-        ProjectDebugFile.objects.filter(project=project, debug_id=debug_id)
+        ProjectDebugFile.objects.filter(project_id=project.id, debug_id=debug_id)
         .select_related("file")
         .order_by("-id")
     )
 
     all_features = set()
+    bcsymbolmap_seen = False
+    uuidmap_seen = False
     for i, dif in enumerate(difs):
-        # We always keep the latest file. If it has no features, likely the
-        # previous files did not have features either and will be removed, or we
-        # keep both. Subsequent uploads will remove this file later.
-        if i > 0 and dif.features <= all_features:
-            dif.delete()
+        mime_type = dif.file.headers.get("Content-Type")
+        if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
+            if not bcsymbolmap_seen:
+                bcsymbolmap_seen = True
+            else:
+                dif.delete()
+        elif mime_type == DIF_MIMETYPES["uuidmap"]:
+            if not uuidmap_seen:
+                uuidmap_seen = True
+            else:
+                dif.delete()
         else:
-            all_features.update(dif.features)
+            # We always keep the latest file. If it has no features, likely the
+            # previous files did not have features either and will be removed, or we
+            # keep both. Subsequent uploads will remove this file later.
+            if i > 0 and dif.features <= all_features:
+                dif.delete()
+            else:
+                all_features.update(dif.features)
 
 
 def create_dif_from_id(project, meta, fileobj=None, file=None):
-    """This creates a mach dsym file or proguard mapping from the given
-    debug id and open file object to a debug file.  This will not verify the
-    debug id (intentionally so).  Use `detect_dif_from_path` to do that.
+    """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
+
+    This creates the :class:`ProjectDebugFile` entry for the DIF provided in `meta` (a
+    :class:`DifMeta` object).  If the correct entry already exists this simply returns the
+    existing entry.
+
+    It intentionally does not validate the file, only will ensure a :class:`File` entry
+    exists and set its `ContentType` according to the provided :class:DifMeta`.
+
+    Returns a tuple of `(dif, created)` where `dif` is the `ProjectDebugFile` instance and
+    `created` is a bool.
     """
     if meta.file_format == "proguard":
         object_name = "proguard-mapping"
-    elif meta.file_format in ("macho", "elf", "pdb", "pe", "wasm", "sourcebundle"):
+    elif meta.file_format in (
+        "macho",
+        "elf",
+        "pdb",
+        "pe",
+        "wasm",
+        "sourcebundle",
+        "bcsymbolmap",
+        "uuidmap",
+    ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
         object_name = meta.name[:-4] if meta.name.endswith(".sym") else meta.name
@@ -210,7 +255,9 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     dif = (
         ProjectDebugFile.objects.select_related("file")
-        .filter(project=project, debug_id=meta.debug_id, checksum=checksum, data__isnull=False)
+        .filter(
+            project_id=project.id, debug_id=meta.debug_id, checksum=checksum, data__isnull=False
+        )
         .order_by("-id")
         .first()
     )
@@ -237,7 +284,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
         code_id=meta.code_id,
         cpu_name=meta.arch,
         object_name=object_name,
-        project=project,
+        project_id=project.id,
         data=meta.data,
     )
 
@@ -269,7 +316,7 @@ class DifMeta:
     def __init__(self, file_format, arch, debug_id, path, code_id=None, name=None, data=None):
         self.file_format = file_format
         self.arch = arch
-        self.debug_id = debug_id
+        self.debug_id = debug_id  # TODO(flub): should this use normalize_debug_id()?
         self.code_id = code_id
         self.path = path
         self.data = data
@@ -310,10 +357,42 @@ class DifMeta:
         return os.path.basename(self.path)
 
 
-def detect_dif_from_path(path, name=None, debug_id=None):
-    """This detects which kind of dif(Debug Information File) the path
-    provided is. It returns an array since an Archive can contain more than
-    one Object.
+class DifKind(enum.Enum):
+    """The different kind of DIF files we can handle."""
+
+    Object = enum.auto()
+    BcSymbolMap = enum.auto()
+    UuidMap = enum.auto()
+    # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
+    # regex of it twice.  That cost is probably not too great to worry about.
+
+
+def determine_dif_kind(path):
+    """Returns the :class:`DifKind` detected at `path`."""
+    # TODO(flub): Using just the filename might be sufficient.  But the cost of opening a
+    # file that we'll open and parse right away anyway is rather minimal, though it would
+    # save a syscall.
+    with open(path, "rb") as fp:
+        data = fp.read(11)
+        if data.startswith(b"BCSymbolMap"):
+            return DifKind.BcSymbolMap
+        elif data.startswith(b"<?xml"):
+            return DifKind.UuidMap
+        else:
+            return DifKind.Object
+
+
+def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
+    """Detects which kind of Debug Information File (DIF) the file at `path` is.
+
+    :param accept_unknown: If this is ``False`` an exception will be logged with the error
+       when a file which is not a known DIF is found.  This is useful for when ingesting ZIP
+       files directly from Apple App Store Connect which you know will also contain files
+       which are not DIFs.
+
+    :returns: an array since an Archive can contain more than one Object.
+
+    :raises BadDif: If the file is not a valid DIF.
     """
     # proguard files (proguard/UUID.txt) or
     # (proguard/mapping-UUID.txt).
@@ -332,19 +411,64 @@ def detect_dif_from_path(path, name=None, debug_id=None):
             )
         ]
 
-    # native debug information files (MachO, ELF or Breakpad)
-    try:
-        archive = Archive.open(path)
-    except ObjectErrorUnsupportedObject as e:
-        raise BadDif("Unsupported debug information file: %s" % e)
-    except SymbolicError as e:
-        logger.warning("dsymfile.bad-fat-object", exc_info=True)
-        raise BadDif("Invalid debug information file: %s" % e)
+    dif_kind = determine_dif_kind(path)
+    if dif_kind == DifKind.BcSymbolMap:
+        if debug_id is None:
+            # In theory we could also parse debug_id from the filename here.  However we
+            # would need to validate that it is a valid debug_id ourselves as symbolic does
+            # not expose this yet.
+            raise BadDif("Missing debug_id for BCSymbolMap")
+        try:
+            BcSymbolMap.open(path)
+        except SymbolicError as e:
+            logger.debug("File failed to load as BCSymbolmap: %s", path)
+            raise BadDif("Invalid BCSymbolMap: %s" % e)
+        else:
+            logger.debug("File loaded as BCSymbolMap: %s", path)
+            return [
+                DifMeta(
+                    file_format="bcsymbolmap", arch="any", debug_id=debug_id, name=name, path=path
+                )
+            ]
+    elif dif_kind == DifKind.UuidMap:
+        if debug_id is None:
+            # Assume the basename is the debug_id, if it wasn't symbolic will fail.  This is
+            # required for when we get called for files extracted from a zipfile.
+            basename = os.path.basename(path)
+            try:
+                debug_id = normalize_debug_id(os.path.splitext(basename)[0])
+            except SymbolicError as e:
+                logger.debug("Filename does not look like a debug ID: %s", path)
+                raise BadDif("Invalid UuidMap: %s" % e)
+        try:
+            UuidMapping.from_plist(debug_id, path)
+        except SymbolicError as e:
+            logger.debug("File failed to load as UUIDMap: %s", path)
+            raise BadDif("Invalid UuidMap: %s" % e)
+        else:
+            logger.debug("File loaded as UUIDMap: %s", path)
+            return [
+                DifMeta(file_format="uuidmap", arch="any", debug_id=debug_id, name=name, path=path)
+            ]
     else:
-        objs = []
-        for obj in archive.iter_objects():
-            objs.append(DifMeta.from_object(obj, path, name=name, debug_id=debug_id))
-        return objs
+        # native debug information files (MachO, ELF or Breakpad)
+        try:
+            archive = Archive.open(path)
+        except ObjectErrorUnsupportedObject as e:
+            raise BadDif("Unsupported debug information file: %s" % e)
+        except SymbolicError as e:
+            if accept_unknown:
+                level = logging.DEBUG
+            else:
+                level = logging.WARNING
+            logger.log(level, "dsymfile.bad-fat-object", exc_info=True)
+            raise BadDif("Invalid debug information file: %s" % e)
+        else:
+            objs = []
+            for obj in archive.iter_objects():
+                objs.append(DifMeta.from_object(obj, path, name=name, debug_id=debug_id))
+            logger.debug("File is Archive with %s objects: %s", len(objs), path)
+            return objs
 
 
 def create_debug_file_from_dif(to_create, project):
@@ -360,7 +484,7 @@ def create_debug_file_from_dif(to_create, project):
     return rv
 
 
-def create_files_from_dif_zip(fileobj, project):
+def create_files_from_dif_zip(fileobj, project, accept_unknown=False):
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
@@ -373,7 +497,7 @@ def create_files_from_dif_zip(fileobj, project):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
                 try:
-                    difs = detect_dif_from_path(fn)
+                    difs = detect_dif_from_path(fn, accept_unknown=accept_unknown)
                 except BadDif:
                     difs = None
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -86,12 +86,12 @@ class TeamProjects extends React.Component<Props, State> {
         },
         includeAllArgs: true,
       })
-      .then(([linkedProjects, _, jqXHR]) => {
+      .then(([linkedProjects, _, resp]) => {
         this.setState({
           loading: false,
           error: false,
           linkedProjects,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+          pageLinks: resp?.getResponseHeader('Link') ?? null,
         });
       })
       .catch(() => {

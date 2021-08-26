@@ -1,20 +1,27 @@
-import React from 'react';
-import {css} from '@emotion/react';
+import * as React from 'react';
+import * as Sentry from '@sentry/react';
 import Jed from 'jed';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
-import {getTranslations} from 'app/translations';
 import localStorage from 'app/utils/localStorage';
 
-const markerCss = css`
-  background: #ff801790;
-  outline: 2px solid #ff801790;
-`;
+const markerStyles = {
+  background: '#ff801790',
+  outline: '2px solid #ff801790',
+};
 
 const LOCALE_DEBUG = localStorage.getItem('localeDebug') === '1';
+
+export const DEFAULT_LOCALE_DATA = {
+  '': {
+    domain: 'sentry',
+    lang: 'en',
+    plural_forms: 'nplurals=2; plural=(n != 1);',
+  },
+};
 
 export function setLocaleDebug(value: boolean) {
   localStorage.setItem('localeDebug', value ? '1' : '0');
@@ -43,8 +50,7 @@ let i18n: any = null;
  * translation functions, as this mutates a singleton translation object used
  * to lookup translations at runtime.
  */
-export function setLocale(locale: string) {
-  const translations = getTranslations(locale);
+export function setLocale(translations: any) {
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
@@ -52,11 +58,28 @@ export function setLocale(locale: string) {
       sentry: translations,
     },
   });
+
+  return i18n;
 }
 
-setLocale('en');
-
 type FormatArg = ComponentMap | React.ReactNode;
+
+/**
+ * Helper to return the i18n client, and initialize for the default locale (English)
+ * if it has otherwise not been initialized.
+ */
+function getClient() {
+  if (!i18n) {
+    // If this happens, it could mean that an import was added/changed where
+    // locale initialization does not happen soon enough.
+    const warning = new Error('Locale not set, defaulting to English');
+    console.error(warning); // eslint-disable-line no-console
+    Sentry.captureException(warning);
+    return setLocale(DEFAULT_LOCALE_DATA);
+  }
+
+  return i18n;
+}
 
 /**
  * printf style string formatting which render as react nodes.
@@ -260,7 +283,7 @@ function mark<T>(node: T): T {
     key: null,
     ref: null,
     props: {
-      className: markerCss,
+      style: markerStyles,
       children: isArray(node) ? node : [node],
     },
     _owner: null,
@@ -297,7 +320,7 @@ export function format(formatString: string, args: FormatArg[]) {
  * [0]: https://github.com/alexei/sprintf.js
  */
 export function gettext(string: string, ...args: FormatArg[]) {
-  const val: string = i18n.gettext(string);
+  const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
     return mark(val);
@@ -323,7 +346,7 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
   let countArg = 0;
 
   if (args.length > 0) {
-    countArg = (args[0] as number) || 0;
+    countArg = Math.abs(args[0] as number) || 0;
 
     // `toLocaleString` will render `999` as `"999"` but `9999` as `"9,999"`. This means that any call with `tn` or `ngettext` cannot use `%d` in the codebase but has to use `%s`.
     // This means a string is always being passed in as an argument, but `sprintf-js` implicitly coerces strings that can be parsed as integers into an integer.
@@ -337,7 +360,7 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
   }
 
   // XXX(ts): See XXX in gettext.
-  return mark(format(i18n.ngettext(singular, plural, countArg), args) as string);
+  return mark(format(getClient().ngettext(singular, plural, countArg), args) as string);
 }
 
 /**
@@ -357,7 +380,7 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
  * You may recursively nest additional groups within the grouped string values.
  */
 export function gettextComponentTemplate(template: string, components: ComponentMap) {
-  const tmpl = parseComponentTemplate(i18n.gettext(template));
+  const tmpl = parseComponentTemplate(getClient().gettext(template));
   return mark(renderTemplate(tmpl, components));
 }
 

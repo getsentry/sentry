@@ -121,7 +121,7 @@ def pprint(value, break_after=10):
     value = to_unicode(value)
     return mark_safe(
         "<span></span>".join(
-            [escape(value[i : (i + break_after)]) for i in range(0, len(value), break_after)]
+            escape(value[i : (i + break_after)]) for i in range(0, len(value), break_after)
         )
     )
 

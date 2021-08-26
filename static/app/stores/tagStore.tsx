@@ -5,6 +5,7 @@ import {Tag, TagCollection} from 'app/types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
+// contexts.key and contexts.value omitted on purpose.
 const BUILTIN_TAGS = [
   'event.type',
   'platform',
@@ -19,8 +20,6 @@ const BUILTIN_TAGS = [
   'user.ip',
   'sdk.name',
   'sdk.version',
-  'contexts.key',
-  'contexts.value',
   'http.method',
   'http.url',
   'os.build',
@@ -78,6 +77,7 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
       'unresolved',
       'ignored',
       'assigned',
+      'for_review',
       'unassigned',
       'linked',
       'unlinked',

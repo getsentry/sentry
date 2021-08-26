@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -14,6 +13,7 @@ type Props = {
   isProjectStabilized: boolean;
   hasSessions: boolean | null;
   hasTransactions?: boolean;
+  query?: string;
 };
 
 function ProjectScoreCards({
@@ -22,6 +22,7 @@ function ProjectScoreCards({
   isProjectStabilized,
   hasSessions,
   hasTransactions,
+  query,
 }: Props) {
   return (
     <CardWrapper>
@@ -30,12 +31,14 @@ function ProjectScoreCards({
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
+        query={query}
       />
 
       <ProjectVelocityScoreCard
         organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
+        query={query}
       />
 
       <ProjectApdexScoreCard
@@ -43,6 +46,7 @@ function ProjectScoreCards({
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasTransactions={hasTransactions}
+        query={query}
       />
     </CardWrapper>
   );

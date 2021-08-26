@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -132,7 +132,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
                   label={t('Rate Limit')}
                   disabled={disabled || !hasFeature}
                   validate={({form}) => {
-                    //TODO(TS): is validate actually doing anything because it's an unexpected prop
+                    // TODO(TS): is validate actually doing anything because it's an unexpected prop
                     const isValid =
                       form &&
                       form.rateLimit &&
@@ -153,7 +153,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
                     );
                   }}
                   help={t(
-                    'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                    'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
                   )}
                   inline={false}
                 >

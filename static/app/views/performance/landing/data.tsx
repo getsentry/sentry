@@ -12,8 +12,8 @@ export const FRONTEND_PAGELOAD_COLUMN_TITLES = [
 
 export const FRONTEND_OTHER_COLUMN_TITLES = [
   'transaction',
-  'operation',
   'project',
+  'operation',
   'tpm',
   'p50()',
   'p75()',
@@ -24,13 +24,42 @@ export const FRONTEND_OTHER_COLUMN_TITLES = [
 
 export const BACKEND_COLUMN_TITLES = [
   'transaction',
-  'operation',
   'project',
+  'operation',
+  'http method',
   'tpm',
   'p50',
   'p95',
   'failure rate',
   'apdex',
+  'users',
+  'user misery',
+];
+
+export const MOBILE_COLUMN_TITLES = [
+  'transaction',
+  'project',
+  'operation',
+  'tpm',
+  'cold start',
+  'warm start',
+  'slow frame %',
+  'frozen frame %',
+  'users',
+  'user misery',
+];
+
+export const REACT_NATIVE_COLUMN_TITLES = [
+  'transaction',
+  'project',
+  'operation',
+  'tpm',
+  'cold start',
+  'warm start',
+  // TODO(tonyx): add these back in once the SDKs are ready
+  // 'slow frame %',
+  // 'frozen frame %',
+  'stall %',
   'users',
   'user misery',
 ];

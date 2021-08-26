@@ -18,6 +18,8 @@ __all__ = (
     "ReleaseCommitPatchTest",
     "SetRefsTestCase",
     "OrganizationDashboardWidgetTestCase",
+    "SCIMTestCase",
+    "SCIMAzureTestCase",
 )
 
 import inspect
@@ -37,7 +39,8 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -51,6 +54,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
 from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
@@ -60,6 +64,7 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -105,36 +110,6 @@ class BaseTestCase(Fixtures, Exam):
 
     def tasks(self):
         return TaskRunner()
-
-    @classmethod
-    @contextmanager
-    def static_asset_manifest(cls, manifest_data):
-        dist_path = "src/sentry/static/sentry/dist"
-        manifest_path = f"{dist_path}/manifest.json"
-
-        with open(manifest_path, "w") as manifest_fp:
-            json.dump(manifest_data, manifest_fp)
-
-        files = []
-        for file_path in manifest_data.values():
-            full_path = f"{dist_path}/{file_path}"
-            # make directories in case they don't exist
-            # (e.g. dist path should exist, but subdirs won't)
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
-            open(full_path, "a").close()
-            files.append(full_path)
-
-        try:
-            yield {"manifest": manifest_data, "files": files}
-        finally:
-            with open(manifest_path, "w") as manifest_fp:
-                # Instead of unlinking, preserve an empty manifest file so that other tests that
-                # may or may not load static assets, do not fail
-                manifest_fp.write("{}")
-
-            # Remove any files created from the test manifest
-            for filepath in files:
-                os.unlink(filepath)
 
     @classmethod
     @contextmanager
@@ -403,7 +378,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         return getattr(self.client, method)(url, format="json", data=params)
 
     def get_valid_response(self, *args, **params):
-        """ Deprecated. Calls `get_response` (see above) and asserts a specific status code. """
+        """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
         status_code = params.pop("status_code", 200)
         resp = self.get_response(*args, **params)
         assert resp.status_code == status_code, (resp.status_code, resp.content)
@@ -455,6 +430,14 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             assert_status_code(response, 400, 600)
 
         return response
+
+    def get_cursor_headers(self, response):
+        return [
+            link["cursor"]
+            for link in requests.utils.parse_header_links(
+                response.get("link").rstrip(">").replace(">,<", ",<")
+            )
+        ]
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -681,9 +664,9 @@ class CliTestCase(TestCase):
 
     default_args = []
 
-    def invoke(self, *args):
+    def invoke(self, *args, **kwargs):
         args += tuple(self.default_args)
-        return self.runner.invoke(self.command, args, obj={})
+        return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
 
 @pytest.mark.usefixtures("browser")
@@ -753,7 +736,7 @@ class IntegrationTestCase(TestCase):
         self.save_session()
 
     def assertDialogSuccess(self, resp):
-        assert b"window.opener.postMessage(" in resp.content
+        assert b'window.opener.postMessage({"success":true' in resp.content
 
 
 @pytest.mark.snuba
@@ -824,13 +807,16 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def store_session(self, session):
+    def bulk_store_sessions(self, sessions):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps([session])
+                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps(sessions)
             ).status_code
             == 200
         )
+
+    def store_session(self, session):
+        self.bulk_store_sessions([session])
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
@@ -1155,3 +1141,59 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             user=self.user, organization=self.organization, role="member", teams=[self.team]
         )
         self.login_as(self.user)
+
+
+class TestMigrations(TestCase):
+    """
+    From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
+    """
+
+    @property
+    def app(self):
+        return "sentry"
+
+    migrate_from = None
+    migrate_to = None
+
+    def setUp(self):
+        assert (
+            self.migrate_from and self.migrate_to
+        ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
+            type(self).__name__
+        )
+        self.migrate_from = [(self.app, self.migrate_from)]
+        self.migrate_to = [(self.app, self.migrate_to)]
+        executor = MigrationExecutor(connection)
+        old_apps = executor.loader.project_state(self.migrate_from).apps
+
+        # Reverse to the original migration
+        executor.migrate(self.migrate_from)
+
+        self.setup_before_migration(old_apps)
+
+        # Run the migration to test
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()  # reload.
+        executor.migrate(self.migrate_to)
+
+        self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def setup_before_migration(self, apps):
+        pass
+
+
+class SCIMTestCase(APITestCase):
+    def setUp(self, provider="dummy"):
+        super().setUp()
+        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        with self.feature({"organizations:sso-scim": True}):
+            self.auth_provider.enable_scim(self.user)
+            self.auth_provider.save()
+        self.login_as(user=self.user)
+
+
+class SCIMAzureTestCase(SCIMTestCase):
+    def setUp(self):
+        auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+        super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
+        self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)

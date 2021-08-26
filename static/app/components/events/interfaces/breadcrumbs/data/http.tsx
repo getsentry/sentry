@@ -1,4 +1,3 @@
-import React from 'react';
 import omit from 'lodash/omit';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
@@ -41,10 +40,7 @@ const Http = ({breadcrumb, searchTerm}: Props) => {
   const statusCode = data?.status_code;
 
   return (
-    <Summary
-      kvData={omit(data, ['method', 'url', 'status_code'])}
-      searchTerm={searchTerm}
-    >
+    <Summary kvData={omit(data, ['method', 'url', 'status_code'])}>
       {data?.method && (
         <AnnotatedText
           value={

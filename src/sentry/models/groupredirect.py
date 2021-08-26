@@ -6,10 +6,10 @@ from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 class GroupRedirect(Model):
     """
     Maintains a reference from a group that has been merged (and subsequently
-    deleted) to the group that superceded it.
+    deleted) to the group that superseded it.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(null=True)
     group_id = BoundedBigIntegerField(db_index=True)

@@ -3,7 +3,6 @@ import {Location} from 'history';
 import {t} from 'app/locale';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {AggregationKey, Column} from 'app/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatFloat,
@@ -14,7 +13,7 @@ import {HistogramData} from 'app/utils/performance/histogram/types';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
-import {Rectangle} from '../transactionVitals/types';
+import {Rectangle} from '../transactionSummary/transactionVitals/types';
 import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
@@ -30,6 +29,7 @@ export enum LandingDisplayField {
   FRONTEND_PAGELOAD = 'frontend_pageload',
   FRONTEND_OTHER = 'frontend_other',
   BACKEND = 'backend',
+  MOBILE = 'mobile',
 }
 
 export const LANDING_DISPLAYS = [
@@ -48,6 +48,13 @@ export const LANDING_DISPLAYS = [
   {
     label: 'Backend',
     field: LandingDisplayField.BACKEND,
+  },
+  {
+    label: 'Mobile',
+    field: LandingDisplayField.MOBILE,
+    isShown: (organization: Organization) =>
+      organization.features.includes('performance-mobile-vitals'),
+    badge: 'new' as const,
   },
 ];
 
@@ -78,27 +85,6 @@ export function getChartWidth(chartData: HistogramData, refPixelRect: Rectangle 
   };
 }
 
-export function getBackendFunction(
-  functionName: AggregationKey,
-  organization: Organization
-): Column {
-  switch (functionName) {
-    case 'p75':
-      return {kind: 'function', function: ['p75', 'transaction.duration', undefined]};
-    case 'tpm':
-      return {kind: 'function', function: ['tpm', '', undefined]};
-    case 'failure_rate':
-      return {kind: 'function', function: ['failure_rate', '', undefined]};
-    case 'apdex':
-      return {
-        kind: 'function',
-        function: ['apdex', `${organization.apdexThreshold}`, undefined],
-      };
-    default:
-      throw new Error(`Unsupported backend function: ${functionName}`);
-  }
-}
-
 export function getDefaultDisplayFieldForPlatform(
   projects: Project[],
   eventView?: EventView
@@ -112,6 +98,7 @@ export function getDefaultDisplayFieldForPlatform(
     [PROJECT_PERFORMANCE_TYPE.ANY]: LandingDisplayField.ALL,
     [PROJECT_PERFORMANCE_TYPE.FRONTEND]: LandingDisplayField.FRONTEND_PAGELOAD,
     [PROJECT_PERFORMANCE_TYPE.BACKEND]: LandingDisplayField.BACKEND,
+    [PROJECT_PERFORMANCE_TYPE.MOBILE]: LandingDisplayField.MOBILE,
   };
   const performanceType = platformToPerformanceType(projects, projectIds);
   const landingField =
@@ -119,27 +106,62 @@ export function getDefaultDisplayFieldForPlatform(
   return landingField;
 }
 
-export const backendCardDetails = (organization: LightWeightOrganization) => {
+type VitalCardDetail = {
+  title: string;
+  tooltip: string;
+  formatter: (value: number) => string | number;
+};
+
+export const vitalCardDetails = (
+  organization: LightWeightOrganization
+): {[key: string]: VitalCardDetail | undefined} => {
   return {
-    p75: {
+    'p75(transaction.duration)': {
       title: t('Duration (p75)'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
-    tpm: {
+    'tpm()': {
       title: t('Throughput'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.THROUGHPUT),
       formatter: formatAbbreviatedNumber,
     },
-    failure_rate: {
+    'failure_rate()': {
       title: t('Failure Rate'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
       formatter: value => formatPercentage(value, 2),
     },
-    apdex: {
+    'apdex()': {
       title: t('Apdex'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: organization.features.includes('project-transaction-threshold')
+        ? getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)
+        : getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       formatter: value => formatFloat(value, 4),
+    },
+    'p75(measurements.frames_slow_rate)': {
+      title: t('Slow Frames (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
+      formatter: value => formatPercentage(value, 2),
+    },
+    'p75(measurements.frames_frozen_rate)': {
+      title: t('Frozen Frames (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
+      formatter: value => formatPercentage(value, 2),
+    },
+    'p75(measurements.app_start_cold)': {
+      title: t('Cold Start (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
+    },
+    'p75(measurements.app_start_warm)': {
+      title: t('Warm Start (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
+    },
+    'p75(measurements.stall_percentage)': {
+      title: t('Stall Percentage (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.STALL_PERCENTAGE),
+      formatter: value => formatPercentage(value, 2),
     },
   };
 };

@@ -15,16 +15,11 @@ TEST_ROOT = os.path.normpath(
 def pytest_configure(config):
     import warnings
 
-    from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
+    from django.utils.deprecation import RemovedInDjango30Warning
 
-    # These warnings should be kept in sync with sentry.runner.settings,
-    # and pytest warningfilters in pyproject.toml.
-    # See pyproject.toml for explanations.
-    warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
-    warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
-    warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
 
-    # These warnings are for pytest only.
+    # This is just to filter out an obvious warning before the pytest session starts.
     warnings.filterwarnings(
         action="ignore",
         message=r".*sentry.digests.backends.dummy.DummyBackend.*",
@@ -68,6 +63,8 @@ def pytest_configure(config):
 
     # override a few things with our test specifics
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("tests",)
+    if "sentry" in settings.INSTALLED_APPS:
+        settings.INSTALLED_APPS = settings.INSTALLED_APPS + ("sentry.demo",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
 
@@ -82,10 +79,10 @@ def pytest_configure(config):
 
     # Replace real sudo middleware with our mock sudo middleware
     # to assert that the user is always in sudo mode
-    middleware = list(settings.MIDDLEWARE_CLASSES)
+    middleware = list(settings.MIDDLEWARE)
     sudo = middleware.index("sentry.middleware.sudo.SudoMiddleware")
     middleware[sudo] = "sentry.testutils.middleware.SudoMiddleware"
-    settings.MIDDLEWARE_CLASSES = tuple(middleware)
+    settings.MIDDLEWARE = tuple(middleware)
 
     settings.SENTRY_OPTIONS["cloudflare.secret-key"] = "cloudflare-secret-key"
 
@@ -171,6 +168,9 @@ def pytest_configure(config):
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
+    # This is so tests can assume this feature is off by default
+    settings.SENTRY_FEATURES["organizations:performance-view"] = False
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
@@ -180,6 +180,7 @@ def pytest_configure(config):
         # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
         # This is a hack to force django to sync the database state from the models rather than use migrations.
         settings.MIGRATION_MODULES["sentry"] = None
+        settings.MIGRATION_MODULES["demo"] = None
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"

@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import {Component, Fragment} from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -21,14 +21,14 @@ import ChartFooter from './chartFooter';
 
 type ResultsChartProps = {
   api: Client;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   organization: Organization;
   eventView: EventView;
   location: Location;
   confirmedQuery: boolean;
 };
 
-class ResultsChart extends React.Component<ResultsChartProps> {
+class ResultsChart extends Component<ResultsChartProps> {
   shouldComponentUpdate(nextProps: ResultsChartProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
@@ -42,6 +42,10 @@ class ResultsChart extends React.Component<ResultsChartProps> {
 
   render() {
     const {api, eventView, location, organization, router, confirmedQuery} = this.props;
+
+    const hasPerformanceChartInterpolation = organization.features.includes(
+      'performance-chart-interpolation'
+    );
 
     const yAxisValue = eventView.getYAxis();
 
@@ -64,7 +68,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
     const isPrevious = display === DisplayModes.PREVIOUS;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {getDynamicText({
           value: (
             <EventsChart
@@ -88,18 +92,19 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
+              withoutZerofill={hasPerformanceChartInterpolation}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
 
 type ContainerProps = {
   api: Client;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -111,7 +116,7 @@ type ContainerProps = {
   onDisplayChange: (value: string) => void;
 };
 
-class ResultsChartContainer extends React.Component<ContainerProps> {
+class ResultsChartContainer extends Component<ContainerProps> {
   shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;

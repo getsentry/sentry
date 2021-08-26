@@ -1,4 +1,5 @@
-import React, {MouseEvent} from 'react';
+import {MouseEvent} from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -233,8 +234,8 @@ class QueryList extends React.Component<Props> {
         <QueryGrid>{this.renderQueries()}</QueryGrid>
         <PaginationRow
           pageLinks={pageLinks}
-          onCursor={(cursor: string, path: string, query: Query, direction: number) => {
-            const offset = Number(cursor.split(':')[1]);
+          onCursor={(cursor, path, query, direction) => {
+            const offset = Number(cursor?.split(':')?.[1] ?? 0);
 
             const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
@@ -261,7 +262,7 @@ const PaginationRow = styled(Pagination)`
 const QueryGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(3)};
+  grid-gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));

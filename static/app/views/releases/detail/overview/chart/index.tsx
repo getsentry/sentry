@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import {Component, Fragment} from 'react';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -14,6 +14,7 @@ import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {Series} from 'app/types/echarts';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
@@ -39,7 +40,7 @@ type Props = {
   onYAxisChange: (yAxis: YAxis) => void;
   onEventTypeChange: (eventType: EventType) => void;
   onVitalTypeChange: (vitalType: WebVital) => void;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   organization: Organization;
   hasHealthData: boolean;
   location: Location;
@@ -52,7 +53,18 @@ type Props = {
   projectSlug: string;
 };
 
-class ReleaseChartContainer extends React.Component<Props> {
+class ReleaseChartContainer extends Component<Props> {
+  componentDidMount() {
+    const {organization, yAxis, platform} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: `release_detail.display_chart`,
+      eventName: `Release Detail: Display Chart`,
+      organization_id: parseInt(organization.id, 10),
+      display: yAxis,
+      platform,
+    });
+  }
   /**
    * This returns an array with 3 colors, one for each of
    * 1. This Release
@@ -301,7 +313,7 @@ class ReleaseChartContainer extends React.Component<Props> {
             </ChartContainer>
             <AnchorWrapper>
               <GuideAnchor target="release_chart" position="bottom" offset="-80px">
-                <React.Fragment />
+                <Fragment />
               </GuideAnchor>
             </AnchorWrapper>
             <ReleaseChartControls

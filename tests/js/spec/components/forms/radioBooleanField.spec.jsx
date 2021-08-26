@@ -1,8 +1,6 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {RadioBooleanField} from 'app/components/forms';
+import {Form, RadioBooleanField} from 'app/components/forms';
 import NewRadioBooleanField from 'app/views/settings/components/forms/radioBooleanField';
 
 describe('RadioBooleanField', function () {
@@ -16,17 +14,9 @@ describe('RadioBooleanField', function () {
 
     it('renders with form context', function () {
       const wrapper = mountWithTheme(
-        <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />,
-        {
-          context: {
-            form: {
-              data: {
-                fieldName: true,
-              },
-              errors: {},
-            },
-          },
-        }
+        <Form initialData={{fieldName: true}}>
+          <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
+        </Form>
       );
       expect(wrapper).toSnapshot();
     });

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
@@ -36,7 +36,7 @@ type State = {
   pluginLoading: boolean;
 };
 
-class PluginActions extends React.Component<Props, State> {
+class PluginActions extends Component<Props, State> {
   state: State = {
     issue: null,
     pluginLoading: false,
@@ -142,7 +142,7 @@ type ModalState = {
   actionType: 'create' | 'link' | null;
 };
 
-class PluginActionsModal extends React.Component<ModalProps, ModalState> {
+class PluginActionsModal extends Component<ModalProps, ModalState> {
   state: ModalState = {
     actionType: 'create',
   };
@@ -152,7 +152,7 @@ class PluginActionsModal extends React.Component<ModalProps, ModalState> {
     const {actionType} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           {tct('[name] Issue', {name: plugin.name || plugin.title})}
         </Header>
@@ -178,7 +178,7 @@ class PluginActionsModal extends React.Component<ModalProps, ModalState> {
             })}
           </Body>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

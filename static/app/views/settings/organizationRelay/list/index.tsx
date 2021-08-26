@@ -1,8 +1,6 @@
-import React from 'react';
-import styled from '@emotion/styled';
+import * as React from 'react';
 import orderBy from 'lodash/orderBy';
 
-import space from 'app/styles/space';
 import {Relay, RelayActivity} from 'app/types';
 
 import ActivityList from './activityList';
@@ -41,13 +39,12 @@ const List = ({
   };
 
   return (
-    <Wrapper>
+    <div>
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
-        const {name, description, created, activities} = relaysByPublicKey[
-          relayByPublicKey
-        ];
+        const {name, description, created, activities} =
+          relaysByPublicKey[relayByPublicKey];
         return (
-          <Card key={relayByPublicKey}>
+          <div key={relayByPublicKey}>
             <CardHeader
               publicKey={relayByPublicKey}
               name={name}
@@ -58,21 +55,11 @@ const List = ({
               disabled={disabled}
             />
             {renderCardContent(activities)}
-          </Card>
+          </div>
         );
       })}
-    </Wrapper>
+    </div>
   );
 };
 
 export default List;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-gap: ${space(3)};
-`;
-
-const Card = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-`;

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 
 import {Grid, GridCell} from './styles';

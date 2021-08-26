@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -14,8 +14,8 @@ import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+import {vitalsRouteWithQuery} from 'app/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
-import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
 import VitalInfo from '../vitalDetail/vitalInfo';
 
@@ -41,11 +41,19 @@ function UserStats({
   transactionName,
 }: Props) {
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
-  const threshold = organization.apdexThreshold;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = totals[`count_miserable_user_${threshold}`];
-    const userMiseryScore = totals[`user_misery_${threshold}`];
+    let miserableUsers, threshold: number | undefined;
+    let userMiseryScore: number;
+    if (organization.features.includes('project-transaction-threshold')) {
+      threshold = totals.project_threshold_config[1];
+      miserableUsers = totals.count_miserable_user;
+      userMiseryScore = totals.user_misery;
+    } else {
+      threshold = organization.apdexThreshold;
+      miserableUsers = totals[`count_miserable_user_${threshold}`];
+      userMiseryScore = totals[`user_misery_${threshold}`];
+    }
     const totalUsers = totals.count_unique_user;
     userMisery = (
       <UserMisery
@@ -67,9 +75,9 @@ function UserStats({
   });
 
   return (
-    <React.Fragment>
+    <Fragment>
       {hasWebVitals && (
-        <React.Fragment>
+        <Fragment>
           <VitalsHeading>
             <SectionHeading>
               {t('Web Vitals')}
@@ -94,19 +102,24 @@ function UserStats({
             hideDurationDetail
           />
           <SidebarSpacer />
-        </React.Fragment>
+        </Fragment>
       )}
       <SectionHeading>
         {t('User Misery')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
+          title={getTermHelp(
+            organization,
+            organization.features.includes('project-transaction-threshold')
+              ? PERFORMANCE_TERM.USER_MISERY_NEW
+              : PERFORMANCE_TERM.USER_MISERY
+          )}
           size="sm"
         />
       </SectionHeading>
       {userMisery}
       <SidebarSpacer />
-    </React.Fragment>
+    </Fragment>
   );
 }
 

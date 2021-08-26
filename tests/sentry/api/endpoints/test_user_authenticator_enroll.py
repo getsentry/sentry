@@ -11,6 +11,7 @@ from sentry.models import (
     Authenticator,
     Organization,
     OrganizationMember,
+    UserEmail,
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import mock
@@ -27,6 +28,7 @@ def get_fixture_path(name):
 class UserAuthenticatorEnrollTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="a@example.com", is_superuser=False)
+        self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
     def _assert_security_email_sent(self, email_type, email_log):
@@ -67,6 +69,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
         assert interface
+        assert interface.secret == "secret12"
+        assert interface.config == {"secret": "secret12"}
 
         # also enrolls in recovery codes
         recovery = Authenticator.objects.get_interface(user=self.user, interface_id="recovery")
@@ -74,11 +78,15 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         self._assert_security_email_sent("mfa-added", email_log)
 
-        # can't enroll again because no multi enrollment is allowed
+        # can rotate in place
         resp = self.client.get(url)
-        assert resp.status_code == 400
-        resp = self.client.post(url)
-        assert resp.status_code == 400
+        assert resp.status_code == 200
+        resp = self.client.post(url, data={"secret": "secret56", "otp": "5678"})
+        assert validate_otp.call_args == mock.call("5678")
+        assert resp.status_code == 204
+        interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
+        assert interface.secret == "secret56"
+        assert interface.config == {"secret": "secret56"}
 
     @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
@@ -150,6 +158,31 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert resp.status_code == 400
             resp = self.client.post(url, data={"secret": "secret12", "phone": "1231234", "otp": ""})
             assert resp.status_code == 400
+
+    def test_sms_no_verified_email(self):
+        user = self.create_user()
+        UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
+
+        self.login_as(user)
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options["sms.twilio-account"] = "twilio-account"
+
+        with self.settings(SENTRY_OPTIONS=new_options):
+            url = reverse(
+                "sentry-api-0-user-authenticator-enroll",
+                kwargs={"user_id": "me", "interface_id": "sms"},
+            )
+            resp = self.client.post(
+                url, data={"secret": "secret12", "phone": "1231234", "otp": None}
+            )
+            assert resp.status_code == 401
+            assert resp.data == {
+                "detail": {
+                    "code": "email-verification-required",
+                    "message": "Email verification required.",
+                    "extra": {"username": user.email},
+                }
+            }
 
     @mock.patch(
         "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.is_limited", return_value=True

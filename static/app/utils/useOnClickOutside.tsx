@@ -1,5 +1,6 @@
 // hook from https://usehooks.com/useOnClickOutside/
-import React, {useEffect} from 'react';
+import {useEffect} from 'react';
+import * as React from 'react';
 
 function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   ref: React.RefObject<T>,

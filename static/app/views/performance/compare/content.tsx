@@ -1,31 +1,28 @@
-import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {Component, Fragment} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {Event} from 'app/types/event';
-import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
-
-import {FilterViews} from '../landing';
 
 import TraceView from './traceView';
 import TransactionSummary from './transactionSummary';
 import {isTransactionEvent} from './utils';
 
-type Props = {
+type Props = Pick<
+  RouteComponentProps<{baselineEventSlug: string; regressionEventSlug: string}, {}>,
+  'params' | 'location'
+> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   baselineEvent: Event;
   regressionEvent: Event;
 };
 
-class TransactionComparisonContent extends React.Component<Props> {
+class TransactionComparisonContent extends Component<Props> {
   getTransactionName() {
     const {baselineEvent, regressionEvent} = this.props;
 
@@ -51,15 +48,11 @@ class TransactionComparisonContent extends React.Component<Props> {
   render() {
     const {baselineEvent, regressionEvent, organization, location, params} = this.props;
 
-    const isFromTrends = decodeScalar(location.query?.view) === FilterViews.TRENDS;
-
     const transactionName =
-      baselineEvent.title === regressionEvent.title && !isFromTrends
-        ? baselineEvent.title
-        : undefined;
+      baselineEvent.title === regressionEvent.title ? baselineEvent.title : undefined;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
@@ -85,7 +78,7 @@ class TransactionComparisonContent extends React.Component<Props> {
             <TraceView baselineEvent={baselineEvent} regressionEvent={regressionEvent} />
           </StyledPanel>
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

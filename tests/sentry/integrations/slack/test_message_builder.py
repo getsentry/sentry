@@ -1,9 +1,10 @@
 from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.integrations.slack.utils import INCIDENT_RESOLVED_COLOR, LEVEL_TO_COLOR, parse_link
+from sentry.integrations.slack.utils import parse_link
 from sentry.testutils import TestCase
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -42,7 +43,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
             "footer": incident_footer_ts,
-            "color": INCIDENT_RESOLVED_COLOR,
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
             "actions": [],
         }
 
@@ -96,8 +97,8 @@ class BuildIncidentAttachmentTest(TestCase):
         group = self.create_group(project=self.project)
         ts = group.last_seen
         assert build_group_attachment(group) == {
-            "color": "#E03E2F",
             "text": "",
+            "color": "#E03E2F",
             "actions": [
                 {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
                 {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
@@ -235,13 +236,13 @@ class BuildIncidentAttachmentTest(TestCase):
 
     def test_build_group_attachment_issue_alert(self):
         issue_alert_group = self.create_group(project=self.project)
-        assert build_group_attachment(issue_alert_group, issue_alert=True)["actions"] == []
+        assert build_group_attachment(issue_alert_group, issue_details=True)["actions"] == []
 
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)
         assert build_group_attachment(group_with_no_events)["color"] == "#E03E2F"
 
-    def test_build_group_attachment_color_unxpected_level_error_fallback(self):
+    def test_build_group_attachment_color_unexpected_level_error_fallback(self):
         unexpected_level_event = self.store_event(
             data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
         )

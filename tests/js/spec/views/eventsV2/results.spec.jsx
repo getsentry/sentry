@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -29,7 +28,7 @@ const generateFields = () => ({
 describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
-  let eventResultsMock, mockSaved;
+  let eventResultsMock, mockSaved, eventsStatsMock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -44,7 +43,7 @@ describe('EventsV2 > Results', function () {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {data: [[123, []]]},
     });
@@ -197,6 +196,52 @@ describe('EventsV2 > Results', function () {
     expect(eventResultsMock).toHaveBeenCalled();
   });
 
+  it('pushes to router when user id is wrong', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), cursor: '0%3A50%3A0', user: '2'}},
+      },
+    });
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(initialData.router.location).toEqual({
+      query: {
+        ...generateFields(),
+        cursor: '0%3A50%3A0',
+        user: '2',
+      },
+    });
+
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        ...generateFields(),
+        cursor: '0%3A50%3A0',
+        user: '1',
+      },
+    });
+    wrapper.unmount();
+  });
+
   it('pagination cursor should be cleared when making a search', async function () {
     const organization = TestStubs.Organization({
       features,
@@ -238,6 +283,7 @@ describe('EventsV2 > Results', function () {
     search.simulate('change', {target: {value: 'geo:canada'}}).simulate('submit', {
       preventDefault() {},
     });
+    await tick();
 
     // cursor query string should be omitted from the query string
     expect(initialData.router.push).toHaveBeenCalledWith({
@@ -248,9 +294,10 @@ describe('EventsV2 > Results', function () {
         statsPeriod: '14d',
       },
     });
+    wrapper.unmount();
   });
 
-  it('renders a y-axis selector', function () {
+  it('renders a y-axis selector', async function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -279,13 +326,15 @@ describe('EventsV2 > Results', function () {
 
     // Click one of the options.
     selector.find('DropdownMenu MenuItem span').first().simulate('click');
+    await tick();
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart');
     expect(eventsRequest.props().yAxis).toEqual('count()');
+    wrapper.unmount();
   });
 
-  it('renders a display selector', function () {
+  it('renders a display selector', async function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -306,6 +355,11 @@ describe('EventsV2 > Results', function () {
       />,
       initialData.routerContext
     );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
     // display selector is first.
     const selector = wrapper.find('OptionSelector').first();
 
@@ -317,14 +371,16 @@ describe('EventsV2 > Results', function () {
       .find('DropdownMenu MenuItem [data-test-id="option-default"]')
       .first()
       .simulate('click');
+    await tick();
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart').props();
     expect(eventsRequest.disableReleases).toEqual(false);
     expect(eventsRequest.disablePrevious).toEqual(true);
+    wrapper.unmount();
   });
 
-  it('excludes top5 options when plan does not include discover-query', function () {
+  it('excludes top5 options when plan does not include discover-query', async function () {
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
@@ -350,6 +406,7 @@ describe('EventsV2 > Results', function () {
 
     // Open the selector
     selector.find('StyledDropdownButton button').simulate('click');
+    await tick();
 
     // Make sure the top5 option isn't present
     const options = selector
@@ -358,6 +415,7 @@ describe('EventsV2 > Results', function () {
     expect(options).not.toContain('option-top5');
     expect(options).not.toContain('option-dailytop5');
     expect(options).toContain('option-default');
+    wrapper.unmount();
   });
 
   it('needs confirmation on long queries', async function () {
@@ -387,6 +445,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(true);
+    wrapper.unmount();
   });
 
   it('needs confirmation on long query with explicit projects', async function () {
@@ -422,6 +481,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(true);
+    wrapper.unmount();
   });
 
   it('does not need confirmation on short queries', async function () {
@@ -451,6 +511,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(false);
+    wrapper.unmount();
   });
 
   it('does not need confirmation with to few projects', async function () {
@@ -482,6 +543,7 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(false);
+    wrapper.unmount();
   });
 
   it('retrieves saved query', async function () {
@@ -521,6 +583,7 @@ describe('EventsV2 > Results', function () {
     expect(savedQuery.projects).toEqual([]);
     expect(savedQuery.range).toEqual('24h');
     expect(mockSaved).toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('creates event view from saved query', async function () {
@@ -554,6 +617,7 @@ describe('EventsV2 > Results', function () {
     expect(eventView.project).toEqual([]);
     expect(eventView.statsPeriod).toEqual('24h');
     expect(eventView.sorts).toEqual([{field: 'user.display', kind: 'desc'}]);
+    wrapper.unmount();
   });
 
   it('overrides saved query params with location query params', async function () {
@@ -594,5 +658,195 @@ describe('EventsV2 > Results', function () {
     expect(eventView.project).toEqual([2]);
     expect(eventView.statsPeriod).toEqual('7d');
     expect(eventView.environment).toEqual(['production']);
+    wrapper.unmount();
+  });
+
+  it('updates chart whenever yAxis parameter changes', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), yAxis: 'count()'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
+    // Should load events once
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    // Update location simulating a browser back button action
+    wrapper.setProps({
+      location: {
+        query: {...generateFields(), yAxis: 'count_unique(user)'},
+      },
+    });
+    await tick();
+    wrapper.update();
+
+    // Should load events again
+    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count_unique(user)',
+        }),
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('updates chart whenever display parameter changes', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'default'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
+    // Should load events once
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    // Update location simulating a browser back button action
+    wrapper.setProps({
+      location: {
+        query: {...generateFields(), display: 'previous'},
+      },
+    });
+    await tick();
+    wrapper.update();
+
+    // Should load events again
+    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '28d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('updates chart whenever display and yAxis parameters change', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
+    // Should load events once
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    // Update location simulating a browser back button action
+    wrapper.setProps({
+      location: {
+        query: {...generateFields(), display: 'previous', yAxis: 'count_unique(user)'},
+      },
+    });
+    await tick();
+    wrapper.update();
+
+    // Should load events again
+    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '28d',
+          yAxis: 'count_unique(user)',
+        }),
+      })
+    );
+    wrapper.unmount();
   });
 });

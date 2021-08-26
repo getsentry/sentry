@@ -1,9 +1,9 @@
-import React from 'react';
-
 import {
+  IconCalixa,
   IconClickup,
   IconClubhouse,
   IconGeneric,
+  IconKomodor,
   IconLinear,
   IconRookout,
   IconSpikesh,
@@ -18,10 +18,14 @@ type Props = {
 
 const SentryAppIcon = ({slug}: Props) => {
   switch (slug) {
+    case 'calixa':
+      return <IconCalixa size="md" />;
     case 'clickup':
       return <IconClickup size="md" />;
     case 'clubhouse':
       return <IconClubhouse size="md" />;
+    case 'komodor':
+      return <IconKomodor size="md" />;
     case 'linear':
       return <IconLinear size="md" />;
     case 'rookout':

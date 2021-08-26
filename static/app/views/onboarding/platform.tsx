@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -11,6 +11,7 @@ import PlatformPicker from 'app/components/platformPicker';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
 import {Team} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
 
@@ -39,11 +40,17 @@ type State = {
   progressing: boolean;
 };
 
-class OnboardingPlatform extends React.Component<Props, State> {
+class OnboardingPlatform extends Component<Props, State> {
   state: State = {
     firstProjectCreated: false,
     progressing: false,
   };
+
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('growth.onboarding_load_choose_platform', {
+      organization: this.props.organization ?? null,
+    });
+  }
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.active && !this.props.active) {
@@ -56,7 +63,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
     return this.props.project || this.state.firstProjectCreated;
   }
 
-  get contineButtonLabel() {
+  get continueButtonLabel() {
     if (this.state.progressing) {
       return t('Creating Project...');
     }
@@ -102,6 +109,10 @@ class OnboardingPlatform extends React.Component<Props, State> {
     if (platform === null) {
       return;
     }
+    trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_project', {
+      platform,
+      organization: this.props.organization ?? null,
+    });
 
     // Create their first project if they don't already have one. This is a
     // no-op if they already have a project.
@@ -138,6 +149,8 @@ class OnboardingPlatform extends React.Component<Props, State> {
             noAutoFilter
             platform={selectedPlatform}
             setPlatform={this.handleSetPlatform}
+            source="Onboarding"
+            organization={this.props.organization}
           />
           <p>
             {tct(
@@ -165,7 +178,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
               disabled={continueDisabled}
               onClick={this.handleContinue}
             >
-              {this.contineButtonLabel}
+              {this.continueButtonLabel}
             </Button>
           )}
         </motion.div>

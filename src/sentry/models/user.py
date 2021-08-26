@@ -37,7 +37,7 @@ class UserManager(BaseManager, DjangoUserManager):
         ).distinct()
 
     def get_from_group(self, group):
-        """ Get a queryset of all users in all teams in a given Group's project. """
+        """Get a queryset of all users in all teams in a given Group's project."""
         return self.filter(
             sentry_orgmember_set__teams__in=group.project.teams.all(),
             is_active=True,
@@ -64,7 +64,7 @@ class UserManager(BaseManager, DjangoUserManager):
 
 
 class User(BaseModel, AbstractBaseUser):
-    __core__ = True
+    __include_in_export__ = True
 
     id = BoundedAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
@@ -181,6 +181,15 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
+
+    def has_usable_password(self):
+        if self.password == "" or self.password is None:
+            # This is the behavior we've been relying on from Django 1.6 - 2.0.
+            # In 2.1, a "" or None password is considered usable.
+            # Removing this override requires identifying all the places
+            # to put set_unusable_password and a migration.
+            return False
+        return super().has_usable_password()
 
     def get_label(self):
         return self.email or self.username or self.id
@@ -338,24 +347,14 @@ class User(BaseModel, AbstractBaseUser):
             request.session["_nonce"] = self.session_nonce
 
     def get_orgs(self):
-        from sentry.models import Organization, OrganizationMember, OrganizationStatus
+        from sentry.models import Organization
 
-        return Organization.objects.filter(
-            status=OrganizationStatus.VISIBLE,
-            id__in=OrganizationMember.objects.filter(user=self).values("organization"),
-        )
+        return Organization.objects.get_for_user_ids({self.id})
 
     def get_projects(self):
-        from sentry.models import OrganizationMemberTeam, Project, ProjectStatus, ProjectTeam
+        from sentry.models import Project
 
-        return Project.objects.filter(
-            status=ProjectStatus.VISIBLE,
-            id__in=ProjectTeam.objects.filter(
-                team_id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=self
-                ).values_list("team_id", flat=True)
-            ).values_list("project_id", flat=True),
-        )
+        return Project.objects.get_for_user_ids({self.id})
 
     def get_orgs_require_2fa(self):
         from sentry.models import Organization, OrganizationStatus

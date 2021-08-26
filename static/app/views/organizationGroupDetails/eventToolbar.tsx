@@ -1,25 +1,25 @@
-import React from 'react';
-import {Link} from 'react-router';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
+import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import DistributedTracingPrompt from './eventQuickTrace';
-import QuickTrace from './issueQuickTrace';
+import QuickTrace from './quickTrace';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -44,12 +44,13 @@ const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
 
 type Props = {
   organization: Organization;
+  project: Project;
   group: Group;
   event: Event;
   location: Location;
 };
 
-class GroupEventToolbar extends React.Component<Props> {
+class GroupEventToolbar extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
@@ -80,7 +81,7 @@ class GroupEventToolbar extends React.Component<Props> {
           {dateCreated.format(format)}
         </dd>
         {dateReceived && (
-          <React.Fragment>
+          <Fragment>
             <dt>Received</dt>
             <dd>
               {dateReceived.format('ll')}
@@ -89,7 +90,7 @@ class GroupEventToolbar extends React.Component<Props> {
             </dd>
             <dt>Latency</dt>
             <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
-          </React.Fragment>
+          </Fragment>
         )}
       </DescriptionList>
     );
@@ -98,8 +99,8 @@ class GroupEventToolbar extends React.Component<Props> {
   render() {
     const evt = this.props.event;
 
-    const {organization, location} = this.props;
-    const groupId = this.props.group.id;
+    const {group, organization, location, project} = this.props;
+    const groupId = group.id;
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
@@ -112,23 +113,18 @@ class GroupEventToolbar extends React.Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
-    const hasQuickTraceView =
-      organization.features.includes('trace-view-summary') ||
-      organization.features.includes('trace-view-quick');
-    const hasTraceContext = evt.contexts?.trace?.trace_id;
-
     return (
       <Wrapper>
         <StyledNavigationButtonGroup
-          location={location}
           hasPrevious={!!evt.previousEventID}
           hasNext={!!evt.nextEventID}
-          urls={[
-            `${baseEventsPath}oldest/`,
-            `${baseEventsPath}${evt.previousEventID}/`,
-            `${baseEventsPath}${evt.nextEventID}/`,
-            `${baseEventsPath}latest/`,
+          links={[
+            {pathname: `${baseEventsPath}oldest/`, query: location.query},
+            {pathname: `${baseEventsPath}${evt.previousEventID}/`, query: location.query},
+            {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
+            {pathname: `${baseEventsPath}latest/`, query: location.query},
           ]}
+          size="small"
         />
         <Heading>
           {t('Event')}{' '}
@@ -145,16 +141,17 @@ class GroupEventToolbar extends React.Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
-        {hasQuickTraceView && !hasTraceContext && (
-          <DistributedTracingPrompt
-            event={evt}
-            group={this.props.group}
-            organization={organization}
-          />
-        )}
-        {hasQuickTraceView && hasTraceContext && (
-          <QuickTrace organization={organization} event={evt} location={location} />
-        )}
+        <StyledGlobalAppStoreConnectUpdateAlert
+          project={project}
+          organization={organization}
+          isCompact
+        />
+        <QuickTrace
+          event={evt}
+          group={group}
+          organization={organization}
+          location={location}
+        />
       </Wrapper>
     );
   }
@@ -196,6 +193,11 @@ const StyledIconWarning = styled(IconWarning)`
 const StyledDateTime = styled(DateTime)`
   border-bottom: 1px dotted #dfe3ea;
   color: ${p => p.theme.subText};
+`;
+
+const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
+  margin-top: ${space(0.5)};
+  margin-bottom: ${space(1)};
 `;
 
 const LinkContainer = styled('span')`

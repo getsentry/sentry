@@ -13,7 +13,7 @@ class ApiAuthorization(Model, HasApiScopes):
     overall approved applications (vs individual tokens).
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)

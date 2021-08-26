@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -160,6 +159,7 @@ describe('EventsV2 > QueryList', function () {
     expect(link.query).toEqual({
       id: '2',
       statsPeriod: '14d',
+      user: '1',
     });
   });
 

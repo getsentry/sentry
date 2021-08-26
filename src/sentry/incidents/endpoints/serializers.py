@@ -41,6 +41,7 @@ from sentry.models import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
@@ -125,10 +126,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             type_info = AlertRuleTriggerAction.get_registered_type(type)
             if target_type not in type_info.supported_target_types:
                 allowed_target_types = ",".join(
-                    [
-                        action_target_type_to_string[type_name]
-                        for type_name in type_info.supported_target_types
-                    ]
+                    action_target_type_to_string[type_name]
+                    for type_name in type_info.supported_target_types
                 )
                 raise serializers.ValidationError(
                     {
@@ -181,6 +180,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         except InvalidTriggerActionError as e:
             raise serializers.ValidationError(force_text(e))
+        except ApiRateLimitedError as e:
+            raise serializers.ValidationError(force_text(e))
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
@@ -188,6 +189,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         try:
             return update_alert_rule_trigger_action(instance, **validated_data)
         except InvalidTriggerActionError as e:
+            raise serializers.ValidationError(force_text(e))
+        except ApiRateLimitedError as e:
             raise serializers.ValidationError(force_text(e))
 
 
@@ -472,7 +475,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
-                % sorted([et.name.lower() for et in valid_event_types])
+                % sorted(et.name.lower() for et in valid_event_types)
             )
 
         for i, (trigger, expected_label) in enumerate(

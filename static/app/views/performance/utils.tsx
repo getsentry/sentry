@@ -1,16 +1,16 @@
-import React from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'app/components/duration';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {backend, frontend} from 'app/data/platformCategories';
+import {backend, frontend, mobile} from 'app/data/platformCategories';
 import {GlobalSelection, OrganizationSummary, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
+import EventView from 'app/utils/discover/eventView';
+import {getDuration} from 'app/utils/formatters';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
-
-import {FilterViews} from './landing';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -20,10 +20,13 @@ export enum PROJECT_PERFORMANCE_TYPE {
   ANY = 'any', // Fallback to transaction duration
   FRONTEND = 'frontend',
   BACKEND = 'backend',
+  FRONTEND_OTHER = 'frontend_other',
+  MOBILE = 'mobile',
 }
 
 const FRONTEND_PLATFORMS: string[] = [...frontend];
 const BACKEND_PLATFORMS: string[] = [...backend];
+const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
   projects: Project[],
@@ -53,23 +56,64 @@ export function platformToPerformanceType(
     return PROJECT_PERFORMANCE_TYPE.BACKEND;
   }
 
+  if (
+    selectedProjects.every(project =>
+      MOBILE_PLATFORMS.includes(project.platform as string)
+    )
+  ) {
+    return PROJECT_PERFORMANCE_TYPE.MOBILE;
+  }
+
   return PROJECT_PERFORMANCE_TYPE.ANY;
+}
+
+/**
+ * Used for transaction summary to determine appropriate columns on a page, since there is no display field set for the page.
+ */
+export function platformAndConditionsToPerformanceType(
+  projects: Project[],
+  eventView: EventView
+) {
+  const performanceType = platformToPerformanceType(projects, eventView.project);
+  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+    const conditions = new MutableSearch(eventView.query);
+    const ops = conditions.getFilterValues('!transaction.op');
+    if (ops.some(op => op === 'pageload')) {
+      return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
+    }
+  }
+  return performanceType;
+}
+
+/**
+ * Used for transaction summary to check the view itself, since it can have conditions which would exclude it from having vitals aside from platform.
+ */
+export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Project[]) {
+  return (
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+    PROJECT_PERFORMANCE_TYPE.FRONTEND
+  );
+}
+
+export function isSummaryViewFrontend(eventView: EventView, projects: Project[]) {
+  return (
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+      PROJECT_PERFORMANCE_TYPE.FRONTEND ||
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
+  );
 }
 
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
 }
 
-export function getTransactionSearchQuery(location: Location, query: string = '') {
-  return decodeScalar(location.query.query, query).trim();
+export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
+  return `/organizations/${organization.slug}/performance/trends/`;
 }
 
-export function getCurrentPerformanceView(location: Location): string {
-  const currentView = location.query.view as FilterViews;
-  if (Object.values(FilterViews).includes(currentView)) {
-    return currentView;
-  }
-  return FilterViews.ALL_TRANSACTIONS;
+export function getTransactionSearchQuery(location: Location, query: string = '') {
+  return decodeScalar(location.query.query, query).trim();
 }
 
 export function getTransactionDetailsUrl(
@@ -154,4 +198,8 @@ export function PerformanceDuration(props: PerformanceDurationProps) {
       fixedDigits={normalizedSeconds > 1 ? 2 : 0}
     />
   );
+}
+
+export function getPerformanceDuration(milliseconds: number) {
+  return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
 }

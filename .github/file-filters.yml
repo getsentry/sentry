@@ -10,11 +10,17 @@ frontend_lintable: &frontend_lintable
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
 
-frontend: &frontend
-  - *frontend_lintable
-  - '**/*.less'
+yarn_lockfile: &yarn_lockfile
   - 'yarn.lock'
+
+eslint_config: &eslint_config
   - '.eslint*'
+
+frontend: &frontend
+  - *yarn_lockfile
+  - *frontend_lintable
+  - *eslint_config
+  - '**/*.less'
   - 'docs-ui/**'
   - 'static/**'
   - 'tests/js/**'
@@ -28,6 +34,7 @@ frontend_components_modified_lintable:
 
 backend_lintable: &backend_lintable
   - '**/*.py'
+  - 'requirements-base.txt'
 
 # Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
@@ -38,6 +45,7 @@ backend_build_changes: &backend_build_changes
   - '.pre-commit-config.yaml'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+  - '.github/actions/setup-sentry/action.yml'
 
 backend: &backend
   - *backend_build_changes
@@ -63,3 +71,11 @@ migrations_added:
 
 migrations_modified:
   - modified: 'src/sentry/migrations/*'
+
+# These files will trigger our wokrflow to check if lockfile
+# updates are needed
+migration_lockfile:
+  - *backend_dependencies
+  - *backend_lintable
+  - .github/workflows/check-if-migration-is-required.yml
+  - .github/workflows/scripts/migration-check.sh

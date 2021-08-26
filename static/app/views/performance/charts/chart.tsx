@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import {Component} from 'react';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
@@ -15,7 +15,7 @@ import {Theme} from 'app/utils/theme';
 type Props = {
   theme: Theme;
   data: Series[];
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   statsPeriod: string | undefined;
   start: DateString;
   end: DateString;
@@ -54,7 +54,7 @@ function computeAxisMax(data) {
   return Math.round(Math.ceil(maxValue / step) * step);
 }
 
-class Chart extends React.Component<Props> {
+class Chart extends Component<Props> {
   render() {
     const {
       theme,

@@ -318,7 +318,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     }
                 ],
             )
-            assert resp.data == {"projects": ["Invalid project"]}
+            assert resp.json() == {"projects": ["Invalid project"]}
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug)
@@ -980,14 +980,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 7
         # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
-        [r["id"] for r in result] == [
-            str(alert_rule_critical.id),
-            str(another_alert_rule_warning.id),
-            str(alert_rule_warning.id),
-            str(self.yet_another_alert_rule.id),
-            str(self.other_alert_rule.id),
-            str(self.alert_rule.id),
-            str(self.issue_rule.id),
+        assert [r["id"] for r in result] == [
+            f"{alert_rule_critical.id}",
+            f"{another_alert_rule_warning.id}",
+            f"{alert_rule_warning.id}",
+            f"{self.alert_rule.id}",
+            f"{self.other_alert_rule.id}",
+            f"{self.yet_another_alert_rule.id}",
+            f"{self.issue_rule.id}",
         ]
 
         # Test paging with the status setup:

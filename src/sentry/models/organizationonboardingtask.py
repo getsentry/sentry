@@ -73,7 +73,7 @@ class OrganizationOnboardingTask(Model):
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     TASK_CHOICES = (
         (OnboardingTask.FIRST_PROJECT, "create_project"),

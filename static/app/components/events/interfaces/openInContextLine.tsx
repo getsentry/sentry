@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
@@ -16,13 +15,12 @@ type Props = {
 };
 
 const OpenInContextLine = ({lineNo, filename, components}: Props) => {
-  const handleRecordInteraction = (
-    slug: SentryAppComponent['sentryApp']['slug']
-  ) => () => {
-    recordInteraction(slug, 'sentry_app_component_interacted', {
-      componentType: 'stacktrace-link',
-    });
-  };
+  const handleRecordInteraction =
+    (slug: SentryAppComponent['sentryApp']['slug']) => () => {
+      recordInteraction(slug, 'sentry_app_component_interacted', {
+        componentType: 'stacktrace-link',
+      });
+    };
 
   const getUrl = (url: SentryAppComponent['schema']['url']) => {
     return addQueryParamsToExistingUrl(url, {lineNo, filename});

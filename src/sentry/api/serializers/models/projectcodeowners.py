@@ -1,9 +1,11 @@
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
 from sentry.models import ProjectCodeOwners
-from sentry.utils.db import attach_foreignkey
+from sentry.ownership.grammar import convert_schema_to_rules_text
 
 
 @register(ProjectCodeOwners)
@@ -15,10 +17,9 @@ class ProjectCodeOwnersSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
-        attach_foreignkey(
+        prefetch_related_objects(
             item_list,
-            ProjectCodeOwners.repository_project_path_config,
-            related=("organization_integration",),
+            "repository_project_path_config__organization_integration",
         )
 
         return {
@@ -48,5 +49,11 @@ class ProjectCodeOwnersSerializer(Serializer):
             data["codeMapping"] = serialize(
                 config, user=user, serializer=RepositoryProjectPathConfigSerializer()
             )
+        if "ownershipSyntax" in self.expand:
+            data["ownershipSyntax"] = convert_schema_to_rules_text(obj.schema)
+
+        if "errors" in self.expand:
+            _, errors = ProjectCodeOwners.validate_codeowners_associations(obj.raw, obj.project)
+            data["errors"] = errors
 
         return data

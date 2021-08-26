@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Switch from 'app/components/switchButton';
@@ -16,7 +16,7 @@ type Props = {
 function Browser({browser, isEnabled, onToggle}: Props) {
   const {icon, title} = LEGACY_BROWSER_LIST[browser];
   return (
-    <React.Fragment>
+    <Fragment>
       <BrowserWrapper>
         <Icon className={`icon-${icon}`} />
         {title}
@@ -24,7 +24,7 @@ function Browser({browser, isEnabled, onToggle}: Props) {
       <SwitchWrapper>
         <Switch size="lg" isActive={isEnabled} toggle={onToggle} />
       </SwitchWrapper>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

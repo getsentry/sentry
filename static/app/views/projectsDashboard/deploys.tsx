@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -15,9 +15,10 @@ const DEPLOY_COUNT = 2;
 
 type Props = {
   project: Project;
+  shorten?: boolean;
 };
 
-const Deploys = ({project}: Props) => {
+const Deploys = ({project, shorten}: Props) => {
   const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
     ([environment, value]): Pick<
       DeployType,
@@ -42,6 +43,7 @@ const Deploys = ({project}: Props) => {
           key={`${deploy.environment}-${deploy.version}`}
           deploy={deploy}
           project={project}
+          shorten={shorten}
         />
       ))}
     </DeployRows>
@@ -54,8 +56,8 @@ type DeployProps = Props & {
   deploy: Pick<DeployType, 'version' | 'dateFinished' | 'environment'>;
 };
 
-const Deploy = ({deploy, project}: DeployProps) => (
-  <React.Fragment>
+const Deploy = ({deploy, project, shorten}: DeployProps) => (
+  <Fragment>
     <IconReleases size="sm" />
     <TextOverflow>
       <Environment>{deploy.environment}</Environment>
@@ -70,16 +72,18 @@ const Deploy = ({deploy, project}: DeployProps) => (
     <DeployTime>
       {getDynamicText({
         fixed: '3 hours ago',
-        value: <TimeSince date={deploy.dateFinished} />,
+        value: (
+          <TimeSince date={deploy.dateFinished} shorten={shorten ? shorten : false} />
+        ),
       })}
     </DeployTime>
-  </React.Fragment>
+  </Fragment>
 );
 
 const NoDeploys = () => (
   <GetStarted>
     <Button size="small" href="https://docs.sentry.io/product/releases/" external>
-      {t('Track deploys')}
+      {t('Track Deploys')}
     </Button>
   </GetStarted>
 );
@@ -115,3 +119,5 @@ const GetStarted = styled(DeployContainer)`
   align-items: center;
   justify-content: center;
 `;
+
+export {DeployRows, GetStarted, TextOverflow};

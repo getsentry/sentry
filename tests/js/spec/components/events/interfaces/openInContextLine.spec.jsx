@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
@@ -27,8 +25,7 @@ describe('OpenInContextLine', function () {
       uuid: 'dd9cc6d7-17f9-4d25-9017-4802821e694f',
       type: 'stacktrace-link',
       schema: {
-        url:
-          'http://localhost:4000/something?installationId=25d10adb-7b89-45ac-99b5-edaa714341ba&projectSlug=internal',
+        url: 'http://localhost:4000/something?installationId=25d10adb-7b89-45ac-99b5-edaa714341ba&projectSlug=internal',
         type: 'stacktrace-link',
         params: ['project', 'filename', 'lineno'],
         uri: '/something',

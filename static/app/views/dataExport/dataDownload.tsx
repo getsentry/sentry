@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -164,7 +164,7 @@ class DataDownload extends AsyncView<Props, State> {
       },
     } = this.state;
 
-    // default to IssuesByTag because we dont want to
+    // default to IssuesByTag because we don't want to
     // display this unless we're sure its a discover query
     const {type = ExportQueryType.IssuesByTag} = query;
 

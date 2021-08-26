@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'app/components/panels';
@@ -92,4 +92,5 @@ const Trend = styled('div')<TrendProps>`
   overflow: hidden;
 `;
 
+export {HeaderTitle, StyledPanel, Score, ScoreWrapper, Trend};
 export default ScoreCard;

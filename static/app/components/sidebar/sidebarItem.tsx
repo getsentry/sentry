@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,7 +18,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
 });
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
   className?: string;
   index?: boolean;
@@ -65,6 +65,10 @@ type Props = ReactRouter.WithRouterProps & {
    * Sidebar is at "top" or "left" of screen
    */
   orientation: SidebarOrientation;
+  /**
+   * An optional prefix that can be used to reset the "new" indicator
+   */
+  isNewSeenKeySuffix?: string;
 };
 
 const SidebarItem = ({
@@ -82,6 +86,7 @@ const SidebarItem = ({
   collapsed,
   className,
   orientation,
+  isNewSeenKeySuffix,
   onClick,
   ...props
 }: Props) => {
@@ -94,6 +99,9 @@ const SidebarItem = ({
   const isActiveRouter =
     (!hasPanel && router && to && location.pathname.startsWith(to)) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
+    (labelString === 'Dashboards' &&
+      (location.pathname.includes('/dashboards/') ||
+        location.pathname.includes('/dashboard/'))) ||
     // TODO: this won't be necessary once we remove settingsHome
     (labelString === 'Settings' && location.pathname.startsWith('/settings/')) ||
     (labelString === 'Alerts' &&
@@ -104,7 +112,8 @@ const SidebarItem = ({
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
-  const isNewSeenKey = `sidebar-new-seen:${id}`;
+  const seenSuffix = isNewSeenKeySuffix ?? '';
+  const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
   return (
@@ -142,7 +151,7 @@ const SidebarItem = ({
   );
 };
 
-export default ReactRouter.withRouter(SidebarItem);
+export default withRouter(SidebarItem);
 
 const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   if (!active) {
@@ -234,6 +243,7 @@ const SidebarItemIcon = styled('span')`
   height: 22px;
   font-size: 20px;
   align-items: center;
+  flex-shrink: 0;
 
   svg {
     display: block;

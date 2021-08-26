@@ -1,8 +1,9 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
+import Button from 'app/components/button';
+import FormContext, {FormContextData} from 'app/components/forms/formContext';
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';
 
@@ -35,22 +36,13 @@ type FormClassState = {
   state: FormState;
 };
 
-export type Context = {
-  form: {
-    errors: object;
-    data: object;
-    onFieldChange: (name: string, value: string | number) => void;
-  };
-};
+// Re-export for compatibility alias.
+export type Context = FormContextData;
 
 class Form<
   Props extends FormProps = FormProps,
   State extends FormClassState = FormClassState
 > extends React.Component<Props, State> {
-  static childContextTypes = {
-    form: PropTypes.object.isRequired,
-  };
-
   static defaultProps = {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
@@ -75,7 +67,7 @@ class Form<
     } as State;
   }
 
-  getChildContext() {
+  getContext() {
     const {data, errors} = this.state;
     return {
       form: {
@@ -138,50 +130,51 @@ class Form<
     const nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;
 
     return (
-      <StyledForm onSubmit={this.onSubmit} className={this.props.className}>
-        {isError && !hideErrors && (
-          <div className="alert alert-error alert-block">
-            {nonFieldErrors ? (
-              <div>
-                <p>
-                  {t(
-                    'Unable to save your changes. Please correct the following errors try again.'
-                  )}
-                </p>
-                <ul>
-                  {nonFieldErrors.map((e, i) => (
-                    <li key={i}>{e}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              errorMessage
-            )}
-          </div>
-        )}
-        {this.props.children}
-        <div className={this.props.footerClass} style={{marginTop: 25}}>
-          <button
-            className="btn btn-primary"
-            disabled={isSaving || this.props.submitDisabled || !hasChanges}
-            type="submit"
-          >
-            {this.props.submitLabel}
-          </button>
-          {this.props.onCancel && (
-            <button
-              type="button"
-              className="btn btn-default"
-              disabled={isSaving}
-              onClick={this.props.onCancel}
-              style={{marginLeft: 5}}
-            >
-              {this.props.cancelLabel}
-            </button>
+      <FormContext.Provider value={this.getContext()}>
+        <StyledForm onSubmit={this.onSubmit} className={this.props.className}>
+          {isError && !hideErrors && (
+            <div className="alert alert-error alert-block">
+              {nonFieldErrors ? (
+                <div>
+                  <p>
+                    {t(
+                      'Unable to save your changes. Please correct the following errors try again.'
+                    )}
+                  </p>
+                  <ul>
+                    {nonFieldErrors.map((e, i) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                errorMessage
+              )}
+            </div>
           )}
-          {this.props.extraButton}
-        </div>
-      </StyledForm>
+          {this.props.children}
+          <div className={this.props.footerClass} style={{marginTop: 25}}>
+            <Button
+              priority="primary"
+              disabled={isSaving || this.props.submitDisabled || !hasChanges}
+              type="submit"
+            >
+              {this.props.submitLabel}
+            </Button>
+            {this.props.onCancel && (
+              <Button
+                type="button"
+                disabled={isSaving}
+                onClick={this.props.onCancel}
+                style={{marginLeft: 5}}
+              >
+                {this.props.cancelLabel}
+              </Button>
+            )}
+            {this.props.extraButton}
+          </div>
+        </StyledForm>
+      </FormContext.Provider>
     );
   }
 }

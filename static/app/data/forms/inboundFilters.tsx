@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
@@ -30,10 +30,10 @@ const formGroups: JsonFormObject[] = [
         placeholder: 'e.g. 127.0.0.1 or 10.0.0.0/8',
         label: t('IP Addresses'),
         help: (
-          <React.Fragment>
+          <Fragment>
             {t('Filter events from these IP addresses. ')}
             {newLineHelpText}
-          </React.Fragment>
+          </Fragment>
         ),
         getData: getOptionsData,
       },
@@ -56,10 +56,10 @@ export const customFilterFields: Field[] = [
     placeholder: 'e.g. 1.* or [!3].[0-9].*',
     label: t('Releases'),
     help: (
-      <React.Fragment>
+      <Fragment>
         {t('Filter events from these releases. ')}
         {newLineHelpText} {globHelpText}
-      </React.Fragment>
+      </Fragment>
     ),
     getData: getOptionsData,
   },
@@ -75,10 +75,10 @@ export const customFilterFields: Field[] = [
     placeholder: 'e.g. TypeError* or *: integer division or modulo by zero',
     label: t('Error Message'),
     help: (
-      <React.Fragment>
+      <Fragment>
         {t('Filter events by error messages. ')}
         {newLineHelpText} {globHelpText}
-      </React.Fragment>
+      </Fragment>
     ),
     getData: getOptionsData,
   },

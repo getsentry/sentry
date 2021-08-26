@@ -8,7 +8,15 @@ from sentry import eventstore
 from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
-from sentry.models import Activity, EventAttachment, File, Group, GroupAssignee, UserReport
+from sentry.models import (
+    Activity,
+    EventAttachment,
+    File,
+    Group,
+    GroupAssignee,
+    GroupRedirect,
+    UserReport,
+)
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import reprocess_group
@@ -16,6 +24,27 @@ from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.cache import cache_key_for_event
+
+
+def _create_event_attachment(evt, type):
+    file = File.objects.create(name="foo", type=type)
+    file.putfile(BytesIO(b"hello world"))
+    EventAttachment.objects.create(
+        event_id=evt.event_id,
+        group_id=evt.group_id,
+        project_id=evt.project_id,
+        file_id=file.id,
+        type=file.type,
+        name="foo",
+    )
+
+
+def _create_user_report(evt):
+    UserReport.objects.create(
+        project_id=evt.project_id,
+        event_id=evt.event_id,
+        name="User",
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -229,6 +258,9 @@ def test_max_events(
         event_id: eventstore.get_event_by_id(default_project.id, event_id) for event_id in event_ids
     }
 
+    for evt in old_events.values():
+        _create_user_report(evt)
+
     (group_id,) = {e.group_id for e in old_events.values()}
 
     with burst_task_runner() as burst:
@@ -249,6 +281,12 @@ def test_max_events(
             elif remaining_events == "keep":
                 assert event.group_id != group_id
                 assert dict(event.data) == dict(old_events[event_id].data)
+                assert (
+                    UserReport.objects.get(
+                        project_id=default_project.id, event_id=event_id
+                    ).group_id
+                    != group_id
+                )
             else:
                 raise ValueError(remaining_events)
         else:
@@ -306,22 +344,9 @@ def test_attachments_and_userfeedback(
 
     for evt in (event, event_to_delete):
         for type in ("event.attachment", "event.minidump"):
-            file = File.objects.create(name="foo", type=type)
-            file.putfile(BytesIO(b"hello world"))
-            EventAttachment.objects.create(
-                event_id=evt.event_id,
-                group_id=evt.group_id,
-                project_id=default_project.id,
-                file_id=file.id,
-                type=file.type,
-                name="foo",
-            )
+            _create_event_attachment(evt, type)
 
-        UserReport.objects.create(
-            project_id=default_project.id,
-            event_id=evt.event_id,
-            name="User",
-        )
+        _create_user_report(evt)
 
     with burst_task_runner() as burst:
         reprocess_group(default_project.id, event.group_id, max_events=1)
@@ -348,23 +373,39 @@ def test_attachments_and_userfeedback(
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+@pytest.mark.parametrize("remaining_events", ["keep", "delete"])
 def test_nodestore_missing(
-    default_project,
-    reset_snuba,
-    process_and_save,
-    burst_task_runner,
-    monkeypatch,
+    default_project, reset_snuba, process_and_save, burst_task_runner, monkeypatch, remaining_events
 ):
-    event_id = process_and_save({"message": "hello world"})
+    logs = []
+    monkeypatch.setattr("sentry.reprocessing2.logger.error", logs.append)
+
+    event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.get_event_by_id(default_project.id, event_id)
+    old_group = event.group
 
     with burst_task_runner() as burst:
-        reprocess_group(default_project.id, event.group_id, max_events=1)
+        reprocess_group(
+            default_project.id, event.group_id, max_events=1, remaining_events=remaining_events
+        )
 
     burst(max_jobs=100)
 
-    new_event = eventstore.get_event_by_id(default_project.id, event_id)
-    assert not new_event.data.get("errors")
-    assert new_event.group_id != event.group_id
-
     assert is_group_finished(event.group_id)
+
+    new_event = eventstore.get_event_by_id(default_project.id, event_id)
+
+    if remaining_events == "delete":
+        assert new_event is None
+    else:
+        assert not new_event.data.get("errors")
+        assert new_event.group_id != event.group_id
+
+        assert new_event.group.times_seen == 1
+
+        assert not Group.objects.filter(id=old_group.id).exists()
+        assert (
+            GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
+        )
+
+    assert logs == ["reprocessing2.reprocessing_nodestore.not_found"]

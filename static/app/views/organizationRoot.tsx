@@ -1,10 +1,10 @@
-import React from 'react';
-import {RouteComponentProps, withRouter} from 'react-router';
+import {Component} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 
 import {setLastRoute} from 'app/actionCreators/navigation';
 import {setActiveProject} from 'app/actionCreators/projects';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = WithRouterProps;
 
 /**
  * This is the parent container for organization-level views such
@@ -12,7 +12,7 @@ type Props = RouteComponentProps<{}, {}>;
  *
  * Currently is just used to unset active project
  */
-class OrganizationRoot extends React.Component<Props> {
+class OrganizationRoot extends Component<Props> {
   componentDidMount() {
     setActiveProject(null);
   }

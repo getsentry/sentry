@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -23,14 +23,21 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
-import {defined, objectIsEmpty} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
-import {getPlatform, isDotnet} from './utils';
+import {
+  getPlatform,
+  hasAssembly,
+  hasContextRegisters,
+  hasContextSource,
+  hasContextVars,
+  isDotnet,
+  isExpandable,
+} from './utils';
 
 type Props = {
   data: Frame;
@@ -86,7 +93,7 @@ export class Line extends React.Component<Props, State> {
   // isExpanded can be initialized to true via parent component;
   // data synchronization is not important
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
-  state = {
+  state: State = {
     isExpanded: this.props.isExpanded,
   };
 
@@ -97,32 +104,6 @@ export class Line extends React.Component<Props, State> {
       isExpanded: !this.state.isExpanded,
     });
   };
-
-  hasContextSource() {
-    return defined(this.props.data.context) && !!this.props.data.context.length;
-  }
-
-  hasContextVars() {
-    return !objectIsEmpty(this.props.data.vars || {});
-  }
-
-  hasContextRegisters() {
-    return !objectIsEmpty(this.props.registers);
-  }
-
-  hasAssembly() {
-    return isDotnet(this.getPlatform()) && defined(this.props.data.package);
-  }
-
-  isExpandable() {
-    return (
-      (!this.props.isOnlyFrame && this.props.emptySourceNotation) ||
-      this.hasContextSource() ||
-      this.hasContextVars() ||
-      this.hasContextRegisters() ||
-      this.hasAssembly()
-    );
-  }
 
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
@@ -136,6 +117,17 @@ export class Line extends React.Component<Props, State> {
       this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
       this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
     );
+  }
+
+  isExpandable() {
+    const {registers, platform, emptySourceNotation, isOnlyFrame, data} = this.props;
+    return isExpandable({
+      frame: data,
+      registers,
+      platform,
+      emptySourceNotation,
+      isOnlyFrame,
+    });
   }
 
   shouldShowLinkToImage() {
@@ -196,6 +188,7 @@ export class Line extends React.Component<Props, State> {
       <ToggleContextButtonWrapper>
         <ToggleContextButton
           className="btn-toggle"
+          data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
           title={t('Toggle Context')}
           tooltipProps={
@@ -237,10 +230,14 @@ export class Line extends React.Component<Props, State> {
 
     return !nextFrame ? (
       <LeadHint className="leads-to-app-hint" width="115px">
-        {t('Crashed in non-app: ')}
+        {t('Crashed in non-app')}
+        {': '}
       </LeadHint>
     ) : (
-      <LeadHint className="leads-to-app-hint">{t('Called from: ')}</LeadHint>
+      <LeadHint className="leads-to-app-hint">
+        {t('Called from')}
+        {': '}
+      </LeadHint>
     );
   }
 
@@ -267,7 +264,7 @@ export class Line extends React.Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title">
+        <DefaultLine className="title" data-test-id="title">
           <VertCenterWrapper>
             <div>
               {this.renderLeadHint()}
@@ -293,8 +290,8 @@ export class Line extends React.Component<Props, State> {
       onFunctionNameToggle,
       image,
       maxLengthOfRelativeAddress,
-      isFrameAfterLastNonApp,
       includeSystemFrames,
+      isFrameAfterLastNonApp,
       showCompleteFunctionName,
       isHoverPreviewed,
     } = this.props;
@@ -304,7 +301,7 @@ export class Line extends React.Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title as-table">
+        <DefaultLine className="title as-table" data-test-id="title">
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}
@@ -384,11 +381,11 @@ export class Line extends React.Component<Props, State> {
           event={this.props.event}
           registers={this.props.registers}
           components={this.props.components}
-          hasContextSource={this.hasContextSource()}
-          hasContextVars={this.hasContextVars()}
-          hasContextRegisters={this.hasContextRegisters()}
+          hasContextSource={hasContextSource(data)}
+          hasContextVars={hasContextVars(data)}
+          hasContextRegisters={hasContextRegisters(this.props.registers)}
           emptySourceNotation={this.props.emptySourceNotation}
-          hasAssembly={this.hasAssembly()}
+          hasAssembly={hasAssembly(data, this.props.platform)}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
         />
@@ -400,6 +397,16 @@ export class Line extends React.Component<Props, State> {
 export default withOrganization(
   withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
 );
+
+const PackageInfo = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  order: 2;
+  align-items: flex-start;
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    order: 0;
+  }
+`;
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
@@ -423,31 +430,26 @@ const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
 `;
 
-const PackageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  order: 2;
-  align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    order: 0;
-  }
-`;
-
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
   grid-gap: ${space(0.5)};
-  grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '167px' : '117px')} 1fr;
+  grid-template-columns: ${p =>
+    `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
   align-items: center;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} 117px 1fr auto;
+    grid-template-columns:
+      ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
+      1fr;
   }
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} 117px 1fr auto;
+    grid-template-columns:
+      ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
+      1fr;
   }
 `;
 

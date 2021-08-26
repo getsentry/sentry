@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {components as selectComponents} from 'react-select';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -39,7 +39,7 @@ function VersionOption({
 }
 
 class CustomResolutionModal extends React.Component<Props, State> {
-  state = {
+  state: State = {
     version: '',
   };
 
@@ -55,15 +55,8 @@ class CustomResolutionModal extends React.Component<Props, State> {
     }));
 
   render() {
-    const {
-      orgSlug,
-      projectSlug,
-      closeModal,
-      onSelected,
-      Header,
-      Body,
-      Footer,
-    } = this.props;
+    const {orgSlug, projectSlug, closeModal, onSelected, Header, Body, Footer} =
+      this.props;
     const url = projectSlug
       ? `/projects/${orgSlug}/${projectSlug}/releases/`
       : `/organizations/${orgSlug}/releases/`;

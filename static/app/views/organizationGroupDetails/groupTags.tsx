@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -194,6 +194,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 
   &:hover {
     color: ${p => p.theme.textColor};

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -61,7 +61,7 @@ function U2fEnrolledDetails({
                   onConfirm={() => onRemoveU2fDevice(device)}
                   disabled={isLastDevice}
                   message={
-                    <React.Fragment>
+                    <Fragment>
                       <ConfirmHeader>
                         {t('Do you want to remove U2F device?')}
                       </ConfirmHeader>
@@ -70,7 +70,7 @@ function U2fEnrolledDetails({
                           `Are you sure you want to remove the U2F device "${device.name}"?`
                         )}
                       </TextBlock>
-                    </React.Fragment>
+                    </Fragment>
                   }
                 >
                   <Button size="small" priority="danger">

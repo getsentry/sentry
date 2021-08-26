@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
@@ -31,7 +31,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       [
         'members',
         `/organizations/${organization.slug}/members/`,
-        {query: {expand: 'externalUsers'}},
+        {query: {query: 'hasExternalUsers:true', expand: 'externalUsers'}},
       ],
     ];
   }
@@ -47,7 +47,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       addSuccessMessage(t('Deletion successful'));
       this.fetchData();
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };
@@ -74,15 +74,19 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
-  get sentryNames() {
-    const {members} = this.state;
-    return members.map(member => member.user);
+  sentryNamesMapper(members: Member[]) {
+    return members
+      .filter(member => member.user)
+      .map(({user: {id}, email, name}) => {
+        const label = email !== name ? `${name} - ${email}` : `${email}`;
+        return {id, name: label};
+      });
   }
 
   openModal = (mapping?: ExternalActorMapping) => {
     const {organization, integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Configure External User Mapping')}</Header>
         <Body>
           <IntegrationExternalMappingForm
@@ -93,20 +97,21 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
               closeModal();
             }}
             mapping={mapping}
-            sentryNames={this.sentryNames}
+            sentryNamesMapper={this.sentryNamesMapper}
             type="user"
+            url={`/organizations/${organization.slug}/members/`}
             onCancel={closeModal}
             baseEndpoint={`/organizations/${organization.slug}/external-users/`}
           />
         </Body>
-      </React.Fragment>
+      </Fragment>
     ));
   };
 
   renderBody() {
     const {integration} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <IntegrationExternalMappings
           integration={integration}
           type="user"
@@ -114,7 +119,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           onCreateOrEdit={this.openModal}
           onDelete={this.handleDelete}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

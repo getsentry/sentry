@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -403,6 +401,29 @@ describe('TransactionsList', function () {
       cells.forEach((cell, i) => {
         expect(cell.text()).toEqual(cellTexts[i]);
       });
+    });
+
+    it('renders View All Events button when provided with handler', async function () {
+      wrapper = mountWithTheme(
+        <TransactionsList
+          api={api}
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+          baseline="/"
+          handleOpenAllEventsClick={() => {}}
+        />
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Button').last().find('span').children().html()).toEqual(
+        'View All Events'
+      );
     });
   });
 });

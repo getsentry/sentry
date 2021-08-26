@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {formatBytesBase2} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
 

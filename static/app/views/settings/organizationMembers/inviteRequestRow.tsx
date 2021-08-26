@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -11,6 +11,7 @@ import {PanelItem} from 'app/components/panels';
 import RoleSelectControl from 'app/components/roleSelectControl';
 import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconClose} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Member, MemberRole, Organization, Team} from 'app/types';
@@ -47,6 +48,8 @@ const InviteRequestRow = ({
 }: Props) => {
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !(role && role.allowed);
+  const {access} = organization;
+  const canApprove = access.includes('member:admin');
 
   // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
@@ -78,33 +81,54 @@ const InviteRequestRow = ({
         )}
       </div>
 
-      <StyledRoleSelectControl
-        name="role"
-        disableUnallowed
-        onChange={r => onUpdate({role: r.value})}
-        value={inviteRequest.role}
-        roles={allRoles}
-      />
-
-      <TeamSelectControl
-        name="teams"
-        placeholder={t('Add to teams\u2026')}
-        onChange={(teams: OnChangeArgs) =>
-          onUpdate({teams: (teams || []).map(team => team.value)})
-        }
-        value={inviteRequest.teams}
-        options={allTeams.map(({slug}) => ({
-          value: slug,
-          label: `#${slug}`,
-        }))}
-        clearable
-      />
+      {canApprove ? (
+        <StyledRoleSelectControl
+          name="role"
+          disableUnallowed
+          onChange={r => onUpdate({role: r.value})}
+          value={inviteRequest.role}
+          roles={allRoles}
+        />
+      ) : (
+        <div>{inviteRequest.roleName}</div>
+      )}
+      {canApprove ? (
+        <TeamSelectControl
+          name="teams"
+          placeholder={t('Add to teams\u2026')}
+          onChange={(teams: OnChangeArgs) =>
+            onUpdate({teams: (teams || []).map(team => team.value)})
+          }
+          value={inviteRequest.teams}
+          options={allTeams.map(({slug}) => ({
+            value: slug,
+            label: `#${slug}`,
+          }))}
+          clearable
+        />
+      ) : (
+        <div>{inviteRequest.teams.join(', ')}</div>
+      )}
 
       <ButtonGroup>
+        <Button
+          size="small"
+          busy={inviteRequestBusy[inviteRequest.id]}
+          onClick={() => onDeny(inviteRequest)}
+          icon={<IconClose />}
+          disabled={!canApprove}
+          title={
+            canApprove
+              ? undefined
+              : t('This request needs to be reviewed by a privileged user')
+          }
+        >
+          {t('Deny')}
+        </Button>
         <Confirm
           onConfirm={sendInvites}
           disableConfirmButton={!canSend}
-          disabled={roleDisallowed}
+          disabled={!canApprove || roleDisallowed}
           message={
             <React.Fragment>
               {tct('Are you sure you want to invite [email] to your organization?', {
@@ -119,24 +143,20 @@ const InviteRequestRow = ({
             size="small"
             busy={inviteRequestBusy[inviteRequest.id]}
             title={
-              roleDisallowed
-                ? t(
-                    `You do not have permission to approve a user of this role.
-                     Select a different role to approve this user.`
-                  )
-                : undefined
+              canApprove
+                ? roleDisallowed
+                  ? t(
+                      `You do not have permission to approve a user of this role.
+                      Select a different role to approve this user.`
+                    )
+                  : undefined
+                : t('This request needs to be reviewed by a privileged user')
             }
+            icon={<IconCheckmark />}
           >
             {t('Approve')}
           </Button>
         </Confirm>
-        <Button
-          size="small"
-          busy={inviteRequestBusy[inviteRequest.id]}
-          onClick={() => onDeny(inviteRequest)}
-        >
-          {t('Deny')}
-        </Button>
       </ButtonGroup>
     </StyledPanelItem>
   );

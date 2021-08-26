@@ -90,7 +90,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     if trend_type == REGRESSION
                     else aggregate_filter.operator,
                     -1 * aggregate_filter.value.value
-                    if trend_type == IMPROVED
+                    if trend_type == REGRESSION
                     else aggregate_filter.value.value,
                 ],
                 None,
@@ -106,7 +106,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         }
 
     def get_trend_columns(self, baseline_function, column, middle):
-        """ Construct the columns needed to calculate high confidence trends """
+        """Construct the columns needed to calculate high confidence trends"""
         trend_column = self.trend_columns.get(baseline_function)
         if trend_column is None:
             raise ParseError(detail=f"{baseline_function} is not a supported trend function")
@@ -220,7 +220,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         trend_columns = self.get_trend_columns(function, column, middle)
 
-        selected_columns = request.GET.getlist("field")[:]
+        selected_columns = self.get_field_list(organization, request)
         orderby = self.get_orderby(request)
 
         query = request.GET.get("query")
@@ -256,7 +256,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         self, request, organization, params, trend_function, selected_columns, orderby, query
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup):
+            def get_event_stats(query_columns, query, params, rollup, zerofill_results):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
@@ -268,6 +268,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     organization,
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
+                    zerofill_results=zerofill_results,
                 )
 
             stats_results = (

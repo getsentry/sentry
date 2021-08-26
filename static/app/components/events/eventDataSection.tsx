@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -20,22 +20,23 @@ const defaultProps = {
 type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
-  className?: string;
   title: React.ReactNode;
   type: string;
   toggleRaw?: (enable: boolean) => void;
   actions?: React.ReactNode;
+  className?: string;
 } & DefaultProps;
 
 class EventDataSection extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   componentDidMount() {
-    if (location.hash) {
+    const dataSectionDOM = this.dataSectionDOMRef.current;
+    if (location.hash && dataSectionDOM) {
       const [, hash] = location.hash.split('#');
 
       try {
-        const anchorElement = hash && document.querySelector('div#' + hash);
+        const anchorElement = hash && dataSectionDOM.querySelector('div#' + hash);
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
@@ -49,6 +50,8 @@ class EventDataSection extends React.Component<Props> {
       }
     }
   }
+
+  dataSectionDOMRef = React.createRef<HTMLDivElement>();
 
   render() {
     const {
@@ -67,7 +70,7 @@ class EventDataSection extends React.Component<Props> {
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
     return (
-      <DataSection className={className || ''}>
+      <DataSection ref={this.dataSectionDOMRef} className={className || ''}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
             <Title>
@@ -129,7 +132,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 
   > * {
     margin-bottom: ${space(0.5)};
@@ -188,7 +191,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 `;
 
-const SectionContents = styled('div')`
+export const SectionContents = styled('div')`
   position: relative;
 `;
 

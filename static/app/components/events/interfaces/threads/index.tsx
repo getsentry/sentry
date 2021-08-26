@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
@@ -21,7 +21,10 @@ const defaultProps = {
   hideGuide: false,
 };
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof Content>,
+  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
+> & {
   event: Event;
   projectId: Project['id'];
   type: string;
@@ -46,10 +49,11 @@ function getIntendedStackView(thread: Thread, event: Event) {
   }
 
   const stacktrace = getThreadStacktrace(false, thread);
+
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-class Threads extends React.Component<Props, State> {
+class Threads extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = this.getInitialState();
@@ -66,11 +70,13 @@ class Threads extends React.Component<Props, State> {
   }
 
   handleSelectNewThread = (thread: Thread) => {
+    const {event} = this.props;
+
     this.setState(prevState => ({
       activeThread: thread,
       stackView:
         prevState.stackView !== STACK_VIEW.RAW
-          ? getIntendedStackView(thread, this.props.event)
+          ? getIntendedStackView(thread, event)
           : prevState.stackView,
       stackType: STACK_TYPE.ORIGINAL,
     }));
@@ -91,7 +97,15 @@ class Threads extends React.Component<Props, State> {
   };
 
   render() {
-    const {data, event, projectId, hideGuide, type} = this.props;
+    const {
+      data,
+      event,
+      projectId,
+      hideGuide,
+      type,
+      hasHierarchicalGrouping,
+      groupingCurrentLevel,
+    } = this.props;
 
     if (!data.values) {
       return null;
@@ -106,7 +120,7 @@ class Threads extends React.Component<Props, State> {
       ? getThreadStacktrace(stackType !== STACK_TYPE.ORIGINAL, activeThread)
       : undefined;
 
-    const hasMissingStacktrace = !(exception || stacktrace);
+    const stackTraceNotFound = !(exception || stacktrace);
     const hasMoreThanOneThread = threads.length > 1;
 
     return (
@@ -136,12 +150,12 @@ class Threads extends React.Component<Props, State> {
               title={t('Stack Trace')}
               newestFirst={newestFirst}
               hideGuide={hideGuide}
-              onChange={this.handleChangeNewestFirst}
+              onChange={!stackTraceNotFound ? this.handleChangeNewestFirst : undefined}
             />
           )
         }
         actions={
-          !hasMissingStacktrace && (
+          !stackTraceNotFound && (
             <CrashActions
               stackView={stackView}
               platform={event.platform}
@@ -150,6 +164,7 @@ class Threads extends React.Component<Props, State> {
               thread={hasMoreThanOneThread ? activeThread : undefined}
               exception={exception}
               onChange={this.handleChangeStackView}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
             />
           )
         }
@@ -165,7 +180,9 @@ class Threads extends React.Component<Props, State> {
           event={event}
           newestFirst={newestFirst}
           projectId={projectId}
-          hasMissingStacktrace={hasMissingStacktrace}
+          groupingCurrentLevel={groupingCurrentLevel}
+          stackTraceNotFound={stackTraceNotFound}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       </EventDataSection>
     );

@@ -1,4 +1,5 @@
-import React from 'react';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -13,6 +14,7 @@ import {t} from 'app/locale';
 import {LightWeightOrganization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = {
@@ -24,13 +26,13 @@ type Props = {
 function StatusBreakdown({eventView, location, organization}: Props) {
   const breakdownView = eventView
     .withColumns([
-      {kind: 'function', function: ['count', '', '']},
+      {kind: 'function', function: ['count', '', '', undefined]},
       {kind: 'field', field: 'transaction.status'},
     ])
     .withSorts([{kind: 'desc', field: 'count'}]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <SectionHeading>
         {t('Status Breakdown')}
         <QuestionTooltip
@@ -64,11 +66,25 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           const points = tableData.data.map(row => ({
             label: String(row['transaction.status']),
             value: parseInt(String(row.count), 10),
+            onClick: () => {
+              const query = new MutableSearch(eventView.query);
+              query
+                .removeFilter('!transaction.status')
+                .setFilterValues('transaction.status', [row['transaction.status']]);
+              browserHistory.push({
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  cursor: undefined,
+                  query: query.formatString(),
+                },
+              });
+            },
           }));
           return <BreakdownBars data={points} />;
         }}
       </DiscoverQuery>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

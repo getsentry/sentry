@@ -2,7 +2,7 @@ export enum DeviceKnownDataType {
   ARCH = 'arch',
   ARCHS = 'archs',
   BATTERY_LEVEL = 'battery_level',
-  BATTERY_STATUS = 'baterry_status',
+  BATTERY_STATUS = 'battery_status',
   BRAND = 'brand',
   BOOT_TIME = 'boot_time',
   CONNECTION_TYPE = 'connection_type',
@@ -60,7 +60,7 @@ export type DeviceData = {
   online?: boolean;
   screen_density?: number;
   screen_dpi?: number;
-  screen_height_pixels?: string;
+  screen_height_pixels?: number;
   screen_resolution?: string;
   screen_width_pixels?: number;
   memory_size?: number;

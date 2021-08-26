@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -90,7 +89,11 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
             </small>
           </p>
         )}
-        <PlatformPicker setPlatform={this.redirectToDocs} showOther={false} />
+        <PlatformPicker
+          setPlatform={this.redirectToDocs}
+          showOther={false}
+          organization={this.props.organization}
+        />
         <p>
           {tct(
             `For a complete list of client integrations, please see

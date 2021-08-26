@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -46,6 +44,6 @@ describe('OrganizationApiKeysList', function () {
 
     // expect a modal
     const modal = await mountGlobalModal();
-    expect(modal.find('Modal[show=true]').exists()).toBe(true);
+    expect(modal.find('GlobalModal[visible=true]').exists()).toBe(true);
   });
 });

@@ -1,23 +1,42 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import round from 'lodash/round';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {t, tn} from 'app/locale';
+import ScoreCard, {
+  HeaderTitle,
+  Score,
+  ScoreWrapper,
+  StyledPanel,
+  Trend,
+} from 'app/components/scoreCard';
+import {releaseHealth} from 'app/data/platformCategories';
+import {IconArrow} from 'app/icons';
+import {t} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import MissingReleasesButtons, {
+  StyledButtonBar,
+} from 'app/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {
+  CRASH_FREE_DECIMAL_THRESHOLD,
+  displayCrashFreePercent,
+} from 'app/views/releases/utils';
 
 import Chart from './chart';
-import Deploys from './deploys';
+import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
 
 type Props = {
   api: Client;
@@ -26,7 +45,7 @@ type Props = {
   hasProjectAccess: boolean;
 };
 
-class ProjectCard extends React.Component<Props> {
+class ProjectCard extends Component<Props> {
   componentDidMount() {
     const {organization, project, api} = this.props;
 
@@ -36,6 +55,7 @@ class ProjectCard extends React.Component<Props> {
       projectId: project.id,
       query: {
         transactionStats: this.hasPerformance ? '1' : undefined,
+        sessionStats: '1',
       },
     });
   }
@@ -44,79 +64,171 @@ class ProjectCard extends React.Component<Props> {
     return this.props.organization.features.includes('performance-view');
   }
 
+  get crashFreeTrend() {
+    const {currentCrashFreeRate, previousCrashFreeRate} =
+      this.props.project.sessionStats || {};
+    if (!defined(currentCrashFreeRate) || !defined(previousCrashFreeRate)) {
+      return undefined;
+    }
+
+    return round(
+      currentCrashFreeRate - previousCrashFreeRate,
+      currentCrashFreeRate > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
+    );
+  }
+
+  renderMissingFeatureCard() {
+    const {organization, project} = this.props;
+    if (project.platform && releaseHealth.includes(project.platform)) {
+      return (
+        <ScoreCard
+          title={t('Crash Free Sessions')}
+          score={<MissingReleasesButtons organization={organization} health />}
+        />
+      );
+    }
+
+    return (
+      <ScoreCard
+        title={t('Crash Free Sessions')}
+        score={
+          <NotAvailable>
+            {t('Not Available')}
+            <QuestionTooltip
+              title={t('Release Health is not yet supported on this platform.')}
+              size="xs"
+            />
+          </NotAvailable>
+        }
+      />
+    );
+  }
+
+  renderTrend() {
+    const {currentCrashFreeRate} = this.props.project.sessionStats || {};
+
+    if (!defined(currentCrashFreeRate) || !defined(this.crashFreeTrend)) {
+      return null;
+    }
+
+    return (
+      <div>
+        {this.crashFreeTrend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
+        {`${formatAbbreviatedNumber(Math.abs(this.crashFreeTrend))}\u0025`}
+      </div>
+    );
+  }
+
   render() {
     const {organization, project, hasProjectAccess} = this.props;
-    const {stats, slug, transactionStats} = project;
-    const totalErrors =
-      stats !== undefined
-        ? formatAbbreviatedNumber(stats.reduce((sum, [_, value]) => sum + value, 0))
-        : '0';
-
+    const {stats, slug, transactionStats, sessionStats} = project;
+    const {hasHealthData, currentCrashFreeRate} = sessionStats || {};
+    const totalErrors = stats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const totalTransactions =
-      transactionStats !== undefined
-        ? formatAbbreviatedNumber(
-            transactionStats.reduce((sum, [_, value]) => sum + value, 0)
-          )
-        : '0';
-    const zeroTransactions = totalTransactions === '0';
+      transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
+    const zeroTransactions = totalTransactions === 0;
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
 
     return (
       <div data-test-id={slug}>
-        {stats ? (
-          <StyledProjectCard>
-            <CardHeader>
-              <HeaderRow>
-                <StyledIdBadge
-                  project={project}
-                  avatarSize={18}
-                  hideOverflow
-                  disableLink={!hasProjectAccess}
-                />
-                <BookmarkStar organization={organization} project={project} />
-              </HeaderRow>
-              <SummaryLinks>
-                <Link
-                  data-test-id="project-errors"
-                  to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
-                >
-                  {tn('%s error', '%s errors', totalErrors)}
-                </Link>
-                {this.hasPerformance && (
-                  <React.Fragment>
-                    <em>|</em>
-                    <TransactionsLink
-                      data-test-id="project-transactions"
-                      to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
-                    >
-                      {tn('%s transaction', '%s transactions', totalTransactions)}
-
-                      {zeroTransactions && (
-                        <QuestionTooltip
-                          title={t(
-                            'Click here to learn more about performance monitoring'
-                          )}
-                          position="top"
-                          size="xs"
-                        />
-                      )}
-                    </TransactionsLink>
-                  </React.Fragment>
-                )}
-              </SummaryLinks>
-            </CardHeader>
-            <ChartContainer>
+        <StyledProjectCard>
+          <CardHeader>
+            <HeaderRow>
+              <StyledIdBadge
+                project={project}
+                avatarSize={18}
+                hideOverflow
+                disableLink={!hasProjectAccess}
+              />
+              <BookmarkStar organization={organization} project={project} />
+            </HeaderRow>
+            <SummaryLinks>
+              {stats ? (
+                <Fragment>
+                  <Link
+                    data-test-id="project-errors"
+                    to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
+                  >
+                    {t('errors: %s', formatAbbreviatedNumber(totalErrors))}
+                  </Link>
+                  {this.hasPerformance && (
+                    <Fragment>
+                      <em>|</em>
+                      <TransactionsLink
+                        data-test-id="project-transactions"
+                        to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
+                      >
+                        {t(
+                          'transactions: %s',
+                          formatAbbreviatedNumber(totalTransactions)
+                        )}
+                        {zeroTransactions && (
+                          <QuestionTooltip
+                            title={t(
+                              'Click here to learn more about performance monitoring'
+                            )}
+                            position="top"
+                            size="xs"
+                          />
+                        )}
+                      </TransactionsLink>
+                    </Fragment>
+                  )}
+                </Fragment>
+              ) : (
+                <SummaryLinkPlaceholder />
+              )}
+            </SummaryLinks>
+          </CardHeader>
+          <ChartContainer>
+            {stats ? (
               <Chart
                 firstEvent={hasFirstEvent}
                 stats={stats}
                 transactionStats={transactionStats}
               />
-            </ChartContainer>
-            <Deploys project={project} />
-          </StyledProjectCard>
-        ) : (
-          <LoadingCard />
-        )}
+            ) : (
+              <Placeholder height="150px" />
+            )}
+          </ChartContainer>
+          <FooterWrapper>
+            <ScoreCardWrapper>
+              {!stats ? (
+                <Fragment>
+                  <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
+                  <FooterPlaceholder />
+                </Fragment>
+              ) : hasHealthData ? (
+                <ScoreCard
+                  title={t('Crash Free Sessions')}
+                  score={
+                    defined(currentCrashFreeRate)
+                      ? displayCrashFreePercent(currentCrashFreeRate)
+                      : '\u2014'
+                  }
+                  trend={this.renderTrend()}
+                  trendStatus={
+                    this.crashFreeTrend
+                      ? this.crashFreeTrend > 0
+                        ? 'good'
+                        : 'bad'
+                      : undefined
+                  }
+                />
+              ) : (
+                this.renderMissingFeatureCard()
+              )}
+            </ScoreCardWrapper>
+            <DeploysWrapper>
+              <ReleaseTitle>{t('Latest Deploys')}</ReleaseTitle>
+              {stats ? <Deploys project={project} shorten /> : <FooterPlaceholder />}
+            </DeploysWrapper>
+          </FooterWrapper>
+        </StyledProjectCard>
       </div>
     );
   }
@@ -133,7 +245,7 @@ type ContainerState = {
   projectDetails: Project | null;
 };
 
-class ProjectCardContainer extends React.Component<ContainerProps, ContainerState> {
+class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   state = this.getInitialState();
 
   getInitialState(): ContainerState {
@@ -206,12 +318,82 @@ const StyledProjectCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
+  min-height: 330px;
 `;
 
-const LoadingCard = styled('div')`
-  border: 1px solid transparent;
-  background-color: ${p => p.theme.backgroundSecondary};
-  height: 334px;
+const FooterWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  div {
+    border: none;
+    box-shadow: none;
+    font-size: ${p => p.theme.fontSizeMedium};
+    padding: 0;
+  }
+  ${StyledButtonBar} {
+    a {
+      background-color: ${p => p.theme.background};
+      border: 1px solid ${p => p.theme.border};
+      border-radius: ${p => p.theme.borderRadius};
+      color: ${p => p.theme.gray500};
+    }
+  }
+`;
+
+const ScoreCardWrapper = styled('div')`
+  margin: ${space(2)} 0 0 ${space(2)};
+  ${StyledPanel} {
+    min-height: auto;
+  }
+  ${HeaderTitle} {
+    color: ${p => p.theme.gray300};
+    font-weight: 600;
+  }
+  ${ScoreWrapper} {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  ${Score} {
+    font-size: 28px;
+  }
+  ${Trend} {
+    margin-left: 0;
+    margin-top: ${space(0.5)};
+  }
+`;
+
+const DeploysWrapper = styled('div')`
+  margin-top: ${space(2)};
+  ${GetStarted} {
+    display: block;
+    height: 100%;
+  }
+  ${TextOverflow} {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-column-gap: ${space(1)};
+    div {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    a {
+      display: grid;
+    }
+  }
+  ${DeployRows} {
+    grid-template-columns: 2fr auto;
+    margin-right: ${space(2)};
+    height: auto;
+    svg {
+      display: none;
+    }
+  }
+`;
+
+const ReleaseTitle = styled('span')`
+  color: ${p => p.theme.gray300};
+  font-weight: 600;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -250,6 +432,28 @@ const TransactionsLink = styled(Link)`
   > span {
     margin-left: ${space(0.5)};
   }
+`;
+
+const NotAvailable = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: normal;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const SummaryLinkPlaceholder = styled(Placeholder)`
+  height: 15px;
+  width: 180px;
+  margin-top: ${space(0.75)};
+  margin-bottom: ${space(0.5)};
+`;
+
+const FooterPlaceholder = styled(Placeholder)`
+  height: 40px;
+  width: auto;
+  margin-right: ${space(2)};
 `;
 
 export {ProjectCard};

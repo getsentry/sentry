@@ -7,6 +7,7 @@ from sentry.api.event_search import (
 )
 from sentry.api.issue_search import (
     convert_actor_or_none_value,
+    convert_first_release_value,
     convert_query_values,
     convert_release_value,
     convert_user_value,
@@ -142,12 +143,9 @@ class ParseSearchQueryTest(TestCase):
             SearchFilter(
                 key=SearchKey(name="message"),
                 operator="=",
-                value=SearchValue(raw_value="TypeError Anonymous function"),
-            ),
-            SearchFilter(
-                key=SearchKey(name="message"),
-                operator="=",
-                value=SearchValue(raw_value="(app/javascript/utils/transform-object-keys)"),
+                value=SearchValue(
+                    raw_value="TypeError Anonymous function(app/javascript/utils/transform-object-keys)"
+                ),
             ),
         ]
 
@@ -198,14 +196,6 @@ class ConvertActorOrNoneValueTest(TestCase):
             ["me"], [self.project], self.user, None
         ) == convert_user_value(["me"], [self.project], self.user, None)
 
-    def test_me_or_none(self):
-        assert convert_actor_or_none_value(["me_or_none"], [self.project], self.user, None) == [
-            [
-                "me_or_none",
-                self.user,
-            ]
-        ]
-
     def test_none(self):
         assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]
 
@@ -235,10 +225,21 @@ class ConvertUserValueTest(TestCase):
 
 class ConvertReleaseValueTest(TestCase):
     def test(self):
-        assert convert_release_value(["123"], [self.project], self.user, None) == ["123"]
+        assert convert_release_value(["123"], [self.project], self.user, None) == "123"
 
     def test_latest(self):
         release = self.create_release(self.project)
-        assert convert_release_value(["latest"], [self.project], self.user, None) == [
+        assert convert_release_value(["latest"], [self.project], self.user, None) == release.version
+        assert convert_release_value(["14.*"], [self.project], self.user, None) == "14.*"
+
+
+class ConvertFirstReleaseValueTest(TestCase):
+    def test(self):
+        assert convert_first_release_value(["123"], [self.project], self.user, None) == ["123"]
+
+    def test_latest(self):
+        release = self.create_release(self.project)
+        assert convert_first_release_value(["latest"], [self.project], self.user, None) == [
             release.version
         ]
+        assert convert_first_release_value(["14.*"], [self.project], self.user, None) == ["14.*"]

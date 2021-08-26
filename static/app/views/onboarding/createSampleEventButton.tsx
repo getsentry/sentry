@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -12,6 +12,7 @@ import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -51,7 +52,7 @@ async function latestEventAvailable(
 }
 
 class CreateSampleEventButton extends React.Component<Props, State> {
-  state = {
+  state: State = {
     creating: false,
   };
 
@@ -101,6 +102,11 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     if (!project) {
       return;
     }
+
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
+      platform: project.platform,
+      organization,
+    });
 
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,

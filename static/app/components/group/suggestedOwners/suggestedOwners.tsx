@@ -1,10 +1,12 @@
-import React from 'react';
+import * as React from 'react';
 
 import {assignToActor, assignToUser} from 'app/actionCreators/group';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import {Actor, Committer, Group, Organization, Project} from 'app/types';
+import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
 import withOrganization from 'app/utils/withOrganization';
@@ -21,18 +23,22 @@ type Props = {
   project: Project;
   group: Group;
   event: Event;
-  committers: Array<Committer>;
+  committers?: Committer[];
 };
 
 type State = {
   rules: Rules;
   owners: Array<Actor>;
+  codeowners: CodeOwner[];
+  isDismissed: boolean;
 };
 
 class SuggestedOwners extends React.Component<Props, State> {
   state: State = {
     rules: null,
     owners: [],
+    codeowners: [],
+    isDismissed: true,
   };
 
   componentDidMount() {
@@ -42,21 +48,85 @@ class SuggestedOwners extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     if (this.props.event && prevProps.event) {
       if (this.props.event.id !== prevProps.event.id) {
-        //two events, with different IDs
+        // two events, with different IDs
         this.fetchData(this.props.event);
       }
       return;
     }
 
     if (this.props.event) {
-      //going from having no event to having an event
+      // going from having no event to having an event
       this.fetchData(this.props.event);
     }
   }
 
   async fetchData(event: Event) {
     this.fetchOwners(event.id);
+    this.fetchCodeOwners();
+    this.checkCodeOwnersPrompt();
   }
+
+  async checkCodeOwnersPrompt() {
+    const {api, organization, project} = this.props;
+
+    // check our prompt backend
+    const promptData = await promptsCheck(api, {
+      organizationId: organization.id,
+      projectId: project.id,
+      feature: 'code_owners',
+    });
+    const isDismissed = promptIsDismissed(promptData, 30);
+    this.setState({isDismissed}, () => {
+      if (!isDismissed) {
+        // now record the results
+        trackIntegrationAnalytics(
+          'integrations.show_code_owners_prompt',
+          {
+            view: 'stacktrace_issue_details',
+            project_id: project.id,
+            organization,
+          },
+          {startSession: true}
+        );
+      }
+    });
+  }
+
+  handleCTAClose = () => {
+    const {api, organization, project} = this.props;
+
+    promptsUpdate(api, {
+      organizationId: organization.id,
+      projectId: project.id,
+      feature: 'code_owners',
+      status: 'dismissed',
+    });
+
+    this.setState({isDismissed: true}, () =>
+      trackIntegrationAnalytics('integrations.dismissed_code_owners_prompt', {
+        view: 'stacktrace_issue_details',
+        project_id: project.id,
+        organization,
+      })
+    );
+  };
+
+  fetchCodeOwners = async () => {
+    const {api, project, organization} = this.props;
+
+    try {
+      const data = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners/`
+      );
+      this.setState({
+        codeowners: data,
+      });
+    } catch {
+      this.setState({
+        codeowners: [],
+      });
+    }
+  };
 
   fetchOwners = async (eventId: Event['id']) => {
     const {api, project, organization} = this.props;
@@ -101,7 +171,8 @@ class SuggestedOwners extends React.Component<Props, State> {
    * }
    */
   getOwnerList() {
-    const owners = this.props.committers.map(commiter => ({
+    const committers = this.props.committers ?? [];
+    const owners = committers.map(commiter => ({
       actor: {...commiter.author, type: 'user' as Actor['type']},
       commits: commiter.commits,
     })) as OwnerList;
@@ -113,9 +184,7 @@ class SuggestedOwners extends React.Component<Props, State> {
       };
 
       const existingIdx = owners.findIndex(o =>
-        this.props.committers.length === 0
-          ? o.actor === owner
-          : o.actor.email === owner.email
+        committers.length === 0 ? o.actor === owner : o.actor.email === owner.email
       );
       if (existingIdx > -1) {
         owners[existingIdx] = {...normalizedOwner, ...owners[existingIdx]};
@@ -138,16 +207,25 @@ class SuggestedOwners extends React.Component<Props, State> {
       // TODO(ts): `event` here may not be 100% correct
       // in this case groupID should always exist on event
       // since this is only used in Issue Details
-      assignToUser({id: event.groupID as string, user: actor});
+      assignToUser({
+        id: event.groupID as string,
+        user: actor,
+        assignedBy: 'suggested_assignee',
+      });
     }
 
     if (actor.type === 'team') {
-      assignToActor({id: event.groupID as string, actor});
+      assignToActor({
+        id: event.groupID as string,
+        actor,
+        assignedBy: 'suggested_assignee',
+      });
     }
   };
 
   render() {
     const {organization, project, group} = this.props;
+    const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
 
     return (
@@ -155,13 +233,14 @@ class SuggestedOwners extends React.Component<Props, State> {
         {owners.length > 0 && (
           <SuggestedAssignees owners={owners} onAssign={this.handleAssign} />
         )}
-        <Access access={['project:write']}>
-          <OwnershipRules
-            issueId={group.id}
-            project={project}
-            organization={organization}
-          />
-        </Access>
+        <OwnershipRules
+          issueId={group.id}
+          project={project}
+          organization={organization}
+          codeowners={codeowners}
+          isDismissed={isDismissed}
+          handleCTAClose={this.handleCTAClose}
+        />
       </React.Fragment>
     );
   }

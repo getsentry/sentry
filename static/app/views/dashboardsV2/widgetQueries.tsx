@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -45,7 +45,7 @@ function getWidgetInterval(
   const selectedRange = getDiffInMinutes(datetimeObj);
 
   if (selectedRange / desiredPeriod > MAX_BIN_COUNT) {
-    return getInterval(datetimeObj, true);
+    return getInterval(datetimeObj, 'high');
   }
   return interval;
 }
@@ -194,6 +194,7 @@ class WidgetQueries extends React.Component<Props, State> {
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
         per_page: 5,
+        noPagination: true,
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;

@@ -1,39 +1,43 @@
-import React from 'react';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {cleanup, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import LoadingContainer from 'app/components/loading/loadingContainer';
 
-describe('LoadingContainer', function () {
-  let wrapper;
-  beforeEach(() => {
-    wrapper = mountWithTheme(
-      <LoadingContainer>
-        <div>hello!</div>
-      </LoadingContainer>
-    );
-  });
+function renderComponent(props) {
+  return mountWithTheme(
+    <LoadingContainer {...props}>
+      <div>hello!</div>
+    </LoadingContainer>
+  );
+}
+
+describe('LoadingContainer', () => {
+  afterEach(cleanup);
 
   it('handles normal state', () => {
-    expect(wrapper.text()).toBe('hello!');
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    const {getByText, getByTestId} = renderComponent();
+    expect(getByText('hello!')).toBeTruthy();
+    expect(() => getByTestId('loading-indicator')).toThrow();
   });
 
   it('handles loading state', () => {
-    wrapper.setProps({isLoading: true});
-    expect(wrapper.text()).toBe('hello!');
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
-    wrapper.setProps({children: null});
-    expect(wrapper.text()).toBe('');
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    const {getByTestId, getByText, rerender, queryByText} = renderComponent({
+      isLoading: true,
+    });
+    expect(getByText('hello!')).toBeTruthy();
+    expect(getByTestId('loading-indicator')).toBeTruthy();
+    rerender(<LoadingContainer isLoading />);
+    expect(queryByText('hello!')).toBeNull();
+    expect(getByTestId('loading-indicator')).toBeTruthy();
   });
 
   it('handles reloading state', () => {
-    wrapper.setProps({isReloading: true});
-    expect(wrapper.text()).toBe('hello!');
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
-    wrapper.setProps({children: null});
-    expect(wrapper.text()).toBe('');
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    const {getByTestId, getByText, rerender, queryByText} = renderComponent({
+      isReloading: true,
+    });
+    expect(getByText('hello!')).toBeTruthy();
+    expect(getByTestId('loading-indicator')).toBeTruthy();
+    rerender(<LoadingContainer isReloading />);
+    expect(queryByText('hello!')).toBeNull();
+    expect(getByTestId('loading-indicator')).toBeTruthy();
   });
 });

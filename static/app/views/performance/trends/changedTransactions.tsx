@@ -1,7 +1,7 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -13,7 +13,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Radio from 'app/components/radio';
@@ -26,7 +26,7 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -75,13 +75,9 @@ type TrendsCursorQuery = {
   regressionCursor?: string;
 };
 
-function onTrendsCursor(trendChangeType: TrendChangeType) {
-  return function onCursor(
-    cursor: string,
-    path: string,
-    query: Query,
-    _direction: number
-  ) {
+const makeTrendsCursorHandler =
+  (trendChangeType: TrendChangeType): CursorHandler =>
+  (cursor, path, query) => {
     const cursorQuery = {} as TrendsCursorQuery;
     if (trendChangeType === TrendChangeType.IMPROVED) {
       cursorQuery.improvedCursor = cursor;
@@ -97,7 +93,6 @@ function onTrendsCursor(trendChangeType: TrendChangeType) {
       query: {...query, ...cursorQuery},
     });
   };
-}
 
 function getChartTitle(trendChangeType: TrendChangeType): string {
   switch (trendChangeType) {
@@ -161,11 +156,11 @@ enum FilterSymbols {
 
 function handleFilterTransaction(location: Location, transaction: string) {
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
-  conditions.addTagValues('!transaction', [transaction]);
+  conditions.addFilterValues('!transaction', [transaction]);
 
-  const query = stringifyQueryObject(conditions);
+  const query = conditions.formatString();
 
   browserHistory.push({
     pathname: location.pathname,
@@ -179,22 +174,22 @@ function handleFilterTransaction(location: Location, transaction: string) {
 function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
   const durationTag = getCurrentTrendParameter(location).column;
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
-  const existingValues = conditions.getTagValues(durationTag);
+  const existingValues = conditions.getFilterValues(durationTag);
   const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
 
   if (existingValues) {
     existingValues.forEach(existingValue => {
       if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
-        conditions.removeTagValue(durationTag, existingValue);
+        conditions.removeFilterValue(durationTag, existingValue);
       }
     });
   }
 
-  conditions.addTagValues(durationTag, [`${symbol}${value}`]);
+  conditions.addFilterValues(durationTag, [`${symbol}${value}`]);
 
-  const query = stringifyQueryObject(conditions);
+  const query = conditions.formatString();
 
   browserHistory.push({
     pathname: location.pathname,
@@ -220,7 +215,7 @@ function ChangedTransactions(props: Props) {
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
 
-  const onCursor = onTrendsCursor(trendChangeType);
+  const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
 
   return (
@@ -275,9 +270,9 @@ function ChangedTransactions(props: Props) {
                   }}
                 />
               ) : (
-                <React.Fragment>
+                <Fragment>
                   {transactionsList.length ? (
-                    <React.Fragment>
+                    <Fragment>
                       <ChartContainer>
                         <Chart
                           statsData={statsData}
@@ -313,13 +308,13 @@ function ChangedTransactions(props: Props) {
                           )}
                         />
                       ))}
-                    </React.Fragment>
+                    </Fragment>
                   ) : (
                     <StyledEmptyStateWarning small>
                       {t('No results')}
                     </StyledEmptyStateWarning>
                   )}
-                </React.Fragment>
+                </Fragment>
               )}
             </TrendsTransactionPanel>
             <Pagination pageLinks={pageLinks} onCursor={onCursor} />
@@ -431,10 +426,10 @@ function TrendsListItem(props: TrendsListItemProps) {
       <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
-          <React.Fragment>
+          <Fragment>
             {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
             {formatPercentage(transaction.trend_percentage - 1, 0)}
-          </React.Fragment>
+          </Fragment>
         </Tooltip>
       </ItemTransactionPercentage>
       <DropdownLink
@@ -484,9 +479,9 @@ function TrendsListItem(props: TrendsListItemProps) {
         <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
-        <React.Fragment>
+        <Fragment>
           {transformValueDelta(transaction.trend_difference, trendChangeType)}
-        </React.Fragment>
+        </Fragment>
       </ItemTransactionStatus>
     </ListItemContainer>
   );
@@ -545,6 +540,7 @@ const ChartContainer = styled('div')`
 `;
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
+  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(3)};
 `;
 

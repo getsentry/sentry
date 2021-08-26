@@ -1,4 +1,5 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
@@ -16,7 +17,7 @@ import {
 } from 'app/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconChevron, IconWarning} from 'app/icons';
+import {IconAnchor, IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -33,24 +34,12 @@ type Props = {
   location: Location;
   organization: Organization;
   transaction: TraceFullDetailed;
+  scrollToHash: (hash: string) => void;
 };
 
-type State = {
-  errorsOpened: boolean;
-};
-
-class TransactionDetail extends React.Component<Props, State> {
-  state: State = {
-    errorsOpened: false,
-  };
-
-  toggleErrors = () => {
-    this.setState(({errorsOpened}) => ({errorsOpened: !errorsOpened}));
-  };
-
+class TransactionDetail extends Component<Props> {
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
-    const {errorsOpened} = this.state;
     const {errors} = transaction;
 
     if (errors.length === 0) {
@@ -58,32 +47,29 @@ class TransactionDetail extends React.Component<Props, State> {
     }
 
     return (
-      <Alert system type="error" icon={<IconWarning size="md" />}>
+      <Alert
+        system
+        type="error"
+        icon={<IconWarning size="md" />}
+        expand={errors.map(error => (
+          <ErrorMessageContent key={error.event_id}>
+            <ErrorDot level={error.level} />
+            <ErrorLevel>{error.level}</ErrorLevel>
+            <ErrorTitle>
+              <Link to={generateIssueEventTarget(error, organization)}>
+                {error.title}
+              </Link>
+            </ErrorTitle>
+          </ErrorMessageContent>
+        ))}
+      >
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',
             '%s error events occurred in this transaction.',
             errors.length
           )}
-          <Toggle priority="link" onClick={this.toggleErrors}>
-            <IconChevron direction={errorsOpened ? 'up' : 'down'} />
-          </Toggle>
         </ErrorMessageTitle>
-        {errorsOpened && (
-          <ErrorMessageContent>
-            {errors.map(error => (
-              <React.Fragment key={error.event_id}>
-                <ErrorDot level={error.level} />
-                <ErrorLevel>{error.level}</ErrorLevel>
-                <ErrorTitle>
-                  <Link to={generateIssueEventTarget(error, organization)}>
-                    {error.title}
-                  </Link>
-                </ErrorTitle>
-              </React.Fragment>
-            ))}
-          </ErrorMessageContent>
-        )}
       </Alert>
     );
   }
@@ -140,7 +126,7 @@ class TransactionDetail extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
@@ -149,9 +135,29 @@ class TransactionDetail extends React.Component<Props, State> {
             {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
           </Row>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
+
+  scrollBarIntoView =
+    (transactionId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // do not use the default anchor behaviour
+      // because it will be hidden behind the minimap
+      e.preventDefault();
+
+      const hash = `#txn-${transactionId}`;
+
+      this.props.scrollToHash(hash);
+
+      // TODO(txiao): This is causing a rerender of the whole page,
+      // which can be slow.
+      //
+      // make sure to update the location
+      browserHistory.push({
+        ...this.props.location,
+        hash,
+      });
+    };
 
   renderTransactionDetail() {
     const {location, organization, transaction} = this.props;
@@ -164,7 +170,17 @@ class TransactionDetail extends React.Component<Props, State> {
       <TransactionDetails>
         <table className="table key-value">
           <tbody>
-            <Row title="Transaction ID" extra={this.renderGoToTransactionButton()}>
+            <Row
+              title={
+                <TransactionIdTitle
+                  onClick={this.scrollBarIntoView(transaction.event_id)}
+                >
+                  Transaction ID
+                  <StyledIconAnchor />
+                </TransactionIdTitle>
+              }
+              extra={this.renderGoToTransactionButton()}
+            >
               {transaction.event_id}
             </Row>
             <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
@@ -177,10 +193,10 @@ class TransactionDetail extends React.Component<Props, State> {
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:27 AM UTC',
                 value: (
-                  <React.Fragment>
+                  <Fragment>
                     <DateTime date={startTimestamp * 1000} />
                     {` (${startTimestamp})`}
-                  </React.Fragment>
+                  </Fragment>
                 ),
               })}
             </Row>
@@ -188,10 +204,10 @@ class TransactionDetail extends React.Component<Props, State> {
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:28 AM UTC',
                 value: (
-                  <React.Fragment>
+                  <Fragment>
                     <DateTime date={endTimestamp * 1000} />
                     {` (${endTimestamp})`}
-                  </React.Fragment>
+                  </Fragment>
                 ),
               })}
             </Row>
@@ -224,18 +240,24 @@ class TransactionDetail extends React.Component<Props, State> {
   }
 }
 
+const TransactionIdTitle = styled('a')`
+  display: flex;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(1)};
+`;
+
 const StyledButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};
-`;
-
-const Toggle = styled(Button)`
-  font-weight: bold;
-  color: ${p => p.theme.subText};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 export default TransactionDetail;

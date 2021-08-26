@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
@@ -11,7 +11,7 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-//! Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
+// NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {
   IssuesByTag = 'Issues-by-Tag',
   Discover = 'Discover',
@@ -42,7 +42,7 @@ class DataExport extends React.Component<Props, State> {
     if (!isEqual(prevPayload, payload)) this.resetState();
   }
 
-  get initialState() {
+  get initialState(): State {
     return {
       inProgress: false,
     };

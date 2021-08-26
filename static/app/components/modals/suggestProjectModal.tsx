@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -19,7 +19,7 @@ import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
@@ -34,28 +34,26 @@ type State = {
   askTeammate: boolean;
 };
 
-class SuggestProjectModal extends React.Component<Props, State> {
+class SuggestProjectModal extends Component<Props, State> {
   state: State = {
     askTeammate: false,
   };
 
   handleGetStartedClick = () => {
     const {matchedUserAgentString, organization} = this.props;
-    trackAdvancedAnalyticsEvent(
-      'growth.clicked_mobile_prompt_setup_project',
-      {matchedUserAgentString},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_setup_project', {
+      matchedUserAgentString,
+      organization,
+    });
   };
 
   handleAskTeammate = () => {
     const {matchedUserAgentString, organization} = this.props;
     this.setState({askTeammate: true});
-    trackAdvancedAnalyticsEvent(
-      'growth.clicked_mobile_prompt_ask_teammate',
-      {matchedUserAgentString},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_ask_teammate', {
+      matchedUserAgentString,
+      organization,
+    });
   };
 
   goBack = () => {
@@ -65,11 +63,10 @@ class SuggestProjectModal extends React.Component<Props, State> {
   handleSubmitSuccess = () => {
     const {matchedUserAgentString, organization, closeModal} = this.props;
     addSuccessMessage('Notified teammate successfully');
-    trackAdvancedAnalyticsEvent(
-      'growth.submitted_mobile_prompt_ask_teammate',
-      {matchedUserAgentString},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('growth.submitted_mobile_prompt_ask_teammate', {
+      matchedUserAgentString,
+      organization,
+    });
     closeModal();
   };
 
@@ -125,7 +122,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
     const newProjectLink = `/organizations/${organization.slug}/projects/new/?${paramString}`;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Body>
           <ModalContainer>
             <SmallP>
@@ -187,7 +184,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
             )}
           </Access>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -196,13 +193,13 @@ class SuggestProjectModal extends React.Component<Props, State> {
     const {askTeammate} = this.state;
     const header = askTeammate ? t('Tell a Teammate') : t('Try Sentry for Mobile');
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <PatternHeader />
           <Title>{header}</Title>
         </Header>
         {this.state.askTeammate ? this.renderAskTeammate() : this.renderMain()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -240,9 +237,6 @@ const PatternHeader = styled('div')`
 const StyledList = styled(List)`
   li {
     padding-left: ${space(3)};
-    :before {
-      top: 7px;
-    }
   }
 `;
 

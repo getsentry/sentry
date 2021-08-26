@@ -1,5 +1,5 @@
-import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {PureComponent} from 'react';
+import {RouteComponentProps} from 'react-router';
 
 import {
   createIncidentNote,
@@ -28,11 +28,10 @@ import Activity from './activity';
 
 type Activities = Array<ActivityType | ActivityType>;
 
-type Props = {
+type Props = Pick<RouteComponentProps<{alertId: string; orgId: string}, {}>, 'params'> & {
   api: Client;
   incident?: Incident;
   incidentStatus: IncidentStatus | null;
-  params: Params;
 };
 
 type State = {
@@ -51,7 +50,7 @@ type State = {
  * Allows user to leave a comment on an alertId as well as
  * fetch and render existing activity items.
  */
-class ActivityContainer extends React.PureComponent<Props, State> {
+class ActivityContainer extends PureComponent<Props, State> {
   state: State = {
     loading: true,
     error: false,

@@ -1,8 +1,6 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {BooleanField} from 'app/components/forms';
+import {BooleanField, Form} from 'app/components/forms';
 
 describe('BooleanField', function () {
   describe('render()', function () {
@@ -12,16 +10,11 @@ describe('BooleanField', function () {
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(<BooleanField name="fieldName" />, {
-        context: {
-          form: {
-            data: {
-              fieldName: true,
-            },
-            errors: {},
-          },
-        },
-      });
+      const wrapper = mountWithTheme(
+        <Form initialData={{fieldName: true}}>
+          <BooleanField name="fieldName" />
+        </Form>
+      );
       expect(wrapper).toSnapshot();
     });
   });

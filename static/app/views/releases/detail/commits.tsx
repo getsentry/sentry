@@ -1,9 +1,10 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
 import CommitRow from 'app/components/commitRow';
 import {Body, Main} from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -50,6 +51,14 @@ class Commits extends AsyncView<Props, State> {
     };
   }
 
+  componentDidUpdate(prevProps: Props, prevContext: Record<string, any>) {
+    if (prevProps.activeReleaseRepo?.name !== this.props.activeReleaseRepo?.name) {
+      this.remountComponent();
+      return;
+    }
+    super.componentDidUpdate(prevProps, prevContext);
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
       projectSlug,
@@ -72,9 +81,17 @@ class Commits extends AsyncView<Props, State> {
     ];
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderContent() {
-    const {commits, commitsPageLinks} = this.state;
+    const {commits, commitsPageLinks, loading} = this.state;
     const {activeReleaseRepo} = this.props;
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
 
     if (!commits.length) {
       return (
@@ -93,7 +110,7 @@ class Commits extends AsyncView<Props, State> {
     const reposToRender = getReposToRender(Object.keys(commitsByRepository));
 
     return (
-      <React.Fragment>
+      <Fragment>
         {reposToRender.map(repoName => (
           <Panel key={repoName}>
             <PanelHeader>{repoName}</PanelHeader>
@@ -105,7 +122,7 @@ class Commits extends AsyncView<Props, State> {
           </Panel>
         ))}
         <Pagination pageLinks={commitsPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -113,7 +130,7 @@ class Commits extends AsyncView<Props, State> {
     const {location, router, activeReleaseRepo, releaseRepos} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {releaseRepos.length > 1 && (
           <RepositorySwitcher
             repositories={releaseRepos}
@@ -123,7 +140,7 @@ class Commits extends AsyncView<Props, State> {
           />
         )}
         {this.renderContent()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

@@ -1,0 +1,21 @@
+[
+  {
+    "query": "stack.colno:>3s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
+          "expectedType": ["numeric", "numericIn"]
+        },
+        "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">3s", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

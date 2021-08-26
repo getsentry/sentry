@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -97,6 +97,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             >
               <SearchConditionsWrapper>
                 <StyledSearchBar
+                  searchSource="widget_builder"
                   organization={organization}
                   projectIds={selection.projects}
                   query={widgetQuery.conditions}
@@ -151,6 +152,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           fieldOptions={fieldOptions}
           errors={this.getFirstQueryError('fields')}
           fields={queries[0].fields}
+          organization={organization}
           onChange={fields => {
             queries.forEach((widgetQuery, queryIndex) => {
               const newQuery = cloneDeep(widgetQuery);

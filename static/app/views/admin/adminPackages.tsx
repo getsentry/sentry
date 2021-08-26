@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -26,12 +26,12 @@ export default class AdminPackages extends AsyncView<{}, State> {
         {extensions.length > 0 ? (
           <dl className="vars">
             {extensions.map(([key, value]) => (
-              <React.Fragment key={key}>
+              <Fragment key={key}>
                 <dt>{key}</dt>
                 <dd>
                   <pre className="val">{value}</pre>
                 </dd>
-              </React.Fragment>
+              </Fragment>
             ))}
           </dl>
         ) : (
@@ -43,12 +43,12 @@ export default class AdminPackages extends AsyncView<{}, State> {
         {modules.length > 0 ? (
           <dl className="vars">
             {modules.map(([key, value]) => (
-              <React.Fragment key={key}>
+              <Fragment key={key}>
                 <dt>{key}</dt>
                 <dd>
                   <pre className="val">{value}</pre>
                 </dd>
-              </React.Fragment>
+              </Fragment>
             ))}
           </dl>
         ) : (

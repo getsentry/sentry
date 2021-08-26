@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -31,13 +31,13 @@ function SavedSearchMenuItem({
   return (
     <Tooltip
       title={
-        <React.Fragment>
+        <Fragment>
           {`${search.name} \u2022 `}
           <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
           {` \u2022 `}
           {t('Sort: ')}
           {getSortLabel(search.sort)}
-        </React.Fragment>
+        </Fragment>
       }
       containerDisplayMode="block"
       delay={1000}
@@ -94,16 +94,13 @@ type Props = {
 function SavedSearchMenu({savedSearchList, ...props}: Props) {
   const savedSearches = savedSearchList.filter(search => !search.isGlobal);
   let globalSearches = savedSearchList.filter(search => search.isGlobal);
-
-  if (props.organization.features?.includes('inbox')) {
-    // Hide "Unresolved Issues" since they have a unresolved tab
-    globalSearches = globalSearches.filter(
-      search => !search.isPinned && search.query !== 'is:unresolved'
-    );
-  }
+  // Hide "Unresolved Issues" since they have a unresolved tab
+  globalSearches = globalSearches.filter(
+    search => !search.isPinned && search.query !== 'is:unresolved'
+  );
 
   return (
-    <React.Fragment>
+    <Fragment>
       <MenuHeader>{t('Saved Searches')}</MenuHeader>
       {savedSearches.length === 0 ? (
         <EmptyItem>{t('No saved searches yet.')}</EmptyItem>
@@ -131,7 +128,7 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
           />
         ))
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

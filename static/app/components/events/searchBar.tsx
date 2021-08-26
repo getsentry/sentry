@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
@@ -16,7 +16,9 @@ import {
   Field,
   FIELD_TAGS,
   isAggregateField,
+  isEquation,
   isMeasurement,
+  SEMVER_TAGS,
   TRACING_FIELDS,
 } from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
@@ -101,7 +103,10 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
     const functionTags = fields
       ? Object.fromEntries(
           fields
-            .filter(item => !Object.keys(FIELD_TAGS).includes(item.field))
+            .filter(
+              item =>
+                !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
+            )
             .map(item => [item.field, {key: item.field, name: item.field}])
         )
       : {};
@@ -110,7 +115,11 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
-    const combined = assign({}, tags, fieldTags);
+    const semverTags = organization.features.includes('semver')
+      ? Object.assign({}, SEMVER_TAGS, fieldTags)
+      : fieldTags;
+
+    const combined = assign({}, tags, semverTags);
     combined.has = {
       key: 'has',
       name: 'Has property',
@@ -122,8 +131,9 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
   }
 
   render() {
+    const {organization} = this.props;
     return (
-      <Measurements>
+      <Measurements organization={organization}>
         {({measurements}) => {
           const tags = this.getTagList(measurements);
           return (

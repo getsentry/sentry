@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -128,6 +128,7 @@ class StacktraceContent extends React.Component<Props, State> {
 
     return `${className} traceback in-app-traceback`;
   }
+
   render() {
     const {
       data,
@@ -138,6 +139,7 @@ class StacktraceContent extends React.Component<Props, State> {
       includeSystemFrames,
       isHoverPreviewed,
     } = this.props;
+
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
     let firstFrameOmitted = null;
@@ -222,7 +224,7 @@ class StacktraceContent extends React.Component<Props, State> {
             onAddressToggle={this.handleToggleAddresses}
             image={image}
             maxLengthOfRelativeAddress={maxLengthOfAllRelativeAddresses}
-            registers={{}} //TODO: Fix registers
+            registers={{}} // TODO: Fix registers
             isFrameAfterLastNonApp={isFrameAfterLastNonApp}
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
@@ -254,15 +256,17 @@ class StacktraceContent extends React.Component<Props, State> {
     }
 
     const className = this.getClassName();
+    const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
     return (
-      <Wrapper className={className}>
+      <Wrapper className={className} data-test-id="stack-trace-content">
         <StyledPlatformIcon
-          platform={stackTracePlatformIcon(platform, data.frames ?? [])}
+          platform={platformIcon}
           size="20px"
           style={{borderRadius: '3px 0 0 3px'}}
+          data-test-id={`platform-icon-${platformIcon}`}
         />
-        <StyledList>{frames}</StyledList>
+        <StyledList data-test-id="frames">{frames}</StyledList>
       </Wrapper>
     );
   }

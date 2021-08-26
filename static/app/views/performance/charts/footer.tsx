@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -33,7 +33,7 @@ type State = {
   totalValues: null | number;
 };
 
-class ChartFooter extends React.Component<Props, State> {
+class ChartFooter extends Component<Props, State> {
   state: State = {
     totalValues: null,
   };

@@ -1,6 +1,5 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
-import * as ReactRouter from 'react-router';
+import {Component, Fragment} from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
@@ -40,13 +39,14 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = ReactRouter.WithRouterProps &
+type Props = WithRouterProps &
   ViewProps & {
     theme: Theme;
     api: Client;
     location: Location;
     organization: OrganizationSummary;
     queryExtra: object;
+    withoutZerofill: boolean;
   };
 
 const YAXIS_VALUES = [
@@ -56,7 +56,7 @@ const YAXIS_VALUES = [
   'p75(measurements.fid)',
 ];
 
-class VitalsChart extends React.Component<Props> {
+class VitalsChart extends Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;
@@ -84,6 +84,7 @@ class VitalsChart extends React.Component<Props> {
       statsPeriod,
       router,
       queryExtra,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -112,32 +113,8 @@ class VitalsChart extends React.Component<Props> {
       period: statsPeriod,
     };
 
-    const chartOptions = {
-      grid: {
-        left: '10px',
-        right: '10px',
-        top: '40px',
-        bottom: '0px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis' as const,
-        valueFormatter: tooltipFormatter,
-      },
-      yAxis: {
-        axisLabel: {
-          color: theme.chartLabel,
-          // p75(measurements.fcp) coerces the axis to be time based
-          formatter: (value: number) =>
-            axisLabelFormatter(value, 'p75(measurements.fcp)'),
-        },
-      },
-    };
-
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderTitleLegend>
           {t('Web Vitals Breakdown')}
           <QuestionTooltip
@@ -164,14 +141,15 @@ class VitalsChart extends React.Component<Props> {
               environment={environment}
               start={start}
               end={end}
-              interval={getInterval(datetimeSelection, true)}
+              interval={getInterval(datetimeSelection, 'high')}
               showLoading={false}
               query={query}
               includePrevious={false}
               yAxis={YAXIS_VALUES}
               partial
+              withoutZerofill={withoutZerofill}
             >
-              {({results, errored, loading, reloading}) => {
+              {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -179,6 +157,37 @@ class VitalsChart extends React.Component<Props> {
                     </ErrorPanel>
                   );
                 }
+
+                const chartOptions = {
+                  grid: {
+                    left: '10px',
+                    right: '10px',
+                    top: '40px',
+                    bottom: '0px',
+                  },
+                  seriesOptions: {
+                    showSymbol: false,
+                  },
+                  tooltip: {
+                    trigger: 'axis' as const,
+                    valueFormatter: tooltipFormatter,
+                  },
+                  xAxis: timeframe
+                    ? {
+                        min: timeframe.start,
+                        max: timeframe.end,
+                      }
+                    : undefined,
+                  yAxis: {
+                    axisLabel: {
+                      color: theme.chartLabel,
+                      // p75(measurements.fcp) coerces the axis to be time based
+                      formatter: (value: number) =>
+                        axisLabelFormatter(value, 'p75(measurements.fcp)'),
+                    },
+                  },
+                };
+
                 const colors =
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
 
@@ -226,9 +235,9 @@ class VitalsChart extends React.Component<Props> {
             </EventsRequest>
           )}
         </ChartZoom>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
 
-export default withApi(withTheme(ReactRouter.withRouter(VitalsChart)));
+export default withApi(withTheme(withRouter(VitalsChart)));

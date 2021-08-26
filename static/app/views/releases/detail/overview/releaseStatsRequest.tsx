@@ -1,4 +1,5 @@
-import React from 'react';
+import * as React from 'react';
+import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import meanBy from 'lodash/meanBy';
@@ -16,7 +17,8 @@ import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {WebVital} from 'app/utils/discover/fields';
 import {getExactDuration} from 'app/utils/formatters';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {Theme} from 'app/utils/theme';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {displayCrashFreePercent, roundDuration} from '../../utils';
 
@@ -37,7 +39,7 @@ import {
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
-    ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
+    ['api', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
 type Data = {
@@ -66,6 +68,7 @@ type Props = {
   hasDiscover: boolean;
   hasPerformance: boolean;
   defaultStatsPeriod: string;
+  theme: Theme;
 };
 
 type State = {
@@ -105,11 +108,13 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {version, location, selection, defaultStatsPeriod} = this.props;
+    const {version, organization, location, selection, defaultStatsPeriod} = this.props;
 
     return {
-      query: stringifyQueryObject(new QueryResults([`release:"${version}"`])),
-      interval: getInterval(selection.datetime),
+      query: new MutableSearch([`release:"${version}"`]).formatString(),
+      interval: getInterval(selection.datetime, {
+        highFidelity: organization.features.includes('minute-resolution-sessions'),
+      }),
       ...getParams(pick(location.query, Object.values(URL_PARAM)), {
         defaultStatsPeriod,
       }),
@@ -182,28 +187,26 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   async fetchSessions() {
-    const {api, version} = this.props;
+    const {api, version, theme} = this.props;
 
-    const [
-      releaseResponse,
-      otherReleasesResponse,
-    ]: SessionApiResponse[] = await Promise.all([
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: 'sum(session)',
-          groupBy: 'session.status',
-        },
-      }),
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: 'sum(session)',
-          groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
-        },
-      }),
-    ]);
+    const [releaseResponse, otherReleasesResponse]: SessionApiResponse[] =
+      await Promise.all([
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: 'sum(session)',
+            groupBy: 'session.status',
+          },
+        }),
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: 'sum(session)',
+            groupBy: 'session.status',
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
+          },
+        }),
+      ]);
 
     const totalSessions = getTotalsFromSessionsResponse({
       response: releaseResponse,
@@ -214,14 +217,14 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       response: releaseResponse,
       field: 'sum(session)',
       groupBy: 'session.status',
-      chartData: initSessionsBreakdownChartData(),
+      chartData: initSessionsBreakdownChartData(theme),
     });
 
     const otherChartData = fillChartDataFromSessionsResponse({
       response: otherReleasesResponse,
       field: 'sum(session)',
       groupBy: 'session.status',
-      chartData: initOtherSessionsBreakdownChartData(),
+      chartData: initOtherSessionsBreakdownChartData(theme),
     });
 
     return {
@@ -231,28 +234,26 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   async fetchUsers() {
-    const {api, version} = this.props;
+    const {api, version, theme} = this.props;
 
-    const [
-      releaseResponse,
-      otherReleasesResponse,
-    ]: SessionApiResponse[] = await Promise.all([
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: 'count_unique(user)',
-          groupBy: 'session.status',
-        },
-      }),
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: 'count_unique(user)',
-          groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
-        },
-      }),
-    ]);
+    const [releaseResponse, otherReleasesResponse]: SessionApiResponse[] =
+      await Promise.all([
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: 'count_unique(user)',
+            groupBy: 'session.status',
+          },
+        }),
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: 'count_unique(user)',
+            groupBy: 'session.status',
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
+          },
+        }),
+      ]);
 
     const totalUsers = getTotalsFromSessionsResponse({
       response: releaseResponse,
@@ -263,14 +264,14 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       response: releaseResponse,
       field: 'count_unique(user)',
       groupBy: 'session.status',
-      chartData: initSessionsBreakdownChartData(),
+      chartData: initSessionsBreakdownChartData(theme),
     });
 
     const otherChartData = fillChartDataFromSessionsResponse({
       response: otherReleasesResponse,
       field: 'count_unique(user)',
       groupBy: 'session.status',
-      chartData: initOtherSessionsBreakdownChartData(),
+      chartData: initOtherSessionsBreakdownChartData(theme),
     });
 
     return {
@@ -282,26 +283,24 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   async fetchCrashFree() {
     const {api, version} = this.props;
 
-    const [
-      releaseResponse,
-      otherReleasesResponse,
-    ]: SessionApiResponse[] = await Promise.all([
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: ['sum(session)', 'count_unique(user)'],
-          groupBy: 'session.status',
-        },
-      }),
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: ['sum(session)', 'count_unique(user)'],
-          groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
-        },
-      }),
-    ]);
+    const [releaseResponse, otherReleasesResponse]: SessionApiResponse[] =
+      await Promise.all([
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: ['sum(session)', 'count_unique(user)'],
+            groupBy: 'session.status',
+          },
+        }),
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: ['sum(session)', 'count_unique(user)'],
+            groupBy: 'session.status',
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
+          },
+        }),
+      ]);
 
     let chartData = fillCrashFreeChartDataFromSessionsReponse({
       response: releaseResponse,
@@ -354,24 +353,22 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   async fetchSessionDuration() {
     const {api, version} = this.props;
 
-    const [
-      releaseResponse,
-      otherReleasesResponse,
-    ]: SessionApiResponse[] = await Promise.all([
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: 'p50(session.duration)',
-        },
-      }),
-      api.requestPromise(this.path, {
-        query: {
-          ...this.baseQueryParams,
-          field: 'p50(session.duration)',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
-        },
-      }),
-    ]);
+    const [releaseResponse, otherReleasesResponse]: SessionApiResponse[] =
+      await Promise.all([
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: 'p50(session.duration)',
+          },
+        }),
+        api.requestPromise(this.path, {
+          query: {
+            ...this.baseQueryParams,
+            field: 'p50(session.duration)',
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
+          },
+        }),
+      ]);
 
     const totalMedianDuration = getTotalsFromSessionsResponse({
       response: releaseResponse,
@@ -403,16 +400,8 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   async fetchEventData() {
-    const {
-      api,
-      organization,
-      location,
-      yAxis,
-      eventType,
-      vitalType,
-      selection,
-      version,
-    } = this.props;
+    const {api, organization, location, yAxis, eventType, vitalType, selection, version} =
+      this.props;
     const eventView = getReleaseEventView(
       selection,
       version,
@@ -444,4 +433,4 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 }
 
-export default ReleaseStatsRequest;
+export default withTheme(ReleaseStatsRequest);

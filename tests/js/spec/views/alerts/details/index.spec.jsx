@@ -1,10 +1,11 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import IncidentDetails from 'app/views/alerts/details';
+
+jest.mock('app/utils/analytics');
 
 describe('IncidentDetails', function () {
   const params = {orgId: 'org-slug', alertId: '123'};
@@ -73,6 +74,7 @@ describe('IncidentDetails', function () {
   });
 
   beforeEach(function () {
+    trackAnalyticsEvent.mockClear();
     activitiesList.mockClear();
   });
 
@@ -92,6 +94,12 @@ describe('IncidentDetails', function () {
     // Number of events
     expect(wrapper.find('ItemValue').at(3).text()).toBe('100');
     expect(wrapper.find('ItemValue').at(4).text()).toBe('2 weeks');
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'alert_details.viewed',
+      eventName: 'Alert Details: Viewed',
+      organization_id: 3,
+      alert_id: 123,
+    });
   });
 
   it('renders open in discover button', async function () {

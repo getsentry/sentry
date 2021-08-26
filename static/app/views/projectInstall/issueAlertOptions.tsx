@@ -1,4 +1,5 @@
-import React, {ReactElement} from 'react';
+import {ReactElement} from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -28,6 +29,8 @@ const UNIQUE_USER_FREQUENCY_CONDITION =
 const EVENT_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
 const NOTIFY_EVENT_ACTION = 'sentry.rules.actions.notify_event.NotifyEventAction';
+export const EVENT_FREQUENCY_PERCENT_CONDITION =
+  'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition';
 
 const METRIC_CONDITION_MAP = {
   [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
@@ -139,7 +142,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           key={Actions.CUSTOMIZED_ALERTS}
           onClick={e => {
             // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
-            // propegation of the click up to the label, causing it to focus
+            // propagation of the click up to the label, causing it to focus
             // the radio input and lose focus on the select.
             e.preventDefault();
             const alertSetting = Actions.CUSTOMIZED_ALERTS.toString();

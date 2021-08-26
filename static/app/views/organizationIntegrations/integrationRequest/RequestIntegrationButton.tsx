@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -20,8 +20,8 @@ type State = {
   isSent: boolean;
 };
 
-export default class RequestIntegrationButton extends React.Component<Props, State> {
-  state = {
+export default class RequestIntegrationButton extends Component<Props, State> {
+  state: State = {
     isOpen: false,
     isSent: false,
   };

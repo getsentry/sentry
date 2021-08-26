@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
@@ -23,7 +23,7 @@ import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Color} from 'app/utils/theme';
-import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
+import {AlertRuleThresholdType} from 'app/views/alerts/incidentRules/types';
 
 import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
@@ -133,15 +133,8 @@ class RuleListRow extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      rule,
-      projectsLoaded,
-      projects,
-      organization,
-      orgId,
-      onDelete,
-      userTeams,
-    } = this.props;
+    const {rule, projectsLoaded, projects, organization, orgId, onDelete, userTeams} =
+      this.props;
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
@@ -157,9 +150,10 @@ class RuleListRow extends React.Component<Props, State> {
       : null;
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
-    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-details-redesign');
-    const alertLink = (
+    const alertLink = isIssueAlert(rule) ? (
+      rule.name
+    ) : (
       <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
     );
 
@@ -185,9 +179,12 @@ class RuleListRow extends React.Component<Props, State> {
                   title={
                     isIssueAlert(rule)
                       ? t('Issue Alert')
-                      : IssueStatusText[
-                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                        ]
+                      : tct('Metric Alert Status: [status]', {
+                          status:
+                            IssueStatusText[
+                              rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                            ],
+                        })
                   }
                 >
                   <AlertBadge
@@ -214,11 +211,11 @@ class RuleListRow extends React.Component<Props, State> {
             />
           </ProjectBadgeContainer>
         </FlexCenter>
-        {hasAlertOwnership && (
-          <FlexCenter>
-            {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
-          </FlexCenter>
-        )}
+
+        <FlexCenter>
+          {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
+        </FlexCenter>
+
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
         <FlexCenter>
           <DateTime
@@ -249,9 +246,9 @@ class RuleListRow extends React.Component<Props, State> {
                       />
                     }
                   >
-                    <MenuItemActionLink to={editLink} title={t('Edit')}>
-                      {t('Edit')}
-                    </MenuItemActionLink>
+                    <li>
+                      <Link to={editLink}>{t('Edit')}</Link>
+                    </li>
                     <Confirm
                       disabled={!hasAccess || !canEdit}
                       message={tct(
@@ -333,16 +330,6 @@ const Title = styled('div')`
 
 const TitleLink = styled(Link)`
   ${overflowEllipsis}
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    max-width: 300px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    max-width: 165px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    max-width: 100px;
-  }
 `;
 
 const CreatedBy = styled('div')`
@@ -366,7 +353,18 @@ const AlertNameAndStatus = styled('div')`
 `;
 
 const AlertName = styled('div')`
+  ${overflowEllipsis}
   font-size: ${p => p.theme.fontSizeLarge};
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    max-width: 300px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    max-width: 165px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    max-width: 100px;
+  }
 `;
 
 const ProjectBadgeContainer = styled('div')`

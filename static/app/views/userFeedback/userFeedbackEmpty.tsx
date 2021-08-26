@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -21,7 +21,7 @@ type Props = {
   projectIds?: string[];
 };
 
-class UserFeedbackEmpty extends React.Component<Props> {
+class UserFeedbackEmpty extends Component<Props> {
   componentDidMount() {
     const {organization, projectIds} = this.props;
 
@@ -102,7 +102,7 @@ class UserFeedbackEmpty extends React.Component<Props> {
                 eventName: 'User Feedback Docs Clicked',
               })
             }
-            href={`https://docs.sentry.io/platform-redirect/?next=/enriching-events/user-feedback/&platform=${this.selectedProjects[0]?.platform}`}
+            href="https://docs.sentry.io/product/user-feedback/"
           >
             {t('Read the docs')}
           </Button>

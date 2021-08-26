@@ -11,7 +11,8 @@ import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {Theme} from 'app/utils/theme';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
@@ -19,10 +20,22 @@ import {EventType, YAxis} from './releaseChartControls';
 
 type ChartData = Record<string, Series>;
 
-const SESSIONS_CHART_PALETTE = CHART_PALETTE[3];
+type GetIntervalOptions = {
+  highFidelity?: boolean;
+};
 
-export function getInterval(datetimeObj: DateTimeObject) {
+export function getInterval(
+  datetimeObj: DateTimeObject,
+  {highFidelity}: GetIntervalOptions = {}
+) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  if (
+    highFidelity &&
+    diffInMinutes < 360 // limit on backend is set to six hour
+  ) {
+    return '5m';
+  }
 
   if (diffInMinutes > TWO_WEEKS) {
     return '6h';
@@ -72,11 +85,9 @@ export function getReleaseEventView(
       );
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: stringifyQueryObject(
-          new QueryResults(
-            ['event.type:transaction', releaseFilter, ...statusFilters].filter(Boolean)
-          )
-        ),
+        query: new MutableSearch(
+          ['event.type:transaction', releaseFilter, ...statusFilters].filter(Boolean)
+        ).formatString(),
       });
     case YAxis.COUNT_VITAL:
     case YAxis.COUNT_DURATION:
@@ -87,45 +98,45 @@ export function getReleaseEventView(
           : WEB_VITAL_DETAILS[vitalType].poorThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: stringifyQueryObject(
-          new QueryResults(
-            [
-              'event.type:transaction',
-              releaseFilter,
-              threshold ? `${column}:>${threshold}` : '',
-            ].filter(Boolean)
-          )
-        ),
+        query: new MutableSearch(
+          [
+            'event.type:transaction',
+            releaseFilter,
+            threshold ? `${column}:>${threshold}` : '',
+          ].filter(Boolean)
+        ).formatString(),
       });
     case YAxis.EVENTS:
       const eventTypeFilter =
         eventType === EventType.ALL ? '' : `event.type:${eventType}`;
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: stringifyQueryObject(
-          new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
-        ),
+        query: new MutableSearch(
+          [releaseFilter, eventTypeFilter].filter(Boolean)
+        ).formatString(),
       });
     default:
       return EventView.fromSavedQuery({
         ...baseQuery,
-        fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-        query: stringifyQueryObject(
-          new QueryResults([`release:${version}`, '!event.type:transaction'])
-        ),
-        orderby: '-last_seen',
+        fields: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
+        query: new MutableSearch([
+          `release:${version}`,
+          '!event.type:transaction',
+        ]).formatString(),
+        orderby: '-count',
       });
   }
 }
 
-export function initSessionsBreakdownChartData(): ChartData {
+export function initSessionsBreakdownChartData(theme: Theme): ChartData {
+  const colors = theme.charts.getColorPalette(14);
   return {
     healthy: {
       seriesName: sessionTerm.healthy,
       data: [],
-      color: SESSIONS_CHART_PALETTE[3],
+      color: theme.green300,
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[3],
+        color: theme.green300,
         opacity: 1,
       },
       lineStyle: {
@@ -136,9 +147,9 @@ export function initSessionsBreakdownChartData(): ChartData {
     errored: {
       seriesName: sessionTerm.errored,
       data: [],
-      color: SESSIONS_CHART_PALETTE[0],
+      color: colors[12],
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[0],
+        color: colors[12],
         opacity: 1,
       },
       lineStyle: {
@@ -149,9 +160,9 @@ export function initSessionsBreakdownChartData(): ChartData {
     abnormal: {
       seriesName: sessionTerm.abnormal,
       data: [],
-      color: SESSIONS_CHART_PALETTE[1],
+      color: colors[15],
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[1],
+        color: colors[15],
         opacity: 1,
       },
       lineStyle: {
@@ -162,9 +173,9 @@ export function initSessionsBreakdownChartData(): ChartData {
     crashed: {
       seriesName: sessionTerm.crashed,
       data: [],
-      color: SESSIONS_CHART_PALETTE[2],
+      color: theme.red300,
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[2],
+        color: theme.red300,
         opacity: 1,
       },
       lineStyle: {
@@ -175,14 +186,15 @@ export function initSessionsBreakdownChartData(): ChartData {
   };
 }
 
-export function initOtherSessionsBreakdownChartData(): ChartData {
+export function initOtherSessionsBreakdownChartData(theme: Theme): ChartData {
+  const colors = theme.charts.getColorPalette(14);
   return {
     healthy: {
       seriesName: sessionTerm.otherHealthy,
       data: [],
-      color: SESSIONS_CHART_PALETTE[3],
+      color: theme.green300,
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[3],
+        color: theme.green300,
         opacity: 0.3,
       },
       lineStyle: {
@@ -193,9 +205,9 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
     errored: {
       seriesName: sessionTerm.otherErrored,
       data: [],
-      color: SESSIONS_CHART_PALETTE[0],
+      color: colors[12],
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[0],
+        color: colors[12],
         opacity: 0.3,
       },
       lineStyle: {
@@ -206,9 +218,9 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
     abnormal: {
       seriesName: sessionTerm.otherAbnormal,
       data: [],
-      color: SESSIONS_CHART_PALETTE[1],
+      color: colors[15],
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[1],
+        color: colors[15],
         opacity: 0.3,
       },
       lineStyle: {
@@ -219,9 +231,9 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
     crashed: {
       seriesName: sessionTerm.otherCrashed,
       data: [],
-      color: SESSIONS_CHART_PALETTE[2],
+      color: theme.red300,
       areaStyle: {
-        color: SESSIONS_CHART_PALETTE[2],
+        color: theme.red300,
         opacity: 0.3,
       },
       lineStyle: {

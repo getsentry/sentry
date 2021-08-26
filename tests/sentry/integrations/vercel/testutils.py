@@ -1,3 +1,6 @@
+SIGNATURE = "74b587857986545361e8a4253b74cd6224d34869"
+SECRET = "AiK52QASLJXmCXX3X9gO2Zyh"
+
 EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE = """
     {
         "id": "uev_ZfbZKA3Ts2aEa2Cic6t6wSZx",
@@ -65,6 +68,24 @@ DEPLOYMENT_WEBHOOK_NO_COMMITS = """
         },
         "region": "now-sfo",
         "teamId": null,
+        "userId": "cstd1xKmLGVMed0z0f3SHlD2"
+    }
+"""
+
+MINIMAL_WEBHOOK = """
+    {
+        "type": "deployment",
+        "payload": {
+            "project": "nextjsblog-demo",
+            "url": "nextjsblog-demo-gogovbsz1.vercel.app",
+            "projectId": "QmQPfU4xn5APjEsSje4ccPcSJCmVAByA8CDKfZRhYyVPAg",
+            "target": "production",
+            "deployment": {
+                "meta": {
+                    "githubCommitSha": "7488658dfcf24d9b735e015992b316e2a8340d9d"
+                }
+            }
+        },
         "userId": "cstd1xKmLGVMed0z0f3SHlD2"
     }
 """

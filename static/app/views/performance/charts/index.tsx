@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import {Component, Fragment} from 'react';
+import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -29,10 +29,10 @@ type Props = {
   eventView: EventView;
   organization: Organization;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
 };
 
-class Container extends React.Component<Props> {
+class Container extends Component<Props> {
   getChartParameters() {
     const {location, organization} = this.props;
     const options = getAxisOptions(organization);
@@ -57,6 +57,8 @@ class Container extends React.Component<Props> {
     const {utc} = getParams(location.query);
     const axisOptions = this.getChartParameters();
 
+    const apiPayload = eventView.getEventsAPIPayload(location);
+
     return (
       <Panel>
         <EventsRequest
@@ -65,6 +67,7 @@ class Container extends React.Component<Props> {
           period={globalSelection.datetime.period}
           project={globalSelection.projects}
           environment={globalSelection.environments}
+          team={apiPayload.team}
           start={start}
           end={end}
           interval={getInterval(
@@ -73,10 +76,10 @@ class Container extends React.Component<Props> {
               end,
               period: globalSelection.datetime.period,
             },
-            true
+            'high'
           )}
           showLoading={false}
-          query={eventView.getEventsAPIPayload(location).query}
+          query={apiPayload.query}
           includePrevious={false}
           yAxis={axisOptions.map(opt => opt.value)}
           partial
@@ -91,7 +94,7 @@ class Container extends React.Component<Props> {
             }
 
             return (
-              <React.Fragment>
+              <Fragment>
                 <DoubleHeaderContainer>
                   {axisOptions.map((option, i) => (
                     <div key={`${option.label}:${i}`}>
@@ -124,7 +127,7 @@ class Container extends React.Component<Props> {
                 ) : (
                   <LoadingPanel data-test-id="events-request-loading" />
                 )}
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </EventsRequest>

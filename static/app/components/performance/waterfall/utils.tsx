@@ -85,11 +85,13 @@ export const getToggleTheme = ({
   isExpanded,
   disabled,
   errored,
+  isSpanGroupToggler,
 }: {
   theme: Theme;
   isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isSpanGroupToggler?: boolean;
 }) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
   const errorTheme = theme.button.danger;
@@ -105,6 +107,15 @@ export const getToggleTheme = ({
       ? errorTheme.background
       : buttonTheme.color
     : buttonTheme.color;
+
+  if (isSpanGroupToggler) {
+    return `
+    background: ${theme.blue300};
+    border: 1px solid ${theme.button.default.border};
+    color: ${color};
+    cursor: pointer;
+  `;
+  }
 
   if (disabled) {
     return `
@@ -216,7 +227,7 @@ export const barColors = {
   db: CHART_PALETTE[17][17],
 };
 
-export const pickBarColour = (input: string | undefined): string => {
+export const pickBarColor = (input: string | undefined): string => {
   // We pick the color for span bars using the first three letters of the op name.
   // That way colors stay consistent between transactions.
 
@@ -231,8 +242,9 @@ export const pickBarColour = (input: string | undefined): string => {
   const letterIndex1 = getLetterIndex(input.slice(0, 1));
   const letterIndex2 = getLetterIndex(input.slice(1, 2));
   const letterIndex3 = getLetterIndex(input.slice(2, 3));
+  const letterIndex4 = getLetterIndex(input.slice(3, 4));
 
   return colorsAsArray[
-    (letterIndex1 + letterIndex2 + letterIndex3) % colorsAsArray.length
+    (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length
   ];
 };

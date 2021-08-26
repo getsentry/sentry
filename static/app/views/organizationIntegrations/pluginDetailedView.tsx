@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as modal from 'app/actionCreators/modal';
@@ -11,6 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import InstalledPlugin from './installedPlugin';
+import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -62,39 +63,39 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   handleResetConfiguration = (projectId: string) => {
-    //make a copy of our project list
+    // make a copy of our project list
     const projectList = this.plugin.projectList.slice();
-    //find the index of the project
+    // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
-    //should match but quit if it doesn't
+    // should match but quit if it doesn't
     if (index < 0) {
       return;
     }
-    //remove from array
+    // remove from array
     projectList.splice(index, 1);
-    //update state
+    // update state
     this.setState({
       plugins: [{...this.state.plugins[0], projectList}],
     });
   };
 
   handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
-    //make a copy of our project list
+    // make a copy of our project list
     const projectList = this.plugin.projectList.slice();
-    //find the index of the project
+    // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
-    //should match but quit if it doesn't
+    // should match but quit if it doesn't
     if (index < 0) {
       return;
     }
 
-    //update item in array
+    // update item in array
     projectList[index] = {
       ...projectList[index],
       enabled: enable,
     };
 
-    //update state
+    // update state
     this.setState({
       plugins: [{...this.state.plugins[0], projectList}],
     });
@@ -103,7 +104,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
-    this.trackIntegrationEvent('integrations.plugin_add_to_project_clicked');
+    this.trackIntegrationAnalytics('integrations.plugin_add_to_project_clicked');
     modal.openModal(
       modalProps => (
         <ContextPickerModal
@@ -117,12 +118,12 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           }}
         />
       ),
-      {}
+      {allowClickClose: false}
     );
   };
 
   getTabDisplay(tab: Tab) {
-    //we want to show project configurations to make it more clear
+    // we want to show project configurations to make it more clear
     if (tab === 'configurations') {
       return 'project configurations';
     }
@@ -150,21 +151,25 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderConfigurations() {
     const plugin = this.plugin;
     const {organization} = this.props;
+
     if (plugin.projectList.length) {
       return (
-        <div>
-          {plugin.projectList.map((projectItem: PluginProjectItem) => (
-            <InstalledPlugin
-              key={projectItem.projectId}
-              organization={organization}
-              plugin={plugin}
-              projectItem={projectItem}
-              onResetConfiguration={this.handleResetConfiguration}
-              onPluginEnableStatusChange={this.handlePluginEnableStatus}
-              trackIntegrationEvent={this.trackIntegrationEvent}
-            />
-          ))}
-        </div>
+        <Fragment>
+          <PluginDeprecationAlert organization={organization} plugin={plugin} />
+          <div>
+            {plugin.projectList.map((projectItem: PluginProjectItem) => (
+              <InstalledPlugin
+                key={projectItem.projectId}
+                organization={organization}
+                plugin={plugin}
+                projectItem={projectItem}
+                onResetConfiguration={this.handleResetConfiguration}
+                onPluginEnableStatusChange={this.handlePluginEnableStatus}
+                trackIntegrationAnalytics={this.trackIntegrationAnalytics}
+              />
+            ))}
+          </div>
+        </Fragment>
       );
     }
     return this.renderEmptyConfigurations();

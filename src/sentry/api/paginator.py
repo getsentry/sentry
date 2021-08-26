@@ -44,7 +44,7 @@ class BasePaginator:
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
-    def _build_queryset(self, value, is_prev):
+    def build_queryset(self, value, is_prev):
         queryset = self.queryset
 
         # "asc" controls whether or not we need to change the ORDER BY to
@@ -62,11 +62,15 @@ class BasePaginator:
             if self.key in queryset.query.order_by:
                 if not asc:
                     index = queryset.query.order_by.index(self.key)
-                    queryset.query.order_by[index] = "-%s" % (queryset.query.order_by[index])
+                    new_order_by = list(queryset.query.order_by)
+                    new_order_by[index] = f"-{queryset.query.order_by[index]}"
+                    queryset.query.order_by = tuple(new_order_by)
             elif ("-%s" % self.key) in queryset.query.order_by:
                 if asc:
-                    index = queryset.query.order_by.index("-%s" % (self.key))
-                    queryset.query.order_by[index] = queryset.query.order_by[index][1:]
+                    index = queryset.query.order_by.index(f"-{self.key}")
+                    new_order_by = list(queryset.query.order_by)
+                    new_order_by[index] = queryset.query.order_by[index][1:]
+                    queryset.query.order_b = tuple(new_order_by)
             else:
                 if asc:
                     queryset = queryset.order_by(self.key)
@@ -110,7 +114,7 @@ class BasePaginator:
         else:
             cursor_value = 0
 
-        queryset = self._build_queryset(cursor_value, cursor.is_prev)
+        queryset = self.build_queryset(cursor_value, cursor.is_prev)
 
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
@@ -304,7 +308,7 @@ class MergingOffsetPaginator(OffsetPaginator):
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
-        primary_results = self.data_load_func(offset=offset, limit=limit)
+        primary_results = self.data_load_func(offset=offset, limit=self.max_limit)
 
         queryset = self.apply_to_queryset(self.queryset, primary_results)
 

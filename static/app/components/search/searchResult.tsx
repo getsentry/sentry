@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -7,7 +7,6 @@ import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
-import {StyledSettingsSearch} from 'app/views/settings/components/settingsSearch';
 
 import {Result} from './sources/types';
 
@@ -17,7 +16,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   matches: Result['matches'];
 };
 
-class SearchResult extends React.Component<Props> {
+class SearchResult extends Component<Props> {
   renderContent() {
     const {highlighted, item, matches, params} = this.props;
     const {sourceType, model, extra} = item;
@@ -60,13 +59,13 @@ class SearchResult extends React.Component<Props> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <div>
           <SearchTitle>{title}</SearchTitle>
         </div>
         {description && <SearchDetail>{description}</SearchDetail>}
         {extra && <ExtraDetail>{extra}</ExtraDetail>}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -102,7 +101,7 @@ class SearchResult extends React.Component<Props> {
     return (
       <Wrapper>
         <Content>{this.renderContent()}</Content>
-        <IconWrapper>{this.renderResultType()}</IconWrapper>
+        <div>{this.renderResultType()}</div>
       </Wrapper>
     );
   }
@@ -140,12 +139,6 @@ const Wrapper = styled('div')`
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
-`;
-
-const IconWrapper = styled('div')`
-  ${/* sc-selector*/ StyledSettingsSearch} & {
-    color: inherit;
-  }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`

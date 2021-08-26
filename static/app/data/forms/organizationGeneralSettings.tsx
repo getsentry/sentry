@@ -46,7 +46,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'defaultRole',
         type: 'select',
-        deprecatedSelectControl: false,
         required: true,
         label: t('Default Role'),
         // seems weird to have choices in initial form data
@@ -81,7 +80,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'attachmentsRole',
         type: 'select',
-        deprecatedSelectControl: false,
         choices: ({initialData = {}}) =>
           initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
@@ -93,7 +91,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'debugFilesRole',
         type: 'select',
-        deprecatedSelectControl: false,
         choices: ({initialData = {}}) =>
           initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Debug Files Access'),

@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -7,7 +6,7 @@ import FeatureTourModal from 'app/components/modals/featureTourModal';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
+import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releasePromo';
 
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
 const DOCS_HEALTH_URL = 'https://docs.sentry.io/product/releases/health/';
@@ -74,4 +73,5 @@ const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
 `;
 
+export {StyledButtonBar};
 export default MissingReleasesButtons;

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
@@ -6,11 +6,12 @@ import {defined} from 'app/utils';
 
 type Props = {
   tooltip?: React.ReactNode;
+  className?: string;
 };
 
-function NotAvailable({tooltip}: Props) {
+function NotAvailable({tooltip, className}: Props) {
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       <Tooltip title={tooltip} disabled={!defined(tooltip)}>
         {'\u2014'}
       </Tooltip>

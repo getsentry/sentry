@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
@@ -10,24 +10,46 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import {
+  createDashboard,
+  deleteDashboard,
+  fetchDashboard,
+} from 'app/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
+
+import ContextMenu from '../contextMenu';
+import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   dashboards: DashboardListItem[] | null;
   pageLinks: string;
+  onDashboardsChange: () => void;
 };
 
-function DashboardList({organization, location, dashboards, pageLinks}: Props) {
+function DashboardList({
+  api,
+  organization,
+  location,
+  dashboards,
+  pageLinks,
+  onDashboardsChange,
+}: Props) {
   function miniWidget(displayType: DisplayType): string {
     switch (displayType) {
       case DisplayType.BAR:
@@ -46,14 +68,52 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
     }
   }
 
+  function handleDelete(dashboard: DashboardListItem) {
+    deleteDashboard(api, organization.slug, dashboard.id)
+      .then(() => {
+        trackAnalyticsEvent({
+          eventKey: 'dashboards_manage.delete',
+          eventName: 'Dashboards Manager: Dashboard Deleted',
+          organization_id: parseInt(organization.id, 10),
+          dashboard_id: parseInt(dashboard.id, 10),
+        });
+        onDashboardsChange();
+        addSuccessMessage(t('Dashboard deleted'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Error deleting Dashboard'));
+      });
+  }
+
+  function handleDuplicate(dashboard: DashboardListItem) {
+    fetchDashboard(api, organization.slug, dashboard.id)
+      .then(dashboardDetail => {
+        const newDashboard = cloneDashboard(dashboardDetail);
+        newDashboard.widgets.map(widget => (widget.id = undefined));
+        createDashboard(api, organization.slug, newDashboard, true).then(() => {
+          trackAnalyticsEvent({
+            eventKey: 'dashboards_manage.duplicate',
+            eventName: 'Dashboards Manager: Dashboard Duplicated',
+            organization_id: parseInt(organization.id, 10),
+            dashboard_id: parseInt(dashboard.id, 10),
+          });
+          onDashboardsChange();
+          addSuccessMessage(t('Dashboard duplicated'));
+        });
+      })
+      .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
+  }
+
   function renderMiniDashboards() {
     return dashboards?.map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
-          title={dashboard.title}
+          title={
+            dashboard.id === 'default-overview' ? 'Default Dashboard' : dashboard.title
+          }
           to={{
-            pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
+            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
           detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}
@@ -65,18 +125,39 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
             <WidgetGrid>
               {dashboard.widgetDisplay.map((displayType, i) => {
                 return displayType === DisplayType.BIG_NUMBER ? (
-                  <BigNumberWidgetWrapper
-                    key={`${i}-${displayType}`}
-                    src={miniWidget(displayType)}
-                  />
+                  <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
+                    <WidgetImage src={miniWidget(displayType)} />
+                  </BigNumberWidgetWrapper>
                 ) : (
-                  <MiniWidgetWrapper
-                    key={`${i}-${displayType}`}
-                    src={miniWidget(displayType)}
-                  />
+                  <MiniWidgetWrapper key={`${i}-${displayType}`}>
+                    <WidgetImage src={miniWidget(displayType)} />
+                  </MiniWidgetWrapper>
                 );
               })}
             </WidgetGrid>
+          )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                data-test-id="dashboard-delete"
+                onClick={event => {
+                  event.preventDefault();
+                  handleDelete(dashboard);
+                }}
+                disabled={dashboards.length <= 1}
+              >
+                {t('Delete')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="dashboard-duplicate"
+                onClick={event => {
+                  event.preventDefault();
+                  handleDuplicate(dashboard);
+                }}
+              >
+                {t('Duplicate')}
+              </MenuItem>
+            </ContextMenu>
           )}
         />
       );
@@ -95,12 +176,12 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {renderDashboardGrid()}
       <PaginationRow
         pageLinks={pageLinks}
-        onCursor={(cursor: string, path: string, query: Query, direction: number) => {
-          const offset = Number(cursor.split(':')[1]);
+        onCursor={(cursor, path, query, direction) => {
+          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
 
           const newQuery: Query & {cursor?: string} = {...query, cursor};
           const isPrevious = direction === -1;
@@ -109,20 +190,27 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
             delete newQuery.cursor;
           }
 
+          trackAnalyticsEvent({
+            eventKey: 'dashboards_manage.paginate',
+            eventName: 'Dashboards Manager: Paginate',
+            organization_id: parseInt(organization.id, 10),
+          });
+
           browserHistory.push({
             pathname: path,
             query: newQuery,
           });
         }}
       />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 const DashboardGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(3)};
+  grid-template-rows: repeat(3, max-content);
+  grid-gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
@@ -152,9 +240,12 @@ const WidgetGrid = styled('div')`
   }
 `;
 
-const BigNumberWidgetWrapper = styled('img')`
+const BigNumberWidgetWrapper = styled('div')`
+  display: flex;
+  align-items: flex-start;
   width: 100%;
   height: 100%;
+
   /* 2 cols */
   grid-area: span 1 / span 2;
 
@@ -169,14 +260,21 @@ const BigNumberWidgetWrapper = styled('img')`
   }
 `;
 
-const MiniWidgetWrapper = styled('img')`
+const MiniWidgetWrapper = styled('div')`
+  display: flex;
+  align-items: flex-start;
   width: 100%;
   height: 100%;
   grid-area: span 2 / span 2;
+`;
+
+const WidgetImage = styled('img')`
+  width: 100%;
+  height: 100%;
 `;
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};
 `;
 
-export default DashboardList;
+export default withApi(DashboardList);

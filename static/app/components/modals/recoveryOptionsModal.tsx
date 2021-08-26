@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
@@ -47,10 +47,8 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
     const displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
 
     return (
-      <React.Fragment>
-        <Header closeButton onHide={closeModal}>
-          {t('Two-Factor Authentication Enabled')}
-        </Header>
+      <Fragment>
+        <Header closeButton>{t('Two-Factor Authentication Enabled')}</Header>
 
         <Body>
           <TextBlock>
@@ -111,7 +109,7 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
             </Button>
           </Footer>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

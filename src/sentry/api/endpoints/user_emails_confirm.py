@@ -4,7 +4,6 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.decorators import sudo_required
 from sentry.api.validators import AllowedEmailField
 from sentry.models import UserEmail
 
@@ -32,7 +31,6 @@ class EmailSerializer(serializers.Serializer):
 
 
 class UserEmailsConfirmEndpoint(UserEndpoint):
-    @sudo_required
     def post(self, request, user):
         """
         Sends a confirmation email to user

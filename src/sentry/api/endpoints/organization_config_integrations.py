@@ -11,7 +11,8 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         def is_provider_enabled(provider):
             if not provider.requires_feature_flag:
                 return True
-            feature_flag_name = "organizations:integrations-%s" % provider.key
+            provider_key = provider.key.replace("_", "-")
+            feature_flag_name = "organizations:integrations-%s" % provider_key
             return features.has(feature_flag_name, organization, actor=request.user)
 
         providers = filter(is_provider_enabled, list(integrations.all()))

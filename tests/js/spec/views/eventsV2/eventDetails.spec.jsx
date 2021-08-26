@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -61,6 +59,7 @@ describe('EventsV2 > EventDetails', function () {
         tags: [
           {key: 'browser', value: 'Firefox'},
           {key: 'device.uuid', value: 'test-uuid'},
+          {key: 'release', value: '82ebf297206a'},
         ],
       },
     });
@@ -207,6 +206,18 @@ describe('EventsV2 > EventDetails', function () {
     expect(deviceUUIDTagTarget.query.query).toEqual(
       'tags[device.uuid]:test-uuid title:"Oh no something bad"'
     );
+
+    // Get the third link
+    const releaseTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(4);
+
+    // Should append raw tag value without tags[] as release is exempt from being wrapped
+    const releaseTagTarget = releaseTagLink.props().to;
+    expect(releaseTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(releaseTagTarget.query.query).toEqual(
+      'release:82ebf297206a title:"Oh no something bad"'
+    );
   });
 
   it('appends tag value to existing query when clicked', async function () {
@@ -254,6 +265,18 @@ describe('EventsV2 > EventDetails', function () {
     );
     expect(deviceUUIDTagTarget.query.query).toEqual(
       'Dumpster tags[device.uuid]:test-uuid title:"Oh no something bad"'
+    );
+
+    // Get the third link
+    const releaseTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(4);
+
+    // Should append raw tag value without tags[] as release is exempt from being wrapped
+    const releaseTagTarget = releaseTagLink.props().to;
+    expect(releaseTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(releaseTagTarget.query.query).toEqual(
+      'Dumpster release:82ebf297206a title:"Oh no something bad"'
     );
   });
 });

@@ -1,5 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
+
+import space from 'app/styles/space';
 
 type Props = {
   children?: React.ReactNode;
@@ -15,7 +17,7 @@ const ListItem = styled(({children, className, symbol, onClick}: Props) => (
   </li>
 ))`
   position: relative;
-  ${p => p.symbol && `padding-left: 34px;`}
+  ${p => p.symbol && `padding-left: ${space(4)};`}
 `;
 
 const Symbol = styled('div')`

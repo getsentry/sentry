@@ -60,8 +60,8 @@ export const mobileTermsDescription = {
   [SessionTerm.ABNORMAL]: t(
     'An unknown session exit. Like due to loss of power or killed by the operating system'
   ),
-  [SessionTerm.HEALTHY]: t('A session without any errors'),
-  [SessionTerm.ERRORED]: t('A crash which experienced errors'),
+  [SessionTerm.HEALTHY]: t('A session without errors'),
+  [SessionTerm.ERRORED]: t('A session with errors'),
   [SessionTerm.UNHANDLED]: t('Not handled by user code'),
 };
 
@@ -150,7 +150,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
       return {
         ...commonTermsDescription,
         ...desktopTermDescriptions,
-        [SessionTerm.CRASHED]: t('The application had an unrecovable error (a panic)'),
+        [SessionTerm.CRASHED]: t('The application had an unrecoverable error (a panic)'),
       };
     default:
       return {

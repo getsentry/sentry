@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
@@ -53,7 +53,7 @@ function MergedList({
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <h2>
         <span>{t('Merged fingerprints with latest event')}</span>{' '}
         <QueryCount count={fingerprintsWithLatestEvent.length} />
@@ -69,19 +69,17 @@ function MergedList({
         />
 
         <PanelBody>
-          {fingerprintsWithLatestEvent.map(({id, latestEvent}) => (
+          {fingerprintsWithLatestEvent.map(fingerprint => (
             <MergedItem
-              key={id}
+              key={fingerprint.id}
               organization={organization}
-              disabled={fingerprintsWithLatestEvent.length === 1}
-              event={latestEvent}
-              fingerprint={id}
+              fingerprint={fingerprint}
             />
           ))}
         </PanelBody>
       </Panel>
       {pageLinks && <Pagination pageLinks={pageLinks} />}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

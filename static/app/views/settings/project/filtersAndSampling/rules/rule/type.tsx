@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -19,7 +18,7 @@ function Type({type}: Props) {
       return <TransactionLabel>{t('Transaction traces')}</TransactionLabel>;
     default: {
       Sentry.captureException(new Error('Unknown dynamic sampling rule type'));
-      return null; //this shall never happen
+      return null; // this shall never happen
     }
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
@@ -23,7 +23,7 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-class LastCommit extends React.Component<Props> {
+class LastCommit extends Component<Props> {
   renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');

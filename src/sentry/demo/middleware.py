@@ -1,6 +1,8 @@
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
+from django.utils.deprecation import MiddlewareMixin
 
 from sentry.models import OrganizationMember
 from sentry.utils import auth
@@ -9,11 +11,11 @@ prompt_route = reverse("sentry-api-0-prompts-activity")
 org_creation_route = reverse("sentry-api-0-organizations")
 login_route = reverse("sentry-login")
 
-# redirect to the welcome page for Sentry
-login_redirect_route = "https://sentry.io/welcome/"
+# redirect to the sandbox page
+login_redirect_route = "https://sentry.io/demo/sandbox/"
 
 
-class DemoMiddleware:
+class DemoMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         if not settings.DEMO_MODE:
             raise Exception("Demo mode misconfigured")
@@ -71,4 +73,10 @@ class DemoMiddleware:
         # if no member, can't login
         if not member or not member.user:
             return
-        auth.login(request, member.user)
+
+        with sentry_sdk.start_transaction(op="auto_login", name="auto_login", sampled=True):
+            sentry_sdk.set_tag("user_id", member.user_id)
+            sentry_sdk.set_tag("organization_id", member.organization_id)
+            sentry_sdk.set_tag("ip_address", request.META["REMOTE_ADDR"])
+
+            auth.login(request, member.user)

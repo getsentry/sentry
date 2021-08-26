@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 import {Event} from 'app/types/event';
@@ -26,12 +26,12 @@ const appKnownDataValues = [
 const appIgnoredDataValues = [];
 
 const App = ({data, event}: Props) => (
-  <React.Fragment>
+  <Fragment>
     <ContextBlock data={getAppKnownData(event, data, appKnownDataValues)} />
     <ContextBlock
       data={getUnknownData(data, [...appKnownDataValues, ...appIgnoredDataValues])}
     />
-  </React.Fragment>
+  </Fragment>
 );
 
 export default App;

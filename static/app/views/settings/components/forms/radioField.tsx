@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';

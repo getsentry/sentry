@@ -1,4 +1,3 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -17,7 +16,7 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
@@ -70,7 +69,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
 
   get isSentryAppUnavailableForOrg() {
     const {sentryApp, selectedOrgSlug} = this.state;
-    //if the app is unpublished for a different org
+    // if the app is unpublished for a different org
     return (
       selectedOrgSlug &&
       sentryApp?.owner?.slug !== selectedOrgSlug &&
@@ -86,7 +85,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   hasAccess = (org: LightWeightOrganization) => org.access.includes('org:integrations');
 
   onClose = () => {
-    //if we came from somewhere, go back there. Otherwise, back to the integrations page
+    // if we came from somewhere, go back there. Otherwise, back to the integrations page
     const {selectedOrgSlug} = this.state;
     const newUrl = document.referrer || `/settings/${selectedOrgSlug}/integrations/`;
     window.location.assign(newUrl);
@@ -97,30 +96,24 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     if (!organization || !sentryApp) {
       return undefined;
     }
-    trackIntegrationEvent(
-      'integrations.installation_start',
-      {
+    trackIntegrationAnalytics('integrations.installation_start', {
+      integration_type: 'sentry_app',
+      integration: sentryApp.slug,
+      view: 'external_install',
+      integration_status: sentryApp.status,
+      organization,
+    });
+
+    const install = await installSentryApp(this.api, organization.slug, sentryApp);
+    // installation is complete if the status is installed
+    if (install.status === 'installed') {
+      trackIntegrationAnalytics('integrations.installation_complete', {
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
         view: 'external_install',
         integration_status: sentryApp.status,
-      },
-      organization
-    );
-
-    const install = await installSentryApp(this.api, organization.slug, sentryApp);
-    //installation is complete if the status is installed
-    if (install.status === 'installed') {
-      trackIntegrationEvent(
-        'integrations.installation_complete',
-        {
-          integration_type: 'sentry_app',
-          integration: sentryApp.slug,
-          view: 'external_install',
-          integration_status: sentryApp.status,
-        },
-        organization
-      );
+        organization,
+      });
     }
 
     if (sentryApp.redirectUrl) {
@@ -139,17 +132,15 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     this.setState({selectedOrgSlug: orgSlug, reloading: true});
 
     try {
-      const [organization, installations]: [
-        Organization,
-        SentryAppInstallation[]
-      ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`),
-        this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
-      ]);
+      const [organization, installations]: [Organization, SentryAppInstallation[]] =
+        await Promise.all([
+          this.api.requestPromise(`/organizations/${orgSlug}/`),
+          this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
+        ]);
       const isInstalled = installations
         .map(install => install.app.slug)
         .includes(this.sentryAppSlug);
-      //all state fields should be set at the same time so analytics in SentryAppDetailsModal works properly
+      // all state fields should be set at the same time so analytics in SentryAppDetailsModal works properly
       this.setState({organization, isInstalled, reloading: false});
     } catch (err) {
       addErrorMessage(t('Failed to retrieve organization or integration details'));
@@ -158,7 +149,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   };
 
   onRequestSuccess = ({stateKey, data}) => {
-    //if only one org, we can immediately update our selected org
+    // if only one org, we can immediately update our selected org
     if (stateKey === 'organizations' && data.length === 1) {
       this.onSelectOrg(data[0].slug);
     }
@@ -264,7 +255,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
 
   renderSingleOrgView() {
     const {organizations, sentryApp} = this.state;
-    //pull the name out of organizations since state.organization won't be loaded initially
+    // pull the name out of organizations since state.organization won't be loaded initially
     const organizationName = organizations[0].name;
     return (
       <div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import ClippedBox from 'app/components/clippedBox';
 import ContextBlock from 'app/components/events/contexts/contextBlock';

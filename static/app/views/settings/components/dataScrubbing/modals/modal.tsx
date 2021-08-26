@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
@@ -23,9 +23,7 @@ const Modal = ({
   closeModal,
 }: Props) => (
   <React.Fragment>
-    <Header closeButton>
-      <span data-test-id="modal-title">{title}</span>
-    </Header>
+    <Header closeButton>{title}</Header>
     <Body>{content}</Body>
     <Footer>
       <ButtonBar gap={1.5}>

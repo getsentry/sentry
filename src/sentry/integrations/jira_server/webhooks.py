@@ -1,12 +1,13 @@
 import logging
 
-import jwt
+from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
 from sentry.integrations.jira.webhooks import handle_assignee_change, handle_status_change
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import jwt
 
 logger = logging.getLogger("sentry.integrations.jira_server.webhooks")
 
@@ -21,7 +22,7 @@ def get_integration_from_token(token):
         raise ValueError("Token was empty")
 
     try:
-        unvalidated = jwt.decode(token, verify=False)
+        unvalidated = jwt.peek_claims(token)
     except jwt.DecodeError:
         raise ValueError("Could not decode JWT token")
     if "id" not in unvalidated:
@@ -62,7 +63,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         try:
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
-        except ApiError as err:
+        except (ApiError, ObjectDoesNotExist) as err:
             logger.info("sync-failed", extra={"token": token, "error": str(err)})
             return self.respond(status=400)
         else:

@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
@@ -107,12 +106,10 @@ export default class SelectField extends FormField<Props> {
       required,
       name,
       isLoading,
-      deprecatedSelectControl,
     } = this.props;
 
     return (
       <StyledSelectControl
-        deprecatedSelectControl={deprecatedSelectControl}
         creatable={creatable}
         id={this.getId()}
         choices={choices}

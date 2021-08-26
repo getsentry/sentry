@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'app/components/clippedBox';
@@ -94,6 +93,7 @@ const Context = ({
               {organization?.features.includes('integrations-stacktrace-link') &&
                 isActive &&
                 isExpanded &&
+                frame.inApp &&
                 frame.filename && (
                   <ErrorBoundary customComponent={null}>
                     <StacktraceLink

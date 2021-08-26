@@ -8,7 +8,7 @@ export const promptIsDismissed = (prompt: PromptData, daysToSnooze: number = 14)
   if (dismissedTime) {
     return true;
   }
-  //check if it has been snoozed
+  // check if it has been snoozed
   return !snoozedTime ? false : snoozedDays(snoozedTime) < daysToSnooze;
 };
 

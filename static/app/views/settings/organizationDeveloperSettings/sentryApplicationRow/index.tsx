@@ -1,8 +1,8 @@
-import React from 'react';
-import {Link} from 'react-router';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
+import Link from 'app/components/links/link';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -18,13 +18,13 @@ type Props = {
   onRemoveApp: (app: SentryApp) => void;
 };
 
-export default class SentryApplicationRow extends React.PureComponent<Props> {
+export default class SentryApplicationRow extends PureComponent<Props> {
   get isInternal() {
     return this.props.app.status === 'internal';
   }
 
   hideStatus() {
-    //no publishing for internal apps so hide the status on the developer settings page
+    // no publishing for internal apps so hide the status on the developer settings page
     return this.isInternal;
   }
 

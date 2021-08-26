@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef} from 'react';
 import * as Sentry from '@sentry/react';
 import rrwebPlayer from 'rrweb-player';
 
@@ -9,12 +9,12 @@ type Props = {
   className?: string;
 };
 
-class RRWebReplayer extends React.Component<Props> {
+class RRWebReplayer extends Component<Props> {
   componentDidMount() {
     this.rrwebPlayer();
   }
 
-  wrapperRef = React.createRef<HTMLDivElement>();
+  wrapperRef = createRef<HTMLDivElement>();
 
   newRRWebPlayer: any;
 

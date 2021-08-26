@@ -1,0 +1,63 @@
+{
+  "platform": "cocoa",
+  "exception": {
+    "values": [
+      {
+        "type": "The operation couldn’t be completed. (ServiceKit.ClientTask.Result.ResultError error 1.)",
+        "value": "The operation couldn’t be completed. (ServiceKit.ClientTask.Result.ResultError error 1.)",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "0",
+              "raw_function": " 0x0 + 0",
+              "package": "???",
+              "lineno": 0,
+              "in_app": false,
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "unknown_image"
+              },
+              "instruction_addr": "0x1"
+            },
+            {
+              "function": "1",
+              "raw_function": " start + 1",
+              "package": "libdyld.dylib",
+              "lineno": 0,
+              "in_app": false,
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "unknown_image"
+              },
+              "instruction_addr": "0x7fff2025a3e9"
+            },
+            {
+              "function": "170",
+              "raw_function": " main + 170",
+              "package": "mParticleExample",
+              "lineno": 0,
+              "in_app": false,
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "unknown_image"
+              },
+              "instruction_addr": "0x1041484ba"
+            },
+            {
+              "function": "-[UITableView _userSelectRowAtPendingSelectionIndexPath:] + 334",
+              "raw_function": " -[UITableView _userSelectRowAtPendingSelectionIndexPath:] + 334",
+              "package": "UIKitCore",
+              "lineno": 0,
+              "in_app": false,
+              "data": {
+              "orig_in_app": -1,
+              "symbolicator_status": "unknown_image"
+              },
+              "instruction_addr": "0x7fff248b1f42"
+              }
+          ]
+        }
+      }
+    ]
+  }
+}

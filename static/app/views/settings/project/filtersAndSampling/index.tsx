@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';

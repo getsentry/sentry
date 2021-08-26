@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {ASAP} from 'downsample/methods/ASAP';
 import {Location} from 'history';
@@ -20,7 +19,7 @@ import {
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {
   NormalizedTrendsTransaction,
@@ -69,7 +68,7 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
   },
 ];
 
-export const TRENDS_PARAMETERS: TrendParameter[] = [
+const TRENDS_PARAMETERS: TrendParameter[] = [
   {
     label: 'Duration',
     column: TrendColumnField.DURATION,
@@ -91,6 +90,32 @@ export const TRENDS_PARAMETERS: TrendParameter[] = [
     column: TrendColumnField.CLS,
   },
 ];
+
+// TODO(perf): Merge with above after ops breakdown feature is mainlined.
+const SPANS_TRENDS_PARAMETERS: TrendParameter[] = [
+  {
+    label: 'Spans (http)',
+    column: TrendColumnField.SPANS_HTTP,
+  },
+  {
+    label: 'Spans (db)',
+    column: TrendColumnField.SPANS_DB,
+  },
+  {
+    label: 'Spans (browser)',
+    column: TrendColumnField.SPANS_BROWSER,
+  },
+  {
+    label: 'Spans (resource)',
+    column: TrendColumnField.SPANS_RESOURCE,
+  },
+];
+
+export function getTrendsParameters({canSeeSpanOpTrends} = {canSeeSpanOpTrends: false}) {
+  return canSeeSpanOpTrends
+    ? [...TRENDS_PARAMETERS, ...SPANS_TRENDS_PARAMETERS]
+    : [...TRENDS_PARAMETERS];
+}
 
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: {
@@ -144,7 +169,7 @@ export function generateTrendFunctionAsString(
 ): string {
   return generateFieldAsString({
     kind: 'function',
-    function: [trendFunction as AggregationKey, trendParameter, undefined],
+    function: [trendFunction as AggregationKey, trendParameter, undefined, undefined],
   });
 }
 
@@ -233,7 +258,7 @@ function getQueryInterval(location: Location, eventView: TrendView) {
     period: statsPeriod,
   };
 
-  const intervalFromSmoothing = getInterval(datetimeSelection, true);
+  const intervalFromSmoothing = getInterval(datetimeSelection, 'high');
 
   return intervalFromQueryParam || intervalFromSmoothing;
 }
@@ -292,15 +317,15 @@ export function movingAverage(data, index, size) {
  * This function applies defaults for trend and count percentage, and adds the confidence limit to the query
  */
 function getLimitTransactionItems(query: string) {
-  const limitQuery = tokenizeSearch(query);
-  if (!limitQuery.hasTag('count_percentage()')) {
-    limitQuery.addTagValues('count_percentage()', ['>0.25', '<4']);
+  const limitQuery = new MutableSearch(query);
+  if (!limitQuery.hasFilter('count_percentage()')) {
+    limitQuery.addFilterValues('count_percentage()', ['>0.25', '<4']);
   }
-  if (!limitQuery.hasTag('trend_percentage()')) {
-    limitQuery.addTagValues('trend_percentage()', ['>0%']);
+  if (!limitQuery.hasFilter('trend_percentage()')) {
+    limitQuery.addFilterValues('trend_percentage()', ['>0%']);
   }
-  if (!limitQuery.hasTag('confidence()')) {
-    limitQuery.addTagValues('confidence()', ['>6']);
+  if (!limitQuery.hasFilter('confidence()')) {
+    limitQuery.addFilterValues('confidence()', ['>6']);
   }
   return limitQuery.formatString();
 }

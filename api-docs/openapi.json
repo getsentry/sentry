@@ -22,6 +22,7 @@
     {
       "name": "Teams",
       "description": "Endpoints for teams",
+      "x-display-description": false,
       "externalDocs": {
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/teams/&template=api_error_template.md"
@@ -30,6 +31,7 @@
     {
       "name": "Organizations",
       "description": "Endpoints for organizations",
+      "x-display-description": false,
       "externalDocs": {
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/organizations/&template=api_error_template.md"
@@ -38,6 +40,7 @@
     {
       "name": "Projects",
       "description": "Endpoints for projects",
+      "x-display-description": false,
       "externalDocs": {
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/projects/&template=api_error_template.md"
@@ -47,6 +50,7 @@
       "name": "Events",
       "x-sidebar-name": "Events & Issues",
       "description": "Endpoints for events and issues",
+      "x-display-description": false,
       "externalDocs": {
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/events/&template=api_error_template.md"
@@ -55,6 +59,7 @@
     {
       "name": "Releases",
       "description": "Endpoints for releases",
+      "x-display-description": false,
       "externalDocs": {
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/releases/&template=api_error_template.md"
@@ -64,6 +69,17 @@
       "name": "Integration",
       "x-sidebar-name": "Integration Platform",
       "description": "Endpoints for the integration platform",
+      "x-display-description": false,
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md"
+      }
+    },
+    {
+      "name": "SCIM",
+      "x-sidebar-name": "SCIM (Beta)",
+      "description": "System for Cross-Domain Identity Management ([SCIM](http://www.simplecloud.info/)) is a standard implemented by Identity Providers and applications in order to facilitate federated identity management. Through these APIs you can add and delete members as well as teams. Sentry SaaS customers must be on a Business Plan with SAML2 Enabled. SCIM uses a bearer token for authentication that is created when SCIM is enabled. For how to enable SCIM, see our docs [here](/product/accounts/sso/#scim-provisioning).\n Sentry's SCIM API does not currently support syncing passwords, or setting any User attributes other than `active`.",
+      "x-display-description": true,
       "externalDocs": {
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md"
@@ -217,6 +233,18 @@
     },
     "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/": {
       "$ref": "paths/integration-platform/sentry-app-external-issue-details.json"
+    },
+    "/api/0/organizations/{organization_slug}/scim/v2/Users": {
+      "$ref": "paths/scim/member_index.json"
+    },
+    "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}": {
+      "$ref": "paths/scim/member_details.json"
+    },
+    "/api/0/organizations/{organization_slug}/scim/v2/Groups": {
+      "$ref": "paths/scim/team_index.json"
+    },
+    "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}": {
+      "$ref": "paths/scim/team_details.json"
     }
   },
   "components": {

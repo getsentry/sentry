@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -7,12 +7,13 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Hovercard from 'app/components/hovercard';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SavedQuery} from 'app/types';
@@ -21,7 +22,6 @@ import EventView from 'app/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
-import {setBannerHidden} from 'app/views/eventsV2/utils';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
 import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
@@ -118,7 +118,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     disabled: false,
   };
 
-  state = {
+  state: State = {
     isNewQuery: true,
     isEditingQuery: false,
 
@@ -161,7 +161,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
-        setBannerHidden(true);
+        Banner.dismiss('discover');
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
@@ -222,6 +222,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         buttonProps={{
           'aria-label': t('Save as'),
           showChevron: false,
+          icon: <IconStar />,
           disabled,
         }}
         label={`${t('Save as')}\u{2026}`}
@@ -242,7 +243,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             disabled={disabled || !this.state.queryName}
             style={{width: '100%'}}
           >
-            {t('Save')}
+            {t('Save for Org')}
           </Button>
         </ButtonSaveDropDown>
       </DropdownControl>
@@ -255,8 +256,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     // Existing query that hasn't been modified.
     if (!isNewQuery && !isEditingQuery) {
       return (
-        <Button disabled data-test-id="discover2-savedquery-button-saved">
-          {t('Saved query')}
+        <Button
+          icon={<IconStar color="yellow100" isSolid size="sm" />}
+          disabled
+          data-test-id="discover2-savedquery-button-saved"
+        >
+          {t('Saved for Org')}
         </Button>
       );
     }

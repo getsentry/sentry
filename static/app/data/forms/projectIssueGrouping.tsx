@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
@@ -14,7 +14,6 @@ export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
 const groupingConfigField: Field = {
   name: 'groupingConfig',
   type: 'select',
-  deprecatedSelectControl: false,
   label: t('Grouping Config'),
   saveOnBlur: false,
   saveMessageAlertType: 'info',
@@ -69,7 +68,7 @@ export const fields: Record<string, Field> = {
     ),
     formatMessageValue: false,
     help: () => (
-      <React.Fragment>
+      <Fragment>
         <RuleDescription>
           {tct(
             `This can be used to modify the fingerprint rules on the server with custom rules.
@@ -77,7 +76,7 @@ export const fields: Record<string, Field> = {
             {
               pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fserver-side-fingerprinting%2F" />
+                <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/fingerprint-rules/" />
               ),
             }
           )}
@@ -88,7 +87,7 @@ error.type:DatabaseUnavailable -> system-down
 # force all memory allocation errors to be grouped together
 stack.function:malloc -> memory-allocation-error`}
         </RuleExample>
-      </React.Fragment>
+      </Fragment>
     ),
     visible: true,
   },
@@ -112,15 +111,15 @@ stack.function:malloc -> memory-allocation-error`}
     ),
     formatMessageValue: false,
     help: () => (
-      <React.Fragment>
+      <Fragment>
         <RuleDescription>
           {tct(
             `This can be used to enhance the grouping algorithm with custom rules.
         Rules follow the pattern [pattern]. To learn more about stack trace rules, [docs:read the docs].`,
             {
-              pattern: <code>matcher:glob [^v]?[+-]flag</code>,
+              pattern: <code>matcher:glob [v^]?[+-]flag</code>,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/data-management/event-grouping/stack-trace-rules/" />
+                <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/stack-trace-rules/" />
               ),
             }
           )}
@@ -131,7 +130,7 @@ stack.function:panic_handler ^-group
 # mark all functions following a prefix in-app
 stack.function:mylibrary_* +app`}
         </RuleExample>
-      </React.Fragment>
+      </Fragment>
     ),
     validate: () => [],
     visible: true,

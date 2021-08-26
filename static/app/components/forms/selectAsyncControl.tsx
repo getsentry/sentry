@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -15,9 +15,8 @@ type Result = {
 
 type Props = {
   url: string;
-  onResults: (data: any) => Result[]; //TODO(ts): Improve data type
+  onResults: (data: any) => Result[]; // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
-  deprecatedSelectControl?: boolean;
 } & Pick<ControlProps, 'value' | 'forwardedRef'>;
 
 type State = {
@@ -83,20 +82,8 @@ class SelectAsyncControl extends React.Component<Props> {
       });
     }).then(
       resp => {
-        const {onResults, deprecatedSelectControl} = this.props;
-
-        // react-select v3 expects a bare list, while v2 requires an object with `options`.
-        if (!deprecatedSelectControl) {
-          return typeof onResults === 'function' ? onResults(resp) : resp;
-        }
-
-        // Note `SelectControl` expects this data type:
-        // {
-        //   options: [{ label, value}],
-        // }
-        return {
-          options: typeof onResults === 'function' ? onResults(resp) : resp,
-        };
+        const {onResults} = this.props;
+        return typeof onResults === 'function' ? onResults(resp) : resp;
       },
       err => {
         addErrorMessage(t('There was a problem with the request.'));
@@ -112,9 +99,11 @@ class SelectAsyncControl extends React.Component<Props> {
 
   render() {
     const {value, forwardedRef, ...props} = this.props;
-
     return (
       <SelectControl
+        // The key is used as a way to force a reload of the options:
+        // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
+        key={value}
         ref={forwardedRef}
         value={value}
         defaultOptions

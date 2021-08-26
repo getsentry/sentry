@@ -1,13 +1,15 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectIssues from 'app/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
-  let endpointMock, filteredEndpointMock;
-  const {organization, router, routerContext} = initializeOrg();
+  let endpointMock, filteredEndpointMock, wrapper;
+  const {organization, router, routerContext} = initializeOrg({
+    organization: {
+      features: ['discover-basic'],
+    },
+  });
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
@@ -28,10 +30,11 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    wrapper.unmount();
   });
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -41,12 +44,14 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Issues', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
 
-    expect(wrapper.find('ControlsWrapper Link').prop('to')).toEqual({
+    expect(
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').at(0).prop('to')
+    ).toEqual({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         limit: 5,
@@ -57,8 +62,29 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
+  it('renders a link to Discover', function () {
+    wrapper = mountWithTheme(
+      <ProjectIssues organization={organization} location={router.location} />,
+      routerContext
+    );
+
+    expect(
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Discover"]').at(0).prop('to')
+    ).toEqual({
+      pathname: `/organizations/${organization.slug}/discover/results/`,
+      query: {
+        display: 'top5',
+        field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
+        name: 'Frequent Unhandled Issues',
+        query: 'event.type:error error.unhandled:true',
+        sort: ['-count'],
+        statsPeriod: '14d',
+      },
+    });
+  });
+
   it('changes according to global header', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues
         organization={organization}
         location={{
@@ -71,7 +97,9 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(endpointMock).toHaveBeenCalledTimes(0);
     expect(filteredEndpointMock).toHaveBeenCalledTimes(1);
 
-    expect(wrapper.find('ControlsWrapper Link').prop('to')).toEqual({
+    expect(
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').at(0).prop('to')
+    ).toEqual({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         limit: 5,

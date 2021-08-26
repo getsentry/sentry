@@ -40,13 +40,17 @@ fi
 deactivate 2>/dev/null || true
 rm -rf "$venv_name"
 
-if ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]]; then
-    abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
+# XXX: You'll also need to temporarily pyenv local "$SENTRY_PYTHON_VERSION"
+#      and then revert changes to the .python-version after bootstrap finishes.
+if [[ -z "$SENTRY_PYTHON_VERSION" ]] && ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]]; then
+    echo "Your python3 version isn't as expected. Please run: make setup-pyenv"
+    return 1
 fi
 
 python3 -m pip install -U pip           || { echo "bootstrap failed!"; return 1; }
 python3 -m venv "${venv_name}"          || { echo "bootstrap failed!"; return 1; }
 source "${venv_name}/bin/activate"      || { echo "bootstrap failed!"; return 1; }
+python3 -m pip install -U pip           || { echo "bootstrap failed!"; return 1; }
 make setup-git                          || { echo "bootstrap failed!"; return 1; }
 make install-py-dev                     || { echo "bootstrap failed!"; return 1; }
 deactivate                              || { echo "bootstrap failed!"; return 1; }

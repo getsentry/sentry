@@ -2,7 +2,7 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry.incidents.models import IncidentActivityType
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
+from sentry.models import Activity, Integration, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -140,10 +140,10 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
-    def create_release_file(self, release=None, file=None, name=None, dist=None):
-        if release is None:
-            release = self.release
-        return Factories.create_release_file(release, file, name, dist)
+    def create_release_file(self, release_id=None, file=None, name=None, dist_id=None):
+        if release_id is None:
+            release_id = self.release.id
+        return Factories.create_release_file(release_id, file, name, dist_id)
 
     def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
         if org is None:
@@ -151,6 +151,13 @@ class Fixtures:
         if release is None:
             release = self.release.version
         return Factories.create_artifact_bundle(org, release, *args, **kwargs)
+
+    def create_release_archive(self, org=None, release=None, *args, **kwargs):
+        if org is None:
+            org = self.organization.slug
+        if release is None:
+            release = self.release.version
+        return Factories.create_release_archive(org, release, *args, **kwargs)
 
     def create_code_mapping(self, project=None, repo=None, **kwargs):
         if project is None:
@@ -293,18 +300,31 @@ class Fixtures:
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
         )
 
-    def create_external_user(self, user=None, organization=None, **kwargs):
+    def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
         if not organization:
             organization = self.organization  # Force creation.
+        if not integration:
+            integration = Integration.objects.create(
+                provider="github", name="GitHub", external_id="github:1"
+            )
+            integration.add_organization(self.organization, self.user)
+        return Factories.create_external_user(
+            user=user, organization=organization, integration_id=integration.id, **kwargs
+        )
 
-        return Factories.create_external_user(user=user, organization=organization, **kwargs)
-
-    def create_external_team(self, team=None, **kwargs):
+    def create_external_team(self, team=None, integration=None, **kwargs):
         if not team:
             team = self.team
-        return Factories.create_external_team(team=team, organization=team.organization, **kwargs)
+        if not integration:
+            integration = Integration.objects.create(
+                provider="github", name="GitHub", external_id="github:1"
+            )
+            integration.add_organization(self.organization, self.user)
+        return Factories.create_external_team(
+            team=team, organization=team.organization, integration_id=integration.id, **kwargs
+        )
 
     def create_codeowners(self, project=None, code_mapping=None, **kwargs):
         if not project:

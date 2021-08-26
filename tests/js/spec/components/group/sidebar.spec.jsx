@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -49,6 +47,15 @@ describe('GroupSidebar', function () {
     MockApiClient.addMockResponse({
       url: '/groups/1/external-issues/',
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/prompts-activity/`,
+      body: {},
     });
 
     tagsMock = MockApiClient.addMockResponse({

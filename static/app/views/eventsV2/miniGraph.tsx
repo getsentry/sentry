@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -61,7 +61,7 @@ class MiniGraph extends React.Component<Props> {
     const field = isTopEvents ? apiPayload.field : undefined;
     const topEvents = isTopEvents ? TOP_N : undefined;
     const orderby = isTopEvents ? decodeScalar(apiPayload.sort) : undefined;
-    const interval = isDaily ? '1d' : getInterval({start, end, period}, true);
+    const interval = isDaily ? '1d' : getInterval({start, end, period}, 'high');
 
     return {
       organization,
@@ -194,7 +194,9 @@ class MiniGraph extends React.Component<Props> {
           }));
 
           const chartOptions = {
-            colors: [...theme.charts.getColorPalette(allSeries.length - 2)],
+            colors: allSeries.length
+              ? [...theme.charts.getColorPalette(allSeries.length - 2)]
+              : undefined,
             height: 100,
             series: [...data],
             xAxis: {

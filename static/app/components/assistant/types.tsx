@@ -32,7 +32,7 @@ type BaseGuide = {
   /**
    * When dismissing a guide on the same page, all subsequent guides
    * will be marked as seen.
-   * Note that on a page refresh, the subseqeuent guides will be visible still.
+   * Note that on a page refresh, the subsequent guides will be visible still.
    */
   markOthersAsSeen?: boolean;
 };

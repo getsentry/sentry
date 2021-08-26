@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -7,8 +6,8 @@ import ReleaseListDropdown from './releaseListDropdown';
 import {StatusOption} from './utils';
 
 const options = {
-  [StatusOption.ACTIVE]: t('Active'),
-  [StatusOption.ARCHIVED]: t('Archived'),
+  [StatusOption.ACTIVE]: {label: t('Active')},
+  [StatusOption.ARCHIVED]: {label: t('Archived')},
 };
 
 type Props = {

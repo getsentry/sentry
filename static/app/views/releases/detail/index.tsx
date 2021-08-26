@@ -1,4 +1,4 @@
-import React from 'react';
+import {createContext} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -33,6 +33,7 @@ import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
 import {DisplayOption} from '../list/utils';
+import {getReleaseBounds, ReleaseBounds} from '../utils';
 import ReleaseHealthRequest, {
   ReleaseHealthRequestRenderProps,
 } from '../utils/releaseHealthRequest';
@@ -51,8 +52,9 @@ type ReleaseContext = {
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   isHealthLoading: ReleaseHealthRequestRenderProps['isHealthLoading'];
   hasHealthData: boolean;
+  releaseBounds: ReleaseBounds;
 };
-const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
+const ReleaseContext = createContext<ReleaseContext>({} as ReleaseContext);
 
 type RouteParams = {
   orgId: string;
@@ -113,6 +115,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         basePath,
         {
           query: {
+            adoptionStages: 1,
             ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
               defaultStatsPeriod,
             }),
@@ -182,6 +185,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     } = this.props;
     const {release, deploys, sessions, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
+    const releaseBounds = getReleaseBounds(release);
 
     if (!project || !release) {
       if (reloading) {
@@ -213,6 +217,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
               getHealthData,
               isHealthLoading,
               hasHealthData: !!sessions?.groups[0].totals['sum(session)'],
+              releaseBounds,
             }}
           >
             {this.props.children}
@@ -240,6 +245,35 @@ class ReleasesDetailContainer extends AsyncComponent<
         )}/meta/`,
       ],
     ];
+  }
+
+  get hasReleaseComparison() {
+    return this.props.organization.features.includes('release-comparison');
+  }
+
+  componentDidMount() {
+    this.removeGlobalDateTimeFromUrl();
+  }
+
+  componentDidUpdate(prevProps, prevContext: Record<string, any>) {
+    super.componentDidUpdate(prevProps, prevContext);
+    this.removeGlobalDateTimeFromUrl();
+  }
+
+  removeGlobalDateTimeFromUrl() {
+    const {router, location} = this.props;
+    const {start, end, statsPeriod, utc, ...restQuery} = location.query;
+
+    if (!this.hasReleaseComparison) {
+      return;
+    }
+
+    if (start || end || statsPeriod || utc) {
+      router.replace({
+        ...location,
+        query: restQuery,
+      });
+    }
   }
 
   renderError(...args) {
@@ -305,9 +339,11 @@ class ReleasesDetailContainer extends AsyncComponent<
             slug,
           }))}
           router={router}
-          nextPath={`/organizations/${organization.slug}/releases/${encodeURIComponent(
-            params.release
-          )}/`}
+          nextPath={{
+            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+              params.release
+            )}/`,
+          }}
           noProjectRedirectPath={`/organizations/${organization.slug}/releases/`}
         />
       );
@@ -332,6 +368,7 @@ class ReleasesDetailContainer extends AsyncComponent<
             period: defaultStatsPeriod,
           },
         }}
+        showDateSelector={!this.hasReleaseComparison}
       >
         <ReleaseHealthRequest
           releases={[params.release]}
@@ -340,6 +377,7 @@ class ReleasesDetailContainer extends AsyncComponent<
           location={location}
           display={[DisplayOption.SESSIONS, DisplayOption.USERS]}
           defaultStatsPeriod={defaultStatsPeriod}
+          disable={this.hasReleaseComparison}
         >
           {({isHealthLoading, getHealthData}) => (
             <ReleasesDetail

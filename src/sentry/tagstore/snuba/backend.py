@@ -1,5 +1,7 @@
 import functools
+import re
 from collections import Iterable, OrderedDict, defaultdict
+from typing import Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
@@ -7,9 +9,24 @@ from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.utils import default_start_end_dates
-from sentry.models import Project, ReleaseProjectEnvironment
-from sentry.search.events.constants import PROJECT_ALIAS, USER_DISPLAY_ALIAS
+from sentry.models import (
+    Project,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+)
+from sentry.search.events.constants import (
+    PROJECT_ALIAS,
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+    SEMVER_WILDCARDS,
+    USER_DISPLAY_ALIAS,
+)
 from sentry.search.events.fields import FIELD_ALIASES
+from sentry.search.events.filter import _flip_field_sort, parse_semver
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
@@ -366,7 +383,7 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_keys(
         self, project_id, group_id, environment_ids, limit=None, keys=None, **kwargs
     ):
-        """ Get tag keys for a specific group """
+        """Get tag keys for a specific group"""
         return self.__get_tag_keys(
             project_id,
             group_id,
@@ -534,35 +551,6 @@ class SnubaTagStorage(TagStorage):
 
         return keys_with_counts
 
-    def __get_release(self, project_id, group_id, first=True):
-        filters = {"project_id": get_project_list(project_id)}
-        conditions = [["tags[sentry:release]", "IS NOT NULL", None], DEFAULT_TYPE_CONDITION]
-        if group_id is not None:
-            filters["group_id"] = [group_id]
-        aggregations = [["min" if first else "max", SEEN_COLUMN, "seen"]]
-        orderby = "seen" if first else "-seen"
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["tags[sentry:release]"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=1,
-            orderby=orderby,
-            referrer="tagstore.__get_release",
-        )
-        if not result:
-            return None
-        else:
-            return list(result.keys())[0]
-
-    def get_first_release(self, project_id, group_id):
-        return self.__get_release(project_id, group_id, True)
-
-    def get_last_release(self, project_id, group_id):
-        return self.__get_release(project_id, group_id, False)
-
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
         if environment_id:
@@ -633,7 +621,7 @@ class SnubaTagStorage(TagStorage):
         return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
-        """ While not specific to a group_id, this is currently only used in issues, so the Events dataset is used """
+        """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
         filters = {"project_id": [eu.project_id for eu in event_users]}
         conditions = [
             ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
@@ -705,6 +693,165 @@ class SnubaTagStorage(TagStorage):
             order_by=order_by,
         )
 
+    def _get_semver_versions_for_package(self, projects, organization_id, package):
+        packages = (
+            Release.objects.filter(organization_id=organization_id, package__startswith=package)
+            .values_list("package")
+            .distinct()
+        )
+
+        return Release.objects.filter(
+            organization_id=organization_id,
+            package__in=packages,
+            id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                "release_id", flat=True
+            ),
+        ).annotate_prerelease_column()
+
+    def _get_tag_values_for_semver(
+        self,
+        projects: Sequence[int],
+        environments: Optional[Sequence[str]],
+        query: Optional[str],
+    ):
+        from sentry.api.paginator import SequencePaginator
+
+        query = query if query else ""
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+
+        if query and "@" not in query and re.search(r"[^\d.\*]", query):
+            # Handle searching just on package
+            include_package = True
+            versions = self._get_semver_versions_for_package(projects, organization_id, query)
+        else:
+            include_package = "@" in query
+            if not query:
+                query = "*"
+            elif query[-1] not in SEMVER_WILDCARDS | {"@"}:
+                if query[-1] != ".":
+                    query += "."
+                query += "*"
+
+            versions = Release.objects.filter_by_semver(
+                organization_id,
+                parse_semver(query, "="),
+                project_ids=projects,
+            )
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
+        versions = (
+            versions.filter_to_semver().order_by(*order_by).values_list("version", flat=True)[:1000]
+        )
+
+        seen = set()
+        formatted_versions = []
+        # We want to format versions here in a way that makes sense for autocomplete. So we
+        # - Only include package if we think the user entered a package
+        # - Exclude build number, since it's not used as part of filtering
+        # When we don't include package, this can result in duplicate version numbers, so we
+        # also de-dupe here. This can result in less than 1000 versions returned, but we
+        # typically use very few values so this works ok.
+        for version in versions:
+            formatted_version = version if include_package else version.split("@", 1)[1]
+            formatted_version = formatted_version.split("+", 1)[0]
+            if formatted_version in seen:
+                continue
+
+            seen.add(formatted_version)
+            formatted_versions.append(formatted_version)
+
+        return SequencePaginator(
+            [
+                (i, TagValue(SEMVER_ALIAS, v, None, None, None))
+                for i, v in enumerate(formatted_versions)
+            ]
+        )
+
+    def _get_tag_values_for_semver_package(self, projects, environments, package):
+        from sentry.api.paginator import SequencePaginator
+
+        package = package if package else ""
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        versions = self._get_semver_versions_for_package(projects, organization_id, package)
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+        packages = versions.values_list("package", flat=True).distinct().order_by("package")[:1000]
+        return SequencePaginator(
+            [
+                (i, TagValue(SEMVER_PACKAGE_ALIAS, v, None, None, None))
+                for i, v in enumerate(packages)
+            ]
+        )
+
+    def _get_tag_values_for_release_stages(self, projects, environments, query):
+        from sentry.api.paginator import SequencePaginator
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        versions = Release.objects.filter_by_stage(
+            organization_id,
+            "=",
+            query,
+            project_ids=projects,
+            environments=environments,
+        )
+        if environments:
+            versions = versions.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        versions = versions.order_by("version").values_list("version", flat=True)[:1000]
+        return SequencePaginator(
+            [
+                (i, TagValue(RELEASE_STAGE_ALIAS, v, None, None, None))
+                for i, v in enumerate(versions)
+            ]
+        )
+
+    def _get_tag_values_for_semver_build(self, projects, environments, build):
+        from sentry.api.paginator import SequencePaginator
+
+        build = build if build else ""
+        if not build.endswith("*"):
+            build += "*"
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        builds = Release.objects.filter_by_semver_build(organization_id, "exact", build, projects)
+
+        if environments:
+            builds = builds.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        packages = (
+            builds.values_list("build_code", flat=True).distinct().order_by("build_code")[:1000]
+        )
+        return SequencePaginator(
+            [(i, TagValue(SEMVER_BUILD_ALIAS, v, None, None, None)) for i, v in enumerate(packages)]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -772,6 +919,19 @@ class SnubaTagStorage(TagStorage):
                 ]
             )
 
+        if key == SEMVER_PACKAGE_ALIAS:
+            return self._get_tag_values_for_semver_package(projects, environments, query)
+
+        if key == SEMVER_ALIAS:
+            # If doing a search on semver, we want to hit postgres to query the releases
+            return self._get_tag_values_for_semver(projects, environments, query)
+
+        if key == RELEASE_STAGE_ALIAS:
+            return self._get_tag_values_for_release_stages(projects, environments, query)
+
+        if key == SEMVER_BUILD_ALIAS:
+            return self._get_tag_values_for_semver_build(projects, environments, query)
+
         conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
@@ -816,7 +976,7 @@ class SnubaTagStorage(TagStorage):
                 # and resolve it to the corresponding snuba query
                 resolver = snuba.resolve_column(dataset)
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
-                snuba.resolve_complex_column(snuba_name, resolver)
+                snuba.resolve_complex_column(snuba_name, resolver, [])
             elif snuba_name in BLACKLISTED_COLUMNS:
                 snuba_name = f"tags[{key}]"
 
@@ -922,7 +1082,7 @@ class SnubaTagStorage(TagStorage):
     ):
         from sentry.api.paginator import SequencePaginator
 
-        if order_by in ("-last_seen", "-first_seen"):
+        if order_by in ("-last_seen", "-first_seen", "-times_seen"):
             pass
         elif order_by == "-id":
             # Snuba has no unique id per GroupTagValue so we'll substitute `-first_seen`
@@ -934,6 +1094,12 @@ class SnubaTagStorage(TagStorage):
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")
+        if score_field == "times_seen":
+            return SequencePaginator(
+                [(int(getattr(gtv, score_field)), gtv) for gtv in group_tag_values],
+                reverse=desc,
+            )
+
         return SequencePaginator(
             [
                 (int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv)

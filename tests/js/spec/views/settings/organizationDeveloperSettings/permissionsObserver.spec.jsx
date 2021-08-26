@@ -1,8 +1,6 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import FormModel from 'app/views/settings/components/forms/model';
+import Form from 'app/views/settings/components/forms/form';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 describe('PermissionsObserver', () => {
@@ -10,16 +8,19 @@ describe('PermissionsObserver', () => {
 
   beforeEach(() => {
     wrapper = mountWithTheme(
-      <PermissionsObserver
-        scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
-        events={['issue']}
-      />,
-      TestStubs.routerContext([{form: new FormModel()}])
+      <Form>
+        <PermissionsObserver
+          scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
+          events={['issue']}
+        />
+      </Form>,
+      TestStubs.routerContext()
     );
   });
 
   it('defaults to no-access for all resources not passed', () => {
-    expect(wrapper.instance().state.permissions).toEqual(
+    const instance = wrapper.find('PermissionsObserver').instance();
+    expect(instance.state.permissions).toEqual(
       expect.objectContaining({
         Team: 'no-access',
         Event: 'no-access',
@@ -29,7 +30,8 @@ describe('PermissionsObserver', () => {
   });
 
   it('converts a raw list of scopes into permissions', () => {
-    expect(wrapper.instance().state.permissions).toEqual(
+    const instance = wrapper.find('PermissionsObserver').instance();
+    expect(instance.state.permissions).toEqual(
       expect.objectContaining({
         Project: 'write',
         Release: 'admin',
@@ -39,6 +41,7 @@ describe('PermissionsObserver', () => {
   });
 
   it('selects the highest ranking scope to convert to permission', () => {
-    expect(wrapper.instance().state.permissions.Project).toEqual('write');
+    const instance = wrapper.find('PermissionsObserver').instance();
+    expect(instance.state.permissions.Project).toEqual('write');
   });
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'app/components/events/opsBreakdown';
@@ -10,7 +10,7 @@ import {
 } from 'app/components/performance/waterfall/miniHeader';
 import {
   getHumanDuration,
-  pickBarColour,
+  pickBarColor,
   rectOfContent,
   toPercent,
 } from 'app/components/performance/waterfall/utils';
@@ -18,34 +18,32 @@ import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
+import theme from 'app/utils/theme';
 
+import {
+  MINIMAP_CONTAINER_HEIGHT,
+  MINIMAP_HEIGHT,
+  TIME_AXIS_HEIGHT,
+  VIEW_HANDLE_HEIGHT,
+} from './constants';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
 import {
+  EnhancedProcessedSpanType,
   ParsedTraceType,
   RawSpanType,
-  SpanChildrenLookupType,
   TickAlignment,
 } from './types';
 import {
   boundsGenerator,
-  getSpanID,
   getSpanOperation,
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
-
-export const MINIMAP_SPAN_BAR_HEIGHT = 4;
-const MINIMAP_HEIGHT = 120;
-export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
-const TIME_AXIS_HEIGHT = 20;
-const VIEW_HANDLE_HEIGHT = 18;
-const SECONDARY_HEADER_HEIGHT = 20;
-export const MINIMAP_CONTAINER_HEIGHT =
-  MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + SECONDARY_HEADER_HEIGHT + 1;
 
 type PropType = {
   organization: Organization;
@@ -54,6 +52,10 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
   event: EventTransaction;
+  operationNameFilters: ActiveOperationFilter;
+  rootSpan: RawSpanType;
+  spans: EnhancedProcessedSpanType[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
 };
 
 type State = {
@@ -364,16 +366,24 @@ class TraceViewHeader extends React.Component<PropType, State> {
 
           return (
             <SecondaryHeader>
-              <ScrollbarContainer
-                ref={this.props.virtualScrollBarContainerRef}
-                style={{
-                  // the width of this component is shrunk to compensate for half of the width of the divider line
-                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                }}
-              >
-                <ScrollbarManager.Consumer>
-                  {({virtualScrollbarRef, onDragStart}) => {
-                    return (
+              <ScrollbarManager.Consumer>
+                {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
+                  return (
+                    <ScrollbarContainer
+                      ref={this.props.virtualScrollBarContainerRef}
+                      style={{
+                        // the width of this component is shrunk to compensate for half of the width of the divider line
+                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                      }}
+                      onScroll={onScroll}
+                    >
+                      <div
+                        style={{
+                          width: 0,
+                          height: '1px',
+                        }}
+                        ref={scrollBarAreaRef}
+                      />
                       <VirtualScrollbar
                         data-type="virtual-scrollbar"
                         ref={virtualScrollbarRef}
@@ -381,10 +391,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
                       >
                         <VirtualScrollbarGrip />
                       </VirtualScrollbar>
-                    );
-                  }}
-                </ScrollbarManager.Consumer>
-              </ScrollbarContainer>
+                    </ScrollbarContainer>
+                  );
+                }}
+              </ScrollbarManager.Consumer>
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
@@ -401,10 +411,6 @@ class TraceViewHeader extends React.Component<PropType, State> {
   }
 
   render() {
-    const hasQuickTraceView =
-      this.props.organization.features.includes('trace-view-quick') ||
-      this.props.organization.features.includes('trace-view-summary');
-
     return (
       <HeaderContainer>
         <DividerHandlerManager.Consumer>
@@ -417,8 +423,13 @@ class TraceViewHeader extends React.Component<PropType, State> {
                     width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                   }}
                 >
-                  {hasQuickTraceView && this.props.event && (
-                    <OpsBreakdown event={this.props.event} topN={3} hideHeader />
+                  {this.props.event && (
+                    <OpsBreakdown
+                      operationNameFilters={this.props.operationNameFilters}
+                      event={this.props.event}
+                      topN={3}
+                      hideHeader
+                    />
                   )}
                 </OperationsBreakdown>
                 <DividerSpacer
@@ -430,8 +441,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
                   }}
                 />
                 <ActualMinimap
-                  trace={this.props.trace}
+                  spans={this.props.spans}
+                  generateBounds={this.props.generateBounds}
                   dividerPosition={dividerPosition}
+                  rootSpan={this.props.rootSpan}
                 />
                 <CursorGuideHandler.Consumer>
                   {({
@@ -498,39 +511,48 @@ class TraceViewHeader extends React.Component<PropType, State> {
 }
 
 class ActualMinimap extends React.PureComponent<{
-  trace: ParsedTraceType;
+  spans: EnhancedProcessedSpanType[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
+  rootSpan: RawSpanType;
 }> {
   renderRootSpan(): React.ReactNode {
-    const {trace} = this.props;
+    const {spans, generateBounds} = this.props;
 
-    const generateBounds = boundsGenerator({
-      traceStartTimestamp: trace.traceStartTimestamp,
-      traceEndTimestamp: trace.traceEndTimestamp,
-      viewStart: 0,
-      viewEnd: 1,
+    return spans.map(payload => {
+      switch (payload.type) {
+        case 'root_span':
+        case 'span':
+        case 'span_group_chain': {
+          const {span} = payload;
+
+          const spanBarColor: string = pickBarColor(getSpanOperation(span));
+
+          const bounds = generateBounds({
+            startTimestamp: span.start_timestamp,
+            endTimestamp: span.timestamp,
+          });
+          const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
+
+          return (
+            <MinimapSpanBar
+              style={{
+                backgroundColor:
+                  payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
+                left: spanLeft,
+                width: spanWidth,
+              }}
+            />
+          );
+        }
+        default: {
+          return null;
+        }
+      }
     });
-
-    const rootSpan: RawSpanType = {
-      trace_id: trace.traceID,
-      span_id: trace.rootSpanID,
-      start_timestamp: trace.traceStartTimestamp,
-      timestamp: trace.traceEndTimestamp,
-      op: trace.op,
-      data: {},
-    };
-
-    return this.renderSpan({
-      spanNumber: 0,
-      generateBounds,
-      span: rootSpan,
-      childSpans: trace.childSpans,
-    }).spanTree;
   }
 
-  getBounds(
-    bounds: SpanGeneratedBoundsType
-  ): {
+  getBounds(bounds: SpanGeneratedBoundsType): {
     left: string;
     width: string;
   } {
@@ -561,85 +583,6 @@ class ActualMinimap extends React.PureComponent<{
         return _exhaustiveCheck;
       }
     }
-  }
-
-  renderSpan({
-    spanNumber,
-    childSpans,
-    generateBounds,
-    span,
-  }: {
-    spanNumber: number;
-    childSpans: SpanChildrenLookupType;
-    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    span: Readonly<RawSpanType>;
-  }): {
-    spanTree: JSX.Element;
-    nextSpanNumber: number;
-  } {
-    const spanBarColour: string = pickBarColour(getSpanOperation(span));
-
-    const bounds = generateBounds({
-      startTimestamp: span.start_timestamp,
-      endTimestamp: span.timestamp,
-    });
-
-    const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
-
-    const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
-
-    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
-    // For example if a span has a span_id that's identical to its parent_span_id.
-    childSpans = {
-      ...childSpans,
-    };
-    delete childSpans[getSpanID(span)];
-
-    type AccType = {
-      nextSpanNumber: number;
-      renderedSpanChildren: Array<JSX.Element>;
-    };
-
-    const reduced: AccType = spanChildren.reduce(
-      (acc: AccType, spanChild, index: number) => {
-        const key = `${getSpanID(spanChild, String(index))}`;
-
-        const results = this.renderSpan({
-          spanNumber: acc.nextSpanNumber,
-          childSpans,
-          generateBounds,
-          span: spanChild,
-        });
-
-        acc.renderedSpanChildren.push(
-          <React.Fragment key={key}>{results.spanTree}</React.Fragment>
-        );
-
-        acc.nextSpanNumber = results.nextSpanNumber;
-
-        return acc;
-      },
-      {
-        renderedSpanChildren: [],
-        nextSpanNumber: spanNumber + 1,
-      }
-    );
-
-    return {
-      nextSpanNumber: reduced.nextSpanNumber,
-      spanTree: (
-        <React.Fragment>
-          <MinimapSpanBar
-            style={{
-              backgroundColor: spanBarColour,
-              left: spanLeft,
-              width: spanWidth,
-            }}
-          />
-          {reduced.renderedSpanChildren}
-        </React.Fragment>
-      ),
-    };
   }
 
   render() {
@@ -818,6 +761,7 @@ const MinimapSpanBar = styled('div')`
   margin: 2px 0;
   min-width: 1px;
   border-radius: 1px;
+  box-sizing: border-box;
 `;
 
 const BackgroundSlider = styled('div')`
@@ -875,6 +819,7 @@ export const SecondaryHeader = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
+  overflow: hidden;
 `;
 
 const OperationsBreakdown = styled('div')`

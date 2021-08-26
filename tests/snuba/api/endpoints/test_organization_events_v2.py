@@ -2,10 +2,27 @@ from base64 import b64encode
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from pytz import utc
 
-from sentry.discover.models import KeyTransaction
-from sentry.models import ApiKey
+from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.models import (
+    ApiKey,
+    ProjectTeam,
+    ProjectTransactionThreshold,
+    ReleaseProjectEnvironment,
+    ReleaseStages,
+)
+from sentry.models.transaction_threshold import (
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+)
+from sentry.search.events.constants import (
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -13,6 +30,8 @@ from sentry.utils import json
 from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
+
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
@@ -59,7 +78,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
         )
 
         assert response.status_code == 200, response.content
@@ -468,7 +487,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-        # should only show 1 event of type transaction since they dont have issues
+        # should only show 1 event of type transaction since they don't have issues
         query = {
             "field": ["project", "issue"],
             "query": "event.type:transaction !has:issue",
@@ -750,6 +769,232 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event2.group_id
         assert data[0]["release"] == "0.9"
 
+    def test_semver(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_2 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_3_e_1 = self.store_event(
+            data={"release": release_3.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_3_e_2 = self.store_event(
+            data={"release": release_3.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:>1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:>=1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:<1.2.4"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+    def test_release_stage(self):
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=replaced_release.id,
+            environment_id=self.environment.id,
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=self.environment.id,
+        )
+
+        adopted_release_e_1 = self.store_event(
+            data={
+                "release": adopted_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        ).event_id
+        adopted_release_e_2 = self.store_event(
+            data={
+                "release": adopted_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_1 = self.store_event(
+            data={
+                "release": replaced_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        ).event_id
+        replaced_release_e_2 = self.store_event(
+            data={
+                "release": replaced_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        ).event_id
+
+        query = {
+            "field": ["id"],
+            "query": f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            "environment": [self.environment.name],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+        }
+
+        query = {
+            "field": ["id"],
+            "query": f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            "environment": [self.environment.name],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+
+        query = {
+            "field": ["id"],
+            "query": f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            "environment": [self.environment.name],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            adopted_release_e_1,
+            adopted_release_e_2,
+            replaced_release_e_1,
+            replaced_release_e_2,
+        }
+
+    def test_semver_package(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.4")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{SEMVER_PACKAGE_ALIAS}:test"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_PACKAGE_ALIAS}:test2"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
+        }
+
+    def test_semver_build(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test2@1.2.4+124")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{SEMVER_BUILD_ALIAS}:123"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_BUILD_ALIAS}:124"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
+        }
+
     def test_aliased_fields(self):
         project = self.create_project()
         event1 = self.store_event(
@@ -897,6 +1142,143 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["count_miserable_user_300"] == 2
 
+    @mock.patch(
+        "sentry.search.events.fields.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
+        MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
+    )
+    def test_too_many_transaction_thresholds(self):
+        project_transaction_thresholds = []
+        project_ids = []
+        for i in range(MAX_QUERYABLE_TRANSACTION_THRESHOLDS + 1):
+            project = self.create_project(name=f"bulk_txn_{i}")
+            project_ids.append(project.id)
+            project_transaction_thresholds.append(
+                ProjectTransactionThreshold(
+                    organization=self.organization,
+                    project=project,
+                    threshold=400,
+                    metric=TransactionMetric.LCP.value,
+                )
+            )
+
+        ProjectTransactionThreshold.objects.bulk_create(project_transaction_thresholds)
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project_ids[0])
+
+        query = {
+            "field": [
+                "transaction",
+                "count_miserable(user)",
+            ],
+            "query": "event.type:transaction",
+            "project": project_ids,
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+                "organizations:global-views": True,
+            },
+        )
+
+        assert response.status_code == 400
+        assert (
+            response.data["detail"]
+            == "Exceeded 1 configured transaction thresholds limit, try with fewer Projects."
+        )
+
+    def test_count_miserable_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "count_miserable(user)",
+            ],
+            "query": "event.type:transaction",
+            "project": [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert data[0]["count_miserable_user"] == 0
+        assert data[1]["count_miserable_user"] == 2
+        assert data[2]["count_miserable_user"] == 1
+
+        query["query"] = "event.type:transaction count_miserable(user):>0"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert abs(data[0]["count_miserable_user"]) == 2
+        assert abs(data[1]["count_miserable_user"]) == 1
+
     def test_user_misery_alias_field(self):
         project = self.create_project()
 
@@ -925,6 +1307,342 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert abs(data[0]["user_misery_300"] - 0.0653) < 0.0001
+
+    def test_apdex_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/apdex/new/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "apdex()",
+            ],
+            "query": "event.type:transaction",
+            "project": [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert data[0]["apdex"] == 1.0
+        assert data[1]["apdex"] == 0.5
+        assert data[2]["apdex"] == 0.0
+
+        query["query"] = "event.type:transaction apdex():>0.50"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["apdex"] == 1.0
+
+    def test_user_misery_alias_field_with_project_threshold(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "project": [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert abs(data[0]["user_misery"] - 0.04916) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.06586) < 0.0001
+        assert abs(data[2]["user_misery"] - 0.05751) < 0.0001
+
+        query["query"] = "event.type:transaction user_misery():>0.050"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert abs(data[0]["user_misery"] - 0.06586) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
+
+    def test_user_misery_alias_field_with_transaction_threshold(self):
+        project = self.create_project()
+
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),
+            ("two", 3000),
+            ("three", 400),
+            ("four", 4000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+            if idx % 2:
+                ProjectTransactionThresholdOverride.objects.create(
+                    transaction=f"/count_miserable/horribilis/{idx}",
+                    project=project,
+                    organization=project.organization,
+                    threshold=100 * idx,
+                    metric=TransactionMetric.DURATION.value,
+                )
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "orderby": "transaction",
+            "project": [project.id],
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        expected = [
+            ("/count_miserable/horribilis/0", ["duration", 300], 0.049578),
+            ("/count_miserable/horribilis/1", ["duration", 100], 0.049578),
+            ("/count_miserable/horribilis/2", ["duration", 300], 0.058),
+            ("/count_miserable/horribilis/3", ["duration", 300], 0.058),
+            ("/count_miserable/horribilis/4", ["duration", 300], 0.049578),
+            ("/count_miserable/horribilis/5", ["duration", 500], 0.058),
+        ]
+
+        assert len(response.data["data"]) == 6
+        data = response.data["data"]
+        for i, record in enumerate(expected):
+            name, threshold_config, misery = record
+            assert data[i]["transaction"] == name
+            assert data[i]["project_threshold_config"] == threshold_config
+            assert abs(data[i]["user_misery"] - misery) < 0.0001
+
+        query["query"] = "event.type:transaction user_misery():>0.050"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert abs(data[0]["user_misery"] - 0.058) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.058) < 0.0001
+        assert abs(data[2]["user_misery"] - 0.058) < 0.0001
+
+    def test_user_misery_alias_field_with_transaction_threshold_and_project_threshold(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),
+            ("two", 3000),
+            ("three", 400),
+            ("four", 4000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+            if idx % 2:
+                ProjectTransactionThresholdOverride.objects.create(
+                    transaction=f"/count_miserable/horribilis/{idx}",
+                    project=project,
+                    organization=project.organization,
+                    threshold=100 * idx,
+                    metric=TransactionMetric.DURATION.value,
+                )
+
+        project2 = self.create_project()
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/count_miserable/horribilis/project2"
+        data["user"] = {"email": "project2@example.com"}
+        self.store_event(data, project_id=project2.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "orderby": "transaction",
+            "project": [project.id, project2.id],
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:global-views": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        expected = [
+            (
+                "/count_miserable/horribilis/0",
+                ["duration", 100],
+                0.049578,
+            ),  # Uses project threshold
+            ("/count_miserable/horribilis/1", ["duration", 100], 0.049578),  # Uses txn threshold
+            ("/count_miserable/horribilis/2", ["duration", 100], 0.058),  # Uses project threshold
+            ("/count_miserable/horribilis/3", ["duration", 300], 0.058),  # Uses txn threshold
+            (
+                "/count_miserable/horribilis/4",
+                ["duration", 100],
+                0.049578,
+            ),  # Uses project threshold
+            ("/count_miserable/horribilis/5", ["duration", 500], 0.058),  # Uses txn threshold
+            ("/count_miserable/horribilis/project2", ["duration", 300], 0.058),  # Uses fallback
+        ]
+
+        assert len(response.data["data"]) == 7
+        data = response.data["data"]
+        for i, record in enumerate(expected):
+            name, threshold_config, misery = record
+            assert data[i]["transaction"] == name
+            assert data[i]["project_threshold_config"] == threshold_config
+            assert abs(data[i]["user_misery"] - misery) < 0.0001
+
+        query["query"] = "event.type:transaction user_misery():>0.050"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+                "organizations:global-views": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 4
 
     def test_aggregation(self):
         project = self.create_project()
@@ -1186,7 +1904,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
-        response.data["meta"]["max_timestamp"] == "date"
+        assert response.data["meta"]["max_timestamp"] == "date"
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 
@@ -1822,6 +2540,70 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
+    def test_any_field_alias(self):
+        day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(day_ago),
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": [
+                "event.type",
+                "any(user.display)",
+                "any(timestamp.to_day)",
+                "any(timestamp.to_hour)",
+            ],
+            "statsPeriod": "7d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["any_user_display"] for r in data}
+        assert result == {"cathy@example.com"}
+        result = {r["any_timestamp_to_day"][:19] for r in data}
+        assert result == {iso_format(day_ago.replace(hour=0, minute=0, second=0, microsecond=0))}
+        result = {r["any_timestamp_to_hour"][:19] for r in data}
+        assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
+
+    def test_field_aliases_in_conflicting_functions(self):
+        day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(day_ago),
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        field_aliases = ["user.display", "timestamp.to_day", "timestamp.to_hour"]
+        for alias in field_aliases:
+            query = {
+                "field": [alias, f"any({alias})"],
+                "statsPeriod": "7d",
+            }
+            response = self.do_request(query, features=features)
+            assert response.status_code == 400, response.content
+            assert (
+                response.data["detail"]
+                == f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): any({alias})"
+            )
+
     @pytest.mark.skip(
         """
          For some reason ClickHouse errors when there are two of the same string literals
@@ -2006,6 +2788,67 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:project-transaction-threshold": True,
+        }
+
+        query = {
+            "field": [
+                "event.type",
+                "p50()",
+                "p75()",
+                "p95()",
+                "p99()",
+                "p100()",
+                "percentile(transaction.duration, 0.99)",
+                "apdex(300)",
+                "apdex()",
+                "count_miserable(user, 300)",
+                "user_misery(300)",
+                "failure_rate()",
+                "count_miserable(user)",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "project": [project.id],
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["p50"] == "duration"
+        assert meta["p75"] == "duration"
+        assert meta["p95"] == "duration"
+        assert meta["p99"] == "duration"
+        assert meta["p100"] == "duration"
+        assert meta["percentile_transaction_duration_0_99"] == "duration"
+        assert meta["apdex_300"] == "number"
+        assert meta["apdex"] == "number"
+        assert meta["failure_rate"] == "percentage"
+        assert meta["user_misery_300"] == "number"
+        assert meta["count_miserable_user_300"] == "number"
+        assert meta["project_threshold_config"] == "string"
+        assert meta["user_misery"] == "number"
+        assert meta["count_miserable_user"] == "number"
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50"] == 5000
+        assert data[0]["p75"] == 5000
+        assert data[0]["p95"] == 5000
+        assert data[0]["p99"] == 5000
+        assert data[0]["p100"] == 5000
+        assert data[0]["percentile_transaction_duration_0_99"] == 5000
+        assert data[0]["apdex_300"] == 0.0
+        assert data[0]["apdex"] == 0.0
+        assert data[0]["count_miserable_user_300"] == 1
+        assert data[0]["user_misery_300"] == 0.058
+        assert data[0]["failure_rate"] == 0.5
+        assert data[0]["project_threshold_config"] == ["duration", 300]
+        assert data[0]["user_misery"] == 0.058
+        assert data[0]["count_miserable_user"] == 1
+
         query = {
             "field": ["event.type", "last_seen()", "latest_event()"],
             "query": "event.type:transaction",
@@ -2028,6 +2871,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "avg(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -2044,6 +2889,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["avg_transaction_duration"] == 5000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
     def test_null_user_misery_returns_zero(self):
@@ -2069,6 +2916,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["user_misery_300"] == "number"
         data = response.data["data"]
         assert data[0]["user_misery_300"] == 0
+
+    def test_null_user_misery_new_returns_zero(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
+        data["user"] = None
+        data["transaction"] = "/no_users/1"
+        self.store_event(data, project_id=project.id)
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:project-transaction-threshold": True,
+        }
+
+        query = {
+            "field": ["user_misery()"],
+            "query": "event.type:transaction",
+        }
+
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["user_misery"] == "number"
+        data = response.data["data"]
+        assert data[0]["user_misery"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()
@@ -2160,6 +3034,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "sum(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
             ],
             "query": " ".join(
                 [
@@ -2170,6 +3046,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     "sum(transaction.duration):>1000",
                     "stddev(transaction.duration):>=0.0",
                     "var(transaction.duration):>=0.0",
+                    "cov(transaction.duration, transaction.duration):>=0.0",
+                    # correlation is nan because variance is 0
+                    # "corr(transaction.duration, transaction.duration):>=0.0",
                 ]
             ),
         }
@@ -2180,9 +3059,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["sum_transaction_duration"] == 10000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
-        assert data[0]["sum_transaction_duration"] == 10000
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
 
         query = {
             "field": ["event.type", "apdex(400)"],
@@ -3233,6 +4114,323 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
 
+    def test_no_team_key_transactions(self):
+        transactions = [
+            "/blah_transaction/",
+            "/foo_transaction/",
+            "/zoo_transaction/",
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            # use the order by to ensure the result order
+            "orderby": "transaction",
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 0
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["team_key_transaction"] == 0
+        assert data[2]["transaction"] == "/zoo_transaction/"
+
+    def test_team_key_transactions_my_teams(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        self.create_team_membership(team1, user=self.user)
+        self.project.add_team(team1)
+
+        team2 = self.create_team(organization=self.organization, name="Team B")
+        self.project.add_team(team2)
+
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            (team1, "/foo_transaction/"),
+            (team2, "/zoo_transaction/"),
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for team, transaction in key_transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            TeamKeyTransaction.objects.create(
+                organization=self.organization,
+                transaction=transaction,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
+            )
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        query["orderby"] = ["team_key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 0
+        assert data[1]["transaction"] == "/zoo_transaction/"
+        assert data[2]["team_key_transaction"] == 1
+        assert data[2]["transaction"] == "/foo_transaction/"
+
+        # not specifying any teams should use my teams
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        query["orderby"] = ["team_key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 0
+        assert data[1]["transaction"] == "/zoo_transaction/"
+        assert data[2]["team_key_transaction"] == 1
+        assert data[2]["transaction"] == "/foo_transaction/"
+
+    def test_team_key_transactions_orderby(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        team2 = self.create_team(organization=self.organization, name="Team B")
+
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            (team1, "/foo_transaction/"),
+            (team2, "/zoo_transaction/"),
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for team, transaction in key_transactions:
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            TeamKeyTransaction.objects.create(
+                organization=self.organization,
+                transaction=transaction,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
+            )
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        # test ascending order
+        query["orderby"] = ["team_key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["team_key_transaction"] == 1
+        assert data[2]["transaction"] == "/zoo_transaction/"
+
+        # test descending order
+        query["orderby"] = ["-team_key_transaction", "-transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "/zoo_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["team_key_transaction"] == 0
+        assert data[2]["transaction"] == "/blah_transaction/"
+
+    def test_team_key_transactions_query(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        team2 = self.create_team(organization=self.organization, name="Team B")
+
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            (team1, "/foo_transaction/"),
+            (team2, "/zoo_transaction/"),
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for team, transaction in key_transactions:
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            TeamKeyTransaction.objects.create(
+                organization=self.organization,
+                project_team=ProjectTeam.objects.get(
+                    project=self.project,
+                    team=team,
+                ),
+                transaction=transaction,
+            )
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            # use the order by to ensure the result order
+            "orderby": "transaction",
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        # key transactions
+        query["query"] = "has:team_key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "/foo_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/zoo_transaction/"
+
+        # key transactions
+        query["query"] = "team_key_transaction:true"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "/foo_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/zoo_transaction/"
+
+        # not key transactions
+        query["query"] = "!has:team_key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+
+        # not key transactions
+        query["query"] = "team_key_transaction:false"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+
+    def test_too_many_team_key_transactions(self):
+        MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
+        with mock.patch(
+            "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+            MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
+        ):
+            team = self.create_team(organization=self.organization, name="Team A")
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
+            for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
+                transaction = f"transaction-{team.id}-{i}"
+                self.transaction_data["transaction"] = transaction
+                self.store_event(self.transaction_data, self.project.id)
+
+            TeamKeyTransaction.objects.bulk_create(
+                [
+                    TeamKeyTransaction(
+                        organization=self.organization,
+                        project_team=project_team,
+                        transaction=f"transaction-{team.id}-{i}",
+                    )
+                    for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1)
+                ]
+            )
+
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                "orderby": "transaction",
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+            assert (
+                sum(row["team_key_transaction"] for row in data)
+                == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+            )
+
     def test_no_pagination_param(self):
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
@@ -3244,3 +4442,234 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert "Link" not in response
+
+    def test_nan_result(self):
+        query = {"field": ["apdex(300)"], "project": [self.project.id], "query": f"id:{'0' * 32}"}
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["apdex_300"] == 0
+
+    def test_equation_simple(self):
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        query = {
+            "field": ["spans.http", "equation|spans.http / 3"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert (
+            response.data["data"][0]["equation[0]"]
+            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+
+    def test_equation_operation_limit(self):
+        query = {
+            "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+
+        assert response.status_code == 400
+
+    @mock.patch("sentry.api.bases.organization_events.MAX_FIELDS", 2)
+    def test_equation_field_limit(self):
+        query = {
+            "field": ["spans.http", "transaction.duration", "equation|5 * 2"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+
+        assert response.status_code == 400
+
+    def test_count_if(self):
+        for i in range(5):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + i)),
+                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+            )
+            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+                "count_if(transaction.duration, greater, 150)",
+                "count_if(sub_customer.is-Enterprise-42, equals, yes)",
+                "count_if(sub_customer.is-Enterprise-42, notEquals, yes)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
+        assert response.data["data"][0]["count_if_transaction_duration_greater_150"] == 2
+
+        assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_equals_yes"] == 1
+        assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_notEquals_yes"] == 4
+
+    def test_count_if_filter(self):
+        for i in range(5):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + i)),
+                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+            )
+            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):>2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):<2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 0
+
+    def test_filters_with_escaped_asterisk(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = r"/:a*/:b-:c(\d\.\e+)"
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["transaction", "transaction.duration"],
+            # make sure to escape the asterisk so it's not treated as a wildcard
+            "query": r'transaction:"/:a\*/:b-:c(\d\.\e+)"',
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+    def test_filters_with_back_slashes(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = r"a\b\c@d"
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["transaction", "transaction.duration"],
+            "query": r'transaction:"a\b\c@d"',
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+    def test_mobile_measurements(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["frames_total"] = {"value": 100}
+        data["measurements"]["frames_slow"] = {"value": 10}
+        data["measurements"]["frames_frozen"] = {"value": 5}
+        data["measurements"]["stall_count"] = {"value": 2}
+        data["measurements"]["stall_total_time"] = {"value": 12}
+        data["measurements"]["stall_longest_time"] = {"value": 7}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "measurements.frames_total",
+                "measurements.frames_slow",
+                "measurements.frames_frozen",
+                "measurements.frames_slow_rate",
+                "measurements.frames_frozen_rate",
+                "measurements.stall_count",
+                "measurements.stall_total_time",
+                "measurements.stall_longest_time",
+                "measurements.stall_percentage",
+            ],
+            "query": "",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["measurements.frames_total"] == 100
+        assert data[0]["measurements.frames_slow"] == 10
+        assert data[0]["measurements.frames_frozen"] == 5
+        assert data[0]["measurements.frames_slow_rate"] == 0.1
+        assert data[0]["measurements.frames_frozen_rate"] == 0.05
+        assert data[0]["measurements.stall_count"] == 2
+        assert data[0]["measurements.stall_total_time"] == 12
+        assert data[0]["measurements.stall_longest_time"] == 7
+        assert data[0]["measurements.stall_percentage"] == 0.004
+        meta = response.data["meta"]
+        assert meta["measurements.frames_total"] == "number"
+        assert meta["measurements.frames_slow"] == "number"
+        assert meta["measurements.frames_frozen"] == "number"
+        assert meta["measurements.frames_slow_rate"] == "percentage"
+        assert meta["measurements.frames_frozen_rate"] == "percentage"
+        assert meta["measurements.stall_count"] == "number"
+        assert meta["measurements.stall_total_time"] == "number"
+        assert meta["measurements.stall_longest_time"] == "number"
+        assert meta["measurements.stall_percentage"] == "percentage"
+
+        query = {
+            "field": [
+                "p75(measurements.frames_slow_rate)",
+                "p75(measurements.frames_frozen_rate)",
+                "percentile(measurements.frames_slow_rate,0.5)",
+                "percentile(measurements.frames_frozen_rate,0.5)",
+                "p75(measurements.stall_percentage)",
+                "percentile(measurements.stall_percentage,0.5)",
+            ],
+            "query": "",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p75_measurements_frames_slow_rate"] == 0.1
+        assert data[0]["p75_measurements_frames_frozen_rate"] == 0.05
+        assert data[0]["p75_measurements_stall_percentage"] == 0.004
+        assert data[0]["percentile_measurements_frames_slow_rate_0_5"] == 0.1
+        assert data[0]["percentile_measurements_frames_frozen_rate_0_5"] == 0.05
+        assert data[0]["percentile_measurements_stall_percentage_0_5"] == 0.004
+        meta = response.data["meta"]
+        assert meta["p75_measurements_frames_slow_rate"] == "percentage"
+        assert meta["p75_measurements_frames_frozen_rate"] == "percentage"
+        assert meta["p75_measurements_stall_percentage"] == "percentage"
+        assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
+        assert meta["percentile_measurements_stall_percentage_0_5"] == "percentage"

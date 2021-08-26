@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
 
@@ -10,7 +10,7 @@ export function deviceNameMapper(model: string, iOSDeviceList): string {
 }
 
 export async function loadDeviceListModule() {
-  return import(/* webpackChunkName: "iOSDeviceList" */ 'ios-device-list');
+  return import('ios-device-list');
 }
 
 type Props = {

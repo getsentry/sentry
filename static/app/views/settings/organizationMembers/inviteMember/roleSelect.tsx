@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -22,7 +22,7 @@ type Props = {
   setRole: (id: string) => void;
 };
 
-class RoleSelect extends React.Component<Props> {
+class RoleSelect extends Component<Props> {
   render() {
     const {disabled, enforceAllowed, roleList, selectedRole} = this.props;
 

@@ -19,6 +19,7 @@ from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -82,7 +83,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitHub%20Enterprise%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=GitHub%20Enterprise%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github_enterprise",
     aspects={
         "disable_dialog": disable_dialog,
@@ -291,32 +292,37 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         pass
 
     def get_installation_info(self, installation_data, access_token, installation_id):
-        session = http.build_session()
-        resp = session.get(
-            "https://{}/api/v3/app/installations/{}".format(
-                installation_data["url"], installation_id
-            ),
-            headers={
-                "Authorization": b"Bearer %s"
-                % get_jwt(
+        headers = {
+            # TODO(jess): remove this whenever it's out of preview
+            "Accept": "application/vnd.github.machine-man-preview+json",
+        }
+        headers.update(
+            jwt.authorization_header(
+                get_jwt(
                     github_id=installation_data["id"],
                     github_private_key=installation_data["private_key"],
-                ),
-                "Accept": "application/vnd.github.machine-man-preview+json",
-            },
-            verify=installation_data["verify_ssl"],
+                )
+            )
         )
-        resp.raise_for_status()
-        installation_resp = resp.json()
+        with http.build_session() as session:
+            resp = session.get(
+                f"https://{installation_data['url']}/api/v3/app/installations/{installation_id}",
+                headers=headers,
+                verify=installation_data["verify_ssl"],
+            )
+            resp.raise_for_status()
+            installation_resp = resp.json()
 
-        resp = session.get(
-            "https://{}/api/v3/user/installations".format(installation_data["url"]),
-            params={"access_token": access_token},
-            headers={"Accept": "application/vnd.github.machine-man-preview+json"},
-            verify=installation_data["verify_ssl"],
-        )
-        resp.raise_for_status()
-        user_installations_resp = resp.json()
+            resp = session.get(
+                f"https://{installation_data['url']}/api/v3/user/installations",
+                headers={
+                    "Accept": "application/vnd.github.machine-man-preview+json",
+                    "Authorization": f"token {access_token}",
+                },
+                verify=installation_data["verify_ssl"],
+            )
+            resp.raise_for_status()
+            user_installations_resp = resp.json()
 
         # verify that user actually has access to the installation
         for installation in user_installations_resp["installations"]:

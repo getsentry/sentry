@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -69,13 +69,16 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     );
 
     e?.preventDefault();
-    openModal(deps => (
-      <SentryAppExternalIssueModal
-        {...deps}
-        {...{group, event, sentryAppComponent, sentryAppInstallation}}
-        onSubmitSuccess={this.onSubmitSuccess}
-      />
-    ));
+    openModal(
+      deps => (
+        <SentryAppExternalIssueModal
+          {...deps}
+          {...{group, event, sentryAppComponent, sentryAppInstallation}}
+          onSubmitSuccess={this.onSubmitSuccess}
+        />
+      ),
+      {allowClickClose: false}
+    );
   };
 
   deleteIssue = () => {

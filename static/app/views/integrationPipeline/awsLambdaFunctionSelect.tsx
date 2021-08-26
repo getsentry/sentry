@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
@@ -34,13 +34,13 @@ type State = {
 
 const getLabel = (func: LambdaFunction) => func.FunctionName;
 
-export default class AwsLambdaFunctionSelect extends React.Component<Props, State> {
+export default class AwsLambdaFunctionSelect extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    makeObservable(this);
+    makeObservable(this, {allStatesToggled: computed});
   }
 
-  state = {
+  state: State = {
     submitting: false,
   };
 
@@ -66,10 +66,9 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     return reduce(data, (acc: number, val: boolean) => (val ? acc + 1 : acc), 0);
   }
 
-  @computed
-  get toggleAllState() {
-    //check if any of the lambda functions have a falsy value
-    //no falsy values means everything is enabled
+  get allStatesToggled() {
+    // check if any of the lambda functions have a falsy value
+    // no falsy values means everything is enabled
     return Object.values(this.model.getData()).every(val => val);
   }
 
@@ -79,7 +78,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
   };
 
   handleToggle = () => {
-    const newState = !this.toggleAllState;
+    const newState = !this.allStatesToggled;
     this.lambdaFunctions.forEach(lambda => {
       this.model.setValue(lambda.FunctionName, newState, {quiet: true});
     });
@@ -98,7 +97,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     );
   };
 
-  renderLoadingScreeen = () => {
+  renderLoadingScreen = () => {
     const count = this.enabledCount;
     const text =
       count > LAMBDA_COUNT_THRESHOLD
@@ -115,7 +114,6 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
 
   renderCore = () => {
     const {initialStepNumber} = this.props;
-    const model = this.model;
 
     const FormHeader = (
       <StyledPanelHeader>
@@ -124,14 +122,14 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
           <Observer>
             {() => (
               <Tooltip
-                title={this.toggleAllState ? t('Disable All') : t('Enable All')}
+                title={this.allStatesToggled ? t('Disable All') : t('Enable All')}
                 position="left"
               >
                 <StyledSwitch
                   size="lg"
                   name="toggleAll"
                   toggle={this.handleToggle}
-                  isActive={this.toggleAllState}
+                  isActive={this.allStatesToggled}
                 />
               </Tooltip>
             )}
@@ -141,16 +139,15 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     );
 
     const formFields: JsonFormObject = {
-      fields: this.lambdaFunctions.map(func => {
-        return {
-          name: func.FunctionName,
-          type: 'boolean',
-          required: false,
-          label: getLabel(func),
-          alignRight: true,
-        };
-      }),
+      fields: this.lambdaFunctions.map(func => ({
+        name: func.FunctionName,
+        type: 'boolean',
+        required: false,
+        label: getLabel(func),
+        alignRight: true,
+      })),
     };
+
     return (
       <List symbol="colored-numeric" initialCounterValue={initialStepNumber}>
         <ListItem>
@@ -159,23 +156,24 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
           <StyledForm
             initialData={this.initialData}
             skipPreventDefault
-            model={model}
+            model={this.model}
             apiEndpoint="/extensions/aws_lambda/setup/"
             hideFooter
           >
             <JsonForm renderHeader={() => FormHeader} forms={[formFields]} />
           </StyledForm>
         </ListItem>
-        <React.Fragment />
+        <Fragment />
       </List>
     );
   };
-  render = () => {
+
+  render() {
     return (
-      <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
+      <Fragment>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" />
         <Wrapper>
-          {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
+          {this.state.submitting ? this.renderLoadingScreen() : this.renderCore()}
         </Wrapper>
         <Observer>
           {() => (
@@ -186,9 +184,9 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
             />
           )}
         </Observer>
-      </React.Fragment>
+      </Fragment>
     );
-  };
+  }
 }
 
 const Wrapper = styled('div')`
@@ -222,7 +220,7 @@ const StyledSwitch = styled(Switch)`
   margin: auto;
 `;
 
-//padding is based on fom control width
+// padding is based on fom control width
 const StyledPanelHeader = styled(PanelHeader)`
   padding-right: 36px;
 `;

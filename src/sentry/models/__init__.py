@@ -6,6 +6,7 @@ from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
 from .apitoken import *  # NOQA
+from .appconnectbuilds import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
@@ -34,7 +35,6 @@ from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
 from .externalactor import *  # NOQA
 from .externalissue import *  # NOQA
-from .externaluser import *  # NOQA
 from .featureadoption import *  # NOQA
 from .file import *  # NOQA
 from .group import *  # NOQA
@@ -60,6 +60,7 @@ from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
 from .integration import *  # NOQA
 from .integrationfeature import *  # NOQA
+from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .monitor import *  # NOQA
@@ -109,6 +110,7 @@ from .sentryappinstallation import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
 from .teamavatar import *  # NOQA
+from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA
 from .useravatar import *  # NOQA
 from .useremail import *  # NOQA

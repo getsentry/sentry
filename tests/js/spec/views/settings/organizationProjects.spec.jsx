@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
@@ -44,7 +42,7 @@ describe('OrganizationProjects', function () {
     );
     expect(wrapper).toSnapshot();
 
-    expect(wrapper.find('.project-name').text()).toBe('project-slug');
+    expect(wrapper.find('ProjectBadge').text()).toBe('project-slug');
 
     expect(projectsGetMock).toHaveBeenCalledTimes(1);
 

@@ -9,19 +9,17 @@
 
 {% script %}
 <script>
-  SentryApp.passwordStrength.load(function(passwordStrength) {
-    $(function() {
-      passwordStrength.attachTo({
-        input: document.querySelector('#id_registration_password'),
-        element: document.querySelector('.password-strength'),
-      });
-    })
-  })
+  window.__onSentryInit = window.__onSentryInit || [];
+  window.__onSentryInit.push({
+    name: 'passwordStrength',
+    input: '#id_registration_password',
+    element: '.password-strength',
+  });
 </script>
 {% endscript %}
 {% endblock %}
 
-{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Sign In" %} | {{ block.super }}{% endblock %}
 
 {% block auth_container %}
 <div>
@@ -53,7 +51,7 @@
     <div class="auth-container p-t-0 border-bottom">
       <ul class="nav nav-tabs auth-toggle m-b-0">
         <li{% if op == "login" %} class="active"{% endif %}>
-          <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
+          <a href="#login" data-toggle="tab">{% trans "Sign In" %}</a>
         </li>
         {% if CAN_REGISTER %}
           <li{% if op == "register" %} class="active"{% endif %}>
@@ -87,7 +85,7 @@
               {% endfor %}
 
               <div class="auth-footer m-t-1">
-                <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
+                <button type="submit" class="btn btn-primary">{% trans "Sign In" %}</button>
                 <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
               </div>
             </form>

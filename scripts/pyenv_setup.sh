@@ -20,7 +20,7 @@ get_shell_startup_script() {
       _startup_script="${HOME}/.bash_profile"
       ;;
     */zsh)
-      _startup_script="${HOME}/.zshrc"
+      _startup_script="${HOME}/.zprofile"
       ;;
     */fish)
       _startup_script="${HOME}/.config/fish/config.fish"
@@ -37,19 +37,22 @@ get_shell_startup_script() {
   echo "$_startup_script"
 }
 
+# The first \n is important on Github workers since it was being appended to
+# the last line rather than on a new line. I never figured out why
 _append_to_startup_script() {
   if [[ -n "$SHELL" ]]; then
     case "$SHELL" in
     */bash)
       # shellcheck disable=SC2016
-      echo -e '\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >>"${1}"
-      ;;
+      echo "Visit https://github.com/pyenv/pyenv#installation on how to fully set up your Bash shell.";;
     */zsh)
       # shellcheck disable=SC2016
-      echo -e '\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >>"${1}"
+      echo -e '# It is assumed that pyenv is installed via Brew, so this is all we need to do.\n' \
+        'eval "$(pyenv init --path)"' >>"${1}"
       ;;
     */fish)
-      echo -e '\n\n# pyenv init\nif command -v pyenv 1>/dev/null 2>&1\n  pyenv init - | source\nend' >>"$1"
+      # shellcheck disable=SC2016
+      echo -e '\n# pyenv init\nstatus is-login; and pyenv init --path | source' >> "${1}"
       ;;
     esac
 
@@ -60,12 +63,14 @@ _append_to_startup_script() {
 
 append_to_config() {
   if [[ -n "$1" ]]; then
-    echo "Adding pyenv init (if missing) to ${1}..."
-    # shellcheck disable=SC2016
-    if ! grep -qF "pyenv init" "${1}"; then
-      # pyenv init - is needed to include the pyenv shims in your PATH
-      # The first \n is very important since on Github workers the output was being appended to
-      # the last line rather than on a new line. I never figured out why
+    if grep -qF "(pyenv init -)" "${1}"; then
+      echo >&2 "!!! Please remove the old-style pyenv initialization and try again:"
+      echo "sed -i.bak 's/(pyenv init -)/(pyenv init --path)/' ${1}"
+      exit 1
+    fi
+    if ! grep -qF "pyenv init --path" "${1}"; then
+      echo "Adding pyenv init --path to ${1}..."
+      # pyenv init --path is needed to include the pyenv shims in your PATH
       _append_to_startup_script "${1}"
     fi
   fi
@@ -77,11 +82,13 @@ install_pyenv() {
     local pyenv_version
     pyenv_version=$(pyenv -v | awk '{print $2}')
     python_version=$(xargs -n1 <.python-version)
-    # NOTE: Older pyenv does not have access to the latest Python we require
-    if [[ "$pyenv_version" < 1.2.26 ]]; then
-      echo >&2 "!!! Your pyenv is old and does not know how to find the Python we require." \
+    # NOTE: We're dropping support for older pyenv versions
+    if [[ "$pyenv_version" < 2.0.0 ]]; then
+      echo >&2 "!!! We've dropped support for pyenv v1." \
         "Run the following (this is slow) and try again."
-      echo >&2 "brew update && brew upgrade pyenv"
+      # brew upgrade does not quite do the right thing
+      # > ~/.pyenv/shims/python: line 8: /usr/local/Cellar/pyenv/1.2.26/libexec/pyenv: No such file or directory
+      echo >&2 "brew update && brew uninstall pyenv && brew install pyenv"
       exit 1
     fi
 
@@ -110,7 +117,8 @@ setup_pyenv() {
   # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
   # the effects of this will be persistent outside of this script
   echo "Activating pyenv and validating Python version"
-  eval "$(pyenv init -)"
+  # Sets up PATH for pyenv
+  eval "$(pyenv init --path)"
   python_version=$(python -V | sed s/Python\ //g)
   [[ $python_version == $(cat .python-version) ]] ||
     (echo "Wrong Python version: $python_version. Please report in #discuss-dev-tooling" && exit 1)

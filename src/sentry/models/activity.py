@@ -15,7 +15,7 @@ from sentry.types.activity import CHOICES, ActivityType
 
 
 class Activity(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     # TODO(mgaeta): Replace all usages with ActivityTypes.
     ASSIGNED = ActivityType.ASSIGNED.value
@@ -55,6 +55,7 @@ class Activity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_activity"
+        index_together = (("project", "datetime"),)
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 
@@ -93,3 +94,31 @@ class Activity(Model):
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)
+
+    @classmethod
+    def get_activities_for_group(cls, group, num):
+        activity_items = set()
+        activity = []
+        activity_qs = cls.objects.filter(group=group).order_by("-datetime").select_related("user")
+        # we select excess so we can filter dupes
+        for item in activity_qs[: num * 2]:
+            sig = (item.type, item.ident, item.user_id)
+            # TODO: we could just generate a signature (hash(text)) for notes
+            # so there's no special casing
+            if item.type == Activity.NOTE:
+                activity.append(item)
+            elif sig not in activity_items:
+                activity_items.add(sig)
+                activity.append(item)
+
+        activity.append(
+            Activity(
+                id=0,
+                project=group.project,
+                group=group,
+                type=Activity.FIRST_SEEN,
+                datetime=group.first_seen,
+            )
+        )
+
+        return activity[:num]

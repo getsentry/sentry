@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import AutoComplete from 'app/components/autoComplete';
@@ -82,7 +81,10 @@ const GroupLabel = styled('div')`
   padding: ${space(0.25)} ${space(1)};
 `;
 
-const AutoCompleteItem = styled('div')<{isHighlighted: boolean; itemSize?: ItemSize}>`
+const AutoCompleteItem = styled('div')<{
+  isHighlighted: boolean;
+  itemSize?: ItemSize;
+}>`
   /* needed for virtualized lists that do not fill parent height */
   /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
   display: flex;

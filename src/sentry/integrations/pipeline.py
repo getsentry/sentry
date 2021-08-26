@@ -1,5 +1,7 @@
 __all__ = ["IntegrationPipeline"]
 
+from typing import Optional
+
 from django.db import IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext as _
@@ -7,8 +9,8 @@ from django.utils.translation import ugettext as _
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
-from sentry.pipeline import Pipeline
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.web.helpers import render_to_response
 
 from . import default_manager
@@ -33,6 +35,10 @@ class IntegrationPipeline(Pipeline):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 
+    def get_analytics_entry(self) -> Optional[PipelineAnalyticsEntry]:
+        pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
+        return PipelineAnalyticsEntry("integrations.pipeline_step", pipeline_type)
+
     def finish_pipeline(self):
         try:
             data = self.provider.build_integration(self.state.data)
@@ -46,6 +52,16 @@ class IntegrationPipeline(Pipeline):
                 },
             )
             return self.error(str(e))
+        except IntegrationProviderError as e:
+            self.get_logger().info(
+                "build-integration.provider-error",
+                extra={
+                    "error_message": str(e),
+                    "error_status": getattr(e, "code", None),
+                    "provider_key": self.provider.key,
+                },
+            )
+            return self.render_warning(str(e))
 
         response = self._finish_pipeline(data)
 

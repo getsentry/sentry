@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -24,15 +24,8 @@ type Props = {
 };
 
 function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
-  const {
-    unwind_status,
-    debug_status,
-    debug_file,
-    debug_id,
-    code_file,
-    code_id,
-    status,
-  } = image;
+  const {unwind_status, debug_status, debug_file, debug_id, code_file, code_id, status} =
+    image;
 
   const codeFilename = getFileName(code_file);
   const debugFilename = getFileName(debug_file);

@@ -105,10 +105,32 @@ class OrganizationTeamsListTest(APITestCase):
         assert len(response.data[0]["externalTeams"]) == 1
         assert response.data[0]["externalTeams"][0] == {
             "id": str(self.external_team.id),
+            "integrationId": str(self.external_team.integration.id),
             "provider": get_provider_string(self.external_team.provider),
             "externalName": self.external_team.external_name,
             "teamId": str(self.team.id),
         }
+
+    def test_has_external_teams_query(self):
+        team = self.create_team(organization=self.organization, name="foo")
+        self.login_as(user=self.user)
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=hasExternalTeams:true"
+
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        self.create_external_team(team, external_name="@getsentry/ecosystem")
+
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(team.id)
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=hasExternalTeams:false"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
 
 class OrganizationTeamsCreateTest(APITestCase):

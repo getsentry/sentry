@@ -1,0 +1,677 @@
+{
+  "event_id": "74aa49426be3459cb2a10a582030a5a7",
+  "project": 5428561,
+  "release": "2.5.1",
+  "dist": "2.5.1.0",
+  "platform": "node",
+  "message": "",
+  "datetime": "2021-06-21T06:31:46.587000Z",
+  "tags": [
+    ["device", "iPhone13,2"],
+    ["device.family", "iOS"],
+    ["environment", "production"],
+    ["event.origin", "javascript"],
+    ["handled", "yes"],
+    ["level", "error"],
+    ["mechanism", "generic"],
+    ["os", "iOS 14.4"],
+    ["os.name", "iOS"],
+    ["os.rooted", "no"],
+    ["dist", "2.5.1.0"],
+    ["release", "2.5.1"]
+  ],
+  "_meta": {
+    "breadcrumbs": {
+      "values": {
+        "22": {
+          "data": {
+            "": {"len": 2},
+            "arguments": {
+              "1": {"stack": {"": {"rem": [["!limit", "s", 2005, 2008]], "len": 3967}}}
+            }
+          }
+        }
+      }
+    }
+  },
+  "_metrics": {"bytes.ingested.event": 14206, "bytes.stored.event": 16736},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1624256499.651,
+        "type": "default",
+        "category": "console",
+        "level": "debug",
+        "message": "onReady called with didCallNativeInit: true",
+        "data": {
+          "arguments": ["onReady called with didCallNativeInit:", true],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1624256499.655,
+        "type": "default",
+        "category": "console",
+        "level": "debug",
+        "message": "Running \"sample\" with {\"rootTag\":11,\"initialProps\":{}}",
+        "data": {
+          "arguments": ["Running \"sample\" with {\"rootTag\":11,\"initialProps\":{}}"],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1624256507.836,
+        "type": "user",
+        "category": "touch",
+        "level": "info",
+        "message": "Touch event within element: Text",
+        "data": {
+          "componentTree": [
+            "TouchableText",
+            "Text",
+            "View",
+            "AnimatedComponent",
+            "TouchableOpacity",
+            "View",
+            "View",
+            "ScrollView",
+            "ScrollView",
+            "HomeScreen",
+            "StaticContainer",
+            "EnsureSingleNavigator",
+            "SceneView",
+            "View",
+            "View",
+            "View",
+            "View",
+            "AnimatedComponent",
+            "PanGestureHandler",
+            "PanGestureHandler"
+          ]
+        }
+      },
+      {
+        "timestamp": 1624256507.904,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "POST",
+          "status_code": 200,
+          "url": "https://app.example.com/symbolicate"
+        }
+      },
+      {
+        "timestamp": 1624256507.928,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 404,
+          "url": "https://app.example.com/src/Documents/sentry/sentry-react-native/sample/src/screens/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624256507.937,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 404,
+          "url": "https://app.example.com/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624256507.945,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 404,
+          "url": "https://app.example.com/screens/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624256507.954,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://app.example.com/src/screens/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624256507.964,
+        "type": "default",
+        "category": "console",
+        "level": "debug",
+        "message": "Event beforeSend: [object Object]",
+        "data": {
+          "arguments": [
+            "Event beforeSend:",
+            {
+              "breadcrumbs": "[Array]",
+              "contexts": "[Object]",
+              "dist": "2.5.1.0",
+              "environment": "production",
+              "event_id": "fddf9797de6a4d10b5bf8e088824c312",
+              "exception": "[Object]",
+              "extra": "[Object]",
+              "level": "error",
+              "platform": "node",
+              "release": "2.5.1",
+              "request": "[Object]",
+              "sdk": "[Object]",
+              "tags": "[Object]",
+              "timestamp": 1624256507.878
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1624257104.498,
+        "type": "user",
+        "category": "touch",
+        "level": "info",
+        "message": "Touch event within element: Text",
+        "data": {
+          "componentTree": [
+            "TouchableText",
+            "Text",
+            "View",
+            "AnimatedComponent",
+            "TouchableOpacity",
+            "View",
+            "View",
+            "ScrollView",
+            "ScrollView",
+            "HomeScreen",
+            "StaticContainer",
+            "EnsureSingleNavigator",
+            "SceneView",
+            "View",
+            "View",
+            "View",
+            "View",
+            "AnimatedComponent",
+            "PanGestureHandler",
+            "PanGestureHandler"
+          ]
+        }
+      },
+      {
+        "timestamp": 1624257104.879,
+        "type": "user",
+        "category": "touch",
+        "level": "info",
+        "message": "Touch event within element: Text",
+        "data": {
+          "componentTree": [
+            "TouchableText",
+            "Text",
+            "View",
+            "AnimatedComponent",
+            "TouchableOpacity",
+            "View",
+            "View",
+            "ScrollView",
+            "ScrollView",
+            "HomeScreen",
+            "StaticContainer",
+            "EnsureSingleNavigator",
+            "SceneView",
+            "View",
+            "View",
+            "View",
+            "View",
+            "AnimatedComponent",
+            "PanGestureHandler",
+            "PanGestureHandler"
+          ]
+        }
+      },
+      {
+        "timestamp": 1624257104.973,
+        "type": "default",
+        "category": "console",
+        "level": "debug",
+        "message": "Event beforeSend: [object Object]",
+        "data": {
+          "arguments": [
+            "Event beforeSend:",
+            {
+              "breadcrumbs": "[Array]",
+              "contexts": "[Object]",
+              "dist": "2.5.1.0",
+              "environment": "production",
+              "event_id": "6e062d22c2a948b68c3ba3eb80306483",
+              "exception": "[Object]",
+              "level": "fatal",
+              "platform": "javascript",
+              "release": "2.5.1",
+              "request": "[Object]",
+              "sdk": "[Object]",
+              "tags": "[Object]",
+              "timestamp": 1624257104.969
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1624257105.161,
+        "type": "user",
+        "category": "touch",
+        "level": "info",
+        "message": "Touch event within element: Text",
+        "data": {
+          "componentTree": [
+            "TouchableText",
+            "Text",
+            "View",
+            "AnimatedComponent",
+            "TouchableOpacity",
+            "View",
+            "View",
+            "ScrollView",
+            "ScrollView",
+            "HomeScreen",
+            "StaticContainer",
+            "EnsureSingleNavigator",
+            "SceneView",
+            "View",
+            "View",
+            "View",
+            "View",
+            "AnimatedComponent",
+            "PanGestureHandler",
+            "PanGestureHandler"
+          ]
+        }
+      },
+      {
+        "timestamp": 1624257105.305,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "POST",
+          "status_code": 200,
+          "url": "https://app.example.com/symbolicate"
+        }
+      },
+      {
+        "timestamp": 1624257105.312,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 404,
+          "url": "https://app.example.com/src/Documents/sentry/sentry-react-native/sample/src/screens/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624257105.319,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 404,
+          "url": "https://app.example.com/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624257105.327,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 404,
+          "url": "https://app.example.com/screens/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624257105.333,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://app.example.com1/src/screens/HomeScreen.tsx"
+        }
+      },
+      {
+        "timestamp": 1624257105.34,
+        "type": "default",
+        "category": "console",
+        "level": "debug",
+        "message": "Event beforeSend: [object Object]",
+        "data": {
+          "arguments": [
+            "Event beforeSend:",
+            {
+              "breadcrumbs": "[Array]",
+              "contexts": "[Object]",
+              "dist": "2.5.1.0",
+              "environment": "production",
+              "event_id": "33cb0526a7134791afc12ce2eb1d1e12",
+              "exception": "[Object]",
+              "extra": "[Object]",
+              "level": "error",
+              "platform": "node",
+              "release": "2.5.1",
+              "request": "[Object]",
+              "sdk": "[Object]",
+              "tags": "[Object]",
+              "timestamp": 1624257105.271
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1624257105.41,
+        "type": "user",
+        "category": "touch",
+        "level": "info",
+        "message": "Touch event within element: Text",
+        "data": {
+          "componentTree": [
+            "TouchableText",
+            "Text",
+            "View",
+            "AnimatedComponent",
+            "TouchableOpacity",
+            "View",
+            "View",
+            "ScrollView",
+            "ScrollView",
+            "HomeScreen",
+            "StaticContainer",
+            "EnsureSingleNavigator",
+            "SceneView",
+            "View",
+            "View",
+            "View",
+            "View",
+            "AnimatedComponent",
+            "PanGestureHandler",
+            "PanGestureHandler"
+          ]
+        }
+      },
+      {
+        "timestamp": 1624257105.516,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "POST",
+          "status_code": 200,
+          "url": "https://app.example.com/symbolicate"
+        }
+      },
+      {
+        "timestamp": 1624257105.522,
+        "type": "default",
+        "category": "console",
+        "level": "debug",
+        "message": "Event beforeSend: [object Object]",
+        "data": {
+          "arguments": [
+            "Event beforeSend:",
+            {
+              "breadcrumbs": "[Array]",
+              "contexts": "[Object]",
+              "dist": "2.5.1.0",
+              "environment": "production",
+              "event_id": "70566ea8c4e540728385c77ab801e030",
+              "extra": "[Object]",
+              "level": "info",
+              "message": "Test Message",
+              "platform": "node",
+              "release": "2.5.1",
+              "request": "[Object]",
+              "sdk": "[Object]",
+              "tags": "[Object]",
+              "timestamp": 1624257105.508
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1624257106.586,
+        "type": "default",
+        "category": "console",
+        "level": "warning",
+        "message": "0 Error: Unhandled Promise Rejection",
+        "data": {
+          "arguments": [
+            0,
+            {
+              "message": "Unhandled Promise Rejection",
+              "name": "Error",
+              "stack": "https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:142323:26\ntryCallTwo@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31427:9\ndoResolve@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31591:25\nPromise@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31450:14\nonPress@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:142322:20\n_performTransitionSideEffects@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56551:22\n_receiveSignal@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56493:45\nonResponderRelease@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56400:34\ninvokeGuardedCallbackProd@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9434:21\ninvokeGuardedCallback@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9538:42\ninvokeGuardedCallbackAndCatchFirstError@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9542:36\nexecuteDispatch@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9614:48\nexecuteDispatchesInOrder@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9634:26\nexecuteDispatchesAndRelease@https://app.example.com/..."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "contexts": {
+    "app": {
+      "build_type": "simulator",
+      "app_identifier": "io.sentry.sample",
+      "app_name": "sample",
+      "app_version": "2.0",
+      "app_build": "1",
+      "app_id": "73846E0B-C75B-3EB5-9F9A-6A5F59B74FC5",
+      "type": "app"
+    },
+    "device": {
+      "family": "iOS",
+      "model": "iPhone13,2",
+      "model_id": "simulator",
+      "arch": "x86",
+      "simulator": true,
+      "memory_size": 34359738368,
+      "free_memory": 455921664,
+      "usable_memory": 30291288064,
+      "storage_size": 249999998976,
+      "boot_time": "2021-06-04T10:09:33Z",
+      "timezone": "GMT+7",
+      "type": "device"
+    },
+    "os": {
+      "name": "iOS",
+      "version": "14.4",
+      "build": "20E5224a",
+      "kernel_version": "Darwin Kernel Version 20.4.0: Thu Mar 25 07:05:22 PDT 2021; root:xnu-7195.101.1~26/RELEASE_X86_64",
+      "rooted": false,
+      "type": "os"
+    }
+  },
+  "culprit": "Promise$argument_0(HomeScreen)",
+  "environment": "production",
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "Unhandled Promise Rejection",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "callFunctionReturnFlushedQueue",
+              "filename": "[native code]",
+              "abs_path": "[native code]",
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "forEach",
+              "filename": "[native code]",
+              "abs_path": "[native code]",
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "responderEventHandlers.onResponderRelease",
+              "module": "Pressability",
+              "filename": "app:///Pressability.js",
+              "abs_path": "app:///Pressability.js",
+              "colno": 8,
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "_receiveSignal",
+              "module": "Pressability",
+              "filename": "app:///Pressability.js",
+              "abs_path": "app:///Pressability.js",
+              "colno": 6,
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "_performTransitionSideEffects",
+              "module": "Pressability",
+              "filename": "app:///Pressability.js",
+              "abs_path": "app:///Pressability.js",
+              "colno": 17,
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "TouchableOpacity.props.onPress",
+              "module": "HomeScreen",
+              "filename": "app:///HomeScreen.tsx",
+              "abs_path": "app:///HomeScreen.tsx",
+              "lineno": 176,
+              "colno": 16,
+              "platform": "javascript",
+              "pre_context": [
+                "              <Text style={styles.buttonText}>Uncaught Thrown Error</Text>",
+                "            </TouchableOpacity>",
+                "            <View style={styles.spacer} />",
+                "            <TouchableOpacity",
+                "              onPress={() => {"
+              ],
+              "context_line": "                new Promise(() => {",
+              "post_context": [
+                "                  throw new Error('Unhandled Promise Rejection');",
+                "                });",
+                "              }}>",
+                "              <Text style={styles.buttonText}>Unhandled Promise Rejection</Text>",
+                "            </TouchableOpacity>"
+              ],
+              "in_app": true
+            },
+            {
+              "function": "Promise",
+              "module": "core",
+              "filename": "app:///core.js",
+              "abs_path": "app:///core.js",
+              "colno": 11,
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "doResolve",
+              "module": "core",
+              "filename": "app:///core.js",
+              "abs_path": "app:///core.js",
+              "colno": 22,
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "tryCallTwo",
+              "module": "core",
+              "filename": "app:///core.js",
+              "abs_path": "app:///core.js",
+              "colno": 6,
+              "platform": "node",
+              "in_app": false
+            },
+            {
+              "function": "Promise$argument_0",
+              "module": "HomeScreen",
+              "filename": "app:///HomeScreen.tsx",
+              "abs_path": "app:///HomeScreen.tsx",
+              "lineno": 177,
+              "colno": 24,
+              "platform": "javascript",
+              "pre_context": [
+                "            </TouchableOpacity>",
+                "            <View style={styles.spacer} />",
+                "            <TouchableOpacity",
+                "              onPress={() => {",
+                "                new Promise(() => {"
+              ],
+              "context_line": "                  throw new Error('Unhandled Promise Rejection');",
+              "post_context": [
+                "                });",
+                "              }}>",
+                "              <Text style={styles.buttonText}>Unhandled Promise Rejection</Text>",
+                "            </TouchableOpacity>",
+                "            <View style={styles.spacer} />"
+              ],
+              "in_app": true
+            }
+          ]
+        },
+        "mechanism": {"type": "generic", "handled": true}
+      }
+    ]
+  },
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["452c8314fc3f6418f5a549443a8fb781", "2e16bce063776cac578ae7447d2b00ed"],
+  "key_id": "1336853",
+  "level": "error",
+  "location": "app:///HomeScreen.tsx",
+  "logger": "",
+  "metadata": {
+    "filename": "app:///HomeScreen.tsx",
+    "function": "Promise$argument_0",
+    "type": "Error",
+    "value": "Unhandled Promise Rejection"
+  },
+  "received": 1624257107.213364,
+  "sdk": {
+    "name": "sentry.javascript.react-native",
+    "version": "2.5.1",
+    "integrations": [
+      "ReactNativeErrorHandlers",
+      "Release",
+      "InboundFilters",
+      "FunctionToString",
+      "Breadcrumbs",
+      "LinkedErrors",
+      "UserAgent",
+      "DebugSymbolicator",
+      "RewriteFrames",
+      "DeviceContext",
+      "ReactNativeTracing"
+    ],
+    "packages": [{"name": "npm:@sentry/react-native", "version": "2.5.1"}]
+  },
+  "timestamp": 1624257106.587,
+  "title": "Error: Unhandled Promise Rejection",
+  "type": "error",
+  "version": "7.1.3"
+}

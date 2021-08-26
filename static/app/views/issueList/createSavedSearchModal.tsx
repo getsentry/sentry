@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';

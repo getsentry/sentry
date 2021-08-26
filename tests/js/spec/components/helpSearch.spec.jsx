@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import HelpSearch from 'app/components/helpSearch';
@@ -15,8 +13,7 @@ const mockResults = [
         url: 'https://docs.sentry.io/platforms/native/guides/minidumps/',
         context: {context1: 'Platforms > Native > Guides > Minidumps'},
         title: 'Minidumps',
-        text:
-          'Sentry can process Minidump crash reports, a memory <mark>dump</mark> used on Windows and by\nopen …',
+        text: 'Sentry can process Minidump crash reports, a memory <mark>dump</mark> used on Windows and by\nopen …',
       },
       {
         id: 'SitePage /product/discover-queries/query-builder/',
@@ -24,8 +21,7 @@ const mockResults = [
         url: 'https://docs.sentry.io/product/discover-queries/query-builder/',
         context: {context1: 'Product > Discover Queries > Query Builder'},
         title: 'Query Builder',
-        text:
-          '… conditions, see  Using  OR  &  AND  Conditions . Tag <mark>Summ</mark>ary Filters Every event has a list of …',
+        text: '… conditions, see  Using  OR  &  AND  Conditions . Tag <mark>Summ</mark>ary Filters Every event has a list of …',
       },
     ],
   },
@@ -44,8 +40,7 @@ const mockResults = [
         url: 'https://develop.sentry.dev/services/digests/',
         context: {context1: 'Services > Digests'},
         title: 'Notification Digests',
-        text:
-          '… operation, especially on large data sets. Backends <mark>Dumm</mark>y Backend The <mark>dumm</mark>y backend disables digest scheduling …',
+        text: '… operation, especially on large data sets. Backends <mark>Dumm</mark>y Backend The <mark>dumm</mark>y backend disables digest scheduling …',
       },
     ],
   },
@@ -59,8 +54,7 @@ const mockResults = [
         context: {context1: 'Building Sentry: Symbolicator'},
         url: 'https://blog.sentry.io/2019/06/13/building-a-sentry-symbolicator/',
         title: 'Stacking your cards frames',
-        text:
-          '… traces. Since iOS is particularly restrictive, we <mark>dump</mark>ed this information into a temporary location and …',
+        text: '… traces. Since iOS is particularly restrictive, we <mark>dump</mark>ed this information into a temporary location and …',
       },
     ],
   },

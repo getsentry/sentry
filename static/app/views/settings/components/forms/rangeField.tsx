@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';
@@ -11,7 +11,7 @@ type DisabledFunction = (props: Omit<Props, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
 
 type Props = DefaultProps &
-  Omit<RangeSlider['props'], 'value' | 'disabled' | 'placeholder'> &
+  Omit<React.ComponentProps<typeof RangeSlider>, 'value' | 'disabled' | 'placeholder'> &
   Omit<InputField['props'], 'disabled' | 'field'> & {
     disabled?: boolean | DisabledFunction;
     placeholder?: string | PlaceholderFunction;

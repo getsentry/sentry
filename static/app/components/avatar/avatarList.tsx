@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -23,7 +23,7 @@ type Props = {
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
 } & DefaultProps;
 
-export default class AvatarList extends React.Component<Props> {
+export default class AvatarList extends Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
@@ -48,7 +48,7 @@ export default class AvatarList extends React.Component<Props> {
       <AvatarListWrapper className={className}>
         {!!numCollapsedUsers && (
           <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
-            <CollapsedUsers size={avatarSize}>
+            <CollapsedUsers size={avatarSize} data-test-id="avatarList-collapsedusers">
               {numCollapsedUsers < 99 && <Plus>+</Plus>}
               {numCollapsedUsers}
             </CollapsedUsers>

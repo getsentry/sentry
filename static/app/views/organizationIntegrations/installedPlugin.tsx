@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -17,7 +17,7 @@ import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, PluginNoProject, PluginProjectItem} from 'app/types';
-import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
 import withApi from 'app/utils/withApi';
 
 export type Props = {
@@ -27,23 +27,23 @@ export type Props = {
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
   onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
-  trackIntegrationEvent: (eventKey: IntegrationAnalyticsKey) => void; //analytics callback
+  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
 };
 
-export class InstalledPlugin extends React.Component<Props> {
+export class InstalledPlugin extends Component<Props> {
   get projectId() {
     return this.props.projectItem.projectId;
   }
   getConfirmMessage() {
     return (
-      <React.Fragment>
+      <Fragment>
         <Alert type="error" icon={<IconFlag size="md" />}>
           {t(
             'Deleting this installation will disable the integration for this project and remove any configurations.'
           )}
         </Alert>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -73,14 +73,14 @@ export class InstalledPlugin extends React.Component<Props> {
       await this.pluginUpdate({reset: true});
       addSuccessMessage(t('Configuration was removed'));
       this.props.onResetConfiguration(this.projectId);
-      this.props.trackIntegrationEvent('integrations.uninstall_completed');
+      this.props.trackIntegrationAnalytics('integrations.uninstall_completed');
     } catch (_err) {
       addErrorMessage(t('Unable to remove configuration'));
     }
   };
 
   handleUninstallClick = () => {
-    this.props.trackIntegrationEvent('integrations.uninstall_clicked');
+    this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
   toggleEnablePlugin = async (projectId: string, status: boolean = true) => {
@@ -91,7 +91,7 @@ export class InstalledPlugin extends React.Component<Props> {
         status ? t('Configuration was enabled.') : t('Configuration was disabled.')
       );
       this.props.onPluginEnableStatusChange(projectId, status);
-      this.props.trackIntegrationEvent(
+      this.props.trackIntegrationAnalytics(
         status ? 'integrations.enabled' : 'integrations.disabled'
       );
     } catch (_err) {
@@ -104,7 +104,7 @@ export class InstalledPlugin extends React.Component<Props> {
   };
 
   get projectForBadge(): AvatarProject {
-    //this function returns the project as needed for the ProjectBadge component
+    // this function returns the project as needed for the ProjectBadge component
     const {projectItem} = this.props;
     return {
       slug: projectItem.projectSlug,

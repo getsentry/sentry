@@ -1,11 +1,10 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
@@ -17,7 +16,7 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
-import {IconAdd, IconInfo} from 'app/icons';
+import {IconAdd} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -26,7 +25,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
-import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -68,8 +67,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   get repos() {
-    //endpoint doesn't support loading only the repos for this integration
-    //but most people only have one source code repo so this should be fine
+    // endpoint doesn't support loading only the repos for this integration
+    // but most people only have one source code repo so this should be fine
     return this.state.repos.filter(repo => repo.integrationId === this.integrationId);
   }
 
@@ -94,13 +93,13 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     // We don't start new session if the user was coming from choosing
     // the manual setup option flow from the issue details page
     const startSession = referrer === 'stacktrace-issue-details' ? false : true;
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.code_mappings_viewed',
       {
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
+        organization: this.props.organization,
       },
-      this.props.organization,
       {startSession}
     );
   }
@@ -117,22 +116,23 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
       this.setState({pathConfigs});
       addSuccessMessage(t('Deletion successful'));
-    } catch {
-      //no 4xx errors should happen on delete
-      addErrorMessage(t('An error occurred'));
+    } catch (err) {
+      addErrorMessage(
+        tct('[status]: [text]', {
+          status: err.statusText,
+          text: err.responseText,
+        })
+      );
     }
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
-    trackIntegrationEvent(
-      'integrations.stacktrace_complete_setup',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.stacktrace_complete_setup', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
     let {pathConfigs} = this.state;
     pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
     // our getter handles the order of the configs
@@ -143,18 +143,15 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
-    trackIntegrationEvent(
-      'integrations.stacktrace_start_setup',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.stacktrace_start_setup', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
 
     openModal(({Body, Header, closeModal}) => (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Configure code path mapping')}</Header>
         <Body>
           <RepositoryProjectPathConfigForm
@@ -170,7 +167,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
             onCancel={closeModal}
           />
         </Body>
-      </React.Fragment>
+      </Fragment>
     ));
   };
 
@@ -179,18 +176,13 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     const {integration} = this.props;
 
     return (
-      <React.Fragment>
-        <Alert type="info" icon={<IconInfo />}>
-          {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
-            email: <a href="mailto:ecosystem-feedback@sentry.io" />,
-          })}
-        </Alert>
+      <Fragment>
         <TextBlock>
           {tct(
             `Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].`,
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/gitlab/#stack-trace-linking" />
+                <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/gitlab/#stack-trace-linking" />
               ),
             }
           )}
@@ -222,14 +214,11 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
                     size="small"
                     onClick={() => {
-                      trackIntegrationEvent(
-                        'integrations.stacktrace_docs_clicked',
-                        {
-                          view: 'integration_configuration_detail',
-                          provider: this.props.integration.provider.key,
-                        },
-                        this.props.organization
-                      );
+                      trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
+                        view: 'integration_configuration_detail',
+                        provider: this.props.integration.provider.key,
+                        organization: this.props.organization,
+                      });
                     }}
                   >
                     View Documentation
@@ -263,7 +252,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               .filter(item => !!item)}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,0 +1,35 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_assets %}
+
+{% block title %}{% trans "Link Team" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+<form class="form-stacked" action="" method="post">
+  {% csrf_token %}
+
+  <div class="align-center">
+    <img src="{% asset_url "sentry" "images/logos/default-organization-logo.png" %}" class="org-avatar">
+  </div>
+
+  <div class="align-center">
+    <p>Choose which team you'd like to link to the <b>#{{ channel_name }}</b> channel.</p>
+
+    <div class="align-center" style="padding-bottom:20px;">
+      <select id="{{ form.team.id_for_label }}" name="{{ form.team.html_name }}" class="form-control">
+        {% for team in teams %}
+        <option value="{{ team.id }}">{{ team.slug }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <p>
+      <button type="submit" class="btn btn-default btn-login-{{ provider.key }}">
+        <span class="provider-logo {{ provider.key }}"></span> Link with {{ provider.name }}
+      </button>
+    </p>
+  </div>
+</form>
+{% endblock %}

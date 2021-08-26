@@ -18,7 +18,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     def test_process_request_anon(self):
         self.middleware.process_request(self.request)
-        assert self.request.user.is_anonymous()
+        assert self.request.user.is_anonymous
 
     def test_process_request_user(self):
         request = self.request
@@ -48,7 +48,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert login(request, user)
         del request.session["_nonce"]
         self.middleware.process_request(request)
-        assert request.user.is_anonymous()
+        assert request.user.is_anonymous
 
     def test_process_request_bad_nonce(self):
         request = self.request
@@ -58,4 +58,4 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert login(request, user)
         request.session["_nonce"] = "gtfo"
         self.middleware.process_request(request)
-        assert request.user.is_anonymous()
+        assert request.user.is_anonymous

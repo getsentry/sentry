@@ -31,7 +31,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
-        # we dont allow read permission with DSNs
+        # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 

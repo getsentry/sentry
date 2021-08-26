@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -13,12 +13,13 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
+import {defined} from 'app/utils';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import {Theme} from 'app/utils/theme';
 
-import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
+import {filterToColor, filterToField, SpanOperationBreakdownFilter} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -90,16 +91,8 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   };
 
   getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
-    const {
-      organization,
-      query,
-      start,
-      end,
-      statsPeriod,
-      environment,
-      project,
-      location,
-    } = this.props;
+    const {organization, query, start, end, statsPeriod, environment, project, location} =
+      this.props;
 
     const eventView = EventView.fromSavedQuery({
       id: '',
@@ -151,13 +144,13 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   renderBody() {
     const {currentFilter} = this.props;
     const {chartData} = this.state;
-    if (chartData === null) {
+    if (!defined(chartData)) {
       return null;
     }
     const colors = (theme: Theme) =>
       currentFilter === SpanOperationBreakdownFilter.None
         ? theme.charts.getColorPalette(1)
-        : [filterToColour(currentFilter)];
+        : [filterToColor(currentFilter)];
 
     return <StyledAreaChart series={transformData(chartData.data)} colors={colors} />;
   }

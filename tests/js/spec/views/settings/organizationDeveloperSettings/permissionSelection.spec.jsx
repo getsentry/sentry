@@ -1,9 +1,7 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {openMenu, selectByValue} from 'sentry-test/select-new';
 
-import FormModel from 'app/views/settings/components/forms/model';
+import Form from 'app/views/settings/components/forms/form';
 import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
@@ -13,17 +11,19 @@ describe('PermissionSelection', () => {
   beforeEach(() => {
     onChange = jest.fn();
     wrapper = mountWithTheme(
-      <PermissionSelection
-        permissions={{
-          Event: 'no-access',
-          Team: 'no-access',
-          Project: 'write',
-          Release: 'admin',
-          Organization: 'admin',
-        }}
-        onChange={onChange}
-      />,
-      TestStubs.routerContext([{form: new FormModel()}])
+      <Form>
+        <PermissionSelection
+          permissions={{
+            Event: 'no-access',
+            Team: 'no-access',
+            Project: 'write',
+            Release: 'admin',
+            Organization: 'admin',
+          }}
+          onChange={onChange}
+        />
+      </Form>,
+      TestStubs.routerContext()
     );
   });
 
@@ -63,7 +63,8 @@ describe('PermissionSelection', () => {
   });
 
   it('converts permission state to a list of raw scopes', () => {
-    wrapper.instance().setState({
+    const instance = wrapper.find('PermissionSelection').instance();
+    instance.setState({
       permissions: {
         Project: 'write',
         Release: 'admin',
@@ -71,7 +72,7 @@ describe('PermissionSelection', () => {
       },
     });
 
-    expect(wrapper.instance().permissionStateToList()).toEqual([
+    expect(instance.permissionStateToList()).toEqual([
       'project:read',
       'project:write',
       'project:releases',
@@ -80,7 +81,8 @@ describe('PermissionSelection', () => {
   });
 
   it('stores the permissions the User has selected', () => {
-    const getStateValue = resource => wrapper.instance().state.permissions[resource];
+    const instance = wrapper.find('PermissionSelection').instance();
+    const getStateValue = resource => instance.state.permissions[resource];
 
     selectByValue(wrapper, 'write', {name: 'Project--permission'});
     selectByValue(wrapper, 'read', {name: 'Team--permission'});

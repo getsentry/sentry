@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -239,7 +237,7 @@ describe('DropdownMenu', function () {
     expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
 
     wrapper.find('button').simulate('click');
-    //Should still be visible.
+    // Should still be visible.
     expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
   });
 });

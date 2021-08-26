@@ -2,7 +2,7 @@ from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 
-from sentry import roles
+from sentry import features, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
 from sentry.app import quotas
@@ -169,6 +169,10 @@ class OrganizationSerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
+            "requireEmailVerification": bool(
+                features.has("organizations:required-email-verification", obj)
+                and obj.flags.require_email_verification
+            ),
             "avatar": avatar,
             "features": feature_list,
         }
@@ -239,6 +243,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
+                "requireEmailVerification": bool(
+                    features.has("organizations:required-email-verification", obj)
+                    and obj.flags.require_email_verification
+                ),
                 "allowSharedIssues": not obj.flags.disable_shared_issues,
                 "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
                 "dataScrubber": bool(
@@ -314,7 +322,8 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
 
         for project in project_list:
-            project._organization_cache = organization
+            project.set_cached_field_value("organization", organization)
+
         return project_list
 
     def _team_list(self, organization, access):
@@ -328,7 +337,8 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)
 
         for team in team_list:
-            team._organization_cache = organization
+            team.set_cached_field_value("organization", organization)
+
         return team_list
 
     def serialize(self, obj, attrs, user, access):

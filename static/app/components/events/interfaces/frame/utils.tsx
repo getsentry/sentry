@@ -1,9 +1,8 @@
-import React from 'react';
-
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {IconQuestion, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {Frame, PlatformType} from 'app/types';
+import {defined, objectIsEmpty} from 'app/utils';
 
 export function trimPackage(pkg: string) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -66,4 +65,44 @@ export function getFrameHint(frame: Frame) {
 export function isDotnet(platform: string) {
   // csharp platform represents .NET and can be F#, VB or any language targeting CLS (the Common Language Specification)
   return platform === 'csharp';
+}
+
+export function hasContextSource(frame: Frame) {
+  return defined(frame.context) && !!frame.context.length;
+}
+
+export function hasContextVars(frame: Frame) {
+  return !objectIsEmpty(frame.vars || {});
+}
+
+export function hasContextRegisters(registers: Record<string, string>) {
+  return !objectIsEmpty(registers);
+}
+
+export function hasAssembly(frame: Frame, platform?: string) {
+  return (
+    isDotnet(getPlatform(frame.platform, platform ?? 'other')) && defined(frame.package)
+  );
+}
+
+export function isExpandable({
+  frame,
+  registers,
+  emptySourceNotation,
+  platform,
+  isOnlyFrame,
+}: {
+  frame: Frame;
+  registers: Record<string, string>;
+  emptySourceNotation?: boolean;
+  platform?: string;
+  isOnlyFrame?: boolean;
+}) {
+  return (
+    (!isOnlyFrame && emptySourceNotation) ||
+    hasContextSource(frame) ||
+    hasContextVars(frame) ||
+    hasContextRegisters(registers) ||
+    hasAssembly(frame, platform)
+  );
 }

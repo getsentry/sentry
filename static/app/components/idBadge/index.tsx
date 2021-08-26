@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -33,5 +33,5 @@ const InlineErrorBoundary = styled(ErrorBoundary)`
   align-items: center;
   margin-bottom: 0;
   box-shadow: none;
-  padding: 0; /* Because badges dont have any padding, so this should make the boundary fit well */
+  padding: 0; /* Because badges don't have any padding, so this should make the boundary fit well */
 `;

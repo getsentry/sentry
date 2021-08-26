@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {getMeta} from 'app/components/events/meta/metaProxy';

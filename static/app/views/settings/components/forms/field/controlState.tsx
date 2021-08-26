@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {IconCheckmark, IconWarning} from 'app/icons';
@@ -24,7 +24,7 @@ type Props = {
  * ControlState (i.e. loading/error icons) for form fields
  */
 const ControlState = ({isSaving, isSaved, error}: Props) => (
-  <React.Fragment>
+  <Fragment>
     {isSaving ? (
       <ControlStateWrapper>
         <FormSpinner />
@@ -44,7 +44,7 @@ const ControlState = ({isSaving, isSaved, error}: Props) => (
         </FieldError>
       </ControlStateWrapper>
     ) : null}
-  </React.Fragment>
+  </Fragment>
 );
 
 const ControlStateWrapper = styled('div')`

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 import {Event} from 'app/types/event';
@@ -7,6 +7,7 @@ import getUnknownData from '../getUnknownData';
 
 import getDeviceKnownData from './getDeviceKnownData';
 import {DeviceData, DeviceKnownDataType} from './types';
+import {getInferredData} from './utils';
 
 type Props = {
   data: DeviceData;
@@ -45,8 +46,8 @@ const deviceKnownDataValues = [
   DeviceKnownDataType.ONLINE,
   DeviceKnownDataType.SCREEN_DENSITY,
   DeviceKnownDataType.SCREEN_DPI,
-  DeviceKnownDataType.SCREEN_HEIGHT_PIXELS,
   DeviceKnownDataType.SCREEN_RESOLUTION,
+  DeviceKnownDataType.SCREEN_HEIGHT_PIXELS,
   DeviceKnownDataType.SCREEN_WIDTH_PIXELS,
   DeviceKnownDataType.MODEL,
   DeviceKnownDataType.MODEL_ID,
@@ -55,13 +56,22 @@ const deviceKnownDataValues = [
 
 const deviceIgnoredDataValues = [];
 
-const Device = ({data, event}: Props) => (
-  <React.Fragment>
-    <ContextBlock data={getDeviceKnownData(event, data, deviceKnownDataValues)} />
-    <ContextBlock
-      data={getUnknownData(data, [...deviceKnownDataValues, ...deviceIgnoredDataValues])}
-    />
-  </React.Fragment>
-);
+function Device({data, event}: Props) {
+  const inferredData = getInferredData(data);
+
+  return (
+    <Fragment>
+      <ContextBlock
+        data={getDeviceKnownData(event, inferredData, deviceKnownDataValues)}
+      />
+      <ContextBlock
+        data={getUnknownData(inferredData, [
+          ...deviceKnownDataValues,
+          ...deviceIgnoredDataValues,
+        ])}
+      />
+    </Fragment>
+  );
+}
 
 export default Device;

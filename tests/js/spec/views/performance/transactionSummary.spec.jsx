@@ -1,17 +1,23 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import TransactionSummary from 'app/views/performance/transactionSummary';
+
+const teams = [
+  TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
+  TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+];
 
 function initializeData({features: additionalFeatures = [], query = {}} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
+  const project = TestStubs.Project({teams});
   const organization = TestStubs.Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [project],
     apdexThreshold: 400,
   });
   const initialData = initializeOrg({
@@ -20,7 +26,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
       location: {
         query: {
           transaction: '/performance',
-          project: 1,
+          project: 2,
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -28,11 +34,13 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
+  TeamStore.loadInitialData(teams);
   return initialData;
 }
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -54,8 +62,7 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url:
-        '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/?limit=5&project=2&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -141,7 +148,7 @@ describe('Performance > TransactionSummary', function () {
               id: 'deadbeef',
               'user.display': 'uhoh@example.com',
               'transaction.duration': 400,
-              'project.id': 1,
+              'project.id': 2,
               timestamp: '2020-05-21T15:31:18+00:00',
             },
           ],
@@ -227,11 +234,25 @@ describe('Performance > TransactionSummary', function () {
         },
       },
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/key-transactions-list/`,
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 0,
+        keyed: [],
+      })),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    jest.clearAllMocks();
   });
 
   it('renders basic UI elements', async function () {
@@ -267,6 +288,9 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure create alert from discover is hidden without metric alert
     expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(0);
+
+    // Ensure status breakdown exists
+    expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
   });
 
   it('renders feature flagged UI elements', async function () {
@@ -286,6 +310,78 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(1);
   });
 
+  it('fetches transaction threshdold', async function () {
+    const initialData = initializeData({
+      features: ['project-transaction-threshold-override'],
+    });
+    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {
+        threshold: '800',
+        metric: 'lcp',
+      },
+    });
+
+    const getProjectThresholdMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      method: 'GET',
+      body: {
+        threshold: '200',
+        metric: 'duration',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+    expect(getProjectThresholdMock).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('fetches project transaction threshdold', async function () {
+    const initialData = initializeData({
+      features: ['project-transaction-threshold-override'],
+    });
+    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      statusCode: 404,
+    });
+
+    const getProjectThresholdMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      method: 'GET',
+      body: {
+        threshold: '200',
+        metric: 'duration',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+    expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
+  });
+
   it('triggers a navigation on search', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
@@ -299,7 +395,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     // Fill out the search box, and submit it.
-    const searchBar = wrapper.find('SearchBar input');
+    const searchBar = wrapper.find('SearchBar textarea');
     searchBar
       .simulate('change', {target: {value: 'user.email:uhoh*'}})
       .simulate('submit', {preventDefault() {}});
@@ -309,7 +405,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 1,
+        project: 2,
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
         transactionCursor: '1:0:0',
@@ -336,7 +432,12 @@ describe('Performance > TransactionSummary', function () {
     });
 
     // Click the key transaction button
-    wrapper.find('KeyTransactionButton').simulate('click');
+    wrapper.find('TitleButton').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
 
     // Ensure request was made.
     expect(mockUpdate).toHaveBeenCalled();
@@ -368,7 +469,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 1,
+        project: 2,
         showTransactions: 'slow',
         transactionCursor: undefined,
       },
@@ -398,7 +499,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 1,
+        project: 2,
         transactionCursor: '2:0:0',
       },
     });
@@ -406,8 +507,7 @@ describe('Performance > TransactionSummary', function () {
 
   it('forwards conditions to related issues', async function () {
     const issueGet = MockApiClient.addMockResponse({
-      url:
-        '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
       body: [],
     });
 
@@ -428,8 +528,7 @@ describe('Performance > TransactionSummary', function () {
   it('does not forward event type to related issues', async function () {
     const issueGet = MockApiClient.addMockResponse(
       {
-        url:
-          '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
         body: [],
       },
       {
@@ -454,5 +553,31 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(issueGet).toHaveBeenCalled();
+  });
+
+  it('adds search condition on transaction status when clicking on status breakdown', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    wrapper.find('BarContainer[data-test-id="status-ok"]').at(0).simulate('click');
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: expect.stringContaining('transaction.status:ok'),
+        }),
+      })
+    );
   });
 });

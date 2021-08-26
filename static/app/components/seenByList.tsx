@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import moment from 'moment';
@@ -55,11 +55,11 @@ const SeenByList = ({
         avatarSize={avatarSize}
         maxVisibleAvatars={maxVisibleAvatars}
         renderTooltip={user => (
-          <React.Fragment>
+          <Fragment>
             {userDisplayName(user)}
             <br />
             {moment((user as AvatarUser).lastSeen).format('LL')}
-          </React.Fragment>
+          </Fragment>
         )}
       />
       <IconWrapper iconPosition={iconPosition}>

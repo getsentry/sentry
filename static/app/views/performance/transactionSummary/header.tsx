@@ -1,11 +1,13 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
@@ -14,17 +16,25 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import HasMeasurementsQuery from 'app/utils/performance/vitals/hasMeasurementsQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
-import {vitalsRouteWithQuery} from '../transactionVitals/utils';
+import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
-import KeyTransactionButton from './keyTransactionButton';
+import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {tagsRouteWithQuery} from './transactionTags/utils';
+import {vitalsRouteWithQuery} from './transactionVitals/utils';
+import TeamKeyTransactionButton from './teamKeyTransactionButton';
+import TransactionThresholdButton from './transactionThresholdButton';
+import {TransactionThresholdMetric} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum Tab {
   TransactionSummary,
   RealUserMonitoring,
+  Tags,
+  Events,
 }
 
 type Props = {
@@ -34,7 +44,8 @@ type Props = {
   projects: Project[];
   transactionName: string;
   currentTab: Tab;
-  hasWebVitals: boolean;
+  hasWebVitals: 'maybe' | 'yes' | 'no';
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
@@ -58,6 +69,24 @@ class TransactionHeader extends React.Component<Props> {
     trackAnalyticsEvent({
       eventKey: 'performance_views.vitals.vitals_tab_clicked',
       eventName: 'Performance Views: Vitals tab clicked',
+      organization_id: organization.id,
+    });
+  };
+
+  trackTagsTabClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.tags.tags_tab_clicked',
+      eventName: 'Performance Views: Tags tab clicked',
+      organization_id: organization.id,
+    });
+  };
+
+  trackEventsTabClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.events.events_tab_clicked',
+      eventName: 'Performance Views: Events tab clicked',
       organization_id: organization.id,
     });
   };
@@ -92,7 +121,7 @@ class TransactionHeader extends React.Component<Props> {
     const {eventView, organization, transactionName} = this.props;
 
     return (
-      <KeyTransactionButton
+      <TeamKeyTransactionButton
         transactionName={transactionName}
         eventView={eventView}
         organization={organization}
@@ -100,14 +129,105 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  render() {
+  renderSettingsButton() {
+    const {organization, transactionName, eventView, onChangeThreshold} = this.props;
+
+    return (
+      <Feature
+        organization={organization}
+        features={['project-transaction-threshold-override']}
+      >
+        {({hasFeature}) =>
+          hasFeature ? (
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <TransactionThresholdButton
+                organization={organization}
+                transactionName={transactionName}
+                eventView={eventView}
+                onChangeThreshold={onChangeThreshold}
+              />
+            </GuideAnchor>
+          ) : (
+            <Button
+              href={`/settings/${organization.slug}/performance/`}
+              icon={<IconSettings />}
+              aria-label={t('Settings')}
+            />
+          )
+        }
+      </Feature>
+    );
+  }
+
+  renderWebVitalsTab() {
     const {
       organization,
+      eventView,
       location,
+      projects,
       transactionName,
       currentTab,
       hasWebVitals,
     } = this.props;
+
+    const vitalsTarget = vitalsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
+    const tab = (
+      <ListLink
+        data-test-id="web-vitals-tab"
+        to={vitalsTarget}
+        isActive={() => currentTab === Tab.RealUserMonitoring}
+        onClick={this.trackVitalsTabClick}
+      >
+        {t('Web Vitals')}
+      </ListLink>
+    );
+
+    switch (hasWebVitals) {
+      case 'maybe':
+        // need to check if the web vitals tab should be shown
+
+        // frontend projects should always show the web vitals tab
+        if (
+          getCurrentLandingDisplay(location, projects, eventView).field ===
+          LandingDisplayField.FRONTEND_PAGELOAD
+        ) {
+          return tab;
+        }
+
+        // if it is not a frontend project, then we check to see if there
+        // are any web vitals associated with the transaction recently
+        return (
+          <HasMeasurementsQuery
+            location={location}
+            orgSlug={organization.slug}
+            eventView={eventView}
+            transaction={transactionName}
+            type="web"
+          >
+            {({hasMeasurements}) => (hasMeasurements ? tab : null)}
+          </HasMeasurementsQuery>
+        );
+      case 'yes':
+        // always show the web vitals tab
+        return tab;
+      case 'no':
+      default:
+        // never show the web vitals tab
+        return null;
+    }
+  }
+
+  render() {
+    const {organization, location, transactionName, currentTab} = this.props;
 
     const summaryTarget = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
@@ -116,7 +236,14 @@ class TransactionHeader extends React.Component<Props> {
       query: location.query,
     });
 
-    const vitalsTarget = vitalsRouteWithQuery({
+    const tagsTarget = tagsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
+    const eventsTarget = eventsRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transactionName,
       projectID: decodeScalar(location.query.project),
@@ -140,11 +267,7 @@ class TransactionHeader extends React.Component<Props> {
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
             {this.renderKeyTransactionButton()}
-            <Button
-              href={`/settings/${organization.slug}/performance/`}
-              icon={<IconSettings />}
-              aria-label="Settings"
-            />
+            {this.renderSettingsButton()}
           </ButtonBar>
         </Layout.HeaderActions>
         <React.Fragment>
@@ -155,15 +278,26 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Overview')}
             </ListLink>
-            {hasWebVitals && (
+            {this.renderWebVitalsTab()}
+            <Feature features={['organizations:performance-tag-page']}>
               <ListLink
-                to={vitalsTarget}
-                isActive={() => currentTab === Tab.RealUserMonitoring}
-                onClick={this.trackVitalsTabClick}
+                to={tagsTarget}
+                isActive={() => currentTab === Tab.Tags}
+                onClick={this.trackTagsTabClick}
               >
-                {t('Web Vitals')}
+                {t('Tags')}
+                <FeatureBadge type="new" noTooltip />
               </ListLink>
-            )}
+            </Feature>
+            <Feature features={['organizations:performance-events-page']}>
+              <ListLink
+                to={eventsTarget}
+                isActive={() => currentTab === Tab.Events}
+                onClick={this.trackEventsTabClick}
+              >
+                {t('All Events')}
+              </ListLink>
+            </Feature>
           </StyledNavTabs>
         </React.Fragment>
       </Layout.Header>

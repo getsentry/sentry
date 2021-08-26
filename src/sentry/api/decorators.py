@@ -1,19 +1,19 @@
 from functools import wraps
 
-from sentry.api.exceptions import SudoRequired
+from sentry.api.exceptions import EmailVerificationRequired, SudoRequired
 from sentry.models import ApiKey, ApiToken
 
 
 def is_considered_sudo(request):
-    # Users without a password are assumed to always have sudo powers
-    user = request.user
-
+    # Right now, only password reauthentication (django-sudo) is supported,
+    # so if a user doesn't have a password (for example, only has github auth)
+    # then we shouldn't prompt them for the password they don't have.
     return (
         request.is_sudo()
         or isinstance(request.auth, ApiKey)
         or isinstance(request.auth, ApiToken)
-        or user.is_authenticated
-        and not user.has_usable_password()
+        or request.user.is_authenticated
+        and not request.user.has_usable_password()
     )
 
 
@@ -26,6 +26,16 @@ def sudo_required(func):
             # TODO(dcramer): support some kind of auth flow to allow this
             # externally
             raise SudoRequired(request.user)
+        return func(self, request, *args, **kwargs)
+
+    return wrapped
+
+
+def email_verification_required(func):
+    @wraps(func)
+    def wrapped(self, request, *args, **kwargs):
+        if not request.user.get_verified_emails().exists():
+            raise EmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 
     return wrapped

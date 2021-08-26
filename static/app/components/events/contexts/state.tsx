@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import upperFirst from 'lodash/upperFirst';
 
 import ClippedBox from 'app/components/clippedBox';

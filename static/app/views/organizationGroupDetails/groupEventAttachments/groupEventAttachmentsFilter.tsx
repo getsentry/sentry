@@ -1,6 +1,4 @@
-import React from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';

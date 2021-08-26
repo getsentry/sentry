@@ -1,5 +1,5 @@
 ---
-created: '2021-03-12T14:08:29.592985Z'
+created: '2021-06-30T15:56:04.570890Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,11 +12,10 @@ app-depth-1:
           filename*
             "foo.html.erb"
 --------------------------------------------------------------------------
-app-depth-2:
+app-depth-max:
   hash: "2f908c015ad77a50595512fcf65d344c"
-  tree_label: "<entire stacktrace>"
   component:
-    app-depth-2*
+    app-depth-max*
       stacktrace*
         frame*
           filename*
@@ -24,7 +23,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 system:
   hash: "2f908c015ad77a50595512fcf65d344c"
-  tree_label: "<entire stacktrace>"
   component:
     system*
       stacktrace*

@@ -8,7 +8,7 @@ from sentry.utils.http import absolute_uri
 
 
 class OrganizationAccessRequest(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     team = FlexibleForeignKey("sentry.Team")
     member = FlexibleForeignKey("sentry.OrganizationMember")
@@ -37,7 +37,7 @@ class OrganizationAccessRequest(Model):
             "team": self.team,
             "url": absolute_uri(
                 reverse(
-                    "sentry-organization-members-requests",
+                    "sentry-organization-teams",
                     kwargs={"organization_slug": organization.slug},
                 )
             ),

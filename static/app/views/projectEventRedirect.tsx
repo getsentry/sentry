@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'app/components/errors/detailedError';
@@ -21,7 +21,7 @@ type State = {
  * See:
  * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
-class ProjectEventRedirect extends React.Component<Props, State> {
+class ProjectEventRedirect extends Component<Props, State> {
   state: State = {
     error: null,
   };
@@ -34,9 +34,11 @@ class ProjectEventRedirect extends React.Component<Props, State> {
     // Django view).
     const endpoint = router.location.pathname;
 
-    // Use XmlHttpRequest directly instead of our client API helper (jQuery),
+    // Use XmlHttpRequest directly instead of our client API helper (fetch),
     // because you can't reach the underlying XHR via $.ajax, and we need
     // access to `xhr.responseURL`.
+    //
+    // TODO(epurkhiser): We can likely replace tihs with fetch
     const xhr = new XMLHttpRequest();
 
     // Hitting this endpoint will return a 302 with a new location, which

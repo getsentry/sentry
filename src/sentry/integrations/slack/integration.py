@@ -2,6 +2,7 @@ from collections import namedtuple
 
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     FeatureDescription,
@@ -10,6 +11,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.slack import tasks
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -53,7 +55,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Workspace"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Slack%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
     aspects={"alerts": [setup_alert]},
 )
@@ -85,6 +87,14 @@ class SlackIntegrationProvider(IntegrationProvider):
             "im:history",
             "chat:write.public",
             "chat:write.customize",
+            "commands",
+        ]
+    )
+    user_scopes = frozenset(
+        [
+            "links:read",
+            "users:read",
+            "users:read.email",
         ]
     )
 
@@ -93,7 +103,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
-            "user_scopes": frozenset(["links:read"]),
+            "user_scopes": self.user_scopes,
             "redirect_url": absolute_uri("/extensions/slack/setup/"),
         }
 
@@ -153,3 +163,11 @@ class SlackIntegrationProvider(IntegrationProvider):
         }
 
         return integration
+
+    def post_install(self, integration, organization, extra=None):
+        """
+        Create Identity records for an organization's users if their emails match in Sentry and Slack
+        """
+        if features.has("organizations:notification-platform", organization):
+            run_args = {"integration": integration, "organization": organization}
+            tasks.link_slack_user_identities.apply_async(kwargs=run_args)

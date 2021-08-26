@@ -48,31 +48,69 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
+type Fidelity = 'high' | 'medium' | 'low';
+
+export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes >= SIXTY_DAYS) {
     // Greater than or equal to 60 days
-    return highFidelity ? '4h' : '1d';
+    if (fidelity === 'high') {
+      return '4h';
+    } else if (fidelity === 'medium') {
+      return '1d';
+    }
+    return '2d';
   }
 
   if (diffInMinutes >= THIRTY_DAYS) {
     // Greater than or equal to 30 days
-    return highFidelity ? '1h' : '4h';
+    if (fidelity === 'high') {
+      return '1h';
+    } else if (fidelity === 'medium') {
+      return '4h';
+    }
+    return '1d';
+  }
+
+  if (diffInMinutes >= TWO_WEEKS) {
+    if (fidelity === 'high') {
+      return '30m';
+    } else if (fidelity === 'medium') {
+      return '1h';
+    }
+    return '12h';
   }
 
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
     // Greater than 24 hours
-    return highFidelity ? '30m' : '1h';
+    if (fidelity === 'high') {
+      return '30m';
+    } else if (fidelity === 'medium') {
+      return '1h';
+    }
+    return '6h';
   }
 
   if (diffInMinutes > ONE_HOUR) {
     // Between 1 hour and 24 hours
-    return highFidelity ? '5m' : '15m';
+    if (fidelity === 'high') {
+      return '5m';
+    } else if (fidelity === 'medium') {
+      return '15m';
+    } else {
+      return '1h';
+    }
   }
 
   // Less than or equal to 1 hour
-  return highFidelity ? '1m' : '5m';
+  if (fidelity === 'high') {
+    return '1m';
+  } else if (fidelity === 'medium') {
+    return '5m';
+  } else {
+    return '10m';
+  }
 }
 
 /**

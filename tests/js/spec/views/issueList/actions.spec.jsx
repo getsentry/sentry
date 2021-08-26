@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -11,6 +9,7 @@ import {IssueListActions} from 'app/views/issueList/actions';
 
 describe('IssueListActions', function () {
   let actions;
+  let actionsWrapper;
   let wrapper;
 
   afterEach(() => {
@@ -45,6 +44,10 @@ describe('IssueListActions', function () {
           />,
           routerContext
         );
+      });
+
+      afterAll(() => {
+        wrapper.unmount();
       });
 
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
@@ -112,6 +115,10 @@ describe('IssueListActions', function () {
         );
       });
 
+      afterAll(() => {
+        wrapper.unmount();
+      });
+
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
         expect(wrapper.find('SelectAllNotice')).toSnapshot();
@@ -174,6 +181,10 @@ describe('IssueListActions', function () {
           />,
           TestStubs.routerContext()
         );
+      });
+
+      afterAll(() => {
+        wrapper.unmount();
       });
 
       it('resolves selected items', function () {
@@ -250,7 +261,7 @@ describe('IssueListActions', function () {
   describe('actionSelectedGroups()', function () {
     beforeEach(function () {
       jest.spyOn(SelectedGroupStore, 'deselectAll');
-      actions = mountWithTheme(
+      actionsWrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
           query=""
@@ -267,7 +278,12 @@ describe('IssueListActions', function () {
           realtimeActive={false}
           statsPeriod="24h"
         />
-      ).instance();
+      );
+      actions = actionsWrapper.instance();
+    });
+
+    afterEach(() => {
+      actionsWrapper.unmount();
     });
 
     describe('for all items', function () {
@@ -330,6 +346,10 @@ describe('IssueListActions', function () {
       );
     });
 
+    afterEach(() => {
+      wrapper.unmount();
+    });
+
     it('should disable resolve dropdown but not resolve action', function () {
       const resolve = wrapper.find('ResolveActions').first();
       expect(resolve.props().disabled).toBe(false);
@@ -345,12 +365,10 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('with inbox feature', function () {
+  describe('mark reviewed', function () {
     let issuesApiMock;
     beforeEach(async () => {
-      GroupStore.init();
-      SelectedGroupStore.init();
-      await tick();
+      SelectedGroupStore.records = {};
       const {organization} = TestStubs.routerContext().context;
       wrapper = mountWithTheme(
         <IssueListActions
@@ -369,7 +387,6 @@ describe('IssueListActions', function () {
           statsPeriod="24h"
           queryCount={100}
           displayCount="3 of 3"
-          hasInbox
         />,
         TestStubs.routerContext()
       );
@@ -381,6 +398,10 @@ describe('IssueListActions', function () {
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
+    });
+
+    afterEach(() => {
+      wrapper.unmount();
     });
 
     it('acknowledges group', async function () {

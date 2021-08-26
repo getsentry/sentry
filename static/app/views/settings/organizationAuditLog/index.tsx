@@ -1,10 +1,9 @@
-import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {LightWeightOrganization} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
 import AuditLogList from './auditLogList';
@@ -63,16 +62,14 @@ const EVENT_TYPES = [
   'plan.cancelled',
 ];
 
-type Props = RouteComponentProps<{orgId: string}, {}> & AsyncView['props'];
+type Props = RouteComponentProps<{orgId: string}, {}> &
+  AsyncView['props'] & {
+    organization: LightWeightOrganization;
+  };
 
 type State = AsyncView['state'];
 
 class OrganizationAuditLog extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [
       [
@@ -86,7 +83,7 @@ class OrganizationAuditLog extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return routeTitleGen(t('Audit Log'), this.context.organization.slug, false);
+    return routeTitleGen(t('Audit Log'), this.props.organization.slug, false);
   }
 
   handleEventSelect = (value: string) => {
@@ -103,11 +100,10 @@ class OrganizationAuditLog extends AsyncView<Props, State> {
 
   renderBody() {
     const currentEventType = this.props.location.query.event;
-
     return (
       <AuditLogList
         entries={this.state.entryList}
-        pageLinks={this.state.pageLinks}
+        pageLinks={this.state.entryListPageLinks}
         eventType={currentEventType}
         eventTypes={EVENT_TYPES}
         onEventSelect={this.handleEventSelect}
@@ -117,4 +113,4 @@ class OrganizationAuditLog extends AsyncView<Props, State> {
   }
 }
 
-export default OrganizationAuditLog;
+export default withOrganization(OrganizationAuditLog);

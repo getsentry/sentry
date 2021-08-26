@@ -56,8 +56,8 @@ def transactions_query(**kwargs):
 
 
 def generate_transaction(trace=None, span=None):
-    start_datetime = before_now(minutes=1, milliseconds=500)
     end_datetime = before_now(minutes=1)
+    start_datetime = end_datetime - timedelta(milliseconds=500)
     event_data = load_data(
         "transaction",
         timestamp=end_datetime,
@@ -167,9 +167,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_all_events_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
+        now = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = now
+        min_ago = iso_format(now - timedelta(minutes=1))
+        two_min_ago = iso_format(now - timedelta(minutes=2))
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -228,8 +229,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_errors_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        min_ago = iso_format(before_now(minutes=1))
+        now = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = now
+        min_ago = iso_format(now - timedelta(minutes=1))
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -299,8 +301,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_all_events(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        min_ago = iso_format(before_now(minutes=1))
+        now = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = now
+        min_ago = iso_format(now - timedelta(minutes=1))
 
         event_data = load_data("python")
         event_data.update(
@@ -311,6 +314,13 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
+        if "contexts" not in event_data:
+            event_data["contexts"] = {}
+        event_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": "a" * 32,
+            "span_id": "b" * 16,
+        }
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=False)
 
         with self.feature(FEATURE_NAMES):
@@ -329,16 +339,22 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = now
 
         event_data = load_data("javascript")
         event_data.update(
             {
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": iso_format(now - timedelta(minutes=5)),
                 "event_id": "d" * 32,
                 "fingerprint": ["group-1"],
             }
         )
+        event_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": "a" * 32,
+            "span_id": "b" * 16,
+        }
         self.store_event(data=event_data, project_id=self.project.id)
         self.wait_for_event_count(self.project.id, 1)
 
@@ -387,6 +403,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # View Event
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
+
+            self.browser.snapshot("events-v2 - transactions event with auto-grouped spans")
+
+            # Expand auto-grouped spans
+            self.browser.elements('[data-test-id="span-row"]')[4].click()
 
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
@@ -450,7 +471,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # Fill out name and submit form.
             self.browser.element('input[name="query_name"]').send_keys(query_name)
-            self.browser.element('[aria-label="Save"]').click()
+            self.browser.element('[aria-label="Save for Org"]').click()
 
             self.browser.wait_until(f'[data-test-id="discover2-query-name-{query_name}"]')
 
@@ -555,8 +576,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")
     def test_drilldown_result(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        min_ago = iso_format(before_now(minutes=1))
+        now = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = now
+        min_ago = iso_format(now - timedelta(minutes=1))
         events = (
             ("a" * 32, "oh no", "group-1"),
             ("b" * 32, "oh no", "group-1"),

@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -31,7 +31,7 @@ import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   theme: Theme;
   api: Client;
   organization: LightWeightOrganization;
@@ -159,6 +159,18 @@ function SidebarCharts({
   const environment = eventView.environment;
   const threshold = organization.apdexThreshold;
 
+  let apdexKey, apdexYAxis: string;
+  let apdexPerformanceTerm: PERFORMANCE_TERM;
+  if (organization.features.includes('project-transaction-threshold')) {
+    apdexKey = 'apdex';
+    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
+    apdexYAxis = 'apdex()';
+  } else {
+    apdexKey = `apdex_${threshold}`;
+    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
+    apdexYAxis = `apdex(${organization.apdexThreshold})`;
+  }
+
   return (
     <RelativeBox>
       <ChartLabel top="0px">
@@ -166,14 +178,14 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+            title={getTermHelp(organization, apdexPerformanceTerm)}
             size="sm"
           />
         </ChartTitle>
         <ChartSummaryValue
           isLoading={isLoading}
           error={error}
-          value={totals ? formatFloat(totals[`apdex_${threshold}`], 4) : null}
+          value={totals ? formatFloat(totals[apdexKey], 4) : null}
         />
       </ChartLabel>
 
@@ -230,7 +242,7 @@ function SidebarCharts({
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={[`apdex(${organization.apdexThreshold})`, 'failure_rate()', 'epm()']}
+            yAxis={[apdexYAxis, 'failure_rate()', 'epm()']}
             partial
           >
             {({results, errored, loading, reloading}) => {
@@ -297,4 +309,4 @@ const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-export default withApi(withTheme(ReactRouter.withRouter(SidebarCharts)));
+export default withApi(withTheme(withRouter(SidebarCharts)));

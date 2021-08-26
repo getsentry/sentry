@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 /* TODO: replace with I/O when finished */
@@ -19,7 +19,7 @@ type Props = {
   superuserNeedsToBeProjectMember?: boolean;
 };
 
-export default class NoProjectMessage extends React.Component<Props> {
+export default class NoProjectMessage extends Component<Props> {
   render() {
     const {
       children,
@@ -95,10 +95,10 @@ export default class NoProjectMessage extends React.Component<Props> {
               {!orgHasProjects ? (
                 createProjectAction
               ) : (
-                <React.Fragment>
+                <Fragment>
                   {joinTeamAction}
                   {createProjectAction}
-                </React.Fragment>
+                </Fragment>
               )}
             </Actions>
           </Content>

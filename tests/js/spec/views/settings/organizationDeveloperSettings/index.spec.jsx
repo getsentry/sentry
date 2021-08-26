@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -91,7 +89,7 @@ describe('Organization Developer Settings', function () {
     });
 
     it('can make a request to publish an integration', async () => {
-      //add mocks that App calls
+      // add mocks that App calls
       Client.addMockResponse({
         url: '/internal/health/',
         body: {
@@ -127,7 +125,7 @@ describe('Organization Developer Settings', function () {
         method: 'POST',
       });
 
-      //mock with App to render modal
+      // mock with App to render modal
       wrapper = mountWithTheme(
         <App>
           <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
@@ -141,13 +139,16 @@ describe('Organization Developer Settings', function () {
       await tick();
       wrapper.update();
 
-      wrapper.find('textarea').forEach((node, i) => {
+      const modal = await mountGlobalModal();
+
+      modal.find('textarea').forEach((node, i) => {
         node
           .simulate('change', {target: {value: `Answer ${i}`}})
           .simulate('keyDown', {keyCode: 13});
       });
-      expect(wrapper.find('button[aria-label="Request Publication"]')).toBeTruthy();
-      wrapper.find('form').simulate('submit');
+      expect(modal.find('button[aria-label="Request Publication"]')).toBeTruthy();
+
+      modal.find('form').simulate('submit');
       expect(mock).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/publish-request/`,
         expect.objectContaining({

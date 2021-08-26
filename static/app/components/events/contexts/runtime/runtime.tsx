@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
@@ -17,7 +17,7 @@ const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
 
 const Runtime = ({data}: Props) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <ContextBlock data={getRuntimeKnownData(data, runtimeKnownDataValues)} />
       <ContextBlock
         data={getUnknownData(data, [
@@ -25,7 +25,7 @@ const Runtime = ({data}: Props) => {
           ...runtimeIgnoredDataValues,
         ])}
       />
-    </React.Fragment>
+    </Fragment>
   );
 };
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -78,6 +77,10 @@ describe('groupEventDetails', () => {
       url: `/projects/${org.slug}/${project.slug}/events/${event.id}/grouping-info/`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/codeowners/`,
+      body: [],
+    });
   };
 
   beforeEach(() => {
@@ -142,7 +145,6 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
     wrapper.setProps({environments: [{id: '1', name: 'prod', displayName: 'Prod'}]});
     await tick();
-
     expect(browserHistory.replace).toHaveBeenCalled();
   });
 

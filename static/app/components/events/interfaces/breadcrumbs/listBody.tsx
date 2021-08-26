@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
@@ -21,9 +21,10 @@ type Props = {
   isLastItem: boolean;
   relativeTime: string;
   displayRelativeTime: boolean;
+  height?: string;
 };
 
-const ListBody = React.memo(
+const ListBody = memo(
   ({
     orgId,
     event,
@@ -32,11 +33,12 @@ const ListBody = React.memo(
     displayRelativeTime,
     searchTerm,
     isLastItem,
+    height,
   }: Props) => {
     const hasError = breadcrumb.type === BreadcrumbType.ERROR;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
           <Tooltip title={breadcrumb.description}>
             <Icon icon={breadcrumb.icon} color={breadcrumb.color} />
@@ -45,7 +47,7 @@ const ListBody = React.memo(
         <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
           <Category category={breadcrumb?.category} searchTerm={searchTerm} />
         </GridCellCategory>
-        <GridCell hasError={hasError} isLastItem={isLastItem}>
+        <GridCell hasError={hasError} isLastItem={isLastItem} height={height}>
           <Data
             event={event}
             orgId={orgId}
@@ -64,7 +66,7 @@ const ListBody = React.memo(
             searchTerm={searchTerm}
           />
         </GridCell>
-      </React.Fragment>
+      </Fragment>
     );
   }
 );

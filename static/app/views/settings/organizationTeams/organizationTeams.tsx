@@ -1,4 +1,3 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -7,11 +6,12 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import {Organization, Team} from 'app/types';
+import {AccessRequest, Organization, Team} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import AllTeamsList from './allTeamsList';
+import OrganizationAccessRequests from './organizationAccessRequests';
 
 type Props = {
   access: Set<string>;
@@ -19,6 +19,8 @@ type Props = {
   allTeams: Team[];
   activeTeams: Team[];
   organization: Organization;
+  requestList: AccessRequest[];
+  onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function OrganizationTeams({
@@ -29,6 +31,8 @@ function OrganizationTeams({
   features,
   routes,
   params,
+  requestList,
+  onRemoveAccessRequest,
 }: Props) {
   if (!organization) {
     return null;
@@ -67,6 +71,12 @@ function OrganizationTeams({
     <div data-test-id="team-list">
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
       <SettingsPageHeader title={title} action={action} />
+
+      <OrganizationAccessRequests
+        orgId={params.orgId}
+        requestList={requestList}
+        onRemoveAccessRequest={onRemoveAccessRequest}
+      />
       <Panel>
         <PanelHeader>{t('Your Teams')}</PanelHeader>
         <PanelBody>

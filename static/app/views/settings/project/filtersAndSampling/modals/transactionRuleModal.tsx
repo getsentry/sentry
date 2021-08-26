@@ -1,4 +1,3 @@
-import React from 'react';
 import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -68,16 +67,18 @@ class TransactionRuleModal extends Form<Props, State> {
     const {rule} = this.props;
 
     if (rule) {
-      return t('Edit a custom rule for transactions');
+      return t('Edit Transaction Sampling Rule');
     }
 
-    return t('Add a custom rule for transactions');
+    return t('Add Transaction Sampling Rule');
   }
 
   geTransactionFieldDescription() {
     return {
-      label: t('Transaction'),
-      // help: t('This is a description'),  TODO(Priscila): Add correct descriptions
+      label: t('Transactions'),
+      help: t(
+        'This determines if the rule applies to all transactions or only transactions that match custom conditions.'
+      ),
     };
   }
 
@@ -90,6 +91,7 @@ class TransactionRuleModal extends Form<Props, State> {
         [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environments')],
         [DynamicSamplingInnerName.TRACE_USER_ID, t('User Id')],
         [DynamicSamplingInnerName.TRACE_USER_SEGMENT, t('User Segment')],
+        [DynamicSamplingInnerName.TRACE_TRANSACTION, t('Transactions')],
       ];
     }
 
@@ -102,6 +104,10 @@ class TransactionRuleModal extends Form<Props, State> {
       [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
       [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
       [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
+      [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Addresses')],
+      [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
+      [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Messages')],
+      [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transactions')],
     ];
   }
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -26,69 +26,19 @@ type Props = {
   orgId: string;
   projectId: string;
   location: Location;
+  attachments: EventAttachment[];
+  onDeleteAttachment: (attachmentId: EventAttachment['id']) => void;
 };
 
 type State = {
-  attachmentList: EventAttachment[];
   attachmentPreviews: Record<string, boolean>;
   expanded: boolean;
 };
 
 class EventAttachments extends React.Component<Props, State> {
   state: State = {
-    attachmentList: [],
     expanded: false,
     attachmentPreviews: {},
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    let doFetch = false;
-    if (!prevProps.event && this.props.event) {
-      // going from having no event to having an event
-      doFetch = true;
-    } else if (this.props.event && this.props.event.id !== prevProps.event.id) {
-      doFetch = true;
-    }
-
-    if (doFetch) {
-      this.fetchData();
-    }
-  }
-
-  // TODO(dcramer): this API request happens twice, and we need a store for it
-  async fetchData() {
-    const {event} = this.props;
-
-    if (!event) {
-      return;
-    }
-
-    try {
-      const data = await this.props.api.requestPromise(
-        `/projects/${this.props.orgId}/${this.props.projectId}/events/${event.id}/attachments/`
-      );
-
-      this.setState({
-        attachmentList: data,
-      });
-    } catch (_err) {
-      // TODO: Error-handling
-      this.setState({
-        attachmentList: [],
-      });
-    }
-  }
-
-  handleDelete = async (deletedAttachmentId: string) => {
-    this.setState(prevState => ({
-      attachmentList: prevState.attachmentList.filter(
-        attachment => attachment.id !== deletedAttachmentId
-      ),
-    }));
   };
 
   getInlineAttachmentRenderer(attachment: EventAttachment) {
@@ -146,19 +96,19 @@ class EventAttachments extends React.Component<Props, State> {
   }
 
   render() {
-    const {event, projectId, orgId, location} = this.props;
-    const {attachmentList} = this.state;
+    const {event, projectId, orgId, location, attachments, onDeleteAttachment} =
+      this.props;
     const crashFileStripped = event.metadata.stripped_crash;
 
-    if (!attachmentList.length && !crashFileStripped) {
+    if (!attachments.length && !crashFileStripped) {
       return null;
     }
 
-    const title = t('Attachments (%s)', attachmentList.length);
+    const title = t('Attachments (%s)', attachments.length);
 
     const lastAttachmentPreviewed =
-      attachmentList.length > 0 &&
-      this.attachmentPreviewIsOpen(attachmentList[attachmentList.length - 1]);
+      attachments.length > 0 &&
+      this.attachmentPreviewIsOpen(attachments[attachments.length - 1]);
 
     return (
       <EventDataSection type="attachments" title={title}>
@@ -171,7 +121,7 @@ class EventAttachments extends React.Component<Props, State> {
           />
         )}
 
-        {attachmentList.length > 0 && (
+        {attachments.length > 0 && (
           <StyledPanelTable
             headers={[
               <Name key="name">{t('File Name')}</Name>,
@@ -179,7 +129,7 @@ class EventAttachments extends React.Component<Props, State> {
               t('Actions'),
             ]}
           >
-            {attachmentList.map(attachment => (
+            {attachments.map(attachment => (
               <React.Fragment key={attachment.id}>
                 <Name>{attachment.name}</Name>
                 <Size>
@@ -194,7 +144,7 @@ class EventAttachments extends React.Component<Props, State> {
                     <div>
                       <EventAttachmentActions
                         url={url}
-                        onDelete={this.handleDelete}
+                        onDelete={onDeleteAttachment}
                         onPreview={_attachmentId => this.togglePreview(attachment)}
                         withPreviewButton
                         previewIsOpen={this.attachmentPreviewIsOpen(attachment)}
@@ -205,7 +155,6 @@ class EventAttachments extends React.Component<Props, State> {
                   )}
                 </AttachmentUrl>
                 {this.renderInlineAttachment(attachment)}
-
                 {/* XXX: hack to deal with table grid borders */}
                 {lastAttachmentPreviewed && (
                   <React.Fragment>

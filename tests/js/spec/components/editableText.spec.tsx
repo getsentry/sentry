@@ -1,4 +1,3 @@
-import React from 'react';
 import {act} from 'react-dom/test-utils';
 
 import {createListeners} from 'sentry-test/createListeners';
@@ -19,7 +18,7 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
   let inputWrapper = wrapper.find('InputWrapper');
   expect(inputWrapper.length).toEqual(0);
 
-  const styledIconEdit = wrapper.find('StyledIconEdit');
+  const styledIconEdit = wrapper.find('IconEdit');
   expect(styledIconEdit.length).toEqual(1);
 
   label.simulate('click');
@@ -99,9 +98,6 @@ describe('EditableText', function () {
     expect(handleChange).toHaveBeenCalledTimes(0);
 
     wrapper.update();
-
-    const fieldControlErrorWrapper = wrapper.find('FieldControlErrorWrapper');
-    expect(fieldControlErrorWrapper.length).toEqual(1);
   });
 
   it('displays a disabled value', function () {

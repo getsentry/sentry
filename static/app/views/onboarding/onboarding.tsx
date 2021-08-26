@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -6,11 +6,11 @@ import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion'
 
 import Button from 'app/components/button';
 import Hook from 'app/components/hook';
-import {IconChevron, IconSentryFull} from 'app/icons';
+import LogoSentry from 'app/components/logoSentry';
+import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
 import testableTransition from 'app/utils/testableTransition';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -20,19 +20,6 @@ import OnboardingPlatform from './platform';
 import SdkConfiguration from './sdkConfiguration';
 import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
-
-type AnalyticsOpts = {
-  organization: Organization;
-  project: Project | null;
-  step: StepDescriptor;
-};
-
-const recordAnalyticStepComplete = ({organization, project, step}: AnalyticsOpts) =>
-  analytics('onboarding_v2.step_compete', {
-    org_id: parseInt(organization.id, 10),
-    project: project ? project.slug : null,
-    step: step.id,
-  });
 
 const ONBOARDING_STEPS: StepDescriptor[] = [
   {
@@ -126,12 +113,6 @@ class Onboarding extends React.Component<Props, State> {
     const {orgId} = this.props.params;
     const nextStep = this.props.steps[this.activeStepIndex + 1];
 
-    recordAnalyticStepComplete({
-      organization: this.props.organization,
-      project: this.firstProject,
-      step: nextStep,
-    });
-
     browserHistory.push(`/onboarding/${orgId}/${nextStep.id}/`);
   }
 
@@ -168,6 +149,7 @@ class Onboarding extends React.Component<Props, State> {
           platform={this.projectPlatform}
           onComplete={data => this.handleNextStep(step, data)}
           onUpdate={this.handleUpdate}
+          organization={this.props.organization}
         />
       </OnboardingStep>
     );
@@ -250,7 +232,7 @@ const Header = styled('header')`
   justify-content: space-between;
 `;
 
-const LogoSvg = styled(IconSentryFull)`
+const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};

@@ -3,6 +3,7 @@ import {t} from 'app/locale';
 const popular = [
   'javascript',
   'javascript-react',
+  'javascript-nextjs',
   'python-django',
   'python',
   'python-flask',
@@ -37,13 +38,16 @@ export const frontend = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-vue',
+  'javascript-nextjs',
 ] as const;
 
 export const mobile = [
   'android',
   'apple-ios',
   'cordova',
+  'capacitor',
   'javascript-cordova',
+  'javascript-capacitor',
   'react-native',
   'flutter',
   'dart-flutter',
@@ -102,7 +106,7 @@ export const serverless = [
   'dotnet-awslambda',
 ] as const;
 
-const desktop = [
+export const desktop = [
   'apple-macos',
   'dotnet',
   'dotnet-winforms',
@@ -158,6 +162,51 @@ export const performance: PlatformKey[] = [
   'node-express',
   'node-koa',
   'node-connect',
+];
+
+export const releaseHealth: PlatformKey[] = [
+  // frontend
+  'javascript',
+  'javascript-react',
+  'javascript-angular',
+  'javascript-angularjs',
+  'javascript-backbone',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-vue',
+  'javascript-nextjs',
+  // mobile
+  'android',
+  'apple-ios',
+  'cordova',
+  'javascript-cordova',
+  'react-native',
+  'flutter',
+  'dart-flutter',
+  // backend
+  'native',
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  'python',
+  'python-django',
+  'python-flask',
+  'python-sanic',
+  'python-celery',
+  'python-bottle',
+  'python-pylons',
+  'python-pyramid',
+  'python-tornado',
+  'python-rq',
+  'rust',
+  // serverless
+  // desktop
+  'apple-macos',
+  'native',
+  'native-crashpad',
+  'native-breakpad',
+  'native-qt',
 ];
 
 /**

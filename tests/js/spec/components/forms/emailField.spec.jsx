@@ -1,8 +1,6 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {EmailField} from 'app/components/forms';
+import {EmailField, Form} from 'app/components/forms';
 
 describe('EmailField', function () {
   describe('render()', function () {
@@ -19,16 +17,11 @@ describe('EmailField', function () {
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(<EmailField name="fieldName" />, {
-        context: {
-          form: {
-            data: {
-              fieldName: 'foo@example.com',
-            },
-            errors: {},
-          },
-        },
-      });
+      const wrapper = mountWithTheme(
+        <Form initialData={{fieldName: 'foo@example.com'}}>
+          <EmailField name="fieldName" />
+        </Form>
+      );
       expect(wrapper).toSnapshot();
     });
   });

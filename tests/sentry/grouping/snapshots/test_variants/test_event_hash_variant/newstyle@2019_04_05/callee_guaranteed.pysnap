@@ -1,0 +1,250 @@
+---
+created: '2021-07-19T10:33:20.198710Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "3cc990375f79ad679d99e4bd3b4d87b8"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (non app frame)
+            function*
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function*
+              "GSEventRunModal"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (non app frame)
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame (non app frame)
+            function*
+              "_dispatch_client_callout"
+          frame (non app frame)
+            function*
+              "_dispatch_call_block_and_release"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+system:
+  hash: "bb43f1c39f8853accb9f92e8d3f150fd"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+          frame*
+            function*
+              "__CFRunLoopRun"
+          frame*
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame*
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame*
+            function*
+              "_dispatch_client_callout"
+          frame*
+            function*
+              "_dispatch_call_block_and_release"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "thunk for closure"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2

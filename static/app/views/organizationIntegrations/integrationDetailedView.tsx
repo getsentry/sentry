@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -150,7 +150,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleExternalInstall = () => {
-    this.trackIntegrationEvent('integrations.installation_start');
+    this.trackIntegrationAnalytics('integrations.installation_start');
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -202,7 +202,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     }
 
     // This should never happen but we can't return undefined without some refactoring.
-    return <React.Fragment />;
+    return <Fragment />;
   }
 
   renderConfigurations() {
@@ -221,7 +221,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               onRemove={this.onRemove}
               onDisable={this.onDisable}
               data-test-id={integration.id}
-              trackIntegrationEvent={this.trackIntegrationEvent}
+              trackIntegrationAnalytics={this.trackIntegrationAnalytics}
             />
           </InstallWrapper>
         );

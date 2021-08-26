@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withProfiler} from '@sentry/react';
 import classNames from 'classnames';
 
@@ -61,7 +61,7 @@ function LoadingIndicator(props: Props) {
   }
 
   return (
-    <div className={cx} style={style}>
+    <div className={cx} style={style} data-test-id="loading-indicator">
       {!hideSpinner && (
         <div className={loadingCx} style={loadingStyle}>
           {triangle && renderLogoSpinner()}

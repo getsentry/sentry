@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ToolbarHeader from 'app/components/toolbarHeader';
@@ -12,7 +12,6 @@ type Props = {
   statsPeriod: string;
   onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
-  hasInbox?: boolean;
   anySelected?: boolean;
 };
 
@@ -21,21 +20,18 @@ function Headers({
   statsPeriod,
   onSelectStatsPeriod,
   isReprocessingQuery,
-  hasInbox,
 }: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       {isReprocessingQuery ? (
-        <React.Fragment>
+        <Fragment>
           <StartedColumn>{t('Started')}</StartedColumn>
           <EventsReprocessedColumn>{t('Events Reprocessed')}</EventsReprocessedColumn>
           <ProgressColumn>{t('Progress')}</ProgressColumn>
-        </React.Fragment>
+        </Fragment>
       ) : (
-        <React.Fragment>
-          <GraphHeaderWrapper
-            className={`hidden-xs hidden-sm ${hasInbox ? 'hidden-md' : ''}`}
-          >
+        <Fragment>
+          <GraphHeaderWrapper className="hidden-xs hidden-sm hidden-md">
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               {selection.datetime.period !== '24h' && (
@@ -59,9 +55,9 @@ function Headers({
           <AssigneesLabel className="hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
-        </React.Fragment>
+        </Fragment>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

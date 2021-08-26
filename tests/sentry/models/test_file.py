@@ -1,4 +1,5 @@
 import os
+from io import BytesIO
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
@@ -125,6 +126,34 @@ class FileTest(TestCase):
 
         with self.assertRaises(ValueError):
             fp.read()
+
+    def test_seek(self):
+        """Test behavior of seek with difference values for whence"""
+        bytes = BytesIO(b"abcdefghijklmnopqrstuvwxyz")
+        file1 = File.objects.create(name="baz.js", type="default", size=26)
+        results = file1.putfile(bytes, 5)
+        assert len(results) == 6
+
+        with file1.getfile() as fp:
+            assert fp.read() == b"abcdefghijklmnopqrstuvwxyz"
+
+            fp.seek(0, 2)
+            bytes.seek(0, 2)
+            assert fp.tell() == bytes.tell() == 26
+            assert fp.read() == bytes.read() == b""
+
+            fp.seek(-1, 2)
+            bytes.seek(-1, 2)
+            assert fp.tell() == bytes.tell() == 25
+            assert fp.read() == bytes.read() == b"z"
+
+            fp.seek(-10, 1)
+            bytes.seek(-10, 1)
+            assert fp.tell() == bytes.tell() == 16
+            assert fp.read() == bytes.read() == b"qrstuvwxyz"
+
+            with self.assertRaises(ValueError):
+                fp.seek(0, 666)
 
     def test_multi_chunk_prefetch(self):
         random_data = os.urandom(1 << 25)

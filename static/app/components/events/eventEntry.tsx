@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
 import Csp from 'app/components/events/interfaces/csp';
@@ -20,14 +20,29 @@ type Props = {
   projectSlug: Project['slug'];
   event: Event;
   organization: SharedViewOrganization | Organization;
-  groupId?: Group['id'];
+  group?: Group;
 };
 
-function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
+function EventEntry({entry, projectSlug, event, organization, group}: Props) {
+  const hasHierarchicalGrouping =
+    !!organization.features?.includes('grouping-stacktrace-ui') &&
+    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
+
+  const groupingCurrentLevel = group?.metadata?.current_level;
+
   switch (entry.type) {
     case EntryType.EXCEPTION: {
       const {data, type} = entry;
-      return <Exception type={type} event={event} data={data} projectId={projectSlug} />;
+      return (
+        <Exception
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      );
     }
     case EntryType.MESSAGE: {
       const {data} = entry;
@@ -39,7 +54,16 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
     }
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
-      return <Stacktrace type={type} event={event} data={data} projectId={projectSlug} />;
+      return (
+        <Stacktrace
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      );
     }
     case EntryType.TEMPLATE: {
       const {data, type} = entry;
@@ -68,20 +92,28 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
     }
     case EntryType.THREADS: {
       const {data, type} = entry;
-      return <Threads type={type} event={event} data={data} projectId={projectSlug} />;
+      return (
+        <Threads
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      );
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
-      const hasImagesLoadedV2Feature = !!organization.features?.includes(
-        'images-loaded-v2'
-      );
+      const hasImagesLoadedV2Feature =
+        !!organization.features?.includes('images-loaded-v2');
 
       if (hasImagesLoadedV2Feature) {
         return (
           <DebugMetaV2
             event={event}
             projectId={projectSlug}
-            groupId={groupId}
+            groupId={group?.id}
             organization={organization as Organization}
             data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
           />
@@ -106,7 +138,7 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
       );
     default:
       // this should not happen
-      /*eslint no-console:0*/
+      /* eslint no-console:0 */
       window.console &&
         console.error &&
         console.error('Unregistered interface: ' + (entry as any).type);

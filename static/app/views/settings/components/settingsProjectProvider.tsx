@@ -1,7 +1,11 @@
-import React from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 
-import SentryTypes from 'app/sentryTypes';
 import {Project} from 'app/types';
+import withProject from 'app/utils/withProject';
+
+type Props = {
+  project: Project;
+};
 
 /**
  * Simple Component that takes project from context and passes it as props to children
@@ -10,17 +14,12 @@ import {Project} from 'app/types';
  *
  * This is made because some components (e.g. ProjectPluginDetail) takes project as prop
  */
-class SettingsProjectProvider extends React.Component {
-  static contextTypes = {
-    project: SentryTypes.Project,
-  };
-
+class SettingsProjectProvider extends Component<Props> {
   render() {
-    const {children} = this.props;
-    const {project}: {project: Project} = this.context;
+    const {children, project} = this.props;
 
-    if (React.isValidElement(children)) {
-      return React.cloneElement(children, {
+    if (isValidElement(children)) {
+      return cloneElement(children, {
         ...this.props,
         ...children.props,
         project,
@@ -30,4 +29,4 @@ class SettingsProjectProvider extends React.Component {
   }
 }
 
-export default SettingsProjectProvider;
+export default withProject(SettingsProjectProvider);

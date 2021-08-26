@@ -1,5 +1,4 @@
-import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -10,53 +9,49 @@ import {IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 
 import {isIssueAlert} from '../../utils';
 
-type Props = {
-  className?: string;
+type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'params'> & {
   hasIncidentRuleDetailsError: boolean;
   rule?: IncidentRule;
-  params: Params;
 };
 
-export default class DetailsHeader extends React.Component<Props> {
-  render() {
-    const {hasIncidentRuleDetailsError, rule, params} = this.props;
+function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
+  const isRuleReady = !!rule && !hasIncidentRuleDetailsError;
+  const project = rule?.projects?.[0];
+  const settingsLink =
+    rule &&
+    `/organizations/${params.orgId}/alerts/${
+      isIssueAlert(rule) ? 'rules' : 'metric-rules'
+    }/${project}/${rule.id}/`;
 
-    const isRuleReady = !!rule && !hasIncidentRuleDetailsError;
-    const project = rule && rule.projects && rule.projects[0];
-    const settingsLink =
-      rule &&
-      `/organizations/${params.orgId}/alerts/${
-        isIssueAlert(rule) ? 'rules' : 'metric-rules'
-      }/${project}/${rule.id}/`;
-
-    return (
-      <Header>
-        <BreadCrumbBar>
-          <AlertBreadcrumbs
-            crumbs={[
-              {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/`},
-              {label: t('Alert Rule')},
-            ]}
-          />
-          <Controls>
-            <Button icon={<IconEdit />} label={t('Settings')} to={settingsLink}>
-              Edit Rule
-            </Button>
-          </Controls>
-        </BreadCrumbBar>
-        <Details>
-          <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
-            {rule && !hasIncidentRuleDetailsError ? rule.name : 'Loading'}
-          </RuleTitle>
-        </Details>
-      </Header>
-    );
-  }
+  return (
+    <Header>
+      <BreadCrumbBar>
+        <AlertBreadcrumbs
+          crumbs={[
+            {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/rules/`},
+            {label: t('Alert Rule')},
+          ]}
+        />
+        <Controls>
+          <Button icon={<IconEdit />} to={settingsLink}>
+            {t('Edit Rule')}
+          </Button>
+        </Controls>
+      </BreadCrumbBar>
+      <Details>
+        <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
+          {rule && !hasIncidentRuleDetailsError ? rule.name : t('Loading')}
+        </RuleTitle>
+      </Details>
+    </Header>
+  );
 }
+
+export default DetailsHeader;
 
 const Header = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};

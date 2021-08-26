@@ -1,8 +1,6 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import FormModel from 'app/views/settings/components/forms/model';
+import Form from 'app/views/settings/components/forms/form';
 import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 describe('Resource Subscriptions', () => {
@@ -13,23 +11,20 @@ describe('Resource Subscriptions', () => {
     beforeEach(() => {
       onChange = jest.fn();
       wrapper = mountWithTheme(
-        <Subscriptions
-          events={[]}
-          permissions={{
-            Event: 'no-access',
-            Team: 'no-access',
-            Project: 'write',
-            Release: 'admin',
-            Organization: 'admin',
-          }}
-          onChange={onChange}
-        />,
-        {
-          context: {
-            router: TestStubs.routerContext(),
-            form: new FormModel(),
-          },
-        }
+        <Form>
+          <Subscriptions
+            events={[]}
+            permissions={{
+              Event: 'no-access',
+              Team: 'no-access',
+              Project: 'write',
+              Release: 'admin',
+              Organization: 'admin',
+            }}
+            onChange={onChange}
+          />
+        </Form>,
+        TestStubs.routerContext()
       );
     });
 
@@ -47,35 +42,37 @@ describe('Resource Subscriptions', () => {
         Release: 'admin',
         Organization: 'admin',
       };
+      wrapper = mountWithTheme(
+        <Form>
+          <Subscriptions events={[]} permissions={permissions} onChange={onChange} />
+        </Form>,
+        TestStubs.routerContext()
+      );
 
-      wrapper.setProps({permissions});
       expect(
         wrapper.find('SubscriptionBox').first().prop('disabledFromPermissions')
       ).toBe(false);
     });
   });
 
-  describe('inital access to permissions', () => {
+  describe('initial access to permissions', () => {
     beforeEach(() => {
       onChange = jest.fn();
       wrapper = mountWithTheme(
-        <Subscriptions
-          events={['issue']}
-          permissions={{
-            Event: 'read',
-            Team: 'no-access',
-            Project: 'write',
-            Release: 'admin',
-            Organization: 'admin',
-          }}
-          onChange={onChange}
-        />,
-        {
-          context: {
-            router: TestStubs.routerContext(),
-            form: new FormModel(),
-          },
-        }
+        <Form>
+          <Subscriptions
+            events={['issue']}
+            permissions={{
+              Event: 'read',
+              Team: 'no-access',
+              Project: 'write',
+              Release: 'admin',
+              Organization: 'admin',
+            }}
+            onChange={onChange}
+          />
+        </Form>,
+        TestStubs.routerContext()
       );
     });
 
@@ -93,6 +90,16 @@ describe('Resource Subscriptions', () => {
         Release: 'admin',
         Organization: 'admin',
       };
+      wrapper = mountWithTheme(
+        <Form>
+          <Subscriptions
+            events={['issue']}
+            permissions={permissions}
+            onChange={onChange}
+          />
+        </Form>,
+        TestStubs.routerContext()
+      );
 
       wrapper.setProps({permissions});
       expect(

@@ -1,5 +1,5 @@
-import React from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {Fragment} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -96,7 +96,7 @@ class HookStats extends AsyncComponent<StatsProps, StatsState> {
   }
 }
 
-type Props = WithRouterProps<Params, {}>;
+type Props = RouteComponentProps<Params, {}>;
 type State = {
   hook: ServiceHook | null;
 } & AsyncView['state'];
@@ -130,7 +130,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Service Hook Details')} />
 
         <ErrorBoundary>
@@ -184,7 +184,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
             </Field>
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

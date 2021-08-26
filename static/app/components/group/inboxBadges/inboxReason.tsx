@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
@@ -49,7 +49,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
     } = reasonDetails;
     if (until) {
       // Was ignored until `until` has passed.
-      //`until` format: "2021-01-20T03:59:03+00:00"
+      // `until` format: "2021-01-20T03:59:03+00:00"
       return tct('Was ignored until [window]', {
         window: <DateTime date={until} dateOnly />,
       });

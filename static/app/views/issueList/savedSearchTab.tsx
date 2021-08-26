@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';
@@ -39,7 +39,7 @@ function SavedSearchTab({
   const title = (
     <TitleWrapper>
       {isActive ? (
-        <React.Fragment>
+        <Fragment>
           <TitleTextOverflow>
             {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
           </TitleTextOverflow>
@@ -50,7 +50,7 @@ function SavedSearchTab({
               </Badge>
             </div>
           )}
-        </React.Fragment>
+        </Fragment>
       ) : (
         t('Saved Searches')
       )}

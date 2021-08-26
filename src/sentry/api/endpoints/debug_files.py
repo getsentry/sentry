@@ -3,8 +3,8 @@ import posixpath
 import re
 
 import jsonschema
-from django.db import transaction
-from django.db.models import Count, Q
+from django.db import router
+from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
@@ -18,6 +18,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.models import (
+    File,
     FileBlobOwner,
     OrganizationMember,
     ProjectDebugFile,
@@ -25,6 +26,7 @@ from sentry.models import (
     ReleaseFile,
     create_files_from_dif_zip,
 )
+from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -32,6 +34,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.utils import json
+from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
@@ -176,7 +179,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         q &= file_format_q
 
-        queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
+        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
 
         return self.paginate(
             request=request,
@@ -203,9 +206,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         """
 
         if request.GET.get("id") and (request.access.has_scope("project:write")):
-            with transaction.atomic():
+            with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project=project)
+                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
                     .select_related("file")
                     .first()
                 )
@@ -260,7 +263,7 @@ def find_missing_chunks(organization, chunks):
     """Returns a list of chunks which are missing for an org."""
     owned = set(
         FileBlobOwner.objects.filter(
-            blob__checksum__in=chunks, organization=organization
+            blob__checksum__in=chunks, organization_id=organization.id
         ).values_list("blob__checksum", flat=True)
     )
     return list(set(chunks) - owned)
@@ -301,7 +304,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
-        except BaseException:
+        except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
         file_response = {}
@@ -331,7 +334,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
             dif = (
-                ProjectDebugFile.objects.filter(project=project, checksum=checksum)
+                ProjectDebugFile.objects.filter(project_id=project.id, checksum=checksum)
                 .select_related("file")
                 .order_by("-id")
                 .first()
@@ -428,14 +431,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            file_counts = (
-                Release.objects.filter(id__in=[r["id"] for r in results])
-                .annotate(count=Count("releasefile"))
-                .values("count", "id")
-            )
-            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            file_count_map = get_artifact_counts([r["id"] for r in results])
             return serialize(
-                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
+                [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
             )
 
         return self.paginate(
@@ -465,12 +463,12 @@ class SourceMapsEndpoint(ProjectEndpoint):
         archive_name = request.GET.get("name")
 
         if archive_name:
-            with transaction.atomic():
+            with atomic_transaction(using=router.db_for_write(ReleaseFile)):
                 release = Release.objects.get(
                     organization_id=project.organization_id, projects=project, version=archive_name
                 )
                 if release is not None:
-                    release_files = ReleaseFile.objects.filter(release=release)
+                    release_files = ReleaseFile.objects.filter(release_id=release.id)
                     release_files.delete()
                     return Response(status=204)
 

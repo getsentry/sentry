@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
@@ -61,7 +61,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     message: t('This feature is not enabled on your Sentry installation.'),
   };
 
-  state = {
+  state: State = {
     showHelp: false,
   };
 

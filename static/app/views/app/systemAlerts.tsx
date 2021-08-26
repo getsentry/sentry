@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 
 import AlertStore from 'app/stores/alertStore';
@@ -12,7 +12,7 @@ type State = {
   alerts: Array<Alert>;
 };
 
-class Alerts extends React.Component<Props, State> {
+class SystemAlerts extends React.Component<Props, State> {
   state = this.getInitialState();
 
   getInitialState(): State {
@@ -42,4 +42,4 @@ class Alerts extends React.Component<Props, State> {
   }
 }
 
-export default Alerts;
+export default SystemAlerts;

@@ -229,8 +229,6 @@ def configure_structlog():
             structlog.stdlib.add_log_level,
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.format_exc_info,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.UnicodeDecoder(),
         ],
     }
 
@@ -345,6 +343,8 @@ def initialize_app(config, skip_service_validation=False):
 
     if getattr(settings, "SENTRY_DEBUGGER", None) is None:
         settings.SENTRY_DEBUGGER = settings.DEBUG
+
+    monkeypatch_drf_listfield_serializer_errors()
 
     monkeypatch_model_unpickle()
 
@@ -472,6 +472,40 @@ def monkeypatch_django_migrations():
     monkey_migrations()
 
 
+def monkeypatch_drf_listfield_serializer_errors():
+    # This patches reverts https://github.com/encode/django-rest-framework/pull/5655,
+    # effectively we don't get that slight improvement
+    # in serializer error structure introduced in drf 3.8.x,
+    # This is simply the fastest way forward, otherwise
+    # frontend and sentry-cli needs updating and people using
+    # myriad other custom api clients may complain if we break
+    # their error handling.
+    # We're mainly focused on getting to Python 3.8, so this just isn't worth it.
+
+    from collections import Mapping
+
+    from rest_framework.fields import ListField
+    from rest_framework.utils import html
+
+    def to_internal_value(self, data):
+        if html.is_html_input(data):
+            data = html.parse_html_list(data, default=[])
+        if isinstance(data, (str, Mapping)) or not hasattr(data, "__iter__"):
+            self.fail("not_a_list", input_type=type(data).__name__)
+        if not self.allow_empty and len(data) == 0:
+            self.fail("empty")
+        # Begin code retained from < drf 3.8.x.
+        return [self.child.run_validation(item) for item in data]
+        # End code retained from < drf 3.8.x.
+
+    ListField.to_internal_value = to_internal_value
+
+    # We don't need to patch DictField since we don't use it
+    # at the time of patching. This is fine since anything newly
+    # introduced that does use it should prefer the better serializer
+    # errors.
+
+
 def bind_cache_to_option_store():
     # The default ``OptionsStore`` instance is initialized without the cache
     # backend attached. The store itself utilizes the cache during normal
@@ -596,7 +630,11 @@ def validate_snuba():
         return
 
     has_all_snuba_required_backends = (
-        settings.SENTRY_SEARCH == "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+        settings.SENTRY_SEARCH
+        in (
+            "sentry.search.snuba.EventsDatasetSnubaSearchBackend",
+            "sentry.utils.services.ServiceDelegator",
+        )
         and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaTagStorage"
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check

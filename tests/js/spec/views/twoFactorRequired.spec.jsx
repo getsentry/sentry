@@ -1,4 +1,3 @@
-import React from 'react';
 import Cookies from 'js-cookie';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -9,6 +8,7 @@ import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/a
 const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';
 const INVITE_COOKIE = 'pending-invite';
+const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 
 describe('TwoFactorRequired', function () {
   beforeEach(function () {
@@ -21,6 +21,10 @@ describe('TwoFactorRequired', function () {
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations(),
+    });
+    MockApiClient.addMockResponse({
+      url: ACCOUNT_EMAILS_ENDPOINT,
+      body: TestStubs.AccountEmails(),
     });
   });
 

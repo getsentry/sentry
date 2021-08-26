@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
@@ -17,12 +17,27 @@ type Props = AsyncComponent['props'] & {
 
 type State = AsyncComponent['state'] & {
   teams: Team[];
+  queryResults: Team[];
 };
 
 class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      teams: [],
+      queryResults: [],
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    return [['teams', `/organizations/${organization.slug}/teams/`]];
+    return [
+      [
+        'teams',
+        `/organizations/${organization.slug}/teams/`,
+        {query: {query: 'hasExternalTeams:true'}},
+      ],
+    ];
   }
 
   handleDelete = async (mapping: ExternalActorMapping) => {
@@ -42,7 +57,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
       addSuccessMessage(t('Deletion successful'));
       this.fetchData();
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };
@@ -59,16 +74,15 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
       acc.push(
         ...externalTeams
           .filter(externalTeam => externalTeam.provider === integration.provider.key)
-          .map(externalTeam => ({...externalTeam, sentryName: team.name}))
+          .map(externalTeam => ({...externalTeam, sentryName: team.slug}))
       );
       return acc;
     }, [] as ExternalActorMapping[]);
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
-  get sentryNames() {
-    const {teams} = this.state;
-    return teams;
+  sentryNamesMapper(teams: Team[]) {
+    return teams.map(({id, slug}) => ({id, name: slug}));
   }
 
   handleSubmit = (
@@ -82,8 +96,8 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     // We need to dynamically set the endpoint bc it requires the slug of the selected team in the form.
     try {
       const {organization} = this.props;
-      const {teams} = this.state;
-      const team = teams.find(item => item.id === data.teamId);
+      const {queryResults} = this.state;
+      const team = queryResults.find(item => item.id === data.teamId);
 
       if (!team) {
         throw new Error('Cannot find team slug.');
@@ -102,7 +116,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
 
       model.saveForm();
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };
@@ -121,10 +135,12 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
               closeModal();
             }}
             mapping={mapping}
-            sentryNames={this.sentryNames}
+            sentryNamesMapper={this.sentryNamesMapper}
             type="team"
+            url={`/organizations/${organization.slug}/teams/`}
             onCancel={closeModal}
             onSubmit={(...args) => this.handleSubmit(...args, mapping)}
+            onResults={results => this.setState({queryResults: results})}
           />
         </Body>
       </React.Fragment>

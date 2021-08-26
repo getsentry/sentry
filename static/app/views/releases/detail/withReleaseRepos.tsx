@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -36,194 +36,187 @@ type State = {
   activeReleaseRepo?: Repository;
 };
 
-const withReleaseRepos = <P extends DependentProps>(
+function withReleaseRepos<P extends DependentProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  withApi(
-    withOrganization(
-      withRepositories(
-        class extends React.Component<P & HoCsProps, State> {
-          static displayName = `withReleaseRepos(${getDisplayName(WrappedComponent)})`;
+) {
+  class WithReleaseRepos extends React.Component<P & HoCsProps, State> {
+    static displayName = `withReleaseRepos(${getDisplayName(WrappedComponent)})`;
 
-          state: State = {
-            releaseRepos: [],
-            isLoading: true,
-          };
+    state: State = {
+      releaseRepos: [],
+      isLoading: true,
+    };
 
-          componentDidMount() {
-            this.fetchReleaseRepos();
-          }
+    componentDidMount() {
+      this.fetchReleaseRepos();
+    }
 
-          UNSAFE_componentWillReceiveProps(nextProps: P & HoCsProps) {
-            this.setActiveReleaseRepo(nextProps);
-          }
+    componentDidUpdate(prevProps: P & HoCsProps, prevState: State) {
+      if (
+        this.props.params.release !== prevProps.params.release ||
+        (!!prevProps.repositoriesLoading && !this.props.repositoriesLoading)
+      ) {
+        this.fetchReleaseRepos();
+        return;
+      }
 
-          componentDidUpdate(prevProps: P & HoCsProps, prevState: State) {
-            if (!!prevProps.repositoriesLoading && !this.props.repositoriesLoading) {
-              this.fetchReleaseRepos();
-              return;
-            }
+      if (
+        prevState.releaseRepos.length !== this.state.releaseRepos.length ||
+        prevProps.location.query?.activeRepo !== this.props.location.query?.activeRepo
+      ) {
+        this.setActiveReleaseRepo(this.props);
+      }
+    }
 
-            if (prevState.releaseRepos.length !== this.state.releaseRepos.length) {
-              this.setActiveReleaseRepo(this.props);
-            }
-          }
+    static contextType = ReleaseContext;
 
-          static contextType = ReleaseContext;
+    setActiveReleaseRepo(props: P & HoCsProps) {
+      const {releaseRepos, activeReleaseRepo} = this.state;
 
-          setActiveReleaseRepo(props: P & HoCsProps) {
-            const {releaseRepos, activeReleaseRepo} = this.state;
+      if (!releaseRepos.length) {
+        return;
+      }
 
-            if (!releaseRepos.length) {
-              return;
-            }
+      const activeCommitRepo = props.location.query?.activeRepo;
 
-            const activeCommitRepo = props.location.query?.activeRepo;
+      if (!activeCommitRepo) {
+        this.setState({
+          activeReleaseRepo: releaseRepos[0] ?? null,
+        });
+        return;
+      }
 
-            if (!activeCommitRepo) {
-              this.setState({
-                activeReleaseRepo: releaseRepos[0] ?? null,
-              });
-              return;
-            }
+      if (activeCommitRepo === activeReleaseRepo?.name) {
+        return;
+      }
 
-            if (activeCommitRepo === activeReleaseRepo?.name) {
-              return;
-            }
+      const matchedRepository = releaseRepos.find(
+        commitRepo => commitRepo.name === activeCommitRepo
+      );
 
-            const matchedRepository = releaseRepos.find(
-              commitRepo => commitRepo.name === activeCommitRepo
-            );
+      if (matchedRepository) {
+        this.setState({
+          activeReleaseRepo: matchedRepository,
+        });
+        return;
+      }
 
-            if (matchedRepository) {
-              this.setState({
-                activeReleaseRepo: matchedRepository,
-              });
-              return;
-            }
+      addErrorMessage(t('The repository you were looking for was not found.'));
+    }
 
-            addErrorMessage(t('The repository you were looking for was not found.'));
-          }
+    async fetchReleaseRepos() {
+      const {params, api, repositories, repositoriesLoading} = this.props;
 
-          async fetchReleaseRepos() {
-            const {params, api, repositories, repositoriesLoading} = this.props;
+      if (repositoriesLoading === undefined || repositoriesLoading === true) {
+        return;
+      }
 
-            if (repositoriesLoading === undefined || repositoriesLoading === true) {
-              return;
-            }
+      if (!repositories?.length) {
+        this.setState({isLoading: false});
+        return;
+      }
 
-            if (!repositories?.length) {
-              this.setState({isLoading: false});
-              return;
-            }
+      const {release, orgId} = params;
+      const {project} = this.context;
 
-            const {release, orgId} = params;
-            const {project} = this.context;
+      this.setState({isLoading: true});
 
-            this.setState({isLoading: true});
+      try {
+        const releasePath = encodeURIComponent(release);
+        const releaseRepos = await api.requestPromise(
+          `/projects/${orgId}/${project.slug}/releases/${releasePath}/repositories/`
+        );
+        this.setState({releaseRepos, isLoading: false});
+        this.setActiveReleaseRepo(this.props);
+      } catch (error) {
+        Sentry.captureException(error);
+        addErrorMessage(
+          t(
+            'An error occured while trying to fetch the repositories of the release: %s',
+            release
+          )
+        );
+      }
+    }
 
-            try {
-              const releaseRepos = await api.requestPromise(
-                `/projects/${orgId}/${project.slug}/releases/${encodeURIComponent(
-                  release
-                )}/repositories/`
-              );
-              this.setState({releaseRepos, isLoading: false});
-            } catch (error) {
-              Sentry.captureException(error);
-              addErrorMessage(
-                t(
-                  'An error occured while trying to fetch the repositories of the release: %s',
-                  release
-                )
-              );
-            }
-          }
+    render() {
+      const {isLoading, activeReleaseRepo, releaseRepos} = this.state;
+      const {repositoriesLoading, repositories, params, router, location, organization} =
+        this.props;
 
-          render() {
-            const {isLoading, activeReleaseRepo, releaseRepos} = this.state;
-            const {
-              repositoriesLoading,
-              repositories,
-              params,
-              router,
-              location,
-              organization,
-            } = this.props;
+      if (isLoading || repositoriesLoading) {
+        return <LoadingIndicator />;
+      }
 
-            if (isLoading || repositoriesLoading) {
-              return <LoadingIndicator />;
-            }
+      const noRepositoryOrgRelatedFound = !repositories?.length;
 
-            const noRepositoryOrgRelatedFound = !repositories?.length;
+      if (noRepositoryOrgRelatedFound) {
+        const {orgId} = params;
+        return (
+          <Body>
+            <Main fullWidth>
+              <Panel dashedBorder>
+                <EmptyMessage
+                  icon={<IconCommit size="xl" />}
+                  title={t('Releases are better with commit data!')}
+                  description={t(
+                    'Connect a repository to see commit info, files changed, and authors involved in future releases.'
+                  )}
+                  action={
+                    <Button priority="primary" to={`/settings/${orgId}/repos/`}>
+                      {t('Connect a repository')}
+                    </Button>
+                  }
+                />
+              </Panel>
+            </Main>
+          </Body>
+        );
+      }
 
-            if (noRepositoryOrgRelatedFound) {
-              const {orgId} = params;
-              return (
-                <Body>
-                  <Main fullWidth>
-                    <Panel dashedBorder>
-                      <EmptyMessage
-                        icon={<IconCommit size="xl" />}
-                        title={t('Releases are better with commit data!')}
-                        description={t(
-                          'Connect a repository to see commit info, files changed, and authors involved in future releases.'
-                        )}
-                        action={
-                          <Button priority="primary" to={`/settings/${orgId}/repos/`}>
-                            {t('Connect a repository')}
-                          </Button>
-                        }
-                      />
-                    </Panel>
-                  </Main>
-                </Body>
-              );
-            }
+      const noReleaseReposFound = !releaseRepos.length;
 
-            const noReleaseReposFound = !releaseRepos.length;
+      if (noReleaseReposFound) {
+        return (
+          <Body>
+            <Main fullWidth>
+              <Panel dashedBorder>
+                <EmptyMessage
+                  icon={<IconCommit size="xl" />}
+                  title={t('Releases are better with commit data!')}
+                  description={t(
+                    'No commits associated with this release have been found.'
+                  )}
+                />
+              </Panel>
+            </Main>
+          </Body>
+        );
+      }
 
-            if (noReleaseReposFound) {
-              return (
-                <Body>
-                  <Main fullWidth>
-                    <Panel dashedBorder>
-                      <EmptyMessage
-                        icon={<IconCommit size="xl" />}
-                        title={t('Releases are better with commit data!')}
-                        description={t(
-                          'No commits associated with this release have been found.'
-                        )}
-                      />
-                    </Panel>
-                  </Main>
-                </Body>
-              );
-            }
+      if (activeReleaseRepo === undefined) {
+        return <LoadingIndicator />;
+      }
 
-            if (activeReleaseRepo === undefined) {
-              return <LoadingIndicator />;
-            }
+      const {release} = params;
+      const orgSlug = organization.slug;
 
-            const {release} = params;
-            const orgSlug = organization.slug;
+      return (
+        <WrappedComponent
+          {...this.props}
+          orgSlug={orgSlug}
+          projectSlug={this.context.project.slug}
+          release={release}
+          router={router}
+          location={location}
+          releaseRepos={releaseRepos}
+          activeReleaseRepo={activeReleaseRepo}
+        />
+      );
+    }
+  }
 
-            return (
-              <WrappedComponent
-                {...(this.props as P)} // this is just to satisfy the compiler
-                orgSlug={orgSlug}
-                projectSlug={this.context.project.slug}
-                release={release}
-                router={router}
-                location={location}
-                releaseRepos={releaseRepos}
-                activeReleaseRepo={activeReleaseRepo}
-              />
-            );
-          }
-        }
-      )
-    )
-  );
+  return withApi(withOrganization(withRepositories(WithReleaseRepos)));
+}
 
 export default withReleaseRepos;

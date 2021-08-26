@@ -15,6 +15,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -66,7 +67,7 @@ if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
     # would typically be handled by some static server.
     urlpatterns += [
         url(
-            r"^{}(?P<path>.*)$".format(re.escape(settings.MEDIA_URL)),
+            fr"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
             serve,
             {"document_root": settings.MEDIA_ROOT},
             name="sentry-serve-media",
@@ -95,8 +96,8 @@ urlpatterns += [
     # a filecontent-based hash in its filenames so that it can be cached long term
     url(
         r"^_static/dist/(?P<module>[^/]+)/(?P<path>.*)$",
-        generic.static_media_with_manifest,
-        name="sentry-webpack-media",
+        generic.unversioned_static_media,
+        name="sentry-unversioned-media",
     ),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
@@ -415,14 +416,14 @@ urlpatterns += [
                     name="sentry-organization-settings",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/teams/$",
+                    react_page_view,
+                    name="sentry-organization-teams",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/members/$",
                     react_page_view,
                     name="sentry-organization-members",
-                ),
-                url(
-                    r"^(?P<organization_slug>[\w_-]+)/members/requests/$",
-                    react_page_view,
-                    name="sentry-organization-members-requests",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
@@ -536,8 +537,13 @@ urlpatterns += [
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
                 ),
-                # need to catch settings and force it to react
-                url(r"^(?P<organization_slug>[\w_-]+)/settings/", react_page_view),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/disabled-member/$",
+                    DisabledMemberView.as_view(),
+                    name="sentry-organization-disabled-member",
+                ),
+                # need to force these to React and ensure organization_slug is captured
+                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/", react_page_view),
             ]
         ),
     ),

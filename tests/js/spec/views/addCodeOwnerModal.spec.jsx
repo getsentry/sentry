@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -14,7 +12,7 @@ describe('AddCodeOwnerModal', function () {
     closeModal: jest.fn(() => null),
   };
 
-  const org = TestStubs.Organization({features: ['import-codeowners']});
+  const org = TestStubs.Organization({features: ['integrations-codeowners']});
   const project = TestStubs.ProjectDetails();
   const integration = TestStubs.GitHubIntegration();
   const repo = TestStubs.Repository({
@@ -71,7 +69,7 @@ describe('AddCodeOwnerModal', function () {
     expect(wrapper.find('IconCheckmark').exists()).toBe(true);
     expect(wrapper.find('SourceFileBody').find('Button').prop('href')).toEqual('blah');
     expect(wrapper.find('SourceFileBody').text()).toContain('CODEOWNERS');
-    expect(wrapper.state('codeownerFile').raw).toEqual('* @MeredithAnya\n');
+    expect(wrapper.state('codeownersFile').raw).toEqual('* @MeredithAnya\n');
   });
 
   it('renders no codeowner file found', async function () {
@@ -98,7 +96,7 @@ describe('AddCodeOwnerModal', function () {
 
     expect(wrapper.find('IconNot').exists()).toBe(true);
     expect(wrapper.find('NoSourceFileBody').text()).toEqual('No codeowner file found.');
-    expect(wrapper.state('codeownerFile')).toBe(null);
+    expect(wrapper.state('codeownersFile')).toBe(null);
   });
 
   it('adds codeowner file', async function () {

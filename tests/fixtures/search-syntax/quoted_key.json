@@ -1,0 +1,32 @@
+[
+  {
+    "query": "\"hi:there\":value",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "filter": "text",
+        "negated": false,
+        "key": {"quoted": true, "type": "keySimple", "value": "hi:there"},
+        "operator": "",
+        "type": "filter",
+        "value": {"quoted": false, "type": "valueText", "value": "value"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!\"hi:there\":value",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "filter": "text",
+        "negated": true,
+        "key": {"quoted": true, "type": "keySimple", "value": "hi:there"},
+        "operator": "",
+        "type": "filter",
+        "value": {"quoted": false, "type": "valueText", "value": "value"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

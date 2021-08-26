@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, selectByValue} from 'sentry-test/select-new';
 
@@ -166,8 +164,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     it('renders each required_fields field', async function () {
       const mockGetOptions = Client.addMockResponse({
         method: 'GET',
-        url:
-          '/sentry-app-installations/d950595e-cba2-46f6-8a94-b79e42806f98/external-requests/',
+        url: '/sentry-app-installations/d950595e-cba2-46f6-8a94-b79e42806f98/external-requests/',
         body: {
           choices: [
             [1, 'Issue 1'],
@@ -283,11 +280,11 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       expect(wrapper.find(optionLabelSelector('project A')).exists()).toBe(true);
       expect(wrapper.find(optionLabelSelector('project B')).exists()).toBe(true);
 
-      //project select should be disabled and we shouldn't fetch the options yet
+      // project select should be disabled and we shouldn't fetch the options yet
       expect(wrapper.find('SelectControl#board_id').prop('disabled')).toBe(true);
       expect(boardMock).not.toHaveBeenCalled();
 
-      //when we set the value for project we should get the values for the board
+      // when we set the value for project we should get the values for the board
       selectByValue(wrapper, 'A', {name: 'project_id'});
       await tick();
       wrapper.update();

@@ -7,7 +7,7 @@ from email.utils import parseaddr
 from functools import partial
 from operator import attrgetter
 from random import randrange
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Optional
 
 import lxml
 import toronado
@@ -38,12 +38,12 @@ FAKE_EMAIL_TLD = ".sentry-fake"
 logger = logging.getLogger("sentry.mail")
 
 
-def inline_css(value):
+def inline_css(value: str) -> str:
     tree = lxml.html.document_fromstring(value)
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
-    return lxml.html.tostring(tree, doctype="<!DOCTYPE html>")
+    return lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -286,7 +286,7 @@ class MessageBuilder:
             except AssertionError as error:
                 logger.warning(str(error))
 
-    def __render_html_body(self):
+    def __render_html_body(self) -> str:
         html_body = None
         if self.html_template:
             html_body = render_to_string(self.html_template, self.context)
@@ -296,12 +296,12 @@ class MessageBuilder:
         if html_body is not None:
             return inline_css(html_body)
 
-    def __render_text_body(self):
+    def __render_text_body(self) -> str:
         if self.template:
             return render_to_string(self.template, self.context)
         return self._txt_body
 
-    def add_users(self, user_ids, project=None):
+    def add_users(self, user_ids: Iterable[int], project: Optional[Project] = None) -> None:
         self._send_to.update(list(get_email_addresses(user_ids, project).values()))
 
     def build(self, to, reply_to=None, cc=None, bcc=None):
@@ -354,7 +354,7 @@ class MessageBuilder:
 
         html_body = self.__render_html_body()
         if html_body:
-            msg.attach_alternative(html_body.decode("utf-8"), "text/html")
+            msg.attach_alternative(html_body, "text/html")
 
         return msg
 

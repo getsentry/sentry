@@ -1,10 +1,11 @@
-import React from 'react';
-import {InjectedRouter, RouteComponentProps} from 'react-router';
+import {Fragment} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import FileChange from 'app/components/fileChange';
 import {Body, Main} from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tn} from 'app/locale';
@@ -20,7 +21,6 @@ import withReleaseRepos from './withReleaseRepos';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   location: Location;
-  router: InjectedRouter;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   release: string;
@@ -52,6 +52,14 @@ class FilesChanged extends AsyncView<Props, State> {
     };
   }
 
+  componentDidUpdate(prevProps: Props, prevContext: Record<string, any>) {
+    if (prevProps.activeReleaseRepo?.name !== this.props.activeReleaseRepo?.name) {
+      this.remountComponent();
+      return;
+    }
+    super.componentDidUpdate(prevProps, prevContext);
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {activeReleaseRepo: activeRepository, location, release, orgSlug} = this.props;
 
@@ -66,9 +74,17 @@ class FilesChanged extends AsyncView<Props, State> {
     ];
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderContent() {
-    const {fileList, fileListPageLinks} = this.state;
+    const {fileList, fileListPageLinks, loading} = this.state;
     const {activeReleaseRepo} = this.props;
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
 
     if (!fileList.length) {
       return (
@@ -87,7 +103,7 @@ class FilesChanged extends AsyncView<Props, State> {
     const reposToRender = getReposToRender(Object.keys(filesByRepository));
 
     return (
-      <React.Fragment>
+      <Fragment>
         {reposToRender.map(repoName => {
           const repoData = filesByRepository[repoName];
           const files = Object.keys(repoData);
@@ -114,14 +130,14 @@ class FilesChanged extends AsyncView<Props, State> {
           );
         })}
         <Pagination pageLinks={fileListPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   renderBody() {
     const {activeReleaseRepo, releaseRepos, router, location} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         {releaseRepos.length > 1 && (
           <RepositorySwitcher
             repositories={releaseRepos}
@@ -131,7 +147,7 @@ class FilesChanged extends AsyncView<Props, State> {
           />
         )}
         {this.renderContent()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

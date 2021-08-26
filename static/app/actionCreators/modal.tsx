@@ -1,37 +1,19 @@
-import React from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {Modal as BoostrapModal} from 'react-bootstrap';
-import {css} from '@emotion/react';
+import * as React from 'react';
 
 import ModalActions from 'app/actions/modalActions';
+import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
+import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
-import {
-  DebugFileSource,
-  Group,
-  IssueOwnership,
-  Organization,
-  Project,
-  SentryApp,
-  Team,
-} from 'app/types';
+import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
+import {Group, IssueOwnership, Organization, Project, SentryApp, Team} from 'app/types';
+import {CustomRepoType} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
-export type ModalRenderProps = {
-  closeModal: () => void;
-  Header: typeof BoostrapModal.Header;
-  Body: typeof BoostrapModal.Body;
-  Footer: typeof BoostrapModal.Footer;
-};
+type ModalProps = Required<React.ComponentProps<typeof GlobalModal>>;
 
-export type ModalOptions = {
-  onClose?: () => void;
-  modalCss?: ReturnType<typeof css>;
-  modalClassName?: string;
-  dialogClassName?: string;
-  type?: string;
-  backdrop?: BoostrapModal['props']['backdrop'];
-};
+export type ModalOptions = ModalProps['options'];
+export type ModalRenderProps = Parameters<NonNullable<ModalProps['children']>>[0];
 
 /**
  * Show a modal
@@ -57,10 +39,30 @@ type OpenSudoModalOptions = {
   retryRequest?: () => Promise<any>;
 };
 
+type emailVerificationModalOptions = {
+  onClose?: () => void;
+  emailVerified?: boolean;
+  actionMessage?: string;
+};
+
+type inviteMembersModalOptions = {
+  onClose?: () => void;
+  initialData?: Partial<InviteRow>[];
+  source?: string;
+};
+
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
-  const mod = await import(
-    /* webpackChunkName: "SudoModal" */ 'app/components/modals/sudoModal'
-  );
+  const mod = await import('app/components/modals/sudoModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
+}
+
+export async function openEmailVerification({
+  onClose,
+  ...args
+}: emailVerificationModalOptions = {}) {
+  const mod = await import('app/components/modals/emailVerificationModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
@@ -76,9 +78,7 @@ type OpenDiffModalOptions = {
 };
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "DiffModal" */ 'app/components/modals/diffModal'
-  );
+  const mod = await import('app/components/modals/diffModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -97,9 +97,7 @@ type CreateTeamModalOptions = {
 };
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "CreateTeamModal" */ 'app/components/modals/createTeamModal'
-  );
+  const mod = await import('app/components/modals/createTeamModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
@@ -125,27 +123,21 @@ export type EditOwnershipRulesModalOptions = {
 };
 
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal'
-  );
+  const mod = await import('app/components/modals/createOwnershipRuleModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "EditOwnershipRulesModal" */ 'app/components/modals/editOwnershipRulesModal'
-  );
+  const mod = await import('app/components/modals/editOwnershipRulesModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
-  const mod = await import(
-    /* webpackChunkName: "CommandPalette" */ 'app/components/modals/commandPalette'
-  );
+  const mod = await import('app/components/modals/commandPalette');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -156,14 +148,10 @@ type RecoveryModalOptions = {
 };
 
 export async function openRecoveryOptions(options: RecoveryModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal'
-  );
+  const mod = await import('app/components/modals/recoveryOptionsModal');
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'recovery-options',
-  });
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export type TeamAccessRequestModalOptions = {
@@ -173,20 +161,14 @@ export type TeamAccessRequestModalOptions = {
 };
 
 export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "TeamAccessRequestModal" */ 'app/components/modals/teamAccessRequestModal'
-  );
+  const mod = await import('app/components/modals/teamAccessRequestModal');
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'confirm-team-request',
-  });
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export async function redirectToProject(newProjectSlug: string) {
-  const mod = await import(
-    /* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject'
-  );
+  const mod = await import('app/components/modals/redirectToProject');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
@@ -198,9 +180,7 @@ type HelpSearchModalOptions = {
 };
 
 export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
-  );
+  const mod = await import('app/components/modals/helpSearchModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -211,39 +191,44 @@ export type SentryAppDetailsModalOptions = {
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
-  onCloseModal?: () => void; //used for analytics
+  onCloseModal?: () => void; // used for analytics
 };
 
 type DebugFileSourceModalOptions = {
-  sourceType: DebugFileSource;
-  onSave: (data: Record<string, string>) => void;
-  sourceConfig?: Record<string, string>;
+  sourceType: CustomRepoType;
+  onSave: (data: Record<string, any>) => Promise<void>;
+  appStoreConnectContext?: AppStoreConnectContextProps;
+  onClose?: () => void;
+  sourceConfig?: Record<string, any>;
 };
 
-export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
+export async function openDebugFileSourceModal({
+  onClose,
+  ...restOptions
+}: DebugFileSourceModalOptions) {
   const mod = await import(
-    /* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal'
+    /* webpackChunkName: "DebugFileCustomRepository" */ 'app/components/modals/debugFileCustomRepository'
   );
-  const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'debug-file-source',
+  const {default: Modal, modalCss} = mod;
+  openModal(deps => <Modal {...deps} {...restOptions} />, {
+    modalCss,
+    onClose,
   });
 }
 
-export async function openInviteMembersModal(options = {}) {
-  const mod = await import(
-    /* webpackChunkName: "InviteMembersModal" */ 'app/components/modals/inviteMembersModal'
-  );
+export async function openInviteMembersModal({
+  onClose,
+  ...args
+}: inviteMembersModalOptions = {}) {
+  const mod = await import('app/components/modals/inviteMembersModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "AddDashboardWidgetModal" */ 'app/components/modals/addDashboardWidgetModal'
-  );
+  const mod = await import('app/components/modals/addDashboardWidgetModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
@@ -253,11 +238,16 @@ export async function openReprocessEventModal({
   onClose,
   ...options
 }: ReprocessEventModalOptions & {onClose?: () => void}) {
-  const mod = await import(
-    /* webpackChunkName: "ReprocessEventModal" */ 'app/components/modals/reprocessEventModal'
-  );
+  const mod = await import('app/components/modals/reprocessEventModal');
 
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {onClose});
+}
+
+export async function demoSignupModal(options: ModalOptions = {}) {
+  const mod = await import('app/components/modals/demoSignUp');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

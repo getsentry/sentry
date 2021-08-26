@@ -1,5 +1,4 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import {Component, Fragment} from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -23,12 +22,7 @@ type State = {
   events: WebhookEvent[];
 };
 
-export default class PermissionsObserver extends React.Component<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
-
+export default class PermissionsObserver extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
     appPublished: false,
@@ -41,6 +35,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
       events: this.props.events,
     };
   }
+
   /**
    * Converts the list of raw API scopes passed in to an object that can
    * before stored and used via `state`. This object is structured by
@@ -67,7 +62,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
   render() {
     const {permissions, events} = this.state;
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelHeader>{t('Permissions')}</PanelHeader>
           <PanelBody>
@@ -89,7 +84,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
             />
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,11 +1,11 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
-import PropTypes from 'prop-types';
 
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
 import {t} from 'app/locale';
 import {Permissions} from 'app/types/index';
+import FormContext from 'app/views/settings/components/forms/formContext';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 /**
@@ -88,15 +88,12 @@ type State = {
   permissions: Permissions;
 };
 
-export default class PermissionSelection extends React.Component<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
-
-  state = {
+export default class PermissionSelection extends Component<Props, State> {
+  state: State = {
     permissions: this.props.permissions,
   };
+
+  static contextType = FormContext;
 
   /**
    * Converts the "Permission" values held in `state` to a list of raw
@@ -130,7 +127,7 @@ export default class PermissionSelection extends React.Component<Props, State> {
     const {permissions} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {SENTRY_APP_PERMISSIONS.map(config => {
           const toChoice = ([value, opt]) => [value, opt.label];
           const choices = Object.entries(config.choices).map(toChoice);
@@ -155,7 +152,7 @@ export default class PermissionSelection extends React.Component<Props, State> {
             />
           );
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -15,6 +14,7 @@ type NotifyOptions = {
 };
 
 type Props = {
+  hasHierarchicalGrouping: boolean;
   stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
   platform?: string;
@@ -25,6 +25,7 @@ type Props = {
 };
 
 const CrashActions = ({
+  hasHierarchicalGrouping,
   stackView,
   stackType,
   stacktrace,
@@ -78,8 +79,15 @@ const CrashActions = ({
             barId={STACK_VIEW.APP}
             size="xsmall"
             onClick={setStackView(STACK_VIEW.APP)}
+            title={
+              hasHierarchicalGrouping
+                ? t(
+                    'The stack trace only shows application frames and frames responsible for grouping this issue'
+                  )
+                : undefined
+            }
           >
-            {t('App Only')}
+            {hasHierarchicalGrouping ? t('Most Relevant') : t('App Only')}
           </Button>
         )}
         <Button

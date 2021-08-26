@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import datetime
 
 import pytz
@@ -7,13 +8,15 @@ from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 
-from sentry.api.serializers import UserReportWithGroupSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.mail import mail_adapter
-from sentry.mail.adapter import ActionTargetType
+from sentry.mail import build_subject_prefix, mail_adapter, send_notification_as_email
 from sentry.models import (
     Activity,
+    GroupRelease,
+    Integration,
     NotificationSetting,
     Organization,
     OrganizationMember,
@@ -23,9 +26,22 @@ from sentry.models import (
     Repository,
     Rule,
     User,
+    UserOption,
     UserReport,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.notifications.types import (
+    ActionTargetType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
+from sentry.notifications.utils.digest import get_digest_subject
+from sentry.notifications.utils.participants import (
+    get_send_to,
+    get_send_to_member,
+    get_send_to_owners,
+    get_send_to_team,
+)
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
@@ -35,6 +51,12 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
+from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
+
+
+def send_notification(*args):
+    args_list = list(args)[1:]
+    send_notification_as_email(*args_list, {})
 
 
 class BaseMailAdapterTest:
@@ -79,11 +101,9 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
 
     def test_get_send_to_with_team_owners(self):
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
-        assert sorted({self.user.pk, self.user2.pk}) == sorted(
-            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)[
-                ExternalProviders.EMAIL
-            ]
-        )
+        assert {self.user, self.user2} == get_send_to(
+            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        )[ExternalProviders.EMAIL]
 
         # Make sure that disabling mail alerts works as expected
         NotificationSetting.objects.update_settings(
@@ -93,17 +113,15 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
             user=self.user2,
             project=self.project,
         )
-        assert {self.user.pk} == self.adapter.get_send_to(
+        assert {self.user} == get_send_to(
             self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
         )[ExternalProviders.EMAIL]
 
     def test_get_send_to_with_user_owners(self):
         event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
-        assert sorted({self.user.pk, self.user2.pk}) == sorted(
-            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)[
-                ExternalProviders.EMAIL
-            ]
-        )
+        assert {self.user, self.user2} == get_send_to(
+            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        )[ExternalProviders.EMAIL]
 
         # Make sure that disabling mail alerts works as expected
         NotificationSetting.objects.update_settings(
@@ -113,19 +131,19 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
             user=self.user2,
             project=self.project,
         )
-        assert {self.user.pk} == self.adapter.get_send_to(
+        assert {self.user} == get_send_to(
             self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
         )[ExternalProviders.EMAIL]
 
     def test_get_send_to_with_user_owner(self):
         event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
-        assert {self.user2.pk} == self.adapter.get_send_to(
+        assert {self.user2} == get_send_to(
             self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
         )[ExternalProviders.EMAIL]
 
     def test_get_send_to_with_fallthrough(self):
         event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
-        assert {self.user.pk, self.user2.pk} == self.adapter.get_send_to(
+        assert {self.user, self.user2} == get_send_to(
             self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
         )[ExternalProviders.EMAIL]
 
@@ -133,7 +151,7 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
         event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
         assert set() == set(
-            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
+            get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
         )
 
 
@@ -160,7 +178,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
 
         # all members
         users = self.adapter.get_sendable_user_objects(project)
-        assert sorted({user.id, user2.id}) == sorted([user.id for user in users])
+        assert sorted({user.id, user2.id}) == sorted(user.id for user in users)
 
         # disabled user2
         NotificationSetting.objects.update_settings(
@@ -205,37 +223,14 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
     def test_default_prefix(self):
-        assert self.adapter._build_subject_prefix(self.project) == "[Sentry] "
+        assert build_subject_prefix(self.project) == "[Sentry] "
 
     def test_project_level_prefix(self):
         prefix = "[Example prefix] "
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value=prefix
         )
-        assert self.adapter._build_subject_prefix(self.project) == prefix
-
-
-class MailAdapterBuildMessageTest(BaseMailAdapterTest, TestCase):
-    def test(self):
-        subject = "hello"
-        assert self.adapter._build_message(self.project, subject) is None
-
-    def test_specify_send_to(self):
-        subject = "hello"
-        send_to_user = self.create_user("hello@timecube.com")
-        msg = self.adapter._build_message(self.project, subject, send_to=[send_to_user.id])
-        assert msg._send_to == {send_to_user.email}
-        assert msg.subject.endswith(subject)
-
-
-class MailAdapterSendMailTest(BaseMailAdapterTest, TestCase):
-    def test(self):
-        subject = "hello"
-        with self.tasks():
-            self.adapter._send_mail(self.project, subject, body="hi", send_to=[self.user.id])
-            msg = mail.outbox[0]
-            assert msg.subject.endswith(subject)
-            assert msg.recipients() == [self.user.email]
+        assert build_subject_prefix(self.project) == prefix
 
 
 class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
@@ -274,8 +269,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.mail.mail_adapter._send_mail")
-    def test_notify_users_does_email(self, _send_mail):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_notify_users_does_email(self, mock_func):
+        UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
@@ -286,19 +282,24 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         event = event_manager.save(self.project.id)
         group = event.group
 
-        notification = Notification(event=event)
+        with self.tasks():
+            AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+        assert mock_func.call_count == 1
 
-        assert _send_mail.call_count == 1
-        args, kwargs = _send_mail.call_args
-        self.assertEquals(kwargs.get("project"), self.project)
-        self.assertEquals(kwargs.get("reference"), group)
-        assert kwargs.get("subject") == "BAR-1 - hello world"
+        args, kwargs = mock_func.call_args
+        notification = args[1]
 
-    @mock.patch("sentry.mail.mail_adapter._send_mail")
-    def test_multiline_error(self, _send_mail):
+        assert notification.get_user_context(self.user, {})["timezone"] == pytz.timezone(
+            "Europe/Vienna"
+        )
+
+        self.assertEquals(notification.project, self.project)
+        self.assertEquals(notification.get_reference(), group)
+        assert notification.get_subject() == "BAR-1 - hello world"
+
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_multiline_error(self, mock_func):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
@@ -307,15 +308,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         event_data["metadata"] = event_type.get_metadata(event_data)
 
         event = event_manager.save(self.project.id)
+        with self.tasks():
+            AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
 
-        notification = Notification(event=event)
-
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert _send_mail.call_count == 1
-        args, kwargs = _send_mail.call_args
-        assert kwargs.get("subject") == "BAR-1 - hello world"
+        assert mock_func.call_count == 1
+        args, kwargs = mock_func.call_args
+        notification = args[1]
+        assert notification.get_subject() == "BAR-1 - hello world"
 
     def test_notify_users_with_utf8_subject(self):
         event = self.store_event(
@@ -330,6 +329,32 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
+
+    def test_notify_users_with_their_timezones(self):
+        """
+        Test that ensures that datetime in issue alert email is in the user's timezone
+        """
+        from django.template.defaultfilters import date
+
+        timestamp = datetime.now(tz=pytz.utc)
+        local_timestamp = timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
+        local_timestamp = date(local_timestamp, "N j, Y, g:i:s a e")
+
+        UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
+
+        event = self.store_event(
+            data={"message": "foobar", "level": "error", "timestamp": iso_format(timestamp)},
+            project_id=self.project.id,
+        )
+
+        notification = Notification(event=event)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert local_timestamp in str(msg.alternatives)
 
     def test_notify_with_suspect_commits(self):
         repo = Repository.objects.create(
@@ -378,6 +403,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
             },
             project_id=self.project.id,
         )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
 
         with self.tasks():
             notification = Notification(event=event)
@@ -389,6 +417,62 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         msg = mail.outbox[-1]
 
         assert "Suspect Commits" in msg.body
+
+    def test_slack_link(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+
+        with self.tasks():
+            notification = Notification(event=event)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+        assert (
+            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
+            in msg.alternatives[0][0]
+        )
+
+    def test_slack_link_with_integration(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+
+        integration = Integration.objects.create(provider="msteams")
+        integration.add_organization(organization)
+
+        with self.tasks():
+            notification = Notification(event=event)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+        assert (
+            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
+            not in msg.alternatives[0][0]
+        )
+
+    def test_slack_link_with_plugin(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+
+        OpsGeniePlugin().enable(project)
+
+        with self.tasks():
+            notification = Notification(event=event)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+        assert (
+            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
+            not in msg.alternatives[0][0]
+        )
 
     def assert_notify(
         self,
@@ -462,7 +546,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         )
         self.assert_notify(event_all_users, [user.email])
 
-    def test_notify_team(self):
+    def test_notify_team_members(self):
+        """Test that each member of a team is notified"""
+
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
         team = self.create_team(organization=self.organization, members=[user, user2])
@@ -480,9 +566,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
     def test_get_digest_subject(self):
         assert (
-            self.adapter.get_digest_subject(
+            get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
-                {mock.sentinel.group: 3},
+                Counter({mock.sentinel.group: 3}),
                 datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
@@ -601,7 +687,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
         futures = [RuleFuture(rule, {})]
         with mock.patch.object(self.adapter, "notify") as notify:
             self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
-            notify.call_count == 1
+            assert notify.call_count == 1
 
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest(self, digests):
@@ -612,7 +698,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
-        digests.add.call_count == 1
+        assert digests.add.call_count == 1
 
 
 class MailAdapterShouldNotifyTest(BaseMailAdapterTest, TestCase):
@@ -683,32 +769,28 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         event_all_users = self.store_event(
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_all_users, self.project)[
-            ExternalProviders.EMAIL
-        ] == {
-            self.user.id,
-            self.user2.id,
-            self.user3.id,
+        assert get_send_to_owners(event_all_users, self.project)[ExternalProviders.EMAIL] == {
+            self.user,
+            self.user2,
+            self.user3,
         }
 
     def test_team(self):
         event_team = self.store_event(
             data=self.make_event_data("foo.py"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_team, self.project)[
-            ExternalProviders.EMAIL
-        ] == {
-            self.user2.id,
-            self.user3.id,
+        assert get_send_to_owners(event_team, self.project)[ExternalProviders.EMAIL] == {
+            self.user2,
+            self.user3,
         }
 
     def test_single_user(self):
         event_single_user = self.store_event(
             data=self.make_event_data("foo.jx"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_single_user, self.project)[
-            ExternalProviders.EMAIL
-        ] == {self.user2.id}
+        assert get_send_to_owners(event_single_user, self.project)[ExternalProviders.EMAIL] == {
+            self.user2
+        }
 
     def test_disable_alerts_user_scope(self):
         event_all_users = self.store_event(
@@ -722,7 +804,10 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             user=self.user2,
         )
 
-        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
+        assert (
+            self.user2
+            not in get_send_to_owners(event_all_users, self.project)[ExternalProviders.EMAIL]
+        )
 
     def test_disable_alerts_project_scope(self):
         event_all_users = self.store_event(
@@ -737,7 +822,10 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             project=self.project,
         )
 
-        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
+        assert (
+            self.user2
+            not in get_send_to_owners(event_all_users, self.project)[ExternalProviders.EMAIL]
+        )
 
     def test_disable_alerts_multiple_scopes(self):
         event_all_users = self.store_event(
@@ -761,12 +849,17 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             project=self.project,
         )
 
-        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
+        assert (
+            self.user2
+            not in get_send_to_owners(event_all_users, self.project)[ExternalProviders.EMAIL]
+        )
 
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
     def test_send_to_team(self):
-        assert {self.user.id} == self.adapter.get_send_to_team(self.project, str(self.team.id))
+        assert {self.user} == get_send_to_team(self.project, str(self.team.id))[
+            ExternalProviders.EMAIL
+        ]
 
     def test_send_disabled(self):
         NotificationSetting.objects.update_settings(
@@ -776,30 +869,32 @@ class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
             user=self.user,
             project=self.project,
         )
-        assert set() == self.adapter.get_send_to_team(self.project, str(self.team.id))
+        assert {} == get_send_to_team(self.project, str(self.team.id))
 
     def test_invalid_team(self):
-        assert set() == self.adapter.get_send_to_team(self.project, "900001")
+        assert {} == get_send_to_team(self.project, "900001")
 
     def test_other_project_team(self):
         user_2 = self.create_user()
         team_2 = self.create_team(self.organization, members=[user_2])
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
-        assert {user_2.id} == self.adapter.get_send_to_team(project_2, str(team_2.id))
-        assert set() == self.adapter.get_send_to_team(self.project, str(team_2.id))
+        assert {user_2} == get_send_to_team(project_2, str(team_2.id))[ExternalProviders.EMAIL]
+        assert {} == get_send_to_team(self.project, str(team_2.id))
 
     def test_other_org_team(self):
         org_2 = self.create_organization()
         user_2 = self.create_user()
         team_2 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert {user_2.id} == self.adapter.get_send_to_team(project_2, str(team_2.id))
-        assert set() == self.adapter.get_send_to_team(self.project, str(team_2.id))
+        assert {user_2} == get_send_to_team(project_2, str(team_2.id))[ExternalProviders.EMAIL]
+        assert {} == get_send_to_team(self.project, str(team_2.id))
 
 
 class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
     def test_send_to_user(self):
-        assert {self.user.id} == self.adapter.get_send_to_member(self.project, str(self.user.id))
+        assert {self.user} == get_send_to_member(self.project, str(self.user.id))[
+            ExternalProviders.EMAIL
+        ]
 
     def test_send_disabled_still_sends(self):
         NotificationSetting.objects.update_settings(
@@ -809,10 +904,12 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
             user=self.user,
             project=self.project,
         )
-        assert {self.user.id} == self.adapter.get_send_to_member(self.project, str(self.user.id))
+        assert {self.user} == get_send_to_member(self.project, str(self.user.id))[
+            ExternalProviders.EMAIL
+        ]
 
     def test_invalid_user(self):
-        assert set() == self.adapter.get_send_to_member(self.project, "900001")
+        assert {} == get_send_to_member(self.project, "900001")
 
     def test_other_org_user(self):
         org_2 = self.create_organization()
@@ -820,8 +917,8 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         team_2 = self.create_team(org_2, members=[user_2])
         team_3 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
-        assert {user_2.id} == self.adapter.get_send_to_member(project_2, str(user_2.id))
-        assert set() == self.adapter.get_send_to_member(self.project, str(user_2.id))
+        assert {user_2} == get_send_to_member(project_2, str(user_2.id))[ExternalProviders.EMAIL]
+        assert {} == get_send_to_member(self.project, str(user_2.id))
 
     def test_no_project_access(self):
         org_2 = self.create_organization()
@@ -830,8 +927,8 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         user_3 = self.create_user()
         self.create_team(org_2, members=[user_3])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert {user_2.id} == self.adapter.get_send_to_member(project_2, str(user_2.id))
-        assert set() == self.adapter.get_send_to_member(self.project, str(user_3.id))
+        assert {user_2} == get_send_to_member(project_2, str(user_2.id))[ExternalProviders.EMAIL]
+        assert {} == get_send_to_member(self.project, str(user_3.id))
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):

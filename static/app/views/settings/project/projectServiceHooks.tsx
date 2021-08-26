@@ -1,6 +1,5 @@
-import React from 'react';
-import {Link, WithRouterProps} from 'react-router';
-import PropTypes from 'prop-types';
+import {Fragment} from 'react';
+import {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -8,12 +7,14 @@ import {
   clearIndicators,
 } from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import Switch from 'app/components/switchButton';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
 import {t} from 'app/locale';
-import {ServiceHook} from 'app/types';
+import {LightWeightOrganization, ServiceHook} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
@@ -52,18 +53,15 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   );
 }
 
-type Props = WithRouterProps<{orgId: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  organization: LightWeightOrganization;
+};
 
 type State = {
   hookList: null | ServiceHook[];
 } & AsyncView['state'];
 
-export default class ProjectServiceHooks extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: PropTypes.object.isRequired,
-  };
-
+class ProjectServiceHooks extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['hookList', `/projects/${orgId}/${projectId}/hooks/`]];
@@ -115,7 +113,7 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
     const {orgId, projectId} = this.props.params;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
           <PanelAlert type="info" icon={<IconFlag size="md" />}>
@@ -133,7 +131,7 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
             />
           ))}
         </PanelBody>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -143,10 +141,10 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
       hookList && hookList.length > 0 ? this.renderResults() : this.renderEmpty();
 
     const {orgId, projectId} = this.props.params;
-    const access = new Set(this.context.organization.access);
+    const access = new Set(this.props.organization.access);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Service Hooks')}
           action={
@@ -164,7 +162,8 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
           }
         />
         <Panel>{body}</Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
+export default withOrganization(ProjectServiceHooks);

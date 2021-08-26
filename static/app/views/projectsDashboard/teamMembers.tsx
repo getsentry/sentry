@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import AvatarList from 'app/components/avatar/avatarList';

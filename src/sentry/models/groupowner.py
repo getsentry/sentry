@@ -25,7 +25,7 @@ class GroupOwner(Model):
     Tracks the "owners" or "suggested assignees" of a group.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)

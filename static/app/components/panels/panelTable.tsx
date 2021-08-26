@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -77,6 +77,7 @@ const PanelTable = ({
   emptyMessage = t('There are no items to display'),
   emptyAction,
   loader,
+  ...props
 }: Props) => {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
@@ -88,6 +89,7 @@ const PanelTable = ({
       disablePadding={disablePadding}
       className={className}
       hasRows={shouldShowContent}
+      {...props}
     >
       {headers.map((header, i) => (
         <PanelTableHeader key={i}>{header}</PanelTableHeader>

@@ -14,11 +14,11 @@ class SudoTest(APITestCase):
 
         self.login_as(user)
 
-        middleware = list(settings.MIDDLEWARE_CLASSES)
+        middleware = list(settings.MIDDLEWARE)
         index = middleware.index("sentry.testutils.middleware.SudoMiddleware")
         middleware[index] = "sentry.middleware.sudo.SudoMiddleware"
 
-        with self.settings(MIDDLEWARE_CLASSES=tuple(middleware)):
+        with self.settings(MIDDLEWARE=tuple(middleware)):
             response = self.client.delete(url, is_sudo=False)
             assert response.status_code == 401
             assert response.data["detail"]["code"] == "sudo-required"

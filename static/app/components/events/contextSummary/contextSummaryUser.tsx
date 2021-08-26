@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -98,7 +97,7 @@ const ContextSummaryUser = ({data}: Props) => {
   const icon = userTitle ? (
     <UserAvatar
       user={user as AvatarUser}
-      size={48}
+      size={32}
       className="context-item-icon"
       gravatar={false}
     />

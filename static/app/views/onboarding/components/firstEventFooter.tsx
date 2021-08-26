@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -16,6 +16,7 @@ type Props = {
   docsLink?: string;
   docsOnClick?: () => void;
 };
+
 export default function FirstEventFooter({
   organization,
   project,
@@ -23,7 +24,7 @@ export default function FirstEventFooter({
   docsOnClick,
 }: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       <FirstEventIndicator
         organization={organization}
         project={project}
@@ -55,7 +56,7 @@ export default function FirstEventFooter({
           }
         )}
       </CTASecondary>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

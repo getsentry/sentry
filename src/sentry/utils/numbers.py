@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 BASE36_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 BASE32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -73,3 +75,24 @@ def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
         number /= block
         u += 1
     return ("{:.%df} {}" % (decimal_places,)).format(number, units[u])
+
+
+def format_grouped_length(length: int, steps: Optional[List[int]] = None) -> str:
+    if steps is None:
+        steps = [10, 100]
+
+    if length == 0:
+        return "0"
+
+    if length == 1:
+        return "1"
+
+    for step in steps:
+        if length < step:
+            return f"<{step}"
+
+    return f">{steps[-1]}"
+
+
+def validate_bigint(value):
+    return isinstance(value, int) and value >= 0 and value.bit_length() <= 63

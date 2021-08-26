@@ -1,4 +1,5 @@
 import abc
+from typing import Sequence, Set, Tuple
 
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -14,7 +15,7 @@ from sentry.incidents.models import (
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.email import MessageBuilder
+from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry.utils.http import absolute_uri
 
 
@@ -43,7 +44,7 @@ class DefaultActionHandler(ActionHandler):
         self.send_alert(metric_value, "resolve")
 
     @abc.abstractmethod
-    def send_alert(self, metric_value):
+    def send_alert(self, metric_value, method: str):
         pass
 
 
@@ -53,28 +54,25 @@ class DefaultActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
 )
 class EmailActionHandler(ActionHandler):
-    def get_targets(self):
+    def _get_targets(self) -> Set[int]:
         target = self.action.target
         if not target:
-            return []
-        targets = []
-        if self.action.target_type in (
-            AlertRuleTriggerAction.TargetType.USER.value,
-            AlertRuleTriggerAction.TargetType.TEAM.value,
-        ):
-            if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-                targets = [(target.id, target.email)]
-            elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                users = NotificationSetting.objects.filter_to_subscribed_users(
-                    self.project,
-                    {member.user for member in target.member_set},
-                )[ExternalProviders.EMAIL]
-                targets = [(user.id, user.email) for user in users]
-        # TODO: We need some sort of verification system to make sure we're not being
-        # used as an email relay.
-        # elif self.action.target_type == AlertRuleTriggerAction.TargetType.SPECIFIC.value:
-        #     emails = [target]
-        return targets
+            return set()
+
+        if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            return {target.id}
+
+        elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
+            users = NotificationSetting.objects.filter_to_subscribed_users(
+                self.project,
+                {member.user for member in target.member_set},
+            )[ExternalProviders.EMAIL]
+            return {user.id for user in users}
+
+        return set()
+
+    def get_targets(self) -> Sequence[Tuple[int, str]]:
+        return list(get_email_addresses(self._get_targets(), project=self.project).items())
 
     def fire(self, metric_value):
         self.email_users(TriggerStatus.ACTIVE)
@@ -82,7 +80,7 @@ class EmailActionHandler(ActionHandler):
     def resolve(self, metric_value):
         self.email_users(TriggerStatus.RESOLVED)
 
-    def email_users(self, status):
+    def email_users(self, status: TriggerStatus) -> None:
         email_context = generate_incident_trigger_email_context(
             self.project, self.incident, self.action.alert_rule_trigger, status
         )

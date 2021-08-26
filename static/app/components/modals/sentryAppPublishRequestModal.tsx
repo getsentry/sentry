@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 
@@ -33,7 +33,7 @@ const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
       }
     }
     if (highestChoice) {
-      //we can remove the read part of "Read & Write"
+      // we can remove the read part of "Read & Write"
       const label = highestChoice.label.replace('Read & Write', 'Write');
       permissions.push(`${permObj.resource} ${label}`);
     }
@@ -44,9 +44,9 @@ const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
 class PublishRequestFormModel extends FormModel {
   getTransformedData() {
     const data = this.getData();
-    //map object to list of questions
+    // map object to list of questions
     const questionnaire = Array.from(this.fieldDescriptor.values()).map(field =>
-      //we read the meta for the question that has a react node for the label
+      // we read the meta for the question that has a react node for the label
       ({
         question: field.meta || field.label,
         answer: data[field.name],
@@ -60,7 +60,7 @@ type Props = ModalRenderProps & {
   app: SentryApp;
 };
 
-export default class SentryAppPublishRequestModal extends React.Component<Props> {
+export default class SentryAppPublishRequestModal extends Component<Props> {
   form = new PublishRequestFormModel();
 
   get formFields() {
@@ -74,19 +74,19 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     )}.`;
 
     const permissionLabel = (
-      <React.Fragment>
+      <Fragment>
         <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
         {permissions.map((permission, i) => (
-          <React.Fragment key={permission}>
+          <Fragment key={permission}>
             {i > 0 && ', '} <Permission>{permission}</Permission>
-          </React.Fragment>
+          </Fragment>
         ))}
         .
-      </React.Fragment>
+      </Fragment>
     );
 
-    //No translations since we need to be able to read this email :)
-    const baseFields: JsonForm['props']['fields'] = [
+    // No translations since we need to be able to read this email :)
+    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
       {
         type: 'textarea',
         required: true,
@@ -116,7 +116,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
       },
     ];
 
-    //Only add the permissions question if there are perms to add
+    // Only add the permissions question if there are perms to add
     if (permissions.length > 0) {
       baseFields.push({
         type: 'textarea',
@@ -157,7 +157,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
       },
     ];
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>{t('Publish Request Questionnaire')}</Header>
         <Body>
           <Explanation>
@@ -179,7 +179,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
             <JsonForm forms={forms} />
           </Form>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

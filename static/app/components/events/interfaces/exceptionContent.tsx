@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
@@ -21,12 +21,18 @@ type Props = {
   platform: ExceptionStacktraceContentProps['platform'];
   stackView?: ExceptionStacktraceContentProps['stackView'];
   newestFirst?: boolean;
-} & Pick<ExceptionType, 'values'>;
+} & Pick<ExceptionType, 'values'> &
+  Pick<
+    React.ComponentProps<typeof ExceptionStacktraceContent>,
+    'groupingCurrentLevel' | 'hasHierarchicalGrouping'
+  >;
 
 const ExceptionContent = ({
   newestFirst,
   event,
   stackView,
+  groupingCurrentLevel,
+  hasHierarchicalGrouping,
   platform,
   values,
   type,
@@ -55,6 +61,8 @@ const ExceptionContent = ({
         newestFirst={newestFirst}
         event={event}
         chainedException={values.length > 1}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
+        groupingCurrentLevel={groupingCurrentLevel}
       />
     </div>
   ));

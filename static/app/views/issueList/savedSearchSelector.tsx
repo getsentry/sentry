@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import DropdownButton from 'app/components/dropdownButton';

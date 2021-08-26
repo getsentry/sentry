@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -95,6 +95,7 @@ const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
   flex: 1;
   flex-direction: column;
   position: relative;
+  max-width: 100%;
   ${p => (p.alignRight ? 'align-items: flex-end;' : '')};
 `;
 

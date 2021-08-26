@@ -5,7 +5,14 @@ import Reflux from 'reflux';
 import GroupActions from 'app/actions/groupActions';
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
-import {Activity, BaseGroup, Group, GroupStats} from 'app/types';
+import {
+  Activity,
+  BaseGroup,
+  Group,
+  GroupCollapseRelease,
+  GroupRelease,
+  GroupStats,
+} from 'app/types';
 
 function showAlert(msg, type) {
   IndicatorStore.addMessage(msg, type, {
@@ -52,15 +59,15 @@ type Internals = {
 type GroupStoreInterface = Reflux.StoreDefinition & {
   init: () => void;
   reset: () => void;
-  loadInitialData: (items: BaseGroup[] | Group[]) => void;
-  add: (items: BaseGroup[] | Group[]) => void;
+  loadInitialData: (items: BaseGroup[] | Group[] | GroupCollapseRelease[]) => void;
+  add: (items: BaseGroup[] | Group[] | GroupCollapseRelease[]) => void;
   remove: (itemIds: string[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
   hasStatus: (id: string, status: string) => boolean;
-  get: (id: string) => BaseGroup | Group | undefined;
+  get: (id: string) => BaseGroup | Group | GroupCollapseRelease | undefined;
   getAllItemIds: () => string[];
-  getAllItems: () => BaseGroup[] | Group[];
+  getAllItems: () => BaseGroup[] | Group[] | GroupCollapseRelease[];
   onAssignTo: (changeId: string, itemId: string, data: any) => void;
   onAssignToError: (changeId: string, itemId: string, error: Error) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
@@ -86,6 +93,7 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
     silent: boolean
   ) => void;
   onPopulateStats: (itemIds: string[], response: GroupStats[]) => void;
+  onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
 };
 
 type GroupStore = Reflux.Store & GroupStoreInterface;
@@ -490,6 +498,18 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
       }
     });
     this.trigger(new Set(this.items.map(item => item.id)));
+  },
+
+  onPopulateReleases(itemId: string, releaseData: GroupRelease) {
+    this.items.forEach((item, idx) => {
+      if (item.id === itemId) {
+        this.items[idx] = {
+          ...item,
+          ...releaseData,
+        };
+      }
+    });
+    this.trigger(new Set([itemId]));
   },
 };
 

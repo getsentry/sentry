@@ -1,7 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 
 import {MetaType} from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
+import {TransactionThresholdMetric} from 'app/views/performance/transactionSummary/transactionThresholdModal';
 
 import GenericDiscoverQuery, {DiscoverQueryProps} from './genericDiscoverQuery';
 
@@ -21,8 +22,31 @@ export type TableData = {
   meta?: MetaType;
 };
 
-function DiscoverQuery(props: DiscoverQueryProps) {
-  return <GenericDiscoverQuery<TableData, {}> route="eventsv2" {...props} />;
+export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+  transactionName?: string;
+  transactionThreshold?: number;
+  transactionThresholdMetric?: TransactionThresholdMetric;
+};
+
+function shouldRefetchData(
+  prevProps: DiscoverQueryPropsWithThresholds,
+  nextProps: DiscoverQueryPropsWithThresholds
+) {
+  return (
+    prevProps.transactionName !== nextProps.transactionName ||
+    prevProps.transactionThreshold !== nextProps.transactionThreshold ||
+    prevProps.transactionThresholdMetric !== nextProps.transactionThresholdMetric
+  );
+}
+
+function DiscoverQuery(props: DiscoverQueryPropsWithThresholds) {
+  return (
+    <GenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>
+      route="eventsv2"
+      shouldRefetchData={shouldRefetchData}
+      {...props}
+    />
+  );
 }
 
 export default withApi(DiscoverQuery);

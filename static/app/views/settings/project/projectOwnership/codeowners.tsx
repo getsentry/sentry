@@ -1,12 +1,12 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconSync} from 'app/icons';
 import {t} from 'app/locale';
-import {CodeOwners, Organization, Project} from 'app/types';
+import {CodeOwner, CodeownersFile, Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
 
@@ -14,16 +14,14 @@ type Props = {
   api: Client;
   organization: Organization;
   project: Project;
-  codeowners: any;
-  onDelete: (data: any) => void;
+  codeowners: CodeOwner[];
+  disabled: boolean;
+  onDelete: (data: CodeOwner) => void;
+  onUpdate: (data: CodeOwner) => void;
 };
 
-type State = {};
-
-class CodeOwnersPanel extends React.Component<Props, State> {
-  state = {};
-
-  handleDelete = async (codeowner: CodeOwners) => {
+class CodeOwnersPanel extends Component<Props> {
+  handleDelete = async (codeowner: CodeOwner) => {
     const {api, organization, project, onDelete} = this.props;
     const endpoint = `/api/0/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`;
     try {
@@ -33,41 +31,71 @@ class CodeOwnersPanel extends React.Component<Props, State> {
       onDelete(codeowner);
       addSuccessMessage(t('Deletion successful'));
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };
 
+  handleSync = async (codeowner: CodeOwner) => {
+    const {api, organization, project, onUpdate} = this.props;
+    try {
+      const codeownerFile: CodeownersFile = await api.requestPromise(
+        `/organizations/${organization.slug}/code-mappings/${codeowner.codeMappingId}/codeowners/`,
+        {
+          method: 'GET',
+        }
+      );
+
+      const data = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        {
+          method: 'PUT',
+          data: {raw: codeownerFile.raw},
+        }
+      );
+      onUpdate({...codeowner, ...data});
+      addSuccessMessage(t('CODEOWNERS file sync successful.'));
+    } catch (_err) {
+      addErrorMessage(t('An error occurred trying to sync CODEOWNERS file.'));
+    }
+  };
   render() {
-    const {codeowners} = this.props;
-    return (codeowners || []).map(codeowner => {
-      const {
-        raw,
-        dateUpdated,
-        provider,
-        codeMapping: {repoName},
-      } = codeowner;
+    const {codeowners, disabled} = this.props;
+    return codeowners.map(codeowner => {
+      const {dateUpdated, provider, codeMapping, ownershipSyntax} = codeowner;
       return (
-        <React.Fragment key={codeowner.id}>
+        <Fragment key={codeowner.id}>
           <RulesPanel
             data-test-id="codeowners-panel"
             type="codeowners"
-            raw={raw}
+            raw={ownershipSyntax || ''}
             dateUpdated={dateUpdated}
             provider={provider}
-            repoName={repoName}
-            readOnly
+            repoName={codeMapping?.repoName}
+            beta
             controls={[
+              <Button
+                key="sync"
+                icon={<IconSync size="xs" />}
+                size="xsmall"
+                onClick={() => this.handleSync(codeowner)}
+                disabled={disabled}
+              />,
               <Confirm
                 onConfirm={() => this.handleDelete(codeowner)}
                 message={t('Are you sure you want to remove this CODEOWNERS file?')}
                 key="confirm-delete"
               >
-                <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />
+                <Button
+                  key="delete"
+                  icon={<IconDelete size="xs" />}
+                  size="xsmall"
+                  disabled={disabled}
+                />
               </Confirm>,
             ]}
           />
-        </React.Fragment>
+        </Fragment>
       );
     });
   }

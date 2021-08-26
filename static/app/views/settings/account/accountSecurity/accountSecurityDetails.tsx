@@ -4,7 +4,7 @@
  *
  * Also displays 2fa method specific details.
  */
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -36,10 +36,10 @@ type AuthenticatorDateProps = {
 
 function AuthenticatorDate({label, date}: AuthenticatorDateProps) {
   return (
-    <React.Fragment>
+    <Fragment>
       <DateLabel>{label}</DateLabel>
       <div>{date ? <DateTime date={date} /> : t('never')}</div>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -100,28 +100,34 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
     const {deleteDisabled, onRegenerateBackupCodes} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <span>{authenticator.name}</span>
               <AuthenticatorStatus enabled={authenticator.isEnrolled} />
-            </React.Fragment>
+            </Fragment>
           }
           action={
-            authenticator.isEnrolled &&
-            authenticator.removeButton && (
-              <Tooltip
-                title={t(
-                  "Two-factor authentication is required for at least one organization you're a member of."
-                )}
-                disabled={!deleteDisabled}
-              >
-                <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
-                  <Button priority="danger">{authenticator.removeButton}</Button>
-                </RemoveConfirm>
-              </Tooltip>
-            )
+            <AuthenticatorActions>
+              {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
+                <Button to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}>
+                  {t('Rotate Secret Key')}
+                </Button>
+              )}
+              {authenticator.isEnrolled && authenticator.removeButton && (
+                <Tooltip
+                  title={t(
+                    "Two-factor authentication is required for at least one organization you're a member of."
+                  )}
+                  disabled={!deleteDisabled}
+                >
+                  <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
+                    <Button priority="danger">{authenticator.removeButton}</Button>
+                  </RemoveConfirm>
+                </Tooltip>
+              )}
+            </AuthenticatorActions>
           }
         />
 
@@ -151,7 +157,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
           isEnrolled={authenticator.isEnrolled}
           codes={authenticator.codes}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -160,6 +166,16 @@ export default AccountSecurityDetails;
 
 const AuthenticatorStatus = styled(CircleIndicator)`
   margin-left: ${space(1)};
+`;
+
+const AuthenticatorActions = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  > * {
+    margin-left: ${space(1)};
+  }
 `;
 
 const AuthenticatorDates = styled('div')`

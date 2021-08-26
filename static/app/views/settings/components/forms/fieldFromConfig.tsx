@@ -1,7 +1,8 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {Scope} from 'app/types';
 
+import BlankField from './blankField';
 import BooleanField from './booleanField';
 import ChoiceMapperField from './choiceMapperField';
 import EmailField from './emailField';
@@ -12,7 +13,7 @@ import NumberField from './numberField';
 import ProjectMapperField from './projectMapperField';
 import RadioField from './radioField';
 import RangeField from './rangeField';
-import RichListField from './richListField';
+import SelectAsyncField from './selectAsyncField';
 import SelectField from './selectField';
 import SentryProjectSelectorField from './sentryProjectSelectorField';
 import TableField from './tableField';
@@ -30,11 +31,10 @@ type Props = {
   inline?: boolean;
   onBlur?: (value, event) => void;
   access?: Set<Scope>;
-  deprecatedSelectControl?: boolean;
   noOptionsMessage?: () => string;
 };
 
-export default class FieldFromConfig extends React.Component<Props> {
+export default class FieldFromConfig extends Component<Props> {
   render() {
     const {field, ...otherProps} = this.props;
 
@@ -52,6 +52,8 @@ export default class FieldFromConfig extends React.Component<Props> {
         // TODO(ts) The switch on field.type is not resolving
         // the Field union for this component. The union might be 'too big'.
         return <RangeField {...(props as any)} />;
+      case 'blank':
+        return <BlankField {...props} />;
       case 'bool':
       case 'boolean':
         return <BooleanField {...props} />;
@@ -84,10 +86,6 @@ export default class FieldFromConfig extends React.Component<Props> {
           throw new Error('Invalid `choices` type. Use an array of options');
         }
         return <RadioField {...props} choices={choices} />;
-      case 'rich_list':
-        // TODO(ts) The switch on field.type is not resolving
-        // the Field union for this component. The union might be 'too big'.
-        return <RichListField {...(props as any)} />;
       case 'table':
         // TODO(ts) The switch on field.type is not resolving
         // the Field union for this component. The union might be 'too big'.
@@ -96,6 +94,8 @@ export default class FieldFromConfig extends React.Component<Props> {
         return <ProjectMapperField {...props} />;
       case 'sentry_project_selector':
         return <SentryProjectSelectorField {...props} />;
+      case 'select_async':
+        return <SelectAsyncField {...props} />;
       case 'custom':
         return field.Component(props);
       default:

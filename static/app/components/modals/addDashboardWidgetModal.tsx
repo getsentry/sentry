@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -308,7 +308,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       Body,
       Header,
       api,
-      closeModal,
       organization,
       selection,
       tags,
@@ -329,12 +328,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <Header closeButton onHide={closeModal}>
+        <Header closeButton>
           <h4>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget')}</h4>
         </Header>
         <Body>
           <DoubleFieldWrapper>
-            <Field
+            <StyledField
               data-test-id="widget-name"
               label={t('Widget Name')}
               inline={false}
@@ -353,8 +352,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   this.handleFieldChange('title')(event.target.value);
                 }}
               />
-            </Field>
-            <Field
+            </StyledField>
+            <StyledField
               data-test-id="chart-type"
               label={t('Visualization Display')}
               inline={false}
@@ -373,9 +372,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   this.handleFieldChange('displayType')(option.value);
                 }}
               />
-            </Field>
+            </StyledField>
           </DoubleFieldWrapper>
-          <Measurements>
+          <Measurements organization={organization}>
             {({measurements}) => {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
               const amendedFieldOptions = fieldOptions(measurementKeys);
@@ -447,12 +446,13 @@ const DoubleFieldWrapper = styled('div')`
 `;
 
 export const modalCss = css`
-  .modal-dialog {
-    position: unset;
-    width: 100%;
-    max-width: 700px;
-    margin: 70px auto;
-  }
+  width: 100%;
+  max-width: 700px;
+  margin: 70px auto;
+`;
+
+const StyledField = styled(Field)`
+  position: relative;
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

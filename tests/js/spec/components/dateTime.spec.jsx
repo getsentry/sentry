@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DateTime from 'app/components/dateTime';
@@ -71,6 +69,11 @@ describe('DateTime', () => {
     it('renders timeonly', () => {
       const wrapper = mountWithTheme(<DateTime date={new Date()} timeOnly />);
       expect(wrapper.text()).toBe('19:41');
+    });
+
+    it('renders timeAndDate', () => {
+      const wrapper = mountWithTheme(<DateTime date={new Date()} timeAndDate />);
+      expect(wrapper.text()).toBe('Oct 16, 19:41');
     });
 
     it('renders date with forced utc', () => {

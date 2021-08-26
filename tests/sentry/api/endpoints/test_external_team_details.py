@@ -15,14 +15,14 @@ class ExternalTeamDetailsTest(APITestCase):
         )
 
     def test_basic_delete(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             self.get_success_response(
                 self.organization.slug, self.team.slug, self.external_team.id, method="delete"
             )
         assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
 
     def test_basic_update(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             data = {"externalName": "@getsentry/growth"}
             response = self.get_success_response(
                 self.organization.slug, self.team.slug, self.external_team.id, **data
@@ -33,7 +33,7 @@ class ExternalTeamDetailsTest(APITestCase):
 
     def test_invalid_provider_update(self):
         data = {"provider": "git"}
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
                 self.organization.slug,
                 self.team.slug,

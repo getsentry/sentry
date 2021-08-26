@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import Highlight from 'app/components/highlight';
@@ -20,7 +18,7 @@ type Props = {
 };
 
 const Default = ({breadcrumb, event, orgId, searchTerm}: Props) => (
-  <Summary kvData={breadcrumb.data} searchTerm={searchTerm}>
+  <Summary kvData={breadcrumb.data}>
     {breadcrumb?.message && (
       <AnnotatedText
         value={

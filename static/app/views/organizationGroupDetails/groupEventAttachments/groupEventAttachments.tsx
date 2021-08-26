@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -14,7 +14,7 @@ import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 
 type Props = {
   projectSlug: string;
-} & ReactRouter.WithRouterProps &
+} & WithRouterProps &
   AsyncComponent['props'];
 
 type State = {
@@ -102,15 +102,15 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <GroupEventAttachmentsFilter />
         <Panel className="event-list">
           <PanelBody>{this.renderInnerBody()}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.eventAttachmentsPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
 
-export default ReactRouter.withRouter(GroupEventAttachments);
+export default withRouter(GroupEventAttachments);

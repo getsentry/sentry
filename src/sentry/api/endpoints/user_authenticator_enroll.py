@@ -7,10 +7,11 @@ from rest_framework.fields import SkipField
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.decorators import sudo_required
+from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
+from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
@@ -23,7 +24,7 @@ SEND_SMS_ERR = {"details": "Error sending SMS"}
 
 class TotpRestSerializer(serializers.Serializer):
     otp = serializers.CharField(
-        label="Authenticator code",
+        label="Authenticator token",
         help_text="Code from authenticator",
         required=True,
         max_length=20,
@@ -110,9 +111,17 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         interface = Authenticator.objects.get_interface(user, interface_id)
 
-        # Not all interfaces allow multi enrollment
-        if interface.is_enrolled() and not interface.allow_multi_enrollment:
-            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+        if interface.is_enrolled():
+            # Not all interfaces allow multi enrollment
+            if interface.allow_multi_enrollment:
+                interface.status = EnrollmentStatus.MULTI
+            elif interface.allow_rotation_in_place:
+                # The new interface object returns False from
+                # interface.is_enrolled(), which is misleading.
+                # The status attribute can disambiguate where necessary.
+                interface = interface.generate(EnrollmentStatus.ROTATION)
+            else:
+                return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # User is not enrolled in auth interface:
         # - display configuration form
@@ -140,6 +149,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         return Response(response)
 
     @sudo_required
+    @email_verification_required
     def post(self, request, user, interface_id):
         """
         Enroll in authenticator interface
@@ -180,8 +190,13 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         #
         # This is probably un-needed because we catch
         # `Authenticator.AlreadyEnrolled` when attempting to enroll
-        if interface.is_enrolled() and not interface.allow_multi_enrollment:
-            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+        if interface.is_enrolled():
+            if interface.allow_multi_enrollment:
+                interface.status = EnrollmentStatus.MULTI
+            elif interface.allow_rotation_in_place:
+                interface.status = EnrollmentStatus.ROTATION
+            else:
+                return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             interface.secret = request.data["secret"]
@@ -216,10 +231,13 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             )
             context.update({"device_name": serializer.data["deviceName"]})
 
-        try:
-            interface.enroll(request.user)
-        except Authenticator.AlreadyEnrolled:
-            return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+        if interface.status == EnrollmentStatus.ROTATION:
+            interface.rotate_in_place()
+        else:
+            try:
+                interface.enroll(request.user)
+            except Authenticator.AlreadyEnrolled:
+                return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         context.update({"authenticator": interface.authenticator})
         capture_security_activity(

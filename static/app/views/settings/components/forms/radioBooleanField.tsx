@@ -1,4 +1,3 @@
-import React from 'react';
 import omit from 'lodash/omit';
 
 import RadioBoolean from './controls/radioBoolean';

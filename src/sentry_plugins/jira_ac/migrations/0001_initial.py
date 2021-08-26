@@ -1,4 +1,5 @@
 from django.db import migrations, models
+
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 
@@ -18,7 +19,7 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-    dependencies = [("sentry", "0001_initial")]
+    dependencies = [("sentry", "0001_squashed_0200_release_indices")]
 
     operations = [
         migrations.CreateModel(

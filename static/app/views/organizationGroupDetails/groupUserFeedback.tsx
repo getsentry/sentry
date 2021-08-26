@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 
@@ -6,7 +6,6 @@ import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import {Panel} from 'app/components/panels';
 import {Group, Organization, Project, UserReport} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
@@ -32,7 +31,7 @@ type State = {
   pageLinks?: string | null;
 };
 
-class GroupUserFeedback extends React.Component<Props, State> {
+class GroupUserFeedback extends Component<Props, State> {
   state: State = {
     loading: true,
     error: false,
@@ -64,12 +63,12 @@ class GroupUserFeedback extends React.Component<Props, State> {
       ...this.props.params,
       cursor: this.props.location.query.cursor || '',
     })
-      .then(([data, _, jqXHR]) => {
+      .then(([data, _, resp]) => {
         this.setState({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR?.getResponseHeader('Link'),
+          pageLinks: resp?.getResponseHeader('Link'),
         });
       })
       .catch(() => {
@@ -110,11 +109,7 @@ class GroupUserFeedback extends React.Component<Props, State> {
       );
     }
 
-    return (
-      <Panel>
-        <UserFeedbackEmpty projectIds={[group.project.id]} />
-      </Panel>
-    );
+    return <UserFeedbackEmpty projectIds={[group.project.id]} />;
   }
 }
 

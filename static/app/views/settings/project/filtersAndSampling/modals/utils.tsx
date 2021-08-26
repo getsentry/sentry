@@ -5,43 +5,13 @@ import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling
 import theme from 'app/utils/theme';
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     overflow: initial;
   }
 
   @media (min-width: ${theme.breakpoints[0]}) {
-    .modal-dialog {
-      width: 95%;
-      margin-left: -47.5%;
-    }
-  }
-
-  @media (min-width: ${theme.breakpoints[1]}) {
-    .modal-dialog {
-      width: 75%;
-      margin-left: -37.5%;
-    }
-  }
-
-  @media (min-width: ${theme.breakpoints[2]}) {
-    .modal-dialog {
-      width: 65%;
-      margin-left: -37.5%;
-    }
-  }
-
-  @media (min-width: ${theme.breakpoints[3]}) {
-    .modal-dialog {
-      width: 55%;
-      margin-left: -27.5%;
-    }
-  }
-
-  @media (min-width: ${theme.breakpoints[4]}) {
-    .modal-dialog {
-      width: 45%;
-      margin-left: -22.5%;
-    }
+    width: 100%;
+    max-width: 700px;
   }
 `;
 
@@ -113,6 +83,15 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
     case DynamicSamplingInnerName.TRACE_RELEASE:
     case DynamicSamplingInnerName.EVENT_RELEASE:
       return t('ex. 1* or [I3].[0-9].* (Multiline)');
+    case DynamicSamplingInnerName.EVENT_IP_ADDRESSES:
+      return t('ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)');
+    case DynamicSamplingInnerName.EVENT_CSP:
+      return t('ex. file://* or example.com (Multiline)');
+    case DynamicSamplingInnerName.EVENT_ERROR_MESSAGES:
+      return t('ex. TypeError* (Multiline)');
+    case DynamicSamplingInnerName.TRACE_TRANSACTION:
+    case DynamicSamplingInnerName.EVENT_TRANSACTION:
+      return t('ex. "page-load" (Multiline)');
     default:
       return '';
   }

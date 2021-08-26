@@ -18,7 +18,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'theme',
         type: 'select',
-        deprecatedSelectControl: false,
         label: t('Theme'),
         help: t(
           "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
@@ -31,23 +30,8 @@ const formGroups: JsonFormObject[] = [
         getData: transformOptions,
       },
       {
-        name: 'stacktraceOrder',
-        type: 'select',
-        deprecatedSelectControl: false,
-        required: false,
-        choices: [
-          [-1, t('Default (let Sentry decide)')],
-          [1, t('Most recent call last')],
-          [2, t('Most recent call first')],
-        ],
-        label: t('Stack Trace Order'),
-        help: t('Choose the default ordering of frames in stack traces'),
-        getData: transformOptions,
-      },
-      {
         name: 'language',
         type: 'select',
-        deprecatedSelectControl: false,
         label: t('Language'),
         choices: languages,
         getData: transformOptions,
@@ -55,7 +39,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'timezone',
         type: 'select',
-        deprecatedSelectControl: false,
         label: t('Timezone'),
         choices: timezones,
         getData: transformOptions,
@@ -64,6 +47,19 @@ const formGroups: JsonFormObject[] = [
         name: 'clock24Hours',
         type: 'boolean',
         label: t('Use a 24-hour clock'),
+        getData: transformOptions,
+      },
+      {
+        name: 'stacktraceOrder',
+        type: 'select',
+        required: false,
+        choices: [
+          [-1, t('Default (let Sentry decide)')],
+          [1, t('Most recent call last')],
+          [2, t('Most recent call first')],
+        ],
+        label: t('Stack Trace Order'),
+        help: t('Choose the default ordering of frames in stack traces'),
         getData: transformOptions,
       },
     ],

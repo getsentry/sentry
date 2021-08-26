@@ -27,13 +27,11 @@ class ExportedData(Model):
     Stores references to asynchronous data export jobs
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
-    file = FlexibleForeignKey(
-        "sentry.File", null=True, db_constraint=False, on_delete=models.SET_NULL
-    )
+    file_id = BoundedBigIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True, db_index=True)
@@ -68,8 +66,9 @@ class ExportedData(Model):
         return None if date is None else force_text(date.strftime("%-I:%M %p on %B %d, %Y (%Z)"))
 
     def delete_file(self):
-        if self.file:
-            self.file.delete()
+        file = self._get_file()
+        if file:
+            file.delete()
 
     def delete(self, *args, **kwargs):
         self.delete_file()
@@ -79,14 +78,14 @@ class ExportedData(Model):
         self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
-        self.update(file=file, date_finished=current_time, date_expired=expire_time)
+        self.update(file_id=file.id, date_finished=current_time, date_expired=expire_time)
         self.email_success()
 
     def email_success(self):
         from sentry.utils.email import MessageBuilder
 
         # The following condition should never be true, but it's a safeguard in case someone manually calls this method
-        if self.date_finished is None or self.date_expired is None or self.file is None:
+        if self.date_finished is None or self.date_expired is None or self._get_file() is None:
             logger.warning(
                 "Notification email attempted on incomplete dataset",
                 extra={"data_export_id": self.id, "organization_id": self.organization_id},
@@ -121,6 +120,16 @@ class ExportedData(Model):
         msg.send_async([self.user.email])
         self.delete()
 
+    def _get_file(self):
+        from sentry.models import File
+
+        if self.file_id:
+            try:
+                return File.objects.get(pk=self.file_id)
+            except File.DoesNotExist:
+                self.update(file_id=None)
+        return None
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_exporteddata"
@@ -129,13 +138,13 @@ class ExportedData(Model):
 
 
 class ExportedDataBlob(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
-    blob = FlexibleForeignKey("sentry.FileBlob", db_constraint=False)
+    blob_id = BoundedBigIntegerField()
     offset = BoundedBigIntegerField()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_exporteddatablob"
-        unique_together = (("data_export", "blob", "offset"),)
+        unique_together = (("data_export", "blob_id", "offset"),)

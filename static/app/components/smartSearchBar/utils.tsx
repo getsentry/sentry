@@ -1,5 +1,10 @@
-import React from 'react';
-
+import {
+  filterTypeConfig,
+  interchangeableFilterOperators,
+  TermOperator,
+  Token,
+  TokenResult,
+} from 'app/components/searchSyntax/parser';
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 
@@ -8,41 +13,64 @@ import {ItemType, SearchGroup, SearchItem} from './types';
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
     return query + ' ';
-  } else {
-    return query;
   }
+
+  return query;
 }
 
 export function removeSpace(query = '') {
   if (query[query.length - 1] === ' ') {
     return query.slice(0, query.length - 1);
-  } else {
-    return query;
   }
+
+  return query;
+}
+
+/**
+ * Given a query, and the current cursor position, return the string-delimiting
+ * index of the search term designated by the cursor.
+ */
+export function getLastTermIndex(query: string, cursor: number) {
+  // TODO: work with quoted-terms
+  const cursorOffset = query.slice(cursor).search(/\s|$/);
+  return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+}
+
+/**
+ * Returns an array of query terms, including incomplete terms
+ *
+ * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+ */
+export function getQueryTerms(query: string, cursor: number) {
+  return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
 }
 
 function getTitleForType(type: ItemType) {
-  if (type === 'tag-value') {
+  if (type === ItemType.TAG_VALUE) {
     return t('Tag Values');
   }
 
-  if (type === 'recent-search') {
+  if (type === ItemType.RECENT_SEARCH) {
     return t('Recent Searches');
   }
 
-  if (type === 'default') {
+  if (type === ItemType.DEFAULT) {
     return t('Common Search Terms');
+  }
+
+  if (type === ItemType.TAG_OPERATOR) {
+    return t('Operator Helpers');
   }
 
   return t('Tags');
 }
 
 function getIconForTypeAndTag(type: ItemType, tagName: string) {
-  if (type === 'recent-search') {
+  if (type === ItemType.RECENT_SEARCH) {
     return <IconClock size="xs" />;
   }
 
-  if (type === 'default') {
+  if (type === ItemType.DEFAULT) {
     return <IconStar size="xs" />;
   }
 
@@ -92,7 +120,7 @@ export function createSearchGroups(
 
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
-    type: type === 'invalid-tag' ? type : 'header',
+    type: type === ItemType.INVALID_TAG ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
     children: [...searchItems],
   };
@@ -142,4 +170,66 @@ export function filterSearchGroupsByIndex(items: SearchGroup[], index: number) {
   });
 
   return foundSearchItem;
+}
+
+export function generateOperatorEntryMap(tag: string) {
+  return {
+    [TermOperator.Default]: {
+      type: ItemType.TAG_OPERATOR,
+      value: ':',
+      desc: `${tag}:${t('[value] is equal to')}`,
+    },
+    [TermOperator.GreaterThanEqual]: {
+      type: ItemType.TAG_OPERATOR,
+      value: ':>=',
+      desc: `${tag}:${t('>=[value] is greater than or equal to')}`,
+    },
+    [TermOperator.LessThanEqual]: {
+      type: ItemType.TAG_OPERATOR,
+      value: ':<=',
+      desc: `${tag}:${t('<=[value] is less than or equal to')}`,
+    },
+    [TermOperator.GreaterThan]: {
+      type: ItemType.TAG_OPERATOR,
+      value: ':>',
+      desc: `${tag}:${t('>[value] is greater than')}`,
+    },
+    [TermOperator.LessThan]: {
+      type: ItemType.TAG_OPERATOR,
+      value: ':<',
+      desc: `${tag}:${t('<[value] is less than')}`,
+    },
+    [TermOperator.Equal]: {
+      type: ItemType.TAG_OPERATOR,
+      value: ':=',
+      desc: `${tag}:${t('=[value] is equal to')}`,
+    },
+    [TermOperator.NotEqual]: {
+      type: ItemType.TAG_OPERATOR,
+      value: '!:',
+      desc: `!${tag}:${t('[value] is not equal to')}`,
+    },
+  };
+}
+
+export function getValidOps(
+  filterToken: TokenResult<Token.Filter>
+): readonly TermOperator[] {
+  // If the token is invalid we want to use the possible expected types as our filter type
+  const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
+
+  // Determine any interchangable filter types for our valid types
+  const interchangeableTypes = validTypes.map(
+    type => interchangeableFilterOperators[type] ?? []
+  );
+
+  // Combine all types
+  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
+
+  // Find all valid operations
+  const validOps = new Set<TermOperator>(
+    allValidTypes.map(type => filterTypeConfig[type].validOps).flat()
+  );
+
+  return [...validOps];
 }

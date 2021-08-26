@@ -9,7 +9,7 @@ from sentry.utils.hashlib import md5_text
 
 
 class GroupRelease(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     # TODO: Should be BoundedBigIntegerField
     project_id = BoundedPositiveIntegerField(db_index=True)
@@ -24,6 +24,10 @@ class GroupRelease(Model):
         app_label = "sentry"
         db_table = "sentry_grouprelease"
         unique_together = (("group_id", "release_id", "environment"),)
+        index_together = (
+            ("group_id", "first_seen"),
+            ("group_id", "last_seen"),
+        )
 
     __repr__ = sane_repr("group_id", "release_id")
 

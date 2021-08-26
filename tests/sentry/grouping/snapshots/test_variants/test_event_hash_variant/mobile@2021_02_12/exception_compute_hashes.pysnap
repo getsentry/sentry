@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:26.565224Z'
+created: '2021-06-30T15:56:05.969550Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,11 +17,10 @@ app-depth-1:
         value (ignored because stacktrace takes precedence)
           "hello world"
 --------------------------------------------------------------------------
-app-depth-2:
+app-depth-max:
   hash: "9509e122c6175606d52862fa4f64853c"
-  tree_label: "<entire stacktrace>"
   component:
-    app-depth-2*
+    app-depth-max*
       exception*
         stacktrace*
           frame*
@@ -34,7 +33,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 system:
   hash: "9509e122c6175606d52862fa4f64853c"
-  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

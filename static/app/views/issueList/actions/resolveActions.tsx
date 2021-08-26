@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ResolveActions from 'app/components/actions/resolve';
 import {Organization} from 'app/types';
 

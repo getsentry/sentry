@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -20,7 +20,7 @@ import submitRules from './submitRules';
 import {ProjectId, Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =
-  'https://docs.sentry.io/product/data-management-settings/advanced-datascrubbing/';
+  'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/';
 
 type Props<T extends ProjectId> = {
   endpoint: string;

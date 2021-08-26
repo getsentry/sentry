@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -51,7 +51,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(wrapper.find('SectionHeading').text()).toBe('Latest Releases');
 
     expect(wrapper.find('Version').length).toBe(2);
-    expect(wrapper.find('DateTime').at(0).text()).toBe('Mar 23, 2020 12:00 AM');
+    expect(wrapper.find('DateTime').at(0).text()).toBe('Mar 23, 2020 1:02 AM');
     expect(wrapper.find('Version').at(1).text()).toBe('1.0.1');
   });
 
@@ -90,7 +90,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     });
 
     const wrapper = mountWithTheme(
-      <React.Fragment>
+      <Fragment>
         <GlobalModal />
         <ProjectLatestReleases
           organization={organization}
@@ -99,7 +99,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
           projectId={project.slug}
           isProjectStabilized
         />
-      </React.Fragment>
+      </Fragment>
     );
 
     await tick();

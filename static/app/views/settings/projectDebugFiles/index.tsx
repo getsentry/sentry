@@ -1,26 +1,25 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import ProjectActions from 'app/actions/projectActions';
 import Checkbox from 'app/components/checkbox';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
-import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
+import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'app/types/debugFiles';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
+import ExternalSources from './externalSources';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -28,9 +27,10 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 };
 
 type State = AsyncView['state'] & {
-  debugFiles: DebugFile[];
-  builtinSymbolSources?: BuiltinSymbolSource[];
+  debugFiles: DebugFile[] | null;
   showDetails: boolean;
+  project: Project;
+  builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
 
 class ProjectDebugSymbols extends AsyncView<Props, State> {
@@ -43,6 +43,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
+      project: this.props.project,
       showDetails: false,
     };
   }
@@ -51,6 +52,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     const {organization, params, location} = this.props;
     const {builtinSymbolSources} = this.state || {};
     const {orgId, projectId} = params;
+    const {query} = location.query;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
@@ -58,8 +60,18 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         `/projects/${orgId}/${projectId}/files/dsyms/`,
         {
           query: {
-            query: location.query.query,
-            file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
+            query,
+            file_formats: [
+              'breakpad',
+              'macho',
+              'elf',
+              'pe',
+              'pdb',
+              'sourcebundle',
+              'wasm',
+              'bcsymbolmap',
+              'uuidmap',
+            ],
           },
         },
       ],
@@ -93,6 +105,19 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       query: {...location.query, cursor: undefined, query},
     });
   };
+
+  async fetchProject() {
+    const {params} = this.props;
+    const {orgId, projectId} = params;
+    try {
+      const updatedProject = await this.api.requestPromise(
+        `/projects/${orgId}/${projectId}/`
+      );
+      ProjectActions.updateSuccess(updatedProject);
+    } catch {
+      addErrorMessage(t('An error occured while fetching project data'));
+    }
+  }
 
   getQuery() {
     const {query} = this.props.location.query;
@@ -138,24 +163,13 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project, params} = this.props;
-    const {
-      loading,
-      showDetails,
-      builtinSymbolSources,
-      debugFiles,
-      debugFilesPageLinks,
-    } = this.state;
-    const {orgId, projectId} = params;
-    const {features, access} = organization;
-
-    const fieldProps = {
-      organization,
-      builtinSymbolSources: builtinSymbolSources || [],
-    };
+    const {organization, project, router, location} = this.props;
+    const {loading, showDetails, builtinSymbolSources, debugFiles, debugFilesPageLinks} =
+      this.state;
+    const {features} = organization;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
 
         <TextBlock>
@@ -167,36 +181,27 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         </TextBlock>
 
         {features.includes('symbol-sources') && (
-          <React.Fragment>
+          <Fragment>
             <PermissionAlert />
-
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={project}
-              apiMethod="PUT"
-              apiEndpoint={`/projects/${orgId}/${projectId}/`}
-              onSubmitSuccess={ProjectActions.updateSuccess}
-              key={
-                [
-                  ...(project.builtinSymbolSources ?? []),
-                  ...(builtinSymbolSources ?? []),
-                ].join() || project.id
+            <ExternalSources
+              api={this.api}
+              location={location}
+              router={router}
+              projectSlug={project.slug}
+              organization={organization}
+              customRepositories={
+                (project.symbolSources
+                  ? JSON.parse(project.symbolSources)
+                  : []) as CustomRepo[]
               }
-            >
-              <JsonForm
-                features={new Set(features)}
-                title={t('External Sources')}
-                disabled={!access.includes('project:write')}
-                fields={[fields.symbolSources, fields.builtinSymbolSources]}
-                additionalFieldProps={fieldProps}
-              />
-            </Form>
-          </React.Fragment>
+              builtinSymbolSources={project.builtinSymbolSources ?? []}
+              builtinSymbolSourceOptions={builtinSymbolSources ?? []}
+            />
+          </Fragment>
         )}
 
         <Wrapper>
-          <TextBlock noMargin>{t('Uploaded debug information files')}:</TextBlock>
+          <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
 
           <Filters>
             <Label>
@@ -230,7 +235,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           {this.renderDebugFiles()}
         </StyledPanelTable>
         <Pagination pageLinks={debugFilesPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

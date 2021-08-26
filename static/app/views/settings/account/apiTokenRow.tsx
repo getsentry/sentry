@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -45,7 +44,7 @@ function ApiTokenRow({token, onRemove}: Props) {
             <DateTime
               date={getDynamicText({
                 value: token.dateCreated,
-                fixed: new Date(1508208080000), //National Pasta Day
+                fixed: new Date(1508208080000), // National Pasta Day
               })}
             />
           </Time>

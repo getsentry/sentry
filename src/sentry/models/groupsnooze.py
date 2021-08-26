@@ -12,6 +12,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 
@@ -30,7 +31,7 @@ class GroupSnooze(Model):
     NOTE: `window` and `user_window` are specified in minutes
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
     until = models.DateTimeField(null=True)
@@ -82,6 +83,8 @@ class GroupSnooze(Model):
     def test_frequency_rates(self):
         from sentry import tsdb
 
+        metrics.incr("groupsnooze.test_frequency_rates")
+
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
@@ -95,6 +98,8 @@ class GroupSnooze(Model):
 
     def test_user_rates(self):
         from sentry import tsdb
+
+        metrics.incr("groupsnooze.test_user_rates")
 
         end = timezone.now()
         start = end - timedelta(minutes=self.user_window)

@@ -1,11 +1,11 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -27,7 +27,7 @@ type State = {
  * lets the user attach an optional message to be included in the email.
  */
 export default class RequestIntegrationModal extends AsyncComponent<Props, State> {
-  state = {
+  state: State = {
     ...this.getDefaultState(),
     isSending: false,
     message: '',
@@ -37,14 +37,11 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
     const {organization, slug, type} = this.props;
     const {message} = this.state;
 
-    trackIntegrationEvent(
-      'integrations.request_install',
-      {
-        integration_type: type,
-        integration: slug,
-      },
-      organization
-    );
+    trackIntegrationAnalytics('integrations.request_install', {
+      integration_type: type,
+      integration: slug,
+      organization,
+    });
 
     const endpoint = `/organizations/${organization.slug}/integration-requests/`;
     this.api.request(endpoint, {
@@ -79,7 +76,7 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
     const buttonText = this.state.isSending ? t('Sending Request') : t('Send Request');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <h4>{t('Request %s Installation', name)}</h4>
         </Header>
@@ -114,7 +111,7 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
         <Footer>
           <Button onClick={this.sendRequest}>{buttonText}</Button>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

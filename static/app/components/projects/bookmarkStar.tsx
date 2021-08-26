@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -41,10 +41,10 @@ const BookmarkStar = ({
       addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
     });
 
-    //needed to dismiss tooltip
+    // needed to dismiss tooltip
     (document.activeElement as HTMLElement).blur();
 
-    //prevent dropdowns from closing
+    // prevent dropdowns from closing
     event.stopPropagation();
 
     if (onToggle) {
@@ -54,8 +54,8 @@ const BookmarkStar = ({
 
   return (
     <Star
-      isSolid
       isBookmarked={isBookmarked}
+      isSolid={isBookmarked}
       onClick={toggleProjectBookmark}
       className={className}
     />
@@ -66,10 +66,7 @@ const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
   isBookmarked: boolean;
 }>`
   color: ${p => (p.isBookmarked ? p.theme.yellow300 : p.theme.gray200)};
-
-  &:hover {
-    color: ${p => (p.isBookmarked ? p.theme.yellow200 : p.theme.gray300)};
-  }
+  cursor: pointer;
 `;
 
 export default withApi(BookmarkStar);

@@ -6,6 +6,7 @@ import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
+import calixa from 'sentry-logos/logo-calixa.svg';
 import campfire from 'sentry-logos/logo-campfire.svg';
 import clickup from 'sentry-logos/logo-clickup.svg';
 import clubhouse from 'sentry-logos/logo-clubhouse.svg';
@@ -20,6 +21,7 @@ import gitlab from 'sentry-logos/logo-gitlab.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
 import jira from 'sentry-logos/logo-jira.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
+import komodor from 'sentry-logos/logo-komodor.svg';
 import lighthouse from 'sentry-logos/logo-lighthouse.svg';
 import linear from 'sentry-logos/logo-linear.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
@@ -70,6 +72,7 @@ export const ICON_PATHS = {
   bitbucket,
   bitbucket_pipelines: bitbucket,
   bitbucket_server: bitbucketserver,
+  calixa,
   campfire,
   clickup,
   clubhouse,
@@ -85,6 +88,7 @@ export const ICON_PATHS = {
   'jira-atlassian-connect': jira,
   'jira-ac': jira,
   jira_server: jiraserver,
+  komodor,
   lighthouse,
   linear,
   msteams,

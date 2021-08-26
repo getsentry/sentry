@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
@@ -26,6 +26,7 @@ export type TimeSeriesData = {
   originalPreviousTimeseriesData?: EventsStatsData | null;
   previousTimeseriesData?: Series | null;
   timeAggregatedData?: Series | {};
+  timeframe?: {start: number; end: number};
 };
 
 type LoadingStatus = {
@@ -98,6 +99,10 @@ type EventsRequestPartialProps = {
    */
   environment?: Readonly<string[]>;
   /**
+   * List of team ids to query
+   */
+  team?: Readonly<string | string[]>;
+  /**
    * List of fields to group with when doing a topEvents request.
    */
   field?: string[];
@@ -154,6 +159,10 @@ type EventsRequestPartialProps = {
    * Hide error toast (used for pages which also query eventsV2)
    */
   hideError?: boolean;
+  /**
+   * Whether or not to zerofill results
+   */
+  withoutZerofill?: boolean;
 };
 
 type TimeAggregationProps =
@@ -352,11 +361,8 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }
 
     const {data, totals} = response;
-    const {
-      includeTransformedData,
-      includeTimeAggregation,
-      timeAggregationSeriesName,
-    } = this.props;
+    const {includeTransformedData, includeTimeAggregation, timeAggregationSeriesName} =
+      this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
       ? this.transformTimeseriesData(current, this.props.currentSeriesName)
@@ -367,6 +373,19 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     const timeAggregatedData = includeTimeAggregation
       ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
       : {};
+    const timeframe =
+      response.start && response.end
+        ? !previous
+          ? {
+              start: response.start * 1000,
+              end: response.end * 1000,
+            }
+          : {
+              // Find the midpoint of start & end since previous includes 2x data
+              start: (response.start + response.end) * 500,
+              end: response.end * 1000,
+            }
+        : undefined;
     return {
       data: transformedData,
       allData: data,
@@ -375,6 +394,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       originalPreviousData: previous,
       previousData,
       timeAggregatedData,
+      timeframe,
     };
   }
 
@@ -394,9 +414,17 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
+      let timeframe: {start: number; end: number} | undefined = undefined;
       const results: MultiSeriesResults = Object.keys(timeseriesData)
         .map((seriesName: string): [number, Series] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
+          // Use the first timeframe we find from the series since all series have the same timeframe anyways
+          if (seriesData.start && seriesData.end && !timeframe) {
+            timeframe = {
+              start: seriesData.start * 1000,
+              end: seriesData.end * 1000,
+            };
+          }
           const transformed = this.transformTimeseriesData(
             seriesData.data,
             seriesName
@@ -411,6 +439,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         reloading,
         errored,
         results,
+        timeframe,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
@@ -424,6 +453,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       originalPreviousData: originalPreviousTimeseriesData,
       previousData: previousTimeseriesData,
       timeAggregatedData,
+      timeframe,
     } = this.processData(timeseriesData);
 
     return children({
@@ -438,6 +468,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       originalPreviousTimeseriesData,
       previousTimeseriesData,
       timeAggregatedData,
+      timeframe,
       // sometimes we want to reference props that were given to EventsRequest
       ...props,
     });

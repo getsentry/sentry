@@ -1,7 +1,6 @@
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.api.helpers.group_index import (
@@ -57,7 +56,6 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", ["base"])
-        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
@@ -100,12 +98,12 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 stats_period_end=stats_period_end,
                 collapse=collapse,
                 expand=expand,
-                has_inbox=has_inbox,
                 start=start,
                 end=end,
                 search_filters=query_kwargs["search_filters"]
                 if "search_filters" in query_kwargs
                 else None,
+                organization_id=organization.id,
             ),
         )
 

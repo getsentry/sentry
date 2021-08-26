@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import {Team} from 'app/types';
@@ -8,7 +8,7 @@ type Props = {
   team: Team | null;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
-class TeamAvatar extends React.Component<Props> {
+class TeamAvatar extends Component<Props> {
   render() {
     const {team, tooltip: tooltipProp, ...props} = this.props;
     if (!team) {

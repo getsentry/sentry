@@ -1,10 +1,8 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
@@ -39,7 +37,7 @@ export const TraceViewHeaderContainer = styled(SecondaryHeader)`
 
 export const TraceDetailHeader = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
@@ -63,8 +61,11 @@ export const StyledPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-export const StyledProjectBadge = styled(ProjectBadge)`
+export const ProjectBadgeContainer = styled('span')`
   margin-right: ${space(0.75)};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const StyledPills = styled(Pills)`
@@ -111,11 +112,9 @@ export function Tags({
                 tag={tag}
                 projectId={transaction.project_slug}
                 organization={organization}
-                location={location}
                 query={query}
                 streamPath={streamPath}
                 releasesPath={releasesPath}
-                hasQueryFeature={false}
               />
             );
           })}

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import InternalStatChart from 'app/components/internalStatChart';
 
 const AdminBuffer = () => {

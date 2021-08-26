@@ -16,24 +16,25 @@ def handle_snuba_errors(logger):
                 return func(*args, **kwargs)
             except discover.InvalidSearchQuery as error:
                 metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-                logger.warn("dataexport.error: %s", str(error))
+                logger.warning("dataexport.error: %s", str(error))
                 capture_exception(error)
                 raise ExportError("Invalid query. Please fix the query and try again.")
             except snuba.QueryOutsideRetentionError as error:
                 metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-                logger.warn("dataexport.error: %s", str(error))
+                logger.warning("dataexport.error: %s", str(error))
                 capture_exception(error)
                 raise ExportError("Invalid date range. Please try a more recent date range.")
             except snuba.QueryIllegalTypeOfArgument as error:
                 metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-                logger.warn("dataexport.error: %s", str(error))
+                logger.warning("dataexport.error: %s", str(error))
                 capture_exception(error)
                 raise ExportError("Invalid query. Argument to function is wrong type.")
             except snuba.SnubaError as error:
                 metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-                logger.warn("dataexport.error: %s", str(error))
+                logger.warning("dataexport.error: %s", str(error))
                 capture_exception(error)
                 message = "Internal error. Please try again."
+                recoverable = False
                 if isinstance(
                     error,
                     (
@@ -44,6 +45,7 @@ def handle_snuba_errors(logger):
                     ),
                 ):
                     message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                    recoverable = True
                 elif isinstance(
                     error,
                     (
@@ -56,7 +58,7 @@ def handle_snuba_errors(logger):
                     ),
                 ):
                     message = "Internal error. Your query failed to run."
-                raise ExportError(message)
+                raise ExportError(message, recoverable=recoverable)
 
         return wrapped
 

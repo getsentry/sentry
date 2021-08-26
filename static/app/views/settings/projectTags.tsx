@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -7,7 +7,6 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -66,7 +65,7 @@ class ProjectTags extends AsyncView<Props, State> {
     const isEmpty = !tags || !tags.length;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Tags')} />
         <PermissionAlert />
 
@@ -102,27 +101,24 @@ class ProjectTags extends AsyncView<Props, State> {
                       <TagPanelItem key={key} data-test-id="tag-row">
                         <TagName>{key}</TagName>
                         <Actions>
-                          <Tooltip
-                            disabled={enabled}
-                            title={
-                              hasAccess
-                                ? t('This tag cannot be deleted.')
-                                : t('You do not have permission to remove tags.')
-                            }
+                          <Confirm
+                            message={t('Are you sure you want to remove this tag?')}
+                            onConfirm={this.handleDelete(key, idx)}
+                            disabled={!enabled}
                           >
-                            <Confirm
-                              message={t('Are you sure you want to remove this tag?')}
-                              onConfirm={this.handleDelete(key, idx)}
-                              disabled={!enabled}
-                            >
-                              <Button
-                                size="xsmall"
-                                title={t('Remove tag')}
-                                icon={<IconDelete size="xs" />}
-                                data-test-id="delete"
-                              />
-                            </Confirm>
-                          </Tooltip>
+                            <Button
+                              size="xsmall"
+                              title={
+                                enabled
+                                  ? t('Remove tag')
+                                  : hasAccess
+                                  ? t('This tag cannot be deleted.')
+                                  : t('You do not have permission to remove tags.')
+                              }
+                              icon={<IconDelete size="xs" />}
+                              data-test-id="delete"
+                            />
+                          </Confirm>
                         </Actions>
                       </TagPanelItem>
                     );
@@ -132,7 +128,7 @@ class ProjectTags extends AsyncView<Props, State> {
             )}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

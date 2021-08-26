@@ -1,4 +1,4 @@
-import React from 'react';
+import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
 import _Footer from '../../charts/footer';
@@ -16,6 +16,7 @@ import {AxisOption} from '../../data';
 import {getTransactionSearchQuery} from '../../utils';
 
 import {SingleAxisChart} from './singleAxisChart';
+import {getAxisOrBackupAxis, getBackupAxes} from './utils';
 
 type Props = {
   location: Location;
@@ -29,15 +30,17 @@ type Props = {
 function DoubleAxisDisplay(props: Props) {
   const {eventView, location, organization, axisOptions, leftAxis, rightAxis} = props;
 
+  const [usingBackupAxis, setUsingBackupAxis] = useState(false);
+
   const onFilterChange = (field: string) => (minValue, maxValue) => {
     const filterString = getTransactionSearchQuery(location);
 
-    const conditions = tokenizeSearch(filterString);
-    conditions.setTagValues(field, [
+    const conditions = new MutableSearch(filterString);
+    conditions.setFilterValues(field, [
       `>=${Math.round(minValue)}`,
       `<${Math.round(maxValue)}`,
     ]);
-    const query = stringifyQueryObject(conditions);
+    const query = conditions.formatString();
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.landingv2.display.filter_change',
@@ -57,25 +60,38 @@ function DoubleAxisDisplay(props: Props) {
     });
   };
 
+  const didReceiveMultiAxis = (useBackup: boolean) => {
+    setUsingBackupAxis(useBackup);
+  };
+
+  const leftAxisOrBackup = getAxisOrBackupAxis(leftAxis, usingBackupAxis);
+  const rightAxisOrBackup = getAxisOrBackupAxis(rightAxis, usingBackupAxis);
+
+  const optionsOrBackup = getBackupAxes(axisOptions, usingBackupAxis);
+
   return (
     <Panel>
       <DoubleChartContainer>
         <SingleAxisChart
           axis={leftAxis}
           onFilterChange={onFilterChange(leftAxis.field)}
+          didReceiveMultiAxis={didReceiveMultiAxis}
+          usingBackupAxis={usingBackupAxis}
           {...props}
         />
         <SingleAxisChart
           axis={rightAxis}
           onFilterChange={onFilterChange(rightAxis.field)}
+          didReceiveMultiAxis={didReceiveMultiAxis}
+          usingBackupAxis={usingBackupAxis}
           {...props}
         />
       </DoubleChartContainer>
 
       <Footer
-        options={axisOptions}
-        leftAxis={leftAxis.value}
-        rightAxis={rightAxis.value}
+        options={optionsOrBackup}
+        leftAxis={leftAxisOrBackup.value}
+        rightAxis={rightAxisOrBackup.value}
         organization={organization}
         eventView={eventView}
         location={location}

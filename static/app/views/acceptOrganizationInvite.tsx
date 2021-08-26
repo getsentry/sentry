@@ -1,4 +1,4 @@
-import React, {MouseEvent} from 'react';
+import {Fragment, MouseEvent} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
@@ -19,6 +19,7 @@ type InviteDetails = {
   orgSlug: string;
   needsAuthentication: boolean;
   needs2fa: boolean;
+  needsEmailVerification: boolean;
   needsSso: boolean;
   requireSso: boolean;
   existingMember: boolean;
@@ -94,7 +95,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     const {inviteDetails} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {!inviteDetails.requireSso && (
           <p data-test-id="action-info-general">
             {t(
@@ -159,7 +160,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             </ExternalLink>
           )}
         </Actions>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -167,7 +168,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     const {inviteDetails} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <p data-test-id="2fa-warning">
           {tct(
             'To continue, [orgSlug] requires all members to configure two-factor authentication.',
@@ -179,7 +180,27 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             {t('Configure Two-Factor Auth')}
           </Button>
         </Actions>
-      </React.Fragment>
+      </Fragment>
+    );
+  }
+
+  get warningEmailVerification() {
+    const {inviteDetails} = this.state;
+
+    return (
+      <Fragment>
+        <p data-test-id="email-verification-warning">
+          {tct(
+            'To continue, [orgSlug] requires all members to verify their email address.',
+            {orgSlug: inviteDetails.orgSlug}
+          )}
+        </p>
+        <Actions>
+          <Button priority="primary" to="/settings/account/emails/">
+            {t('Verify Email Address')}
+          </Button>
+        </Actions>
+      </Fragment>
     );
   }
 
@@ -232,6 +253,10 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           ? this.existingMemberAlert
           : inviteDetails.needs2fa
           ? this.warning2fa
+          : inviteDetails.needsEmailVerification
+          ? this.warningEmailVerification
+          : inviteDetails.needsSso
+          ? this.authenticationActions
           : this.acceptActions}
       </NarrowLayout>
     );

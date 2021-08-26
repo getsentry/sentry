@@ -1,0 +1,59 @@
+[
+  {
+    "query": "last_seen():+7d",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateRelativeDate",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "last_seen", "quoted": false},
+          "args": null,
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "",
+        "value": {"type": "valueRelativeDate", "value": 7, "sign": "+", "unit": "d"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "last_seen():-2w",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateRelativeDate",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "last_seen", "quoted": false},
+          "args": null,
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "",
+        "value": {"type": "valueRelativeDate", "value": 2, "sign": "-", "unit": "w"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "random:-2w",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "random", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "-2w", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

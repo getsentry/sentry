@@ -25,8 +25,8 @@ from sentry.models import (
     User,
 )
 from sentry.search.base import SearchBackend
-from sentry.search.events.constants import EQUALITY_OPERATORS
-from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
+from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
+from sentry.search.snuba.executors import CdcPostgresSnubaQueryExecutor, PostgresSnubaQueryExecutor
 
 
 def assigned_to_filter(actors, projects, field_filter="id"):
@@ -35,9 +35,6 @@ def assigned_to_filter(actors, projects, field_filter="id"):
     include_none = False
     types_to_actors = defaultdict(list)
     for actor in actors:
-        if isinstance(actor, list) and actor[0] == "me_or_none":
-            include_none = True
-            actor = actor[1]
         if actor is None:
             include_none = True
         types_to_actors[type(actor) if not isinstance(actor, SimpleLazyObject) else User].append(
@@ -68,13 +65,15 @@ def assigned_to_filter(actors, projects, field_filter="id"):
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
                     project_id__in=[p.id for p in projects],
-                    team_id__in=Team.objects.filter(
-                        id__in=OrganizationMemberTeam.objects.filter(
-                            organizationmember__in=OrganizationMember.objects.filter(
-                                user__in=users, organization_id=projects[0].organization_id
-                            ),
-                            is_active=True,
-                        ).values("team")
+                    team_id__in=list(
+                        Team.objects.filter(
+                            id__in=OrganizationMemberTeam.objects.filter(
+                                organizationmember__in=OrganizationMember.objects.filter(
+                                    user__in=users, organization_id=projects[0].organization_id
+                                ),
+                                is_active=True,
+                            ).values_list("team_id", flat=True)
+                        )
                     ),
                 ).values_list("group_id", flat=True)
             }
@@ -177,9 +176,6 @@ def assigned_or_suggested_filter(owners, projects, field_filter="id"):
     types_to_owners = defaultdict(list)
     include_none = False
     for owner in owners:
-        if isinstance(owner, list) and owner[0] == "me_or_none":
-            include_none = True
-            owner = owner[1]
         if owner is None:
             include_none = True
         types_to_owners[type(owner) if not isinstance(owner, SimpleLazyObject) else User].append(
@@ -208,18 +204,20 @@ def assigned_or_suggested_filter(owners, projects, field_filter="id"):
 
     if User in types_to_owners:
         users = types_to_owners[User]
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember__in=OrganizationMember.objects.filter(
-                    user__in=users, organization_id=organization_id
-                ),
-                is_active=True,
-            ).values("team")
+        team_ids = list(
+            Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__in=OrganizationMember.objects.filter(
+                        user__in=users, organization_id=organization_id
+                    ),
+                    is_active=True,
+                ).values("team")
+            ).values_list("id", flat=True)
         )
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user__in=users) | Q(team__in=teams),
+                    Q(user__in=users) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
@@ -282,14 +280,12 @@ class ScalarCondition(Condition):
     instances
     """
 
-    OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
-
     def __init__(self, field, extra=None):
         self.field = field
         self.extra = extra
 
     def _get_operator(self, search_filter):
-        django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, "")
+        django_operator = OPERATOR_TO_DJANGO.get(search_filter.operator, "")
         if django_operator:
             django_operator = f"__{django_operator}"
         return django_operator
@@ -507,3 +503,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 }
             )
         return queryset_conditions
+
+
+class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
+    def _get_query_executor(self, *args, **kwargs):
+        return CdcPostgresSnubaQueryExecutor()

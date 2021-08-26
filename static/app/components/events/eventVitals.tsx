@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'app/components/charts/styles';
@@ -8,14 +8,14 @@ import {IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 import {formattedValue} from 'app/utils/measurements/index';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {
+  MOBILE_VITAL_DETAILS,
+  WEB_VITAL_DETAILS,
+} from 'app/utils/performance/vitals/constants';
+import {Vital} from 'app/utils/performance/vitals/types';
 import {IconSize} from 'app/utils/theme';
-
-type Props = {
-  event: Event;
-  showSectionHeader?: boolean;
-};
 
 function isOutdatedSdk(event: Event): boolean {
   if (!event.sdk?.version) {
@@ -31,7 +31,20 @@ function isOutdatedSdk(event: Event): boolean {
   );
 }
 
-export default function EventVitals({event, showSectionHeader = true}: Props) {
+type Props = {
+  event: Event;
+};
+
+export default function EventVitals({event}: Props) {
+  return (
+    <Fragment>
+      <WebVitals event={event} />
+      <MobileVitals event={event} />
+    </Fragment>
+  );
+}
+
+function WebVitals({event}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
@@ -40,69 +53,86 @@ export default function EventVitals({event, showSectionHeader = true}: Props) {
     return null;
   }
 
-  const component = (
-    <Measurements>
-      {measurementNames.map(name => (
-        <EventVital key={name} event={event} name={name} />
-      ))}
-    </Measurements>
-  );
+  return (
+    <Container>
+      <SectionHeading>
+        {t('Web Vitals')}
+        {isOutdatedSdk(event) && (
+          <WarningIconContainer size="sm">
+            <Tooltip
+              title={t(
+                'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
+              )}
+              position="top"
+              containerDisplayMode="inline-block"
+            >
+              <IconWarning size="sm" />
+            </Tooltip>
+          </WarningIconContainer>
+        )}
+      </SectionHeading>
+      <Measurements>
+        {measurementNames.map(name => {
+          // Measurements are referred to by their full name `measurements.<name>`
+          // here but are stored using their abbreviated name `<name>`. Make sure
+          // to convert it appropriately.
+          const measurement = `measurements.${name}`;
+          const vital = WEB_VITAL_DETAILS[measurement];
 
-  if (showSectionHeader) {
-    return (
-      <Container>
-        <SectionHeading>
-          {t('Web Vitals')}
-          {isOutdatedSdk(event) && (
-            <WarningIconContainer size="sm">
-              <Tooltip
-                title={t(
-                  'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
-                )}
-                position="top"
-                containerDisplayMode="inline-block"
-              >
-                <IconWarning size="sm" />
-              </Tooltip>
-            </WarningIconContainer>
-          )}
-        </SectionHeading>
-        {component}
-      </Container>
-    );
+          return <EventVital key={name} event={event} name={name} vital={vital} />;
+        })}
+      </Measurements>
+    </Container>
+  );
+}
+
+function MobileVitals({event}: Props) {
+  const measurementNames = Object.keys(event.measurements ?? {})
+    .filter(name => Boolean(MOBILE_VITAL_DETAILS[`measurements.${name}`]))
+    .sort();
+
+  if (measurementNames.length === 0) {
+    return null;
   }
 
-  return component;
+  return (
+    <Container>
+      <SectionHeading>{t('Mobile Vitals')}</SectionHeading>
+      <Measurements>
+        {measurementNames.map(name => {
+          // Measurements are referred to by their full name `measurements.<name>`
+          // here but are stored using their abbreviated name `<name>`. Make sure
+          // to convert it appropriately.
+          const measurement = `measurements.${name}`;
+          const vital = MOBILE_VITAL_DETAILS[measurement];
+
+          return <EventVital key={name} event={event} name={name} vital={vital} />;
+        })}
+      </Measurements>
+    </Container>
+  );
 }
 
 type EventVitalProps = Props & {
   name: string;
+  vital?: Vital;
 };
 
-function EventVital({event, name}: EventVitalProps) {
+function EventVital({event, name, vital}: EventVitalProps) {
   const value = event.measurements?.[name].value ?? null;
-  if (value === null) {
+  if (value === null || !vital) {
     return null;
   }
 
-  // Measurements are referred to by their full name `measurements.<name>`
-  // here but are stored using their abbreviated name `<name>`. Make sure
-  // to convert it appropriately.
-  const record = WEB_VITAL_DETAILS[`measurements.${name}`];
+  const failedThreshold = defined(vital.poorThreshold) && value >= vital.poorThreshold;
 
-  if (!record) {
-    return null;
-  }
-
-  const failedThreshold = value >= record.poorThreshold;
-
-  const currentValue = formattedValue(record, value);
-  const thresholdValue = formattedValue(record, record?.poorThreshold ?? 0);
+  const currentValue = formattedValue(vital, value);
+  const thresholdValue = formattedValue(vital, vital?.poorThreshold ?? 0);
 
   return (
     <EventVitalContainer>
       <StyledPanel failedThreshold={failedThreshold}>
-        <Name>{record.name ?? name}</Name>
+        <Name>{vital.name ?? name}</Name>
         <ValueRow>
           {failedThreshold ? (
             <FireIconContainer size="sm">

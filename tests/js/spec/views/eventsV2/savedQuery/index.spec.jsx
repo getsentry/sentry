@@ -1,12 +1,10 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventView from 'app/utils/discover/eventView';
+import DiscoverBanner from 'app/views/eventsV2/banner';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import * as utils from 'app/views/eventsV2/savedQuery/utils';
-import {isBannerHidden, setBannerHidden} from 'app/views/eventsV2/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'button[aria-label="Save as"]';
 const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
@@ -102,7 +100,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         errorsView,
         undefined
       );
-      setBannerHidden(false);
 
       // Click on ButtonSaveAs to open dropdown
       const buttonSaveAs = wrapper.find('DropdownControl').first();
@@ -116,8 +113,10 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
       // Click on Save in the Dropdown
       await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
-      // Banner should be hidden.
-      expect(isBannerHidden()).toEqual(true);
+
+      // The banner should not render
+      const banner = mountWithTheme(<DiscoverBanner />);
+      expect(banner.find('BannerTitle').exists()).toBe(false);
     });
 
     it('saves a well-formed query', async () => {

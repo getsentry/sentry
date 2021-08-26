@@ -42,7 +42,7 @@ class GroupInbox(Model):
     A Group that is in the inbox.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)

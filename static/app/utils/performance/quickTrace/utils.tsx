@@ -4,7 +4,9 @@ import moment from 'moment-timezone';
 import {Client} from 'app/api';
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {OrganizationSummary} from 'app/types';
 import {Event, EventTransaction} from 'app/types/event';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import {
@@ -109,8 +111,8 @@ type ParsedQuickTrace = {
    */
   root: QuickTraceEvent | null;
   /**
-   * `[]` represents the lack of ancestors in a full quick trace
-   * `null` represents the uncertainty of ancestors in a lite quick trace
+   * `[]` represents the lack of ancestors in a full trace navigator
+   * `null` represents the uncertainty of ancestors in a lite trace navigator
    */
   ancestors: QuickTraceEvent[] | null;
   /**
@@ -120,31 +122,32 @@ type ParsedQuickTrace = {
   parent: QuickTraceEvent | null;
   current: QuickTraceEvent;
   /**
-   * `[]` represents the lack of children in a full/lite quick trace
+   * `[]` represents the lack of children in a full/lite trace navigator
    */
   children: QuickTraceEvent[];
   /**
-   * `[]` represents the lack of descendants in a full quick trace
-   * `null` represents the uncertainty of descendants in a lite quick trace
+   * `[]` represents the lack of descendants in a full trace navigator
+   * `null` represents the uncertainty of descendants in a lite trace navigator
    */
   descendants: QuickTraceEvent[] | null;
 };
 
 export function parseQuickTrace(
   quickTrace: QuickTrace,
-  event: Event
+  event: Event,
+  organization: OrganizationSummary
 ): ParsedQuickTrace | null {
   const {type, trace} = quickTrace;
 
   if (type === 'empty' || trace === null) {
-    throw new Error('Current event not in quick trace!');
+    throw new Error('Current event not in trace navigator!');
   }
 
   const isFullTrace = type === 'full';
 
   const current = trace.find(e => isCurrentEvent(e, event)) ?? null;
   if (current === null) {
-    throw new Error('Current event not in quick trace!');
+    throw new Error('Current event not in trace navigator!');
   }
 
   /**
@@ -187,7 +190,7 @@ export function parseQuickTrace(
     current.generation !== null &&
     // the event's generation needs to be known to determine an ancestor
     e.generation !== null &&
-    // an ancestor cant be the root
+    // an ancestor can't be the root
     e.generation > 0 &&
     // an ancestor is the generation before the direct parent
     current.generation - 1 > e.generation;
@@ -195,8 +198,10 @@ export function parseQuickTrace(
   const ancestors: TraceLite | null = isFullTrace ? [] : null;
   const children: TraceLite = [];
   const descendants: TraceLite | null = isFullTrace ? [] : null;
+  const projects = new Set();
 
   trace.forEach(e => {
+    projects.add(e.project_id);
     if (isChildren(e)) {
       children.push(e);
     } else if (isFullTrace) {
@@ -207,6 +212,10 @@ export function parseQuickTrace(
       }
     }
   });
+
+  if (isFullTrace && projects.size > 1) {
+    handleProjectMeta(organization, projects.size);
+  }
 
   return {
     root,
@@ -244,7 +253,7 @@ export function makeEventView({
     version: 2,
     name: '',
     // This field doesn't actually do anything,
-    // just here to satify a constraint in EventView.
+    // just here to satisfy a constraint in EventView.
     fields: ['transaction.duration'],
     projects: [ALL_ACCESS_PROJECTS],
     query: '',
@@ -305,4 +314,13 @@ export function isTraceFull(transaction): transaction is TraceFull {
 
 export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
   return Boolean((transaction as TraceFullDetailed).event_id);
+}
+
+function handleProjectMeta(organization: OrganizationSummary, projects: number) {
+  trackAnalyticsEvent({
+    eventKey: 'quick_trace.connected_services',
+    eventName: 'Quick Trace: Connected Services',
+    organization_id: parseInt(organization.id, 10),
+    projects,
+  });
 }

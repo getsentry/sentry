@@ -1,4 +1,3 @@
-import React from 'react';
 import {Location} from 'history';
 
 import {IconInfo} from 'app/icons';
@@ -32,8 +31,8 @@ const EventAttachmentsCrashReportsNotice = ({
       {tct(
         'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
         {
-          attachmentsLink: <Link to={attachmentsUrl} data-test-id="attachmentsLink" />,
-          settingsLink: <Link to={settingsUrl} data-test-id="settingsLink" />,
+          attachmentsLink: <Link to={attachmentsUrl} />,
+          settingsLink: <Link to={settingsUrl} />,
         }
       )}
     </Alert>

@@ -41,7 +41,7 @@ install_wal2json() {
 
     LATEST_VERSION_FILE="/wal2json/latest.so"
     ARCH=$(uname -m)
-    FILE_NAME="wal2json-Linux-$ARCH.so"
+    FILE_NAME="wal2json-Linux-$ARCH-musl.so"
     LATEST_VERSION=$(
         wget "https://api.github.com/repos/getsentry/wal2json/releases/latest" -O - |
         grep '"tag_name":' |
@@ -54,16 +54,16 @@ install_wal2json() {
             if wget \
                 "https://github.com/getsentry/wal2json/releases/download/$LATEST_VERSION/$FILE_NAME" \
                 -P "/wal2json/$LATEST_VERSION/"; then
-                ln -s "/wal2json/$LATEST_VERSION/$FILE_NAME" "$LATEST_VERSION_FILE"
+                ln -sf "/wal2json/$LATEST_VERSION/$FILE_NAME" "$LATEST_VERSION_FILE"
             fi
         fi
-        ln -s "$LATEST_VERSION_FILE" /usr/local/lib/postgresql/wal2json.so
+        ln -sf "$LATEST_VERSION_FILE" /usr/local/lib/postgresql/wal2json.so
     elif [ -f $LATEST_VERSION_FILE ]; then
         # We did not manage to detect the latest version or we failed at downloading.
         # Try to failover
         REAL_FILE=$(realpath $LATEST_VERSION_FILE)
         echo "Cannot download latest version. Found $REAL_FILE on disk"
-        ln -s "$LATEST_VERSION_FILE" /usr/local/lib/postgresql/wal2json.so
+        ln -sf "$LATEST_VERSION_FILE" /usr/local/lib/postgresql/wal2json.so
     elif [ -f "/usr/local/lib/postgresql/wal2json.so" ]; then
         # Somehow our volume is not in a good state but there is still a version
         # in the library directory. We take that one.

@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
 import ShortId from 'app/components/shortId';
+import {IconUser} from 'app/icons/iconUser';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 /**
  * Styled components used to render discover result sets.
@@ -37,4 +39,14 @@ export const StyledShortId = styled(ShortId)`
 export const BarContainer = styled('div')`
   max-width: 80px;
   margin-left: auto;
+`;
+
+export const FlexContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+export const UserIcon = styled(IconUser)`
+  margin-left: ${space(1)};
+  color: ${p => p.theme.gray400};
 `;

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -21,23 +21,7 @@ type Props = {
   onPreview?: (attachmentId: string) => void;
 };
 
-class EventAttachmentActions extends React.Component<Props> {
-  handleDelete = async () => {
-    const {api, url, onDelete, attachmentId} = this.props;
-
-    if (url) {
-      try {
-        await api.requestPromise(url, {
-          method: 'DELETE',
-        });
-
-        onDelete(attachmentId);
-      } catch (_err) {
-        // TODO: Error-handling
-      }
-    }
-  };
-
+class EventAttachmentActions extends Component<Props> {
   handlePreview() {
     const {onPreview, attachmentId} = this.props;
     if (onPreview) {
@@ -46,7 +30,8 @@ class EventAttachmentActions extends React.Component<Props> {
   }
 
   render() {
-    const {url, withPreviewButton, hasPreview, previewIsOpen} = this.props;
+    const {url, withPreviewButton, hasPreview, previewIsOpen, onDelete, attachmentId} =
+      this.props;
 
     return (
       <ButtonBar gap={1}>
@@ -54,7 +39,7 @@ class EventAttachmentActions extends React.Component<Props> {
           confirmText={t('Delete')}
           message={t('Are you sure you wish to delete this file?')}
           priority="danger"
-          onConfirm={this.handleDelete}
+          onConfirm={() => onDelete(attachmentId)}
           disabled={!url}
         >
           <Button

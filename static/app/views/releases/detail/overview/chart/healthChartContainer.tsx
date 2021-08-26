@@ -1,5 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
+import {Component} from 'react';
+import {InjectedRouter} from 'react-router';
 
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
@@ -22,7 +22,7 @@ type Props = Omit<
 > & {
   selection: GlobalSelection;
   yAxis: YAxis;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   platform: PlatformKey;
   title: string;
   help?: string;
@@ -32,8 +32,8 @@ type State = {
   shouldRecalculateVisibleSeries: boolean;
 };
 
-class ReleaseChartContainer extends React.Component<Props, State> {
-  state = {
+class ReleaseChartContainer extends Component<Props, State> {
+  state: State = {
     shouldRecalculateVisibleSeries: true,
   };
 

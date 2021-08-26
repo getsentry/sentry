@@ -53,6 +53,10 @@ buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra",
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
 
+# This signal should eventually be removed as we should not send
+# transactions through post processing
+transaction_processed = BetterSignal(providing_args=["project", "event"])
+
 # DEPRECATED
 event_received = BetterSignal(providing_args=["ip", "project"])
 event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
@@ -60,7 +64,9 @@ event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
 # Organization Onboarding Signals
 project_created = BetterSignal(providing_args=["project", "user", "default_rules"])
 first_event_pending = BetterSignal(providing_args=["project", "user"])
+
 first_event_received = BetterSignal(providing_args=["project", "event"])
+first_transaction_received = BetterSignal(providing_args=["project", "event"])
 member_invited = BetterSignal(providing_args=["member", "user"])
 member_joined = BetterSignal(providing_args=["member", "organization"])
 issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])

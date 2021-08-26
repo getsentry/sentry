@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
@@ -20,7 +20,7 @@ type State = {
   loading: boolean;
 };
 
-class ProcessingIssueList extends React.Component<Props, State> {
+class ProcessingIssueList extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -69,7 +69,7 @@ class ProcessingIssueList extends React.Component<Props, State> {
     const {organization, showProject} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {issues.map((p, idx) => (
           <ProcessingIssueHint
             key={idx}
@@ -79,7 +79,7 @@ class ProcessingIssueList extends React.Component<Props, State> {
             showProject={showProject}
           />
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

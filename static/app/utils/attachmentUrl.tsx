@@ -1,4 +1,4 @@
-import React from 'react';
+import {memo, ReactNode} from 'react';
 
 import Role from 'app/components/acl/role';
 import {EventAttachment, Organization} from 'app/types';
@@ -9,23 +9,19 @@ type Props = {
   projectId: string;
   eventId: string;
   attachment: EventAttachment;
-  children: (downloadUrl: string | null) => React.ReactNode;
+  children: (downloadUrl: string | null) => ReactNode;
 };
 
-class AttachmentUrl extends React.PureComponent<Props> {
-  getDownloadUrl() {
-    const {attachment, organization, eventId, projectId} = this.props;
+function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {
+  function getDownloadUrl() {
     return `/api/0/projects/${organization.slug}/${projectId}/events/${eventId}/attachments/${attachment.id}/`;
   }
 
-  render() {
-    const {children, organization} = this.props;
-    return (
-      <Role role={organization.attachmentsRole}>
-        {({hasRole}) => children(hasRole ? this.getDownloadUrl() : null)}
-      </Role>
-    );
-  }
+  return (
+    <Role role={organization.attachmentsRole}>
+      {({hasRole}) => children(hasRole ? getDownloadUrl() : null)}
+    </Role>
+  );
 }
 
-export default withOrganization(AttachmentUrl);
+export default withOrganization(memo(AttachmentUrl));

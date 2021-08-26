@@ -15,8 +15,6 @@ from sentry.models import (
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
-from sentry.utils.http import absolute_uri
 
 
 class VercelIntegrationTest(IntegrationTestCase):
@@ -57,12 +55,6 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"projects": [], "pagination": {"count": 0}},
         )
 
-        responses.add(
-            responses.POST,
-            f"https://api.vercel.com/v1/integrations/webhooks?{team_query}",
-            json={"id": "webhook-id"},
-        )
-
         params = {
             "configurationId": "config_id",
             "code": "oauth-code",
@@ -91,25 +83,10 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         assert integration.external_id == external_id
         assert integration.name == name
-        configurations = {
-            "my_config_id": {
-                "access_token": "my_access_token",
-                "webhook_id": "webhook-id",
-                "organization_id": self.organization.id,
-            }
-        }
-        if multi_config_org:
-            configurations["orig_config_id"] = {
-                "access_token": "orig_access_token",
-                "webhook_id": "orig-webhook-id",
-                "organization_id": multi_config_org.id,
-            }
         assert integration.metadata == {
             "access_token": "my_access_token",
             "installation_id": "my_config_id",
             "installation_type": installation_type,
-            "webhook_id": "webhook-id",
-            "configurations": configurations,
         }
         assert OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
@@ -147,49 +124,23 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert SentryAppInstallation.objects.count() == 1
 
     @responses.activate
-    def test_install_on_multiple_orgs(self):
-        orig_org = self.create_organization()
-        metadata = {
-            "access_token": "orig_access_token",
-            "installation_id": "orig_config_id",
-            "installation_type": "team",
-            "webhook_id": "orig-webhook-id",
-            "configurations": {
-                "orig_config_id": {
-                    "access_token": "orig_access_token",
-                    "webhook_id": "orig-webhook-id",
-                    "organization_id": orig_org.id,
-                }
-            },
-        }
-        Integration.objects.create(
-            provider="vercel", name="My Team Name", external_id="my_team_id", metadata=metadata
-        )
-
-        self.assert_setup_flow(is_team=True, multi_config_org=orig_org)
-
-    @responses.activate
     def test_update_organization_config(self):
         """Test that Vercel environment variables are created"""
         with self.tasks():
             self.assert_setup_flow()
 
-        uuid = self.get_mock_uuid().hex
         org = self.organization
         project_id = self.project.id
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
             public=True
         )
-        sentry_auth_token = SentryAppInstallationForProvider.objects.get(
-            organization=org.id, provider="vercel"
-        )
-        sentry_auth_token = sentry_auth_token.sentry_app_installation.api_token.token
+        sentry_auth_token = SentryAppInstallationForProvider.get_token(org.id, "vercel")
 
         env_var_map = {
-            "SENTRY_ORG": {"type": "plain", "value": org.slug},
-            "SENTRY_PROJECT": {"type": "plain", "value": self.project.slug},
-            "SENTRY_DSN": {"type": "plain", "value": enabled_dsn},
-            "SENTRY_AUTH_TOKEN": {"type": "secret", "value": "sec_0"},
+            "SENTRY_ORG": {"type": "encrypted", "value": org.slug},
+            "SENTRY_PROJECT": {"type": "encrypted", "value": self.project.slug},
+            "SENTRY_DSN": {"type": "encrypted", "value": enabled_dsn},
+            "SENTRY_AUTH_TOKEN": {"type": "encrypted", "value": sentry_auth_token},
             "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
         }
 
@@ -203,16 +154,9 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         # mock create the env vars
         for env_var, details in env_var_map.items():
-            if details["type"] == "secret":
-                # mock create the secret for the auth token
-                responses.add(
-                    responses.POST,
-                    "https://api.vercel.com/v2/now/secrets",
-                    json={"uid": "sec_0"},
-                )
             responses.add(
                 responses.POST,
-                "https://api.vercel.com/v6/projects/%s/env"
+                "https://api.vercel.com/v7/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={
                     "key": env_var,
@@ -231,8 +175,8 @@ class VercelIntegrationTest(IntegrationTestCase):
         data = {
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
-        with patch("sentry.integrations.vercel.integration.uuid4", new=self.get_mock_uuid()):
-            installation.update_organization_config(data)
+
+        installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id
         )
@@ -240,37 +184,31 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        # assert the secret was created correctly
-        req_params = json.loads(responses.calls[9].request.body)
-        assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % uuid
-        assert req_params["value"] == sentry_auth_token
-
         # assert the env vars were created correctly
-        req_params = json.loads(responses.calls[6].request.body)
+        req_params = json.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "plain"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = json.loads(responses.calls[6].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "plain"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[7].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "plain"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[10].request.body)
+        req_params = json.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
-        assert req_params["value"] == "sec_0"
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "secret"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[11].request.body)
+        req_params = json.loads(responses.calls[9].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production"]
@@ -288,12 +226,13 @@ class VercelIntegrationTest(IntegrationTestCase):
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
             public=True
         )
+        sentry_auth_token = SentryAppInstallationForProvider.get_token(org.id, "vercel")
 
         env_var_map = {
-            "SENTRY_ORG": {"type": "plain", "value": org.slug},
-            "SENTRY_PROJECT": {"type": "plain", "value": self.project.slug},
-            "SENTRY_DSN": {"type": "plain", "value": enabled_dsn},
-            "SENTRY_AUTH_TOKEN": {"type": "secret", "value": "sec_0"},
+            "SENTRY_ORG": {"type": "encrypted", "value": org.slug},
+            "SENTRY_PROJECT": {"type": "encrypted", "value": self.project.slug},
+            "SENTRY_DSN": {"type": "encrypted", "value": enabled_dsn},
+            "SENTRY_AUTH_TOKEN": {"type": "secret", "value": sentry_auth_token},
             "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
         }
 
@@ -308,17 +247,10 @@ class VercelIntegrationTest(IntegrationTestCase):
         # mock update env vars
         count = 0
         for env_var, details in env_var_map.items():
-            if details["type"] == "secret":
-                # mock create the secret for the auth token
-                responses.add(
-                    responses.POST,
-                    "https://api.vercel.com/v2/now/secrets",
-                    json={"uid": "sec_0"},
-                )
             # mock try to create env var
             responses.add(
                 responses.POST,
-                "https://api.vercel.com/v6/projects/%s/env"
+                "https://api.vercel.com/v7/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={"error": {"code": "ENV_ALREADY_EXISTS"}},
                 status=400,
@@ -326,14 +258,14 @@ class VercelIntegrationTest(IntegrationTestCase):
             # mock get env var
             responses.add(
                 responses.GET,
-                "https://api.vercel.com/v6/projects/%s/env"
+                "https://api.vercel.com/v7/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={"envs": [{"id": count, "key": env_var}]},
             )
             # mock update env var
             responses.add(
                 responses.PATCH,
-                "https://api.vercel.com/v6/projects/%s/env/%s"
+                "https://api.vercel.com/v7/projects/%s/env/%s"
                 % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", count),
                 json={
                     "key": env_var,
@@ -344,10 +276,6 @@ class VercelIntegrationTest(IntegrationTestCase):
             )
             count += 1
 
-        sentry_auth_token = SentryAppInstallationForProvider.objects.get(
-            organization=org.id, provider="vercel"
-        )
-        sentry_auth_token = sentry_auth_token.sentry_app_installation.api_token.token
         data = {
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
@@ -357,8 +285,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {}
-        with patch("sentry.integrations.vercel.integration.uuid4", new=self.get_mock_uuid()):
-            installation.update_organization_config(data)
+        installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id
         )
@@ -366,31 +293,30 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "plain"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[9].request.body)
+        req_params = json.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "plain"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[14].request.body)
+        req_params = json.loads(responses.calls[11].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "plain"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[18].request.body)
+        req_params = json.loads(responses.calls[14].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
-        assert req_params["value"] == "sec_0"
         assert req_params["target"] == ["production"]
-        assert req_params["type"] == "secret"
+        assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[19].request.body)
+        req_params = json.loads(responses.calls[17].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production"]
@@ -439,42 +365,6 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         with self.assertRaises(ValidationError):
             installation.update_organization_config(data)
-
-    @responses.activate
-    def test_ui_hook_options(self):
-        """Test that the response to the UI hook CORS pre-flight OPTIONS request is handled correctly"""
-
-        uihook_url = "/extensions/vercel/ui-hook/"
-        resp = self.client.options(path=uihook_url)
-        assert resp.status_code == 200
-
-    @responses.activate
-    def test_ui_hook_post(self):
-        """Test that the response to the UI hook POST request is handled correctly"""
-
-        uihook_url = "/extensions/vercel/ui-hook/"
-        with self.tasks():
-            self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-        integration.update(
-            external_id="hIwec0PQ34UDEma7XmhCRQ3x",
-            metadata={
-                "configurations": {
-                    "icfg_Gdv8qI5s0h3T3xeLZvifuhCb": {"organization_id": self.organization.id}
-                }
-            },
-        )
-
-        data = b'{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}'
-
-        resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
-        assert resp.status_code == 200
-        assert (
-            absolute_uri(
-                f"/settings/{self.organization.slug}/integrations/vercel/{integration.id}/"
-            ).encode("utf-8")
-            in resp.content
-        )
 
     @responses.activate
     def test_get_dynamic_display_information(self):

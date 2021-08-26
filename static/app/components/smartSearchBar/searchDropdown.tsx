@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import {SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem} from './types';
 
 type Props = {
   className?: string;
@@ -16,7 +16,7 @@ type Props = {
   loading: boolean;
 };
 
-class SearchDropdown extends React.PureComponent<Props> {
+class SearchDropdown extends PureComponent<Props> {
   static defaultProps = {
     searchSubstring: '',
     onClick: function () {},
@@ -86,16 +86,16 @@ class SearchDropdown extends React.PureComponent<Props> {
           <SearchItemsList>
             {items.map(item => {
               const isEmpty = item.children && !item.children.length;
-              const invalidTag = item.type === 'invalid-tag';
+              const invalidTag = item.type === ItemType.INVALID_TAG;
 
               // Hide header if `item.children` is defined, an array, and is empty
               return (
-                <React.Fragment key={item.title}>
+                <Fragment key={item.title}>
                   {invalidTag && <Info>{t('Invalid tag')}</Info>}
                   {item.type === 'header' && this.renderHeaderItem(item)}
                   {item.children && item.children.map(this.renderItem)}
                   {isEmpty && !invalidTag && <Info>{t('No items found')}</Info>}
-                </React.Fragment>
+                </Fragment>
               );
             })}
           </SearchItemsList>
@@ -108,17 +108,17 @@ class SearchDropdown extends React.PureComponent<Props> {
 export default SearchDropdown;
 
 const StyledSearchDropdown = styled('div')`
+  /* Container has a border that we need to account for */
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  z-index: ${p => p.theme.zIndex.dropdown};
+  overflow: hidden;
+  background: ${p => p.theme.background};
   box-shadow: ${p => p.theme.dropShadowLight};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadiusBottom};
-  position: absolute;
-  top: 38px;
-  /* Container has a border that we need to account for */
-  right: -1px;
-  left: -1px;
-  background: ${p => p.theme.background};
-  z-index: ${p => p.theme.zIndex.dropdown};
-  overflow: hidden;
 `;
 
 const LoadingWrapper = styled('div')`

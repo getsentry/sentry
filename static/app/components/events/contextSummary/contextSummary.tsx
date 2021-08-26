@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -98,13 +98,9 @@ class ContextSummary extends React.Component<Props> {
 export default ContextSummary;
 
 const Wrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
-
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, auto);
-    grid-gap: ${space(4)};
-    padding: 25px ${space(4)} 25px 40px;
+    display: flex;
+    gap: ${space(3)};
+    margin-bottom: ${space(2)};
   }
 `;

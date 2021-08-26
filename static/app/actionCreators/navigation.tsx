@@ -1,5 +1,4 @@
-import React from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -8,7 +7,11 @@ import ContextPickerModal from 'app/components/contextPickerModal';
 import ProjectsStore from 'app/stores/projectsStore';
 
 // TODO(ts): figure out better typing for react-router here
-export function navigateTo(to: string, router: InjectedRouter & {location?: Location}) {
+export function navigateTo(
+  to: string,
+  router: InjectedRouter & {location?: Location},
+  configUrl?: string
+) {
   // Check for placeholder params
   const needOrg = to.indexOf(':orgId') > -1;
   const needProject = to.indexOf(':projectId') > -1;
@@ -17,7 +20,7 @@ export function navigateTo(to: string, router: InjectedRouter & {location?: Loca
 
   const projectById = ProjectsStore.getById(comingFromProjectId);
 
-  if (needOrg || (needProject && (needProjectId || !projectById))) {
+  if (needOrg || (needProject && (needProjectId || !projectById)) || configUrl) {
     openModal(
       modalProps => (
         <ContextPickerModal
@@ -25,6 +28,7 @@ export function navigateTo(to: string, router: InjectedRouter & {location?: Loca
           nextPath={to}
           needOrg={needOrg}
           needProject={needProject}
+          configUrl={configUrl}
           comingFromProjectId={
             Array.isArray(comingFromProjectId) ? '' : comingFromProjectId || ''
           }

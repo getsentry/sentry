@@ -1,11 +1,12 @@
-import React from 'react';
-import {Link, RouteComponentProps} from 'react-router';
+import {Component} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
 import Confirm from 'app/components/confirm';
+import Link from 'app/components/links/link';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
@@ -25,7 +26,7 @@ type Props = {
   onRemove: (data: ProjectKey) => void;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
 
-class KeyRow extends React.Component<Props> {
+class KeyRow extends Component<Props> {
   handleRemove = () => {
     const {data, onRemove} = this.props;
     onRemove(data);

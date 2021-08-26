@@ -1,3 +1,4 @@
+import io
 import mmap
 import os
 import tempfile
@@ -12,14 +13,21 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.core.files.storage import get_storage_class
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.app import locks
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+)
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
@@ -98,7 +106,7 @@ def get_storage(config=None):
 
 
 class FileBlob(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -153,8 +161,8 @@ class FileBlob(Model):
             if organization is None:
                 return
             try:
-                with transaction.atomic():
-                    FileBlobOwner.objects.create(organization=organization, blob=blob)
+                with atomic_transaction(using=router.db_for_write(FileBlobOwner)):
+                    FileBlobOwner.objects.create(organization_id=organization.id, blob=blob)
             except IntegrityError:
                 pass
 
@@ -302,7 +310,7 @@ class FileBlob(Model):
 
 
 class File(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     name = models.TextField()
     type = models.CharField(max_length=64)
@@ -398,7 +406,6 @@ class File(Model):
 
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj, logger=logger)
-
             results.append(FileBlobIndex.objects.create(file=self, blob=blob, offset=offset))
             offset += blob.size
         self.size = offset
@@ -414,7 +421,12 @@ class File(Model):
         contents.
         """
         tf = tempfile.NamedTemporaryFile()
-        with transaction.atomic():
+        with atomic_transaction(
+            using=(
+                router.db_for_write(FileBlob),
+                router.db_for_write(FileBlobIndex),
+            )
+        ):
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
 
             # Ensure blobs are in the order and duplication as provided
@@ -425,9 +437,10 @@ class File(Model):
             offset = 0
             for blob in file_blobs:
                 FileBlobIndex.objects.create(file=self, blob=blob, offset=offset)
-                for chunk in blob.getfile().chunks():
-                    new_checksum.update(chunk)
-                    tf.write(chunk)
+                with blob.getfile() as blobfile:
+                    for chunk in blobfile.chunks():
+                        new_checksum.update(chunk)
+                        tf.write(chunk)
                 offset += blob.size
 
             self.size = offset
@@ -452,12 +465,13 @@ class File(Model):
         transaction.on_commit(
             lambda: delete_unreferenced_blobs.apply_async(
                 kwargs={"blob_ids": blob_ids}, countdown=60 * 5
-            )
+            ),
+            using=router.db_for_write(type(self)),
         )
 
 
 class FileBlobIndex(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
     blob = FlexibleForeignKey("sentry.FileBlob", on_delete=models.PROTECT)
@@ -557,7 +571,7 @@ class ChunkedFileBlobIndexWrapper:
         self._curidx = None
         self.closed = True
 
-    def seek(self, pos):
+    def _seek(self, pos):
         if self.closed:
             raise ValueError("I/O operation on closed file")
 
@@ -579,6 +593,16 @@ class ChunkedFileBlobIndexWrapper:
         else:
             raise ValueError("Cannot seek to pos")
         self._curfile.seek(pos - self._curidx.offset)
+
+    def seek(self, pos, whence=io.SEEK_SET):
+        if whence == io.SEEK_SET:
+            return self._seek(pos)
+        if whence == io.SEEK_CUR:
+            return self._seek(self.tell() + pos)
+        if whence == io.SEEK_END:
+            return self._seek(self.size + pos)
+
+        raise ValueError(f"Invalid value for whence: {whence}")
 
     def tell(self):
         if self.closed:
@@ -621,15 +645,15 @@ class ChunkedFileBlobIndexWrapper:
 
 
 class FileBlobOwner(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     blob = FlexibleForeignKey("sentry.FileBlob")
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization_id = BoundedBigIntegerField(db_index=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_fileblobowner"
-        unique_together = (("blob", "organization"),)
+        unique_together = (("blob", "organization_id"),)
 
 
 def clear_cached_files(cache_path):

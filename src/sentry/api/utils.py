@@ -1,9 +1,15 @@
+import logging
 from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.auth.access import get_cached_organization_member
+from sentry.auth.superuser import is_active_superuser
+from sentry.models import OrganizationMember
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.utils.dates import parse_stats_period
+
+logger = logging.getLogger(__name__)
 
 MAX_STATS_PERIOD = timedelta(days=90)
 
@@ -79,3 +85,24 @@ def get_date_range_from_params(params, optional=False):
         raise InvalidParams("start must be before end")
 
     return start, end
+
+
+def is_member_disabled_from_limit(request, organization):
+    user = request.user
+
+    # never limit sentry apps
+    if getattr(user, "is_sentry_app", False):
+        return False
+
+    # don't limit super users
+    if is_active_superuser(request):
+        return False
+
+    # must be a simple user at this point
+    try:
+        member = get_cached_organization_member(user.id, organization.id)
+    except OrganizationMember.DoesNotExist:
+        # if org member doesn't exist, we should be getting an auth error later
+        return False
+    else:
+        return member.flags["member-limit:restricted"]

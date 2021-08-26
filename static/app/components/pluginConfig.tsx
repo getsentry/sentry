@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -32,12 +32,12 @@ type State = {
   loading?: boolean;
 };
 
-class PluginConfig extends React.Component<Props, State> {
+class PluginConfig extends Component<Props, State> {
   static defaultProps = {
     onDisablePlugin: () => {},
   };
 
-  state = {
+  state: State = {
     loading: !plugins.isLoaded(this.props.data),
     testResults: '',
   };

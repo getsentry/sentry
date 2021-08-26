@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -32,7 +32,7 @@ const PanelContainer = styled('div')<PositionProps>`
           right: 0;
         `
       : css`
-          width: 360px;
+          width: 460px;
           top: 0;
           left: ${p.collapsed
             ? p.theme.sidebar.collapsedWidth

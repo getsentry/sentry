@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List
 
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import GroupingComponent, calculate_tree_label
 from sentry.grouping.strategies.base import call_with_variants, strategy
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
@@ -134,6 +134,11 @@ def get_module_component(abs_path, module, platform):
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
 
+        for part in reversed(module.split(".")):
+            if "$" not in part:
+                module_component.update(tree_label={"classbase": part})
+                break
+
     return module_component
 
 
@@ -245,7 +250,7 @@ def get_function_component(
             )
 
     if function_component.values and context["hierarchical_grouping"]:
-        function_component.update(tree_label=function_component.values[0])
+        function_component.update(tree_label={"function": function_component.values[0]})
 
     return function_component
 
@@ -324,7 +329,7 @@ def frame(frame, event, context, **meta):
                 )
 
             if package_component.values and context["hierarchical_grouping"]:
-                package_component.update(tree_label=package_component.values[0])
+                package_component.update(tree_label={"package": package_component.values[0]})
 
             values.append(package_component)
 
@@ -362,6 +367,18 @@ def frame(frame, event, context, **meta):
 
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
+
+    if rv.tree_label:
+        tree_label = {}
+        for value in rv.values:
+            if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
+                tree_label.update(value.tree_label)
+
+        if tree_label and context["hierarchical_grouping"]:
+            tree_label["datapath"] = frame.datapath
+            rv.tree_label = tree_label
+        else:
+            rv.tree_label = None
 
     return {context["variant"]: rv}
 
@@ -513,11 +530,21 @@ def single_exception(exception, context, **meta):
         values=[exception.type] if exception.type else [],
         similarity_encoder=ident_encoder,
     )
+    system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
     if exception.mechanism:
         if exception.mechanism.synthetic:
+            # Ignore synthetic exceptions as they are produced from platform
+            # specific error codes.
+            #
+            # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
+            # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
+            #
+            # Do not update type component of system variant, such that regex
+            # can be continuously modified without unnecessarily creating new
+            # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = GroupingComponent(
@@ -540,7 +567,10 @@ def single_exception(exception, context, **meta):
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [stacktrace_component, type_component]
+        values = [
+            stacktrace_component,
+            system_type_component if variant == "system" else type_component,
+        ]
 
         if ns_error_component is not None:
             values.append(ns_error_component)
@@ -600,7 +630,11 @@ def chained_exception(chained_exception, context, **meta):
     rv = {}
 
     for name, component_list in by_name.items():
-        rv[name] = GroupingComponent(id="chained-exception", values=component_list)
+        rv[name] = GroupingComponent(
+            id="chained-exception",
+            values=component_list,
+            tree_label=calculate_tree_label(reversed(component_list)),
+        )
 
     return rv
 

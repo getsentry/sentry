@@ -45,7 +45,7 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
 
         return Response(
             serialize(
-                user.actor,
+                user,
                 request.user,
                 NotificationSettingsSerializer(),
                 type=type_option,

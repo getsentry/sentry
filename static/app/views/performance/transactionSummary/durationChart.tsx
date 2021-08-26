@@ -1,6 +1,5 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
-import * as ReactRouter from 'react-router';
+import {Component, Fragment} from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
@@ -27,7 +26,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {filterToField, SpanOperationBreakdownFilter} from './filter';
+import {SpanOperationBreakdownFilter} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -40,7 +39,7 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = ReactRouter.WithRouterProps &
+type Props = WithRouterProps &
   ViewProps & {
     theme: Theme;
     api: Client;
@@ -48,29 +47,18 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
     queryExtra: Query;
     currentFilter: SpanOperationBreakdownFilter;
+    withoutZerofill: boolean;
   };
 
-function generateYAxisValues(filter: SpanOperationBreakdownFilter) {
-  if (filter === SpanOperationBreakdownFilter.None) {
-    return ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
-  }
-
-  const field = filterToField(filter);
-
-  return [
-    `p50(${field})`,
-    `p75(${field})`,
-    `p95(${field})`,
-    `p99(${field})`,
-    `p100(${field})`,
-  ];
+function generateYAxisValues() {
+  return ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
 }
 
 /**
  * Fetch and render a stacked area chart that shows duration
  * percentiles over the past 7 days
  */
-class DurationChart extends React.Component<Props> {
+class DurationChart extends Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;
@@ -99,6 +87,7 @@ class DurationChart extends React.Component<Props> {
       router,
       queryExtra,
       currentFilter,
+      withoutZerofill,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -117,29 +106,6 @@ class DurationChart extends React.Component<Props> {
       period: statsPeriod,
     };
 
-    const chartOptions = {
-      grid: {
-        left: '10px',
-        right: '10px',
-        top: '40px',
-        bottom: '0px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis' as const,
-        valueFormatter: tooltipFormatter,
-      },
-      yAxis: {
-        axisLabel: {
-          color: theme.chartLabel,
-          // p50() coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-        },
-      },
-    };
-
     const headerTitle =
       currentFilter === SpanOperationBreakdownFilter.None
         ? t('Duration Breakdown')
@@ -148,7 +114,7 @@ class DurationChart extends React.Component<Props> {
           });
 
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderTitleLegend>
           {headerTitle}
           <QuestionTooltip
@@ -175,14 +141,15 @@ class DurationChart extends React.Component<Props> {
               environment={environment}
               start={start}
               end={end}
-              interval={getInterval(datetimeSelection, true)}
+              interval={getInterval(datetimeSelection, 'high')}
               showLoading={false}
               query={query}
               includePrevious={false}
-              yAxis={generateYAxisValues(currentFilter)}
+              yAxis={generateYAxisValues()}
               partial
+              withoutZerofill={withoutZerofill}
             >
-              {({results, errored, loading, reloading}) => {
+              {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -190,6 +157,36 @@ class DurationChart extends React.Component<Props> {
                     </ErrorPanel>
                   );
                 }
+
+                const chartOptions = {
+                  grid: {
+                    left: '10px',
+                    right: '10px',
+                    top: '40px',
+                    bottom: '0px',
+                  },
+                  seriesOptions: {
+                    showSymbol: false,
+                  },
+                  tooltip: {
+                    trigger: 'axis' as const,
+                    valueFormatter: tooltipFormatter,
+                  },
+                  xAxis: timeframe
+                    ? {
+                        min: timeframe.start,
+                        max: timeframe.end,
+                      }
+                    : undefined,
+                  yAxis: {
+                    axisLabel: {
+                      color: theme.chartLabel,
+                      // p50() coerces the axis to be time based
+                      formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+                    },
+                  },
+                };
+
                 const colors =
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
 
@@ -242,9 +239,9 @@ class DurationChart extends React.Component<Props> {
             </EventsRequest>
           )}
         </ChartZoom>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
 
-export default withApi(withTheme(ReactRouter.withRouter(DurationChart)));
+export default withApi(withTheme(withRouter(DurationChart)));

@@ -1,8 +1,5 @@
-import React from 'react';
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {stringify} from 'query-string';
@@ -25,19 +22,12 @@ import {Organization, SavedQuery, SelectValue} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 
 import Banner from './banner';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
-import {
-  getPrebuiltQueries,
-  isBannerHidden,
-  setBannerHidden,
-  setRenderPrebuilt,
-  shouldRenderPrebuilt,
-} from './utils';
+import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -50,21 +40,15 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
-  params: Params;
-} & AsyncComponent['props'];
+} & RouteComponentProps<{}, {}> &
+  AsyncComponent['props'];
 
 type State = {
-  isBannerHidden: boolean;
-  isSmallBanner: boolean;
   savedQueries: SavedQuery[] | null;
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
 
 class DiscoverLanding extends AsyncComponent<Props, State> {
-  mq = window.matchMedia?.(`(max-width: ${theme.breakpoints[1]})`);
-
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -73,29 +57,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     errors: {},
 
     // local component state
-    isBannerHidden: isBannerHidden(),
     renderPrebuilt: shouldRenderPrebuilt(),
-    isSmallBanner: this.mq?.matches,
     savedQueries: null,
     savedQueriesPageLinks: '',
-  };
-
-  componentDidMount() {
-    if (this.mq) {
-      this.mq.addListener(this.handleMediaQueryChange);
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.mq) {
-      this.mq.removeListener(this.handleMediaQueryChange);
-    }
-  }
-
-  handleMediaQueryChange = (changed: MediaQueryListEvent) => {
-    this.setState({
-      isSmallBanner: changed.matches,
-    });
   };
 
   shouldReload = true;
@@ -150,7 +114,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       }
     }
 
-    const queryParams: Location['query'] = {
+    const queryParams: Props['location']['query'] = {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage.toString(),
@@ -172,13 +136,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const isHidden = isBannerHidden();
-    if (isHidden !== this.state.isBannerHidden) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({
-        isBannerHidden: isHidden,
-      });
-    }
     const PAYLOAD_KEYS = ['sort', 'cursor', 'query'] as const;
 
     const payloadKeysChanged = !isEqual(
@@ -197,14 +154,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     this.fetchData({reloading: true});
   };
 
-  handleBannerClick = () => {
-    setBannerHidden(true);
-    this.setState({isBannerHidden: true});
-  };
-
   handleSearchQuery = (searchQuery: string) => {
     const {location} = this.props;
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -222,7 +174,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       organization_id: parseInt(this.props.organization.id, 10),
       sort: value,
     });
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -233,24 +185,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   };
 
   renderBanner() {
-    const bannerDismissed = this.state.isBannerHidden;
-
-    if (bannerDismissed) {
-      return null;
-    }
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
     const to = eventView.getResultsViewUrlTarget(organization.slug);
     const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
-    return (
-      <Banner
-        organization={organization}
-        resultsUrl={resultsUrl}
-        isSmallBanner={this.state.isSmallBanner}
-        onHideBanner={this.handleBannerClick}
-      />
-    );
+    return <Banner organization={organization} resultsUrl={resultsUrl} />;
   }
 
   renderActions() {
@@ -410,13 +350,12 @@ const StyledActions = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
   grid-template-columns: auto max-content min-content;
+  align-items: center;
+  margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
   }
-
-  align-items: center;
-  margin-bottom: ${space(3)};
 `;
 
 const StyledButton = styled(Button)`

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
@@ -42,9 +42,7 @@ export function getGroupingChanges(
   return {updateNotes, riskLevel, latestGroupingConfig};
 }
 
-export function getGroupingRisk(
-  riskLevel: number
-): {
+export function getGroupingRisk(riskLevel: number): {
   riskNote: React.ReactNode;
   alertType: React.ComponentProps<typeof Alert>['type'];
 } {

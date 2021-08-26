@@ -1,5 +1,5 @@
-import React from 'react';
-import {WithRouterProps} from 'react-router';
+import {Component, Fragment} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -24,7 +24,7 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = {
   api: Client;
-} & WithRouterProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
   isLoading: boolean;
@@ -32,7 +32,7 @@ type State = {
   environments: null | Environment[];
 };
 
-class ProjectEnvironments extends React.Component<Props, State> {
+class ProjectEnvironments extends Component<Props, State> {
   state: State = {
     project: null,
     environments: null,
@@ -148,7 +148,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
     const buttonText = isHidden ? t('Show') : t('Hide');
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderAllEnvironmentsSystemRow()}
         {envs.map(env => (
           <EnvironmentRow
@@ -161,7 +161,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
             shouldShowAction
           />
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -237,7 +237,7 @@ function EnvironmentRow({
       <Name>{isSystemRow ? t('All Environments') : name}</Name>
       <Access access={['project:write']}>
         {({hasAccess}) => (
-          <React.Fragment>
+          <Fragment>
             {shouldShowAction && onHide && (
               <EnvironmentButton
                 size="xsmall"
@@ -247,7 +247,7 @@ function EnvironmentRow({
                 {actionText}
               </EnvironmentButton>
             )}
-          </React.Fragment>
+          </Fragment>
         )}
       </Access>
     </EnvironmentItem>

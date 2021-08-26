@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -14,8 +14,8 @@ import {IconClose, IconProject, IconSearch} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
-import {PlatformIntegration} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {Organization, PlatformIntegration} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
@@ -37,6 +37,8 @@ type Props = {
   listProps?: React.ComponentProps<typeof PlatformList>;
   noAutoFilter?: boolean;
   defaultCategory?: Category;
+  organization?: Organization;
+  source?: string;
 };
 
 type State = {
@@ -78,9 +80,11 @@ class PlatformPicker extends React.Component<Props, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      analytics('platformpicker.search', {
-        query: this.state.filter.toLowerCase(),
+      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+        search: this.state.filter.toLowerCase(),
         num_results: this.platformList.length,
+        source: this.props.source,
+        organization: this.props.organization ?? null,
       });
     }
   }, 300);
@@ -108,7 +112,11 @@ class PlatformPicker extends React.Component<Props, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  analytics('platformpicker.select_tab', {category: id});
+                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                    category: id,
+                    source: this.props.source,
+                    organization: this.props.organization ?? null,
+                  });
                   this.setState({category: id, filter: ''});
                   e.preventDefault();
                 }}
@@ -142,7 +150,11 @@ class PlatformPicker extends React.Component<Props, State> {
                 e.stopPropagation();
               }}
               onClick={() => {
-                analytics('platformpicker.select_platform', {platform: platform.id});
+                trackAdvancedAnalyticsEvent('growth.select_platform', {
+                  platform_id: platform.id,
+                  source: this.props.source,
+                  organization: this.props.organization ?? null,
+                });
                 setPlatform(platform.id as PlatformKey);
               }}
             />

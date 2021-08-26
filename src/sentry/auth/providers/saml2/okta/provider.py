@@ -18,3 +18,6 @@ class OktaSAML2Provider(SAML2Provider):
             Attributes.FIRST_NAME: "firstName",
             Attributes.LAST_NAME: "lastName",
         }
+
+    def can_use_scim(self, organization, user):
+        return True

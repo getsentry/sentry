@@ -1,5 +1,5 @@
-import React from 'react';
-import {RouteComponentProps, withRouter} from 'react-router';
+import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import QRCode from 'qrcode.react';
 
@@ -10,11 +10,13 @@ import {
 } from 'app/actionCreators/indicator';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
 import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CircleIndicator from 'app/components/circleIndicator';
 import {PanelItem} from 'app/components/panels';
 import U2fsign from 'app/components/u2f/u2fsign';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Authenticator} from 'app/types';
@@ -129,7 +131,7 @@ const getFields = ({
   return null;
 };
 
-type Props = AsyncView['props'] & RouteComponentProps<{authId: string}, {}> & {};
+type Props = AsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
 
 type State = AsyncView['state'] & {
   authenticator: Authenticator | null;
@@ -334,7 +336,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     }
 
     // `authenticator.authId` is NOT the same as `props.params.authId` This is
-    // for backwards compatability with API endpoint
+    // for backwards compatibility with API endpoint
     try {
       await this.api.requestPromise(this.authenticatorEndpoint, {method: 'DELETE'});
     } catch (err) {
@@ -379,13 +381,16 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
       : {};
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <span>{authenticator.name}</span>
-              <CircleIndicator css={{marginLeft: 6}} enabled={authenticator.isEnrolled} />
-            </React.Fragment>
+              <CircleIndicator
+                css={{marginLeft: 6}}
+                enabled={authenticator.isEnrolled || authenticator.status === 'rotation'}
+              />
+            </Fragment>
           }
           action={
             authenticator.isEnrolled &&
@@ -399,6 +404,12 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
 
         <TextBlock>{authenticator.description}</TextBlock>
 
+        {authenticator.rotationWarning && authenticator.status === 'rotation' && (
+          <Alert type="warning" icon={<IconWarning size="md" />}>
+            {authenticator.rotationWarning}
+          </Alert>
+        )}
+
         {!!authenticator.form?.length && (
           <Form
             model={this.formModel}
@@ -411,7 +422,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
             <JsonForm forms={[{title: 'Configuration', fields: fields ?? []}]} />
           </Form>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

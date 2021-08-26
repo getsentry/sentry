@@ -1,4 +1,3 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -81,14 +80,7 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
           )}
         </TextBlock>
         <ButtonList>
-          <Button
-            external
-            href={
-              this.state.project.platform
-                ? `https://docs.sentry.io/platforms/${this.state.project.platform}/enriching-events/user-feedback/`
-                : 'https://docs.sentry.io/platform-redirect/?next=%2Fenriching-events%2Fuser-feedback'
-            }
-          >
+          <Button external href="https://docs.sentry.io/product/user-feedback/">
             {t('Read the docs')}
           </Button>
           <Button priority="primary" onClick={this.handleClick}>

@@ -11,10 +11,10 @@ from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from sudo.views import redirect_to_sudo
 
 from sentry import roles
 from sentry.api.serializers import serialize
+from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -31,6 +31,7 @@ from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
+from sudo.views import redirect_to_sudo
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")
@@ -114,6 +115,9 @@ class OrganizationMixin:
             and not Authenticator.objects.user_has_2fa(request.user)
             and not is_active_superuser(request)
         )
+
+    def is_member_disabled_from_limit(self, request, organization):
+        return is_member_disabled_from_limit(request, organization)
 
     def get_active_team(self, request, organization, team_slug):
         """
@@ -211,8 +215,12 @@ class BaseView(View, OrganizationMixin):
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
 
-        if "organization" in kwargs and self.is_not_2fa_compliant(request, kwargs["organization"]):
-            return self.handle_not_2fa_compliant(request, *args, **kwargs)
+        if "organization" in kwargs:
+            org = kwargs["organization"]
+            if self.is_member_disabled_from_limit(request, org):
+                return self.handle_disabled_member(org)
+            if self.is_not_2fa_compliant(request, org):
+                return self.handle_not_2fa_compliant(request, *args, **kwargs)
 
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
@@ -289,6 +297,10 @@ class BaseView(View, OrganizationMixin):
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
+
+    def handle_disabled_member(self, organization):
+        redirect_uri = reverse("sentry-organization-disabled-member", args=[organization.slug])
+        return self.redirect(redirect_uri)
 
 
 class OrganizationView(BaseView):
@@ -536,7 +548,7 @@ class AvatarPhotoView(View):
         except self.model.DoesNotExist:
             return HttpResponseNotFound()
 
-        photo = avatar.file
+        photo = avatar.get_file()
         if not photo:
             return HttpResponseNotFound()
 

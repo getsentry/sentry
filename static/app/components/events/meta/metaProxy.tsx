@@ -6,6 +6,8 @@ import {Meta} from 'app/types';
 const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');
 
+type SymbolProp = typeof GET_META | typeof IS_PROXY;
+
 function isAnnotated(meta) {
   if (isEmpty(meta)) {
     return false;
@@ -22,7 +24,11 @@ export class MetaProxy {
     this.local = local;
   }
 
-  get<T extends {}>(obj: T | Array<T>, prop: Extract<keyof T, string>, receiver: T) {
+  get<T extends {}>(
+    obj: T | Array<T>,
+    prop: Extract<keyof T, string> | SymbolProp,
+    receiver: T
+  ) {
     // trap calls to `getMeta` to return meta object
     if (prop === GET_META) {
       return key => {

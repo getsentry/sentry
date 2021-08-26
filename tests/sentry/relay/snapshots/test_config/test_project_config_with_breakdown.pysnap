@@ -1,0 +1,12 @@
+---
+created: '2021-06-14T21:14:00.494403Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+span_ops:
+  matches:
+  - http
+  - db
+  - browser
+  - resource
+  type: spanOperations

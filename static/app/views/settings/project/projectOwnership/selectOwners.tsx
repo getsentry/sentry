@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
@@ -59,7 +59,7 @@ type State = {
 };
 
 class SelectOwners extends React.Component<Props, State> {
-  state = {
+  state: State = {
     loading: false,
     inputValue: '',
   };

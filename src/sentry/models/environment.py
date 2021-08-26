@@ -13,7 +13,7 @@ OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
 class EnvironmentProject(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     environment = FlexibleForeignKey("sentry.Environment")
@@ -26,7 +26,7 @@ class EnvironmentProject(Model):
 
 
 class Environment(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedPositiveIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
