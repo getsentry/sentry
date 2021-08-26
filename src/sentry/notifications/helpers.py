@@ -13,6 +13,7 @@ from typing import (
     Union,
 )
 
+from sentry.features.helpers import any_organization_has_feature
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -38,21 +39,47 @@ if TYPE_CHECKING:
     )
 
 
-# This mapping represents how to interpret the absence of a DB row for a given
+# These mappings represents how to interpret the absence of a DB row for a given
 # provider. For example, a user with no NotificationSettings should be opted
 # into receiving emails but no Slack messages.
-NOTIFICATION_SETTING_DEFAULTS = {
-    ExternalProviders.EMAIL: {
-        NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
-        NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-    },
-    ExternalProviders.SLACK: {
-        NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
-        NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
-        NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
-    },
+NOTIFICATION_SETTING_DEFAULTS_DEFAULT = {
+    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
+    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
 }
+NOTIFICATION_SETTING_DEFAULTS_OFF = {
+    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
+}
+NOTIFICATION_SETTING_DEFAULTS = {
+    ExternalProviders.EMAIL: NOTIFICATION_SETTING_DEFAULTS_DEFAULT,
+    ExternalProviders.SLACK: NOTIFICATION_SETTING_DEFAULTS_OFF,
+}
+
+
+def _get_notification_setting_default(
+    provider: ExternalProviders,
+    type: NotificationSettingTypes,
+    organization: Optional["Organization"] = None,
+    user: Optional["User"] = None,
+) -> NotificationSettingOptionValues:
+    """
+    In order to increase engagement, we automatically opt users into receiving
+    Slack notifications if they install Slack and link their identity.
+    """
+    actor, organizations = None, []
+    if organization:
+        organizations = [organization]
+    elif user:
+        organizations = user.get_orgs()
+        actor = user
+
+    if any_organization_has_feature(
+        "organizations:notification-slack-automatic", organizations, actor=actor
+    ):
+        return NOTIFICATION_SETTING_DEFAULTS_DEFAULT[type]
+    return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 
 def _get_setting_mapping_from_mapping(
@@ -75,7 +102,7 @@ def _get_setting_mapping_from_mapping(
             return notification_setting_option
 
     return {
-        provider: NOTIFICATION_SETTING_DEFAULTS[provider][type]
+        provider: _get_notification_setting_default(provider, type, user=user)
         for provider in [ExternalProviders.EMAIL]
     }
 
@@ -150,11 +177,13 @@ def get_values_by_provider_by_type(
     ],
     all_providers: Iterable[ExternalProviders],
     type: NotificationSettingTypes,
+    organization: "Organization",
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
     settings by provider, determine the notification setting by provider for
     the given notification type.
+    TODO(mgaeta): Remove `organization` parameter.
     """
     parent_scope = get_scope_type(type)
 
@@ -167,7 +196,7 @@ def get_values_by_provider_by_type(
         provider: (
             parent_specific_mapping.get(provider)
             or organization_independent_mapping.get(provider)
-            or NOTIFICATION_SETTING_DEFAULTS[provider][type]
+            or _get_notification_setting_default(provider, type, organization=organization)
         )
         for provider in all_providers
     }
@@ -420,7 +449,7 @@ def get_fallback_settings(
             # Only users (i.e. not teams) have parent-independent notification settings.
             if user:
                 # Each provider has it's own defaults by type.
-                value = NOTIFICATION_SETTING_DEFAULTS[provider][type_enum]
+                value = _get_notification_setting_default(provider, type_enum, user=user)
                 value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
                 user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
 
@@ -472,5 +501,5 @@ def get_most_specific_notification_setting_value(
         or get_highest_notification_setting_value(
             notification_settings_by_scope.get(NotificationScopeType.USER, {}).get(user.id, {})
         )
-        or NOTIFICATION_SETTING_DEFAULTS[ExternalProviders.EMAIL][type]
+        or _get_notification_setting_default(ExternalProviders.EMAIL, type, user=user)
     )
