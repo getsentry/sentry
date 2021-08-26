@@ -432,7 +432,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     orgId = serializers.CharField(max_length=36, min_length=36, required=False)
     orgName = serializers.CharField(max_length=100, required=False)
 
-    def validate_secret(secret_json: str) -> Optional[json.JSONData]:
+    def _validate_secret(secret_json: str) -> Optional[json.JSONData]:
         if not secret_json:
             return secret_json
 
@@ -453,10 +453,10 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
         return secret
 
     def validate_appconnectPrivateKey(self, private_key_json: str) -> Optional[json.JSONData]:
-        self.validate_secret(secret_json=private_key_json)
+        return self._validate_secret(secret_json=private_key_json)
 
     def validate_itunesPassword(self, password_json: str) -> Optional[json.JSONData]:
-        self.validate_secret(secret_json=password_json)
+        return self._validate_secret(secret_json=password_json)
 
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore

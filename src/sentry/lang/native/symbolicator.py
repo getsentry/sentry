@@ -107,7 +107,6 @@ S3_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["s3"]},
         bucket={"type": "string"},
         region={"type": "string"},
-        # TODO: is this a secret?
         access_key={"type": "string"},
         secret_key={"type": "string"},
         prefix={"type": "string"},
