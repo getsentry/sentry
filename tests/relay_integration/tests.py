@@ -144,7 +144,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "browser span",
                     "op": "browser",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "bd429c44b67a3eb4",
                     "span_id": "a99fd04e79e17631",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -153,7 +153,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "resource span",
                     "op": "resource",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "bd429c44b67a3eb4",
                     "span_id": "a71a5e67db5ce938",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -162,7 +162,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "http span",
                     "op": "http",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "a99fd04e79e17631",
                     "span_id": "abe79ad9292b90a9",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -171,7 +171,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "db span",
                     "op": "db",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "abe79ad9292b90a9",
                     "span_id": "9c045ea336297177",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -180,7 +180,12 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             ],
         }
 
-        with Feature({"organizations:performance-ops-breakdown": True}):
+        with Feature(
+            {
+                "organizations:performance-ops-breakdown": True,
+                "organizations:performance-suspect-spans-ingestion": True,
+            }
+        ):
             event = self.post_and_retrieve_event(event_data)
             raw_event = event.get_raw_data()
 
@@ -194,3 +199,14 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                     "total.time": {"value": 1050.000192},
                 }
             }
+
+            assert [span["exclusive-time"] for span in raw_event["spans"]] == [
+                50.0,
+                0.0,
+                200.0,
+                0.0,
+                200.0,
+            ]
+
+            # TODO: testing if this test is run in CI
+            assert False
