@@ -19,6 +19,7 @@ import {
 } from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
+import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -276,6 +277,7 @@ tags.sku_class:enterprise #enterprise`;
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
         <PermissionAlert />
+        <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
         <RulesPanel
           data-test-id="issueowners-panel"
