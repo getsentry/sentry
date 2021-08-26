@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-import RRWebReplayer from './rrWebReplayer';
+import BaseRRWebReplayer from './rrWebReplayer';
 
-const StyledRRWebReplayer = styled(RRWebReplayer)`
+const RRWebReplayer = styled(BaseRRWebReplayer)`
   .rr-player {
     width: auto !important;
   }
@@ -192,4 +192,4 @@ const StyledRRWebReplayer = styled(RRWebReplayer)`
   }
 `;
 
-export default StyledRRWebReplayer;
+export default RRWebReplayer;
