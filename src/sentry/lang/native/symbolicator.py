@@ -49,6 +49,17 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
+SECRET_PROPERTY = {
+    "oneOf": [
+        {"type": "string"},
+        {
+            "type": "object",
+            "properties": {"_hidden-secret": {"enum": ["true"]}},
+            "required": ["_hidden-secret"],
+            "additionalProperties": False,
+        },
+    ]
+}
 
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
@@ -58,10 +69,10 @@ APP_STORE_CONNECT_SCHEMA = {
         "name": {"type": "string"},
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": {"type": "string"},
+        "appconnectPrivateKey": SECRET_PROPERTY,
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
         "itunesCreated": {"type": "string", "format": "date-time"},
-        "itunesPassword": {"type": "string"},
+        "itunesPassword": SECRET_PROPERTY,
         "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
@@ -95,7 +106,7 @@ HTTP_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
         username={"type": "string"},
-        password={"type": "string"},
+        password=SECRET_PROPERTY,
         **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
@@ -108,8 +119,9 @@ S3_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["s3"]},
         bucket={"type": "string"},
         region={"type": "string"},
+        # TODO: is this a secret?
         access_key={"type": "string"},
-        secret_key={"type": "string"},
+        secret_key=SECRET_PROPERTY,
         prefix={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
@@ -123,7 +135,7 @@ GCS_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["gcs"]},
         bucket={"type": "string"},
         client_email={"type": "string"},
-        private_key={"type": "string"},
+        private_key=SECRET_PROPERTY,
         prefix={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
@@ -333,6 +345,28 @@ def parse_sources(config, filter_appconnect=True):
         ids.add(source["id"])
 
     return sources
+
+
+def redact_sources(config_sources):
+    """
+    Returns a json string with all of the secrets redacted from every source.
+
+    May raise InvalidSourcesError if the provided sources are invalid.
+    """
+
+    sources = parse_sources(config_sources, False)
+    for source in sources:
+        for secret in [
+            "appconnectPrivateKey",
+            "itunesPassword",
+            "password",
+            "secret_key",
+            "private_key",
+        ]:
+            if secret in source:
+                source[secret] = {"_hidden-secret": True}
+
+    return json.dumps(sources)
 
 
 def get_options_for_project(project):

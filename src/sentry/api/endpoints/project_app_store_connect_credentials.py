@@ -53,6 +53,7 @@ import datetime
 import logging
 from uuid import uuid4
 
+import jsonschema
 import requests
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -67,8 +68,10 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
+from sentry.lang.native.symbolicator import SECRET_PROPERTY
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
+from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
@@ -264,6 +267,10 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
+        config["appconnectPrivateKey"] = {"_hidden-secret": True}
+        config["itunesPassword"] = {"_hidden-secret": True}
+
+        # TODO: Just return the ID instead of the entire config
         return Response(config, status=200)
 
 
@@ -290,6 +297,32 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
     orgId = serializers.CharField(max_length=36, min_length=36, required=False)
     orgName = serializers.CharField(max_length=100, required=False)
+
+    def validate_secret(secret_json):
+        if not secret_json:
+            return secret_json
+
+        try:
+            secret = json.loads(secret_json)
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+
+        try:
+            jsonschema.validate(secret, SECRET_PROPERTY)
+        except jsonschema.ValidationError as e:
+            raise serializers.ValidationError(str(e))
+
+        # If an object was returned then it must be the special value representing the currently
+        # stored secret, i.e. no change was made to it
+        if isinstance(secret, dict):
+            return None
+        return secret
+
+    def validate_appconnectPrivateKey(self, private_key_json):
+        self.validate_secret(private_key_json)
+
+    def validate_itunesPassword(self, password_json):
+        self.validate_secret(password_json)
 
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
@@ -340,6 +373,13 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             # This field is renamed in the backend to represent its actual value, for the UI
             # it is just an opaque value.
             data["orgPublicId"] = data.pop("orgId")
+
+        # Any secrets set to None during validation are meant to be no-ops, so remove them to avoid
+        # erasing the existing values
+        for secret in ["appconnectPrivateKey", "itunesPassword"]:
+            if secret in data and data[secret] is None:
+                del data[secret]
+
         new_data = symbol_source_config.to_json()
         new_data.update(data)
         symbol_source_config = appconnect.AppStoreConnectConfig.from_json(new_data)
@@ -363,6 +403,9 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
                 "config_id": symbol_source_config.id,
             }
         )
+
+        symbol_source_config.appconnectPrivateKey = {"_hidden-secret": True}
+        symbol_source_config.itunesPassword = {"_hidden-secret": True}
 
         return Response(symbol_source_config.to_json(), status=200)
 
