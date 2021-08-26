@@ -5,6 +5,7 @@ import Alert from 'app/components/alert';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PluginList from 'app/components/pluginList';
@@ -140,9 +141,9 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
                 'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
                 {
                   link: (
-                    <a href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/">
+                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/">
                       our docs
-                    </a>
+                    </ExternalLink>
                   ),
                   release: <code>release</code>,
                 }
@@ -248,7 +249,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
 
             <p>
               {tct('See the [link:releases documentation] for more information.', {
-                link: <a href="https://docs.sentry.io/workflow/releases/" />,
+                link: <ExternalLink href="https://docs.sentry.io/workflow/releases/" />,
               })}
             </p>
           </PanelBody>

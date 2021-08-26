@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {Client} from 'app/api';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import RepositoryRow from 'app/components/repositoryRow';
 import {IconCommit} from 'app/icons';
@@ -40,7 +41,7 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
             )}
             &nbsp;
             {tct('See our [link:documentation] for more details.', {
-              link: <a href="https://docs.sentry.io/learn/releases/" />,
+              link: <ExternalLink href="https://docs.sentry.io/learn/releases/" />,
             })}
           </TextBlock>
         </div>

@@ -2,6 +2,7 @@ import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory} from 'react-router';
 
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'app/constants';
 import {t, tct} from 'app/locale';
@@ -39,7 +40,7 @@ export default class ApiNewToken extends Component {
             {tct(
               'For more information on how to use the web API, see our [link:documentation].',
               {
-                link: <a href="https://docs.sentry.io/api/" />,
+                link: <ExternalLink href="https://docs.sentry.io/api/" />,
               }
             )}
           </TextBlock>

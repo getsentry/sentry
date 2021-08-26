@@ -2,6 +2,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -81,7 +82,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
           <NotDisabledSubText>
             {tct('Head over to Slack and type [code] to get started. [link].', {
               code: <code>/sentry link team</code>,
-              link: <a href={DOCS_LINK}>{t('Learn more')}</a>,
+              link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
             })}
           </NotDisabledSubText>
         </EmptyMessage>
@@ -105,7 +106,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
             <NotDisabledSubText>
               {tct('Unlink this channel in Slack with [code]. [link].', {
                 code: <code>/sentry unlink team</code>,
-                link: <a href={DOCS_LINK}>{t('Learn more')}</a>,
+                link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
               })}
             </NotDisabledSubText>
           </div>
