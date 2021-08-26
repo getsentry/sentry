@@ -35,9 +35,7 @@ describe('Indicators', function () {
     wrapper = createWrapper();
 
     clearIndicators();
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
   });
 
   afterEach(() => {
@@ -50,9 +48,7 @@ describe('Indicators', function () {
 
   it('has a loading indicator by default', function () {
     // when "type" is empty, we should treat it as loading state
-    act(() => {
-      IndicatorStore.add('Loading');
-    });
+    act(() => void IndicatorStore.add('Loading'));
     expect(wrapper.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(wrapper.container).toHaveTextContent('Loading');
   });
@@ -66,40 +62,30 @@ describe('Indicators', function () {
     expect(wrapper.container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
-    act(() => {
-      IndicatorStore.remove(indicator);
-    });
+    act(() => IndicatorStore.remove(indicator));
     expect(wrapper.container).toHaveTextContent('');
   });
 
   // This is a common pattern used throughout the code for API calls
   it('adds and replaces toast by calling IndicatorStore directly', function () {
-    act(() => {
-      IndicatorStore.add('Loading');
-    });
+    act(() => void IndicatorStore.add('Loading'));
     expect(wrapper.container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
-    act(() => {
-      IndicatorStore.add('success', 'success');
-    });
+    act(() => void IndicatorStore.add('success', 'success'));
     expect(wrapper.container).toHaveTextContent('success');
   });
 
   it('does not have loading indicator when "type" is empty (default)', function () {
     addMessage('Loading', '', {duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('Loading');
     expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
   });
 
   it('has a loading indicator when type is "loading"', function () {
     addMessage('Loading', 'loading', {duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('Loading');
     expect(wrapper.getByTestId('loading-indicator')).toBeInTheDocument();
   });
@@ -107,32 +93,24 @@ describe('Indicators', function () {
   it('adds and removes toast by calling action creators', function () {
     // action creators don't return anything
     addMessage('Loading', '', {duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('Loading');
 
     // If no indicator is specified, will remove all indicators
     clearIndicators();
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('');
     expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
   });
 
   it('adds and replaces toast by calling action creators', function () {
     addMessage('Loading', '', {duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
     addMessage('success', 'success', {duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('success');
     expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
   });
@@ -154,23 +132,17 @@ describe('Indicators', function () {
 
   it('appends toasts', function () {
     addMessage('Loading', '', {append: true, duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
 
     addMessage('Success', 'success', {append: true, duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     // Toasts get appended to the end
     expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
     expect(wrapper.getByTestId('toast-success')).toHaveTextContent('Success');
 
     addMessage('Error', 'error', {append: true, duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     // Toasts get appended to the end
     expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
     expect(wrapper.getByTestId('toast-success')).toHaveTextContent('Success');
@@ -178,44 +150,32 @@ describe('Indicators', function () {
 
     // clears all toasts
     clearIndicators();
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('');
     expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
   });
 
   it('dismisses on click', function () {
     addMessage('Loading', '', {append: true, duration: null});
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
 
     fireEvent.click(wrapper.getByTestId('toast'));
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(() => jest.runAllTimers());
     expect(wrapper.container).toHaveTextContent('');
     expect(wrapper.queryByTestId('toast')).toBeNull();
   });
 
   it('hides after 10s', function () {
     addMessage('Duration', '', {append: true, duration: 10000});
-    act(() => {
-      jest.advanceTimersByTime(9000);
-    });
+    act(() => jest.advanceTimersByTime(9000));
     expect(wrapper.getByTestId('toast')).toHaveTextContent('Duration');
 
     // Still visible
-    act(() => {
-      jest.advanceTimersByTime(999);
-    });
+    act(() => jest.advanceTimersByTime(999));
     expect(wrapper.getByTestId('toast')).toHaveTextContent('Duration');
 
-    act(() => {
-      jest.advanceTimersByTime(2);
-    });
+    act(() => jest.advanceTimersByTime(2));
     expect(wrapper.container).toHaveTextContent('');
     expect(wrapper.queryByTestId('toast')).toBeNull();
   });
