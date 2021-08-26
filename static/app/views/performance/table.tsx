@@ -15,7 +15,7 @@ import {IconStar} from 'app/icons';
 import {tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -95,10 +95,8 @@ class Table extends React.Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, projects} = this.props;
 
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.overview.cellaction',
-        eventName: 'Performance Views: Cell Action Clicked',
-        organization_id: parseInt(organization.id, 10),
+      trackAdvancedAnalyticsEvent('performance_views.overview.cellaction', {
+        organization,
         action,
       });
 
@@ -268,10 +266,8 @@ class Table extends React.Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.landingv2.transactions.sort',
-      eventName: 'Performance Views: Landing Transactions Sorted',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.landingv2.transactions.sort', {
+      organization,
       field: currentSortField,
       direction: currentSortKind,
     });
@@ -394,10 +390,8 @@ class Table extends React.Component<Props, State> {
 
   handleSummaryClick = () => {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.overview.navigate.summary',
-      eventName: 'Performance Views: Overview view summary',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
+      organization,
     });
   };
 
