@@ -64,32 +64,16 @@ class TransactionHeader extends React.Component<Props> {
     });
   }
 
-  trackVitalsTabClick = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.vitals.vitals_tab_clicked',
-      eventName: 'Performance Views: Vitals tab clicked',
-      organization_id: organization.id,
-    });
-  };
-
-  trackTagsTabClick = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.tags.tags_tab_clicked',
-      eventName: 'Performance Views: Tags tab clicked',
-      organization_id: organization.id,
-    });
-  };
-
-  trackEventsTabClick = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.events.events_tab_clicked',
-      eventName: 'Performance Views: Events tab clicked',
-      organization_id: organization.id,
-    });
-  };
+  trackTabClick =
+    ({eventKey, eventName}: {eventKey: string; eventName: string}) =>
+    () => {
+      const {organization} = this.props;
+      trackAnalyticsEvent({
+        eventKey,
+        eventName,
+        organization_id: organization.id,
+      });
+    };
 
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
@@ -185,7 +169,10 @@ class TransactionHeader extends React.Component<Props> {
         data-test-id="web-vitals-tab"
         to={vitalsTarget}
         isActive={() => currentTab === Tab.RealUserMonitoring}
-        onClick={this.trackVitalsTabClick}
+        onClick={this.trackTabClick({
+          eventKey: 'performance_views.vitals.vitals_tab_clicked',
+          eventName: 'Performance Views: Vitals tab clicked',
+        })}
       >
         {t('Web Vitals')}
       </ListLink>
@@ -283,7 +270,10 @@ class TransactionHeader extends React.Component<Props> {
               <ListLink
                 to={tagsTarget}
                 isActive={() => currentTab === Tab.Tags}
-                onClick={this.trackTagsTabClick}
+                onClick={this.trackTabClick({
+                  eventKey: 'performance_views.tags.tags_tab_clicked',
+                  eventName: 'Performance Views: Tags tab clicked',
+                })}
               >
                 {t('Tags')}
                 <FeatureBadge type="new" noTooltip />
@@ -293,7 +283,10 @@ class TransactionHeader extends React.Component<Props> {
               <ListLink
                 to={eventsTarget}
                 isActive={() => currentTab === Tab.Events}
-                onClick={this.trackEventsTabClick}
+                onClick={this.trackTabClick({
+                  eventKey: 'performance_views.events.events_tab_clicked',
+                  eventName: 'Performance Views: Events tab clicked',
+                })}
               >
                 {t('All Events')}
               </ListLink>

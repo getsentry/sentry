@@ -2,13 +2,9 @@ import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {GlobalSelection, Organization, Project} from 'app/types';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -22,9 +18,7 @@ import {
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
 
 import {getTransactionName} from '../../utils';
 import {
@@ -33,6 +27,7 @@ import {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {ZOOM_END, ZOOM_START} from '../latencyChart';
+import Page from '../page';
 
 import EventsPageContent from './content';
 import {
@@ -46,8 +41,6 @@ import {
 type Props = {
   location: Location;
   organization: Organization;
-  projects: Project[];
-  selection: GlobalSelection;
 };
 
 type State = {
@@ -57,6 +50,7 @@ type State = {
 };
 
 type PercentileValues = Record<EventsDisplayFilterName, number>;
+
 class TransactionEvents extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
@@ -208,85 +202,47 @@ class TransactionEvents extends Component<Props, State> {
   };
 
   render() {
-    const {organization, projects, location} = this.props;
-    const {eventView} = this.state;
-    const transactionName = getTransactionName(location);
-    const webVital = getWebVital(location);
-    if (!eventView || transactionName === undefined) {
-      // If there is no transaction name, redirect to the Performance landing page
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/performance/`,
-        query: {
-          ...location.query,
-        },
-      });
-      return null;
-    }
-    const percentilesView = this.getPercentilesEventView(eventView);
-
-    const shouldForceProject = eventView.project.length === 1;
-    const forceProject = shouldForceProject
-      ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
-      : undefined;
-    const projectSlugs = eventView.project
-      .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
-      .filter((p: Project | undefined): p is Project => p !== undefined)
-      .map(p => p.slug);
-
     return (
-      <SentryDocumentTitle
+      <Page
         title={this.getDocumentTitle()}
-        orgSlug={organization.slug}
-        projectSlug={forceProject?.slug}
+        location={this.props.location}
+        eventView={this.state.eventView}
+        featureFlags={['performance-events-page']}
       >
-        <Feature
-          features={['performance-events-page']}
-          organization={organization}
-          renderDisabled={this.renderNoAccess}
-        >
-          <GlobalSelectionHeader
-            lockedMessageSubject={t('transaction')}
-            shouldForceProject={shouldForceProject}
-            forceProject={forceProject}
-            specificProjectSlugs={projectSlugs}
-            disableMultipleProjectSelection
-            showProjectSettingsLink
-          >
-            <LightWeightNoProjectMessage organization={organization}>
-              <DiscoverQuery
-                eventView={percentilesView}
-                orgSlug={organization.slug}
-                location={location}
-                referrer="api.performance.transaction-events"
-              >
-                {({isLoading, tableData}) => {
-                  const percentiles: PercentileValues = tableData?.data?.[0];
-                  return (
-                    <EventsPageContent
-                      location={location}
-                      eventView={this.getFilteredEventView(percentiles) as EventView}
-                      transactionName={transactionName}
-                      organization={organization}
-                      projects={projects}
-                      spanOperationBreakdownFilter={
-                        this.state.spanOperationBreakdownFilter
-                      }
-                      onChangeSpanOperationBreakdownFilter={
-                        this.onChangeSpanOperationBreakdownFilter
-                      }
-                      eventsDisplayFilterName={this.state.eventsDisplayFilterName}
-                      onChangeEventsDisplayFilter={this.onChangeEventsDisplayFilter}
-                      percentileValues={percentiles}
-                      isLoading={isLoading}
-                      webVital={webVital}
-                    />
-                  );
-                }}
-              </DiscoverQuery>
-            </LightWeightNoProjectMessage>
-          </GlobalSelectionHeader>
-        </Feature>
-      </SentryDocumentTitle>
+        {contentProps => {
+          const {location, organization, eventView} = contentProps;
+          const webVital = getWebVital(location);
+          const percentilesView = this.getPercentilesEventView(eventView);
+
+          return (
+            <DiscoverQuery
+              eventView={percentilesView}
+              orgSlug={organization.slug}
+              location={location}
+              referrer="api.performance.transaction-events"
+            >
+              {({isLoading, tableData}) => {
+                const percentiles: PercentileValues = tableData?.data?.[0];
+                return (
+                  <EventsPageContent
+                    {...contentProps}
+                    eventView={this.getFilteredEventView(percentiles) as EventView}
+                    spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
+                    onChangeSpanOperationBreakdownFilter={
+                      this.onChangeSpanOperationBreakdownFilter
+                    }
+                    eventsDisplayFilterName={this.state.eventsDisplayFilterName}
+                    onChangeEventsDisplayFilter={this.onChangeEventsDisplayFilter}
+                    percentileValues={percentiles}
+                    isLoading={isLoading}
+                    webVital={webVital}
+                  />
+                );
+              }}
+            </DiscoverQuery>
+          );
+        }}
+      </Page>
     );
   }
 }
@@ -350,4 +306,4 @@ function generateEventsEventView(
   );
 }
 
-export default withGlobalSelection(withProjects(withOrganization(TransactionEvents)));
+export default withOrganization(TransactionEvents);

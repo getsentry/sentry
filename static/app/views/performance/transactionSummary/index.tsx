@@ -1,17 +1,12 @@
 import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -27,7 +22,6 @@ import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
 
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
@@ -42,12 +36,12 @@ import {
   SpanOperationBreakdownFilter,
 } from './filter';
 import {ZOOM_END, ZOOM_START} from './latencyChart';
+import Page from './page';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 
 type Props = RouteComponentProps<{}, {}> & {
   api: Client;
   organization: Organization;
-  projects: Project[];
   selection: GlobalSelection;
   loadingProjects: boolean;
 };
@@ -219,92 +213,53 @@ class TransactionSummary extends Component<Props, State> {
   }
 
   render() {
-    const {organization, projects, location} = this.props;
-    const {eventView, transactionThreshold, transactionThresholdMetric} = this.state;
-    const transactionName = getTransactionName(location);
-    if (!eventView || transactionName === undefined) {
-      // If there is no transaction name, redirect to the Performance landing page
-
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/performance/`,
-        query: {
-          ...location.query,
-        },
-      });
-      return null;
-    }
-    const totalsView = this.getTotalsEventView(organization, eventView);
-
-    const shouldForceProject = eventView.project.length === 1;
-    const forceProject = shouldForceProject
-      ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
-      : undefined;
-
-    const projectSlugs = eventView.project
-      .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
-      .filter((p: Project | undefined): p is Project => p !== undefined)
-      .map(p => p.slug);
+    const {transactionThreshold, transactionThresholdMetric} = this.state;
 
     return (
-      <SentryDocumentTitle
+      <Page
         title={this.getDocumentTitle()}
-        orgSlug={organization.slug}
-        projectSlug={forceProject?.slug}
+        location={this.props.location}
+        eventView={this.state.eventView}
       >
-        <GlobalSelectionHeader
-          lockedMessageSubject={t('transaction')}
-          shouldForceProject={shouldForceProject}
-          forceProject={forceProject}
-          specificProjectSlugs={projectSlugs}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
-        >
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <DiscoverQuery
-                eventView={totalsView}
-                orgSlug={organization.slug}
-                location={location}
-                transactionThreshold={transactionThreshold}
-                transactionThresholdMetric={transactionThresholdMetric}
-                referrer="api.performance.transaction-summary"
-              >
-                {({isLoading, error, tableData}) => {
-                  const totals: TotalValues | null = tableData?.data?.[0] ?? null;
-                  return (
-                    <SummaryContent
-                      location={location}
-                      organization={organization}
-                      eventView={eventView}
-                      transactionName={transactionName}
-                      isLoading={isLoading}
-                      error={error}
-                      totalValues={totals}
-                      onChangeFilter={this.onChangeFilter}
-                      spanOperationBreakdownFilter={
-                        this.state.spanOperationBreakdownFilter
-                      }
-                      onChangeThreshold={(threshold, metric) =>
-                        this.setState({
-                          transactionThreshold: threshold,
-                          transactionThresholdMetric: metric,
-                        })
-                      }
-                    />
-                  );
-                }}
-              </DiscoverQuery>
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
-        </GlobalSelectionHeader>
-      </SentryDocumentTitle>
+        {contentProps => {
+          const {location, organization, eventView} = contentProps;
+          const totalsView = this.getTotalsEventView(organization, eventView);
+
+          return (
+            <DiscoverQuery
+              eventView={totalsView}
+              orgSlug={organization.slug}
+              location={location}
+              transactionThreshold={transactionThreshold}
+              transactionThresholdMetric={transactionThresholdMetric}
+              referrer="api.performance.transaction-summary"
+            >
+              {({isLoading, error, tableData}) => {
+                const totals: TotalValues | null = tableData?.data?.[0] ?? null;
+                return (
+                  <SummaryContent
+                    {...contentProps}
+                    isLoading={isLoading}
+                    error={error}
+                    totalValues={totals}
+                    onChangeFilter={this.onChangeFilter}
+                    spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
+                    onChangeThreshold={(threshold, metric) =>
+                      this.setState({
+                        transactionThreshold: threshold,
+                        transactionThresholdMetric: metric,
+                      })
+                    }
+                  />
+                );
+              }}
+            </DiscoverQuery>
+          );
+        }}
+      </Page>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 function generateSummaryEventView(
   location: Location,
@@ -340,6 +295,4 @@ function generateSummaryEventView(
   );
 }
 
-export default withApi(
-  withGlobalSelection(withProjects(withOrganization(TransactionSummary)))
-);
+export default withApi(withGlobalSelection(withOrganization(TransactionSummary)));

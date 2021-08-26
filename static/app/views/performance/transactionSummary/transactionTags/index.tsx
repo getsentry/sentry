@@ -1,32 +1,18 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
 
 import {getTransactionName} from '../../utils';
+import Page from '../page';
 
 import TagsPageContent from './content';
 
 type Props = {
   location: Location;
-  organization: Organization;
-  projects: Project[];
-  selection: GlobalSelection;
 };
 
 type State = {
@@ -63,74 +49,22 @@ class TransactionTags extends Component<Props> {
     return [t('Summary'), t('Tags')].join(' \u2014 ');
   }
 
-  renderNoAccess = () => {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
-  };
-
   render() {
-    const {organization, projects, location} = this.props;
+    const {location} = this.props;
     const {eventView} = this.state;
-    const transactionName = getTransactionName(location);
-    if (!eventView || transactionName === undefined) {
-      // If there is no transaction name, redirect to the Performance landing page
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/performance/`,
-        query: {
-          ...location.query,
-        },
-      });
-      return null;
-    }
-
-    const shouldForceProject = eventView.project.length === 1;
-    const forceProject = shouldForceProject
-      ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
-      : undefined;
-    const projectSlugs = eventView.project
-      .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
-      .filter((p: Project | undefined): p is Project => p !== undefined)
-      .map(p => p.slug);
 
     return (
-      <SentryDocumentTitle
+      <Page
         title={this.getDocumentTitle()}
-        orgSlug={organization.slug}
-        projectSlug={forceProject?.slug}
+        location={location}
+        eventView={eventView}
+        featureFlags={['performance-tag-page']}
       >
-        <Feature
-          features={['performance-tag-page']}
-          organization={organization}
-          renderDisabled={this.renderNoAccess}
-        >
-          <GlobalSelectionHeader
-            lockedMessageSubject={t('transaction')}
-            shouldForceProject={shouldForceProject}
-            forceProject={forceProject}
-            specificProjectSlugs={projectSlugs}
-            disableMultipleProjectSelection
-            showProjectSettingsLink
-          >
-            <StyledPageContent>
-              <LightWeightNoProjectMessage organization={organization}>
-                <TagsPageContent
-                  location={location}
-                  eventView={eventView}
-                  transactionName={transactionName}
-                  organization={organization}
-                  projects={projects}
-                />
-              </LightWeightNoProjectMessage>
-            </StyledPageContent>
-          </GlobalSelectionHeader>
-        </Feature>
-      </SentryDocumentTitle>
+        {contentProps => <TagsPageContent {...contentProps} />}
+      </Page>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 function generateTagsEventView(
   location: Location,
@@ -158,4 +92,4 @@ function generateTagsEventView(
   return eventView;
 }
 
-export default withGlobalSelection(withProjects(withOrganization(TransactionTags)));
+export default TransactionTags;
