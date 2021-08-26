@@ -1,40 +1,41 @@
-import itertools
-from collections import defaultdict
 from typing import Optional
 
 from sentry.models import Project
 
 from .base import StringIndexer, UseCase
 
+_STRINGS = {
+    "abnormal": 0,
+    "crashed": 1,
+    "environment": 2,
+    "errored": 3,
+    "healthy": 4,
+    "production": 5,
+    "release": 6,
+    "session.duration": 7,
+    "session.status": 8,
+    "session": 9,
+    "staging": 10,
+    "user": 11,
+}
+_REVERSE = {v: k for k, v in _STRINGS.items()}
 
-class MemoryIndexer(StringIndexer):
+
+class MockIndexer(StringIndexer):
     """
-    In-memory implementation of the indexer, for debugging purposes only.
+    Mock string indexer
     """
-
-    def __init__(self):
-        self._entries = {}
-        counter = itertools.count()
-        self._entries = defaultdict(counter.__next__)
-        self._reverse = {}
-
-    def record(self, project: Project, use_case: UseCase, string: str) -> int:
-        """Store a string and return the integer ID generated for it"""
-        id_ = self._entries[(use_case, string)]
-        self._reverse[(use_case, id_)] = string
-
-        return id_
 
     def resolve(self, project: Project, use_case: UseCase, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
         """
-        return self._entries.get((use_case, string))
+        return _STRINGS.get(string)
 
     def reverse_resolve(self, project: Project, use_case: UseCase, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
-        return self._reverse.get((use_case, id))
+        return _REVERSE.get(id)

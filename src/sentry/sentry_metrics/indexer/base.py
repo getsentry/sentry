@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
 
@@ -12,7 +11,7 @@ class UseCase(Enum):
     TAG_VALUE = 2
 
 
-class StringIndexer(Service, ABC):  # type: ignore
+class StringIndexer(Service):  # type: ignore
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
@@ -20,16 +19,14 @@ class StringIndexer(Service, ABC):  # type: ignore
 
     __all__ = ("record", "resolve", "reverse_resolve")
 
-    @abstractmethod
     def record(self, project: Project, use_case: UseCase, string: str) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
         prolonged.
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def resolve(self, project: Project, use_case: UseCase, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
@@ -37,12 +34,11 @@ class StringIndexer(Service, ABC):  # type: ignore
 
         Returns None if the entry cannot be found.
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def reverse_resolve(self, project: Project, use_case: UseCase, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
-        pass
+        raise NotImplementedError
