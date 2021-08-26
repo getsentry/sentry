@@ -78,6 +78,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
       case ReleaseComparisonChartType.CRASHED_USERS:
         return defined(value) ? `${value}%` : '\u2015';
       case ReleaseComparisonChartType.SESSION_COUNT:
+      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
         return typeof value === 'number' ? value.toLocaleString() : value;
@@ -113,6 +114,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
           },
         };
       case ReleaseComparisonChartType.SESSION_COUNT:
+      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
         return undefined;
@@ -137,6 +139,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
       default:
         return AreaChart;
       case ReleaseComparisonChartType.SESSION_COUNT:
+      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
         return StackedAreaChart;
     }
@@ -167,6 +170,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.red300];
       case ReleaseComparisonChartType.SESSION_COUNT:
+      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
         return undefined;
@@ -455,6 +459,18 @@ class ReleaseSessionsChart extends React.Component<Props> {
             fillChartDataFromSessionsResponse({
               response: releaseSessions,
               field: SessionField.SESSIONS,
+              groupBy: 'session.status',
+              chartData: initSessionsBreakdownChartData(theme),
+            })
+          ),
+          markLines,
+        };
+      case ReleaseComparisonChartType.SESSION_DURATION:
+        return {
+          series: Object.values(
+            fillChartDataFromSessionsResponse({
+              response: releaseSessions,
+              field: SessionField.DURATION,
               groupBy: 'session.status',
               chartData: initSessionsBreakdownChartData(theme),
             })
