@@ -162,11 +162,34 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
 
         persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert getattr(persisted_om.flags, "sso:linked")
+        assert not getattr(persisted_om.flags, "member-limit:restricted")
         assert not getattr(persisted_om.flags, "sso:invalid")
 
         login_request, login_user = mock_auth.login.call_args.args
         assert login_request == self.request
         assert login_user == user
+
+    @mock.patch("sentry.auth.helper.auth")
+    def test_no_invite_members_flag(self, mock_auth):
+        with mock.patch("sentry.features.has", return_value=False) as features_has:
+            mock_auth.get_login_redirect.return_value = "test_login_url"
+            user, auth_identity = self.set_up_user_identity()
+
+            redirect = self.handler.handle_existing_identity(
+                self.state, auth_identity, self.identity
+            )
+
+            assert redirect.url == mock_auth.get_login_redirect.return_value
+            assert mock_auth.get_login_redirect.called_with(self.request)
+
+            persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
+            assert persisted_identity.data == self.identity["data"]
+
+            persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
+            assert getattr(persisted_om.flags, "sso:linked")
+            assert getattr(persisted_om.flags, "member-limit:restricted")
+            assert not getattr(persisted_om.flags, "sso:invalid")
+            features_has.assert_called_once_with("organizations:invite-members", self.organization)
 
 
 class HandleAttachIdentityTest(AuthIdentityHandlerTest):
