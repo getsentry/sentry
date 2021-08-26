@@ -69,7 +69,6 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
-from sentry.lang.native.symbolicator import SECRET_PROPERTY
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils import json
@@ -83,6 +82,19 @@ APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 
 # The feature which allows multiple sources per project.
 MULTIPLE_SOURCES_FEATURE_NAME = "organizations:app-store-connect-multiple"
+
+# Schema for secrets sent to and returned from the UI during auth
+SECRET_PROPERTY = {
+    "oneOf": [
+        {"type": "string"},
+        {
+            "type": "object",
+            "properties": {"hidden-secret": {"enum": ["true"]}},
+            "required": ["hidden-secret"],
+            "additionalProperties": False,
+        },
+    ]
+}
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
@@ -164,6 +176,127 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
             {"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps
         ]
         result = {"apps": all_apps}
+
+        return Response(result, status=200)
+
+
+class AppStoreConnectSavedCredentialsSerializer(serializers.Serializer):  # type: ignore
+    """Input validation for :class:`AppStoreConnectSavedAppsEndpoint."""
+
+    # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
+    appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=False)
+    # about 10 chars
+    appconnectKey = serializers.CharField(max_length=20, min_length=2, required=False)
+    # 512 should fit a private key
+    appconnectPrivateKey = serializers.CharField(max_length=512, required=False)
+
+    # If the private key is set to the special object, then use what's saved in symbol sources
+    def validate_appconnectPrivateKey(secret_json: str) -> Optional[json.JSONData]:
+        if not secret_json:
+            return secret_json
+
+        try:
+            private_key = json.loads(secret_json)
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+
+        try:
+            jsonschema.validate(private_key, SECRET_PROPERTY)
+        except jsonschema.ValidationError as e:
+            raise serializers.ValidationError(str(e))
+
+        # If an object was returned then it must be the special value representing the currently
+        # stored secret, i.e. no change was made to it
+        if isinstance(private_key, dict):
+            return None
+        return private_key
+
+
+class AppStoreConnectSavedAppsEndpoint(ProjectEndpoint):  # type: ignore
+    """Retrieves available applications with provided credentials.
+
+    ``PUT projects/{org_slug}/{proj_slug}/appstoreconnect/apps/{id}/``
+
+    ```json
+    {
+        "appconnectIssuer": "abc123de-7744-7777-b032-5b8c7aaaa4d1",
+        "appconnectKey": "ABC123DEFG",
+        "appconnectPrivateKey": "----BEGIN PRIVATE KEY-...-END PRIVATE KEY----"
+    }
+    ```
+    See :class:`AppStoreConnectCredentialsSerializer` for input validation.
+
+    Practically this is also the validation for the credentials, if they are invalid 401 is
+    returned, otherwise the applications are returned as:
+
+    ```json
+    {
+        "apps": [
+            {
+                "name":"Sentry Cocoa Sample iOS Swift",
+                "bundleId":"io.sentry.sample.iOS-Swift",
+                "appId": "1549832463",
+            },
+            {
+                "name":"Sentry React Native Test",
+                "bundleId":"io.sentry.react-native-test",
+                "appId": "1268541530",
+            },
+        ]
+    }
+    ```
+
+    This endpoint returns the applications defined for an account
+    It also serves to validate that credentials for App Store connect are valid
+    """
+
+    permission_classes = [StrictProjectPermission]
+
+    def put(self, request: Request, project: Project, credentials_id: str) -> Response:
+        if not features.has(
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        serializer = AppStoreConnectCredentialsSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        try:
+            asc_config = appconnect.AppStoreConnectConfig.from_project_config(
+                project, credentials_id
+            )
+        except KeyError:
+            return Response(status=404)
+
+        data = serializer.validated_data
+
+        credentials = appstore_connect.AppConnectCredentials(
+            key_id=data.get("appconnectKey") or asc_config.appconnectKey,
+            key=data.get("appconnectPrivateKey") or asc_config.appconnectPrivateKey,
+            issuer_id=data.get("appconnectIssuer") or asc_config.appconnectIssuer,
+        )
+
+        session = requests.Session()
+
+        apps = appstore_connect.get_apps(session, credentials)
+
+        if apps is None:
+            raise AppConnectAuthenticationError()
+
+        all_apps = [
+            {"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps
+        ]
+        result = {"apps": all_apps}
+
+        allow_multiple = features.has(
+            MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user
+        )
+        try:
+            asc_config.update_project_symbol_source(project, allow_multiple)
+        except ValueError:
+            raise AppConnectMultipleSourcesError
 
         return Response(result, status=200)
 
