@@ -99,6 +99,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_existing_user_with_new_account(self):
         auth_provider = AuthProvider.objects.create(
@@ -131,6 +132,42 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
+
+    def test_flow_as_existing_user_with_new_account_membe_limit(self):
+        with self.feature({"organizations:invite-members": False}):
+            auth_provider = AuthProvider.objects.create(
+                organization=self.organization, provider="dummy"
+            )
+            user = self.create_user("bar@example.com")
+
+            self.login_as(user)
+            resp = self.client.post(self.path, {"init": True})
+
+            assert resp.status_code == 200
+            assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+            path = reverse("sentry-auth-sso")
+
+            resp = self.client.post(path, {"email": "foo@example.com"})
+
+            self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
+            assert resp.status_code == 200
+
+            resp = self.client.post(path, {"op": "confirm"}, follow=True)
+            assert resp.redirect_chain == [
+                (reverse("sentry-login"), 302),
+                ("/organizations/foo/issues/", 302),
+                ("/organizations/foo/disabled-member/", 302),
+            ]
+
+            auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+            assert user == auth_identity.user
+
+            member = OrganizationMember.objects.get(organization=self.organization, user=user)
+            assert getattr(member.flags, "sso:linked")
+            assert not getattr(member.flags, "sso:invalid")
+            assert getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_existing_identity(self):
         user = self.create_user("bar@example.com")
@@ -192,6 +229,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge(self):
         user = self.create_user("bar@example.com")
@@ -242,6 +280,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member = OrganizationMember.objects.get(organization=org1, user=user)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self):
         auth_provider = AuthProvider.objects.create(
@@ -284,6 +323,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_unmatched_user_with_merge(self):
         auth_provider = AuthProvider.objects.create(
@@ -327,6 +367,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge_and_existing_identity(self):
         auth_provider = AuthProvider.objects.create(
@@ -376,6 +417,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_inactive_user_with_merge_and_existing_identity(self):
         """
@@ -426,6 +468,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_duplicate_users_with_membership_and_verified(self):
         """
@@ -483,6 +526,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_duplicate_users_without_verified(self):
         """
@@ -639,10 +683,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member1 = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert getattr(member1.flags, "sso:linked")
         assert not getattr(member1.flags, "sso:invalid")
+        assert not getattr(member1.flags, "member-limit:restricted")
 
         member2 = OrganizationMember.objects.get(id=member2.id)
         assert not getattr(member2.flags, "sso:linked")
         assert getattr(member2.flags, "sso:invalid")
+        assert not getattr(member2.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_user_legacy_identity_migration(self):
         user = self.create_user("bar@example.com")
@@ -706,6 +752,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert member.id == test_member.id
         assert getattr(test_member.flags, "sso:linked")
         assert not getattr(test_member.flags, "sso:invalid")
+        assert not getattr(test_member.flags, "member-limit:restricted")
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
