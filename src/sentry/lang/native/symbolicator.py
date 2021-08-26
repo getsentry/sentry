@@ -49,18 +49,6 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
-SECRET_PROPERTY = {
-    "oneOf": [
-        {"type": "string"},
-        {
-            "type": "object",
-            "properties": {"hidden-secret": {"enum": ["true"]}},
-            "required": ["hidden-secret"],
-            "additionalProperties": False,
-        },
-    ]
-}
-
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -69,10 +57,10 @@ APP_STORE_CONNECT_SCHEMA = {
         "name": {"type": "string"},
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": SECRET_PROPERTY,
+        "appconnectPrivateKey": {"type": "string"},
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
         "itunesCreated": {"type": "string", "format": "date-time"},
-        "itunesPassword": SECRET_PROPERTY,
+        "itunesPassword": {"type": "string"},
         "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
@@ -106,7 +94,7 @@ HTTP_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
         username={"type": "string"},
-        password=SECRET_PROPERTY,
+        password={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
@@ -121,7 +109,7 @@ S3_SOURCE_SCHEMA = {
         region={"type": "string"},
         # TODO: is this a secret?
         access_key={"type": "string"},
-        secret_key=SECRET_PROPERTY,
+        secret_key={"type": "string"},
         prefix={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
@@ -135,7 +123,7 @@ GCS_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["gcs"]},
         bucket={"type": "string"},
         client_email={"type": "string"},
-        private_key=SECRET_PROPERTY,
+        private_key={"type": "string"},
         prefix={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
@@ -343,6 +331,52 @@ def parse_sources(config, filter_appconnect=True):
         if source["id"] in ids:
             raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
         ids.add(source["id"])
+
+    return sources
+
+
+def parse_backfill_sources(sources_json, original_sources):
+    """
+    Parses a json string of sources passed in from a client and backfills any redacted secrets by
+    finding their previous values stored in original_sources.
+    """
+
+    if not sources_json:
+        return []
+
+    try:
+        sources = json.loads(sources_json)
+    except Exception as e:
+        raise InvalidSourcesError(f"{e}")
+
+    orig_by_id = {src["id"]: src for src in original_sources}
+
+    ids = set()
+    for source in sources:
+        if is_internal_source_id(source["id"]):
+            raise InvalidSourcesError('Source ids must not start with "sentry:"')
+        if source["id"] in ids:
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
+
+        ids.add(source["id"])
+
+        for secret in [
+            "appconnectPrivateKey",
+            "itunesPassword",
+            "password",
+            "secret_key",
+            "private_key",
+        ]:
+            if secret in source and secret == {"hidden-secret": True}:
+                orig_source = orig_by_id.get(source["id"])
+                # Should just omit the source entirely if it's referencing a previously stored
+                # secret that we can't find
+                source[secret] = getattr(orig_source, secret, "")
+
+    try:
+        jsonschema.validate(sources, SOURCES_SCHEMA)
+    except jsonschema.ValidationError as e:
+        raise InvalidSourcesError(f"{e}")
 
     return sources
 
