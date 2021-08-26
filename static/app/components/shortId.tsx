@@ -10,22 +10,18 @@ type Props = {
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 };
 
-export default class ShortId extends React.Component<Props> {
-  render() {
-    const {shortId, avatar} = this.props;
-
-    if (!shortId) {
-      return null;
-    }
-
-    return (
-      <StyledShortId {...this.props}>
-        {avatar}
-        <StyledAutoSelectText avatar={!!avatar}>{shortId}</StyledAutoSelectText>
-      </StyledShortId>
-    );
+const ShortId = ({shortId, avatar, ...props}: Props) => {
+  if (!shortId) {
+    return null;
   }
-}
+
+  return (
+    <StyledShortId {...props}>
+      {avatar}
+      <StyledAutoSelectText avatar={!!avatar}>{shortId}</StyledAutoSelectText>
+    </StyledShortId>
+  );
+};
 
 const StyledShortId = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
@@ -40,3 +36,5 @@ const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropVa
   margin-left: ${p => p.avatar && '0.5em'};
   min-width: 0;
 `;
+
+export default ShortId;
