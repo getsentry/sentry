@@ -370,9 +370,9 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       await tick();
       await wrapper.update();
       const modal = await mountGlobalModal();
-      expect(
-        modal.find('DiscoverAddToDashboardModal').find('h4').children().html()
-      ).toEqual('Add Widget to Dashboard');
+      expect(modal.find('AddDashboardWidgetModal').find('h4').children().html()).toEqual(
+        'Add Widget to Dashboard'
+      );
     });
   });
 });

@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openDiscoverAddToDashboardModal} from 'app/actionCreators/modal';
+import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -212,11 +212,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery} = this.props;
-    openDiscoverAddToDashboardModal({
+    openAddDashboardWidgetModal({
       organization,
       defaultQuery: eventView.query,
       defaultTitle:
         savedQuery?.name ?? eventView.name !== 'All Events' ? eventView.name : undefined,
+      fromDiscover: true,
     });
   };
 
