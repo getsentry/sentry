@@ -1,13 +1,13 @@
 from sentry import analytics
 
 
-class SlackIntegrationAssign(analytics.Event):
+class SlackIntegrationAssign(analytics.Event):  # type: ignore
     type = "integrations.slack.assign"
 
     attributes = (analytics.Attribute("actor_id", required=False),)
 
 
-class SlackIntegrationStatus(analytics.Event):
+class SlackIntegrationStatus(analytics.Event):  # type: ignore
     type = "integrations.slack.status"
 
     attributes = (

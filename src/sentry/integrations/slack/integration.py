@@ -1,6 +1,8 @@
 from collections import namedtuple
+from typing import Any, Mapping, Optional, Sequence
 
 from django.utils.translation import ugettext_lazy as _
+from django.views import View
 
 from sentry import features
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -12,6 +14,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.slack import tasks
+from sentry.models import Integration, Organization
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -61,12 +64,12 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(IntegrationInstallation):
-    def get_config_data(self):
+class SlackIntegration(IntegrationInstallation):  # type: ignore
+    def get_config_data(self) -> Mapping[str, str]:
         return {"installationType": get_integration_type(self.model)}
 
 
-class SlackIntegrationProvider(IntegrationProvider):
+class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
     key = "slack"
     name = "Slack"
     metadata = metadata
@@ -100,7 +103,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[View]:
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
             "user_scopes": self.user_scopes,
@@ -116,8 +119,8 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view]
 
-    def get_team_info(self, access_token):
-        headers = {"Authorization": "Bearer %s" % access_token}
+    def get_team_info(self, access_token: str) -> Any:
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         client = SlackClient()
         try:
@@ -128,7 +131,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return resp["team"]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         data = state["identity"]["data"]
         assert data["ok"]
 
@@ -164,7 +167,9 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self, integration: Integration, organization: Organization, extra: Optional[Any] = None
+    ) -> None:
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
