@@ -23,7 +23,7 @@ export const NumberContainer = styled('div')`
   ${overflowEllipsis};
 `;
 
-export const StyledDateTime = styled(DateTime)`
+export const FieldDateTime = styled(DateTime)`
   color: ${p => p.theme.gray300};
   ${overflowEllipsis};
 `;
@@ -32,7 +32,7 @@ export const OverflowLink = styled(Link)`
   ${overflowEllipsis};
 `;
 
-export const StyledShortId = styled(ShortId)`
+export const FieldShortId = styled(ShortId)`
   justify-content: flex-start;
 `;
 
