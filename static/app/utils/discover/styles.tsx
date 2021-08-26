@@ -7,9 +7,8 @@ import {IconUser} from 'app/icons/iconUser';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-/**
- * Styled components used to render discover result sets.
- */
+// Styled components used to render discover result sets.
+
 export const Container = styled('div')`
   ${overflowEllipsis};
 `;
