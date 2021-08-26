@@ -17,7 +17,14 @@ class StringIndexer(Service):  # type: ignore
     and the corresponding reverse lookup.
     """
 
-    __all__ = ("record", "resolve", "reverse_resolve")
+    __all__ = (
+        "list_metrics",
+        "list_tag_values",
+        "record_metric",
+        "record_tag",
+        "resolve",
+        "reverse_resolve",
+    )
 
     def record_metric(self, project: Project, string: str) -> int:
         """Store a metric name and return the integer ID generated for it"""
