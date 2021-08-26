@@ -332,12 +332,8 @@ def get_slack_data_by_user(integration, organization, emails_by_user):
     slack_data_by_user = {}
     for user, emails in emails_by_user.items():
         for email in emails:
-            if email in slack_info_by_email.keys():
-                slack_data_by_user[user] = {
-                    "email": email,
-                    "team_id": slack_info_by_email[email]["team_id"],
-                    "slack_id": slack_info_by_email[email]["slack_id"],
-                }
+            if email in slack_info_by_email:
+                slack_data_by_user[user] = slack_info_by_email[email]
                 break
     return slack_data_by_user
 
