@@ -90,6 +90,7 @@ from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
 from .endpoints.external_user import ExternalUserEndpoint
 from .endpoints.external_user_details import ExternalUserDetailsEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -422,6 +423,7 @@ from .endpoints.useravatar import UserAvatarEndpoint
 # to the organization (and queryable via short ID)
 GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/$", GroupDetailsEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/activities/$", GroupActivitiesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),

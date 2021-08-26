@@ -12,10 +12,9 @@ class GroupRegression(Model):
     __include_in_export__ = False
 
     group = FlexibleForeignKey("sentry.Group")
-
-    # the release in which this regressed in, if there was a release
-    release = FlexibleForeignKey("sentry.Release", db_index=True, null=True)
-    date_added = models.DateTimeField(default=timezone.now, db_index=True)
+    # the release in which this regressed in
+    release = FlexibleForeignKey("sentry.Release", null=True)
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "sentry_groupregression"
