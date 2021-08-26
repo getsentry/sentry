@@ -3,6 +3,7 @@ import {OptionsType, ValueType} from 'react-select';
 
 import Confirm from 'app/components/confirm';
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 import {Choices, SelectValue} from 'app/types';
 import InputField from 'app/views/settings/components/forms/inputField';
 
@@ -23,10 +24,6 @@ type Props<OptionType> = InputFieldProps &
      * A label that is shown inside the select control.
      */
     inFieldLabel?: string;
-    confirm?: {
-      message: React.ReactNode;
-      values?: string[];
-    };
   };
 
 function getChoices<T>(props: Props<T>): Choices {
@@ -91,7 +88,12 @@ export default class SelectField<
         alignRight={small}
         field={({onChange, onBlur, required: _required, ...props}) => (
           <Confirm
-            message={confirm?.message}
+            renderMessage={({selectedValue}) =>
+              confirm && selectedValue
+                ? confirm[selectedValue]
+                : // Set a default confirm message
+                  t('Continue with these changes?')
+            }
             onCancel={() => {}}
             onConfirm={this.handleChange.bind(this, onBlur, onChange)}
           >
@@ -108,7 +110,7 @@ export default class SelectField<
                     (!confirm.values || confirm.values.includes(newValue)) &&
                     previousValue !== newValue
                   ) {
-                    open();
+                    open(undefined, newValue);
                     return;
                   }
                   this.handleChange.bind(this, onBlur, onChange)(val);

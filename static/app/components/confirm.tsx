@@ -27,6 +27,7 @@ export type ConfirmMessageRenderProps = {
    * This should be called in the components componentDidMount.
    */
   setConfirmCallback: (cb: () => void) => void;
+  selectedValue?: string;
 };
 
 export type ConfirmButtonsRenderProps = {
@@ -42,7 +43,7 @@ export type ConfirmButtonsRenderProps = {
 };
 
 type ChildrenRenderProps = {
-  open: () => void;
+  open: (e?: React.MouseEvent, selectedValue?: string) => void;
 };
 
 export type OpenConfirmOptions = {
@@ -106,6 +107,7 @@ export type OpenConfirmOptions = {
    * Text to show in the confirmation button
    */
   confirmText?: React.ReactNode;
+  selectedValue?: string;
 };
 
 type Props = OpenConfirmOptions & {
@@ -167,7 +169,7 @@ function Confirm({
   stopPropagation = false,
   ...openConfirmOptions
 }: Props) {
-  const triggerModal = (e?: React.MouseEvent) => {
+  const triggerModal = (e?: React.MouseEvent, selectedValue?: string) => {
     if (stopPropagation) {
       e?.stopPropagation();
     }
@@ -176,7 +178,7 @@ function Confirm({
       return;
     }
 
-    openConfirmModal(openConfirmOptions);
+    openConfirmModal({...openConfirmOptions, ...(selectedValue && {selectedValue})});
   };
 
   if (typeof children === 'function') {
@@ -205,6 +207,7 @@ type ModalProps = ModalRenderProps &
     | 'onConfirm'
     | 'onCancel'
     | 'disableConfirmButton'
+    | 'selectedValue'
   >;
 
 type ModalState = {
@@ -253,7 +256,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
   };
 
   get confirmMessage() {
-    const {message, renderMessage} = this.props;
+    const {message, renderMessage, selectedValue} = this.props;
 
     if (typeof renderMessage === 'function') {
       return renderMessage({
@@ -263,6 +266,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
           this.setState({disableConfirmButton: state}),
         setConfirmCallback: (confirmCallback: () => void) =>
           this.setState({confirmCallback}),
+        selectedValue,
       });
     }
 
