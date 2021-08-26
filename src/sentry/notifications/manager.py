@@ -329,12 +329,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def update_settings_bulk(
         self,
         notification_settings: Sequence["NotificationSetting"],
-        target_id: int,
+        user: Optional["User"] = None,
+        team: Optional["Team"] = None,
     ) -> None:
         """
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
         """
+        target_id = get_target_id(user, team)
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
