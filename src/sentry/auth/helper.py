@@ -184,12 +184,18 @@ class AuthIdentityHandler:
             # In that case, delete the invite request and create a new membership.
             invite_helper.handle_invite_not_approved()
 
+        flags = OrganizationMember.flags["sso:linked"]
+        # if the org doesn't have the ability to add members then anyone who got added
+        # this way should be disabled until the org upgrades
+        if not features.has("organizations:invite-members", self.organization):
+            flags = flags | OrganizationMember.flags["member-limit:restricted"]
+
         # Otherwise create a new membership
         om = OrganizationMember.objects.create(
             organization=self.organization,
             role=self.organization.default_role,
             user=user,
-            flags=OrganizationMember.flags["sso:linked"],
+            flags=flags,
         )
 
         default_teams = self.auth_provider.default_teams.all()
