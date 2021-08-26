@@ -423,18 +423,6 @@ class Percentile(enum.Enum):
     p99 = 4
 
 
-def massage_timeseries(operation: str, series):
-    return [
-        {
-            key: finite_or_none(
-                value[Percentile[operation].value] if key == "percentiles" else value
-            )
-            for key, value in row.items()
-        }
-        for row in series
-    ]
-
-
 class SnubaQueryBuilder:
 
     _entity_map = {
@@ -615,7 +603,7 @@ class SnubaResultConverter:
             if field == "percentiles":
                 value = value[Percentile[op].value]
 
-            target[f"{op}({metric_name})"] = value
+            target[f"{op}({metric_name})"] = finite_or_none(value)
 
     def _transform_series(self, groups):
         for data in groups:
