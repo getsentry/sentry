@@ -815,6 +815,29 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def session_dict(self, project=None, release=None, environment_name=None):
+        if project is None:
+            project = self.project
+
+        release_version = release.version if release else None
+        received = time.time()
+        session_started = received // 60 * 60
+        return dict(
+            distinct_id=uuid4().hex,
+            session_id=uuid4().hex,
+            org_id=project.organization_id,
+            project_id=project.id,
+            status="ok",
+            seq=0,
+            release=release_version,
+            environment=environment_name,
+            retention_days=90,
+            duration=None,
+            errors=0,
+            started=session_started,
+            received=received,
+        )
+
     def store_session(self, session):
         self.bulk_store_sessions([session])
 
