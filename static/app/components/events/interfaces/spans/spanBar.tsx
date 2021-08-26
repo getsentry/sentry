@@ -23,11 +23,11 @@ import {
 } from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
-  StyledIconChevron,
   TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
+  TreeToggleIcon,
 } from 'app/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
@@ -379,7 +379,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderSpanTreeToggler({left, errored}: {left: number; errored: boolean}) {
     const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
-    const chevron = <StyledIconChevron direction={showSpanTree ? 'up' : 'down'} />;
+    const chevron = <TreeToggleIcon direction={showSpanTree ? 'up' : 'down'} />;
 
     if (numOfSpanChildren <= 0) {
       return (

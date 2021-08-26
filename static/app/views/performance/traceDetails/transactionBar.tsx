@@ -23,11 +23,11 @@ import {
 } from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
-  StyledIconChevron,
   TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
+  TreeToggleIcon,
 } from 'app/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
@@ -187,7 +187,7 @@ class TransactionBar extends React.Component<Props, State> {
           <Count value={children.length} />
           {!isRoot && (
             <div>
-              <StyledIconChevron direction={isExpanded ? 'up' : 'down'} />
+              <TreeToggleIcon direction={isExpanded ? 'up' : 'down'} />
             </div>
           )}
         </TreeToggle>
