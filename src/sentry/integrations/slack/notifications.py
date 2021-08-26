@@ -168,7 +168,7 @@ def send_notification_as_slack(
                     },
                 )
             analytics.record(
-                "slack.notifications.sent",
+                "notifications.sent",
                 organization=notification.organization.id,
                 project=notification.project.id,
                 type=notification.get_category(),
