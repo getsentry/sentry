@@ -233,14 +233,6 @@ class EventFrequencyPercentConditionTestCase(
             )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 0)
-    def test_one_minute_with_events(self):
-        self._make_sessions(60, 1)
-        data = {"interval": "1m", "value": 99}
-        self._run_test(data=data, minutes=1, add_events=True, passes=True)
-        data = {"interval": "1m", "value": 101}
-        self._run_test(data=data, minutes=1, passes=False)
-
-    @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 0)
     def test_five_minutes_with_events(self):
         self._make_sessions(60, 5)
         data = {"interval": "5m", "value": 39}
@@ -271,12 +263,6 @@ class EventFrequencyPercentConditionTestCase(
         self._run_test(data=data, minutes=60, add_events=True, passes=True)
         data = {"interval": "1h", "value": 51}
         self._run_test(data=data, minutes=60, passes=False)
-
-    @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 0)
-    def test_one_minute_no_events(self):
-        self._make_sessions(60, 1)
-        data = {"interval": "1m", "value": 101}
-        self._run_test(data=data, minutes=1, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 0)
     def test_five_minutes_no_events(self):
