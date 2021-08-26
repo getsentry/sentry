@@ -85,8 +85,8 @@ def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
     return wrapped
 
 
-def raw_description_strategy(span: Span) -> str:
-    return span.get("description") or ""
+def raw_description_strategy(span: Span) -> Sequence[str]:
+    return [span.get("description") or ""]
 
 
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(, %s)+\)")

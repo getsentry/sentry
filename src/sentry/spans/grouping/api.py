@@ -11,17 +11,16 @@ class SpanGroupingConfigNotFound(LookupError):
     pass
 
 
-def get_span_grouping_config(config_id: str) -> SpanGroupingConfig:
-    if config_id not in CONFIGURATIONS:
-        raise SpanGroupingConfigNotFound(config_id)
-    return CONFIGURATIONS[config_id]
-
-
 def load_span_grouping_config(config: Optional[Any] = None) -> SpanGroupingConfig:
     if config is None:
         config_id = DEFAULT_CONFIG_ID
+
     else:
         if "id" not in config:
             raise ValueError("Malformed configuration: missing 'id'")
         config_id = config["id"]
-    return get_span_grouping_config(config_id)
+
+    if config_id not in CONFIGURATIONS:
+        raise SpanGroupingConfigNotFound(config_id)
+
+    return CONFIGURATIONS[config_id]
