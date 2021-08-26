@@ -39,8 +39,9 @@ class IntegrationExternalMappings extends Component<Props, State> {
                 {({hasAccess}) => (
                   <ButtonColumn>
                     <Tooltip
-                      title={t(
-                        'You must be an organization owner, manager or admin to edit or remove a code mapping.'
+                      title={tct(
+                        'You must be an organization owner, manager or admin to edit or remove a [type] mapping.',
+                        {type}
                       )}
                       disabled={hasAccess}
                     >
