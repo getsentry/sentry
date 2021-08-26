@@ -1077,7 +1077,6 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
-    const orgSlug = organization.slug;
 
     const showReprocessingTab = this.displayReprocessingTab();
     const displayReprocessingActions = this.displayReprocessingLayout(
@@ -1095,8 +1094,6 @@ class IssueListOverview extends React.Component<Props, State> {
           queryCounts={queryCounts}
           realtimeActive={realtimeActive}
           onRealtimeChange={this.onRealtimeChange}
-          projectIds={projectIds}
-          orgSlug={orgSlug}
           router={router}
           savedSearchList={savedSearches}
           onSavedSearchSelect={this.onSavedSearchSelect}

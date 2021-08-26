@@ -13,9 +13,8 @@ import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
 import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
@@ -45,10 +44,7 @@ type Props = {
   sort: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
-  orgSlug: Organization['slug'];
   router: InjectedRouter;
-  projectIds: Array<string>;
-  projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   displayReprocessingTab: boolean;
   queryCount?: number;
@@ -172,7 +168,7 @@ function IssueListHeader({
   );
 }
 
-export default withProjects(IssueListHeader);
+export default IssueListHeader;
 
 const StyledLayoutTitle = styled(Layout.Title)`
   margin-top: ${space(0.5)};
