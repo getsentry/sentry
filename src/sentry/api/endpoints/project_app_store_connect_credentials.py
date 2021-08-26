@@ -51,6 +51,7 @@ To create and manage these credentials, several API endpoints exist:
 """
 import datetime
 import logging
+from typing import Optional
 from uuid import uuid4
 
 import jsonschema
@@ -298,7 +299,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     orgId = serializers.CharField(max_length=36, min_length=36, required=False)
     orgName = serializers.CharField(max_length=100, required=False)
 
-    def validate_secret(secret_json):
+    def validate_secret(secret_json: str) -> Optional[json.JSONData]:
         if not secret_json:
             return secret_json
 
