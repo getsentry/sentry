@@ -16,18 +16,10 @@ type Props = {
   organization: Organization;
   projectSlug: Project['slug'];
   location: Location;
-  hasQueryFeature: boolean;
   hasContext: boolean;
 };
 
-function Tags({
-  event,
-  organization,
-  projectSlug,
-  location,
-  hasContext,
-  hasQueryFeature,
-}: Props) {
+function Tags({event, organization, projectSlug, location, hasContext}: Props) {
   return (
     <StyledDataSection
       title={t('Tags')}
@@ -41,7 +33,6 @@ function Tags({
         organization={organization}
         projectId={projectSlug}
         location={location}
-        hasQueryFeature={hasQueryFeature}
       />
     </StyledDataSection>
   );

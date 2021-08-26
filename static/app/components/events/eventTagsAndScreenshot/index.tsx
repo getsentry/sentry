@@ -20,7 +20,6 @@ function EventTagsAndScreenshots({
   projectId: projectSlug,
   isShare,
   hasContext,
-  hasQueryFeature,
   location,
   isBorderless,
   event,
@@ -50,7 +49,6 @@ function EventTagsAndScreenshots({
         event={event}
         projectSlug={projectSlug}
         hasContext={hasContext}
-        hasQueryFeature={hasQueryFeature}
         location={location}
       />
     </Wrapper>
