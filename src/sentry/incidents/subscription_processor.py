@@ -18,7 +18,6 @@ from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
     AlertRuleTrigger,
-    AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
     IncidentStatusMethod,
@@ -140,6 +139,25 @@ class SubscriptionProcessor:
 
         return trigger.alert_threshold + resolve_add
 
+    def find_and_fire_active_warning_trigger(self, alert_operator, aggregation_value):
+        """
+        Function used to re-fire a Warning trigger when making the transition from Critical to
+        Warning
+        """
+        active_warning_it = None
+        for it in self.incident_triggers.values():
+            current_trigger = it.alert_rule_trigger
+            # Check if there is a Warning incident trigger that is active, and then check if the
+            # aggregation value is above the threshold
+            if (
+                it.status == TriggerStatus.ACTIVE.value
+                and current_trigger.label == WARNING_TRIGGER_LABEL
+                and alert_operator(aggregation_value, current_trigger.alert_threshold)
+            ):
+                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                active_warning_it = self.trigger_alert_threshold(current_trigger, aggregation_value)
+        return active_warning_it
+
     def process_update(self, subscription_update):
         dataset = self.subscription.snuba_query.dataset
         try:
@@ -216,7 +234,24 @@ class SubscriptionProcessor:
                 ):
                     metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
                     incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
+
                     if incident_trigger is not None:
+                        # Check that ensures that we are resolving a Critical trigger and that after
+                        # resolving it, we still have active triggers i.e. self.incident_triggers
+                        # was not cleared out, which means that we are probably still above the
+                        # warning threshold, and so we will check if we are above the warning
+                        # threshold and if so fire a warning alert
+                        # This is mainly for handling transition from Critical -> Warning
+                        if (
+                            incident_trigger.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
+                            and self.incident_triggers
+                        ):
+                            active_warning_it = self.find_and_fire_active_warning_trigger(
+                                alert_operator=alert_operator, aggregation_value=aggregation_value
+                            )
+                            if active_warning_it is not None:
+                                fired_incident_triggers.append(active_warning_it)
+
                         fired_incident_triggers.append(incident_trigger)
                 else:
                     self.trigger_resolve_counts[trigger.id] = 0
@@ -340,14 +375,7 @@ class SubscriptionProcessor:
             return incident_trigger
 
     def handle_trigger_actions(self, incident_triggers, metric_value):
-        actions = deduplicate_trigger_actions(
-            list(
-                AlertRuleTriggerAction.objects.filter(
-                    alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
-                ).select_related("alert_rule_trigger")
-            )
-        )
-
+        actions = deduplicate_trigger_actions(triggers=deepcopy(incident_triggers))
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
