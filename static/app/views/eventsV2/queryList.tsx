@@ -7,7 +7,7 @@ import {Location, Query} from 'history';
 import moment from 'moment';
 
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {openDiscoverAddToDashboardModal} from 'app/actionCreators/modal';
+import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -90,12 +90,13 @@ class QueryList extends React.Component<Props> {
       const {organization} = this.props;
       event.preventDefault();
       event.stopPropagation();
-      openDiscoverAddToDashboardModal({
+      openAddDashboardWidgetModal({
         organization,
         defaultQuery: eventView.query,
         start: eventView.start,
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
+        fromDiscover: true,
       });
     };
 

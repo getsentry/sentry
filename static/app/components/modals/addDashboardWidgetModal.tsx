@@ -17,7 +17,14 @@ import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, SelectValue, TagCollection} from 'app/types';
+import {
+  DateString,
+  GlobalSelection,
+  Organization,
+  RelativePeriod,
+  SelectValue,
+  TagCollection,
+} from 'app/types';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -49,6 +56,9 @@ export type DashboardWidgetModalOptions = {
   defaultQuery?: string;
   defaultTitle?: string;
   fromDiscover?: boolean;
+  start?: DateString;
+  end?: DateString;
+  statsPeriod?: RelativePeriod | string;
 };
 
 type Props = ModalRenderProps &
@@ -340,10 +350,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       fromDiscover,
       onUpdateWidget,
       widget: previousWidget,
+      start,
+      end,
+      statsPeriod,
     } = this.props;
     const state = this.state;
     const errors = state.errors;
 
+    const querySelection = statsPeriod
+      ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
+      : start && end
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
+      : selection;
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
         organization,
@@ -417,7 +435,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               return (
                 <WidgetQueriesForm
                   organization={organization}
-                  selection={selection}
+                  selection={querySelection as GlobalSelection}
                   fieldOptions={amendedFieldOptions}
                   displayType={state.displayType}
                   queries={state.queries}
@@ -435,7 +453,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           <WidgetCard
             api={api}
             organization={organization}
-            selection={selection}
+            selection={querySelection as GlobalSelection}
             widget={this.state}
             isEditing={false}
             onDelete={() => undefined}
