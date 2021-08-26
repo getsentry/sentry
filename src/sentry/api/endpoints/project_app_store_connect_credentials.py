@@ -319,11 +319,11 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
             return None
         return secret
 
-    def validate_appconnectPrivateKey(self, private_key_json):
-        self.validate_secret(private_key_json)
+    def validate_appconnectPrivateKey(self, private_key_json: str) -> Optional[json.JSONData]:
+        self.validate_secret(secret_json=private_key_json)
 
-    def validate_itunesPassword(self, password_json):
-        self.validate_secret(password_json)
+    def validate_itunesPassword(self, password_json: str) -> Optional[json.JSONData]:
+        self.validate_secret(secret_json=password_json)
 
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
