@@ -215,8 +215,10 @@ def adopt_releases(org_id, totals):
                                 environment__name=environment,
                                 environment__organization_id=org_id,
                             )
+
                             if rpe.adopted is None or rpe.unadopted is not None:
                                 rpe.update(adopted=timezone.now(), unadopted=None)
+
                         except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
                             metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
                             try:
