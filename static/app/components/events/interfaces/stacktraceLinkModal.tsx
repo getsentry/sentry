@@ -7,12 +7,12 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
 import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
+import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
 import InputField from 'app/views/settings/components/forms/inputField';
 
 type Props = ModalRenderProps & {
@@ -163,11 +163,7 @@ class StacktraceLinkModal extends Component<Props, State> {
                 </Button>
               ))}
             </ManualSetup>
-            <FeedbackAlert type="info" icon={<IconInfo />}>
-              {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
-                email: <a href="mailto:ecosystem-feedback@sentry.io" />,
-              })}
-            </FeedbackAlert>
+            <StyledFeedbackAlert />
           </ModalContainer>
         </Body>
       </Fragment>
@@ -196,8 +192,8 @@ const ModalContainer = styled('div')`
   }
 `;
 
-const FeedbackAlert = styled(Alert)`
-  margin: 20px 0px 0px 0px;
+const StyledFeedbackAlert = styled(FeedbackAlert)`
+  margin-bottom: 0;
 `;
 
 const StyledInputField = styled(InputField)`
