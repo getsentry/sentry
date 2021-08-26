@@ -115,7 +115,6 @@ export function Tags({
                 query={query}
                 streamPath={streamPath}
                 releasesPath={releasesPath}
-                hasQueryFeature={false}
               />
             );
           })}
