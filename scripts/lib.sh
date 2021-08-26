@@ -2,6 +2,13 @@
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 
+# shellcheck disable=SC2034 # Unused variables
+bold="$(tput bold)"
+red="$(tput setaf 1)"
+green="$(tput setaf 2)"
+yellow="$(tput setaf 3)"
+reset="$(tput sgr0)"
+
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -20,11 +27,37 @@ query-mac() {
     [[ $(uname -s) = 'Darwin' ]]
 }
 
-query_big_sur() {
+query-big-sur() {
     if require sw_vers && sw_vers -productVersion | grep -E "11\." >/dev/null; then
         return 0
     fi
     return 1
+}
+
+query-apple-m1() {
+    query-mac && [[ $(uname -m) = 'arm64' ]]
+}
+
+query-pyenv-version() {
+    local PYENV_VERSION
+    # XXX: Deal with SENTRY_PYTHON_VERSION
+    if query-apple-m1; then
+        PYENV_VERSION=3.8.10
+    else
+        PYENV_VERSION=3.6.13
+    fi
+    echo "${PYENV_VERSION}"
+}
+
+# XXX: Fix this check to be more lineant
+query-valid-python-versions() {
+    python_version=$(python3 -V 2>&1 | awk '{print $2}')
+    # set -x
+    if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.10 ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 sudo-askpass() {

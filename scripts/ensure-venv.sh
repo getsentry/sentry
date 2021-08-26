@@ -1,17 +1,10 @@
 #!/bin/bash
-
-# optionally opt out of virtualenv creation
-# WARNING: this will be removed (most likely renamed) soon!
-if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
-    exit 0
-fi
-
-red="$(tput setaf 1)"
-yellow="$(tput setaf 3)"
-bold="$(tput bold)"
-reset="$(tput sgr0)"
-
-venv_name=".venv"
+HERE="$(
+    cd "$(dirname "${BASH_SOURCE[0]}")" || exit
+    pwd -P
+)"
+# shellcheck disable=SC1090
+source "${HERE}/lib.sh"
 
 die() {
     cat <<EOF
@@ -20,30 +13,36 @@ EOF
     exit 1
 }
 
+# optionally opt out of virtualenv creation
+# WARNING: this will be removed (most likely renamed) soon!
+if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
+    exit 0
+fi
+
+venv_name=".venv"
+
 if [[ -n "$VIRTUAL_ENV" ]]; then
-    minor=$(python -c "import sys; print(sys.version_info[1])")
-    # If .venv is less than Python 3.6 fail
-    [[ "$minor" -lt 6 ]] &&
-        die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."
-    # If .venv is created with Python greater than 3.6 you might encounter problems and we want to ask you to downgrade
-    # unless you explicitely set an environment variable
-    if [[ "$minor" -gt 6 ]]; then
-        if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
-            cat <<EOF
+    # The developer is inside is inside a virtualenv *and* has set a SENTRY_PYTHON_VERSION
+    # Let's assume that they know what they're doing
+    if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
+        cat <<EOF
 ${yellow}${bold}
-You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
+You have explicitly set a non-recommended Python version ($(python -V | awk '{print $2}')). You're on your own.
 ${reset}
 EOF
-        else
-            cat <<EOF
-${red}${bold}
-ERROR! You are running a virtualenv with a Python version different than 3.6
-We recommend you start with a fresh virtualenv or to set the variable SENTRY_PYTHON_VERSION
-to the Python version you want to use (e.g. 3.7).
-${reset}
+        exit 0
+    fi
+
+    # Let's make sure they know that they're not using a different version by mistake
+
+    if ! query-valid-python-versions; then
+        cat <<EOF
+    ${yellow}${bold}
+    WARNING! You are running a virtualenv with a Python version ($(which python))
+    different than 3.6.13 or 3.8.10. We recommend you start with a fresh virtualenv OR"
+    use SENTRY_PYTHON_VERSION to by-pass this check.
+    ${reset}
 EOF
-            exit 1
-        fi
     fi
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
