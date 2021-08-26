@@ -313,6 +313,23 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             unadopted__gte=now,
         ).exists()
 
+        # Make sure re-adopting works
+        self.bulk_store_sessions(
+            [
+                self.session_dict(i, self.project1, self.release.version, self.environment.name)
+                for i in range(50)
+            ]
+        )
+        time.sleep(1)
+        process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release_id=self.release.id,
+            environment_id=self.environment.id,
+            adopted__gte=now,
+            unadopted=None,
+        ).exists()
+
     def test_release_is_unadopted_without_sessions(self):
         # This test should verify that releases that have no sessions (i.e. no result from snuba)
         # get marked as unadopted
