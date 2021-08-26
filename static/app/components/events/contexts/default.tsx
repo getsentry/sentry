@@ -1,12 +1,9 @@
 import * as React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
-import {Event} from 'app/types/event';
 
 type Props = {
   data: Record<string, React.ReactNode | undefined>;
-  alias: string;
-  event: Event;
 };
 
 function getKnownData(data: Props['data']) {

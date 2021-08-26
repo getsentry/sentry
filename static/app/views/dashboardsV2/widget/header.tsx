@@ -19,7 +19,6 @@ type Props = {
   onChangeTitle: (title: string) => void;
   onSave?: (event: React.MouseEvent) => void;
   onDelete?: () => void;
-  disabled?: boolean;
   isEditing?: boolean;
 };
 
