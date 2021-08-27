@@ -6,7 +6,6 @@ import {AnimatePresence} from 'framer-motion';
 import {Indicator, removeIndicator} from 'app/actionCreators/indicator';
 import ToastIndicator from 'app/components/alerts/toastIndicator';
 import IndicatorStore from 'app/stores/indicatorStore';
-import {useLegacyStore} from 'app/stores/utils';
 import {lightTheme} from 'app/utils/theme';
 
 const Toasts = styled('div')`
@@ -53,16 +52,30 @@ class Indicators extends Component<Props> {
   }
 }
 
-function IndicatorsContainer(props: Omit<Props, 'items'>) {
-  const items = useLegacyStore(IndicatorStore);
-  // #NEW-SETTINGS - remove ThemeProvider here once new settings is merged
-  // `alerts.html` django view includes this container and doesn't have a theme provider
-  // not even sure it is used in django views but this is just an easier temp solution
-  return (
-    <ThemeProvider theme={lightTheme}>
-      <Indicators {...props} items={items} />
-    </ThemeProvider>
-  );
+type State = {
+  items: Indicator[];
+};
+
+class IndicatorsContainer extends Component<Omit<Props, 'items'>, State> {
+  state: State = {items: IndicatorStore.get()};
+  componentWillUnmount() {
+    this.unlistener?.();
+  }
+
+  unlistener = IndicatorStore.listen((items: Indicator[]) => {
+    this.setState({items});
+  }, undefined);
+
+  render() {
+    // #NEW-SETTINGS - remove ThemeProvider here once new settings is merged
+    // `alerts.html` django view includes this container and doesn't have a theme provider
+    // not even sure it is used in django views but this is just an easier temp solution
+    return (
+      <ThemeProvider theme={lightTheme}>
+        <Indicators {...this.props} items={this.state.items} />
+      </ThemeProvider>
+    );
+  }
 }
 
 export default IndicatorsContainer;
