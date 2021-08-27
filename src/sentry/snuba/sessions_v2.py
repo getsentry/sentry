@@ -296,6 +296,11 @@ class InvalidParams(Exception):
     pass
 
 
+def get_now():
+    """Wrapper function to make it mockable in unit tests"""
+    return datetime.now(tz=pytz.utc)
+
+
 def get_constrained_date_range(
     params, allow_minute_resolution=False, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
@@ -318,7 +323,7 @@ def get_constrained_date_range(
     using_minute_resolution = interval % ONE_HOUR != 0
 
     start, end = get_date_range_from_params(params)
-    now = datetime.now(tz=pytz.utc)
+    now = get_now()
 
     # if `end` is explicitly given, we add a second to it, so it is treated as
     # inclusive. the rounding logic down below will take care of the rest.
