@@ -768,18 +768,18 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_valid_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps(redacted_source)
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps(redacted_source)
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
 
             # redact password
             redacted_source["password"] = {"hidden-secret": True}
             self.get_valid_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps(redacted_source)
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )
             # on save the magic object should be replaced with the previously set password
             redacted_source["password"] = "beepbeep"
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps(redacted_source)
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
 
 
 class CopyProjectSettingsTest(APITestCase):

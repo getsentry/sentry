@@ -366,11 +366,11 @@ def parse_backfill_sources(sources_json, original_sources):
             "secret_key",
             "private_key",
         ]:
-            if secret in source and secret == {"hidden-secret": True}:
+            if secret in source and source[secret] == {"hidden-secret": True}:
                 orig_source = orig_by_id.get(source["id"])
                 # Should just omit the source entirely if it's referencing a previously stored
                 # secret that we can't find
-                source[secret] = getattr(orig_source, secret, "")
+                source[secret] = orig_source.get(secret, "")
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
