@@ -3,10 +3,8 @@
 # Execute functions from this module via the script do.sh
 # shellcheck disable=SC2034 # Unused variables
 
-echo "FOO"
-echo "${TERM}"
 # This block is a safe-guard since in CI calling tput will fail and abort scripts
-if [ -n "${TERM}" ]; then
+if [ -z "${CI+x}" ]; then
     bold="$(tput bold)"
     red="$(tput setaf 1)"
     green="$(tput setaf 2)"
