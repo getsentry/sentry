@@ -223,7 +223,7 @@ class ReleaseQuerySet(models.QuerySet):
         from sentry.search.events.filter import to_list
 
         if not environments or len(environments) != 1:
-            raise InvalidSearchQuery("Must pick an environment to query by release.stage.")
+            raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
 
         filters = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
