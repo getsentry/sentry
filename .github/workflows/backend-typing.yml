@@ -33,7 +33,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(./scripts/do.sh query-pyenv-version)"
+          echo "::set-output name=python-version::$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh query-pyenv-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2

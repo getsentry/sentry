@@ -44,7 +44,7 @@ jobs:
       - name: Set environment variables & others
         id: info
         run: |
-          echo "::set-output name=python-version::$(./scripts/do.sh query-pyenv-version)"
+          echo "::set-output name=python-version::$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh query-pyenv-version)"
           echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
           echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
