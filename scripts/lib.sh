@@ -1,13 +1,16 @@
 #!/bin/bash
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
-
 # shellcheck disable=SC2034 # Unused variables
-bold="$(tput bold)"
-red="$(tput setaf 1)"
-green="$(tput setaf 2)"
-yellow="$(tput setaf 3)"
-reset="$(tput sgr0)"
+
+# This block is a safe-guard since in CI calling tput will fail and abort scripts
+if [ -z "${TERM-x}" ]; then
+    bold="$(tput bold)"
+    red="$(tput setaf 1)"
+    green="$(tput setaf 2)"
+    yellow="$(tput setaf 3)"
+    reset="$(tput sgr0)"
+fi
 
 # Check if a command is available
 require() {
@@ -40,19 +43,14 @@ query-apple-m1() {
 
 query-pyenv-version() {
     local PYENV_VERSION
-    # XXX: Deal with SENTRY_PYTHON_VERSION
-    if query-apple-m1; then
-        PYENV_VERSION=3.8.10
-    else
-        PYENV_VERSION=3.6.13
-    fi
+    PYENV_VERSION=3.6.13
+    query-apple-m1 && PYENV_VERSION=3.8.10 || :
     echo "${PYENV_VERSION}"
 }
 
 # XXX: Fix this check to be more lineant
 query-valid-python-versions() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
-    # set -x
     if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.10 ]; then
         return 0
     else
@@ -116,7 +114,6 @@ start-docker() {
 }
 
 upgrade-pip() {
-    set -x
     pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
 }
 
