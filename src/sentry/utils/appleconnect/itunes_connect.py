@@ -64,6 +64,12 @@ class ForbiddenError(ITunesError):
     pass
 
 
+class SmsBlockedError(ITunesError):
+    """Blocked from requesting more SMS codes for some period of time."""
+
+    pass
+
+
 PublicProviderId = NewType("PublicProviderId", str)
 
 
@@ -326,9 +332,14 @@ class ITunesClient:
     def request_sms_auth(self) -> None:
         """Requests sending the authentication code to a trusted phone.
 
+        :raises SmsBlockedError: if too many requests for the SMS auth code were made.
         :raises ITunesError: if there was an error requesting to use the trusted phone.
         """
-        assert self.state is ClientState.AUTH_REQUESTED, f"Actual client state: {self.state}"
+
+        assert self.state in [
+            ClientState.AUTH_REQUESTED,
+            ClientState.SMS_AUTH_REQUESTED,
+        ], f"Actual client state: {self.state}"
         self._request_trusted_phone_info()
         assert self._trusted_phone is not None
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone"
@@ -348,6 +359,8 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
+        if response.status_code == HTTPStatus.LOCKED:
+            raise SmsBlockedError
         if response.status_code != HTTPStatus.OK:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
         self.state = ClientState.SMS_AUTH_REQUESTED
