@@ -12,8 +12,8 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import ScoreCard, {
   HeaderTitle,
   Score,
+  ScorePanel,
   ScoreWrapper,
-  StyledPanel,
   Trend,
 } from 'app/components/scoreCard';
 import {releaseHealth} from 'app/data/platformCategories';
@@ -342,7 +342,7 @@ const FooterWrapper = styled('div')`
 
 const ScoreCardWrapper = styled('div')`
   margin: ${space(2)} 0 0 ${space(2)};
-  ${StyledPanel} {
+  ${ScorePanel} {
     min-height: auto;
   }
   ${HeaderTitle} {
