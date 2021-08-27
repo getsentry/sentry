@@ -32,6 +32,21 @@ export function createDashboard(
   return promise;
 }
 
+export function updateDashboardVisit(
+  api: Client,
+  orgId: string,
+  dashboardId: string | string[]
+): Promise<void> {
+  const promise: Promise<void> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboardId}/visit/`,
+    {
+      method: 'POST',
+    }
+  );
+
+  return promise;
+}
+
 export function fetchDashboard(
   api: Client,
   orgId: string,

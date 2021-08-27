@@ -78,6 +78,21 @@ export function updateSavedQuery(
   return promise;
 }
 
+export function updateSavedQueryVisit(
+  orgId: string,
+  queryId: string | string[]
+): Promise<SavedQuery> {
+  const api = new Client();
+  const promise: Promise<SavedQuery> = api.requestPromise(
+    `/organizations/${orgId}/discover/saved/${queryId}/visit/`,
+    {
+      method: 'POST',
+    }
+  );
+
+  return promise;
+}
+
 export function deleteSavedQuery(
   api: Client,
   orgId: string,

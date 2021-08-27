@@ -6,6 +6,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {updateSavedQueryVisit} from 'app/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {fetchProjectsCount} from 'app/actionCreators/projects';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -100,11 +101,14 @@ class Results extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, selection} = this.props;
+    const {organization, selection, location} = this.props;
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
+    if (location.query.id) {
+      updateSavedQueryVisit(organization.slug, location.query.id);
+    }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
