@@ -125,6 +125,7 @@ class NodeStorage(local, Service):
         {"message": "hello world"}
         """
         with sentry_sdk.start_span(op="nodestore.get") as span:
+            span.set_tag("node_id", id)
             if subkey is None:
                 item_from_cache = self._get_cache_item(id)
                 if item_from_cache:
