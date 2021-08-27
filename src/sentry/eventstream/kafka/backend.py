@@ -1,8 +1,10 @@
 import logging
 import random
 import signal
+import time
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
-from typing import Any, Generator, Mapping, Optional, Tuple
+from typing import Any, Generator, Mapping, MutableSequence, Optional, Tuple
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -16,13 +18,19 @@ from sentry.eventstream.kafka.protocol import (
 )
 from sentry.eventstream.snuba import SnubaProtocolEventStream
 from sentry.utils import json, kafka, metrics
+from sentry.utils.types import Float
 
 logger = logging.getLogger(__name__)
+
+Message = Any
+__DURATION_METRIC__ = "eventstream.duration"
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
         self.topic = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["topic"]
+        self._pending_futures: MutableSequence[Future] = []
+        self._batch_create_time: Float = time.time() * 1000
 
     @cached_property
     def producer(self):
@@ -137,17 +145,22 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return True
 
+    def _reset_batch(self):
+        self._pending_futures = []
+        self._batch_create_time = time.time() * 1000
+
     def run_post_process_forwarder(
         self,
         consumer_group,
         commit_log_topic,
         synchronize_commit_group,
         commit_batch_size=100,
+        commit_batch_timeout_ms=1000,
         initial_offset_reset="latest",
     ):
         logger.debug("Starting post-process forwarder...")
-
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+        executor = ThreadPoolExecutor()
 
         consumer = SynchronizedConsumer(
             cluster_name=cluster_name,
@@ -231,7 +244,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 
-        def commit_offsets():
+        def commit_offsets() -> None:
             offsets_to_commit = []
             for (topic, partition), offset in owned_partition_offsets.items():
                 if offset is None:
@@ -255,11 +268,32 @@ class KafkaEventStream(SnubaProtocolEventStream):
             logger.debug("Received signal %r, requesting shutdown...", signum)
             shutdown_requested = True
 
+        def process_message(kafka_message: Message) -> None:
+            task_kwargs = self._get_task_kwargs(kafka_message)
+            if not task_kwargs:
+                return
+
+            self._pending_futures.append(
+                executor.submit(self._dispatch_post_process_group_task, **task_kwargs)
+            )
+
+        def collect_results() -> None:
+            # Wait for all futures to complete and reset the batch
+            wait(self._pending_futures)
+            self._reset_batch()
+
         signal.signal(signal.SIGINT, handle_shutdown_request)
         signal.signal(signal.SIGTERM, handle_shutdown_request)
 
         i = 0
         while not shutdown_requested:
+            if (self._pending_futures) and (
+                (i % commit_batch_size == 0)
+                or (((time.time() * 1000) - self._batch_create_time) >= commit_batch_timeout_ms)
+            ):
+                collect_results()
+                commit_offsets()
+
             message = consumer.poll(0.1)
             if message is None:
                 continue
@@ -275,51 +309,37 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
             i = i + 1
             owned_partition_offsets[key] = message.offset() + 1
-
-            use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
-
-            if use_kafka_headers is True:
-                try:
-                    with self.sampled_eventstream_timer(
-                        instance="get_task_kwargs_for_message_from_headers"
-                    ):
-                        task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
-
-                    if task_kwargs is not None:
-                        with self.sampled_eventstream_timer(
-                            instance="dispatch_post_process_group_task"
-                        ):
-                            self._dispatch_post_process_group_task(**task_kwargs)
-
-                except Exception as error:
-                    logger.error("Could not forward message: %s", error, exc_info=True)
-                    self._get_task_kwargs_and_dispatch(message)
-
-            else:
-                self._get_task_kwargs_and_dispatch(message)
-
-            if i % commit_batch_size == 0:
-                commit_offsets()
+            process_message(message)
 
         logger.debug("Committing offsets and closing consumer...")
-        commit_offsets()
-
+        if self._pending_futures:
+            collect_results()
+            commit_offsets()
+        executor.shutdown()
         consumer.close()
 
-    def _get_task_kwargs_and_dispatch(self, message) -> None:
-        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
-            task_kwargs = get_task_kwargs_for_message(message.value())
+    def _get_task_kwargs(self, message: Message) -> Optional[Mapping[str, Any]]:
+        use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
 
-        if task_kwargs is not None:
-            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
-                self._dispatch_post_process_group_task(**task_kwargs)
+        if use_kafka_headers:
+            try:
+                with self.sampled_eventstream_timer(
+                    instance="get_task_kwargs_for_message_from_headers"
+                ):
+                    return get_task_kwargs_for_message_from_headers(message.headers())
+            except Exception as error:
+                logger.error("Could not forward message: %s", error, exc_info=True)
+                with metrics.timer(__DURATION_METRIC__, instance="get_task_kwargs_for_message"):
+                    return get_task_kwargs_for_message(message.value())
+        else:
+            with metrics.timer(__DURATION_METRIC__, instance="get_task_kwargs_for_message"):
+                return get_task_kwargs_for_message(message.value())
 
     @contextmanager
     def sampled_eventstream_timer(self, instance: str) -> Generator[None, None, None]:
-
         record_metric = random.random() < 0.1
         if record_metric is True:
-            with metrics.timer("eventstream.duration", instance=instance):
+            with metrics.timer(__DURATION_METRIC__, instance=instance):
                 yield
         else:
             yield
