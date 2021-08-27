@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from sentry.models import Project
 from sentry.utils.services import Service
@@ -17,53 +17,28 @@ class StringIndexer(Service):  # type: ignore
     and the corresponding reverse lookup.
     """
 
-    __all__ = (
-        "list_metrics",
-        "list_tag_values",
-        "record_metric",
-        "record_tag",
-        "resolve",
-        "reverse_resolve",
-    )
+    __all__ = ("record", "resolve", "reverse_resolve")
 
-    def record_metric(self, project: Project, string: str) -> int:
-        """Store a metric name and return the integer ID generated for it"""
-        raise NotImplementedError
+    def record(self, project: Project, use_case: UseCase, string: str) -> int:
+        """Store a string and return the integer ID generated for it
 
-    def record_tag(self, project: Project, metric: str, key: str, value: str) -> Tuple[int, int]:
-        """Store a key-value pair for a metric.
-        Return the integer IDs corresponding to key and value.
+        With every call to this method, the lifetime of the entry will be
+        prolonged.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def resolve(self, project: Project, use_case: UseCase, string: str) -> Optional[int]:
-        """Get the integer ID corresponding to the given use case and string.
+        """Lookup the integer ID for a string.
 
-        Return None if no entry was found.
+        Does not affect the lifetime of the entry.
+
+        Returns None if the entry cannot be found.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def reverse_resolve(self, project: Project, use_case: UseCase, id: int) -> Optional[str]:
-        """Get the string corresponding to the given use case and integer ID.
+        """Lookup the stored string for a given integer ID.
 
-        Return None if no entry was found.
+        Returns None if the entry cannot be found.
         """
-        raise NotImplementedError
-
-    def list_metrics(self, project: Project) -> List[str]:
-        """Return a list of metric names for this project."""
-        raise NotImplementedError
-
-    def list_tag_keys(self, project: Project, metric: Optional[str]) -> List[str]:
-        """Return a list of tag keys for the given project.
-
-        If `metric` is given, only return tag keys which have been recorded for this metric.
-        """
-        raise NotImplementedError
-
-    def list_tag_values(self, project: Project, tag_key: str, metric: Optional[str]) -> List[str]:
-        """Return a list of tag values for the given tag_key.
-
-        If `metric` is given, only return tag values which have been recorded for this metric.
-        """
-        raise NotImplementedError
+        raise NotImplementedError()
