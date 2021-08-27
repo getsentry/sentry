@@ -331,10 +331,9 @@ class OrganizationReleasesEndpoint(
                     else datetime.utcnow() - timedelta(days=90),
                     filter_params["end"] if filter_params["end"] else datetime.utcnow(),
                 )
-                valid_versions = []
-                for release_version in release_versions:
-                    if release_version not in releases_with_session_data:
-                        valid_versions.append(release_version)
+                valid_versions = [
+                    rv for rv in release_versions if rv not in releases_with_session_data
+                ]
 
                 results = list(
                     Release.objects.filter(
