@@ -144,7 +144,7 @@ const localeCatalogPath = path.join(
 );
 
 type LocaleCatalog = {
-  supported_locales: string[];
+  supported_locales: string;
 };
 
 const localeCatalog: LocaleCatalog = JSON.parse(
