@@ -326,7 +326,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             project_id=self.project1.id,
             release_id=self.release.id,
             environment_id=self.environment.id,
-            adopted__gte=now,
+            adopted=now, # doesn't get updated, unadopted just gets set to null
             unadopted=None,
         ).exists()
 

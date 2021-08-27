@@ -133,13 +133,12 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
 
 percent_intervals = {
-    "1m": ("1 minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
     "30m": ("30 minutes", timedelta(minutes=30)),
     "1h": ("1 hour", timedelta(minutes=60)),
 }
-MIN_SESSIONS_TO_FIRE = 250
+MIN_SESSIONS_TO_FIRE = 0
 
 
 class EventFrequencyPercentForm(EventFrequencyForm):
