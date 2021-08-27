@@ -1,13 +1,9 @@
-import styled from '@emotion/styled';
 import {ASAP} from 'downsample/methods/ASAP';
 import {Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'app/components/charts/utils';
-import Duration from 'app/components/duration';
-import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
@@ -179,13 +175,7 @@ export function transformDeltaSpread(from: number, to: number) {
 
   const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
 
-  return (
-    <span>
-      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
-      <StyledIconArrow direction="right" size="xs" />
-      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
-    </span>
-  );
+  return {fromSeconds, toSeconds, showDigits};
 }
 
 export function getTrendProjectId(
@@ -272,11 +262,8 @@ export function transformValueDelta(value: number, trendType: TrendChangeType) {
   const seconds = absoluteValue / 1000;
 
   const fixedDigits = absoluteValue > 1000 || absoluteValue < 10 ? 1 : 0;
-  return (
-    <span>
-      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
-    </span>
-  );
+
+  return {seconds, fixedDigits, changeLabel};
 }
 
 /**
@@ -390,7 +377,3 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     smoothedResults,
   };
 }
-
-export const StyledIconArrow = styled(IconArrow)`
-  margin: 0 ${space(1)};
-`;

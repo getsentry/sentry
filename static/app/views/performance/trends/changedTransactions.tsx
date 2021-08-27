@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DropdownLink from 'app/components/dropdownLink';
+import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
@@ -18,7 +19,7 @@ import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
-import {IconEllipsis} from 'app/icons';
+import {IconArrow, IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -51,7 +52,6 @@ import {
   getTrendProjectId,
   modifyTrendView,
   normalizeTrends,
-  StyledIconArrow,
   transformDeltaSpread,
   transformValueDelta,
   trendCursorNames,
@@ -479,23 +479,37 @@ function TrendsListItem(props: TrendsListItemProps) {
         <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
-        <Fragment>
-          {transformValueDelta(transaction.trend_difference, trendChangeType)}
-        </Fragment>
+        <ValueDelta {...props} />
       </ItemTransactionStatus>
     </ListItemContainer>
   );
 }
 
-type CompareLinkProps = TrendsListItemProps & {};
-
-const CompareDurations = (props: CompareLinkProps) => {
-  const {transaction} = props;
+const CompareDurations = ({transaction}: TrendsListItemProps) => {
+  const {fromSeconds, toSeconds, showDigits} = transformDeltaSpread(
+    transaction.aggregate_range_1,
+    transaction.aggregate_range_2
+  );
 
   return (
     <DurationChange>
-      {transformDeltaSpread(transaction.aggregate_range_1, transaction.aggregate_range_2)}
+      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
+      <StyledIconArrow direction="right" size="xs" />
+      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
     </DurationChange>
+  );
+};
+
+const ValueDelta = ({transaction, trendChangeType}: TrendsListItemProps) => {
+  const {seconds, fixedDigits, changeLabel} = transformValueDelta(
+    transaction.trend_difference,
+    trendChangeType
+  );
+
+  return (
+    <span>
+      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
+    </span>
   );
 };
 
@@ -609,6 +623,10 @@ const TooltipContent = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
+`;
+
+const StyledIconArrow = styled(IconArrow)`
+  margin: 0 ${space(1)};
 `;
 
 export default withApi(withProjects(withOrganization(ChangedTransactions)));
