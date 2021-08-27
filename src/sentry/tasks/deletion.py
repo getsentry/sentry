@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 5
 
 
-@instrumented_task(name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup")
+@instrumented_task(
+    name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup", acks_late=True
+)
 def run_scheduled_deletions():
     from sentry.models import ScheduledDeletion
 
@@ -39,6 +41,7 @@ def run_scheduled_deletions():
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def run_deletion(deletion_id):
@@ -77,6 +80,7 @@ def run_deletion(deletion_id):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
@@ -110,6 +114,7 @@ def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs):
@@ -147,6 +152,7 @@ def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs)
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_team(object_id, transaction_id=None, **kwargs):
@@ -180,6 +186,7 @@ def delete_team(object_id, transaction_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_project(object_id, transaction_id=None, **kwargs):
@@ -209,6 +216,7 @@ def delete_project(object_id, transaction_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
@@ -245,6 +253,7 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_api_application(object_id, transaction_id=None, **kwargs):
@@ -274,6 +283,7 @@ def delete_api_application(object_id, transaction_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_id=None, **kwargs):
@@ -322,6 +332,7 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
@@ -363,6 +374,7 @@ def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_organization_integration(object_id, transaction_id=None, actor_id=None, **kwargs):
