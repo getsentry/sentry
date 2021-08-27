@@ -752,31 +752,32 @@ class ProjectUpdateTest(APITestCase):
         assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
 
     def test_redacted_symbol_source_secrets(self):
-        redacted_source = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "filetypes": ["pe"],
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
-        self.get_valid_response(
-            self.org_slug, self.proj_slug, symbolSources=json.dumps(redacted_source)
-        )
-        assert self.project.get_option("sentry:symbol_sources") == json.dumps(redacted_source)
+        with Feature({"organizations:symbol-sources": True}):
+            redacted_source = {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {
+                    "type": "native",
+                },
+                "filetypes": ["pe"],
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "beepbeep",
+            }
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps(redacted_source)
+            )
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps(redacted_source)
 
-        # redact password
-        redacted_source["password"] = {"hidden-secret": True}
-        self.get_valid_response(
-            self.org_slug, self.proj_slug, symbolSources=json.dumps(redacted_source)
-        )
-        # on save the magic object should be replaced with the previously set password
-        redacted_source["password"] = "beepbeep"
-        assert self.project.get_option("sentry:symbol_sources") == json.dumps(redacted_source)
+            # redact password
+            redacted_source["password"] = {"hidden-secret": True}
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps(redacted_source)
+            )
+            # on save the magic object should be replaced with the previously set password
+            redacted_source["password"] = "beepbeep"
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps(redacted_source)
 
 
 class CopyProjectSettingsTest(APITestCase):
