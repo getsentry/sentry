@@ -36,6 +36,9 @@ def add_email(email, user):
     if email is None:
         raise InvalidEmailError
 
+    if UserEmail.objects.filter(user=user, email__iexact=email).exists():
+        raise DuplicateEmailError
+
     try:
         with transaction.atomic():
             new_email = UserEmail.objects.create(user=user, email=email)

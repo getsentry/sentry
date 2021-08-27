@@ -42,6 +42,13 @@ class UserEmailsTest(APITestCase):
         response = self.client.post(self.url, data={"email": "altemail1@example.com"})
         assert response.status_code == 200, response.data
 
+    def test_cant_have_same_email_with_different_casing(self):
+        user = self.create_user(email="FOOBAR@example.com")
+        self.login_as(user=user)
+        url = reverse("sentry-api-0-user-emails", kwargs={"user_id": user.id})
+        response = self.client.post(url, data={"email": "foobar@example.com"})
+        assert response.status_code == 200, response.data
+
     def test_change_verified_secondary_to_primary(self):
         UserEmail.objects.create(user=self.user, email="altemail1@example.com", is_verified=True)
         response = self.client.put(self.url, data={"email": "altemail1@example.com"})

@@ -20,6 +20,14 @@ class UserEmailsConfirmTest(APITestCase):
         send_confirm_email.assert_called_once_with(UserEmail.objects.get(email="bar@example.com"))
 
     @mock.patch("sentry.models.User.send_confirm_email_singular")
+    def test_can_confirm_with_uppercase(self, send_confirm_email):
+        email = UserEmail.objects.create(email="Bar@example.com", is_verified=False, user=self.user)
+        email.save()
+
+        self.get_valid_response(self.user.id, email="Bar@example.com", status_code=204)
+        send_confirm_email.assert_called_once_with(UserEmail.objects.get(email="Bar@example.com"))
+
+    @mock.patch("sentry.models.User.send_confirm_email_singular")
     def test_cant_confirm_verified_email(self, send_confirm_email):
         email = UserEmail.objects.create(email="bar@example.com", is_verified=True, user=self.user)
         email.save()
